@@ -25,11 +25,13 @@ struct StellarEngineTests {
     /// Horizon de mentira com as gravacoes. `owner` troca a conta do dono (as duas
     /// Horizons), `paths` troca as cotacoes.
     static func network(
-        owner: [String: Data]? = nil, operations: Data? = nil, paths: [String: String] = [:],
+        owner: [String: Data]? = nil, operations: Data? = nil, paths: [String: String] = [:], pathsB: [String: String]? = nil,
         submission: @escaping @Sendable (Data) -> Data? = { _ in nil }
     ) throws -> FakeHTTP {
         let fake = FakeHTTP()
         for (host, name) in [("horizon-a.test", "sdf"), ("horizon-b.test", "lobstr")] {
+            // `pathsB`: a segunda Horizon cota diferente da primeira.
+            let paths = host == "horizon-b.test" ? (pathsB ?? paths) : paths
             fake.on("\(host)/accounts/\(Self.owner)", data: try owner?[name] ?? EngineFixture.data("stellar", "account-dono-\(name).json"))
             fake.on("\(host)/accounts/\(memoRequired)", data: try EngineFixture.data("stellar", "account-memo-\(name).json"))
             fake.on("\(host)/accounts/\(plain)", data: try EngineFixture.data("stellar", "account-comum-\(name).json"))
@@ -239,9 +241,62 @@ struct StellarTradeTests {
         TradeRequest(walletID: UUID(), chain: .stellar, account: TestAccounts.stellar, sell: sell, buy: buy, amountIn: amount, slippageBasisPoints: bps)
     }
 
+    /// Oraculo fora do ar: a troca segue com as duas Horizons, sem a sanidade.
+    static let noPrices = FakeOracle(prices: nil)
+
+    static func engine(_ fake: FakeHTTP, prices: FakeOracle = noPrices) -> StellarTradeEngine {
+        StellarTradeEngine(reader: S.reader(fake), prices: prices)
+    }
+
+    @Test("Regressao A1: as duas Horizons cotam e o minimo ancora na maior; uma fora do ar recusa")
+    func anchorsOnHigher() async throws {
+        // A segunda Horizon cota 20 USDC: o minimo continua o da maior (21,7308710).
+        for (a, b) in [(nil, "paths-xlm-usdc-baixa.json"), ("paths-xlm-usdc-baixa.json", nil)] as [(String?, String?)] {
+            let fake = try S.network(paths: a.map { ["100.0000000": $0] } ?? [:], pathsB: b.map { ["100.0000000": $0] } ?? [:])
+            let engine = Self.engine(fake)
+            let quote = try await engine.quote(Self.request())
+            #expect(quote.expectedOut == 217_308_710 && quote.minimumOut == 216_222_166)
+            let plan = try await engine.plan(Self.request(), quote: quote)
+            #expect(StellarTradeEngine.swap(in: plan)?.destMin == 216_222_166)
+            #expect(fake.requests.filter { $0.url.path.hasSuffix("paths/strict-send") && $0.url.host == "horizon-b.test" }.count >= 2)
+        }
+        // Uma Horizon so nao cota a troca.
+        let fake = try S.network()
+        fake.on("horizon-b.test/paths/strict-send", status: 503)
+        await #expect(throws: SendEngineError.self) { _ = try await Self.engine(fake).quote(Self.request()) }
+    }
+
+    @Test("Regressao A1: rota por ativo fora da lista e ignorada, mesmo cotando mais; o planejador tambem recusa")
+    func pathOnlyThroughListedAssets() async throws {
+        let fake = try S.network(paths: ["100.0000000": "paths-xlm-usdc-intermediario.json"], pathsB: ["100.0000000": "paths-xlm-usdc-baixa.json"])
+        let quote = try await Self.engine(fake).quote(Self.request())
+        // A de 30 USDC passa por um "USDC" de outro emissor: fica de fora; vale a maior das diretas (20).
+        #expect(quote.expectedOut == 200_000_000)
+        let plan = try await Self.engine(fake).plan(Self.request(), quote: quote)
+        guard case .pathPaymentStrictSend(_, _, _, _, _, let path)? = try S.operations(plan).last else { Issue.record("esperava path payment"); return }
+        #expect(path.isEmpty)
+    }
+
+    @Test("Referencia de mercado: mais de 5% pior recusa; entre 2% e 5% a revisao diz quanto")
+    func marketReference() async throws {
+        // 100 XLM cotados a 21,7308710 USDC.
+        let far = FakeOracle(prices: ["stellar": "0.24", "usd-coin": "1"])
+        await #expect(throws: SendEngineError.message(MarketReference.farText(deviationBps: 945))) {
+            _ = try await Self.engine(try S.network(), prices: far).quote(Self.request())
+        }
+        let near = FakeOracle(prices: ["stellar": "0.224", "usd-coin": "1"])
+        let engine = Self.engine(try S.network(), prices: near)
+        let quote = try await engine.quote(Self.request())
+        let plan = try await engine.plan(Self.request(), quote: quote)
+        #expect(plan.review.lines.contains { $0.label == "Preço de referência" && $0.value == "2,98% pior que o preço médio de mercado" })
+        let fair = Self.engine(try S.network(), prices: FakeOracle(prices: ["stellar": "0.2173087", "usd-coin": "1"]))
+        let calm = try await fair.plan(Self.request(), quote: try await fair.quote(Self.request()))
+        #expect(!calm.review.lines.contains { $0.label == "Preço de referência" })
+    }
+
     @Test("Cotacao: a melhor rota da Horizon, o minimo pela tolerancia e o impacto contra uma troca pequena")
     func quote() async throws {
-        let engine = StellarTradeEngine(reader: S.reader(try S.network()))
+        let engine = Self.engine(try S.network())
         let quote = try await engine.quote(Self.request())
         #expect(quote.expectedOut == 217_308_710)
         #expect(quote.minimumOut == 216_222_166)  // 217.308.710 x 9.950 / 10.000, para baixo
@@ -253,7 +308,7 @@ struct StellarTradeTests {
 
     @Test("Plano: path payment para a propria conta, com destMin igual ao minimo da cotacao")
     func plan() async throws {
-        let engine = StellarTradeEngine(reader: S.reader(try S.network()))
+        let engine = Self.engine(try S.network())
         let request = Self.request()
         let quote = try await engine.quote(request)
         let plan = try await engine.plan(request, quote: quote)
@@ -280,7 +335,7 @@ struct StellarTradeTests {
             json["balances"] = (json["balances"] as? [[String: Any]])?.filter { $0["asset_code"] as? String != "USDC" }
             owner[name] = try JSONSerialization.data(withJSONObject: json)
         }
-        let engine = StellarTradeEngine(reader: S.reader(try S.network(owner: owner)))
+        let engine = Self.engine(try S.network(owner: owner))
         let quote = try await engine.quote(Self.request())
         let plan = try await engine.plan(Self.request(), quote: quote)
         let operations = try S.operations(plan)
@@ -292,11 +347,11 @@ struct StellarTradeTests {
 
     @Test("Preco que piorou alem do minimo entre a cotacao e o plano, e cotacao vencida: recusa antes de assinar")
     func stalePrice() async throws {
-        let quote = try await StellarTradeEngine(reader: S.reader(try S.network())).quote(Self.request())
+        let quote = try await Self.engine(try S.network()).quote(Self.request())
         // A rota agora entrega menos que o minimo (troca feita aqui na gravacao).
         let worse = try S.network(paths: ["100.0000000": "paths-xlm-usdc-referencia.json"])
         await #expect(throws: SendEngineError.message(TradeMath.priceMoved)) {
-            _ = try await StellarTradeEngine(reader: S.reader(worse)).plan(Self.request(), quote: quote)
+            _ = try await Self.engine(worse).plan(Self.request(), quote: quote)
         }
         let expired = TradeQuote(
             sell: quote.sell, buy: quote.buy, amountIn: quote.amountIn, expectedOut: quote.expectedOut, minimumOut: quote.minimumOut,
@@ -304,16 +359,16 @@ struct StellarTradeTests {
             needsApproval: false, expiresAt: Date().addingTimeInterval(-1)
         )
         await #expect(throws: SendEngineError.self) {
-            _ = try await StellarTradeEngine(reader: S.reader(try S.network())).plan(Self.request(), quote: expired)
+            _ = try await Self.engine(try S.network()).plan(Self.request(), quote: expired)
         }
         await #expect(throws: SendEngineError.self) {
-            _ = try await StellarTradeEngine(reader: S.reader(try S.network())).quote(Self.request(bps: 600))
+            _ = try await Self.engine(try S.network()).quote(Self.request(bps: 600))
         }
     }
 
     @Test("Ordem limite: ManageSellOffer com o preco calculado do minimo digitado")
     func limitOrder() async throws {
-        let engine = StellarTradeEngine(reader: S.reader(try S.network()))
+        let engine = Self.engine(try S.network())
         let plan = try await engine.planLimitOrder(LimitOrderRequest(
             walletID: UUID(), chain: .stellar, account: TestAccounts.stellar, sell: S.usdc, buy: S.xlm,
             amountIn: 100_000_000, minimumOut: 500_000_000, validFor: 86_400

@@ -12,8 +12,8 @@ import Foundation
 /// - destino: os dois sao consultados. Existencia tem de concordar, e basta um dizer
 ///   que o memo e obrigatorio (SEP-29) para ser obrigatorio: um provedor que esconde
 ///   o `config.memo_required` faria o deposito numa exchange se perder;
-/// - rede, cotacao e ofertas: um provedor. O planejamento poe teto na taxa, confere a
-///   reserva numa faixa e calcula o minimo da troca a partir da tolerancia.
+/// - cotacao da troca: as duas (`quoteStrictSendOnBoth`), e o minimo ancora na maior;
+/// - rede: um provedor. O planejamento poe teto na taxa e confere a reserva numa faixa.
 public struct StellarReader: Sendable {
     let pool: ProviderPool
     let transport: ChainReaderTransport
@@ -205,16 +205,47 @@ public struct StellarReader: Sendable {
     /// minimo a partir dele e da tolerancia, e a rede garante o minimo. Um provedor
     /// mentindo aqui faz, no pior caso, a troca falhar ou sair pela rota pior dentro
     /// da tolerancia. nil quando nao ha rota.
-    public func quoteStrictSend(send: StellarAsset, amount: BigUInt, receive: StellarAsset) async throws -> StellarPathQuote? {
-        guard !amount.isZero, send != receive else { return nil }
-        let sourceAmount = DecimalUnits.format(amount, decimals: Self.decimals)
-        let destination = receive.issuer.map { "\(receive.code):\($0.address)" } ?? "native"
-        let query = Self.assetQuery(send, prefix: "source_") + [
-            URLQueryItem(name: "source_amount", value: sourceAmount), URLQueryItem(name: "destination_assets", value: destination),
-        ]
+    public func quoteStrictSend(
+        send: StellarAsset, amount: BigUInt, receive: StellarAsset, allowedPath: [StellarAsset]? = nil
+    ) async throws -> StellarPathQuote? {
+        guard let query = Self.strictSendQuery(send: send, amount: amount, receive: receive) else { return nil }
         let page = try await first { provider in
             try await self.get(HorizonPage<HorizonPath>.self, provider, "paths/strict-send", query)
         }
+        return try Self.best(page, send: send, amount: amount, receive: receive, allowedPath: allowedPath)
+    }
+
+    /// A mesma cotacao nas duas Horizons, cada uma com a sua melhor rota (nil: aquela
+    /// Horizon nao achou rota). As duas tem de responder.
+    ///
+    /// Com uma Horizon so, ela escolhia a rota e o numero de onde sai o minimo: bastava
+    /// cotar baixo para a troca garantir menos (auditoria 2, A1). Com as duas, a troca
+    /// ancora o minimo na maior; uma Horizon que infla a cotacao so faz a troca falhar.
+    /// `allowedPath`: os unicos ativos por onde a rota pode passar.
+    public func quoteStrictSendOnBoth(
+        send: StellarAsset, amount: BigUInt, receive: StellarAsset, allowedPath: [StellarAsset]
+    ) async throws -> [StellarPathQuote?] {
+        guard let query = Self.strictSendQuery(send: send, amount: amount, receive: receive) else { return [nil, nil] }
+        let pages = try await both { provider in
+            try await self.get(HorizonPage<HorizonPath>.self, provider, "paths/strict-send", query)
+        }
+        return try pages.map { try Self.best($0, send: send, amount: amount, receive: receive, allowedPath: allowedPath) }
+    }
+
+    static func strictSendQuery(send: StellarAsset, amount: BigUInt, receive: StellarAsset) -> [URLQueryItem]? {
+        guard !amount.isZero, send != receive else { return nil }
+        let sourceAmount = DecimalUnits.format(amount, decimals: Self.decimals)
+        let destination = receive.issuer.map { "\(receive.code):\($0.address)" } ?? "native"
+        return Self.assetQuery(send, prefix: "source_") + [
+            URLQueryItem(name: "source_amount", value: sourceAmount), URLQueryItem(name: "destination_assets", value: destination),
+        ]
+    }
+
+    /// A rota que mais entrega, entre as que sao do par e do valor pedidos e so passam
+    /// por `allowedPath` (quando dado).
+    static func best(
+        _ page: HorizonPage<HorizonPath>, send: StellarAsset, amount: BigUInt, receive: StellarAsset, allowedPath: [StellarAsset]?
+    ) throws -> StellarPathQuote? {
         var best: StellarPathQuote?
         for (index, record) in page.embedded.records.enumerated() {
             let field = "paths.\(index)"
@@ -228,6 +259,7 @@ public struct StellarReader: Sendable {
             else { continue }
             let path = try record.path.map { try $0.asset(field: field) }
             guard path.count <= Self.maxPathLength, !path.contains(send), !path.contains(receive) else { continue }
+            if let allowedPath, !path.allSatisfy({ allowedPath.contains($0) }) { continue }
             let received = try DecimalUnits.parse(record.destinationAmount, decimals: Self.decimals, field: field)
             if received > (best?.receiveAmount ?? BigUInt()) {
                 best = StellarPathQuote(sendAsset: send, sendAmount: amount, receiveAsset: receive, receiveAmount: received, path: path)

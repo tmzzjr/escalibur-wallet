@@ -308,14 +308,14 @@ struct StellarPlannerTests {
         // Sem trustline do ativo comprado: ChangeTrust no mesmo tx, uma assinatura.
         let opening = try StellarPlanner.planSwap(
             send: .native, amount: 10 * Self.xlm, receive: Self.usdc, quotedReceive: 25_000_000,
-            slippageBasisPoints: 50, path: [Self.fakeUSDC], context: try context(subentries: 0, trustlines: [])
+            slippageBasisPoints: 50, context: try context(subentries: 0, trustlines: [])
         )
         let tx = try transaction(opening).tx
         #expect(tx.fee == 200)
         #expect(tx.operations.count == 2)
         #expect(tx.operations[0] == StellarOperation(.changeTrust(asset: Self.usdc, limit: Int64.max)))
         #expect(opening.review.lines.contains(PlanReview.Line("Tolerância", "0,5%")))
-        #expect(opening.review.lines.contains(PlanReview.Line("Rota", "XLM > USDC > USDC")))
+        #expect(opening.review.lines.contains(PlanReview.Line("Rota", "XLM > USDC")))
 
         let ctx = try context()
         #expect(throws: StellarPlanError.slippageTooHigh(maxBasisPoints: 500)) {
@@ -334,6 +334,28 @@ struct StellarPlannerTests {
             try StellarPlanner.planSwap(send: .native, amount: Self.xlm, receive: Self.usdc, quotedReceive: Self.xlm,
                                         slippageBasisPoints: 100, path: Array(repeating: Self.fakeUSDC, count: 6), context: ctx)
         }
+        // Regressao A1: a rota so passa por ativos da lista, nunca por um dos lados.
+        #expect(throws: StellarPlanError.pathAssetNotAllowed(Self.fakeUSDC)) {
+            try StellarPlanner.planSwap(send: .native, amount: Self.xlm, receive: Self.usdc, quotedReceive: Self.xlm,
+                                        slippageBasisPoints: 100, path: [Self.fakeUSDC], context: ctx)
+        }
+        #expect(throws: StellarPlanError.pathAssetNotAllowed(.native)) {
+            try StellarPlanner.planSwap(send: .native, amount: Self.xlm, receive: Self.usdc, quotedReceive: Self.xlm,
+                                        slippageBasisPoints: 100, path: [.native], context: ctx)
+        }
+        #expect(throws: StellarPlanError.pathAssetNotAllowed(Self.usdc)) {
+            try StellarPlanner.planSwap(send: .native, amount: Self.xlm, receive: Self.usdc, quotedReceive: Self.xlm,
+                                        slippageBasisPoints: 100, path: [Self.usdc], context: ctx)
+        }
+        // Referencia de mercado: 10 XLM valem 2,5 USDC; cotar 2,36 (5,6% pior) recusa, 2,43 (2,8%) avisa.
+        let reference = TradeMarketReference(oracleOut: 25_000_000)
+        #expect(throws: StellarPlanError.priceFarFromReference(deviationBasisPoints: 560)) {
+            try StellarPlanner.planSwap(send: .native, amount: 10 * Self.xlm, receive: Self.usdc, quotedReceive: 23_600_000,
+                                        slippageBasisPoints: 100, reference: reference, context: ctx)
+        }
+        let warned = try StellarPlanner.planSwap(send: .native, amount: 10 * Self.xlm, receive: Self.usdc, quotedReceive: 24_300_000,
+                                                 slippageBasisPoints: 100, reference: reference, context: ctx)
+        #expect(warned.review.lines.contains(PlanReview.Line("Preço de referência", "2,8% pior que o preço médio de mercado")))
         // Vendendo USDC: sai do saldo da trustline (50), a taxa sai do XLM.
         #expect(throws: StellarPlanError.insufficientBalance(available: 50 * Self.xlm, required: 60 * Self.xlm, asset: Self.usdc)) {
             try StellarPlanner.planSwap(send: Self.usdc, amount: 60 * Self.xlm, receive: .native, quotedReceive: Self.xlm, slippageBasisPoints: 100, context: ctx)

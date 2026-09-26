@@ -29,6 +29,10 @@ public enum StellarPlanError: Error, Equatable, Sendable {
     case minimumReceiveZero
     case priceNotRepresentable
     case tooManyPathHops
+    /// A rota passa por um ativo fora da lista curada (ou volta por um dos lados).
+    case pathAssetNotAllowed(StellarAsset)
+    /// A cotacao fica mais de 5% pior que o preco de referencia do mercado.
+    case priceFarFromReference(deviationBasisPoints: Int)
     case invalidOfferID
     case stateForAnotherAccount
     case sequenceOverflow
@@ -91,6 +95,10 @@ public enum StellarPlanError: Error, Equatable, Sendable {
             return "Este preço não cabe na fração que a Stellar usa. Ajuste os valores."
         case .tooManyPathHops:
             return "A rota tem mais de 5 ativos intermediários."
+        case .pathAssetNotAllowed:
+            return "A rota da troca passa por um ativo fora da lista da carteira. Troca bloqueada."
+        case .priceFarFromReference(let deviation):
+            return "A cotação está \(StellarPlanner.percentText(basisPoints: UInt32(clamping: deviation))) pior que o preço de referência do mercado. Troca bloqueada."
         case .invalidOfferID:
             return "Oferta inválida."
         case .stateForAnotherAccount:
@@ -245,10 +253,18 @@ public enum StellarPlanner {
     /// sai exatamente `sendAmount` e entra pelo menos `destMin`, seja qual for a
     /// rota. Se a conta ainda nao aceita o ativo comprado, o `ChangeTrust` vai na
     /// mesma transacao (uma assinatura, atomico).
+    ///
+    /// A rota so passa por ativos da lista curada (ou XLM), nunca por um dos dois lados:
+    /// um intermediario qualquer e um livro que um atacante monta com dois centavos, e a
+    /// rede aceitaria entregar o minimo por ali (regressao da auditoria 2, A1).
+    ///
+    /// `reference` e o preco de mercado para `sendAmount`: a cotacao mais de 5% pior que
+    /// ele recusa, e acima de 2% a revisao diz quanto.
     public static func planSwap(
         send sendAsset: StellarAsset, amount sendAmount: BigUInt,
         receive receiveAsset: StellarAsset, quotedReceive: BigUInt,
         slippageBasisPoints: UInt32, path: [StellarAsset] = [],
+        reference: TradeMarketReference = .none,
         context: StellarPlanContext
     ) throws -> SigningPlan {
         try check(context)
@@ -260,6 +276,15 @@ public enum StellarPlanner {
             throw StellarPlanError.slippageTooHigh(maxBasisPoints: StellarLimits.maxSlippageBasisPoints)
         }
         guard path.count <= StellarOperation.maxPathLength else { throw StellarPlanError.tooManyPathHops }
+        for hop in path where hop == sendAsset || hop == receiveAsset || !(hop.isNative || context.isAllowed(hop)) {
+            throw StellarPlanError.pathAssetNotAllowed(hop)
+        }
+        let deviation: Int?
+        do {
+            deviation = try reference.check(expected: quotedReceive)
+        } catch TradeRefusal.priceFarFromOracle(let bps) {
+            throw StellarPlanError.priceFarFromReference(deviationBasisPoints: bps)
+        }
         let sendValue = try int64(sendAmount)
         let destMin = quotedReceive * BigUInt(10_000 - slippageBasisPoints) / BigUInt(10_000)
         guard !destMin.isZero else { throw StellarPlanError.minimumReceiveZero }
@@ -292,6 +317,11 @@ public enum StellarPlanner {
             PlanReview.Line("Tolerância", percentText(basisPoints: slippageBasisPoints)),
             PlanReview.Line("Rota", route),
         ]
+        if TradeMarketReference.warns(deviation), let deviation {
+            lines.append(PlanReview.Line(
+                "Preço de referência", "\(percentText(basisPoints: UInt32(clamping: deviation))) pior que o preço médio de mercado"
+            ))
+        }
         lines += assetLines(sendAsset, label: "Emissor de \(sendAsset.code)")
         lines += assetLines(receiveAsset, label: "Emissor de \(receiveAsset.code)")
         lines += extraLines + feeLines(fee, operations: bodies.count)
