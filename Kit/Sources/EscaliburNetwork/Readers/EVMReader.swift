@@ -147,6 +147,53 @@ public actor EVMReader {
         return EVMTokenState(contractHasCode: try await code, balance: try await balance, allowance: allowance)
     }
 
+    /// `eth_getCode` de um endereco, com dois provedores concordando no bloco fixado. O
+    /// motor de envio diz ao dono, antes do valor, que o destino e contrato (ou conta com
+    /// delegacao EIP-7702), e nao uma carteira comum.
+    public func hasCode(chain: Chain, address: EVMAddress) async throws -> Bool {
+        let (pool, providers) = try await eligible(chain)
+        let pin = try await pinnedBlock(chain, pool: pool, providers: providers)
+        return try await hasCode(chain, address, block: pin, pool: pool, providers: providers)
+    }
+
+    /// O que um provedor respondeu ao `eth_call` da transacao exata.
+    enum CallOutcome: Sendable, Equatable {
+        case returned([UInt8])
+        case reverted
+    }
+
+    /// Executa a transacao exata que vai ser assinada (`from`, `to`, `value`, `data`) com
+    /// `eth_call`, no bloco fixado, em dois provedores diferentes. Devolve os dados de
+    /// retorno so se os dois executaram sem reverter e devolveram o mesmo.
+    ///
+    /// Revert conta como resposta, nao como falha do provedor: se um dos dois reverte, a
+    /// transacao falharia com o estado de agora, e o erro e `executionReverted`. Retornos
+    /// diferentes sao `providersDisagree`. Nenhum dos dois casos cai para uma resposta so.
+    public func simulateCall(chain: Chain, from: EVMAddress, to: EVMAddress, value: BigUInt, data: [UInt8]) async throws -> [UInt8] {
+        let (pool, providers) = try await eligible(chain)
+        let pin = try await pinnedBlock(chain, pool: pool, providers: providers)
+        var object: [String: StrictJSON] = [
+            "from": .string(from.checksummed), "to": .string(to.checksummed), "data": .string(Hex.encode(data, prefix: true)),
+        ]
+        if !value.isZero { object["value"] = .string(value.hexString) }
+        let params: [StrictJSON] = [.object(object), .string(pin)]
+        let transport = self.transport
+        let answers = try await Quorum.collect(providers, pool: pool, count: 2) { provider -> CallOutcome in
+            try await self.verify(provider, chain: chain)
+            do {
+                return .returned(try await Self.call(transport, provider.baseURL, "eth_call", params).hexData("eth_call"))
+            } catch ReaderError.executionReverted {
+                return .reverted
+            }
+        }
+        let outcomes = answers.map(\.value)
+        guard !outcomes.contains(.reverted) else { throw ReaderError.executionReverted }
+        guard case .returned(let returned) = outcomes[0], outcomes.allSatisfy({ $0 == outcomes[0] }) else {
+            throw ReaderError.providersDisagree(field: "eth_call")
+        }
+        return returned
+    }
+
     // MARK: Transmissao e acompanhamento
 
     /// Transmite os mesmos bytes assinados a dois provedores. Aceita se pelo menos um
