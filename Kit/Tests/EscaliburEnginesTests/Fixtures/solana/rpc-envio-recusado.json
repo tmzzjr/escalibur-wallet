@@ -1,0 +1,8 @@
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32002,
+    "message": "Transaction simulation failed: Attempt to debit an account but found no record of a prior credit."
+  },
+  "id": 1
+}
