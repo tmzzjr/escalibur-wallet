@@ -29,6 +29,10 @@ targets:
       - package: EscaliburKit
         product: EscaliburCore
       - package: EscaliburKit
+        product: EscaliburChains
+      - package: EscaliburKit
+        product: EscaliburKeys
+      - package: EscaliburKit
         product: EscaliburNetwork
     settings:
       base:

@@ -7,43 +7,103 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0B7E83EED78DFCB68FCE521B /* MarketView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BADB432EFAFD601991FB0A /* MarketView.swift */; };
 		0BD31CF923D94F41C7BF61FE /* FORMATO.md in Resources */ = {isa = PBXBuildFile; fileRef = CF3019F2F06749CD522B32AB /* FORMATO.md */; };
 		12BD568C64CF45967323782A /* EscaliburCore in Frameworks */ = {isa = PBXBuildFile; productRef = A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */; };
 		17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */; };
+		2468359EF9FB1503F19395D5 /* AuthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D423B66DA20C4DA018418902 /* AuthCoordinator.swift */; };
+		26ABABDDB73200E71CD0D50F /* WalletHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E3E554F1FF4F3B1B0A077A6 /* WalletHomeView.swift */; };
+		271A5135782331B746AC5833 /* VoiceGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C114911EA7725CA6C7171D11 /* VoiceGate.swift */; };
 		2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E6EBFF95E21A9523382BC5 /* Format.swift */; };
+		32C85CC66E71ADDE142F2B2C /* OpenEnvelopeFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */; };
 		3436AC2D44A808B71561FBA0 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E67A652A823737F6EAC7745 /* RootView.swift */; };
+		3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09712057581F9378B87996C5 /* PasswordCost.swift */; };
+		39A4945DC4DAEFEDE0DBEB1F /* PINPad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 781A92DCAC657FBE12804D78 /* PINPad.swift */; };
+		57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C53992781573FB54743C00 /* SecureInputField.swift */; };
+		5848F371CF905048C9ABA616 /* RecordWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5287E825D53043F109D791D /* RecordWordsView.swift */; };
+		5E9A7A552DC87E261A506B48 /* EscaliburKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 0911AD585A30024A352B31B6 /* EscaliburKeys */; };
 		6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B2519CA657D4A05E4C4A06 /* Metrics.swift */; };
+		764A13E8CD7AFD1D2F471CDF /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */; };
 		76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0C91AC7C8CD9C5B8D31703 /* Components.swift */; };
 		7A74109E68924D0D8E3AC608 /* decifrar.py in Resources */ = {isa = PBXBuildFile; fileRef = 878FC0383FDC934FC98F0EA0 /* decifrar.py */; };
+		7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09754506E0869351661279D1 /* SendFlow.swift */; };
+		8A3A9028D49AF27A483E090C /* EscaliburNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = C09378074DCB9273C75F8FA1 /* EscaliburNetwork */; };
+		8AD9BAAFA95723925CCB3A6D /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10914896D99BB58942178E3 /* Router.swift */; };
+		8C41E86F595FADDBED53F5FB /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */; };
 		90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E9C686393C93E1E34895B /* PlatformGuards.swift */; };
-		93415D653E703DD5BF6B4C78 /* EscaliburNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = C09378074DCB9273C75F8FA1 /* EscaliburNetwork */; };
+		91F8E34E141C393E6B6C5CE6 /* AddWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634FB486C1AC19A1DC738122 /* AddWalletView.swift */; };
+		93415D653E703DD5BF6B4C78 /* EscaliburChains in Frameworks */ = {isa = PBXBuildFile; productRef = 10B4A1AD96C0179B1C450517 /* EscaliburChains */; };
+		94C21BC26784B1AD6AE63CB8 /* NewWalletFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15276BF5A254093B41A55B40 /* NewWalletFlow.swift */; };
+		94DBFEF727803296C21B8924 /* VoiceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */; };
+		9A8477455F2ABEB9D91113AF /* Portfolio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4027F05D922AF46864DCED58 /* Portfolio.swift */; };
 		9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAEF81421478F9FA6F85FE56 /* Palette.swift */; };
+		A2EB350AFF4C3B63897F97DA /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C77E773E63B6664F4262AD /* Metadata.swift */; };
+		A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34BAC1217309C0064F23CE7 /* TradeView.swift */; };
+		B259A28741C3A8C0F7D74759 /* CoinLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */; };
 		C9C99BCB70E1AFF3536D3968 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98E0FCFFA466C4A03F3490A /* AppSession.swift */; };
+		CE83B0D99CF75C35C220FAB4 /* RevealFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529FF2FD620686A71B265A06 /* RevealFlow.swift */; };
+		D9993FE2FD6DDDCA4F84E8C6 /* PriceChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */; };
+		D9BE60229797504784BC6F97 /* KeyServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1722E329135DB398B784E8C8 /* KeyServices.swift */; };
 		DA717CEE0E76AEF1F0CBCE9A /* LEIA-ME.txt in Resources */ = {isa = PBXBuildFile; fileRef = 445327A094057374455F9FD5 /* LEIA-ME.txt */; };
 		E09B8272656E909426D4987D /* Buttons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B99C8E82247CAD42E358D7 /* Buttons.swift */; };
+		E345A5856750B23E38B8A35E /* SealEnvelopeFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */; };
 		E74B179E19640B5584F2F303 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38287337A415C5A48CB564C8 /* Typography.swift */; };
+		EAD6592758D7814329227F15 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7372B2C6D0156F65AA215FE5 /* SettingsView.swift */; };
+		F2B74E9DFA78D4082923023D /* AssetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB2C6C888DAF848A575AD7A /* AssetDetailView.swift */; };
+		F60A5B68C1C271353B804B0B /* ReceiveSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2CB54D5FE5615D8A3F582F8 /* ReceiveSheet.swift */; };
+		F6959527BC4CC168A38CFA35 /* LockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DB4670DA96F1FBC6FF41CC /* LockView.swift */; };
+		F8EA2B1B268220A255B30FAB /* ImportPhraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98728880640B5B94955214E7 /* ImportPhraseView.swift */; };
 		F9AA5C1E81DED2AF9F55AA8C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2D484651018FF5D48FD37087 /* Assets.xcassets */; };
 		FABE9F4C3D6EBE05D7CB48CE /* Marks.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7441E45998B7F6AA7BCE1E4 /* Marks.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		09712057581F9378B87996C5 /* PasswordCost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordCost.swift; sourceTree = "<group>"; };
+		09754506E0869351661279D1 /* SendFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendFlow.swift; sourceTree = "<group>"; };
+		0AB2C6C888DAF848A575AD7A /* AssetDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetDetailView.swift; sourceTree = "<group>"; };
+		0E3E554F1FF4F3B1B0A077A6 /* WalletHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletHomeView.swift; sourceTree = "<group>"; };
+		1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSettingsView.swift; sourceTree = "<group>"; };
 		1292233C35D3175EC36E4F70 /* EscaliburWallet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EscaliburWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		15276BF5A254093B41A55B40 /* NewWalletFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewWalletFlow.swift; sourceTree = "<group>"; };
+		1722E329135DB398B784E8C8 /* KeyServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyServices.swift; sourceTree = "<group>"; };
 		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealEnvelopeFlow.swift; sourceTree = "<group>"; };
 		355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscaliburWalletApp.swift; sourceTree = "<group>"; };
 		38287337A415C5A48CB564C8 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		4027F05D922AF46864DCED58 /* Portfolio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Portfolio.swift; sourceTree = "<group>"; };
 		445327A094057374455F9FD5 /* LEIA-ME.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LEIA-ME.txt"; sourceTree = "<group>"; };
 		4A0E9C686393C93E1E34895B /* PlatformGuards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformGuards.swift; sourceTree = "<group>"; };
+		529FF2FD620686A71B265A06 /* RevealFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealFlow.swift; sourceTree = "<group>"; };
 		609FB55F39FC297CF3C80DE8 /* Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Kit; path = Kit; sourceTree = SOURCE_ROOT; };
+		634FB486C1AC19A1DC738122 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
+		7372B2C6D0156F65AA215FE5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		77C53992781573FB54743C00 /* SecureInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureInputField.swift; sourceTree = "<group>"; };
+		781A92DCAC657FBE12804D78 /* PINPad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINPad.swift; sourceTree = "<group>"; };
+		782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenEnvelopeFlow.swift; sourceTree = "<group>"; };
 		7E67A652A823737F6EAC7745 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		878FC0383FDC934FC98F0EA0 /* decifrar.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = decifrar.py; sourceTree = "<group>"; };
+		93C77E773E63B6664F4262AD /* Metadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metadata.swift; sourceTree = "<group>"; };
+		98728880640B5B94955214E7 /* ImportPhraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPhraseView.swift; sourceTree = "<group>"; };
 		98B99C8E82247CAD42E358D7 /* Buttons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buttons.swift; sourceTree = "<group>"; };
+		A1BADB432EFAFD601991FB0A /* MarketView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketView.swift; sourceTree = "<group>"; };
 		A98E0FCFFA466C4A03F3490A /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		AAEF81421478F9FA6F85FE56 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
+		B2CB54D5FE5615D8A3F582F8 /* ReceiveSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveSheet.swift; sourceTree = "<group>"; };
+		B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		BC0C91AC7C8CD9C5B8D31703 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceChart.swift; sourceTree = "<group>"; };
+		C10914896D99BB58942178E3 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
+		C114911EA7725CA6C7171D11 /* VoiceGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceGate.swift; sourceTree = "<group>"; };
+		C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinLogo.swift; sourceTree = "<group>"; };
+		CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		CF3019F2F06749CD522B32AB /* FORMATO.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FORMATO.md; sourceTree = "<group>"; };
 		D0E6EBFF95E21A9523382BC5 /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
+		D423B66DA20C4DA018418902 /* AuthCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCoordinator.swift; sourceTree = "<group>"; };
+		D4DB4670DA96F1FBC6FF41CC /* LockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockView.swift; sourceTree = "<group>"; };
+		E34BAC1217309C0064F23CE7 /* TradeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeView.swift; sourceTree = "<group>"; };
 		E7441E45998B7F6AA7BCE1E4 /* Marks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Marks.swift; sourceTree = "<group>"; };
 		E7B2519CA657D4A05E4C4A06 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metrics.swift; sourceTree = "<group>"; };
+		F5287E825D53043F109D791D /* RecordWordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWordsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,7 +112,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				12BD568C64CF45967323782A /* EscaliburCore in Frameworks */,
-				93415D653E703DD5BF6B4C78 /* EscaliburNetwork in Frameworks */,
+				93415D653E703DD5BF6B4C78 /* EscaliburChains in Frameworks */,
+				5E9A7A552DC87E261A506B48 /* EscaliburKeys in Frameworks */,
+				8A3A9028D49AF27A483E090C /* EscaliburNetwork in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -67,6 +129,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		09B8D2977A8E44790180B01A /* Market */ = {
+			isa = PBXGroup;
+			children = (
+				A1BADB432EFAFD601991FB0A /* MarketView.swift */,
+			);
+			path = Market;
+			sourceTree = "<group>";
+		};
 		0FDFBB2D55A9194577AB6FF8 /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -74,6 +144,7 @@
 				355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */,
 				4A0E9C686393C93E1E34895B /* PlatformGuards.swift */,
 				7E67A652A823737F6EAC7745 /* RootView.swift */,
+				C10914896D99BB58942178E3 /* Router.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -83,9 +154,42 @@
 			children = (
 				0FDFBB2D55A9194577AB6FF8 /* App */,
 				DA1E5613893FEC7631AEFE67 /* Design */,
+				F51F74A7931536E0F50857E3 /* Features */,
 				3F31E6B1F12666CB972EC866 /* Resources */,
+				2914FD14F4F338C5CC589252 /* Services */,
 			);
 			path = EscaliburWallet;
+			sourceTree = "<group>";
+		};
+		28A2FEB50BF1ACA8C6963772 /* Wallet */ = {
+			isa = PBXGroup;
+			children = (
+				0AB2C6C888DAF848A575AD7A /* AssetDetailView.swift */,
+				BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */,
+				0E3E554F1FF4F3B1B0A077A6 /* WalletHomeView.swift */,
+			);
+			path = Wallet;
+			sourceTree = "<group>";
+		};
+		2914FD14F4F338C5CC589252 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				D423B66DA20C4DA018418902 /* AuthCoordinator.swift */,
+				1722E329135DB398B784E8C8 /* KeyServices.swift */,
+				93C77E773E63B6664F4262AD /* Metadata.swift */,
+				09712057581F9378B87996C5 /* PasswordCost.swift */,
+				4027F05D922AF46864DCED58 /* Portfolio.swift */,
+				C114911EA7725CA6C7171D11 /* VoiceGate.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		3CB515FF159E32BF5AB17040 /* Trade */ = {
+			isa = PBXGroup;
+			children = (
+				E34BAC1217309C0064F23CE7 /* TradeView.swift */,
+			);
+			path = Trade;
 			sourceTree = "<group>";
 		};
 		3F31E6B1F12666CB972EC866 /* Resources */ = {
@@ -95,6 +199,14 @@
 				6E8E6429DDBD541C15C27864 /* Recuperacao */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		6D35E79B4E7BBC60645EDBAB /* Send */ = {
+			isa = PBXGroup;
+			children = (
+				09754506E0869351661279D1 /* SendFlow.swift */,
+			);
+			path = Send;
 			sourceTree = "<group>";
 		};
 		6E8E6429DDBD541C15C27864 /* Recuperacao */ = {
@@ -107,6 +219,43 @@
 			path = Recuperacao;
 			sourceTree = "<group>";
 		};
+		829F6A2F8539DD353072A26A /* Activity */ = {
+			isa = PBXGroup;
+			children = (
+				CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */,
+			);
+			path = Activity;
+			sourceTree = "<group>";
+		};
+		8AB2E31C7DDF2422B8F4E7ED /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				529FF2FD620686A71B265A06 /* RevealFlow.swift */,
+				7372B2C6D0156F65AA215FE5 /* SettingsView.swift */,
+				1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		8D3A48EE59C48F821B44E4BE /* NewWallet */ = {
+			isa = PBXGroup;
+			children = (
+				634FB486C1AC19A1DC738122 /* AddWalletView.swift */,
+				98728880640B5B94955214E7 /* ImportPhraseView.swift */,
+				15276BF5A254093B41A55B40 /* NewWalletFlow.swift */,
+				F5287E825D53043F109D791D /* RecordWordsView.swift */,
+			);
+			path = NewWallet;
+			sourceTree = "<group>";
+		};
+		96313B8D851FAC37D702C8C1 /* Receive */ = {
+			isa = PBXGroup;
+			children = (
+				B2CB54D5FE5615D8A3F582F8 /* ReceiveSheet.swift */,
+			);
+			path = Receive;
+			sourceTree = "<group>";
+		};
 		C35E30B6B67E5755EBE49E2C = {
 			isa = PBXGroup;
 			children = (
@@ -116,15 +265,43 @@
 			);
 			sourceTree = "<group>";
 		};
+		CE2477751DA28DBA56CAA84C /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		D177F55AD137B646F2FB68DC /* Envelope */ = {
+			isa = PBXGroup;
+			children = (
+				782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */,
+				31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */,
+			);
+			path = Envelope;
+			sourceTree = "<group>";
+		};
+		D74B500F787065B641FB704B /* Lock */ = {
+			isa = PBXGroup;
+			children = (
+				D4DB4670DA96F1FBC6FF41CC /* LockView.swift */,
+				781A92DCAC657FBE12804D78 /* PINPad.swift */,
+			);
+			path = Lock;
+			sourceTree = "<group>";
+		};
 		DA1E5613893FEC7631AEFE67 /* Design */ = {
 			isa = PBXGroup;
 			children = (
 				98B99C8E82247CAD42E358D7 /* Buttons.swift */,
+				C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */,
 				BC0C91AC7C8CD9C5B8D31703 /* Components.swift */,
 				D0E6EBFF95E21A9523382BC5 /* Format.swift */,
 				E7441E45998B7F6AA7BCE1E4 /* Marks.swift */,
 				E7B2519CA657D4A05E4C4A06 /* Metrics.swift */,
 				AAEF81421478F9FA6F85FE56 /* Palette.swift */,
+				77C53992781573FB54743C00 /* SecureInputField.swift */,
 				38287337A415C5A48CB564C8 /* Typography.swift */,
 			);
 			path = Design;
@@ -146,6 +323,24 @@
 			name = Packages;
 			sourceTree = "<group>";
 		};
+		F51F74A7931536E0F50857E3 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				829F6A2F8539DD353072A26A /* Activity */,
+				D177F55AD137B646F2FB68DC /* Envelope */,
+				D74B500F787065B641FB704B /* Lock */,
+				09B8D2977A8E44790180B01A /* Market */,
+				8D3A48EE59C48F821B44E4BE /* NewWallet */,
+				CE2477751DA28DBA56CAA84C /* Onboarding */,
+				96313B8D851FAC37D702C8C1 /* Receive */,
+				6D35E79B4E7BBC60645EDBAB /* Send */,
+				8AB2E31C7DDF2422B8F4E7ED /* Settings */,
+				3CB515FF159E32BF5AB17040 /* Trade */,
+				28A2FEB50BF1ACA8C6963772 /* Wallet */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -164,6 +359,8 @@
 			name = EscaliburWallet;
 			packageProductDependencies = (
 				A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */,
+				10B4A1AD96C0179B1C450517 /* EscaliburChains */,
+				0911AD585A30024A352B31B6 /* EscaliburKeys */,
 				C09378074DCB9273C75F8FA1 /* EscaliburNetwork */,
 			);
 			productName = EscaliburWallet;
@@ -225,17 +422,46 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				764A13E8CD7AFD1D2F471CDF /* ActivityView.swift in Sources */,
+				91F8E34E141C393E6B6C5CE6 /* AddWalletView.swift in Sources */,
 				C9C99BCB70E1AFF3536D3968 /* AppSession.swift in Sources */,
+				F2B74E9DFA78D4082923023D /* AssetDetailView.swift in Sources */,
+				2468359EF9FB1503F19395D5 /* AuthCoordinator.swift in Sources */,
 				E09B8272656E909426D4987D /* Buttons.swift in Sources */,
+				B259A28741C3A8C0F7D74759 /* CoinLogo.swift in Sources */,
 				76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */,
 				17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */,
 				2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */,
+				F8EA2B1B268220A255B30FAB /* ImportPhraseView.swift in Sources */,
+				D9BE60229797504784BC6F97 /* KeyServices.swift in Sources */,
+				F6959527BC4CC168A38CFA35 /* LockView.swift in Sources */,
+				0B7E83EED78DFCB68FCE521B /* MarketView.swift in Sources */,
 				FABE9F4C3D6EBE05D7CB48CE /* Marks.swift in Sources */,
+				A2EB350AFF4C3B63897F97DA /* Metadata.swift in Sources */,
 				6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */,
+				94C21BC26784B1AD6AE63CB8 /* NewWalletFlow.swift in Sources */,
+				8C41E86F595FADDBED53F5FB /* OnboardingFlow.swift in Sources */,
+				32C85CC66E71ADDE142F2B2C /* OpenEnvelopeFlow.swift in Sources */,
+				39A4945DC4DAEFEDE0DBEB1F /* PINPad.swift in Sources */,
 				9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */,
+				3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */,
 				90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */,
+				9A8477455F2ABEB9D91113AF /* Portfolio.swift in Sources */,
+				D9993FE2FD6DDDCA4F84E8C6 /* PriceChart.swift in Sources */,
+				F60A5B68C1C271353B804B0B /* ReceiveSheet.swift in Sources */,
+				5848F371CF905048C9ABA616 /* RecordWordsView.swift in Sources */,
+				CE83B0D99CF75C35C220FAB4 /* RevealFlow.swift in Sources */,
 				3436AC2D44A808B71561FBA0 /* RootView.swift in Sources */,
+				8AD9BAAFA95723925CCB3A6D /* Router.swift in Sources */,
+				E345A5856750B23E38B8A35E /* SealEnvelopeFlow.swift in Sources */,
+				57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */,
+				7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */,
+				EAD6592758D7814329227F15 /* SettingsView.swift in Sources */,
+				A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */,
 				E74B179E19640B5584F2F303 /* Typography.swift in Sources */,
+				271A5135782331B746AC5833 /* VoiceGate.swift in Sources */,
+				94DBFEF727803296C21B8924 /* VoiceSettingsView.swift in Sources */,
+				26ABABDDB73200E71CD0D50F /* WalletHomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -440,6 +666,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0911AD585A30024A352B31B6 /* EscaliburKeys */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EscaliburKeys;
+		};
+		10B4A1AD96C0179B1C450517 /* EscaliburChains */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EscaliburChains;
+		};
 		A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EscaliburCore;

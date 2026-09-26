@@ -1,0 +1,189 @@
+import Charts
+import EscaliburNetwork
+import SwiftUI
+
+/// Mercado: as maiores moedas por capitalizacao, com minigrafico de 7 dias.
+///
+/// Sem "tokens em alta", sem navegador de dApps, sem promocao: so dado publico de
+/// mercado, que e igual para todo mundo e nao revela nada da carteira do dono.
+struct MarketView: View {
+    @Environment(AppSession.self) private var session
+    @Environment(Router.self) private var router
+    @State private var coins: [MarketCoin] = []
+    @State private var query = ""
+    @State private var loading = false
+    @State private var failed = false
+
+    private var filtered: [MarketCoin] {
+        guard !query.isEmpty else { return coins }
+        return coins.filter { $0.symbol.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    var body: some View {
+        NavigationStack(path: Bindable(router).marketPath) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Mercado").typeStyle(.title).foregroundStyle(Palette.ink)
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+                    TextField("", text: $query, prompt: Text("Buscar moeda").foregroundColor(Palette.inkDead))
+                        .typeStyle(.body).foregroundStyle(Palette.ink)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .padding(.horizontal, Space.md).frame(height: 44)
+                        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+                    HStack {
+                        Text("Moeda").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                        Spacer()
+                        Text("Preço e 24h").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                    }
+                    .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+
+                    if coins.isEmpty && loading {
+                        ForEach(0..<8, id: \.self) { _ in
+                            HStack(spacing: Space.sm) {
+                                Circle().fill(Palette.body).frame(width: 36, height: 36)
+                                VStack(alignment: .leading, spacing: 8) { SkeletonBar(width: 48); SkeletonBar(width: 88) }
+                                Spacer()
+                                SkeletonBar(width: 72, height: 28)
+                            }
+                            .padding(.horizontal, Space.gutter).frame(height: Height.row)
+                        }
+                    } else if coins.isEmpty && failed {
+                        Banner(kind: .neutral, title: "Não foi possível carregar o mercado agora.", actionTitle: "Tentar de novo") {
+                            Task { await load() }
+                        }
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+                    }
+
+                    LazyVStack(spacing: 0) {
+                        ForEach(filtered) { coin in
+                            NavigationLink(value: coin) { MarketRow(coin: coin, currency: session.currency) }
+                                .buttonStyle(RowStyle())
+                        }
+                    }
+                }
+                .padding(.bottom, Space.xl)
+            }
+            .refreshable { await load() }
+            .background(Palette.void.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: MarketCoin.self) { coin in
+                MarketCoinDetail(coin: coin)
+            }
+        }
+        .task { if coins.isEmpty { await load() } }
+    }
+
+    private func load() async {
+        loading = true
+        defer { loading = false }
+        do {
+            coins = try await MarketService.shared.markets(currency: session.metadata.settings.currency)
+            failed = false
+        } catch {
+            failed = true
+        }
+    }
+}
+
+struct MarketRow: View {
+    let coin: MarketCoin
+    let currency: Fmt.Currency
+
+    var body: some View {
+        HStack(spacing: Space.sm) {
+            CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 36, remoteURL: coin.imageURL)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
+                Text(coin.marketCap.map { Fmt.compact($0, currency) } ?? coin.name)
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            }
+            Spacer(minLength: Space.xs)
+            Sparkline(values: coin.sparkline, up: (coin.change24h ?? 0) >= 0)
+                .frame(width: 64, height: 24)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(Fmt.price(coin.price, currency)).typeStyle(.row).foregroundStyle(Palette.ink)
+                ChangePill(change: coin.change24h)
+            }
+            .frame(minWidth: 96, alignment: .trailing)
+        }
+        .padding(.horizontal, Space.gutter)
+        .frame(height: Height.row + 8)
+        .contentShape(Rectangle())
+    }
+}
+
+/// A pilula de variacao: texto na cor sobre fundo tingido solido. Nunca texto branco
+/// sobre verde (contraste 2,29:1).
+struct ChangePill: View {
+    let change: Double?
+
+    var body: some View {
+        let value = change ?? 0
+        let up = value > 0.004
+        let down = value < -0.004
+        Text(Fmt.percent(value))
+            .font(.system(size: 12, weight: .semibold).monospacedDigit())
+            .foregroundStyle(up ? Palette.up : (down ? Palette.down : Palette.inkSoft))
+            .frame(width: 72, height: 24)
+            .background(RoundedRectangle(cornerRadius: Radius.badge, style: .continuous).fill(up ? Palette.upTint : (down ? Palette.downTint : Palette.rail)))
+    }
+}
+
+struct Sparkline: View {
+    let values: [Double]
+    let up: Bool
+
+    var body: some View {
+        GeometryReader { geometry in
+            let low = values.min() ?? 0
+            let high = values.max() ?? 1
+            let span = max(high - low, .ulpOfOne)
+            Path { path in
+                for (index, value) in values.enumerated() {
+                    let x = geometry.size.width * CGFloat(index) / CGFloat(max(values.count - 1, 1))
+                    let y = geometry.size.height * (1 - CGFloat((value - low) / span))
+                    index == 0 ? path.move(to: CGPoint(x: x, y: y)) : path.addLine(to: CGPoint(x: x, y: y))
+                }
+            }
+            .stroke(up ? Palette.up : Palette.down, style: StrokeStyle(lineWidth: 1.25, lineCap: .round, lineJoin: .round))
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+struct MarketCoinDetail: View {
+    @Environment(AppSession.self) private var session
+    let coin: MarketCoin
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                MarketChartSection(coingeckoID: coin.id, symbol: coin.symbol, name: coin.name,
+                                   livePrice: coin.price, liveChange: coin.change24h, remoteLogo: coin.imageURL)
+                VStack(alignment: .leading, spacing: Space.sm) {
+                    Text("Sobre o mercado").typeStyle(.heading).foregroundStyle(Palette.ink)
+                    stat("Capitalização", coin.marketCap.map { Fmt.compact($0, session.currency) })
+                    stat("Volume em 24h", coin.volume24h.map { Fmt.compact($0, session.currency) })
+                    stat("Posição por capitalização", coin.rank.map { "\($0)º" })
+                }
+                .padding(Space.md)
+                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+                .padding(.horizontal, Space.gutter)
+                .padding(.top, Space.xl)
+            }
+            .padding(.bottom, Space.xl)
+        }
+        .background(Palette.void.ignoresSafeArea())
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func stat(_ label: String, _ value: String?) -> some View {
+        HStack {
+            Text(label).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            Spacer()
+            Text(value ?? "sem dado").typeStyle(.note).foregroundStyle(Palette.ink)
+        }
+    }
+}
