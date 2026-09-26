@@ -275,8 +275,8 @@ struct TradeView: View {
     }
 
     private func feeText(_ quote: TradeQuote) -> String {
-        let network = quote.networkFeeFiat.map { "rede \(Fmt.fiat($0, session.currency))" } ?? "rede"
-        return "Taxas: \(network) · sem taxa da Escalibur"
+        guard let fee = quote.networkFeeFiat else { return "Sem taxa da Escalibur. A taxa da rede aparece na revisão." }
+        return "Taxas: rede \(Fmt.fiat(fee, session.currency)) · sem taxa da Escalibur"
     }
 
     // MARK: Ordem limite
@@ -512,6 +512,14 @@ struct AmountBox: View {
                         .keyboardType(.decimalPad)
                         .focused($focused)
                         .minimumScaleFactor(0.5)
+                        .toolbar {
+                            // O teclado numerico nao tem tecla de fechar; sem isto, a
+                            // cotacao e os detalhes ficam escondidos embaixo dele.
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Pronto") { focused = false }.fontWeight(.semibold)
+                            }
+                        }
                 } else {
                     Text(amount.isEmpty ? "0" : amount)
                         .font(.system(size: 32, weight: .bold).monospacedDigit())
