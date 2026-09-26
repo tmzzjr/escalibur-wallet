@@ -91,6 +91,26 @@ public actor SolanaNetworkReader {
         return epoch.blockHeight
     }
 
+    /// A altura finalizada em dois provedores diferentes (`getEpochInfo` finalizado, a
+    /// mesma leitura que da a altura do blockhash). Para decidir que uma transacao venceu:
+    /// uma fonte so, ou uma altura so confirmada, nao basta (auditoria 2, M4).
+    public func finalizedBlockHeights() async throws -> [UInt64] {
+        let client = self.client
+        var heights = [UInt64]()
+        for provider in await pool.available() where heights.count < 2 {
+            do {
+                let epoch: RPCEpochInfo = try await SolanaRPC.call(
+                    provider.baseURL, "getEpochInfo", [.object(["commitment": .string("finalized")])], client: client
+                )
+                heights.append(epoch.blockHeight)
+            } catch {
+                await pool.reportFailure(provider)
+            }
+        }
+        guard heights.count == 2 else { throw ConsensusFailure(answers: heights.count) }
+        return heights
+    }
+
     public func rentExemptMinimum(dataSize: Int) async throws -> BigUInt {
         BigUInt(try await call("getMinimumBalanceForRentExemption", [.number(Double(dataSize))], as: UInt64.self))
     }

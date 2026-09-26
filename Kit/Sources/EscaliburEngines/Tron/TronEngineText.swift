@@ -76,6 +76,8 @@ enum TronEngineText {
             return "Não foi possível estimar a energia deste envio. Tente de novo em instantes."
         case .feeLimitAboveCeiling:
             return "A taxa máxima calculada passa do teto de segurança da carteira. Nada foi assinado."
+        case .deviceClockSkew:
+            return error.message
         }
     }
 

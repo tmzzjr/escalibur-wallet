@@ -197,12 +197,16 @@ struct TronReaderTests {
         let empty = try ReaderFixtures.data("tron", "gettransactioninfobyid-vazio")
         let halfway = try Self.transport(perHost: ["trongrid.test": ["/walletsolidity/gettransactioninfobyid": empty]])
         #expect(try await Self.reader(halfway).status(of: id) == .pending)
+        // O bloco solidificado dos dois nos e o gravado; a expiracao conta da hora dele.
+        let solid = try ReaderFixtures.data("tron", "getnowblock")
         let nowhere = try Self.transport(perHost: [
-            "trongrid.test": ["/walletsolidity/gettransactioninfobyid": empty, "/wallet/gettransactioninfobyid": empty],
-            "publicnode.test": ["/walletsolidity/gettransactioninfobyid": empty, "/wallet/gettransactioninfobyid": empty],
+            "trongrid.test": ["/walletsolidity/gettransactioninfobyid": empty, "/wallet/gettransactioninfobyid": empty, "/walletsolidity/getnowblock": solid],
+            "publicnode.test": ["/walletsolidity/gettransactioninfobyid": empty, "/wallet/gettransactioninfobyid": empty, "/walletsolidity/getnowblock": solid],
         ])
-        let now = Date()
-        #expect(try await Self.reader(nowhere).status(of: id, expiresAt: now.addingTimeInterval(-300), now: now) == .failed(reason: "expired"))
+        let blockTime = try Self.blockTime()
+        #expect(try await Self.reader(nowhere).solidifiedTime() == blockTime)
+        #expect(try await Self.reader(nowhere).status(of: id, expiresAt: blockTime.addingTimeInterval(-300)) == .failed(reason: "expired"))
+        #expect(try await Self.reader(nowhere).status(of: id, expiresAt: blockTime.addingTimeInterval(-60)) == .notFound)
         guard case .object(var info) = try ReaderFixtures.json("tron", "gettransactioninfobyid-usdt"), case .object(var receipt)? = info["receipt"] else { return }
         receipt["result"] = .string("OUT_OF_ENERGY")
         info["receipt"] = .object(receipt)

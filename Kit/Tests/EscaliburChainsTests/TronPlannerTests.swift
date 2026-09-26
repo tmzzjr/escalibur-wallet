@@ -120,6 +120,25 @@ struct TronPlannerTests {
         #expect(tx.txID == Hash.sha256(tx.raw.serialized()))
     }
 
+    @Test("Regressao M4: relogio do aparelho a mais de 2 minutos do bloco da rede recusa o plano")
+    func deviceClock() throws {
+        let state = try Self.state()
+        // O relogio do teste esta 2,5 s depois do bloco.
+        for offset in [-125.0, 121.0, 3_000.0] {
+            #expect(throws: TronPlanError.deviceClockSkew) {
+                try TronPlanner.planSendTRX(walletID: Self.walletID, owner: Self.owner(), to: Self.destination, amount: 1_000_000,
+                                            state: state, now: Self.now.addingTimeInterval(offset))
+            }
+            #expect(throws: TronPlanError.deviceClockSkew) {
+                try TronPlanner.planSendUSDT(walletID: Self.walletID, owner: Self.owner(), to: Self.destination, amount: 1_000_000,
+                                             state: try Self.state(trx: 20_000_000, usdt: 100_000_000, energy: 64_285, holdsUSDT: true),
+                                             now: Self.now.addingTimeInterval(offset))
+            }
+        }
+        _ = try TronPlanner.planSendTRX(walletID: Self.walletID, owner: Self.owner(), to: Self.destination, amount: 1_000_000,
+                                        state: state, now: Self.now.addingTimeInterval(100))
+    }
+
     @Test("TRX sem cota: queima bytes x getTransactionFee")
     func trxBurnsBandwidth() throws {
         let resources = TronAccountResources(freeBandwidth: 200, stakedBandwidth: 100, energy: 0)

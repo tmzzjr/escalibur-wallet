@@ -356,6 +356,25 @@ actor RecordedSolanaNetwork: SolanaEngineNetwork {
 
     func blockHeight() async throws -> UInt64 { height }
 
+    /// A altura finalizada de cada um dos dois provedores; sem ajuste, a mesma altura.
+    var finalized: [UInt64]?
+    /// O historico do segundo provedor, quando difere do primeiro.
+    var secondHistory: [String: SolanaSignatureStatus] = [:]
+
+    func setFinalized(_ value: [UInt64]?) { finalized = value }
+    func setSecondHistory(_ id: String, _ status: SolanaSignatureStatus?) { secondHistory[id] = status }
+
+    func finalizedBlockHeights() async throws -> [UInt64] {
+        if statusFails { throw HTTPClient.Failure.timeout }
+        return finalized ?? [height, height]
+    }
+
+    func historyStatuses(_ signature: String) async throws -> [SolanaSignatureStatus?] {
+        if statusFails { throw HTTPClient.Failure.timeout }
+        let first = historyStatuses[signature] ?? recentStatuses[signature]
+        return [first, secondHistory[signature] ?? first]
+    }
+
     // MARK: Historico
 
     func recentActivity(owner: SolanaPublicKey, limit: Int) async throws -> [SolanaActivity] { Array(activities.prefix(limit)) }

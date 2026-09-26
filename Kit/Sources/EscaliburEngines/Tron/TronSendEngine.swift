@@ -152,7 +152,7 @@ struct TronSendEngine: SendEngine {
     func status(_ id: String, chain: Chain) async -> TransferStatus {
         guard chain.id == Chain.tron.id else { return .pending }
         let deadline = await deadlines.deadline(for: id)
-        guard let status = try? await reader.status(of: id, expiresAt: deadline, now: now()) else { return .pending }
+        guard let status = try? await reader.status(of: id, expiresAt: deadline) else { return .pending }
         switch status {
         case .notFound, .pending: return .pending
         case .confirmed: return .confirmed(detail: TronEngineText.confirmed)

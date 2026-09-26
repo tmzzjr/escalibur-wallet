@@ -290,10 +290,24 @@ struct SolanaSendEngineTests {
         #expect(await engine.status(pendingID, chain: .solana) == .pending)
         #expect(await network.sent == [first, first])
 
-        // Passou do prazo e nem o historico conhece: venceu, nada foi debitado.
+        // Regressao M4: passou do prazo so na altura confirmada, ou na finalizada de uma
+        // fonte so, ou sem a folga: continua pendente.
         await network.setHeight(deadline + 1)
+        await network.setFinalized([deadline + 1, deadline + 1])
+        #expect(await engine.status(pendingID, chain: .solana) == .pending)
+        await network.setFinalized([deadline + 500, deadline + 10])
+        #expect(await engine.status(pendingID, chain: .solana) == .pending)
+        // Passou do prazo com folga nas duas fontes e nenhum historico conhece: venceu,
+        // nada foi debitado.
+        await network.setFinalized([deadline + 500, deadline + 400])
         guard case .failed(let expired) = await engine.status(pendingID, chain: .solana) else { Issue.record("deveria vencer"); return }
         #expect(expired.hasPrefix("A transação venceu"))
+
+        // So o historico do segundo provedor conhece a transacao: nao venceu, entrou.
+        let known = try await signedSend(engine, network: network)
+        let knownID = try await engine.broadcast([known], chain: .solana)
+        await network.setSecondHistory(knownID, try #require(recorded.first))
+        #expect(await engine.status(knownID, chain: .solana) == .confirmed(detail: "Finalizada na rede Solana."))
 
         // Passou do prazo, mas o historico mostra que entrou: confirmada.
         let second = try await signedSend(engine, network: network)

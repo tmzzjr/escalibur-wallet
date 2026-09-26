@@ -45,6 +45,10 @@ protocol SolanaEngineNetwork: Sendable {
     func send(_ signed: SignedTransaction) async throws -> SolanaBroadcastReceipt
     func signatureStatus(_ signature: String, searchHistory: Bool) async throws -> SolanaSignatureStatus?
     func blockHeight() async throws -> UInt64
+    /// A altura finalizada em dois provedores.
+    func finalizedBlockHeights() async throws -> [UInt64]
+    /// O status no historico de dois provedores, um por provedor.
+    func historyStatuses(_ signature: String) async throws -> [SolanaSignatureStatus?]
 
     // MARK: Historico
 
@@ -140,6 +144,14 @@ struct SolanaLiveNetwork: SolanaEngineNetwork {
 
     func blockHeight() async throws -> UInt64 {
         try await reader.blockHeight()
+    }
+
+    func finalizedBlockHeights() async throws -> [UInt64] {
+        try await reader.finalizedBlockHeights()
+    }
+
+    func historyStatuses(_ signature: String) async throws -> [SolanaSignatureStatus?] {
+        try await broadcaster.historyStatuses(of: signature)
     }
 
     func recentActivity(owner: SolanaPublicKey, limit: Int) async throws -> [SolanaActivity] {

@@ -180,6 +180,27 @@ public actor SolanaBroadcaster {
         return result.value.first.flatMap { $0 }.map(SolanaSignatureStatus.init)
     }
 
+    /// O status da assinatura no historico de dois provedores diferentes, um por
+    /// provedor (nil: aquele nao conhece). Para decidir que venceu, os dois tem de nao
+    /// conhecer; um provedor so diria "venceu" de uma transacao que entrou.
+    public func historyStatuses(of signature: String) async throws -> [SolanaSignatureStatus?] {
+        let client = self.client
+        var answers = [SolanaSignatureStatus?]()
+        for provider in await pool.available() where answers.count < 2 {
+            do {
+                let result: RPCContextual<[RPCSignatureStatus?]> = try await SolanaRPC.call(
+                    provider.baseURL, "getSignatureStatuses",
+                    [.array([.string(signature)]), .object(["searchTransactionHistory": .bool(true)])], client: client
+                )
+                answers.append(result.value.first.flatMap { $0 }.map(SolanaSignatureStatus.init))
+            } catch {
+                await pool.reportFailure(provider)
+            }
+        }
+        guard answers.count == 2 else { throw ConsensusFailure(answers: answers.count) }
+        return answers
+    }
+
     /// Acompanha ate `target` (confirmada ou finalizada), falha ou vencimento,
     /// reenviando os mesmos bytes enquanto a transacao nao aparece. Os reenvios
     /// usam `skipPreflight: true`: o no ja simulou no primeiro envio, e a mesma
@@ -196,9 +217,17 @@ public actor SolanaBroadcaster {
             let height = (try? await reader.blockHeight()) ?? 0
             var state = SolanaConfirmationTracker.evaluate(status: status, currentBlockHeight: height, lastValidBlockHeight: lastValidBlockHeight)
             if state == .expired {
-                // Antes de declarar vencida, procura no historico: pode ter entrado.
-                let history = try? await self.status(of: signed.id, searchHistory: true)
-                state = SolanaConfirmationTracker.evaluate(status: history, currentBlockHeight: height, lastValidBlockHeight: lastValidBlockHeight)
+                // Antes de declarar vencida: a altura finalizada de dois provedores passou do
+                // prazo com folga, e o historico dos dois nao conhece a transacao. Uma fonte
+                // so diria "venceu" de uma transacao que entrou (auditoria 2, M4).
+                let finalized = (try? await reader.finalizedBlockHeights())?.min() ?? 0
+                let histories = try? await historyStatuses(of: signed.id)
+                if finalized > lastValidBlockHeight &+ Self.expiryMargin, let histories, histories.count == 2 {
+                    let found = histories.compactMap { $0 }.first
+                    state = found.map { SolanaConfirmationTracker.evaluate(status: $0, currentBlockHeight: 0, lastValidBlockHeight: .max) } ?? .expired
+                } else {
+                    state = .pending
+                }
             }
             last = state
             if state.isFinal || Self.reached(state, target) { return state }
@@ -207,6 +236,9 @@ public actor SolanaBroadcaster {
         }
         return last
     }
+
+    /// Blocos alem do `lastValidBlockHeight` antes de dizer que venceu.
+    public static let expiryMargin: UInt64 = 150
 
     static func reached(_ state: SolanaConfirmation, _ target: SolanaCommitment) -> Bool {
         switch (state, target) {
