@@ -146,7 +146,7 @@ achados=$(swift_em "$APP" | xargs grep -lE 'UIPasteboard' 2>/dev/null | grep -vE
 [ -n "$achados" ] && { aviso "area de transferencia fora dos pontos conhecidos"; echo "$achados"; } || ok "area de transferencia so em dois pontos"
 grep -q '\.localOnly' "$APP/Features/Receive/ReceiveSheet.swift" && grep -q '\.expirationDate' "$APP/Features/Receive/ReceiveSheet.swift" \
     && ok "endereco copiado e local e expira" || aviso "copia de endereco sem localOnly/expiracao"
-achados=$(procurar 'Firebase|Crashlytics|Sentry|Bugsnag|Amplitude|Mixpanel|Segment|AppsFlyer|Adjust\b|Branch\.|OneSignal|Datadog|NewRelic|Instabug|FBSDK|GoogleMobileAds|PostHog' "$APP" "$NET")
+achados=$(procurar '^[[:space:]]*import +(Firebase[A-Za-z]*|Crashlytics|Sentry|Bugsnag|Amplitude|Mixpanel|Segment|AppsFlyer[A-Za-z]*|Adjust[A-Za-z]*|Branch|OneSignal|Datadog[A-Za-z]*|NewRelic|Instabug|FBSDK[A-Za-z]*|GoogleMobileAds|PostHog)\b' "$APP" "$NET" "$CORE" "$CHAINS" "$KEYS")
 [ -n "$achados" ] && { aviso "SDK de terceiro"; echo "$achados"; } || ok "nenhum SDK de analise, falha ou anuncio"
 achados=$(procurar 'WKWebView|SFSafariViewController|UIWebView|ASWebAuthenticationSession' "$APP")
 [ -n "$achados" ] && { aviso "navegador embutido"; echo "$achados"; } || ok "sem navegador embutido"
