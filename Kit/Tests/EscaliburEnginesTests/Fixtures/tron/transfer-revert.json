@@ -1,0 +1,20 @@
+{
+  "transaction": {
+    "ret": [
+      {
+        "ret": "FAILED"
+      }
+    ],
+    "txID": "096acfa5709b199dc5caccbfebbcc54b5614a506e99cddf132da2fafbab52b63",
+    "visible": true
+  },
+  "constant_result": [
+    ""
+  ],
+  "result": {
+    "result": true,
+    "message": "REVERT opcode executed"
+  },
+  "energy_used": 8624,
+  "energy_penalty": 6640
+}

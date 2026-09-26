@@ -1,0 +1,36 @@
+Respostas gravadas para os testes do motor Tron (Kit/Tests/EscaliburEnginesTests/Tron).
+Enderecos publicos de exchange e de terceiros; nenhum dado de usuario do app.
+
+1. Copiadas de Kit/Tests/EscaliburNetworkTests/Fixtures/leitores/tron, gravadas em
+   25/09/2026 na PublicNode e na TronGrid (ver o LEIA-ME de la). O dono e
+   TNXoiAJ3dct8Fjg4M9fkLFh9S2v9TXc32G; o destino ativo, TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb.
+   Cortes, so do que o leitor nao le:
+   - getaccount-dono: so address, balance, create_time, owner_permission e
+     active_permission.
+   - getaccountresource-dono: so freeNetUsed, freeNetLimit, NetUsed, NetLimit,
+     EnergyUsed e EnergyLimit.
+   - getchainparameters: so getEnergyFee, getTransactionFee,
+     getCreateNewAccountFeeInSystemContract, getCreateAccountFee e getMemoFee.
+   - transfer-estimativa: sem `transaction`, `logs` e `energy_penalty`.
+   As demais sao iguais as de la.
+
+2. Gravadas em 26/09/2026 na TronGrid (API v1, sem chave), da conta
+   TU7TrZe1T73WB5s8W2A5iFgj8VTirc7Bdj:
+   - trongrid-transactions-envenenada: /v1/accounts/{conta}/transactions?limit=30. Cada
+     transacao cortada para txID, block_timestamp, ret e raw_data.contract[0] com o tipo
+     e owner_address, to_address, amount e contract_address.
+   - trongrid-trc20-envenenada: /v1/accounts/{conta}/transactions/trc20?limit=50, sem
+     `meta`.
+
+   A conta foi achada entre as vitimas do golpe do transferFrom de valor zero de janeiro
+   de 2023 (eventos Transfer do contrato do USDT com value 0, na mesma API). O historico
+   tem os envios verdadeiros de USDT, assinados por ela (350,0215 e 400 para
+   TCsa4VaxBcoY2N7pFdkmC5r1AtieCRRgos; 50 e 500 para TBbSMz1jmB9TFrYBRLnDsSuB7oZUihEEm2;
+   3.200 para TAAQ2PHSDHhmbBnC95RAWXLcRiVMm6g1d2) e, entre eles, 7 "envios" de 0 USDT que
+   ela nao assinou, para sosias desses destinos (TCsQZaKBqrwsKndZP8kwSncpaKuqgRRgos,
+   TBbz6gZ9UDei44wSLCkJVajepKVjyhEEm2 e outros), alem de TRX de 1 a 9 sun vindos de
+   enderecos desconhecidos.
+
+Quando um teste precisa de um caso que as gravacoes nao tem (conta com permissao
+dividida, conta sem recursos, destino que e contrato), ele altera a resposta gravada
+dentro do proprio teste e diz o que alterou.

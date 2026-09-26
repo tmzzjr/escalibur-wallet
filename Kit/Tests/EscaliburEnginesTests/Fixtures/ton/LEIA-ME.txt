@@ -1,0 +1,24 @@
+Respostas gravadas para os testes do motor TON (Kit/Tests/EscaliburEnginesTests/TON).
+Enderecos publicos; nenhum dado de usuario do app.
+
+1. Copiadas sem alteracao de Kit/Tests/EscaliburNetworkTests/Fixtures/leitores/ton,
+   gravadas em 25/09/2026 na toncenter (API v2 e v3) e na tonapi (ver o LEIA-ME de la).
+   A carteira dona e a V4R2
+   0:152696db9ef6b82ec54b2c84b0b9c617baf4c34c74de186cbd2b4505c6abb43e, com a chave de
+   `get_public_key` do proprio contrato; a carteira jetton de USDT dela e
+   0:16e07181d7abc5e87ef9a4a696dad8a4b2199f46165f7e21a0dd1935aa393948.
+
+2. Gravada em 26/09/2026 na tonapi (sem chave):
+   - tonapi-events-envenenada:
+     /v2/accounts/0:c44015434ad966c8dab4b5180f272d094855e0a7489a2dd05acf6a6c1ee47faa/events?limit=30,
+     so com os campos que o leitor le. Sairam os comentarios (links de golpe), os nomes
+     e os metadados das contas e dos jettons.
+
+   A conta 0:c44015... recebe e envia USDT e, entre um envio e outro, recebe 0,0001 TON
+   de enderecos cujo fim na grafia amigavel copia o fim de destinos verdadeiros dela
+   (UQCL18Ztmkd-...OWLWeT0D e os sosias ...eT0D; UQAqQ7m_...fhYIegZ5 e os sosias ...gZ5).
+   Parte desses a tonapi marca como golpe (`is_scam`), parte nao.
+
+Quando um teste precisa de um caso que as gravacoes nao tem (destino ativo, carteira
+nao inicializada, recusa da transmissao), ele altera ou monta a resposta dentro do
+proprio teste e diz o que fez.
