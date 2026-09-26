@@ -537,22 +537,9 @@ struct SendStages: View {
                         Text("cerca de \(Fmt.fiat(Fmt.double(amount, decimals: holding.asset.decimals) * price, session.currency))")
                             .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, 2)
                     }
-                    verbatimPlate(plan).padding(.top, Space.lg)
-                    VStack(alignment: .leading, spacing: Space.xs) {
-                        ForEach(Array(plan.review.lines.filter { !$0.verbatim }.enumerated()), id: \.offset) { _, line in
-                            HStack(alignment: .top) {
-                                Text(line.label).typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                                Spacer()
-                                Text(line.value).typeStyle(.note).foregroundStyle(Palette.ink).multilineTextAlignment(.trailing)
-                            }
-                        }
-                        HStack {
-                            Text("De").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                            Spacer()
-                            Text(verbatim: model.wallet.name).typeStyle(.note).foregroundStyle(Palette.ink)
-                        }
-                    }
-                    .padding(.top, Space.lg)
+                    PlanVerbatimPlate(review: plan.review).padding(.top, Space.lg)
+                    PlanDetailLines(review: plan.review, extra: [("De", model.wallet.name)])
+                        .padding(.top, Space.lg)
                     ForEach(Array(warnings(plan).enumerated()), id: \.offset) { _, warning in
                         Banner(kind: .caution, title: warning).padding(.top, Space.sm)
                     }
@@ -576,48 +563,14 @@ struct SendStages: View {
         }
     }
 
-    /// Os valores que se conferem caractere por caractere, exatamente como estao no
-    /// plano: destino, tag, memo, contrato do token.
-    private func verbatimPlate(_ plan: SigningPlan) -> some View {
-        VStack(alignment: .leading, spacing: Space.sm) {
-            ForEach(Array(plan.review.lines.filter(\.verbatim).enumerated()), id: \.offset) { index, line in
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    Text(line.label == "Para" ? KnownExchanges.name(for: line.value).map { "Para \($0)" } ?? "Para" : line.label)
-                        .typeStyle(.note).foregroundStyle(Palette.plateMuted)
-                    if Self.looksLikeAddress(line.value) {
-                        AddressBlocks(address: line.value, onPlate: true)
-                    } else {
-                        Text(verbatim: line.value).font(TypeStyle.mono.font).fontWeight(.bold).foregroundStyle(Palette.plateInk)
-                    }
-                }
-                .padding(.top, index == 0 ? 0 : Space.xs)
-            }
-        }
-        .padding(Space.base)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(LacquerPlate(cut: 20).fill(Palette.live))
-    }
-
-    static func looksLikeAddress(_ value: String) -> Bool {
-        value.count >= 26 && !value.contains(" ")
-    }
-
     private func warnings(_ plan: SigningPlan) -> [String] {
         var out: [String] = []
         if let lookalike = model.lookalike { out.append("Endereço parecido com \(Fmt.address(lookalike)). Confira o endereço inteiro.") }
         if model.skippedTag { out.append("Envio sem \(tagNoun), por sua escolha.") }
         for warning in plan.review.warnings {
-            switch warning {
-            case .firstSendToAddress: if !model.isFirstSend { out.append("Primeira vez que você envia para este endereço.") }
-            case .lookalikeAddress(let known): out.append("Endereço parecido com \(Fmt.address(known)).")
-            case .noDestinationTag: out.append("Sem \(tagNoun).")
-            case .destinationIsContract: out.append("O destino é um contrato, não uma carteira comum.")
-            case .highFee(let percent): out.append("A taxa da rede é \(Fmt.grouped(percent, fractionDigits: 1))% do valor.")
-            case .activatesAccount(let minimum): out.append("Este envio ativa a conta de destino (mínimo \(minimum)).")
-            case .unverifiedToken(let symbol): out.append("\(symbol) não está na lista de tokens verificados.")
-            case .unlimitedApproval: out.append("Autorização sem limite.")
-            case .highPriceImpact(let percent): out.append("Impacto no preço de \(Fmt.grouped(percent, fractionDigits: 1))%.")
-            }
+            // O aviso de primeiro envio ja aparece embaixo do botao.
+            if warning == .firstSendToAddress, model.isFirstSend { continue }
+            out.append(PlanWarningText.text(warning, tagNoun: tagNoun))
         }
         return out
     }

@@ -51,7 +51,7 @@ struct TradeView: View {
     @State private var picking: Side?
     @State private var slippageSheet = false
     @State private var routeSheet = false
-    @State private var reviewing = false
+    @State private var reviewing: TradeReviewFlow.Item?
     @State private var receivingAsset: Asset?
 
     enum Side: Identifiable { case sell, buy; var id: Self { self } }
@@ -111,6 +111,16 @@ struct TradeView: View {
         .sheet(isPresented: $slippageSheet) { SlippageSheet(model: model) }
         .sheet(item: $receivingAsset) { asset in ReceiveSheet(preselected: asset) }
         .sheet(isPresented: $routeSheet) { if let quote = model.quote { RouteSheet(quote: quote) } }
+        .fullScreenCover(item: $reviewing) { item in
+            TradeReviewFlow(item: item) { completed in
+                reviewing = nil
+                if completed {
+                    model.amountText = ""
+                    model.targetPriceText = ""
+                    model.quote = nil
+                }
+            }
+        }
         .task(id: quoteKey) { await refreshQuote() }
     }
 
@@ -317,6 +327,40 @@ struct TradeView: View {
         return Fmt.grouped(value, fractionDigits: min(buy.decimals, 6), trimZeros: true)
     }
 
+    /// O minimo da ordem limite em unidades da rede, calculado do preco digitado sem
+    /// passar pelo texto formatado: valor vendido vezes preco, arredondado para baixo.
+    private var limitMinimumOut: BigUInt? {
+        guard let amount = model.amountIn, !amount.isZero, let sell = model.sell, let buy = model.buy,
+              let price = Fmt.parseAmount(model.targetPriceText, decimals: 18), !price.isZero else { return nil }
+        let out = amount * price * Self.powerOfTen(buy.decimals) / (Self.powerOfTen(sell.decimals) * Self.powerOfTen(18))
+        return out.isZero ? nil : out
+    }
+
+    static func powerOfTen(_ exponent: Int) -> BigUInt {
+        (0..<exponent).reduce(BigUInt(1)) { result, _ in result * BigUInt(10) }
+    }
+
+    /// Congela o pedido e abre a revisao. O motor recota e monta o plano de novo la.
+    private func startReview() {
+        guard engine != nil, let wallet = session.selectedWallet, !wallet.isWatchOnly,
+              let account = wallet.account(model.chain), let sell = model.sell, let buy = model.buy,
+              let amount = model.amountIn, !amount.isZero else { return }
+        let price = sell.coingeckoID.flatMap { portfolio.quotes[$0]?.price }
+        let fiat = price.map { Fmt.double(amount, decimals: sell.decimals) * $0 }
+        switch router.tradeMode {
+        case .now:
+            guard let quote = model.quote else { return }
+            let request = TradeRequest(walletID: wallet.id, chain: model.chain, account: account, sell: sell, buy: buy,
+                                       amountIn: amount, slippageBasisPoints: model.slippageBps)
+            reviewing = TradeReviewFlow.Item(kind: .swap(request, quote), chain: model.chain, fiat: fiat)
+        case .limit:
+            guard let minimum = limitMinimumOut else { return }
+            let request = LimitOrderRequest(walletID: wallet.id, chain: model.chain, account: account, sell: sell, buy: buy,
+                                            amountIn: amount, minimumOut: minimum, validFor: model.validFor)
+            reviewing = TradeReviewFlow.Item(kind: .limit(request), chain: model.chain, fiat: fiat)
+        }
+    }
+
     private func setTarget(_ percent: Int) {
         guard let sell = model.sell, let buy = model.buy,
               let sellPrice = sell.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }),
@@ -342,7 +386,7 @@ struct TradeView: View {
                 SecondaryButton(title: "Receber \(sell.symbol)", height: Height.primary) { receivingAsset = sell }
             } else {
                 PrimaryButton(title: primaryTitle, enabled: primaryEnabled, loading: model.quoting && model.quote == nil && model.amountIn != nil) {
-                    reviewing = true
+                    startReview()
                 }
             }
             }
@@ -362,7 +406,7 @@ struct TradeView: View {
 
     private var primaryEnabled: Bool {
         guard engine != nil, let amount = model.amountIn, !amount.isZero, !over else { return false }
-        if router.tradeMode == .limit { return !limitReceiveText.isEmpty }
+        if router.tradeMode == .limit { return engine?.supportsLimitOrders == true && limitMinimumOut != nil }
         switch PriceImpact.level(model.quote?.priceImpactPercent) {
         case .blocked: return false
         case .confirm: return model.acceptedHighImpact
