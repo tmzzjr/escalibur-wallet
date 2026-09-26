@@ -1,58 +1,18 @@
 import Darwin
 import Foundation
 
-/// As regras do PIN: lista de bloqueio, escada de atraso e o relogio que sobrevive a
+/// As regras do PIN: a forma, a escada de atraso e o relogio que sobrevive a
 /// reinicio sem trancar o dono por dias.
 public enum PINPolicy {
     public static let digits = 6
 
-    /// Com poucas tentativas permitidas, e a lista de bloqueio que decide o jogo:
-    /// um ladrao tenta primeiro 123456, 000000 e a data de nascimento. Esta lista
-    /// cobre repeticao, sequencia, padrao de teclado e os PINs de 6 digitos mais
-    /// comuns em vazamentos (Markert et al., IEEE S&P 2020, e listas publicas).
-    public static func isBlocked(_ digits: [UInt8]) -> Bool {
-        guard digits.count == Self.digits, digits.allSatisfy({ $0 <= 9 }) else { return true }
-        let d = digits.map { Int($0) }
-        // Todos iguais.
-        if Set(d).count == 1 { return true }
-        // Sequencia crescente ou decrescente, com volta (789012, 210987).
-        let up = (1..<6).allSatisfy { (d[$0] - d[$0 - 1] + 10) % 10 == 1 }
-        let down = (1..<6).allSatisfy { (d[$0 - 1] - d[$0] + 10) % 10 == 1 }
-        if up || down { return true }
-        // Par repetido (121212), trinca repetida (123123), dobras (112233), espelho (123321).
-        if d[0] == d[2], d[2] == d[4], d[1] == d[3], d[3] == d[5] { return true }
-        if d[0] == d[3], d[1] == d[4], d[2] == d[5] { return true }
-        if d[0] == d[1], d[2] == d[3], d[4] == d[5] { return true }
-        if d[0] == d[5], d[1] == d[4], d[2] == d[3] { return true }
-        // So dois digitos distintos (111222, 100001) tem pouca entropia de fato.
-        if Set(d).count == 2 { return true }
-        // Datas: o primeiro palpite de quem roubou o iPhone junto com a carteira e o
-        // documento. DDMMAA, MMDDAA e AAMMDD, qualquer ano.
-        if isDate(d) { return true }
-        // Inteiro de 6 casas: o literal com zero a esquerda (010203) vale o mesmo.
-        let value = d.reduce(0) { $0 * 10 + $1 }
-        return common.contains(value)
+    /// O PIN e do dono: qualquer combinacao de 6 digitos vale, inclusive 111111 e
+    /// 123456. Decisao do dono em 2026-09-26, que retirou a lista de PINs faceis. So a
+    /// forma e conferida: exatamente 6 digitos de 0 a 9. Contra quem tenta pela
+    /// interface ficam a escada de atraso e, se o dono ligar, o apagar apos erros.
+    public static func isWellFormed(_ digits: [UInt8]) -> Bool {
+        digits.count == Self.digits && digits.allSatisfy { $0 <= 9 }
     }
-
-    static func isDate(_ d: [Int]) -> Bool {
-        let a = d[0] * 10 + d[1], b = d[2] * 10 + d[3], c = d[4] * 10 + d[5]
-        func valid(day: Int, month: Int) -> Bool {
-            guard (1...12).contains(month), day >= 1 else { return false }
-            let lengths = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-            return day <= lengths[month - 1]
-        }
-        return valid(day: a, month: b) || valid(day: b, month: a) || valid(day: c, month: b)
-    }
-
-    /// PINs frequentes que as regras acima nao pegam: teclado, datas e palavras.
-    private static let common: Set<Int> = [
-        147258, 258369, 159753, 357159, 147852, 258456, 789456, 456789, 147369, 963852,
-        741852, 852963, 159357, 753159, 951357, 124578, 102030, 010203, 112358, 131313,
-        142536, 198700, 199000, 200000, 123654, 654123, 123789, 789123, 321654, 147147,
-        159159, 520520, 521521, 520131, 131420, 696969, 123698, 987456, 102938, 019283,
-        135790, 246810, 135791, 112211, 121314, 101010, 202020, 303030, 007007, 171717,
-        181818, 191919, 252525, 282828,
-    ]
 
     /// A escada de atraso, em segundos, depois de `failures` erros seguidos.
     public static func delay(afterFailures failures: UInt32) -> TimeInterval {

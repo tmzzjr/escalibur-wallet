@@ -265,7 +265,8 @@ Consequência que vai por escrito no onboarding:
   - Opcional. Só pode ser ligado depois que o backup de todas as carteiras foi conferido.
   - Antes da 10ª tentativa, o app avisa na tela.
   - Apagar é destruição criptográfica: `SecItemDelete` de K_dev, K_bio e dos itens `rk.*` primeiro, que em milissegundos tornam inúteis todos os blobs, e depois o resto.
-  - Contra quem tenta pela interface, a chance de acerto é de 1 em 100 mil com PIN fora da lista de bloqueio. Contra quem tem execução de código, é inútil, e isso vai escrito.
+  - Contra quem tenta pela interface, a chance de acerto é de 1 em 100 mil para um PIN sorteado. Contra quem tem execução de código, é inútil, e isso vai escrito.
+- **Sem lista de PINs fáceis** (decisão do dono, 2026-09-26): qualquer combinação de 6 dígitos vale, inclusive 111111 e 123456. O app só confere a forma. O risco fica com o dono: um PIN óbvio é o primeiro palpite de quem pega o iPhone, e contra isso sobram a escada de atraso e o apagar após erros, se ligado.
 
 ### 2.8 Força bruta no PIN: o Secure Enclave resolve?
 

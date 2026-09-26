@@ -444,7 +444,7 @@ struct ChangePINFlow: View {
         switch error as? RootKeyVault.Failure {
         case .wrongPIN: return "O PIN atual não confere."
         case .throttled(let seconds): return "Tentativas demais. Tente de novo em \(LockView.duration(seconds))."
-        case .blockedPIN: return "Este PIN é fácil de adivinhar. Escolha outro."
+        case .malformedPIN: return "O PIN precisa ter 6 números."
         default: return "Não foi possível trocar. O PIN atual continua valendo."
         }
     }
@@ -456,11 +456,6 @@ struct ChangePINFlow: View {
             current = pin
             step = 1
         case 1:
-            if RootKeyVault.isBlocked(pin) {
-                pin.wipe()
-                entry.fail("Este PIN é fácil de adivinhar. Escolha outro.")
-                return
-            }
             newPIN = pin
             step = 2
         default:

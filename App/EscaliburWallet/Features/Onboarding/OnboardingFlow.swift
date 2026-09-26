@@ -88,13 +88,7 @@ struct OnboardingFlow: View {
     }
 
     private func choose() {
-        let pin = entry.take()
-        if RootKeyVault.isBlocked(pin) {
-            pin.wipe()
-            entry.fail("Este PIN é fácil de adivinhar. Escolha outro.")
-            return
-        }
-        firstPIN = pin
+        firstPIN = entry.take()
         step = .repeatPIN
     }
 

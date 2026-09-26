@@ -51,7 +51,7 @@ final class EnvelopeFlowTests: XCTestCase {
         type(pin: "135790", in: app)
         wait(app.staticTexts["PIN incorreto."], 10, app, "pin-incorreto")
         shot("e0-pin-errado", app)
-        type(pin: "482916", in: app)
+        type(pin: "111111", in: app)
         let words = app.staticTexts["palavras-envelope"]
         XCTAssertTrue(words.waitForExistence(timeout: 15))
         let password = words.label

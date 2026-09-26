@@ -10,7 +10,7 @@ import SwiftUI
 /// mesmos caminhos do app. `-tela <nome>` abre uma tela direto. verificar.sh confere
 /// que nada disto existe num build de distribuicao.
 enum DebugDemo {
-    static let pin = "482916"
+    static let pin = "111111"
     static let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
 
     static var arguments: [String] { ProcessInfo.processInfo.arguments }

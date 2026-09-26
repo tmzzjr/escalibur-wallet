@@ -47,25 +47,19 @@ struct RootKeyVaultTests {
         #expect(!(0...(raw.count - key.count)).contains { Array(raw[$0..<($0 + key.count)]) == key })
     }
 
-    @Test("PIN da lista de bloqueio e recusado, incluindo datas")
-    func blocklist() {
+    @Test("Qualquer PIN de 6 digitos vale, inclusive os faceis; so a forma e conferida")
+    func anyPIN() throws {
+        for pin in ["111111", "123456", "000000", "250390"] {
+            let (vault, _, _) = makeVault()
+            let rk = try vault.setUp(pin: secure(pin))
+            #expect(bytes(try vault.unlock(pin: secure(pin))) == bytes(rk))
+        }
+        #expect(PINPolicy.isWellFormed([1, 1, 1, 1, 1, 1]))
+        // Digito fora de 0 a 9, ou tamanho diferente de 6, nunca passa.
+        #expect(!PINPolicy.isWellFormed([4, 8, 2, 9, 1, 0x2F]))
+        #expect(!PINPolicy.isWellFormed([4, 8, 2, 9, 1]))
         let (vault, _, _) = makeVault()
-        for pin in ["123456", "000000", "121212", "654321", "112233", "147258", "890123", "010203", "250390", "031590", "901225"] {
-            #expect(throws: RootKeyVault.Failure.blockedPIN) { try vault.setUp(pin: secure(pin)) }
-        }
-        #expect(!PINPolicy.isBlocked([4, 8, 2, 9, 1, 6]))
-        #expect(!PINPolicy.isBlocked([7, 3, 0, 5, 8, 4]))
-        // Digito fora de 0 a 9 nunca passa.
-        #expect(PINPolicy.isBlocked([4, 8, 2, 9, 1, 0x2F]))
-        // A lista inteira nao pode engolir o espaco: datas e padroes ficam abaixo de 15%.
-        var blocked = 0
-        for value in 0..<1_000_000 {
-            var n = value
-            var digits = [UInt8](repeating: 0, count: 6)
-            for i in (0..<6).reversed() { digits[i] = UInt8(n % 10); n /= 10 }
-            if PINPolicy.isBlocked(digits) { blocked += 1 }
-        }
-        #expect(blocked < 150_000)
+        #expect(throws: RootKeyVault.Failure.malformedPIN) { try vault.setUp(pin: secure("12345a")) }
     }
 
     @Test("Escada de atraso: o terceiro erro ja espera, e o acerto zera")
@@ -197,7 +191,10 @@ struct RootKeyVaultTests {
         #expect(bytes(try vault.unlock(pin: secure("730584"))) == bytes(rk))
         #expect(throws: RootKeyVault.Failure.self) { try vault.unlock(pin: secure("482916")) }
         #expect(store.probe("rk.pin.novo") == .absent)
-        #expect(throws: RootKeyVault.Failure.blockedPIN) { try vault.changePIN(rk: rk, newPIN: secure("111111")) }
+        // PIN facil tambem vale na troca; so a forma e recusada.
+        try vault.changePIN(rk: rk, newPIN: secure("111111"))
+        #expect(bytes(try vault.unlock(pin: secure("111111"))) == bytes(rk))
+        #expect(throws: RootKeyVault.Failure.malformedPIN) { try vault.changePIN(rk: rk, newPIN: secure("1111")) }
     }
 
     @Test("Troca interrompida antes do ponto sem volta: o PIN antigo desfaz, o novo conclui")

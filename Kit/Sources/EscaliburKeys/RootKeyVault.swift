@@ -25,7 +25,8 @@ public final class RootKeyVault: @unchecked Sendable {
         case alreadySetUp
         case wrongPIN(remainingBeforeWipe: UInt32?)
         case throttled(seconds: TimeInterval)
-        case blockedPIN
+        /// Nao sao exatamente 6 digitos de 0 a 9.
+        case malformedPIN
         case biometryNotEnabled
         /// O cadastro de rostos mudou desde que o Face ID foi ligado: o slot foi
         /// apagado e religar exige o PIN.
@@ -96,7 +97,7 @@ public final class RootKeyVault: @unchecked Sendable {
         let slots = [Account.rootByPIN, Account.rootByPIN + Account.pendingSuffix, Account.rootByBiometry].map(store.probe)
         guard !slots.contains(.unknown) else { throw Failure.storage }
         guard !slots.contains(.present) else { throw Failure.alreadySetUp }
-        guard !Self.isBlocked(pin) else { throw Failure.blockedPIN }
+        guard Self.isWellFormed(pin) else { throw Failure.malformedPIN }
 
         // Sem nenhum slot da RK, o que sobrou de um cadastro interrompido nao abre
         // nada: a K_dev orfa, o contador e as carteiras cifradas sob uma RK perdida.
@@ -297,7 +298,7 @@ public final class RootKeyVault: @unchecked Sendable {
     /// conclui. Em nenhum instante o dono fica sem um slot que abre.
     public func changePIN(rk: SecureBytes, newPIN: SecureBytes) throws {
         lock.lock(); defer { lock.unlock() }
-        guard !Self.isBlocked(newPIN) else { throw Failure.blockedPIN }
+        guard Self.isWellFormed(newPIN) else { throw Failure.malformedPIN }
         let pendingAccount = Account.rootByPIN + Account.pendingSuffix
         // Uma troca interrompida se resolve no proximo desbloqueio, nao aqui.
         guard store.probe(Account.rootByPIN) == .present else { throw Failure.storage }
@@ -504,11 +505,11 @@ public final class RootKeyVault: @unchecked Sendable {
         return rk
     }
 
-    /// A lista de bloqueio sobre os digitos do PIN, sem deixar copia deles para tras.
-    public static func isBlocked(_ pin: SecureBytes) -> Bool {
+    /// A forma do PIN (6 digitos), sem deixar copia deles para tras.
+    public static func isWellFormed(_ pin: SecureBytes) -> Bool {
         var digits = pin.withUnsafeBytes { raw in raw.map { $0 &- 0x30 } }
         defer { digits.withUnsafeMutableBytes { if let base = $0.baseAddress { memset_s(base, $0.count, 0, $0.count) } } }
-        return PINPolicy.isBlocked(digits)
+        return PINPolicy.isWellFormed(digits)
     }
 
     /// AP = Argon2id(PIN, 256 MiB, p=2, t ate cerca de 0,8 s). E o custo que o

@@ -4,7 +4,7 @@ import XCTest
 /// verdade: nenhuma etapa simulada, nenhum atalho de depuracao alem de comecar do
 /// zero (`-reset`).
 final class OnboardingFlowTests: XCTestCase {
-    let pin = "482916"
+    let pin = "111111"
     var shots: String? { ProcessInfo.processInfo.environment["ESCALIBUR_FOTOS"] }
 
     override func setUp() {

@@ -16,7 +16,7 @@ MUST em aberto: (1) spike da senha de aplicativo em iOS 17, 18 e 26 físicos; (2
 | D2, envelope | Feito: piso de 256 MiB no próprio `VaultFile.create`, senha com 60 bits no `Envelope.seal`, 6 palavras sorteadas como padrão | fabf0ba |
 | D3, voz | Feito: voz no envelope, PIN para mudar, pausa após 3 desafios, sem cotação pede voz, comparação em tempo constante | bb9d768 |
 | D4, bloqueio automático e apagar após 10 | Feito: 0, 30 ou 60 s no relógio monotônico; alongar e mudar o apagamento pedem PIN | 81df923 |
-| D5, datas no PIN | Feito: DDMMAA, MMDDAA e AAMMDD (8,9% do espaço bloqueado) | 81df923 |
+| D5, datas no PIN | Feito: DDMMAA, MMDDAA e AAMMDD (8,9% do espaço bloqueado). Revertido em 2026-09-26 por decisão do dono: não há mais lista de PINs fáceis, qualquer PIN de 6 dígitos vale (docs/seguranca.md) | 81df923 |
 | D6, endereço parecido | Feito: prefixo de cada rede ignorado, contatos, todas as carteiras e histórico; só segue digitando os 6 últimos | bdff9bd |
 | D7, revisão mostra o plano | Feito: `review.recipient` e `recipientTag` em todo planejador, conferidos antes de revisar e antes de assinar; envio e troca mostram o plano | bdff9bd, 345af63 |
 | D8, segredo em String | Feito: BIP-39 sobre os bytes, 25ª palavra em buffer e NFKD na importação, sal em buffer, `PhraseDraft` só com as 3 palavras, `PasswordStrength` sobre os bytes, `VaultFile` só com os caminhos de buffer | 050eb1c, 283ae84 |
