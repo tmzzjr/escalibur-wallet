@@ -7,7 +7,8 @@ struct RecordWordsView: View {
     let draft: PhraseDraft
     /// Nil na criacao; o nome da carteira na revelacao (X2).
     let walletName: String?
-    var passphrase: String? = nil
+    /// A 25a palavra, em buffer; vira texto so enquanto o grupo dela esta na tela.
+    var passphrase: SecureBytes? = nil
     let onDone: () -> Void
 
     @State private var group = 0
@@ -63,8 +64,12 @@ struct RecordWordsView: View {
     }
 
     private func load() {
-        guard !isPassphraseGroup, !hidden else {
+        guard !hidden else {
             shown = []
+            return
+        }
+        if isPassphraseGroup {
+            shown = passphrase.map { secret in [secret.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }] } ?? []
             return
         }
         let start = group * perGroup
@@ -91,7 +96,7 @@ struct RecordWordsView: View {
             ZStack {
                 VStack(spacing: 0) {
                     if isPassphraseGroup {
-                        plateRow(index: nil, word: passphrase ?? "")
+                        plateRow(index: nil, word: shown.first ?? "")
                     } else {
                         let start = group * perGroup
                         ForEach(Array(shown.enumerated()), id: \.offset) { offset, word in

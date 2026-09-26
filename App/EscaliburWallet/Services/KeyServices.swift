@@ -54,16 +54,15 @@ enum KeyServices {
     @MainActor
     static func firstLaunchCleanup() {
         guard UIApplication.shared.isProtectedDataAvailable else { return }
-        let defaultsKey = "instalacao.marcada"
         let files = FileManager.default
         let marker = installMarker
-        let installed = UserDefaults.standard.bool(forKey: defaultsKey)
+        let installed = Preferences.installMarked
             || files.fileExists(atPath: marker.path)
             || files.fileExists(atPath: MetadataStore.file.path)
         if !installed {
             root.wipeAll()
         }
-        UserDefaults.standard.set(true, forKey: defaultsKey)
+        Preferences.installMarked = true
         if !files.fileExists(atPath: marker.path) {
             try? files.createDirectory(at: marker.deletingLastPathComponent(), withIntermediateDirectories: true)
             try? Data().write(to: marker, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])

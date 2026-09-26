@@ -67,8 +67,13 @@ struct CaptureGuard: ViewModifier {
     @State private var captured = false
     @State private var screenshotWarning = false
 
+    /// Tela inteira gravada ou espelhada (`isCaptured`), ou a propria cena sendo
+    /// capturada (`sceneCaptureState`, iOS 17: captura de uma janela so, que
+    /// `isCaptured` nao ve).
     private static var anyScreenCaptured: Bool {
-        UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.contains { $0.screen.isCaptured }
+        UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.contains { scene in
+            scene.screen.isCaptured || scene.traitCollection.sceneCaptureState == .active
+        }
     }
 
     func body(content: Content) -> some View {
@@ -88,6 +93,9 @@ struct CaptureGuard: ViewModifier {
         }
         .onAppear { captured = Self.anyScreenCaptured }
         .onReceive(NotificationCenter.default.publisher(for: UIScreen.capturedDidChangeNotification)) { _ in
+            captured = Self.anyScreenCaptured
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             captured = Self.anyScreenCaptured
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.userDidTakeScreenshotNotification)) { _ in

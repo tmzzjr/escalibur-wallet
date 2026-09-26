@@ -15,7 +15,7 @@ struct SealEnvelopeFlow: View {
 
     @State private var step: Step = .intro
     @State private var phrase: SecureBytes?
-    @State private var passphrase = ""
+    @State private var passphrase: SecureBytes?
     @State private var password = SecureBytes(capacity: 256)
     @State private var passwordLength = 0
     @State private var repeatPassword = SecureBytes(capacity: 256)
@@ -219,11 +219,12 @@ struct SealEnvelopeFlow: View {
         let id = wallet.id
         do {
             guard await VoiceGate.shared.confirm(.envelope, session: session) else { return }
-            let result: (SecureBytes, String)? = try await auth.perform(session, reason: "Lacrar a senha de \(wallet.name) num envelope", requirePIN: true) { rk in
+            let result: (SecureBytes, SecureBytes)? = try await auth.perform(session, reason: "Lacrar a senha de \(wallet.name) num envelope", requirePIN: true) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }
                 let phrase = try secret.phrase()
-                let passphrase = secret.passphrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }
+                let passphrase = SecureBytes(capacity: max(secret.passphrase.count, 1))
+                secret.passphrase.withUnsafeBytes { passphrase.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
                 return (phrase, passphrase)
             }
             guard let result else { return }
@@ -279,7 +280,9 @@ struct SealEnvelopeFlow: View {
             password.wipe()
             repeatPassword.wipe()
             phrase.wipe()
+            passphrase?.wipe()
             self.phrase = nil
+            self.passphrase = nil
             sealed = try write(data)
             var updated = wallet
             updated.envelopeSealedAt = .now
@@ -312,6 +315,7 @@ struct SealEnvelopeFlow: View {
 
     private func close() {
         phrase?.wipe()
+        passphrase?.wipe()
         password.wipe()
         repeatPassword.wipe()
         if let sealed { try? FileManager.default.removeItem(at: sealed.url) }

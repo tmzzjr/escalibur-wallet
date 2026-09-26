@@ -1,0 +1,43 @@
+# Toda mudanca passa por aqui antes de entrar na main: o verificador inteiro, todos
+# os testes do nucleo e a interoperabilidade do envelope com o decifrador aberto.
+name: verificar
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verificar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      # Acoes fixadas por commit, nunca por tag movel.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Xcode do .xcode-version
+        run: |
+          versao=$(sed 's/^Xcode //' .xcode-version)
+          sudo xcode-select -s "/Applications/Xcode_${versao}.app"
+          xcodebuild -version
+
+      - name: Verificador
+        run: ./tools/verificar.sh
+
+      - name: Testes do nucleo
+        working-directory: Kit
+        run: swift test
+
+      - name: Envelope da carteira aberto pelo decifrar.py embarcado
+        run: |
+          python3 -m pip install --user --disable-pip-version-check argon2-cffi==25.1.0 cryptography==50.0.1
+          ./tools/conferir-envelope.sh

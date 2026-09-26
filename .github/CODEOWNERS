@@ -1,0 +1,20 @@
+# Quem revisa o que guarda segredo, valida o que se assina ou trava dependencia.
+# docs/seguranca.md §8.3 pede dois revisores nestes caminhos: a protecao de branch
+# exige 2 aprovacoes de code owner. Hoje o repositorio tem um dono so; o segundo
+# revisor entra aqui quando o repositorio for publicado.
+
+*                                   @tmzzjr
+
+/Kit/Sources/EscaliburCore/         @tmzzjr
+/Kit/Sources/EscaliburKeys/         @tmzzjr
+/Kit/Sources/EscaliburChains/       @tmzzjr
+/Kit/Sources/EscaliburEngines/      @tmzzjr
+/Kit/Sources/CSecp256k1/            @tmzzjr
+/Kit/Sources/CArgon2/               @tmzzjr
+/Kit/Package.swift                  @tmzzjr
+*.lock                              @tmzzjr
+/tools/                             @tmzzjr
+/App/EscaliburWallet/Resources/Info.plist                     @tmzzjr
+/App/EscaliburWallet/Resources/EscaliburWallet.entitlements   @tmzzjr
+/App/EscaliburWallet/Resources/Recuperacao/                   @tmzzjr
+/.github/                           @tmzzjr

@@ -87,6 +87,7 @@ fi
 secao "dependencias"
 if grep -q "XCRemoteSwiftPackageReference" EscaliburWallet.xcodeproj/project.pbxproj 2>/dev/null; then aviso "pacote remoto no projeto"; else ok "nenhum pacote remoto no projeto"; fi
 if grep -q '\.package(url' Kit/Package.swift; then aviso "pacote remoto no Package.swift"; else ok "nenhum pacote remoto no Package.swift"; fi
+if grep -q '\.binaryTarget(' Kit/Package.swift; then aviso "alvo binario no Package.swift"; else ok "nenhum alvo binario"; fi
 achados=$(find . \( -name "*.xcframework" -o -name "*.framework" -o -name "*.a" -o -name "*.dylib" -o -name Podfile -o -name Cartfile \) -not -path "./build/*" -not -path "*/.build/*" -not -path "./.git/*" 2>/dev/null)
 [ -n "$achados" ] && { aviso "binario ou gerenciador de terceiro"; echo "$achados"; } || ok "nenhum binario de terceiro"
 
@@ -116,6 +117,13 @@ done
 [ "$divergentes" = "0" ] && ok "as 10 listas BIP-39 conferem com wordlists.lock"
 
 # 5. Registro e aleatoriedade.
+# Kit de recuperacao embarcado: decifrar.py, FORMATO.md e LEIA-ME travados por digesto.
+if (cd "$APP/Resources/Recuperacao" && shasum -a 256 -c ../../../../recuperacao.lock >/dev/null 2>&1); then
+    ok "kit de recuperacao confere com recuperacao.lock"
+else
+    aviso "kit de recuperacao difere de recuperacao.lock"
+fi
+
 secao "registro e aleatoriedade"
 achados=$(procurar '(^|[^A-Za-z0-9_.])(print|debugPrint|dump|NSLog)\(' "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET")
 [ -n "$achados" ] && { aviso "print/NSLog fora dos testes"; echo "$achados"; } || ok "nenhum print fora dos testes"
@@ -134,12 +142,37 @@ if ! grep -q 'kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly' "$KEYS/SecretStor
 # A unica excecao (simulador) precisa estar atras de targetEnvironment(simulator).
 excecao=$(awk '/#if targetEnvironment\(simulator\)/{d=1} /#else|#endif/{d=0} /kSecAttrAccessibleWhenUnlockedThisDeviceOnly/{ if(!d) print FILENAME": "NR }' "$KEYS/SecretStore.swift")
 [ -n "$excecao" ] && { aviso "classe de simulador fora do bloco de simulador"; echo "$excecao"; } || ok "a excecao do simulador so compila para simulador"
-achados=$(awk 'FNR==1{d=0} /#if targetEnvironment\(simulator\)/{d=1} /#endif/{d=0} /SimulatorWrapper\(\)|SoftwareWrapper\(\)/{ if(!d) print FILENAME": "FNR": "$0 }' $(swift_em "$APP" "$KEYS"))
+achados=$(awk 'FNR==1{d=0} /#if targetEnvironment\(simulator\)/{d=1} /#else|#endif/{d=0} /SimulatorWrapper\(\)|SoftwareWrapper\(\)/{ if(!d) print FILENAME": "FNR": "$0 }' $(swift_em "$APP" "$KEYS"))
 [ -n "$achados" ] && { aviso "embrulho em software fora do simulador"; echo "$achados"; } || ok "embrulho em software so no simulador e nos testes"
 achados=$(swift_em "$CORE" "$CHAINS" "$KEYS" "$NET" | xargs grep -nE 'class (MemoryStore|SoftwareWrapper)\b' 2>/dev/null)
 [ -n "$achados" ] && { aviso "duble de teste dentro do codigo que vai para o app"; echo "$achados"; } || ok "armazenamento em memoria e embrulho em software so existem nos testes"
 achados=$(swift_em "$APP" "$KEYS" | xargs grep -n 'evaluatePolicy(' 2>/dev/null | grep -v 'canEvaluatePolicy' | grep -v "$APP/Services/KeyServices.swift")
 [ -n "$achados" ] && { aviso "evaluatePolicy fora do simulador (booleano nao autoriza nada)"; echo "$achados"; } || ok "nenhum booleano de biometria autoriza operacao"
+
+# 6b. Segredo em String e comparacao de segredo. Grep com falso positivo possivel:
+# cada excecao e uma linha em tools/excecoes.allow ("arquivo|trecho|por que"),
+# revisada como codigo.
+secao "segredo"
+filtrar_excecoes() {
+    local entrada
+    entrada=$(cat)
+    [ -z "$entrada" ] && return
+    while IFS='|' read -r arquivo trecho _; do
+        [ -z "$arquivo" ] || [ "${arquivo#\#}" != "$arquivo" ] && continue
+        entrada=$(echo "$entrada" | grep -vF "$arquivo:" ; echo "$entrada" | grep -F "$arquivo:" | grep -vF "$trecho")
+        entrada=$(echo "$entrada" | sed '/^$/d')
+    done < tools/excecoes.allow
+    echo "$entrada"
+}
+achados=$(swift_em "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET" "$ENG" | xargs grep -niE '(var|let) +[A-Za-z_]*(pin|senha|password|seed|mnemonic|phrase|entropy|privatekey|secret)[A-Za-z_]* *(: *String|= *"")|@State[^=]*(pin|senha|seed|mnemonic|phrase)[A-Za-z_]* *(: *String|= *"")' 2>/dev/null \
+    | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//' | filtrar_excecoes)
+[ -n "$achados" ] && { aviso "segredo guardado em String"; echo "$achados"; } || ok "nenhum segredo guardado em String (fora das excecoes revisadas)"
+achados=$(procurar '(digest|tag|mac|hmac|secret|key)[A-Za-z_]* *[!=]=' "$KEYS" | filtrar_excecoes)
+[ -n "$achados" ] && { aviso "segredo comparado com == (use Hash.constantTimeEqual)"; echo "$achados"; } || ok "segredo so comparado em tempo constante no modulo de chaves"
+achados=$(procurar '(Data|String|NSData|NSString|NSArray|NSDictionary)\(contentsOf: *URL\(string' "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET" "$ENG")
+[ -n "$achados" ] && { aviso "leitura de URL remota fora do cliente HTTP"; echo "$achados"; } || ok "nenhuma leitura de rede por contentsOf"
+achados=$(procurar '(Data|String|NSData|NSString)\(contentsOf:' "$CHAINS" "$KEYS" "$ENG")
+[ -n "$achados" ] && { aviso "leitura de arquivo em redes, chaves ou motores"; echo "$achados"; } || ok "redes, chaves e motores nao leem arquivo"
 
 # 7. Plataforma.
 secao "plataforma"
@@ -147,6 +180,10 @@ grep -q 'shouldAllowExtensionPointIdentifier' "$APP/App/PlatformGuards.swift" &&
     && ok "teclados de terceiros bloqueados" || aviso "bloqueio de teclado de terceiro sumiu"
 grep -q 'willResignActiveNotification' "$APP/App/PlatformGuards.swift" && ok "cobertura antes da foto do seletor de apps" || aviso "cobertura do seletor sumiu"
 grep -q 'NSFileProtectionComplete' "$APP/Resources/EscaliburWallet.entitlements" && ok "NSFileProtectionComplete em todo o conteiner" || aviso "protecao de arquivo sumiu"
+grep -q 'sceneCaptureState' "$APP/App/PlatformGuards.swift" && grep -q 'isCaptured' "$APP/App/PlatformGuards.swift" \
+    && ok "tela sensivel some com gravacao, espelhamento ou captura da cena" || aviso "defesa contra captura de tela incompleta"
+achados=$(swift_em "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET" "$ENG" | xargs grep -nE 'UserDefaults|@AppStorage' 2>/dev/null | grep -v "^$APP/App/Preferences.swift:")
+[ -n "$achados" ] && { aviso "UserDefaults fora de Preferences.swift"; echo "$achados"; } || ok "UserDefaults so em Preferences.swift"
 chaves=$(/usr/libexec/PlistBuddy -c "Print" "$APP/Resources/EscaliburWallet.entitlements" | grep -E '^\s+[a-z]' | awk '{print $1}' | sort | tr '\n' ' ')
 [ "$chaves" = "com.apple.developer.default-data-protection " ] && ok "entitlements: so a protecao de dados" || aviso "entitlements inesperados: $chaves"
 achados=$(grep -oE 'NS[A-Za-z]+UsageDescription' "$APP/Resources/Info.plist" | sort -u | grep -vE 'NSFaceIDUsageDescription|NSCameraUsageDescription|NSMicrophoneUsageDescription|NSSpeechRecognitionUsageDescription')
@@ -167,6 +204,16 @@ achados=$(awk 'FNR==1{d=0} /#if DEBUG/{d=1} /#endif/{d=0} /DebugDemo\./{ if(!d) 
 [ -n "$achados" ] && { aviso "uso de DebugDemo fora de #if DEBUG"; echo "$achados"; } || ok "nenhum uso de DebugDemo fora de #if DEBUG"
 
 # 9. Texto que o usuario le, sem travessao.
+secao "determinismo"
+achados=$(grep -rnE '__DATE__|__TIME__|__TIMESTAMP__' Kit/Sources/CSecp256k1 Kit/Sources/CArgon2 2>/dev/null)
+[ -n "$achados" ] && { aviso "data de compilacao no C"; echo "$achados"; } || ok "nenhuma data de compilacao no C vendorizado"
+if [ -f .xcode-version ]; then
+    atual=$(xcodebuild -version 2>/dev/null | head -1)
+    [ "$atual" = "$(cat .xcode-version)" ] && ok "Xcode igual ao .xcode-version ($atual)" || aviso "Xcode $atual difere do .xcode-version ($(cat .xcode-version))"
+else
+    aviso ".xcode-version nao existe"
+fi
+
 secao "texto"
 achados=$(swift_em "$APP" | xargs grep -nE '"[^"]*(—|–)[^"]*"' 2>/dev/null)
 [ -n "$achados" ] && { aviso "travessao em texto de interface"; echo "$achados"; } || ok "nenhum travessao em texto de interface"

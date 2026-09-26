@@ -98,15 +98,29 @@ struct EnvelopeTests {
         #expect(Envelope.sanitize("Poupança", limit: 64) == "Poupança")
     }
 
+    /// Lacra um envelope com o codigo de hoje da carteira, para o CI abrir com o
+    /// decifrar.py embarcado (tools/conferir-envelope.sh). Roda so com
+    /// ESCALIBUR_ENVELOPE_SAIDA apontando para onde gravar.
+    @Test("Envelope da carteira para o decifrar.py", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_ENVELOPE_SAIDA"] != nil))
+    func envelopeForReference() throws {
+        let data = try Envelope.seal(
+            phrase: BIP39.canonical("legal winner thank year wave sausage worth useful legal winner thank yellow"),
+            passphrase: Self.secure("canção de ninar"),
+            label: "Conferência do CI",
+            password: Self.secure(Self.strong)
+        )
+        try data.write(to: URL(fileURLWithPath: ProcessInfo.processInfo.environment["ESCALIBUR_ENVELOPE_SAIDA"]!))
+    }
+
     /// Gera a fixture. Roda so com ESCALIBUR_GERAR_FIXTURE=1, e o arquivo gerado e
     /// conferido a parte com `python3 tools/decifrar.py` antes de entrar no repo.
     @Test("Gerar fixture de interoperabilidade", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_GERAR_FIXTURE"] == "1"))
     func generateFixture() throws {
         // A fixture guarda a senha de antes do piso de 60 bits; o lacre vai direto ao
         // arquivo para continuar reproduzivel com a mesma senha.
-        let phrase = try BIP39.canonical(Self.phrase)
+        let phrase = BIP39.canonical(Self.phrase)
         guard case .valid(let language) = BIP39.validate(phrase) else { Issue.record("frase"); return }
-        let sealing = SealingContents(mnemonic: phrase, passphrase: "", label: "Interoperabilidade", notes: "", language: language, kind: .bip39)
+        let sealing = SealingContents(mnemonic: phrase, passphrase: SecureBytes(capacity: 1), label: "Interoperabilidade", notes: "", language: language, kind: .bip39)
         let data = try VaultFile.create(sealing: sealing, password: Self.secure("cavalo correto bateria grampo"), parameters: Self.fast)
         let out = URL(fileURLWithPath: ProcessInfo.processInfo.environment["ESCALIBUR_FIXTURE_SAIDA"] ?? "/tmp/interop.esclbr")
         try data.write(to: out)

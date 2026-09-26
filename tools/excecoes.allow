@@ -1,0 +1,7 @@
+# Excecoes revisadas das regras de segredo do verificar.sh (regras 12 e 15 de
+# docs/seguranca.md §8.3). Uma por linha: arquivo|trecho exato da linha|por que.
+# Cada linha nova passa por revisao como codigo.
+App/EscaliburWallet/Services/Metadata.swift|var voicePhraseHash: String?|HMAC da frase de voz, nao a frase; comparado em tempo constante em VoiceGate.matches
+App/EscaliburWallet/Services/Metadata.swift|var voicePhraseSalt: String?|sal publico do HMAC da frase de voz
+App/EscaliburWallet/Services/VoiceGate.swift|var voicePhraseHash: String? {|acessor do HMAC acima
+App/EscaliburWallet/Services/VoiceGate.swift|var voicePhraseSalt: String? {|acessor do sal acima

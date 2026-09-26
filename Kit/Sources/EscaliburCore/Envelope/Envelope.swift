@@ -65,7 +65,7 @@ public enum Envelope {
     /// nunca abaixo do piso de lacre. Reabre o resultado antes de devolver.
     public static func seal(
         phrase: SecureBytes,
-        passphrase: String = "",
+        passphrase: SecureBytes? = nil,
         label: String,
         notes: String = "",
         password: SecureBytes,
@@ -76,8 +76,9 @@ public enum Envelope {
         let chosen = parameters ?? KDFCalibration.calibrate()
         let language: BIP39Language
         if case .valid(let detected) = BIP39.validate(phrase) { language = detected } else { throw Failure.invalidPhrase }
+        let emptyPassphrase = SecureBytes(capacity: 1)
         let sealing = SealingContents(
-            mnemonic: phrase, passphrase: passphrase, label: label, notes: notes,
+            mnemonic: phrase, passphrase: passphrase ?? emptyPassphrase, label: label, notes: notes,
             language: language, kind: .bip39
         )
         let data = try VaultFile.create(sealing: sealing, password: password, parameters: chosen)
@@ -87,7 +88,7 @@ public enum Envelope {
         let check = try open(data, password: password)
         defer { check.wipe() }
         let samePhrase = Hash.constantTimeEqual(phrase, check.phrase)
-        let samePassphrase = check.passphrase.withUnsafeBytes { Hash.constantTimeEqual(Array(passphrase.utf8), Array($0)) }
+        let samePassphrase = Hash.constantTimeEqual(passphrase ?? emptyPassphrase, check.passphrase)
         guard samePhrase, samePassphrase else { throw CryptoError.malformedVault("o envelope gravado não confere com a frase") }
         return data
     }
@@ -139,7 +140,7 @@ public enum Envelope {
         try block.withUnsafeBytes { raw -> Contents in
             let bytes = raw.bindMemory(to: UInt8.self)
             guard bytes.count == VaultFormat.plaintextLength, bytes[0] == 0x01 else { throw Failure.cannotOpen }
-            guard let kind = VaultContents.Kind(rawValue: bytes[1]) else { throw Failure.cannotOpen }
+            guard let kind = VaultContentKind(rawValue: bytes[1]) else { throw Failure.cannotOpen }
             guard kind == .bip39 else { throw Failure.slip39Share }
             let languageIndex = Int(bytes[2])
             guard BIP39Language.allCases.indices.contains(languageIndex) else { throw Failure.unknownLanguage }

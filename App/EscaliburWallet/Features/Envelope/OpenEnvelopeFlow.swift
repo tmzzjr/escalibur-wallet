@@ -61,7 +61,7 @@ struct OpenEnvelopeFlow: View {
             Group {
                 if let revealDraft, let opened {
                     RecordWordsView(draft: revealDraft, walletName: opened.label.isEmpty ? "Envelope" : opened.label,
-                                    passphrase: opened.passphrase.count > 0 ? opened.passphrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) } : nil) {
+                                    passphrase: opened.passphrase.count > 0 ? opened.passphrase : nil) {
                         close()
                     }
                 } else if let opened {

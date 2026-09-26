@@ -14,7 +14,7 @@ struct RevealFlow: View {
     let onClose: () -> Void
 
     @State private var draft: PhraseDraft?
-    @State private var passphrase: String?
+    @State private var passphrase: SecureBytes?
     @State private var confirming = false
     @State private var working = false
     @State private var error: String?
@@ -105,10 +105,15 @@ struct RevealFlow: View {
         let id = wallet.id
         do {
             guard await VoiceGate.shared.confirm(.reveal, session: session) else { return }
-            let result: (SecureBytes, String?)? = try await auth.perform(session, reason: "Ver a senha de \(wallet.name)", requirePIN: true) { rk in
+            let result: (SecureBytes, SecureBytes?)? = try await auth.perform(session, reason: "Ver a senha de \(wallet.name)", requirePIN: true) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }
-                let pass = secret.passphrase.count > 0 ? secret.passphrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) } : nil
+                var pass: SecureBytes?
+                if secret.passphrase.count > 0 {
+                    let copy = SecureBytes(capacity: secret.passphrase.count)
+                    secret.passphrase.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
+                    pass = copy
+                }
                 return (try secret.phrase(), pass)
             }
             guard let (phrase, pass) = result else { return }
@@ -135,6 +140,8 @@ struct RevealFlow: View {
         }
         draft?.wipe()
         draft = nil
+        passphrase?.wipe()
+        passphrase = nil
         onClose()
     }
 }

@@ -56,6 +56,7 @@
 		E345A5856750B23E38B8A35E /* SealEnvelopeFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */; };
 		E74B179E19640B5584F2F303 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38287337A415C5A48CB564C8 /* Typography.swift */; };
 		EAD6592758D7814329227F15 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7372B2C6D0156F65AA215FE5 /* SettingsView.swift */; };
+		ECDF3B3B1D37C45AF88FD2A8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */; };
 		F2B74E9DFA78D4082923023D /* AssetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB2C6C888DAF848A575AD7A /* AssetDetailView.swift */; };
 		F60A5B68C1C271353B804B0B /* ReceiveSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2CB54D5FE5615D8A3F582F8 /* ReceiveSheet.swift */; };
 		F6959527BC4CC168A38CFA35 /* LockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DB4670DA96F1FBC6FF41CC /* LockView.swift */; };
@@ -83,6 +84,7 @@
 		1292233C35D3175EC36E4F70 /* EscaliburWallet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EscaliburWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		15276BF5A254093B41A55B40 /* NewWalletFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewWalletFlow.swift; sourceTree = "<group>"; };
 		1722E329135DB398B784E8C8 /* KeyServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyServices.swift; sourceTree = "<group>"; };
+		268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		290C3A2CEF411E071AA05800 /* WordInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordInputField.swift; sourceTree = "<group>"; };
 		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealEnvelopeFlow.swift; sourceTree = "<group>"; };
@@ -171,6 +173,7 @@
 				F5ECD2EB5627AA912E7957E4 /* DeviceIntegrity.swift */,
 				355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */,
 				4A0E9C686393C93E1E34895B /* PlatformGuards.swift */,
+				268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */,
 				7E67A652A823737F6EAC7745 /* RootView.swift */,
 				C10914896D99BB58942178E3 /* Router.swift */,
 			);
@@ -522,6 +525,7 @@
 				3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */,
 				90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */,
 				9A8477455F2ABEB9D91113AF /* Portfolio.swift in Sources */,
+				ECDF3B3B1D37C45AF88FD2A8 /* Preferences.swift in Sources */,
 				D9993FE2FD6DDDCA4F84E8C6 /* PriceChart.swift in Sources */,
 				19E1559AA99AE5A16A3BD1AC /* QRScannerSheet.swift in Sources */,
 				F60A5B68C1C271353B804B0B /* ReceiveSheet.swift in Sources */,
