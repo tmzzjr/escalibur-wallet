@@ -90,6 +90,17 @@ final class AppSession {
     nonisolated private static func missingAccounts(rk: SecureBytes) -> [UUID: [DerivedAccount]] {
         guard let metadata = try? MetadataStore.load(key: IndexCipher.key(from: rk)) else { return [:] }
         var updates: [UUID: [DerivedAccount]] = [:]
+        // Carteira so de observacao de endereco EVM: o mesmo endereco vale nas redes EVM
+        // novas, como em `addWatchWallet`. Nada e derivado; so se repete o endereco.
+        for wallet in metadata.wallets where wallet.isWatchOnly {
+            guard let evm = wallet.accounts.first(where: { Chain.find($0.chainID)?.family == .evm }) else { continue }
+            let have = Set(wallet.accounts.map(\.chainID))
+            let missing = Chain.evmChains.filter { !have.contains($0.id) }
+            guard !missing.isEmpty else { continue }
+            updates[wallet.id] = missing.map {
+                DerivedAccount(chainID: $0.id, path: evm.path, address: evm.address, publicKey: evm.publicKey, accountXPub: nil)
+            }
+        }
         for wallet in metadata.wallets where !wallet.isWatchOnly {
             let have = Set(wallet.accounts.map(\.chainID))
             let missing = Chain.all.filter { !have.contains($0.id) }

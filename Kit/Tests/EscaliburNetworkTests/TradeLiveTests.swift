@@ -125,10 +125,43 @@ struct TradeLiveTests {
         }
     }
 
+    @Test("Redes novas: cada provedor da allowlist cota a moeda nativa por stablecoin e a calldata passa na validacao",
+          arguments: [Chain.plasma, .linea, .unichain, .sonic])
+    func secondWaveProviders(chain: Chain) async throws {
+        let account = try Self.account()
+        let asset = try #require(TokenRegistry.assets(on: chain).first { $0.isStablecoin })
+        guard case .token(let contract) = asset.kind else { return }
+        let token = EVMToken(chain: chain, contract: try EVMAddress(contract), symbol: asset.symbol, decimals: UInt8(asset.decimals))
+        // Uns US$ 10 da moeda nativa: 100 XPL, 0,004 ETH, 250 S.
+        let amount: BigUInt = switch chain.id {
+        case "plasma": BigUInt(decimal: "100000000000000000000")!
+        case "sonic": BigUInt(decimal: "250000000000000000000")!
+        default: BigUInt(decimal: "4000000000000000")!
+        }
+        let intent = try TradeIntent(owner: account.address, sell: .native(chain), buy: .token(token), amountIn: amount, slippageBps: 100)
+        let network = try await TradeStateReader().network(chain: chain, owner: account.address)
+        let gasPrice = network.baseFeePerGas + network.priorityFees.normal
+        let aggregator = TradeAggregator()
+        for router in TradeAllowlist.routers(on: chain) {
+            try await Task.sleep(for: .milliseconds(800))
+            do {
+                let quote = try await aggregator.requote(router.provider, intent: intent, gasPriceWei: gasPrice)
+                #expect(quote.to == router.address, "\(chain.id) \(router.provider)")
+                Live.note("\(chain.id): \(router.provider.displayName) garante \(quote.guaranteedOut) \(asset.symbol)")
+            } catch let TradeProviderError.refused(_, refusal) {
+                // Cotacao que chegou e nao passou na validacao: o provedor nao devia estar na allowlist.
+                Issue.record("\(chain.id): \(router.provider.displayName) recusado pela validacao: \(refusal)")
+            } catch {
+                // Sem resposta (limite de taxa, prazo): nao diz nada sobre a calldata.
+                Live.note("\(chain.id): \(router.provider.displayName) sem resposta agora: \(error)")
+            }
+        }
+    }
+
     @Test("Pins conferidos na cadeia: faceta da LI.FI e implementacao da De¹ nas redes compiladas")
     func pins() async throws {
         let reader = TradeStateReader()
-        for chain in [Chain.ethereum, .base, .arbitrum, .optimism, .polygon, .bnb] {
+        for chain in [Chain.ethereum, .base, .arbitrum, .optimism, .polygon, .bnb, .plasma, .linea, .unichain, .sonic] {
             for router in TradeAllowlist.routers(on: chain) {
                 #expect(try await reader.hasCode(chain: chain, router.address), "\(chain.id) \(router.provider)")
                 for query in router.facetQueries {
@@ -147,6 +180,9 @@ struct TradeLiveTests {
     func cow() async throws {
         let cow = CoWClient()
         try await cow.registerAppData(.limitOrder, chain: .base)
+        // As duas redes da segunda leva que a CoW atende aceitam o mesmo appData.
+        try await cow.registerAppData(.limitOrder, chain: .plasma)
+        try await cow.registerAppData(.limitOrder, chain: .linea)
 
         let fixture = try JSONSerialization.jsonObject(with: S.fixture("cow-base-order-limit")) as! [String: Any]
         let uid = Hex.decode(String((fixture["uid"] as! String).dropFirst(2)))!

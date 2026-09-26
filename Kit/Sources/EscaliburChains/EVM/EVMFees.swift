@@ -56,9 +56,9 @@ public struct EVMNetworkState: Sendable, Equatable {
     public let priorityFees: EVMPriorityFees
     /// `eth_estimateGas` da chamada exata que vai ser assinada: a menor de duas fontes.
     public let gasEstimate: UInt64
-    /// OP e Base: taxa de dados da L1, cobrada a parte (GasPriceOracle
-    /// `0x420000000000000000000000000000000000000F`, `getL1FeeUpperBound`). Nas
-    /// outras redes, `nil`.
+    /// Redes OP Stack (OP, Base, Unichain, X Layer e Celo): taxa de dados da L1,
+    /// cobrada a parte (GasPriceOracle `0x420000000000000000000000000000000000000F`,
+    /// `getL1FeeUpperBound`). Nas outras redes, `nil`.
     public let l1DataFee: BigUInt?
     /// Saldo nativo da conta, em wei.
     public let nativeBalance: BigUInt
@@ -125,9 +125,27 @@ public struct EVMFeeProfile: Sendable, Equatable {
     public let maxPriorityFee: BigUInt
     /// OP Stack: taxa de dados da L1 a parte.
     public let chargesL1DataFee: Bool
+    /// Celo e X Layer: OP Stack cujo oraculo de taxa L1 devolve zero hoje (os dados nao
+    /// vao para a Ethereum como calldata cobrada do usuario). A taxa continua sendo lida
+    /// a cada plano, e zero e resposta valida; se um dia passar a cobrar, o plano ja
+    /// conta. Nas outras redes com taxa L1, zero e recusado como resposta implausivel.
+    public let l1DataFeeMayBeZero: Bool
     /// BNB: baseFee zero e `maxFee = maxPriority`.
     public let priorityEqualsMaxFee: Bool
     public let allowsLegacy: Bool
+
+    init(
+        maxFeeCeiling: BigUInt, minPriorityFee: BigUInt, maxPriorityFee: BigUInt, chargesL1DataFee: Bool,
+        l1DataFeeMayBeZero: Bool = false, priorityEqualsMaxFee: Bool, allowsLegacy: Bool
+    ) {
+        self.maxFeeCeiling = maxFeeCeiling
+        self.minPriorityFee = minPriorityFee
+        self.maxPriorityFee = maxPriorityFee
+        self.chargesL1DataFee = chargesL1DataFee
+        self.l1DataFeeMayBeZero = l1DataFeeMayBeZero
+        self.priorityEqualsMaxFee = priorityEqualsMaxFee
+        self.allowsLegacy = allowsLegacy
+    }
 
     static let gwei = BigUInt(1_000_000_000)
 
@@ -146,8 +164,9 @@ public struct EVMFeeProfile: Sendable, Equatable {
             // inclui a parcela L1 em unidades de gas.
             return EVMFeeProfile(maxFeeCeiling: gwei(20), minPriorityFee: 0, maxPriorityFee: 0,
                                  chargesL1DataFee: false, priorityEqualsMaxFee: false, allowsLegacy: false)
-        case 8453, 10:
-            // Base e OP: baseFee de milesimos de gwei; a taxa L1 vem a parte.
+        case 8453, 10, 130:
+            // Base, OP e Unichain: baseFee de milesimos de gwei; a taxa L1 vem a parte
+            // (Unichain: `getL1FeeUpperBound` no mesmo predeploy, conferido em 26/09/2026).
             return EVMFeeProfile(maxFeeCeiling: gwei(20), minPriorityFee: 0, maxPriorityFee: gwei(2),
                                  chargesL1DataFee: true, priorityEqualsMaxFee: false, allowsLegacy: false)
         case 137:
@@ -165,6 +184,34 @@ public struct EVMFeeProfile: Sendable, Equatable {
             // Avalanche C: ~0,04 gwei hoje; picos de centenas de gwei em 2023/2024.
             return EVMFeeProfile(maxFeeCeiling: gwei(2_000), minPriorityFee: 0, maxPriorityFee: gwei(100),
                                  chargesL1DataFee: false, priorityEqualsMaxFee: false, allowsLegacy: false)
+        // Segunda leva: baseFee e gorjetas de `eth_feeHistory` em dois RPCs de cada rede,
+        // conferidos em 26/09/2026.
+        case 9745:
+            // Plasma: baseFee de 7 wei e gorjetas de 1 a 64 wei; XPL a US$ 0,12.
+            return EVMFeeProfile(maxFeeCeiling: gwei(1_000), minPriorityFee: 0, maxPriorityFee: gwei(100),
+                                 chargesL1DataFee: false, priorityEqualsMaxFee: false, allowsLegacy: false)
+        case 196:
+            // X Layer: baseFee de 0,02 gwei e gorjeta de 1 wei; OKB a
+            // US$ 121. OP Stack, com o oraculo de taxa L1 devolvendo zero.
+            return EVMFeeProfile(maxFeeCeiling: gwei(20), minPriorityFee: 0, maxPriorityFee: gwei(2),
+                                 chargesL1DataFee: true, l1DataFeeMayBeZero: true, priorityEqualsMaxFee: false, allowsLegacy: false)
+        case 59144:
+            // Linea: baseFee fixa de 7 wei; o sequenciador exige um preco minimo que
+            // depende do tamanho da transacao (docs.linea.build, "Estimate gas costs":
+            // 0,03 gwei fixos mais o custo por byte). `linea_estimateGas` pediu 0,04 gwei
+            // para envio nativo e de token; o piso de 0,1 gwei cobre isso com folga.
+            return EVMFeeProfile(maxFeeCeiling: gwei(20), minPriorityFee: BigUInt(100_000_000), maxPriorityFee: gwei(5),
+                                 chargesL1DataFee: false, priorityEqualsMaxFee: false, allowsLegacy: false)
+        case 146:
+            // Sonic: baseFee com piso de 50 gwei (`eth_getRules`, MinBaseFee), 55 gwei
+            // hoje, gorjeta de 1 wei; S a US$ 0,04.
+            return EVMFeeProfile(maxFeeCeiling: gwei(5_000), minPriorityFee: 0, maxPriorityFee: gwei(100),
+                                 chargesL1DataFee: false, priorityEqualsMaxFee: false, allowsLegacy: false)
+        case 42220:
+            // Celo: baseFee no piso de 200 gwei, gorjeta de ~0,001 gwei; CELO a US$ 0,10.
+            // OP Stack com dados fora da Ethereum: o oraculo de taxa L1 devolve zero.
+            return EVMFeeProfile(maxFeeCeiling: gwei(5_000), minPriorityFee: 0, maxPriorityFee: gwei(100),
+                                 chargesL1DataFee: true, l1DataFeeMayBeZero: true, priorityEqualsMaxFee: false, allowsLegacy: false)
         default:
             return nil
         }

@@ -75,10 +75,14 @@ struct EVMTransactionTests {
         }
     }
 
-    @Test("O chainId sai da rede compilada, em todas as sete")
+    @Test("O chainId sai da rede compilada, em todas as treze")
     func chainIDFromChain() throws {
         let account = try T.account(T.testKey)
-        let expected: [(Chain, UInt64)] = [(.ethereum, 1), (.arbitrum, 42161), (.base, 8453), (.optimism, 10), (.polygon, 137), (.bnb, 56), (.avalanche, 43114)]
+        let expected: [(Chain, UInt64)] = [
+            (.ethereum, 1), (.arbitrum, 42161), (.base, 8453), (.optimism, 10), (.polygon, 137), (.bnb, 56), (.avalanche, 43114),
+            (.plasma, 9745), (.xlayer, 196), (.linea, 59144), (.unichain, 130), (.sonic, 146), (.celo, 42220),
+        ]
+        #expect(expected.map(\.0.id).sorted() == Chain.evmChains.map(\.id).sorted())
         for (chain, id) in expected {
             let transaction = try EVMTransaction(
                 chain: chain, account: account, nonce: 0, fee: .eip1559(maxPriorityFeePerGas: 1, maxFeePerGas: 2),

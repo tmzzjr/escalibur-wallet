@@ -51,6 +51,9 @@ struct TradeCoWTests {
             (.ethereum, "c078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943"),
             (.base, "d72ffa789b6fae41254d0b5a13e6e1e92ed947ec6a251edf1cf0b6c02c257b4b"),
             (.arbitrum, "69d78e7a7cafcaf924483f99f65e8f4e303a99a446db7ab319f9d40e940bced2"),
+            // Segunda leva, 26/09/2026.
+            (.plasma, "e1f9c97768e45812440cd3317c07069178cc2f69971fb204c0211d8bfb1f8e76"),
+            (.linea, "b219bb2b8733b80b7ebef0229e7f0c91436f9a0a5b9705fa519237ae0493addb"),
         ]
         for (chain, separator) in onChain {
             let typed = try CoWPlanner.cancellationTypedData(chain: chain, uids: [[UInt8](repeating: 1, count: 56)])
@@ -284,9 +287,16 @@ struct TradeCoWTests {
         }
     }
 
-    @Test("Redes da CoW: seis, sem OP; embrulhados conferidos")
+    @Test("Redes da CoW: oito, sem OP; embrulhados conferidos")
     func networks() {
-        #expect(Chain.evmChains.filter(CoWProtocol.supports).map(\.id).sorted() == ["arbitrum", "avalanche", "base", "bnb", "ethereum", "polygon"])
+        #expect(Chain.evmChains.filter(CoWProtocol.supports).map(\.id).sorted()
+            == ["arbitrum", "avalanche", "base", "bnb", "ethereum", "linea", "plasma", "polygon"])
+        #expect(CoWProtocol.apiNetwork(for: .plasma) == "plasma")
+        #expect(CoWProtocol.apiNetwork(for: .linea) == "linea")
+        #expect(CoWProtocol.apiNetwork(for: .unichain) == nil)
+        #expect(CoWProtocol.wrappedNative(on: .plasma)?.contract.checksummed == "0x6100E367285b01F48D07953803A2d8dCA5D19873")
+        #expect(CoWProtocol.wrappedNative(on: .plasma)?.symbol == "WXPL")
+        #expect(CoWProtocol.wrappedNative(on: .linea)?.contract.checksummed == "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f")
         #expect(CoWProtocol.apiNetwork(for: .arbitrum) == "arbitrum_one")
         #expect(CoWProtocol.apiNetwork(for: .optimism) == nil)
         #expect(CoWProtocol.wrappedNative(on: .polygon)?.symbol == "WPOL")

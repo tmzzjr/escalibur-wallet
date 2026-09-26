@@ -125,6 +125,7 @@ public actor MarketService {
         "avalanche-2": "avax-avalanche", "polygon-ecosystem-token": "pol-polygon-ecosystem-token",
         "wrapped-bitcoin": "wbtc-wrapped-bitcoin", "dai": "dai-dai", "chainlink": "link-chainlink",
         "uniswap": "uni-uniswap", "arbitrum": "arb-arbitrum", "optimism": "op-optimism", "jupiter-exchange-solana": "jup-jupiter",
+        "plasma": "xpl-plasma", "okb": "okb-okb", "sonic-3": "s-sonic", "celo": "celo-celo",
     ]
 
     // MARK: Lista de mercado
@@ -238,6 +239,7 @@ public actor MarketService {
         "bitcoin": "BTC", "ethereum": "ETH", "solana": "SOL", "ripple": "XRP", "stellar": "XLM", "tron": "TRX",
         "the-open-network": "TON", "litecoin": "LTC", "dogecoin": "DOGE", "binancecoin": "BNB", "avalanche-2": "AVAX",
         "polygon-ecosystem-token": "POL", "chainlink": "LINK", "uniswap": "UNI", "arbitrum": "ARB", "optimism": "OP",
+        "plasma": "XPL", "okb": "OKB", "sonic-3": "S", "celo": "CELO",
     ]
 }
 

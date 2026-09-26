@@ -43,25 +43,52 @@ struct BalanceLiveTests {
 }
 
 /// A lista curada de tokens confere com a propria cadeia: cada contrato EVM responde
-/// `decimals()` igual ao compilado, em dois nos diferentes.
+/// `decimals()` igual ao compilado e um `symbol()` que e o da lista ou um nome conhecido
+/// do mesmo ativo, em dois nos diferentes.
 @Suite("Lista de tokens contra a cadeia", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_REDE"] == "1"))
 struct TokenRegistryLiveTests {
-    @Test("decimals() de cada ERC-20 bate com a lista, em dois nos")
+    /// Os nomes que a cadeia usa para o mesmo ativo. O USDT0 da Tether (Arbitrum,
+    /// Polygon, Plasma, X Layer, Unichain) responde "USDT0" ou "USD₮0"; na Celo, "USD₮";
+    /// na Avalanche, "USDt". A lista mostra "USDT" em todos.
+    static let symbolAliases: [String: Set<String>] = [
+        "USDT": ["USDT", "USD₮", "USDT0", "USD₮0", "USDt"],
+    ]
+
+    /// `symbol()` como string ABI (offset, tamanho, bytes).
+    static func decodeString(_ hex: String) -> String? {
+        guard let bytes = Hex.decode(String(hex.dropFirst(2))), bytes.count >= 64,
+              let length = BigUInt(bigEndian: bytes[32..<64]).uint64, bytes.count >= 64 + Int(length)
+        else { return nil }
+        return String(bytes: bytes[64..<(64 + Int(length))], encoding: .utf8)
+    }
+
+    @Test("decimals() e symbol() de cada ERC-20 batem com a lista, em dois nos")
     func evmDecimals() async throws {
         for token in TokenRegistry.tokens {
             guard let chain = token.chain, chain.family == .evm, case .token(let contract) = token.kind else { continue }
             let providers = Array((Endpoints.evm[chain.id] ?? []).prefix(2))
             var answers: [Int] = []
+            var symbols: [String] = []
             for provider in providers {
                 let call: JSONValue = .object(["to": .string(contract), "data": .string("0x313ce567")])
                 if let hex = try? await JSONRPC.call(provider.baseURL, method: "eth_call", params: [call, .string("latest")], as: String.self),
                    let value = BigUInt(hex: hex)?.uint64 {
                     answers.append(Int(value))
                 }
+                let symbolCall: JSONValue = .object(["to": .string(contract), "data": .string("0x95d89b41")])
+                if let hex = try? await JSONRPC.call(provider.baseURL, method: "eth_call", params: [symbolCall, .string("latest")], as: String.self),
+                   let symbol = Self.decodeString(hex) {
+                    symbols.append(symbol)
+                }
             }
             #expect(!answers.isEmpty, "\(chain.id) \(token.symbol): nenhum no respondeu")
             for answer in answers {
                 #expect(answer == token.decimals, "\(chain.id) \(token.symbol) \(contract): cadeia diz \(answer), lista diz \(token.decimals)")
+            }
+            #expect(!symbols.isEmpty, "\(chain.id) \(token.symbol): symbol() sem resposta")
+            let accepted = Self.symbolAliases[token.symbol] ?? [token.symbol]
+            for symbol in symbols {
+                #expect(accepted.contains(symbol), "\(chain.id) \(token.symbol) \(contract): cadeia diz \(symbol)")
             }
         }
     }

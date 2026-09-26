@@ -78,6 +78,31 @@ public enum TokenRegistry {
         // Avalanche
         erc20("avalanche", "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", "USDC", "USD Coin", 6, "usd-coin", stable: true),
         erc20("avalanche", "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7", "USDT", "Tether", 6, "tether", stable: true),
+        // Segunda leva, conferida em 26/09/2026. USDC: tabela "USDC contract addresses"
+        // da Circle (developers.circle.com/stablecoins/usdc-contract-addresses), so o
+        // emitido pela Circle (na X Layer o USDC.e da ponte fica de fora). USDT: o USDT0
+        // da Tether pela rede OFT (docs.usdt0.to, "Deployments", contrato "Token"), com
+        // o mesmo nome curto da Arbitrum, onde o contrato tambem e USDT0 (`symbol()`
+        // devolve "USDT0" ou "USD₮0"); na Celo, o USD₮ da lista "Supported Protocols" de
+        // tether.to. `symbol()` e `decimals()` lidos em dois RPCs de cada rede. O que
+        // vem de ponte e o emissor nao reconhece fica de fora: o USDT da Linea, da Sonic
+        // e da X Layer e o USDC.e da X Layer.
+        // Plasma
+        erc20("plasma", "0xB8CE59FC3717ada4C02eaDF9682A9e934F625ebb", "USDT", "Tether", 6, "tether", stable: true),
+        erc20("plasma", "0x2d661C89D812261039AF9764eceaAee884f5F67F", "USDC", "USD Coin", 6, "usd-coin", stable: true),
+        // X Layer
+        erc20("xlayer", "0x779Ded0c9e1022225f8E0630b35a9b54bE713736", "USDT", "Tether", 6, "tether", stable: true),
+        erc20("xlayer", "0xB6CEceAB302E2E4948951eE7843FC24E92933061", "USDC", "USD Coin", 6, "usd-coin", stable: true),
+        // Linea
+        erc20("linea", "0x176211869cA2b568f2A7D4EE941E073a821EE1ff", "USDC", "USD Coin", 6, "usd-coin", stable: true),
+        // Unichain
+        erc20("unichain", "0x078D782b760474a361dDA0AF3839290b0EF57AD6", "USDC", "USD Coin", 6, "usd-coin", stable: true),
+        erc20("unichain", "0x9151434b16b9763660705744891fA906F660EcC5", "USDT", "Tether", 6, "tether", stable: true),
+        // Sonic
+        erc20("sonic", "0x29219dd400f2Bf60E5a23d13Be72B486D4038894", "USDC", "USD Coin", 6, "usd-coin", stable: true),
+        // Celo
+        erc20("celo", "0xcebA9300f2b948710d2653dD7B07f33A8B32118C", "USDC", "USD Coin", 6, "usd-coin", stable: true),
+        erc20("celo", "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e", "USDT", "Tether", 6, "tether", stable: true),
         // Solana (mints)
         spl("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "USDC", "USD Coin", 6, "usd-coin", stable: true),
         spl("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", "USDT", "Tether", 6, "tether", stable: true),

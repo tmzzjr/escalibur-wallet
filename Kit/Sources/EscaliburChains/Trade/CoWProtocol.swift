@@ -23,6 +23,12 @@ import Foundation
 //   `vaultRelayer()` devolve 0xC92E...0110 em todas;
 // - api.cow.fi responde em mainnet, arbitrum_one, base, polygon, avalanche e bnb, e da
 //   404 em optimism.
+//
+// Segunda leva, 26/09/2026: api.cow.fi responde em `plasma` e `linea` (e da 404 em
+// unichain, sonic, celo e xlayer). Nas duas, `domainSeparator()` do GPv2Settlement,
+// lido em dois RPCs, bate com o dominio local da rede, e `vaultRelayer()` devolve o
+// mesmo 0xC92E...0110; o GPv2Settlement tem codigo verificado (Sourcify na Linea,
+// correspondencia exata no Plasmascan na Plasma).
 
 public enum CoWProtocol {
     /// GPv2Settlement, mesmo endereco em todas as redes (Sourcify "GPv2Settlement").
@@ -52,12 +58,16 @@ public enum CoWProtocol {
 
     static let networks: [UInt64: String] = [
         1: "mainnet", 42161: "arbitrum_one", 8453: "base", 137: "polygon", 43114: "avalanche", 56: "bnb",
+        9745: "plasma", 59144: "linea",
     ]
 
     /// O token embrulhado da moeda nativa de cada rede. ETH nativo nao entra em ordem
     /// assinada (a ordem gasta allowance ERC-20): vender nativo e embrulhar antes.
     /// `symbol()` e `decimals()` conferidos em dois RPCs; WETH da Ethereum, Arbitrum e
-    /// Base tambem estao na TokenRegistry.
+    /// Base tambem estao na TokenRegistry. Plasma e Linea (26/09/2026): o mesmo endereco
+    /// em cow-sdk (packages/config/src/constants/wrappedTokens.ts) e, na Plasma, em
+    /// docs.plasma.org ("Plasma Contracts", WXPL9); codigo verificado (Plasmascan e
+    /// Sourcify "WETH9").
     static let wrapped: [UInt64: (String, String)] = [
         1: ("c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "WETH"),
         42161: ("82af49447d8a07e3bd95bd0d56f35241523fbab1", "WETH"),
@@ -65,6 +75,8 @@ public enum CoWProtocol {
         137: ("0d500b1d8e8ef31e21c99d1db9a6444d3adf1270", "WPOL"),
         43114: ("b31f66aa3c1e785363f0875a1b74e27b85fd66c7", "WAVAX"),
         56: ("bb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c", "WBNB"),
+        9745: ("6100e367285b01f48d07953803a2d8dca5d19873", "WXPL"),
+        59144: ("e5d7c2a44ffddf6b295a15c148167daaaf5cf34f", "WETH"),
     ]
 
     static let depositFunction = try! ABIFunction("deposit()")                    // d0e30db0
