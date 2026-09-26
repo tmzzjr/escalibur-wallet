@@ -12,6 +12,9 @@ public final class HDKey: @unchecked Sendable {
         case invalidSeed
         case nonHardenedEd25519
         case invalidChild(UInt32)
+        /// Caminho vazio devolveria a propria chave mestra, e quem chama costuma zerar
+        /// o que recebe: zeraria a mestra, ou assinaria com ela.
+        case emptyPath
     }
 
     /// BIP-32 sobre secp256k1; SLIP-10 sobre Ed25519 (so derivacao endurecida).
@@ -59,6 +62,7 @@ public final class HDKey: @unchecked Sendable {
     // MARK: Filhos
 
     public func derive(_ path: DerivationPath) throws -> HDKey {
+        guard !path.components.isEmpty else { throw Failure.emptyPath }
         var current = self
         for component in path.components {
             let next = try current.child(component)

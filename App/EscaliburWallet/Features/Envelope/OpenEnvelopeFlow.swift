@@ -158,10 +158,18 @@ struct OpenEnvelopeFlow: View {
         } catch Envelope.Failure.boundToDevice {
             error = "Este envelope foi lacrado preso ao iPhone que o criou e só abre no app Escalibur daquele aparelho."
         } catch Envelope.Failure.tooExpensiveForThisDevice(let mib) {
-            error = "Este envelope exige \(mib) MiB por tentativa, e este iPhone não consegue reservar tanto agora. Feche outros apps e tente de novo. A senha não chegou a ser testada."
+            error = Self.memoryMessage(mib)
+        } catch EnvelopeFile.Failure.unreadable {
+            error = "Não foi possível ler o arquivo inteiro. Se ele está no iCloud, espere o download terminar e tente de novo."
+        } catch Envelope.Failure.notAnEnvelope, EnvelopeFile.Failure.notEnvelope {
+            error = "Este arquivo não é um envelope Escalibur. Envelopes terminam em .esclbr e têm 16.504 bytes."
         } catch {
-            self.error = "Este arquivo não é um envelope Escalibur. Envelopes terminam em .esclbr e têm 16.504 bytes."
+            self.error = "Não foi possível ler o arquivo. Confira se ele ainda está no mesmo lugar e tente de novo."
         }
+    }
+
+    static func memoryMessage(_ mib: Int) -> String {
+        "Este envelope exige \(mib) MiB por tentativa, e este iPhone não consegue reservar tanto agora. Feche outros apps e tente de novo. A senha não chegou a ser testada."
     }
 
     private func open() async {
@@ -180,10 +188,18 @@ struct OpenEnvelopeFlow: View {
             error = "Este envelope guarda uma parte SLIP-39. Uma parte sozinha não abre carteira, e esta versão ainda não junta partes."
         } catch Envelope.Failure.invalidPhrase {
             error = "Este envelope está danificado e não abre. Se você tem outra cópia do arquivo, use a outra."
-        } catch {
+        } catch Envelope.Failure.unknownLanguage {
+            error = "O envelope abriu, mas a senha da carteira dentro dele está num idioma que esta versão não reconhece."
+        } catch Envelope.Failure.tooExpensiveForThisDevice(let mib) {
+            error = Self.memoryMessage(mib)
+        } catch Envelope.Failure.cannotOpen {
             self.password.wipe()
             passwordLength = 0
             self.error = "Não abriu. Confira a senha, com maiúsculas, acentos e espaços, e tente de novo."
+        } catch {
+            self.password.wipe()
+            passwordLength = 0
+            self.error = "Não foi possível abrir este envelope agora. Tente de novo."
         }
         opening = false
     }

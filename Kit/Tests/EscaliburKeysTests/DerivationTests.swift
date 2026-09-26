@@ -19,6 +19,14 @@ struct DerivationTests {
         #expect(deep.extendedPrivateKeyForTesting() == "xprvA41z7zogVVwxVSgdKUHDy1SKmdb533PjDz7J6N6mV6uS3ze1ai8FHa8kmHScGpWmj4WggLyQjgPie1rFSruoUihUZREPSL39UNdE3BBDu76")
     }
 
+    @Test("Caminho vazio e recusado, nunca devolve a chave mestra")
+    func emptyPath() throws {
+        let seed = SecureBytes(capacity: 16)
+        seed.replaceAll(with: [UInt8](hex: "000102030405060708090a0b0c0d0e0f")!)
+        let master = try HDKey.master(seed: seed, curve: .secp256k1)
+        #expect(throws: HDKey.Failure.emptyPath) { try master.derive(DerivationPath(components: [])) }
+    }
+
     @Test("SLIP-10 Ed25519 vetor 1")
     func slip10() throws {
         let seed = SecureBytes(capacity: 16)

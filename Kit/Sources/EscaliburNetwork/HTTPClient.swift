@@ -23,8 +23,19 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
     static let maxResponseBytes = 4 * 1024 * 1024
     static let userAgent = "EscaliburWallet"
 
+    /// So para os testes: um `URLProtocol` no lugar da rede.
+    private let protocolClasses: [AnyClass]?
+
+    public override convenience init() { self.init(protocolClasses: nil) }
+
+    init(protocolClasses: [AnyClass]?) {
+        self.protocolClasses = protocolClasses
+        super.init()
+    }
+
     private lazy var session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
+        if let protocolClasses { configuration.protocolClasses = protocolClasses }
         configuration.urlCache = nil
         configuration.httpCookieStorage = nil
         configuration.urlCredentialStorage = nil
@@ -79,15 +90,33 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
         }
     }
 
+    /// O corpo e lido em fluxo e cortado ao passar do limite. Resposta sem
+    /// Content-Length (chunked) nao chega inteira na memoria antes de ser medida.
     private func perform(_ request: URLRequest) async throws -> Data {
         guard request.url?.scheme == "https" else { throw Failure.invalidResponse }
         do {
-            let (data, response) = try await session.data(for: request)
-            guard let http = response as? HTTPURLResponse else { throw Failure.invalidResponse }
-            guard data.count <= Self.maxResponseBytes else { throw Failure.tooLarge }
+            let (bytes, response) = try await session.bytes(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                bytes.task.cancel()
+                throw Failure.invalidResponse
+            }
             guard (200..<300).contains(http.statusCode) else {
+                bytes.task.cancel()
                 if (300..<400).contains(http.statusCode) { throw Failure.redirectRefused }
                 throw Failure.status(http.statusCode)
+            }
+            guard http.expectedContentLength <= Int64(Self.maxResponseBytes) else {
+                bytes.task.cancel()
+                throw Failure.tooLarge
+            }
+            var data = Data()
+            data.reserveCapacity(http.expectedContentLength > 0 ? Int(http.expectedContentLength) : 16 * 1024)
+            for try await byte in bytes {
+                data.append(byte)
+                if data.count > Self.maxResponseBytes {
+                    bytes.task.cancel()
+                    throw Failure.tooLarge
+                }
             }
             return data
         } catch let error as URLError {

@@ -180,12 +180,28 @@ public enum Envelope {
     /// Texto vindo de arquivo alheio: sem controles bidirecionais (que reordenam o
     /// que a tela mostra), sem largura zero, sem controle, com tamanho limitado.
     public static func sanitize(_ text: String, limit: Int) -> String {
-        let forbidden: Set<UInt32> = Set(Array(0x202A...0x202E) + Array(0x2066...0x2069) + [0x200B, 0x200C, 0x200D, 0x200E, 0x200F, 0xFEFF, 0x00AD])
         var scalars = String.UnicodeScalarView()
-        for scalar in text.unicodeScalars where !forbidden.contains(scalar.value) {
-            if scalar.properties.generalCategory == .control, scalar != "\n" { continue }
-            scalars.append(scalar)
+        for scalar in text.unicodeScalars {
+            switch scalar.properties.generalCategory {
+            // Formato (bidirecional, largura zero, hifen suave, tags), controle,
+            // separador de linha e de paragrafo, uso privado e nao atribuido: nada
+            // disso tem lugar no nome de uma carteira, e tudo isso serve para um
+            // arquivo alheio mostrar uma coisa e ser outra.
+            case .format, .control, .lineSeparator, .paragraphSeparator, .privateUse, .surrogate, .unassigned:
+                continue
+            case .spaceSeparator:
+                // Qualquer espaco vira espaco comum, e dois seguidos viram um.
+                if scalars.last != " ", !scalars.isEmpty { scalars.append(" ") }
+            default:
+                // Marcas combinantes empilhadas (texto "zalgo") ficam limitadas a duas.
+                if scalar.properties.generalCategory == .nonspacingMark {
+                    let trailing = scalars.reversed().prefix { $0.properties.generalCategory == .nonspacingMark }.count
+                    if trailing >= 2 { continue }
+                }
+                scalars.append(scalar)
+            }
         }
-        return String(String(scalars).prefix(limit))
+        let clean = String(scalars).trimmingCharacters(in: .whitespaces)
+        return String(clean.prefix(limit))
     }
 }

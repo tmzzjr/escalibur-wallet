@@ -92,6 +92,10 @@ struct EnvelopeTests {
     func sanitize() {
         #expect(Envelope.sanitize("Carteira\u{202E}lanigiro", limit: 64) == "Carteiralanigiro")
         #expect(Envelope.sanitize(String(repeating: "a", count: 100), limit: 64).count == 64)
+        #expect(Envelope.sanitize("Carteira\u{2028}\u{0007}\u{E000}\u{E0041}X", limit: 64) == "CarteiraX")
+        #expect(Envelope.sanitize("  Minha\u{00A0}\u{3000} carteira  ", limit: 64) == "Minha carteira")
+        #expect(Envelope.sanitize("a\u{0301}\u{0301}\u{0301}\u{0301}b", limit: 64) == "a\u{0301}\u{0301}b")
+        #expect(Envelope.sanitize("Poupança", limit: 64) == "Poupança")
     }
 
     /// Gera a fixture. Roda so com ESCALIBUR_GERAR_FIXTURE=1, e o arquivo gerado e

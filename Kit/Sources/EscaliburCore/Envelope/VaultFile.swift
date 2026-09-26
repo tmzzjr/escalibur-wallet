@@ -610,7 +610,7 @@ public enum VaultFile {
 
             let wrapAAD = aadForWrap(header: headerBytes, slotIndex: slotIndex, slotSalt: slotSalt)
             guard
-                let dekData = try? ChaChaPoly.open(
+                var dekData = try? ChaChaPoly.open(
                     ChaChaPoly.SealedBox(
                         nonce: VaultFormat.zeroNonce,
                         ciphertext: Data(wrappedDEK.prefix(32)),
@@ -627,6 +627,9 @@ public enum VaultFile {
                 header: headerBytes, slotIndex: slotIndex, slotSalt: slotSalt,
                 wrapSalt: wrapSalt, wrappedDEK: wrappedDEK
             )
+            // O `Data` que o ChaChaPoly devolveu e zerado nele mesmo: copiar para outro
+            // buffer e zerar a copia deixaria o original intacto no heap.
+            defer { Self.zero(&dekData) }
             var dekBytes = [UInt8](dekData)
             defer { dekBytes.resetBytes() }
             let payloadKey = VaultFormat.messageKey(
@@ -636,7 +639,7 @@ public enum VaultFile {
             )
 
             guard
-                let blockData = try? ChaChaPoly.open(
+                var blockData = try? ChaChaPoly.open(
                     ChaChaPoly.SealedBox(
                         nonce: VaultFormat.zeroNonce,
                         ciphertext: Data(payload.prefix(VaultFormat.plaintextLength)),
@@ -648,22 +651,27 @@ public enum VaultFile {
             else {
                 continue
             }
-            var clearable = blockData
-            defer {
-                clearable.withUnsafeMutableBytes { raw in
-                    guard let address = raw.baseAddress else { return }
-                    memset_s(address, raw.count, 0, raw.count)
-                }
-            }
+            // Zerar uma copia (`var c = blockData`) nao alcanca o original: o `Data` e
+            // copy-on-write, e mexer na copia duplica o buffer. Zera-se o proprio.
+            defer { Self.zero(&blockData) }
             if found == nil {
                 let block = SecureBytes(capacity: VaultFormat.plaintextLength)
-                clearable.withUnsafeBytes { block.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
+                blockData.withUnsafeBytes { block.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
                 found = (block, slotIndex)
             }
         }
 
         guard let found else { throw CryptoError.cannotOpen }
         return (found.0, found.1, header)
+    }
+
+    /// Zera um `Data` no proprio buffer. So vale com referencia unica: quem chama
+    /// nao pode ter feito copia antes.
+    static func zero(_ data: inout Data) {
+        data.withUnsafeMutableBytes { raw in
+            guard let address = raw.baseAddress else { return }
+            memset_s(address, raw.count, 0, raw.count)
+        }
     }
 
     // MARK: Dados autenticados
