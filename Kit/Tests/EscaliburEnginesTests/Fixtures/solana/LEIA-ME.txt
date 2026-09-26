@@ -1,0 +1,40 @@
+Respostas gravadas para os testes dos motores da Solana
+(Kit/Tests/EscaliburEnginesTests/Solana/). Tudo e dado publico da rede principal:
+contas de exchange, de pessoa publica (toly.sol) e de teste; nenhum dado de usuario.
+O script gravar.sh, nesta pasta, refaz tudo com os mesmos comandos.
+
+Gravadas em 26/09/2026 pelo gravar.sh, parte 1 (RPC solana-rpc.publicnode.com, commitment
+confirmed, getAccountInfo com jsonParsed):
+- rpc-blockhash, rpc-epoca: getLatestBlockhash e, logo depois, getEpochInfo do mesmo host
+  (o par que o leitor usa para a janela do blockhash).
+- rpc-saldo-toly: getBalance de 86xCnPeV69n6t3DnyGvkKobf9FdN2H9oiVDdaMpo2MMY (toly.sol).
+- rpc-rent-0, rpc-rent-165: getMinimumBalanceForRentExemption(0) e (165).
+- rpc-prioridade: getRecentPrioritizationFees do toly e da exchange, cortado nas 20
+  ultimas entradas.
+- conta-toly, conta-exchange: carteiras (dono System Program).
+- conta-nova: 5tFUx2GVxip3kMhdwHG1yPGP2gYMzAikagio3GgyLAZZ, chave publica cuja semente e
+  sha256("escalibur: motores solana, destino nunca usado"); a rede devolve null.
+- conta-usdc-toly, conta-usdc-exchange: os ATAs de USDC do toly e da exchange
+  (5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9).
+- conta-mint-usdc: o mint EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v.
+- conta-jupiter: o programa JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4.
+
+Copiadas pelo gravar.sh, parte 2, de respostas gravadas em 26/09/2026 para as suites da
+rede (EscaliburNetworkTests/FixturesSolana) e das redes (EscaliburChainsTests/Fixtures/
+solana-troca). O que foi cortado e so o que o codigo nao le:
+- tx-*.json: getTransaction (jsonParsed, maxSupportedTransactionVersion 0), sem
+  logMessages, rewards, costUnits, computeUnitsConsumed e status. Os casos estao
+  descritos em EscaliburNetworkTests/SolanaNetHistoryTests.swift.
+- rpc-status: getSignatureStatuses de tres assinaturas (finalizada, falha, desconhecida).
+- rpc-envio-recusado: sendTransaction recusado na simulacao previa (-32002).
+- jupiter-build-sol-usdc, jupiter-build-usdc-sol: GET api.jup.ag/swap/v2/build sem chave,
+  taker 9hdr8SYDibjubvqvXXymL53a78EFCvq9utaEuEvp2Qsw (chave de teste da semente 0x5E
+  repetida). Sem routePlan, blockhashWithMetadata e o conteudo de
+  addressesByLookupTableAddress (so os enderecos das tabelas sao usados; o conteudo a
+  carteira le da cadeia).
+- tabelas: o conteudo, lido da cadeia em dois RPCs identicos, das tabelas citadas pelas
+  duas propostas acima.
+
+Quando um teste precisa de um caso que a rede nao ofereceu (saldo baixo, token com casas
+trocadas, proposta com impacto alto), ele altera o dado dentro do proprio teste e diz o
+que alterou.

@@ -1,0 +1,39 @@
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "context": {
+      "apiVersion": "4.2.2",
+      "slot": 450547151
+    },
+    "value": [
+      {
+        "confirmationStatus": "finalized",
+        "confirmations": null,
+        "err": null,
+        "slot": 450546679,
+        "status": {
+          "Ok": null
+        }
+      },
+      {
+        "confirmationStatus": "finalized",
+        "confirmations": null,
+        "err": {
+          "InsufficientFundsForRent": {
+            "account_index": 9
+          }
+        },
+        "slot": 450070138,
+        "status": {
+          "Err": {
+            "InsufficientFundsForRent": {
+              "account_index": 9
+            }
+          }
+        }
+      },
+      null
+    ]
+  },
+  "id": 1
+}
