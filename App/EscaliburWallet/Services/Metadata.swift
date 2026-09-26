@@ -1,5 +1,6 @@
 import CryptoKit
 import EscaliburChains
+import EscaliburCore
 import EscaliburEngines
 import EscaliburKeys
 import EscaliburNetwork
@@ -95,8 +96,26 @@ struct VoiceSettings: Codable, Equatable {
     /// Desafios de voz falhos em seguida (tres tentativas cada). Opcional para os
     /// metadados gravados antes deste campo continuarem abrindo.
     var failedChallenges: Int?
-    /// Depois de tres desafios falhos, as acoes com voz esperam ate aqui.
+    /// Depois de tres desafios falhos, as acoes com voz esperam ate aqui. So para
+    /// mostrar a hora; quem decide e o prazo monotono abaixo.
     var lockedUntil: Date?
+    /// A pausa no relogio monotono: prazo em segundos desde o boot, e o boot em hex.
+    /// Adiantar o relogio do iPhone nao encurta a espera (auditoria 2, B3).
+    var lockUptimeDeadline: TimeInterval?
+    var lockBoot: String?
+
+    mutating func startLock(seconds: TimeInterval) {
+        lockedUntil = Date.now.addingTimeInterval(seconds)
+        lockUptimeDeadline = PINPolicy.uptime + seconds
+        lockBoot = Hex.encode(PINPolicy.bootSession)
+    }
+
+    mutating func clearLock() {
+        failedChallenges = nil
+        lockedUntil = nil
+        lockUptimeDeadline = nil
+        lockBoot = nil
+    }
 }
 
 /// O arquivo de metadados, cifrado.

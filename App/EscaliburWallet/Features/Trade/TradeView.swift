@@ -19,7 +19,16 @@ final class TradeModel {
     var quoting = false
     var error: String?
     var nextRefresh = 15
-    var acceptedHighImpact = false
+    /// O impacto que o dono aceitou, em %. Vale enquanto a cotacao nao piorar; trocar
+    /// par, valor ou rede zera (auditoria 2, B1).
+    var acceptedImpactPercent: Double?
+    /// O preco limite que o dono confirmou mesmo abaixo do mercado, como digitado.
+    var acceptedLimitPrice: String?
+
+    var acceptedHighImpact: Bool {
+        guard let accepted = acceptedImpactPercent, let current = quote?.priceImpactPercent else { return false }
+        return current <= accepted
+    }
     var invertedRate = false
     var showDetails = false
 
@@ -244,7 +253,8 @@ struct TradeView: View {
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Esta ordem move o preço em \(Fmt.grouped(quote.priceImpactPercent ?? 0, fractionDigits: 1))%. Dividir em ordens menores ajuda.")
                     .typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
-                Toggle(isOn: $model.acceptedHighImpact) {
+                Toggle(isOn: Binding(get: { model.acceptedHighImpact },
+                                     set: { model.acceptedImpactPercent = $0 ? model.quote?.priceImpactPercent : nil })) {
                     Text("Entendo e quero trocar assim").typeStyle(.note).foregroundStyle(Palette.ink)
                 }
                 .tint(Palette.down)
@@ -302,6 +312,7 @@ struct TradeView: View {
             .padding(Space.md)
             .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
                 .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+            limitSanityLine
             AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(limitReceiveText), balance: balance(model.buy),
                       fiat: nil, editable: false, over: false, onPick: { picking = .buy }, onFraction: nil)
             HStack {
@@ -316,6 +327,89 @@ struct TradeView: View {
                 Text(engine.limitCustodyNote).typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    /// Onde o preco limite fica em relacao ao mercado (auditoria 2, M6). No XRP Ledger
+    /// e na Stellar a ordem abaixo do mercado cruza o livro na hora e vai vendendo ate
+    /// o preco digitado; um zero a menos vira prejuizo imediato.
+    enum LimitSanity: Equatable {
+        case fine
+        /// Abaixo do mercado, em % (positivo): pede confirmacao.
+        case below(Double)
+        /// Abaixo demais: quase certamente erro de digitacao, bloqueia.
+        case farBelow(Double)
+        /// Muitas vezes acima: nao perde nada, mas provavelmente nunca executa.
+        case farAbove(Double)
+        /// Sem preco de mercado para comparar: pede confirmacao.
+        case unknown
+    }
+
+    private var marketRate: Double? {
+        guard let sell = model.sell, let buy = model.buy,
+              let sellPrice = sell.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }),
+              let buyPrice = buy.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }), sellPrice > 0, buyPrice > 0 else { return nil }
+        return sellPrice / buyPrice
+    }
+
+    private var limitSanity: LimitSanity {
+        // O preco que a ordem leva de fato: o minimo que vai para o motor sobre o valor
+        // vendido, e nao uma segunda leitura do texto.
+        guard let minimum = limitMinimumOut, let amount = model.amountIn, !amount.isZero,
+              let sell = model.sell, let buy = model.buy else { return .fine }
+        let target = Fmt.double(minimum, decimals: buy.decimals) / Fmt.double(amount, decimals: sell.decimals)
+        guard target > 0 else { return .fine }
+        guard let market = marketRate else { return .unknown }
+        let ratio = target / market
+        if ratio < 0.5 { return .farBelow((1 - ratio) * 100) }
+        if ratio < 0.98 { return .below((1 - ratio) * 100) }
+        if ratio > 4 { return .farAbove(ratio) }
+        return .fine
+    }
+
+    private var limitPriceConfirmed: Bool {
+        switch limitSanity {
+        case .fine, .farAbove: return true
+        case .farBelow: return false
+        case .below, .unknown: return model.acceptedLimitPrice == model.targetPriceText
+        }
+    }
+
+    @ViewBuilder
+    private var limitSanityLine: some View {
+        let confirm = Binding(get: { model.acceptedLimitPrice == model.targetPriceText },
+                              set: { model.acceptedLimitPrice = $0 ? model.targetPriceText : nil })
+        switch limitSanity {
+        case .fine:
+            EmptyView()
+        case .below(let percent):
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text("\(Fmt.grouped(percent, fractionDigits: percent < 10 ? 1 : 0))% abaixo do preço de mercado. A ordem pode sair na hora, vendendo abaixo do mercado até este preço.")
+                    .typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
+                Toggle(isOn: confirm) {
+                    Text("Conferi o preço e quero assim").typeStyle(.note).foregroundStyle(Palette.ink)
+                }
+                .tint(Palette.down)
+            }
+            .padding(.vertical, Space.xs)
+        case .farBelow(let percent):
+            Text("\(Fmt.grouped(percent, fractionDigits: 0))% abaixo do preço de mercado. Confira o número: a ordem sairia na hora, com prejuízo.")
+                .typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, Space.xs)
+        case .farAbove(let ratio):
+            Text("\(Fmt.grouped(ratio, fractionDigits: 0)) vezes o preço de mercado: a ordem provavelmente nunca executa.")
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, Space.xs)
+        case .unknown:
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text("Sem preço de mercado agora para comparar. Confira o número antes de seguir.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                Toggle(isOn: confirm) {
+                    Text("Conferi o preço").typeStyle(.note).foregroundStyle(Palette.ink)
+                }
+                .tint(Palette.purple)
+            }
+            .padding(.vertical, Space.xs)
         }
     }
 
@@ -397,7 +491,10 @@ struct TradeView: View {
         guard engine != nil else { return "Trocar \(model.chain.id == "xrpl" ? "no" : "na") \(model.chain.name) chega em breve" }
         guard let amount = model.amountIn, !amount.isZero else { return "Digite um valor" }
         if over { return "Saldo de \(model.sell?.symbol ?? "") insuficiente" }
-        if router.tradeMode == .limit { return "Revisar ordem" }
+        if router.tradeMode == .limit {
+            if case .farBelow = limitSanity { return "Preço muito abaixo do mercado" }
+            return "Revisar ordem"
+        }
         if model.quoting && model.quote == nil { return "Buscando o melhor preço" }
         if PriceImpact.level(model.quote?.priceImpactPercent) == .blocked { return "Impacto no preço alto demais" }
         return model.quote?.needsApproval == true ? "Autorizar \(model.sell?.symbol ?? "") e trocar" : "Revisar troca"
@@ -405,7 +502,7 @@ struct TradeView: View {
 
     private var primaryEnabled: Bool {
         guard engine != nil, let amount = model.amountIn, !amount.isZero, !over else { return false }
-        if router.tradeMode == .limit { return engine?.supportsLimitOrders == true && limitMinimumOut != nil }
+        if router.tradeMode == .limit { return engine?.supportsLimitOrders == true && limitMinimumOut != nil && limitPriceConfirmed }
         switch PriceImpact.level(model.quote?.priceImpactPercent) {
         case .blocked: return false
         case .confirm: return model.acceptedHighImpact
@@ -459,6 +556,8 @@ struct TradeView: View {
             model.quote = nil
             return
         }
+        // Pedido novo (par, valor, rede ou tolerancia): o aceite do impacto era do outro.
+        model.acceptedImpactPercent = nil
         try? await Task.sleep(for: .milliseconds(400))
         guard !Task.isCancelled else { return }
         while !Task.isCancelled {

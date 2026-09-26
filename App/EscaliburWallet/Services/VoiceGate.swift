@@ -1,11 +1,13 @@
 import AVFoundation
 import CryptoKit
 import EscaliburCore
+import EscaliburKeys
 import Speech
 import SwiftUI
 
-/// Confirmacao por voz: uma camada **depois** do Face ID ou do PIN, nunca no lugar
-/// deles, nas acoes que o dono escolher.
+/// Confirmacao por voz: uma camada **a mais** junto do Face ID ou do PIN, nunca no
+/// lugar deles, nas acoes que o dono escolher. A frase vem primeiro, e o Face ID ou o
+/// PIN logo depois, antes de qualquer chave abrir.
 ///
 /// O que ela e, dito na tela e aqui: o iPhone reconhece **a frase**, nao a voz. O
 /// iOS nao tem verificacao de locutor, e voz clonada ou gravada passaria por
@@ -59,7 +61,8 @@ final class VoiceGate {
             guard let limit = settings.onSendAboveFiat else { return true }
             if let fiat, fiat < limit { return true }
         }
-        let locked = settings.lockedUntil.flatMap { $0 > .now ? $0 : nil }
+        let remaining = lockRemaining(session)
+        let locked = remaining > 0 ? Date.now.addingTimeInterval(remaining) : nil
         return await withCheckedContinuation { continuation in
             let challenge = Challenge(continuation: continuation, expected: hash, salt: salt, session: session, lockedUntil: locked)
             self.challenge = challenge
@@ -74,20 +77,52 @@ final class VoiceGate {
         OverlayWindow.shared.hide()
         let session = challenge.session
         if passed {
-            session.metadata.settings.voice.failedChallenges = nil
-            session.metadata.settings.voice.lockedUntil = nil
+            session.metadata.settings.voice.clearLock()
             try? session.persist()
         } else if exhausted {
             let failures = (session.metadata.settings.voice.failedChallenges ?? 0) + 1
             if failures >= Self.challengesBeforeLock {
                 session.metadata.settings.voice.failedChallenges = nil
-                session.metadata.settings.voice.lockedUntil = Date.now.addingTimeInterval(Self.lockSeconds)
+                session.metadata.settings.voice.startLock(seconds: Self.lockSeconds)
             } else {
                 session.metadata.settings.voice.failedChallenges = failures
             }
             try? session.persist()
         }
         challenge.continuation.resume(returning: passed)
+    }
+
+    /// Quanto falta da pausa, no relogio monotono. De outro boot o relogio recomecou
+    /// do zero: a pausa recomeca cheia, como a espera do PIN (falha para o lado de
+    /// esperar mais). Sem identidade de boot, sobra o relogio de parede.
+    private func lockRemaining(_ session: AppSession) -> TimeInterval {
+        var voice = session.metadata.settings.voice
+        if voice.lockUptimeDeadline == nil {
+            // Pausa gravada antes do prazo monotono existir: vira monotona, cheia.
+            guard let until = voice.lockedUntil, until > .now else { return 0 }
+            voice.startLock(seconds: Self.lockSeconds)
+            session.metadata.settings.voice = voice
+            try? session.persist()
+            return Self.lockSeconds
+        }
+        let boot = PINPolicy.bootSession
+        if boot == PINPolicy.unknownBoot {
+            return max(0, (voice.lockedUntil ?? .distantPast).timeIntervalSinceNow)
+        }
+        if voice.lockBoot != Hex.encode(boot) {
+            voice.startLock(seconds: Self.lockSeconds)
+            session.metadata.settings.voice = voice
+            try? session.persist()
+            return Self.lockSeconds
+        }
+        let left = min(Self.lockSeconds, (voice.lockUptimeDeadline ?? 0) - PINPolicy.uptime)
+        if left <= 0 {
+            voice.clearLock()
+            session.metadata.settings.voice = voice
+            try? session.persist()
+            return 0
+        }
+        return left
     }
 
     /// A frase dita confere com a gravada? HMAC comparado em tempo constante.
@@ -204,7 +239,7 @@ struct VoiceChallengeSheet: View {
                     .typeStyle(.body).foregroundStyle(Palette.down).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("Depois do Face ID ou do PIN, a frase que só você sabe. O iPhone reconhece a frase, não a sua voz.")
+            Text("A frase que só você sabe. Depois dela vem o Face ID ou o PIN. O iPhone reconhece a frase, não a sua voz.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 4) {

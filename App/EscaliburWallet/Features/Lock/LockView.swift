@@ -64,15 +64,7 @@ struct LockView: View {
     private func handle(_ failure: RootKeyVault.Failure) {
         switch failure {
         case .wrongPIN(let remaining):
-            let failures = KeyServices.root.failureCount()
-            if let remaining, remaining <= 3 {
-                entry.fail("PIN incorreto. Depois de mais \(remaining), as carteiras deste iPhone são apagadas.")
-            } else if failures >= 2 {
-                let next = PINPolicy.delay(afterFailures: failures + 1)
-                entry.fail("PIN incorreto. Mais um erro e o app pede uma espera de \(Self.duration(next)).")
-            } else {
-                entry.fail("PIN incorreto.")
-            }
+            entry.fail(AuthCoordinator.wrongPINMessage(remaining))
             showThrottleIfNeeded()
         case .throttled(let seconds):
             entry.fail("Tentativas demais. Tente de novo em \(Self.duration(seconds)).")

@@ -110,7 +110,7 @@ struct TradeReviewFlow: View {
                         .padding(.top, Space.lg)
                     if plan.review.transactionCount > 1 {
                         Banner(kind: .neutral, title: "Você vai assinar \(plan.review.transactionCount) transações de uma vez",
-                               message: "A autorização do token vai antes; as demais seguem na ordem, e nenhuma sai sozinha.")
+                               message: "A autorização do token vai antes e a troca logo depois, em transações separadas. Se a troca não sair, a autorização continua valendo, só para este valor e só para o contrato desta troca.")
                             .padding(.top, Space.md)
                     }
                     ForEach(Array(plan.review.warnings.enumerated()), id: \.offset) { _, warning in

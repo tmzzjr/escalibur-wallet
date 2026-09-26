@@ -17,6 +17,8 @@ final class SendModel {
     var destinationText = ""
     var destination: Address.Destination?
     var destinationProblem: String?
+    /// Link de pagamento recusado e o texto que ele deixou no campo.
+    var linkProblem: (text: String, message: String)?
     var destinationInfo: DestinationInfo?
     var lookalike: String?
     /// Com endereco parecido, os 6 ultimos caracteres digitados pelo dono.
@@ -183,8 +185,7 @@ struct SendStages: View {
         .sheet(isPresented: $scanning) {
             QRScannerSheet { text in
                 scanning = false
-                model.destinationText = PaymentURI.address(from: text)
-                validate()
+                apply(PaymentURI.read(text))
             }
         }
     }
@@ -218,10 +219,7 @@ struct SendStages: View {
                 .padding(.top, Space.xs)
             HStack(spacing: Space.xs) {
                 PasteButton(payloadType: String.self) { strings in
-                    Task { @MainActor in
-                        model.destinationText = PaymentURI.address(from: strings.first ?? "")
-                        validate()
-                    }
+                    Task { @MainActor in apply(PaymentURI.read(strings.first ?? "")) }
                 }
                 .labelStyle(.titleOnly).tint(Palette.rail).buttonBorderShape(.capsule)
                 Button { scanning = true } label: {
@@ -302,12 +300,33 @@ struct SendStages: View {
 
     static func of(_ chain: Chain) -> String { chain.id == "xrpl" ? "do" : "da" }
 
+    /// O que veio do QR ou do colar. O problema do link fica preso ao texto que ele
+    /// deixou no campo: a validacao que roda a cada mudanca do campo nao o apaga, e
+    /// qualquer edicao do dono o solta.
+    private func apply(_ reading: PaymentURI.Reading) {
+        var problem = reading.problem
+        if problem == nil, let asked = reading.chainID, let chain = model.chain, asked != chain.id {
+            let name = Chain.find(asked)?.name ?? "outra rede"
+            problem = "Este pedido é da rede \(name), e o envio é pela \(chain.name). Confira com quem pediu antes de enviar."
+        }
+        model.linkProblem = problem.map { (text: reading.address, message: $0) }
+        model.destinationText = reading.address
+        validate()
+    }
+
     private func validate() {
         guard let chain = model.chain else { return }
         model.destination = nil
         model.destinationProblem = nil
         model.lookalike = nil
         model.lookalikeCheck = ""
+        if let link = model.linkProblem {
+            if link.text == model.destinationText {
+                model.destinationProblem = link.message
+                return
+            }
+            model.linkProblem = nil
+        }
         let text = model.destinationText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         switch Address.validate(text, for: chain) {
@@ -677,16 +696,23 @@ enum KnownExchanges {
     static func name(for address: String) -> String? { byAddress[address] }
 }
 
-/// Le o endereco de um QR ou de um link de pagamento (BIP-21, EIP-681, "xrpl:"),
-/// sem aceitar mais nada dele. O valor do link nao e usado: o dono digita.
+/// O endereco de um QR ou de um link colado; a leitura e o `PaymentLink` do Kit.
 enum PaymentURI {
-    static func address(from text: String) -> String {
-        var body = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard body.count <= 512 else { return "" }
-        if let colon = body.firstIndex(of: ":"), body[..<colon].allSatisfy({ $0.isLetter }) {
-            body = String(body[body.index(after: colon)...])
+    struct Reading: Equatable {
+        let address: String
+        let chainID: String?
+        /// Por que o link foi recusado; nil quando foi lido.
+        let problem: String?
+    }
+
+    static func read(_ text: String) -> Reading {
+        do {
+            let reading = try PaymentLink.read(text)
+            return Reading(address: reading.address, chainID: reading.chainID, problem: nil)
+        } catch PaymentLink.Problem.tooLong {
+            return Reading(address: "", chainID: nil, problem: "Este código é longo demais para ser um endereço.")
+        } catch {
+            return Reading(address: "", chainID: nil, problem: "Este pedido de pagamento não pôde ser lido com segurança. Peça só o endereço.")
         }
-        if body.hasPrefix("pay-") { body.removeFirst(4) }
-        return String(body.prefix { $0 != "?" && $0 != "@" && $0 != "/" })
     }
 }

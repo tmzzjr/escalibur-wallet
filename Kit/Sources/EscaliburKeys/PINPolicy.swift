@@ -85,7 +85,7 @@ public enum PINPolicy {
     /// Identidade deste boot (`kern.bootsessionuuid`). Se mudou, o relogio monotonico
     /// recomecou do zero e o prazo gravado com ele deixou de valer. Comparar um UUID
     /// e exato; o instante do boot em ponto flutuante oscilava com ajuste de NTP.
-    static var bootSession: [UInt8] {
+    public static var bootSession: [UInt8] {
         var size = 0
         guard sysctlbyname("kern.bootsessionuuid", nil, &size, nil, 0) == 0, size > 0 else { return unknownBoot }
         var buffer = [CChar](repeating: 0, count: size)
@@ -97,7 +97,7 @@ public enum PINPolicy {
 
     /// Sem identidade de boot, cada leitura parece um boot novo: a espera recomeca
     /// cheia. Falha para o lado do dono esperar mais, nunca menos.
-    static let unknownBoot = [UInt8](repeating: 0, count: 16)
+    public static let unknownBoot = [UInt8](repeating: 0, count: 16)
 }
 
 /// O registro de tentativas, gravado no chaveiro.

@@ -47,6 +47,10 @@ final class EnvelopeFlowTests: XCTestCase {
         sleep(1)
         shot("e1-lacrar", app)
         start.tap()
+        // PIN errado dentro da operacao: o teclado volta com o aviso, e o certo segue.
+        type(pin: "135790", in: app)
+        wait(app.staticTexts["PIN incorreto."], 10, app, "pin-incorreto")
+        shot("e0-pin-errado", app)
         type(pin: "482916", in: app)
         let words = app.staticTexts["palavras-envelope"]
         XCTAssertTrue(words.waitForExistence(timeout: 15))

@@ -40,3 +40,27 @@ Médio
 
 Baixo
 - B1 tetos de taxa EVM de uma fonte, BNB alto; B2 LastLedgerSequence de um servidor; B3 leituras de uma fonte na Solana e TON; B4 regra de uma ordem CoW por token só pela API; B5 troca EVM sem prazo na cadeia; B6 índice de troco de um provedor; B7 documentação dizendo mais do que o código faz.
+
+## Tabela de estado
+
+Atualizada a cada correção. "motores" = ramo `seguranca-2`, em andamento, ainda fora do main.
+
+| Achado | Estado | Onde |
+|---|---|---|
+| Seg A1 / Mot M6: `sequence` público | motores | `SigningPlan.sequence` interno, compositores nomeados por rede |
+| Seg A2: verificador, fronteiras, hosts | feito | `tools/verificar.sh`, `Package.swift`, `AllowedHosts` no `HTTPClient` |
+| Seg M1: ativo e valor amarrados ao plano | parte | planejadores preenchem `outgoing`/`incomingMinimum` (motores); a tela comparar vem depois do merge |
+| Seg M2: desafio do endereço parecido | aberto | |
+| Seg M3: transmissão ambígua | aberto | |
+| Seg M4: PIN errado dentro de envio ou troca | feito | `AuthCoordinator.perform` volta ao teclado com o aviso da tela de bloqueio; teste de interface em `EnvelopeFlowTests` |
+| Seg M5: memo opcional, `.noDestinationTag` | aberto | |
+| Seg M6: preço limite sem conferência | feito | `TradeView.limitSanity`: abaixo de 2% do mercado pede confirmação presa ao preço digitado, abaixo de 50% bloqueia, sem preço de mercado pede confirmação |
+| Seg B1: aceite de impacto alto | feito | vale só para o impacto aceito ou menor; par, valor, rede ou tolerância novos zeram |
+| Seg B2: "nenhuma sai sozinha" | feito | texto diz que são transações separadas e que a autorização exata fica valendo se a troca falhar |
+| Seg B3: voz, texto da ordem e relógio | feito | texto diz a ordem real (frase, depois Face ID ou PIN); pausa no relógio monotônico com boot, como o PIN |
+| Seg B4: Face ID zerava o contador | feito | `RootKeyVault` |
+| Seg B5: QR EIP-681 de token | feito | `PaymentLink` no Kit, destino é o `address=`; rede diferente da do envio é recusada; testes em `PaymentLinkTests` |
+| Seg B6: palavras da importação em String | aceito | o campo UIKit guarda a palavra em digitação (uma por vez, limpo a cada palavra, sem correção, sem sugestão, sem ferramentas de escrita, área de transferência limpa depois de colar); a frase inteira só existe em `SecureBytes`. `String` do Swift não se apaga |
+| Seg B7: memo "0123" igual a 123 | aberto | |
+| Seg B8: CI sem hash no pip e sem compilar o app | aberto | |
+| Mot A1 Stellar, A2 Solana, A3 ordens, M1 a M5 | motores | ver commits do ramo `seguranca-2` |

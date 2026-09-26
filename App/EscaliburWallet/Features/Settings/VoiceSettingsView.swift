@@ -1,7 +1,7 @@
 import EscaliburCore
 import SwiftUI
 
-/// S4: confirmacao por voz, como camada depois do Face ID ou do PIN.
+/// S4: confirmacao por voz, como camada a mais junto do Face ID ou do PIN.
 struct VoiceSettingsView: View {
     @Environment(AppSession.self) private var session
     @Environment(AuthCoordinator.self) private var auth
@@ -20,7 +20,7 @@ struct VoiceSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Confirmação por voz").typeStyle(.title).foregroundStyle(Palette.ink)
-                Text("Uma segunda confirmação, depois do Face ID ou do PIN, nas operações que você escolher. Você escolhe uma frase que só você sabe e fala quando o app pedir.")
+                Text("Uma confirmação a mais nas operações que você escolher: você fala uma frase que só você sabe, e depois confirma com o Face ID ou o PIN, como sempre.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
                 Banner(kind: .neutral, title: "O iPhone reconhece a frase, não a sua voz",
@@ -140,8 +140,7 @@ struct VoiceSettingsView: View {
         session.metadata.voicePhraseSalt = salt
         session.metadata.voicePhraseHash = VoiceGate.digest(heard, salt: salt)
         session.metadata.settings.voice.enabled = true
-        session.metadata.settings.voice.failedChallenges = nil
-        session.metadata.settings.voice.lockedUntil = nil
+        session.metadata.settings.voice.clearLock()
         save()
         first = ""
         step = 0
