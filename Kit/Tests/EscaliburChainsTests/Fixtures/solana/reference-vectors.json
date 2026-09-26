@@ -1,0 +1,398 @@
+{
+ "LEIA": "Subconjunto dos testes das implementacoes de referencia da Solana (solana-sdk, @solana/web3.js 1.x, @solana/kit, token-2022), com a URL fixada no commit de onde cada vetor saiu, e contas de token reais da rede principal conferidas por getAccountInfo em 25/09/2026. Cada PDA e ATA foi conferido tambem por uma derivacao independente em Python (sha256 e a regra de curva de gerar-oraculo-curva.py) antes de entrar aqui.",
+ "shortvec": {
+  "source": "https://raw.githubusercontent.com/anza-xyz/solana-sdk/6f74525ac8fba532017b379769549f4640c90e62/short-vec/src/lib.rs#test_short_vec_encode_len,test_deserialize",
+  "encode": [
+   [
+    0,
+    "00"
+   ],
+   [
+    127,
+    "7f"
+   ],
+   [
+    128,
+    "8001"
+   ],
+   [
+    255,
+    "ff01"
+   ],
+   [
+    256,
+    "8002"
+   ],
+   [
+    2047,
+    "ff0f"
+   ],
+   [
+    16383,
+    "ff7f"
+   ],
+   [
+    16384,
+    "808001"
+   ],
+   [
+    32767,
+    "ffff01"
+   ],
+   [
+    65535,
+    "ffff03"
+   ]
+  ],
+  "reject": [
+   "8000",
+   "808000",
+   "ff00",
+   "ff8000",
+   "808100",
+   "ff8100",
+   "808200",
+   "ff8f00",
+   "ffff00",
+   "",
+   "80",
+   "80808000",
+   "808004",
+   "808006",
+   "818000"
+  ]
+ },
+ "curve": {
+  "source": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/addresses/src/__tests__/curve-test.ts",
+  "onCurveBytes": [
+   "6b8d57af651bd83aee5fc1af1597cf661c6b9db2454dcb59c74da2131b6c399b",
+   "345ea16d373ea40cb7a538705667136dc4215d2a8f06ddacad158260aa6552c8"
+  ],
+  "offCurveBytes": [
+   "0079f082a61cc74ea5e2abed64bbf75f32fbdd537afff75257ed6716c9e37299",
+   "c2dec53d44e1fcc69b96f72c2d0a73080c328a0c6ac74bac9f575e7afbf6884b"
+  ],
+  "onCurveAddresses": [
+   "nick6zJc6HpW3kfBm4xS2dmbuVRyb5F3AnUvj5ymzR5",
+   "11111111111111111111111111111111",
+   "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+   "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf"
+  ],
+  "offCurveAddresses": [
+   "CCMCWh4FudPEmY6Q1AVi5o8mQMXkHYkJUmZfzRGdcJ9P",
+   "2DRxyJDsDccGL6mb8PLMsKQTCU3C7xUq8aprz53VcW4k"
+  ]
+ },
+ "createProgramAddress": [
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/solana-sdk/6f74525ac8fba532017b379769549f4640c90e62/address/src/lib.rs#test_create_program_address",
+   "program": "BPFLoaderUpgradeab1e11111111111111111111111",
+   "seeds": [
+    "",
+    "01"
+   ],
+   "expected": "BwqrghZA2htAcqq8dzP1WDAhTXYTYWj7CHxF5j7TDBAe"
+  },
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/solana-sdk/6f74525ac8fba532017b379769549f4640c90e62/address/src/lib.rs#test_create_program_address",
+   "program": "BPFLoaderUpgradeab1e11111111111111111111111",
+   "seeds": [
+    "e29889",
+    "00"
+   ],
+   "expected": "13yWmRpaTR4r5nAktwLqMpRNr28tnVUZw26rTvPSSB19"
+  },
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/solana-sdk/6f74525ac8fba532017b379769549f4640c90e62/address/src/lib.rs#test_create_program_address",
+   "program": "BPFLoaderUpgradeab1e11111111111111111111111",
+   "seeds": [
+    "54616c6b696e67",
+    "537175697272656c73"
+   ],
+   "expected": "2fnQrngrQT4SeLcdToJAD96phoEjNL2man2kfRLCASVk"
+  },
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/solana-sdk/6f74525ac8fba532017b379769549f4640c90e62/address/src/lib.rs#test_create_program_address",
+   "program": "BPFLoaderUpgradeab1e11111111111111111111111",
+   "seeds": [
+    "069216fd686865218e275ca0978645845d8bb61a251271f1173f8ac800000000",
+    "01"
+   ],
+   "expected": "976ymqVnfE32QFe6NfGDctSvVa36LWnvYxhU6G2232YL"
+  },
+  {
+   "source": "https://raw.githubusercontent.com/solana-labs/solana-web3.js/0b600488afc85bb1f4d41827c7b800fb31c034f5/test/publickey.test.ts#createProgramAddress",
+   "program": "BPFLoader1111111111111111111111111111111111",
+   "seeds": [
+    "",
+    "01"
+   ],
+   "expected": "3gF2KMe9KiC6FNVBmfg9i267aMPvK37FewCip4eGBFcT"
+  },
+  {
+   "source": "https://raw.githubusercontent.com/solana-labs/solana-web3.js/0b600488afc85bb1f4d41827c7b800fb31c034f5/test/publickey.test.ts#createProgramAddress",
+   "program": "BPFLoader1111111111111111111111111111111111",
+   "seeds": [
+    "e29889"
+   ],
+   "expected": "7ytmC1nT1xY4RfxCV2ZgyA7UakC93do5ZdyhdF3EtPj7"
+  },
+  {
+   "source": "https://raw.githubusercontent.com/solana-labs/solana-web3.js/0b600488afc85bb1f4d41827c7b800fb31c034f5/test/publickey.test.ts#createProgramAddress",
+   "program": "BPFLoader1111111111111111111111111111111111",
+   "seeds": [
+    "54616c6b696e67",
+    "537175697272656c73"
+   ],
+   "expected": "HwRVBufQ4haG5XSgpspwKtNd3PC9GM9m1196uJW36vds"
+  },
+  {
+   "source": "https://raw.githubusercontent.com/solana-labs/solana-web3.js/0b600488afc85bb1f4d41827c7b800fb31c034f5/test/publickey.test.ts#createProgramAddress",
+   "program": "BPFLoader1111111111111111111111111111111111",
+   "seeds": [
+    "069216fd686865218e275ca0978645845d8bb61a251271f1173f8ac800000000"
+   ],
+   "expected": "GUs5qLUfsEHkcMB9T38vjr18ypEhRuNWiePW2LoK4E3K"
+  },
+  {
+   "source": "https://raw.githubusercontent.com/solana-labs/solana-web3.js/0b600488afc85bb1f4d41827c7b800fb31c034f5/test/publickey.test.ts#createProgramAddress (issue 11950)",
+   "program": "4ckmDgGdxQoPDLUkDT3vHgSAkzA3QRdNq5ywwY4sUSJn",
+   "seeds": [
+    "eeb9279037fd87e14617a664f117b06564810d9dfb797b09d3cd367ed4a766af",
+    "0200000000000000"
+   ],
+   "expected": "12rqwuEgBYiGhBrDJStCiqEtzQpTTiZbh7teNVLuYcFA"
+  }
+ ],
+ "findProgramAddress": [
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/addresses/src/__tests__/program-derived-address-test.ts",
+   "program": "CZ3TbkgUYpDAJVEWpujQhDSgzNTeqbokrJmYa1j4HAZc",
+   "seeds": [],
+   "expected": "9tVtkyCGAHSDDBPwz7895aC3p2gJRjpu2v26o35FTUco",
+   "bump": 255
+  },
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/addresses/src/__tests__/program-derived-address-test.ts",
+   "program": "EfTbwNBrSqSuCNBhWUHsBoBdSMWgRU1S47daqRNgW7aK",
+   "seeds": [],
+   "expected": "CKWT8KZ5GMzKpVRiAULWKPg1LiHt9U3NdAtbuTErHCTq",
+   "bump": 251
+  },
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/addresses/src/__tests__/program-derived-address-test.ts",
+   "program": "FD3PDEvpQ9JXq8tv7FpJPyZrCjWkCnAaTju16gFPdpqP",
+   "seeds": [
+    "010203"
+   ],
+   "expected": "9Tj3hpMWacDiZoBe94sjwJQ72zsUVvEQYsrqyy2CfHky",
+   "bump": 255
+  },
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/addresses/src/__tests__/program-derived-address-test.ts",
+   "program": "9HT3iB4oX1aZPH5V8eNUGByKuwhfcKjBQ3x9rfEAuNeF",
+   "seeds": [
+    "010203"
+   ],
+   "expected": "EeTcRajHcPh74C5D4GqZePac1wYB7Dj9ChTaNHaTH77V",
+   "bump": 251
+  },
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/addresses/src/__tests__/program-derived-address-test.ts",
+   "program": "EKaNRGA37uiGRyRPMap5EZg9cmbT5mt7KWrGwKwAQ3rK",
+   "seeds": [
+    "68656c6c6f"
+   ],
+   "expected": "6V76gtKMCmVVjrx4sxR9uB868HtZbL3piKEmadC7rSgf",
+   "bump": 255
+  },
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/addresses/src/__tests__/program-derived-address-test.ts",
+   "program": "9PyoV2rqNtoboSvg2JD7GWhM5RQvHGwgdDvK7MCfpgX1",
+   "seeds": [
+    "68656c6c6f"
+   ],
+   "expected": "E6npEurFu1UEbQFh1DsqBvny17XxUK2QPMgxD3Edn3aG",
+   "bump": 251
+  },
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/addresses/src/__tests__/program-derived-address-test.ts",
+   "program": "A5dcVPLJsE2vbf7hkqqyYkYDK9UjUfNxuwGtWF2m2vEz",
+   "seeds": [
+    "f09f9a80"
+   ],
+   "expected": "GYpAzW57Ex4Sw3rp4pq95QrjvtsDyqZsMhSZwqz3NMsE",
+   "bump": 255
+  },
+  {
+   "source": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/addresses/src/__tests__/program-derived-address-test.ts",
+   "program": "H8gBP21L5ietkHgXcGbgQBCVVEdPUQyuP9Q5MPRLLSJu",
+   "seeds": [
+    "f09f9a80"
+   ],
+   "expected": "46v3JvPtEPeQmH3euXydEbxYD6yfxeZjWSzkkYvvM5Pp",
+   "bump": 251
+  }
+ ],
+ "associatedTokenAddress": [
+  {
+   "source": "https://raw.githubusercontent.com/solana-program/token-2022/45b91cac036d92943b9ee2fd9bcb956fbd581a8d/clients/js-legacy/test/unit/index.test.ts#getAssociatedTokenAddress",
+   "owner": "B8UwBUUnKwCyKuGMbFKWaG7exYdDk2ozZrPg72NyVbfj",
+   "mint": "7o36UsWR1JQLpZ9PE2gn9L4SQ69CNNiWAXd4Jt7rqz9Z",
+   "program": "token",
+   "allowOwnerOffCurve": false,
+   "expected": "DShWnroshVbeUp28oopA3Pu7oFPDBtC1DBmPECXXAQ9n"
+  },
+  {
+   "source": "https://raw.githubusercontent.com/solana-program/token-2022/45b91cac036d92943b9ee2fd9bcb956fbd581a8d/clients/js-legacy/test/unit/index.test.ts#getAssociatedTokenAddress (dono fora da curva)",
+   "owner": "DShWnroshVbeUp28oopA3Pu7oFPDBtC1DBmPECXXAQ9n",
+   "mint": "7o36UsWR1JQLpZ9PE2gn9L4SQ69CNNiWAXd4Jt7rqz9Z",
+   "program": "token",
+   "allowOwnerOffCurve": true,
+   "expected": "F3DmXZFqkfEWFA7MN2vDPs813GeEWPaT6nLk4PSGuWJd"
+  },
+  {
+   "source": "mainnet getAccountInfo em 25/09/2026: conta de token do USDC, dono 86xCnPeV (toly.sol), programa Token",
+   "owner": "86xCnPeV69n6t3DnyGvkKobf9FdN2H9oiVDdaMpo2MMY",
+   "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "program": "token",
+   "allowOwnerOffCurve": false,
+   "expected": "9SHQTA66Ekh7ZgMnKWsjxXk6DwXku8przs45E8bcEe38"
+  },
+  {
+   "source": "mainnet getAccountInfo em 25/09/2026: conta de token do USDC, dono 5tzFkiKs (carteira quente rotulada Binance nos exploradores)",
+   "owner": "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9",
+   "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "program": "token",
+   "allowOwnerOffCurve": false,
+   "expected": "FzbcyEZ9m8xjtergWgWDq7mfPoHEbboBF791B6cTpzbq"
+  },
+  {
+   "source": "mainnet getAccountInfo em 25/09/2026: conta de token do USDC, dono 9WzDXwBb (carteira quente rotulada Binance nos exploradores)",
+   "owner": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+   "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+   "program": "token",
+   "allowOwnerOffCurve": false,
+   "expected": "FGETo8T8wMcN2wCjav8VK6eh3dLk63evNDPxzLSJra8B"
+  },
+  {
+   "source": "mainnet tx 2VQ2ee9txFME..., postTokenBalances: conta de PYUSD (Token-2022)",
+   "owner": "Bqe2pPQnTm3245JUdyb3tdcLUAmHCa2ibhCrRLSsHmr8",
+   "mint": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+   "program": "token2022",
+   "allowOwnerOffCurve": false,
+   "expected": "H1Xr7xGYgZvCFYvnHpbUxitKN9c43b2YvPbPiN6s83hG"
+  },
+  {
+   "source": "mainnet tx 2GFcGdgPBQWo..., postTokenBalances: conta de PYUSD (Token-2022), bump 254",
+   "owner": "Fe3yJKWb3JET3HVfifNZxR9P1FLfj9dRwKJ6TZdkwqKR",
+   "mint": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+   "program": "token2022",
+   "allowOwnerOffCurve": false,
+   "expected": "7K1wMJyKCtehdt5MJjVdUzugpugcro8ZJ15xAJq6rxAx"
+  },
+  {
+   "source": "mainnet tx 2EitAW4UWPaR..., postTokenBalances: conta de PYUSD (Token-2022) de um dono fora da curva (PDA), bump 253",
+   "owner": "ARu4n5mFdZogZAravu7CcizaojWnS6oqka37gdLT5SZn",
+   "mint": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+   "program": "token2022",
+   "allowOwnerOffCurve": true,
+   "expected": "UoC1nnbTTENjJumPn5AQz15A1HLU9Qg7GKv4RCmqdC3"
+  }
+ ],
+ "web3LegacyTransfer": {
+  "source": "https://raw.githubusercontent.com/solana-labs/solana-web3.js/0b600488afc85bb1f4d41827c7b800fb31c034f5/test/transaction.test.ts#parse wire format and serialize",
+  "senderSeed": "0808080808080808080808080808080808080808080808080808080808080808",
+  "recipient": "J3dxNj7nDRRqRRXuEMynDG57DkZK4jYRuv3Garmb1i99",
+  "recentBlockhash": "EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k",
+  "lamports": 49,
+  "signedBase64": "AVuErQHaXv0SG0/PchunfxHKt8wMRfMZzqV0tkC5qO6owYxWU2v871AoWywGoFQr4z+q/7mE8lIufNl/kxj+nQ0BAAEDE5j2LG0aRXxRumpLXz29L2n8qTIWIY3ImX5Ba9F9k8r9Q5/Mtmcn8onFxt47xKj+XdXXd3C8j/FcPu7csUrz/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAxJrndgN4IFTxep3s6kO0ROug7bEsbx0xxuDkqEvwUusBAgIAAQwCAAAAMQAAAAAAAAA="
+ },
+ "sdkSampleTransaction": {
+  "source": "https://raw.githubusercontent.com/anza-xyz/solana-sdk/6f74525ac8fba532017b379769549f4640c90e62/transaction/src/lib.rs#test_sdk_serialize (create_sample_transaction)",
+  "keypair": "ff6524187c17a71584cc9b05b93a794b9ce374c1d7268e16080ee5ef775d05da24649efc21a161b93e5963c3faf9bbbdab76f15af80e44dbe73e9d058e1bd275",
+  "to": "0101010405060708090909090909090909090909090909090807060504010101",
+  "programId": "0202020405060708090101010101010101010101010101090807060504020202",
+  "data": "010203",
+  "serialized": "01788aa2b93bd1f19d479d4a830457361c26b4de52403e3d3e162e11cbbb883e2b0b26eb11ef52f08b82d9e3d609f28ddf5e1db86e3e2057893f8b64dd148904050100010324649efc21a161b93e5963c3faf9bbbdab76f15af80e44dbe73e9d058e1bd275010101040506070809090909090909090909090909090909080706050401010102020204050607080901010101010101010101010101010908070605040202020000000000000000000000000000000000000000000000000000000000000000010202000103010203"
+ },
+ "kitCodecMessage": {
+  "note": "expectedV0, expectedV0NoLookups e expectedLegacy sao os literais new Uint8Array([...]) dos testes de encoder da Kit, copiados em hex (conferidos iguais aos arquivos do commit citado).",
+  "source": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/transaction-messages/src/codecs/v0/__tests__/message-test.ts#encodes a v0 transaction with address lookup tables correctly",
+  "header": [
+   3,
+   2,
+   1
+  ],
+  "staticAccounts": [
+   "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+   "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+   "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
+  ],
+  "lifetimeToken": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+  "instructions": [
+   {
+    "programIndex": 0,
+    "accounts": [
+     1,
+     2
+    ],
+    "data": "040506"
+   },
+   {
+    "programIndex": 1,
+    "accounts": [
+     2
+    ],
+    "data": "070809"
+   }
+  ],
+  "lookups": [
+   {
+    "table": "2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c",
+    "writable": [
+     66,
+     55
+    ],
+    "readonly": [
+     77
+    ]
+   }
+  ],
+  "expectedV0": "80030201030b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a02000201020304050601010203070809012c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c024237014d",
+  "expectedV0NoLookups": "80030201030b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0200020102030405060101020307080900",
+  "expectedLegacy": "030201030b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a02000201020304050601010203070809",
+  "sourceLegacy": "https://raw.githubusercontent.com/anza-xyz/kit/6f6ca992632adba347a17c009a29e73a9504d5c3/packages/transaction-messages/src/codecs/legacy/__tests__/message-test.ts#encodes a legacy transaction correctly"
+ },
+ "web3AccountOrdering": {
+  "source": "https://raw.githubusercontent.com/solana-labs/solana-web3.js/0b600488afc85bb1f4d41827c7b800fb31c034f5/test/transaction.test.ts#accountKeys are ordered",
+  "payer": "3qMLYYyNvaxNZP7nW8u5abHMoJthYqQehRLbFVPNNcvQ",
+  "writableSigners": [
+   "3XLtLo5Z4DG8b6PteJidF6kFPNDfxWjxv4vTLrjaHTvd",
+   "4rvqGPb4sXgyUKQcvmPxnWEZTTiTqNUZ2jjnw7atKVxa"
+  ],
+  "readonlySigners": [
+   "5oGjWjyoKDoXGpboGBfqm9a5ZscyAjRi3xuGYYu1ayQg",
+   "65Rkc3VmDEV6zTRGtgdwkTcQUxDJnJszj2s4WoXazYpC"
+  ],
+  "writable": [
+   "72BxBZ9eD9Ue6zoJ9bzfit7MuaDAnq1qhirgAoFUXz9q",
+   "BtYrPUeVphVgRHJkf2bKz8DLRxJdQmZyANrTM12xFqZL"
+  ],
+  "readonly": [
+   "Di1MbqFwpodKzNrkjGaUHhXC4TJ1SHUAxo9agPZphNH1",
+   "DYzzsfHTgaNhCgn7wMaciAYuwYsGqtVNg9PeFZhH93Pc"
+  ],
+  "programId": "Fx9svCTdxnACvmEmx672v2kP1or4G1zC73tH7XsXbKkP",
+  "note": "O web3.js ordena cada grupo pelo texto Base58 (localeCompare); o solana-sdk, e esta carteira, pelos bytes. Os tres primeiros grupos coincidem; no ultimo, a ordem difere e o teste confere a de bytes."
+ },
+ "web3DuplicateAccounts": {
+  "source": "https://raw.githubusercontent.com/solana-labs/solana-web3.js/0b600488afc85bb1f4d41827c7b800fb31c034f5/test/transaction.test.ts#accountKeys collapses signedness and writability of duplicate accounts",
+  "payer": "2eBgaMN8dCnCjx8B8Wrwk974v5WHwA6Vvj4N2mW9KDyt",
+  "account2": "DL8FErokCN7rerLdmJ7tQvsL1FsqDu1sTKLLooWmChiW",
+  "account3": "EdPiTYbXFxNrn1vqD7ZdDyauRKG4hMR6wY54RU1YFP2e",
+  "account4": "FThXbyKK4kYJBngSSuvo9e6kc7mwPHEgw4V8qdmz1h3k",
+  "programId": "Gcatgv533efD1z2knsH9UKtkrjRWCZGi12f8MjNaDzmN",
+  "account5": "rBtwG4bx85Exjr9cgoupvP1c7VTe7u5B36rzCg1HYgi"
+ }
+}
