@@ -177,16 +177,33 @@ struct ReaderBUTXOTests {
         return transport
     }
 
-    @Test("Bitcoin: mediana de mempool.space e Blockstream, piso de 1 sat/vB")
+    @Test("Bitcoin: com duas fontes, o menor de cada nivel, com o piso de 1 sat/vB")
     func feesBitcoin() async throws {
         let reader = try UTXOReader(chain: .bitcoin, transport: try Self.feeTransport(), providers: T.esploraProviders)
         let fees = try await reader.feeLevels()
         // mempool: 1 / 0,619 / 0,341; blockstream (1, 3, 6 blocos): 3,303 / 2,112 / 2,003.
+        // O menor de cada nivel, com o piso: 1 / 1 / 1. Antes era a media das duas, e uma
+        // fonte que inflasse levava metade do exagero para a taxa.
         #expect(fees.sources == ["mempool", "blockstream"])
         #expect(fees.estimates == [UTXOFeeRate(satPerKvB: 1_000), UTXOFeeRate(satPerKvB: 3_303)])
-        #expect(fees.slow == UTXOFeeRate(satPerKvB: 1_172))
-        #expect(fees.normal == UTXOFeeRate(satPerKvB: 1_366))
-        #expect(fees.fast == UTXOFeeRate(satPerKvB: 2_152))
+        #expect(fees.slow == UTXOFeeRate(satPerKvB: 1_000))
+        #expect(fees.normal == UTXOFeeRate(satPerKvB: 1_000))
+        #expect(fees.fast == UTXOFeeRate(satPerKvB: 1_000))
+    }
+
+    @Test("Regressao M2: tres fontes dao a mediana; uma fonte mais de 3x acima das outras e recusa")
+    func feesConsensus() throws {
+        let rules = UTXORules.for(.bitcoin)
+        func quote(_ fast: UInt64, _ normal: UInt64, _ slow: UInt64) -> UTXOFeeQuote {
+            UTXOFeeQuote(source: "x", fastest: UTXOFeeRate(satPerVByte: fast),
+                         levels: (UTXOFeeRate(satPerVByte: slow), UTXOFeeRate(satPerVByte: normal), UTXOFeeRate(satPerVByte: fast)))
+        }
+        let three = try UTXOReader.combine([quote(20, 12, 6), quote(24, 14, 8), quote(30, 20, 10)], rules: rules)
+        #expect(three.fast == UTXOFeeRate(satPerVByte: 24) && three.normal == UTXOFeeRate(satPerVByte: 14) && three.slow == UTXOFeeRate(satPerVByte: 8))
+        #expect(throws: ChainReaderError.providersDisagree) { try UTXOReader.combine([quote(20, 12, 6), quote(80, 60, 40)], rules: rules) }
+        #expect(throws: ChainReaderError.providersDisagree) {
+            try UTXOReader.combine([quote(20, 12, 6), quote(22, 14, 8), quote(200, 150, 100)], rules: rules)
+        }
     }
 
     @Test("Uma fonte so nao basta: o teto do planejamento pede duas")
@@ -207,10 +224,13 @@ struct ReaderBUTXOTests {
             T.provider("blockchair", "https://ltc-c.test/litecoin"),
         ])
         let ltcFees = try await ltcReader.feeLevels()
+        // A Blockcypher cota 8x o litecoinspace; perto do piso a comparacao parte de 5x o
+        // piso (5 lit/vB), e 12 fica dentro de 3x disso. Vale o menor de cada nivel
+        // (litecoinspace: 1 / 1,25 / 1,5).
         #expect(ltcFees.estimates == [UTXOFeeRate(satPerKvB: 1_500), UTXOFeeRate(satPerKvB: 12_095)])
-        #expect(ltcFees.slow == UTXOFeeRate(satPerKvB: 3_923))
-        #expect(ltcFees.normal == UTXOFeeRate(satPerKvB: 5_305))
-        #expect(ltcFees.fast == UTXOFeeRate(satPerKvB: 6_798))
+        #expect(ltcFees.slow == UTXOFeeRate(satPerKvB: 1_000))
+        #expect(ltcFees.normal == UTXOFeeRate(satPerKvB: 1_250))
+        #expect(ltcFees.fast == UTXOFeeRate(satPerKvB: 1_500))
 
         let doge = ReaderBFakeTransport()
         doge.on("doge-a.test/v1/doge/main", data: try T.fixture("blockcypher-doge-chain.json"))
@@ -219,7 +239,8 @@ struct ReaderBUTXOTests {
             T.provider("blockcypher", "https://doge-a.test/v1/doge/main"), T.provider("blockchair", "https://doge-b.test/dogecoin"),
         ])
         let dogeFees = try await dogeReader.feeLevels()
-        // Blockchair so da um numero (500.000 koinu/byte): entra no teto, nao nos niveis.
+        // Blockchair so da um numero (500.000 koinu/byte), que vale para os tres niveis; o
+        // menor de cada nivel e o da Blockcypher.
         #expect(dogeFees.estimates == [UTXOFeeRate(satPerKvB: 198_329_878), UTXOFeeRate(satPerKvB: 500_000_000)])
         #expect(dogeFees.slow == UTXOFeeRate(satPerKvB: 13_854_085))
         #expect(dogeFees.normal == UTXOFeeRate(satPerKvB: 60_447_023))

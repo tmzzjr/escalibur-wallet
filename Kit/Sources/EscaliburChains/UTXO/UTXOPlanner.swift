@@ -129,6 +129,10 @@ public enum UTXOPlanError: Error, Equatable, Sendable {
     case mixedAccounts
     case coinControlUnknown(UTXOOutpoint)
     case needTwoFeeEstimates
+    /// As fontes de taxa discordam mais de 3x: uma delas mente ou esta quebrada.
+    case feeEstimatesDisagree
+    /// Taxa acima do teto compilado da rede.
+    case feeRateAboveNetworkCap(cap: UTXOFeeRate)
     case feeRateBelowMinimum(minimum: UTXOFeeRate)
     /// Taxa acima de 2x a maior estimativa: recusada, nao so avisada.
     case feeRateAboveCeiling(ceiling: UTXOFeeRate)
@@ -177,7 +181,7 @@ public enum UTXOPlanner {
     /// Recusa (em vez de avisar) tudo o que nao pode estar certo: destino invalido,
     /// transacao anterior que nao bate, moeda que nao e da chave, taxa fora do teto,
     /// troco que nao prova ser da carteira. Avisa o que pode estar certo mas merece
-    /// um segundo olhar: taxa acima de 3% do valor, primeiro envio, endereco parecido.
+    /// um segundo olhar: taxa acima de 1% do valor, primeiro envio, endereco parecido.
     public static func planSend(
         walletID: UUID, chain: Chain, intent: UTXOSendIntent, network: UTXONetworkState, now: Date = .now
     ) throws -> SigningPlan {
@@ -202,12 +206,12 @@ public enum UTXOPlanner {
         }
         let destinationDust = params.dustThreshold(for: destinationType, chain: chain)
 
-        // Taxa: piso da rede e teto de 2x a maior de pelo menos duas estimativas.
-        guard network.feeEstimates.count >= 2, network.feeEstimates.allSatisfy({ $0.satPerKvB > 0 }) else {
-            throw UTXOPlanError.needTwoFeeEstimates
-        }
+        // Taxa: duas fontes que nao discordam demais, o piso e o teto compilados da rede,
+        // e ate 2x a maior estimativa.
+        try UTXOFeeConsensus.check(network.feeEstimates, rules: rules)
         let feeRate = intent.feeRate
         guard feeRate >= rules.minimumFeeRate else { throw UTXOPlanError.feeRateBelowMinimum(minimum: rules.minimumFeeRate) }
+        guard feeRate <= rules.maxFeeRate else { throw UTXOPlanError.feeRateAboveNetworkCap(cap: rules.maxFeeRate) }
         // Com a mempool vazia, 2x a maior estimativa pode ficar abaixo do piso da rede;
         // o piso continua permitido, senao nao haveria taxa possivel.
         let highest = network.feeEstimates.max()!.satPerKvB
@@ -379,8 +383,10 @@ public enum UTXOPlanner {
         let signable = try UTXOSignableTransaction(chain: chain, unsigned: transaction, spends: spends, summary: summary)
 
         // Revisao.
+        // Taxa acima de 1% do valor avisa: com o teto compilado alto, o aviso e o que faz
+        // o dono ver uma taxa desproporcional antes de assinar.
         var warnings = [PlanReview.Warning]()
-        if fee * 100 > amount * 3 {
+        if fee * 100 > amount {
             warnings.append(.highFee(percentOfAmount: Double(fee) * 100 / Double(amount)))
         }
         let own = verified.compactMap { UTXOScript.address(for: $0.output.scriptPubKey, chain: chain) } + [changeInfo?.address].compactMap { $0 }

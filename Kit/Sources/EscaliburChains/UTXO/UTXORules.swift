@@ -48,6 +48,10 @@ public struct UTXORules: Sendable {
     public let smallCoinFloor: UInt64
     /// Piso da taxa de descarte, a que mede quanto custara gastar um troco depois.
     public let discardFeeRateFloor: UTXOFeeRate
+    /// Teto da taxa por tamanho, compilado. Antes o unico teto era o dobro da maior
+    /// estimativa das fontes, e o provedor que a taxa devia limitar escrevia o proprio
+    /// limite (auditoria 2, M2). Acima disto a carteira recusa e pede para esperar.
+    public let maxFeeRate: UTXOFeeRate
 
     /// dustrelayfee padrao do Bitcoin Core: 3 sat/vB. [W, docs/blockchain.md §2.1]
     public static let dustRelayFeePerVByte: UInt64 = 3
@@ -67,31 +71,37 @@ public struct UTXORules: Sendable {
         case Chain.litecoin.id:
             // Litecoin Core herda as politicas do Bitcoin Core: minrelay de 1 lit/vB,
             // maxtxfee de 0,1 LTC, MAX_MONEY de 84 milhoes. [P]
+            // Teto: 200 lit/vB, dezenas de vezes o que a rede cobra nos picos (a mempool
+            // do Litecoin raramente passa de poucos lit/vB).
             return UTXORules(
                 transactionVersion: 2, segwit: true,
                 minimumFeeRate: UTXOFeeRate(satPerVByte: 1), longTermFeeRate: UTXOFeeRate(satPerVByte: 10),
                 maxAbsoluteFee: 10_000_000, maxMoney: 84_000_000 * 100_000_000, smallCoinFloor: 1_000,
-                discardFeeRateFloor: UTXOFeeRate(satPerVByte: dustRelayFeePerVByte)
+                discardFeeRateFloor: UTXOFeeRate(satPerVByte: dustRelayFeePerVByte), maxFeeRate: UTXOFeeRate(satPerVByte: 200)
             )
         case Chain.dogecoin.id:
             // Dogecoin Core 1.14: taxa recomendada 0,01 DOGE/kB (1000 koinu/B), dust
             // de 0,01 DOGE, MAX_MONEY de 10 bilhoes. Sem segwit. Versao 1, que e
             // padrao em qualquer no. [P]
+            // Teto: 10 DOGE/kB. Os provedores sugerem de 0,1 a 5 DOGE/kB (Blockcypher e
+            // Blockchair gravados em 26/09/2026), acima do minimo de 0,01 do no.
             return UTXORules(
                 transactionVersion: 1, segwit: false,
                 minimumFeeRate: UTXOFeeRate(satPerKvB: 1_000_000), longTermFeeRate: UTXOFeeRate(satPerKvB: 1_000_000),
                 maxAbsoluteFee: 100 * 100_000_000, maxMoney: 10_000_000_000 * 100_000_000, smallCoinFloor: 1_000,
-                discardFeeRateFloor: UTXOFeeRate(satPerKvB: 1_000_000)
+                discardFeeRateFloor: UTXOFeeRate(satPerKvB: 1_000_000), maxFeeRate: UTXOFeeRate(satPerKvB: 1_000_000_000)
             )
         default:
             // Bitcoin: piso de 1 sat/vB (nos antigos ainda pedem 1; o Core 30 aceita
             // 0,1), taxa de consolidacao de 10 sat/vB (DEFAULT_CONSOLIDATE_FEERATE),
             // maxtxfee de 0,1 BTC (DEFAULT_TRANSACTION_MAXFEE). [W, docs/blockchain.md §2.1]
+            // Teto: 500 sat/vB. So os minutos mais disputados da historia (o halving de
+            // abril de 2024) passaram disso; nesses a carteira pede para esperar.
             return UTXORules(
                 transactionVersion: 2, segwit: true,
                 minimumFeeRate: UTXOFeeRate(satPerVByte: 1), longTermFeeRate: UTXOFeeRate(satPerVByte: 10),
                 maxAbsoluteFee: 10_000_000, maxMoney: 21_000_000 * 100_000_000, smallCoinFloor: 1_000,
-                discardFeeRateFloor: UTXOFeeRate(satPerVByte: dustRelayFeePerVByte)
+                discardFeeRateFloor: UTXOFeeRate(satPerVByte: dustRelayFeePerVByte), maxFeeRate: UTXOFeeRate(satPerVByte: 500)
             )
         }
     }
@@ -110,5 +120,37 @@ public struct UTXORules: Sendable {
     /// "doginals". O dono ainda pode gastar essas moedas escolhendo-as a mao.
     public func protectionThreshold(for kind: UTXOInputKind, chain: Chain) -> UInt64 {
         max(smallCoinFloor, UTXOParams.for(chain).dustThreshold(for: kind.outputType, chain: chain))
+    }
+}
+
+/// A taxa lida de varias fontes, decidida sem confiar em nenhuma (auditoria 2, M2).
+///
+/// - pelo menos duas fontes, cada uma com os seus niveis (a fonte de numero unico vale
+///   para todos os niveis);
+/// - as estimativas de prioridade nao podem ficar mais de 3x distantes; abaixo de cinco
+///   vezes o piso da rede a diferenca nao conta (custa centavos, e perto do piso as
+///   fontes arredondam diferente);
+/// - cada nivel: com duas fontes, a menor, porque uma fonte que infla nao pode subir a
+///   taxa; com tres ou mais, a mediana.
+public enum UTXOFeeConsensus {
+    public static let maxDivergence: UInt64 = 3
+    public static let floorMultiple: UInt64 = 5
+
+    public static func check(_ estimates: [UTXOFeeRate], rules: UTXORules) throws {
+        guard estimates.count >= 2, estimates.allSatisfy({ $0.satPerKvB > 0 }),
+              let low = estimates.min()?.satPerKvB, let high = estimates.max()?.satPerKvB
+        else { throw UTXOPlanError.needTwoFeeEstimates }
+        let (floor, overflow) = rules.minimumFeeRate.satPerKvB.multipliedReportingOverflow(by: floorMultiple)
+        let base = max(low, overflow ? .max : floor)
+        let (limit, limitOverflow) = base.multipliedReportingOverflow(by: maxDivergence)
+        guard limitOverflow || high <= limit else { throw UTXOPlanError.feeEstimatesDisagree }
+    }
+
+    /// O nivel a partir do mesmo nivel de cada fonte.
+    public static func level(_ rates: [UTXOFeeRate]) -> UTXOFeeRate? {
+        let sorted = rates.sorted()
+        guard let lowest = sorted.first else { return nil }
+        guard sorted.count >= 3 else { return lowest }
+        return sorted[(sorted.count - 1) / 2]
     }
 }

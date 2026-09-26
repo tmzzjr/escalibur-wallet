@@ -134,6 +134,10 @@ enum UTXOEngineSupport {
             return "Uma das moedas lidas não confere com a transação que a criou. Por segurança, nada foi montado."
         case .needTwoFeeEstimates:
             return NetworkFailureText.fewSources
+        case .feeEstimatesDisagree:
+            return "As fontes de taxa da rede \(chain.name) discordam demais agora. Nada foi montado. Tente de novo em instantes."
+        case .feeRateAboveNetworkCap:
+            return "A taxa da rede \(chain.name) está acima do teto da carteira agora. Espere a rede acalmar e tente de novo."
         case .feeRateBelowMinimum:
             return "A taxa escolhida fica abaixo do mínimo da rede."
         case .feeRateAboveCeiling:

@@ -169,7 +169,7 @@ public struct UTXOFeeLevels: Sendable, Equatable {
     public let normal: UTXOFeeRate
     public let fast: UTXOFeeRate
     /// A estimativa de maior prioridade de cada fonte, uma por fonte: vai para
-    /// `UTXONetworkState.feeEstimates`, onde o teto e 2x a maior.
+    /// `UTXONetworkState.feeEstimates`, que o planejamento confere com `UTXOFeeConsensus`.
     public let estimates: [UTXOFeeRate]
     /// Nomes das fontes que responderam, na mesma ordem de `estimates`.
     public let sources: [String]
