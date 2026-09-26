@@ -1,0 +1,248 @@
+{
+  "data": [
+    {
+      "ret": [
+        {
+          "contractRet": "SUCCESS",
+          "fee": 0
+        }
+      ],
+      "signature": [
+        "8f856815755786487ee1d239988041252d228cd1a3553ce8c8d1281567168e1903e21e391bc37f5c6932771546884fcde8a68e547c2a520440711c7e09aafbf91b"
+      ],
+      "txID": "cebaf9dfc402e5a7d9ca818fda8376972f0c45b36532a916f379600209587265",
+      "net_usage": 283,
+      "net_fee": 0,
+      "energy_usage": 0,
+      "blockNumber": 86357680,
+      "block_timestamp": 1789745253000,
+      "energy_fee": 0,
+      "energy_usage_total": 0,
+      "raw_data": {
+        "contract": [
+          {
+            "parameter": {
+              "value": {
+                "balance": 11033933657,
+                "resource": "ENERGY",
+                "receiver_address": "418840e6c55b9ada326d211d818c34a994aeced808",
+                "owner_address": "4129655306222b7477f67c8e774ed04c649b1e7ecc"
+              },
+              "type_url": "type.googleapis.com/protocol.UnDelegateResourceContract"
+            },
+            "type": "UnDelegateResourceContract"
+          }
+        ],
+        "ref_block_bytes": "b69d",
+        "ref_block_hash": "d4009e813a5cbdcd",
+        "expiration": 1789745310000,
+        "timestamp": 1789745252003
+      },
+      "internal_transactions": []
+    },
+    {
+      "ret": [
+        {
+          "contractRet": "SUCCESS",
+          "fee": 0
+        }
+      ],
+      "signature": [
+        "64be40fa99ac2bc930f07435a553272e940d1318cc9401410dea22124ffefe92647bef12bb2c582ff1fb6795ab391c8abcafd39bd7666c19d7b714a7d7cd0ea81b"
+      ],
+      "txID": "82bca866d3141203735dc654233b98cf9d77b614f006fce96b96e736ad314621",
+      "net_usage": 281,
+      "net_fee": 0,
+      "energy_usage": 0,
+      "blockNumber": 86356479,
+      "block_timestamp": 1789741650000,
+      "energy_fee": 0,
+      "energy_usage_total": 0,
+      "raw_data": {
+        "contract": [
+          {
+            "parameter": {
+              "value": {
+                "balance": 11033933657,
+                "resource": "ENERGY",
+                "receiver_address": "418840e6c55b9ada326d211d818c34a994aeced808",
+                "owner_address": "4129655306222b7477f67c8e774ed04c649b1e7ecc"
+              },
+              "type_url": "type.googleapis.com/protocol.DelegateResourceContract"
+            },
+            "type": "DelegateResourceContract"
+          }
+        ],
+        "ref_block_bytes": "b1ec",
+        "ref_block_hash": "e46430d05864f25c",
+        "expiration": 1789741707000,
+        "timestamp": 1789741648149
+      },
+      "internal_transactions": []
+    },
+    {
+      "ret": [
+        {
+          "contractRet": "SUCCESS",
+          "fee": 0
+        }
+      ],
+      "signature": [
+        "22546eb8806c77db01a66d6f84307345466d1369b5e5cd0c024aed3e148638e70e9bb6d866c0f2cd41c9e63c578b1e03bb95e0558c09a201986f29619fc1600900"
+      ],
+      "txID": "035732a34c38ca98d324487cff572808e1c1abc2d41c2739286299ed4559dd09",
+      "net_usage": 265,
+      "net_fee": 0,
+      "energy_usage": 0,
+      "blockNumber": 85578033,
+      "block_timestamp": 1787405415000,
+      "energy_fee": 0,
+      "energy_usage_total": 0,
+      "raw_data": {
+        "contract": [
+          {
+            "parameter": {
+              "value": {
+                "amount": 1,
+                "owner_address": "4173b6889abf6edee6214e8283685fc2f18c4866ee",
+                "to_address": "418840e6c55b9ada326d211d818c34a994aeced808"
+              },
+              "type_url": "type.googleapis.com/protocol.TransferContract"
+            },
+            "type": "TransferContract"
+          }
+        ],
+        "ref_block_bytes": "d11e",
+        "ref_block_hash": "9b09dee387f67300",
+        "expiration": 1787405472000,
+        "timestamp": 1787405414054
+      },
+      "internal_transactions": []
+    },
+    {
+      "ret": [
+        {
+          "contractRet": "SUCCESS",
+          "fee": 0
+        }
+      ],
+      "signature": [
+        "ea09cc248fd41f9a5cf16f8444a1782471144c664db492a426c1702c5d45225e0cde883114655297ab78f983b7a6e46f326e93013dffff437a1dd1ef5d8b1b6801"
+      ],
+      "txID": "22ecd90e52e73cc1f561be0e160eacd20de26671ff4c08fcfc1f320a20b2fdb2",
+      "net_usage": 283,
+      "net_fee": 0,
+      "energy_usage": 0,
+      "blockNumber": 85577995,
+      "block_timestamp": 1787405301000,
+      "energy_fee": 0,
+      "energy_usage_total": 0,
+      "raw_data": {
+        "contract": [
+          {
+            "parameter": {
+              "value": {
+                "amount": 4444444444,
+                "asset_name": "1005185",
+                "owner_address": "4199f44118907bb03a3e577610db56fa26981fbbc7",
+                "to_address": "418840e6c55b9ada326d211d818c34a994aeced808"
+              },
+              "type_url": "type.googleapis.com/protocol.TransferAssetContract"
+            },
+            "type": "TransferAssetContract"
+          }
+        ],
+        "ref_block_bytes": "d0f8",
+        "ref_block_hash": "39618096d5d4a1e7",
+        "expiration": 1787405358000,
+        "timestamp": 1787405298743
+      },
+      "internal_transactions": []
+    },
+    {
+      "ret": [
+        {
+          "contractRet": "SUCCESS",
+          "fee": 0
+        }
+      ],
+      "signature": [
+        "bf105c49d97f3705a9910cf98ff8a17bcc19ca21ae3fac4673503eb1a157ebd215ab569e625502ae0e1a23386e7d045fc73192e8944598e0812099bc629e189300"
+      ],
+      "txID": "82a67558d1292582a8d4d2fa12e4d04fa83fa4a6b7b59f07cae8d84f1b4fdd39",
+      "net_usage": 283,
+      "net_fee": 0,
+      "energy_usage": 0,
+      "blockNumber": 85577994,
+      "block_timestamp": 1787405298000,
+      "energy_fee": 0,
+      "energy_usage_total": 0,
+      "raw_data": {
+        "contract": [
+          {
+            "parameter": {
+              "value": {
+                "balance": 13656000000,
+                "resource": "ENERGY",
+                "receiver_address": "418840e6c55b9ada326d211d818c34a994aeced808",
+                "owner_address": "41be89db76b2e361b9eca893ea9062b18c5ebdc6ae"
+              },
+              "type_url": "type.googleapis.com/protocol.UnDelegateResourceContract"
+            },
+            "type": "UnDelegateResourceContract"
+          }
+        ],
+        "ref_block_bytes": "d0f7",
+        "ref_block_hash": "268d871f4097d0ad",
+        "expiration": 1787405355000,
+        "timestamp": 1787405296211
+      },
+      "internal_transactions": []
+    },
+    {
+      "ret": [
+        {
+          "contractRet": "SUCCESS",
+          "fee": 1000000
+        }
+      ],
+      "signature": [
+        "8a41f3904659cccb862a7146d939a341a4245318433617f79afcb798f68fe6e902ca8f717d8ac25d977b23c16d3dee53b8acd09eea7fbe923d108eb27860583201",
+        "c7c883121f68a5350015d1dbcf92d5920f34ad3e5eb4b0d98abe8d07e21318e25dd5d2a1f395f940a651e22418368869c70c542d8fa8ddcd362a4e568babb82901"
+      ],
+      "txID": "6484590d488c8c312525f491137e5f95f5d3a9cd05235474a058c2fe29824982",
+      "net_usage": 413,
+      "net_fee": 0,
+      "energy_usage": 64285,
+      "blockNumber": 85577993,
+      "block_timestamp": 1787405295000,
+      "energy_fee": 0,
+      "energy_usage_total": 64285,
+      "raw_data": {
+        "contract": [
+          {
+            "parameter": {
+              "value": {
+                "data": "a9059cbb000000000000000000000000ec0407de8d529b5fb7d0bfeef609ad1cdd7ffc160000000000000000000000000000000000000000000000000000000000a204f4",
+                "owner_address": "418840e6c55b9ada326d211d818c34a994aeced808",
+                "contract_address": "41a614f803b6fd780986a42c78ec9c7f77e6ded13c"
+              },
+              "type_url": "type.googleapis.com/protocol.TriggerSmartContract"
+            },
+            "type": "TriggerSmartContract"
+          }
+        ],
+        "ref_block_bytes": "d0ea",
+        "ref_block_hash": "dbae2eeaa0bbde0b",
+        "expiration": 1787491656000,
+        "fee_limit": 1000000000,
+        "timestamp": 1787405258890
+      },
+      "internal_transactions": []
+    }
+  ],
+  "success": true,
+  "meta": {
+    "page_size": 6
+  }
+}

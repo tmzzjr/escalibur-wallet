@@ -1,0 +1,17 @@
+Respostas gravadas dos provedores para os testes dos leitores de estado
+(Kit/Tests/EscaliburNetworkTests/*ReaderTests.swift), uma pasta por familia em leitores/.
+
+Cada arquivo e a resposta de uma chamada real, gravada em 25/09/2026; o nome diz o
+metodo e a conta. Contas publicas de exchange e fundacao; nenhum dado de usuario.
+
+Alteracoes feitas na gravacao, com jq, so para reduzir tamanho (nada que o leitor le):
+- evm/blockscout-*: listas cortadas em 6 e 8 itens; `metadata` dos enderecos (icones SVG
+  de etiqueta) zerado.
+- xrpl/account_tx-exchange: `meta.AffectedNodes` removido.
+- tron/*: `raw_data_hex` e o objeto `transaction` das chamadas constantes removidos,
+  `log` do gettransactioninfobyid removido; listas da TronGrid com 6 itens.
+- ton/tonapi-events e ton/tonapi-message-transaction: so os campos que o leitor le.
+
+Quando um teste precisa de um caso que a rede nao ofereceu na hora (pagamento parcial,
+DepositAuth, Sequence divergente, taxa absurda), ele altera a resposta gravada dentro do
+proprio teste e diz o que alterou.

@@ -1,0 +1,892 @@
+{
+  "items": [
+    {
+      "priority_fee": "21000000000",
+      "raw_input": "0x",
+      "is_pending_update": false,
+      "result": "success",
+      "hash": "0xf53372f16a06b1525cb98953a8363fd108014a6ce168364dda7df2616054b918",
+      "max_fee_per_gas": "6200000",
+      "revert_reason": null,
+      "confirmation_duration": [
+        0,
+        2.0E+3
+      ],
+      "transaction_burnt_fee": "105000000000",
+      "type": 2,
+      "token_transfers_overflow": null,
+      "confirmations": 14687,
+      "position": 134,
+      "max_priority_fee_per_gas": "1000000",
+      "transaction_tag": null,
+      "created_contract": null,
+      "value": "42300000000000",
+      "from": {
+        "ens_domain_name": null,
+        "hash": "0x2652742DE21ED9a6c37e73b0E3a51b239A6D1008",
+        "implementations": [
+          {
+            "address_hash": "0x7702cb554e6bFb442cb743A7dF23154544a7176C",
+            "name": "EIP7702Proxy"
+          }
+        ],
+        "is_contract": true,
+        "is_scam": false,
+        "is_verified": true,
+        "metadata": null,
+        "name": null,
+        "private_tags": [],
+        "proxy_type": "eip7702",
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "gas_used": "21000",
+      "status": "ok",
+      "to": {
+        "ens_domain_name": null,
+        "hash": "0xF977814e90dA44bFA03b6295A0616a897441aceC",
+        "implementations": [],
+        "is_contract": false,
+        "is_scam": false,
+        "is_verified": false,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {
+                "tooltipUrl": "https://www.binance.com/en"
+              },
+              "name": "Binance: Hot Wallet 20",
+              "ordinal": 10,
+              "slug": "binance-hot-wallet-20",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Exchange",
+              "ordinal": 0,
+              "slug": "exchange",
+              "tagType": "generic"
+            },
+            {
+              "meta": {
+                "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "textColor": "#C163D4",
+                "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "tooltipDescription": "Provided by OLI",
+                "tooltipUrl": "https://www.binance.com"
+              },
+              "name": "Binance 8",
+              "ordinal": 0,
+              "slug": "binance-8",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Binance",
+              "ordinal": 0,
+              "slug": "binance",
+              "tagType": "protocol"
+            }
+          ]
+        },
+        "name": null,
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "authorization_list": [],
+      "method": null,
+      "fee": {
+        "type": "actual",
+        "value": "127504511478"
+      },
+      "gas_limit": "21000",
+      "gas_price": "6000000",
+      "decoded_input": null,
+      "fhe_operations_count": 0,
+      "token_transfers": null,
+      "base_fee_per_gas": "5000000",
+      "timestamp": "2026-09-25T22:47:13.000000Z",
+      "nonce": 17,
+      "historic_exchange_rate": null,
+      "transaction_types": [
+        "coin_transfer"
+      ],
+      "exchange_rate": "2686.08",
+      "block_number": 51793543,
+      "has_error_in_internal_transactions": false
+    },
+    {
+      "priority_fee": "64520000000000",
+      "raw_input": "0xa9059cbb0000000000000000000000005a52e96bacdabb82fd05763e25335261b270efcb0000000000000000000000000000000000000000000ee3a5f48a68b552000000",
+      "is_pending_update": false,
+      "result": "success",
+      "hash": "0x3b1c4430acb5dfeeacd460fd78cc02cae625f1d2da57b1233e3f38924795c1db",
+      "max_fee_per_gas": "1259114360",
+      "revert_reason": null,
+      "confirmation_duration": [
+        0,
+        2.0E+3
+      ],
+      "transaction_burnt_fee": "267796505536",
+      "type": 2,
+      "token_transfers_overflow": null,
+      "confirmations": 82550,
+      "position": 1,
+      "max_priority_fee_per_gas": "1250000000",
+      "transaction_tag": null,
+      "created_contract": null,
+      "value": "0",
+      "from": {
+        "ens_domain_name": null,
+        "hash": "0xF977814e90dA44bFA03b6295A0616a897441aceC",
+        "implementations": [],
+        "is_contract": false,
+        "is_scam": false,
+        "is_verified": false,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {
+                "tooltipUrl": "https://www.binance.com/en"
+              },
+              "name": "Binance: Hot Wallet 20",
+              "ordinal": 10,
+              "slug": "binance-hot-wallet-20",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Exchange",
+              "ordinal": 0,
+              "slug": "exchange",
+              "tagType": "generic"
+            },
+            {
+              "meta": {
+                "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "textColor": "#C163D4",
+                "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "tooltipDescription": "Provided by OLI",
+                "tooltipUrl": "https://www.binance.com"
+              },
+              "name": "Binance 8",
+              "ordinal": 0,
+              "slug": "binance-8",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Binance",
+              "ordinal": 0,
+              "slug": "binance",
+              "tagType": "protocol"
+            }
+          ]
+        },
+        "name": null,
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "gas_used": "51616",
+      "status": "ok",
+      "to": {
+        "ens_domain_name": null,
+        "hash": "0xFbC2051AE2265686a469421b2C5A2D5462FbF5eB",
+        "implementations": [],
+        "is_contract": true,
+        "is_scam": false,
+        "is_verified": true,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {
+                "tooltipUrl": "https://www.opengradient.ai/"
+              },
+              "name": "OpenGradient: opg Token",
+              "ordinal": 10,
+              "slug": "opengradient-opg-token",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Token Contract",
+              "ordinal": 0,
+              "slug": "token-contract",
+              "tagType": "generic"
+            },
+            {
+              "meta": {},
+              "name": "Blockchain",
+              "ordinal": 0,
+              "slug": "blockchain",
+              "tagType": "generic"
+            },
+            {
+              "meta": {},
+              "name": "OpenGradient",
+              "ordinal": 0,
+              "slug": "opengradient",
+              "tagType": "protocol"
+            }
+          ]
+        },
+        "name": "OpenGradientToken",
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "authorization_list": [],
+      "method": "transfer",
+      "fee": {
+        "type": "actual",
+        "value": "64789087850931"
+      },
+      "gas_limit": "52009",
+      "gas_price": "1255188246",
+      "decoded_input": {
+        "method_call": "transfer(address to, uint256 value)",
+        "method_id": "a9059cbb",
+        "parameters": [
+          {
+            "name": "to",
+            "type": "address",
+            "value": "0x5a52E96BAcdaBb82fd05763E25335261B270Efcb"
+          },
+          {
+            "name": "value",
+            "type": "uint256",
+            "value": "18000000000000000000000000"
+          }
+        ]
+      },
+      "fhe_operations_count": 0,
+      "token_transfers": null,
+      "base_fee_per_gas": "5188246",
+      "timestamp": "2026-09-24T09:05:07.000000Z",
+      "nonce": 442,
+      "historic_exchange_rate": null,
+      "transaction_types": [
+        "contract_call",
+        "token_transfer"
+      ],
+      "exchange_rate": "2686.08",
+      "block_number": 51725680,
+      "has_error_in_internal_transactions": null
+    },
+    {
+      "priority_fee": "26250000000000",
+      "raw_input": "0x",
+      "is_pending_update": false,
+      "result": "success",
+      "hash": "0x7f213031ddd2fd354410aec921f672e2f34eaa502b73256d1cfb2bc29e4793cf",
+      "max_fee_per_gas": "1259734854",
+      "revert_reason": null,
+      "confirmation_duration": [
+        0,
+        2.0E+3
+      ],
+      "transaction_burnt_fee": "108755745000",
+      "type": 2,
+      "token_transfers_overflow": null,
+      "confirmations": 82561,
+      "position": 301,
+      "max_priority_fee_per_gas": "1250000000",
+      "transaction_tag": null,
+      "created_contract": null,
+      "value": "0",
+      "from": {
+        "ens_domain_name": null,
+        "hash": "0xF977814e90dA44bFA03b6295A0616a897441aceC",
+        "implementations": [],
+        "is_contract": false,
+        "is_scam": false,
+        "is_verified": false,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {
+                "tooltipUrl": "https://www.binance.com/en"
+              },
+              "name": "Binance: Hot Wallet 20",
+              "ordinal": 10,
+              "slug": "binance-hot-wallet-20",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Exchange",
+              "ordinal": 0,
+              "slug": "exchange",
+              "tagType": "generic"
+            },
+            {
+              "meta": {
+                "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "textColor": "#C163D4",
+                "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "tooltipDescription": "Provided by OLI",
+                "tooltipUrl": "https://www.binance.com"
+              },
+              "name": "Binance 8",
+              "ordinal": 0,
+              "slug": "binance-8",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Binance",
+              "ordinal": 0,
+              "slug": "binance",
+              "tagType": "protocol"
+            }
+          ]
+        },
+        "name": null,
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "gas_used": "21000",
+      "status": "ok",
+      "to": {
+        "ens_domain_name": null,
+        "hash": "0x5a52E96BAcdaBb82fd05763E25335261B270Efcb",
+        "implementations": [],
+        "is_contract": false,
+        "is_scam": false,
+        "is_verified": false,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {},
+              "name": "Exchange",
+              "ordinal": 0,
+              "slug": "exchange",
+              "tagType": "generic"
+            },
+            {
+              "meta": {
+                "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "textColor": "#C163D4",
+                "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "tooltipDescription": "Provided by OLI",
+                "tooltipUrl": "https://www.binance.com/"
+              },
+              "name": "Binance 28",
+              "ordinal": 0,
+              "slug": "binance-28",
+              "tagType": "name"
+            }
+          ]
+        },
+        "name": null,
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "authorization_list": [],
+      "method": null,
+      "fee": {
+        "type": "actual",
+        "value": "26360080769045"
+      },
+      "gas_limit": "21000",
+      "gas_price": "1255178845",
+      "decoded_input": null,
+      "fhe_operations_count": 0,
+      "token_transfers": null,
+      "base_fee_per_gas": "5178845",
+      "timestamp": "2026-09-24T09:04:45.000000Z",
+      "nonce": 441,
+      "historic_exchange_rate": null,
+      "transaction_types": [],
+      "exchange_rate": "2686.08",
+      "block_number": 51725669,
+      "has_error_in_internal_transactions": null
+    },
+    {
+      "priority_fee": "21000000000",
+      "raw_input": "0x",
+      "is_pending_update": false,
+      "result": "success",
+      "hash": "0x35f4d6754abdf9efc029224af9180f5dbccc407f18fb8204c90099c398e246ea",
+      "max_fee_per_gas": "11808002",
+      "revert_reason": null,
+      "confirmation_duration": [
+        0,
+        2.0E+3
+      ],
+      "transaction_burnt_fee": "109997958000",
+      "type": 2,
+      "token_transfers_overflow": null,
+      "confirmations": 82563,
+      "position": 194,
+      "max_priority_fee_per_gas": "1000000",
+      "transaction_tag": null,
+      "created_contract": null,
+      "value": "100",
+      "from": {
+        "ens_domain_name": null,
+        "hash": "0x5a5f6d1323B9a71D1CCC590B2391fF5d7093EfCB",
+        "implementations": [],
+        "is_contract": false,
+        "is_scam": false,
+        "is_verified": false,
+        "metadata": null,
+        "name": null,
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "gas_used": "21000",
+      "status": "ok",
+      "to": {
+        "ens_domain_name": null,
+        "hash": "0xF977814e90dA44bFA03b6295A0616a897441aceC",
+        "implementations": [],
+        "is_contract": false,
+        "is_scam": false,
+        "is_verified": false,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {
+                "tooltipUrl": "https://www.binance.com/en"
+              },
+              "name": "Binance: Hot Wallet 20",
+              "ordinal": 10,
+              "slug": "binance-hot-wallet-20",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Exchange",
+              "ordinal": 0,
+              "slug": "exchange",
+              "tagType": "generic"
+            },
+            {
+              "meta": {
+                "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "textColor": "#C163D4",
+                "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "tooltipDescription": "Provided by OLI",
+                "tooltipUrl": "https://www.binance.com"
+              },
+              "name": "Binance 8",
+              "ordinal": 0,
+              "slug": "binance-8",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Binance",
+              "ordinal": 0,
+              "slug": "binance",
+              "tagType": "protocol"
+            }
+          ]
+        },
+        "name": null,
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "authorization_list": [],
+      "method": null,
+      "fee": {
+        "type": "actual",
+        "value": "132297066767"
+      },
+      "gas_limit": "35700",
+      "gas_price": "6237998",
+      "decoded_input": null,
+      "fhe_operations_count": 0,
+      "token_transfers": null,
+      "base_fee_per_gas": "5237998",
+      "timestamp": "2026-09-24T09:04:41.000000Z",
+      "nonce": 1,
+      "historic_exchange_rate": null,
+      "transaction_types": [
+        "coin_transfer"
+      ],
+      "exchange_rate": "2686.08",
+      "block_number": 51725667,
+      "has_error_in_internal_transactions": null
+    },
+    {
+      "priority_fee": "64646250000000",
+      "raw_input": "0xa9059cbb0000000000000000000000005a52e96bacdabb82fd05763e25335261b270efcb0000000000000000000000000000000000000000000323a3a5136db3e5bc0000",
+      "is_pending_update": false,
+      "result": "success",
+      "hash": "0x648a03da66c5e92e59522c2de670b63c10e4cd7004d892c1d996f278584c2b7b",
+      "max_fee_per_gas": "1259979191",
+      "revert_reason": null,
+      "confirmation_duration": [
+        0,
+        2.0E+3
+      ],
+      "transaction_burnt_fee": "286558673583",
+      "type": 2,
+      "token_transfers_overflow": null,
+      "confirmations": 82575,
+      "position": 138,
+      "max_priority_fee_per_gas": "1250000000",
+      "transaction_tag": null,
+      "created_contract": null,
+      "value": "0",
+      "from": {
+        "ens_domain_name": null,
+        "hash": "0xF977814e90dA44bFA03b6295A0616a897441aceC",
+        "implementations": [],
+        "is_contract": false,
+        "is_scam": false,
+        "is_verified": false,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {
+                "tooltipUrl": "https://www.binance.com/en"
+              },
+              "name": "Binance: Hot Wallet 20",
+              "ordinal": 10,
+              "slug": "binance-hot-wallet-20",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Exchange",
+              "ordinal": 0,
+              "slug": "exchange",
+              "tagType": "generic"
+            },
+            {
+              "meta": {
+                "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "textColor": "#C163D4",
+                "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "tooltipDescription": "Provided by OLI",
+                "tooltipUrl": "https://www.binance.com"
+              },
+              "name": "Binance 8",
+              "ordinal": 0,
+              "slug": "binance-8",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Binance",
+              "ordinal": 0,
+              "slug": "binance",
+              "tagType": "protocol"
+            }
+          ]
+        },
+        "name": null,
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "gas_used": "51717",
+      "status": "ok",
+      "to": {
+        "ens_domain_name": null,
+        "hash": "0xf43eB8De897Fbc7F2502483B2Bef7Bb9EA179229",
+        "implementations": [],
+        "is_contract": true,
+        "is_scam": false,
+        "is_verified": true,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {
+                "tooltipDescription": "Horizen is a privacy-first appchain built to make privacy simple, powerful, and accessible for everyday apps. With upgraded tokenomics, ZEN brings better liquidity, lower costs, and seamless access to privacy tools across Base and the Ethereum ecosystem.",
+                "tooltipUrl": "https://horizen.io/"
+              },
+              "name": "Horizen: ZEN Token",
+              "ordinal": 10,
+              "slug": "horizen-zen-token",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Token Contract",
+              "ordinal": 0,
+              "slug": "token-contract",
+              "tagType": "generic"
+            },
+            {
+              "meta": {},
+              "name": "Blockchain",
+              "ordinal": 0,
+              "slug": "blockchain",
+              "tagType": "generic"
+            },
+            {
+              "meta": {},
+              "name": "Horizen",
+              "ordinal": 0,
+              "slug": "horizen",
+              "tagType": "protocol"
+            }
+          ]
+        },
+        "name": "ZenToken",
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "authorization_list": [],
+      "method": "transfer",
+      "fee": {
+        "type": "actual",
+        "value": "64934051080305"
+      },
+      "gas_limit": "52110",
+      "gas_price": "1255540899",
+      "decoded_input": {
+        "method_call": "transfer(address to, uint256 value)",
+        "method_id": "a9059cbb",
+        "parameters": [
+          {
+            "name": "to",
+            "type": "address",
+            "value": "0x5a52E96BAcdaBb82fd05763E25335261B270Efcb"
+          },
+          {
+            "name": "value",
+            "type": "uint256",
+            "value": "3795079000000000000000000"
+          }
+        ]
+      },
+      "fhe_operations_count": 0,
+      "token_transfers": null,
+      "base_fee_per_gas": "5540899",
+      "timestamp": "2026-09-24T09:04:17.000000Z",
+      "nonce": 440,
+      "historic_exchange_rate": null,
+      "transaction_types": [
+        "contract_call",
+        "token_transfer"
+      ],
+      "exchange_rate": "2686.08",
+      "block_number": 51725655,
+      "has_error_in_internal_transactions": null
+    },
+    {
+      "priority_fee": "64586250000000",
+      "raw_input": "0xa9059cbb0000000000000000000000005a52e96bacdabb82fd05763e25335261b270efcb000000000000000000000000000000000000000000605469c4a37d7897668000",
+      "is_pending_update": false,
+      "result": "success",
+      "hash": "0x9a2b035896312e3ae8d1f9bf70c4cf6f6f94a29090129d11d37bf3578f35679e",
+      "max_fee_per_gas": "1260349640",
+      "revert_reason": null,
+      "confirmation_duration": [
+        0,
+        2.0E+3
+      ],
+      "transaction_burnt_fee": "292860460359",
+      "type": 2,
+      "token_transfers_overflow": null,
+      "confirmations": 82583,
+      "position": 176,
+      "max_priority_fee_per_gas": "1250000000",
+      "transaction_tag": null,
+      "created_contract": null,
+      "value": "0",
+      "from": {
+        "ens_domain_name": null,
+        "hash": "0xF977814e90dA44bFA03b6295A0616a897441aceC",
+        "implementations": [],
+        "is_contract": false,
+        "is_scam": false,
+        "is_verified": false,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {
+                "tooltipUrl": "https://www.binance.com/en"
+              },
+              "name": "Binance: Hot Wallet 20",
+              "ordinal": 10,
+              "slug": "binance-hot-wallet-20",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Exchange",
+              "ordinal": 0,
+              "slug": "exchange",
+              "tagType": "generic"
+            },
+            {
+              "meta": {
+                "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "textColor": "#C163D4",
+                "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "tooltipDescription": "Provided by OLI",
+                "tooltipUrl": "https://www.binance.com"
+              },
+              "name": "Binance 8",
+              "ordinal": 0,
+              "slug": "binance-8",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Binance",
+              "ordinal": 0,
+              "slug": "binance",
+              "tagType": "protocol"
+            }
+          ]
+        },
+        "name": null,
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "gas_used": "51669",
+      "status": "ok",
+      "to": {
+        "ens_domain_name": null,
+        "hash": "0x868FCEd65edBF0056c4163515dD840e9f287A4c3",
+        "implementations": [],
+        "is_contract": true,
+        "is_scam": false,
+        "is_verified": true,
+        "metadata": {
+          "tags": [
+            {
+              "meta": {
+                "tooltipDescription": "The Global Infrastructure for Credential Verification and Token Distribution",
+                "tooltipUrl": "https://sign.global/"
+              },
+              "name": "Sign Protocol: SIGN Token",
+              "ordinal": 10,
+              "slug": "sign-protocol-sign-token",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Token Contract",
+              "ordinal": 0,
+              "slug": "token-contract",
+              "tagType": "generic"
+            },
+            {
+              "meta": {},
+              "name": "Blockchain",
+              "ordinal": 0,
+              "slug": "blockchain",
+              "tagType": "generic"
+            },
+            {
+              "meta": {
+                "tagIcon ": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "textColor": "#C163D4",
+                "tooltipAttribution": "https://www.openlabelsinitiative.org?utm_source=blockscout",
+                "tooltipAttributionIcon": "https://blockscout-icons.s3.us-east-1.amazonaws.com/OLI_tag_logo.svg",
+                "tooltipDescription": "Provided by OLI"
+              },
+              "name": "SignOFT",
+              "ordinal": 0,
+              "slug": "signoft",
+              "tagType": "name"
+            },
+            {
+              "meta": {},
+              "name": "Sign Protocol",
+              "ordinal": 0,
+              "slug": "sign-protocol",
+              "tagType": "protocol"
+            }
+          ]
+        },
+        "name": "SignOFT",
+        "private_tags": [],
+        "proxy_type": null,
+        "public_tags": [],
+        "reputation": "ok",
+        "watchlist_names": []
+      },
+      "authorization_list": [],
+      "method": "transfer",
+      "fee": {
+        "type": "actual",
+        "value": "64880332484042"
+      },
+      "gas_limit": "52062",
+      "gas_price": "1255668011",
+      "decoded_input": {
+        "method_call": "transfer(address to, uint256 value)",
+        "method_id": "a9059cbb",
+        "parameters": [
+          {
+            "name": "to",
+            "type": "address",
+            "value": "0x5a52E96BAcdaBb82fd05763E25335261B270Efcb"
+          },
+          {
+            "name": "value",
+            "type": "uint256",
+            "value": "116455508545000000000000000"
+          }
+        ]
+      },
+      "fhe_operations_count": 0,
+      "token_transfers": null,
+      "base_fee_per_gas": "5668011",
+      "timestamp": "2026-09-24T09:04:01.000000Z",
+      "nonce": 439,
+      "historic_exchange_rate": null,
+      "transaction_types": [
+        "contract_call",
+        "token_transfer"
+      ],
+      "exchange_rate": "2686.08",
+      "block_number": 51725647,
+      "has_error_in_internal_transactions": null
+    }
+  ],
+  "next_page_params": {
+    "index": 34,
+    "value": "0",
+    "hash": "0x15ef2d931523dbbac1c12621b285e8346cc92689f663ff5d1b14029f4246e467",
+    "inserted_at": "2026-08-05T06:21:37.924826Z",
+    "block_number": 49560774,
+    "fee": "409533043993",
+    "items_count": 50
+  }
+}

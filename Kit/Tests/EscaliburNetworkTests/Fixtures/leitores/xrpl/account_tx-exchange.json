@@ -1,0 +1,398 @@
+{
+  "result": {
+    "account": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+    "ledger_index_max": 107243210,
+    "ledger_index_min": 32570,
+    "limit": 12,
+    "marker": {
+      "ledger": 106521426,
+      "seq": 30
+    },
+    "transactions": [
+      {
+        "close_time_iso": "2026-09-08T03:18:41Z",
+        "hash": "AA422A0AF62C58042BE3A243954CC1BD2560E2345F475E577F8E21F4D455BEA5",
+        "ledger_hash": "042968AA0CAC918CDD32C53A2E6389BE9B9E2D4CE3073914CE936C5F58A2C05D",
+        "ledger_index": 106836736,
+        "meta": {
+          "TransactionIndex": 27,
+          "TransactionResult": "tesSUCCESS",
+          "delivered_amount": "1"
+        },
+        "tx_json": {
+          "Account": "rJD6Di83SVXRw9M6jqVAQY3EHk3FqjsPLX",
+          "DeliverMax": "1",
+          "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+          "DestinationTag": 1,
+          "Fee": "11",
+          "Flags": 0,
+          "LastLedgerSequence": 106836835,
+          "Memos": [
+            {
+              "Memo": {
+                "MemoData": "F09F8E8120596F752068617665206265656E2073656E74206120434845434B20776F7274682035313058525021205669736974202D207573646F6E7872702E636F6D202D20746F2072656465656D2069742E",
+                "MemoType": "4E6F74696365"
+              }
+            }
+          ],
+          "Sequence": 95910117,
+          "SigningPubKey": "EDAA0E90EE81FD8808F72326C0533F18A800DABDB987EEE1523A7F4E21E15BE540",
+          "TransactionType": "Payment",
+          "TxnSignature": "BFFB8F977F8A64A56C15A54724326C434FEA1DAC15B4F38F97A1F0CDE2E7267817305193DEC4C93F0A18AE3E94E6DFB521D92D359F714BE75CD41881B9B18D05",
+          "ctid": "C65E3300001B0000",
+          "date": 842152721,
+          "ledger_index": 106836736
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-09-06T19:55:20Z",
+        "hash": "77882A2E00D11FED3A2DC545F6063AA75EF80D4B75E05049F5D334CCDC58D9F5",
+        "ledger_hash": "4AA0DECD1BCD3945FFD240436A5632D36E2A654D183286E4B9FDC3AA1EE4F7DF",
+        "ledger_index": 106807547,
+        "meta": {
+          "TransactionIndex": 24,
+          "TransactionResult": "tesSUCCESS",
+          "delivered_amount": "1"
+        },
+        "tx_json": {
+          "Account": "rJD6Di83SVXRw9M6jqVAQY3EHk3FqjsPLX",
+          "DeliverMax": "1",
+          "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+          "DestinationTag": 1,
+          "Fee": "11",
+          "Flags": 0,
+          "LastLedgerSequence": 106807646,
+          "Memos": [
+            {
+              "Memo": {
+                "MemoData": "F09F8E8120596F752068617665206265656E2073656E74206120434845434B20776F7274682035313058525021205669736974202D207573646F6E7872702E636F6D202D20746F2072656465656D2069742E",
+                "MemoType": "4E6F74696365"
+              }
+            }
+          ],
+          "Sequence": 95870847,
+          "SigningPubKey": "EDAA0E90EE81FD8808F72326C0533F18A800DABDB987EEE1523A7F4E21E15BE540",
+          "TransactionType": "Payment",
+          "TxnSignature": "35D0E19F78A020146F77CFCB33BAA9B5267939CA45BC07ECD277BE61905575FADDD2861BB2B4FCAC63904099749050DB27EE95912212073890BE44DB61F28607",
+          "ctid": "C65DC0FB00180000",
+          "date": 842039720,
+          "ledger_index": 106807547
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-09-05T19:53:51Z",
+        "hash": "AB17D54CF74BFFB6DDF6B56F6A152B6E3A16E197857439E0C87B4E6B8FD6A6AE",
+        "ledger_hash": "EDA43C814773757253868AB2C79E7C53A318AC36E6F88740FA31CB76A64508CC",
+        "ledger_index": 106785171,
+        "meta": {
+          "TransactionIndex": 60,
+          "TransactionResult": "tesSUCCESS",
+          "delivered_amount": "1"
+        },
+        "tx_json": {
+          "Account": "rJD6Di83SVXRw9M6jqVAQY3EHk3FqjsPLX",
+          "DeliverMax": "1",
+          "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+          "DestinationTag": 1,
+          "Fee": "11",
+          "Flags": 0,
+          "LastLedgerSequence": 106785270,
+          "Memos": [
+            {
+              "Memo": {
+                "MemoData": "F09F8E8120596F752068617665206265656E2073656E74206120434845434B20776F7274682035313058525021205669736974202D207573646F6E7872702E636F6D202D20746F2072656465656D2069742E",
+                "MemoType": "4E6F74696365"
+              }
+            }
+          ],
+          "Sequence": 95845633,
+          "SigningPubKey": "EDAA0E90EE81FD8808F72326C0533F18A800DABDB987EEE1523A7F4E21E15BE540",
+          "TransactionType": "Payment",
+          "TxnSignature": "D9BB77B90910990FD1B42F55AAE7E8516544D91FEE84A5ADF11E9B3E0046649A25F5B0E170330060433C58FC405EC37ED4F5989705590AB40B9C1EEF596FED03",
+          "ctid": "C65D6993003C0000",
+          "date": 841953231,
+          "ledger_index": 106785171
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-09-04T19:55:21Z",
+        "hash": "F31D7D6F257E223BAEF2EA8B57A42E293A022125B9BA9069A03EF24CE8071949",
+        "ledger_hash": "AF87AED2A3548A173C573FCE69EE843CCB1BE61308987DF30358F21516CCD7AA",
+        "ledger_index": 106762877,
+        "meta": {
+          "TransactionIndex": 25,
+          "TransactionResult": "tesSUCCESS",
+          "delivered_amount": "10"
+        },
+        "tx_json": {
+          "Account": "rEPak6n2CEsQmowqsTMnkooskcLaGW9MzE",
+          "DeliverMax": "10",
+          "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+          "DestinationTag": 950203,
+          "Fee": "11",
+          "Flags": 0,
+          "LastLedgerSequence": 106762977,
+          "Sequence": 98990618,
+          "SigningPubKey": "ED4C767651D1B94D9F1EAA11119442F8228D473E0778926C49D34D3ACE3AFE08B5",
+          "TransactionType": "Payment",
+          "TxnSignature": "B5784680364539EFB3D139A09AF9BE0A2CA8B71CB4D6AFC67AA11DE18713C02C2272A2297B72616B005E3BB431D2F52E4E92FAEB45D6254F4017958783FC0B0E",
+          "ctid": "C65D127D00190000",
+          "date": 841866921,
+          "ledger_index": 106762877
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-09-04T19:54:50Z",
+        "hash": "A5449E2CCDD74E17EBEE4BEE0A1A782109B3D1B5EFFA6A4D3B4788FFBD8E4AFB",
+        "ledger_hash": "005A059D271F0CF0A00410D74BE48CB6242DF03D74A880410E5E8E92AA716221",
+        "ledger_index": 106762868,
+        "meta": {
+          "TransactionIndex": 63,
+          "TransactionResult": "tesSUCCESS",
+          "delivered_amount": "10"
+        },
+        "tx_json": {
+          "Account": "rEni1epjkJfVXMmMaDDWuz3hFe1mYnqfsk",
+          "DeliverMax": "10",
+          "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+          "DestinationTag": 1,
+          "Fee": "12",
+          "Flags": 0,
+          "LastLedgerSequence": 106762886,
+          "Sequence": 98169337,
+          "SigningPubKey": "ED3BC404165C0062C17025BE84A47BBCB9F9B1F091F63E6EFC732501213D86EE7C",
+          "TransactionType": "Payment",
+          "TxnSignature": "C9ED4FE02EC33FF3CFF6E07DE90CE09F07CF06D6A6609DF7F86683726E660606A890F483CBDC0067F3FAACEE544855E4D3C5F32EBE2C67113FC1F6B0500DFA0B",
+          "ctid": "C65D1274003F0000",
+          "date": 841866890,
+          "ledger_index": 106762868
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-09-04T19:53:01Z",
+        "hash": "55B990F9E0780F610CD35797D2E5F0F7AF0930CD6C126FEC66D36D94913C574E",
+        "ledger_hash": "1F97621376C01C3D0389FB698449885FBEC056364D003FC3C6A35F3D3837379A",
+        "ledger_index": 106762841,
+        "meta": {
+          "TransactionIndex": 58,
+          "TransactionResult": "tesSUCCESS",
+          "delivered_amount": "1000000"
+        },
+        "tx_json": {
+          "Account": "r4mRnUYGbq3mYVrT1XFU1ohEZt6s82S1fx",
+          "DeliverMax": "1000000",
+          "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+          "DestinationTag": 1,
+          "Fee": "10",
+          "LastLedgerSequence": 106764840,
+          "Memos": [
+            {
+              "Memo": {
+                "MemoData": "43617079583A4D523A65633261626437313764353062383236643633383739623336396165376363333561313731653635656239363339393131666231363532383135353162376665"
+              }
+            }
+          ],
+          "Sequence": 106762051,
+          "SigningPubKey": "0283B0742C8C6C03101BDE980F23ECA31A2C175742185652C98C8B2E87F4A33029",
+          "TransactionType": "Payment",
+          "TxnSignature": "3045022100C09D9349718257F5FD8C1E681DA51C1FA732E4188873D6EFA1D2C61D8C709EB50220047C1930D5760B008443E35658803F3496C2AEC7CAB33E5C2394E8CB5BDBE073",
+          "ctid": "C65D1259003A0000",
+          "date": 841866781,
+          "ledger_index": 106762841
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-09-04T19:53:00Z",
+        "hash": "6F4B9867207A1519EF423BB2CAE3B6F1C4CE53D819387697C224FB623D661E56",
+        "ledger_hash": "55E7D81FFC533B3691E200E648EDCF62A2743EDD351D18C99C5B2B4706406336",
+        "ledger_index": 106762840,
+        "meta": {
+          "TransactionIndex": 14,
+          "TransactionResult": "tesSUCCESS",
+          "delivered_amount": "1"
+        },
+        "tx_json": {
+          "Account": "rPq4Ko4ockCSHLbFeuRbMx9kT7rxDefTTC",
+          "DeliverMax": "1",
+          "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+          "DestinationTag": 1,
+          "Fee": "11",
+          "Flags": 0,
+          "LastLedgerSequence": 106762939,
+          "Memos": [
+            {
+              "Memo": {
+                "MemoData": "F09F8E8120596F752068617665206265656E2073656E74206120434845434B20776F7274682035313058525021205669736974202D207573646F6E7872702E636F6D202D20746F2072656465656D2069742E",
+                "MemoType": "4E6F74696365"
+              }
+            }
+          ],
+          "Sequence": 95818013,
+          "SigningPubKey": "ED1B5EE06CC1B7561DB44225356403A05C5F4EE516AF3D9B4C239A2C1D88FC4506",
+          "TransactionType": "Payment",
+          "TxnSignature": "ED81BFA04F45E736C5B9D1C706165D2F7254C8FCB6B76E696BBBAEE6CF989A25FB9AC9790F8AD16A52B54706E4545D7C1B4930E5A4CA3BC90AC2D98261517E02",
+          "ctid": "C65D1258000E0000",
+          "date": 841866780,
+          "ledger_index": 106762840
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-08-26T14:02:10Z",
+        "hash": "A3423F2988358B956B6F6C5EA656E550B03ECDD6B04BDB01C70112A8241C1D1D",
+        "ledger_hash": "45A4220EEFD5BA5A1949FDD2AF96EFE7F2E8F1D52C85BEC81070055668575670",
+        "ledger_index": 106557115,
+        "meta": {
+          "TransactionIndex": 183,
+          "TransactionResult": "tesSUCCESS",
+          "delivered_amount": "1"
+        },
+        "tx_json": {
+          "Account": "rHXgaJLpjDe4jsAiF8atNrRfS6eYrjPYPB",
+          "DeliverMax": "1",
+          "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+          "DestinationTag": 1,
+          "Fee": "10",
+          "Memos": [
+            {
+              "Memo": {
+                "MemoData": "E28C9B496E636F6D696E6720457363726F7720666F72203235392E333720585250204578706972657320536F6F6E2E2046696E616C697A6520457363726F7720766961207872702D657363726F77732E636F6D"
+              }
+            }
+          ],
+          "Sequence": 107655369,
+          "SigningPubKey": "EDA82FD4CEE6F453A4A0149DABDC2A9DF7A145E90F0925A61C5D64FBD25253284C",
+          "TransactionType": "Payment",
+          "TxnSignature": "926EE30C534C573E3ABF21EE7328BE45061A435528774C475E4D974BEDC35402017FAA8EEE8CE4FD8DE6B15A22F2570AB1052CD7540AE98611FE59A0DECFA705",
+          "ctid": "C659EEBB00B70000",
+          "date": 841068130,
+          "ledger_index": 106557115
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-08-25T11:14:41Z",
+        "hash": "68BE01764A5D0A670EE87AB6D6BBC7383D69753DCD608D2CE12E5A4E3728FEC5",
+        "ledger_hash": "D611A685767F38CFC6CF763B49BED5D34684DEB3DFEC5D9A400808CFC8BEE2B6",
+        "ledger_index": 106532441,
+        "meta": {
+          "TransactionIndex": 126,
+          "TransactionResult": "tesSUCCESS",
+          "delivered_amount": "1"
+        },
+        "tx_json": {
+          "Account": "rsnrorxzHhRstuPr25zVqG5SAH2sy7GvNM",
+          "DeliverMax": "1",
+          "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+          "DestinationTag": 1,
+          "Fee": "12",
+          "LastLedgerSequence": 106532468,
+          "Sequence": 106559497,
+          "SigningPubKey": "02DA4B7DF72130E465EF06A5F3931F8F250D5BF935542B05C245A6344EAF03281B",
+          "TransactionType": "Payment",
+          "TxnSignature": "3045022100DF91FC2708E1F225140694447E78A11942E146D14222E964324DF6E5BB58C98002204C7B771A8A2BC931A9D9CE1013FC441F01645E3E352A3D13053B5FFC61EB83E4",
+          "ctid": "C6598E59007E0000",
+          "date": 840971681,
+          "ledger_index": 106532441
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-08-24T23:20:42Z",
+        "hash": "ADDC66086EC73BF4B4D821567C206A148694A86A5F2A6F5CC609B97DDB9FAF33",
+        "ledger_hash": "E5DDBA2FD5C77A5C124D82313F3761FC452026FE423C0E7351AFA598AE705799",
+        "ledger_index": 106521444,
+        "meta": {
+          "TransactionIndex": 106,
+          "TransactionResult": "tesSUCCESS"
+        },
+        "tx_json": {
+          "Account": "rHXgaJLpjDe4jsAiF8atNrRfS6eYrjPYPB",
+          "Fee": "10",
+          "OfferSequence": 107047084,
+          "Owner": "rHXgaJLpjDe4jsAiF8atNrRfS6eYrjPYPB",
+          "Sequence": 107047274,
+          "SigningPubKey": "EDA82FD4CEE6F453A4A0149DABDC2A9DF7A145E90F0925A61C5D64FBD25253284C",
+          "TransactionType": "EscrowCancel",
+          "TxnSignature": "AAD03980C0056F93B35483D7CA695852258F1FDB0AABB0A0EECC364FB213D1939C6DB22445CA2EB73C80945B2DAECEC811255006B929D2B09579DE0CBA1FEC09",
+          "ctid": "C6596364006A0000",
+          "date": 840928842,
+          "ledger_index": 106521444
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-08-24T23:20:00Z",
+        "hash": "9DE6089EC738FEEF8E1F3BB5DDDC453CF6226E0DF663210C05B100852043960C",
+        "ledger_hash": "10D892927994C87EDC5B57ED6E6579C0DF8D810E2DCE5C5551612AFD099BCFBA",
+        "ledger_index": 106521432,
+        "meta": {
+          "TransactionIndex": 50,
+          "TransactionResult": "tesSUCCESS"
+        },
+        "tx_json": {
+          "Account": "rUSzwoNtcrcXYgBNFVSB3rzqUKYipujnRj",
+          "CheckID": "C5973A63D38553ED6C41B05452FF65406EF37BF38A6BEFA95706F9A923BC74FC",
+          "Fee": "11",
+          "LastLedgerSequence": 106521530,
+          "Sequence": 107119188,
+          "SigningPubKey": "ED2A0AA88A7661E304349C8858B140EF2A326D0F5F9A8F60D9F73904BE756B3AD4",
+          "TransactionType": "CheckCancel",
+          "TxnSignature": "78DA781CD56881B74DBDEB4064227E6BA0AADDDC6158764B9E1996720547E55689CBB7A20D18583EA1AA86F8373D1B8AF6D28B14D4FAC9A6ED558BC2066C6502",
+          "ctid": "C659635800320000",
+          "date": 840928800,
+          "ledger_index": 106521432
+        },
+        "validated": true
+      },
+      {
+        "close_time_iso": "2026-08-24T23:19:41Z",
+        "hash": "EFE94307CE53874FE9E0E8FE8E223212733BE6F106AF9F82FE9995500712B0BC",
+        "ledger_hash": "D27BC48CF816091D59C5695F73E82A05204204D557351F65E0C53AA0067A16CD",
+        "ledger_index": 106521428,
+        "meta": {
+          "TransactionIndex": 6,
+          "TransactionResult": "tesSUCCESS"
+        },
+        "tx_json": {
+          "Account": "rHXgaJLpjDe4jsAiF8atNrRfS6eYrjPYPB",
+          "Amount": {
+            "currency": "D0A552D0A0000000000000000000000000000000",
+            "issuer": "rBZ68iWChEKoUmLe49k5hsQ9fXVhocVFVU",
+            "value": "4679"
+          },
+          "CancelAfter": 840928816,
+          "Condition": "A0258020C872834D5631A281153045A0FF1031DE79D0EEA63D36FB893713C02C7A46015A810100",
+          "Destination": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+          "DestinationTag": 1257287231,
+          "Fee": "10",
+          "FinishAfter": 840928801,
+          "LastLedgerSequence": 106521620,
+          "Memos": [
+            {
+              "Memo": {
+                "MemoData": "34363739205852502077617320637265646974656420746F20796F7572206163636F756E742E2046696E616C697A6520657363726F7720766961207872702D657363726F772E636F6D"
+              }
+            }
+          ],
+          "Sequence": 107047084,
+          "SigningPubKey": "EDA82FD4CEE6F453A4A0149DABDC2A9DF7A145E90F0925A61C5D64FBD25253284C",
+          "TransactionType": "EscrowCreate",
+          "TxnSignature": "BC74235FECD5D94DA78BBB7B64E124A8D97C7D1CC159FCAA9EB828EB2B1FAEA4D5D09233A7965BF583A4F85BF8F35FE3D48BF048FE62B3EA6715D32D2275260A",
+          "ctid": "C659635400060000",
+          "date": 840928781,
+          "ledger_index": 106521428
+        },
+        "validated": true
+      }
+    ],
+    "validated": true,
+    "status": "success"
+  }
+}
