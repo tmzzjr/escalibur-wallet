@@ -1,0 +1,24 @@
+{
+  "chainParameter": [
+    {
+      "key": "getCreateAccountFee",
+      "value": 100000
+    },
+    {
+      "key": "getTransactionFee",
+      "value": 1000
+    },
+    {
+      "key": "getCreateNewAccountFeeInSystemContract",
+      "value": 1000000
+    },
+    {
+      "key": "getEnergyFee",
+      "value": 100
+    },
+    {
+      "key": "getMemoFee",
+      "value": 1000000
+    }
+  ]
+}

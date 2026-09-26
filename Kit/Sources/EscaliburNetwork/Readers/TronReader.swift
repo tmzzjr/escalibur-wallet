@@ -2,6 +2,23 @@ import EscaliburChains
 import EscaliburCore
 import Foundation
 
+/// O destino de um envio Tron como a rede o ve, antes de haver valor e origem.
+public struct TronDestinationState: Sendable, Equatable {
+    /// `getaccount` do destino nao veio vazio, em dois provedores.
+    public let activated: Bool
+    /// `getcontract` devolveu bytecode.
+    public let isContract: Bool
+    /// `getchainparameters`: a taxa de criacao de conta sai daqui. Sem validar: quem
+    /// valida a faixa e o `TronPlanner`, no plano.
+    public let parameters: TronChainParameters
+
+    public init(activated: Bool, isContract: Bool, parameters: TronChainParameters) {
+        self.activated = activated
+        self.isContract = isContract
+        self.parameters = parameters
+    }
+}
+
 /// Leitura de estado, transmissao e historico da Tron, pela API HTTP do java-tron
 /// (`/wallet/*`, POST com o endereco no corpo) na TronGrid e na PublicNode.
 ///
@@ -100,6 +117,21 @@ public actor TronReader {
     /// da "seed com USDT").
     public func ownerControl(owner: TronAddress) async throws -> TronAccountControl {
         try await ownerAccount(owner, providers: await pool.available()).control
+    }
+
+    /// O destino antes do valor, sem conta de origem: existe na rede (dois provedores
+    /// concordando, a mesma leitura do plano)? e contrato? E os parametros da rede, de
+    /// onde sai o custo de ativar a conta. So para a tela do destino: o plano le tudo
+    /// de novo em `networkState`.
+    public func destinationState(_ address: TronAddress) async throws -> TronDestinationState {
+        let providers = await pool.available()
+        let singles = Self.singleReadOrder(providers)
+        async let activated = isActivated(address, providers: providers)
+        async let contract = isContract(address, providers: singles)
+        async let parameters = chainParameters(singles)
+        return TronDestinationState(
+            activated: try await activated, isContract: try await contract, parameters: try await parameters
+        )
     }
 
     // MARK: Transmissao e acompanhamento

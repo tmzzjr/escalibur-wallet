@@ -1,0 +1,57 @@
+{
+  "transactions": [
+    {
+      "hash": "oYWZijtnpqJJL/ctX6gciHidv1jdxzkgRbZrMPf4Bwo=",
+      "lt": "105929011000007",
+      "now": 1790389222,
+      "mc_block_seqno": 95104087,
+      "total_fees": "406498",
+      "description": {
+        "type": "ord",
+        "aborted": false,
+        "destroyed": false,
+        "credit_first": true,
+        "storage_ph": {
+          "storage_fees_collected": "8",
+          "status_change": "unchanged"
+        },
+        "compute_ph": {
+          "skipped": false,
+          "success": true,
+          "msg_state_used": false,
+          "account_activated": false,
+          "gas_fees": "220534",
+          "gas_used": "3308",
+          "gas_limit": "0",
+          "gas_credit": "10000",
+          "mode": 0,
+          "exit_code": 0,
+          "vm_steps": 68,
+          "vm_init_state_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "vm_final_state_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        },
+        "action": {
+          "success": true,
+          "valid": true,
+          "no_funds": false,
+          "status_change": "unchanged",
+          "total_fwd_fees": "77068",
+          "total_action_fees": "25688",
+          "result_code": 0,
+          "tot_actions": 1,
+          "spec_actions": 0,
+          "skipped_actions": 0,
+          "msgs_created": 1,
+          "action_list_hash": "cjBdN+c9nah6sR0pyb/Aj6MLeByiGbFG9h83+lTZwqk=",
+          "tot_msg_size": {
+            "cells": "2",
+            "bits": "761"
+          }
+        }
+      },
+      "in_msg": {
+        "hash": "cyrz+eNi2LMolkZNZYn3cKRYpSpW60VFSl98/5LaQH8="
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "address": "TNXoiAJ3dct8Fjg4M9fkLFh9S2v9TXc32G",
+  "balance": 5178080212471,
+  "create_time": 1631617425000,
+  "owner_permission": {
+    "permission_name": "owner",
+    "threshold": 1,
+    "keys": [
+      {
+        "address": "TNXoiAJ3dct8Fjg4M9fkLFh9S2v9TXc32G",
+        "weight": 1
+      }
+    ]
+  },
+  "active_permission": [
+    {
+      "type": "Active",
+      "id": 2,
+      "permission_name": "active",
+      "threshold": 1,
+      "operations": "7fff1fc0033e0300000000000000000000000000000000000000000000000000",
+      "keys": [
+        {
+          "address": "TNXoiAJ3dct8Fjg4M9fkLFh9S2v9TXc32G",
+          "weight": 1
+        }
+      ]
+    }
+  ]
+}

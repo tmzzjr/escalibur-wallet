@@ -1,0 +1,17 @@
+{
+  "id": "6484590d488c8c312525f491137e5f95f5d3a9cd05235474a058c2fe29824982",
+  "fee": 1000000,
+  "blockNumber": 85577993,
+  "blockTimeStamp": 1787405295000,
+  "contractResult": [
+    "0000000000000000000000000000000000000000000000000000000000000000"
+  ],
+  "contract_address": "41a614f803b6fd780986a42c78ec9c7f77e6ded13c",
+  "receipt": {
+    "energy_usage": 64285,
+    "energy_usage_total": 64285,
+    "net_usage": 413,
+    "result": "SUCCESS",
+    "energy_penalty_total": 49635
+  }
+}

@@ -2,6 +2,18 @@ import EscaliburChains
 import EscaliburCore
 import Foundation
 
+/// O destino de um envio TON como a rede o ve, antes de haver valor e origem.
+public struct TONDestinationState: Sendable, Equatable {
+    public let status: TONAccountStatus
+    /// Hash do codigo, calculado aqui do BOC que o provedor mandou; so em conta ativa.
+    public let codeHash: [UInt8]?
+
+    public init(status: TONAccountStatus, codeHash: [UInt8]?) {
+        self.status = status
+        self.codeHash = codeHash
+    }
+}
+
 /// Leitura de estado, transmissao e historico da TON.
 ///
 /// Provedores: a API JSON-RPC v2 da toncenter e a principal, porque aceita o endereco
@@ -79,6 +91,13 @@ public actor TONReader {
             accountStatus: owner.status, seqno: seqno, balance: owner.balance, codeHash: owner.codeHash,
             destinationStatus: target.status, destinationCodeHash: target.codeHash, estimatedFee: fee
         )
+    }
+
+    /// Status e hash do codigo de uma conta qualquer, a mesma leitura que `chainState`
+    /// faz do destino. So para a tela do destino: o plano le de novo em `chainState`.
+    public func destinationState(_ address: TONAddress) async throws -> TONDestinationState {
+        let reading = try await account(address)
+        return TONDestinationState(status: reading.status, codeHash: reading.codeHash)
     }
 
     /// A carteira jetton de USDT do dono (`get_wallet_address` no mestre compilado,
