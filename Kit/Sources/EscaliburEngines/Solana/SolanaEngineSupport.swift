@@ -1,6 +1,5 @@
 import EscaliburChains
 import EscaliburCore
-import EscaliburKeys
 import Foundation
 
 // O que os tres motores da Solana tem em comum: a conta do dono conferida, o ativo

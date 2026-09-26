@@ -1,6 +1,5 @@
 import EscaliburChains
 import EscaliburCore
-import EscaliburKeys
 import Foundation
 
 /// O que o app precisa de cada rede para enviar: saber do destino, calcular o

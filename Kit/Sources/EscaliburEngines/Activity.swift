@@ -1,6 +1,5 @@
 import EscaliburChains
 import EscaliburCore
-import EscaliburKeys
 import Foundation
 
 /// Um item da Atividade, igual para todas as redes. Cada leitor de historico

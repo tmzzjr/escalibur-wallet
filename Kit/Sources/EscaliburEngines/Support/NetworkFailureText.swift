@@ -39,7 +39,7 @@ enum NetworkFailureText {
         switch failure {
         case .status(429): return busy
         case .offline, .timeout, .status: return offline
-        case .tooLarge, .redirectRefused, .invalidResponse, .decoding: return malformed
+        case .tooLarge, .redirectRefused, .invalidResponse, .decoding, .hostNotAllowed: return malformed
         }
     }
 

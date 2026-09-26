@@ -32,6 +32,15 @@ procurar() { local padrao="$1"; shift; swift_em "$@" | xargs grep -nE "$padrao" 
 echo
 echo "ESCALIBUR WALLET: verificacoes"
 
+# Caminho com espaco quebra o "find | xargs grep" das regras e deixa arquivo sem
+# conferencia. Nenhum fonte pode ter espaco no caminho.
+com_espaco=$(find Kit/Sources Kit/Tests App tools \( -name "*.swift" -o -name "*.c" -o -name "*.h" -o -name "*.py" -o -name "*.sh" \) 2>/dev/null | grep '[[:space:]]')
+if [ -n "$com_espaco" ]; then
+    echo "  ✗ arquivo com espaco no caminho escapa das regras: renomeie"
+    echo "$com_espaco"
+    exit 1
+fi
+
 # 1. Chaves e redes nao falam com a internet.
 secao "fronteira de rede"
 achados=$(procurar 'import (Network|WebKit|SafariServices|CFNetwork)\b|URLSession|URLRequest|NWConnection|NWPathMonitor|CFSocket|CFStream|getaddrinfo|\bsocket\(|WKWebView' "$CORE" "$CHAINS" "$KEYS")
@@ -49,6 +58,13 @@ achados=$(procurar 'URLSession\.shared|AsyncImage' "$APP" "$NET" "$CORE" "$CHAIN
 achados=$(procurar 'import EscaliburKeys|SecureBytes|WalletSecret|RootKeyVault|WalletVault|Mnemonic|HDKey' "$NET")
 [ -n "$achados" ] && { aviso "o modulo de rede enxerga segredo"; echo "$achados"; } || ok "o modulo de rede nao enxerga segredo nem chave"
 
+achados=$(procurar 'import (Security|LocalAuthentication|EscaliburKeys)\b|SecItem[A-Z]|SecKey[A-Z]|SecAccessControl|LAContext' "$NET" "$ENG")
+[ -n "$achados" ] && { aviso "rede ou motores tocam chaveiro, Secure Enclave ou biometria"; echo "$achados"; } || ok "rede e motores nao tocam chaveiro, Secure Enclave nem biometria"
+deps_motores=$(awk '/name: "EscaliburEngines"/{f=1} f&&/dependencies/{print; exit}' Kit/Package.swift)
+echo "$deps_motores" | grep -q 'EscaliburKeys' && aviso "EscaliburEngines depende de EscaliburKeys no Package.swift" || ok "EscaliburEngines nao depende de EscaliburKeys (o compilador garante)"
+deps_rede=$(awk '/name: "EscaliburNetwork"/{f=1} f&&/dependencies/{print; exit}' Kit/Package.swift)
+echo "$deps_rede" | grep -q 'EscaliburKeys' && aviso "EscaliburNetwork depende de EscaliburKeys no Package.swift" || ok "EscaliburNetwork nao depende de EscaliburKeys (o compilador garante)"
+
 achados=$(procurar 'SecureBytes|WalletSecret|RootKeyVault|WalletVault|KeychainStore|SecureEnclaveWrapper|Signer\b|Mnemonic|HDKey|SecretStore' "$ENG")
 [ -n "$achados" ] && { aviso "os motores enxergam segredo, cofre ou assinador"; echo "$achados"; } || ok "os motores so usam dado publico do modulo de chaves"
 
@@ -64,9 +80,21 @@ achados=$(procurar 'Secp256k1\.sign|Ed25519\.sign' "$CHAINS" "$NET" "$APP" "$ENG
 # 2. Hosts travados.
 secao "hosts"
 hosts_atuais=$(grep -ohE 'https://[A-Za-z0-9.-]+' $(swift_em "$NET" "$ENG") "$APP/Resources/Info.plist" 2>/dev/null | sort -u)
+gerar_allowed_hosts() {
+    {
+        echo "// Gerado por tools/verificar.sh --atualizar-hosts a partir do hosts.lock. Nao editar."
+        echo "// O HTTPClient recusa qualquer host fora desta lista, em tempo de execucao."
+        echo "enum AllowedHosts {"
+        echo "    static let all: Set<String> = ["
+        sed 's|https://||' hosts.lock | while read -r host; do echo "        \"$host\","; done
+        echo "    ]"
+        echo "}"
+    } > "$NET/AllowedHosts.swift"
+}
 if [ "${1:-}" = "--atualizar-hosts" ]; then
     echo "$hosts_atuais" > hosts.lock
-    ok "hosts.lock atualizado"
+    gerar_allowed_hosts
+    ok "hosts.lock e AllowedHosts.swift atualizados"
 elif [ ! -f hosts.lock ]; then
     aviso "hosts.lock nao existe (gere com --atualizar-hosts e revise o diff)"
 elif ! diff -q <(echo "$hosts_atuais") hosts.lock >/dev/null; then
@@ -87,6 +115,11 @@ else
 fi
 
 # 3. Dependencias.
+esperado=$(sed 's|https://||' hosts.lock 2>/dev/null | sort)
+gerado=$(grep -oE '^        "[^"]+",$' "$NET/AllowedHosts.swift" 2>/dev/null | tr -d ' ",' | sort)
+[ "$esperado" = "$gerado" ] && ok "o cliente HTTP recusa em tempo de execucao todo host fora do hosts.lock" || aviso "AllowedHosts.swift difere do hosts.lock (rode --atualizar-hosts)"
+grep -q 'allowedHosts.contains(host)' "$NET/HTTPClient.swift" && ok "HTTPClient confere o host de toda requisicao" || aviso "HTTPClient deixou de conferir o host"
+
 secao "dependencias"
 if grep -q "XCRemoteSwiftPackageReference" EscaliburWallet.xcodeproj/project.pbxproj 2>/dev/null; then aviso "pacote remoto no projeto"; else ok "nenhum pacote remoto no projeto"; fi
 if grep -q '\.package(url' Kit/Package.swift; then aviso "pacote remoto no Package.swift"; else ok "nenhum pacote remoto no Package.swift"; fi

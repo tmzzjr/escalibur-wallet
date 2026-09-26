@@ -1,6 +1,5 @@
 import EscaliburChains
 import EscaliburCore
-import EscaliburKeys
 import Foundation
 
 /// A cotacao que a tela mostra, ja validada pelo motor da rede. O que a tela chama

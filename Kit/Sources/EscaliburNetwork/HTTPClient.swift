@@ -15,6 +15,8 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
         case tooLarge
         case redirectRefused
         case invalidResponse
+        /// Host fora do hosts.lock, ou esquema diferente de https.
+        case hostNotAllowed
         case decoding(String)
     }
 
@@ -25,11 +27,16 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
 
     /// So para os testes: um `URLProtocol` no lugar da rede.
     private let protocolClasses: [AnyClass]?
+    /// Os unicos hosts com que o cliente fala: gerados do hosts.lock
+    /// (`AllowedHosts.swift`, conferido pelo verificar.sh). Um endereco montado em tempo
+    /// de execucao, ou vindo de uma resposta, nao sai do aparelho.
+    private let allowedHosts: Set<String>
 
-    public override convenience init() { self.init(protocolClasses: nil) }
+    public override convenience init() { self.init(protocolClasses: nil, allowedHosts: AllowedHosts.all) }
 
-    init(protocolClasses: [AnyClass]?) {
+    init(protocolClasses: [AnyClass]?, allowedHosts: Set<String> = AllowedHosts.all) {
         self.protocolClasses = protocolClasses
+        self.allowedHosts = allowedHosts
         super.init()
     }
 
@@ -93,7 +100,9 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
     /// O corpo e lido em fluxo e cortado ao passar do limite. Resposta sem
     /// Content-Length (chunked) nao chega inteira na memoria antes de ser medida.
     private func perform(_ request: URLRequest) async throws -> Data {
-        guard request.url?.scheme == "https" else { throw Failure.invalidResponse }
+        guard request.url?.scheme == "https", let host = request.url?.host, allowedHosts.contains(host) else {
+            throw Failure.hostNotAllowed
+        }
         do {
             let (bytes, response) = try await session.bytes(for: request)
             guard let http = response as? HTTPURLResponse else {

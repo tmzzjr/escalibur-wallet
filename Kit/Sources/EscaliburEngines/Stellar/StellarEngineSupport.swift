@@ -1,6 +1,5 @@
 import EscaliburChains
 import EscaliburCore
-import EscaliburKeys
 import EscaliburNetwork
 import Foundation
 

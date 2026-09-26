@@ -13,9 +13,8 @@
 //   EscaliburNetwork  provedores, RPC, precos, cotacoes. Nunca ve seed, chave, PIN
 //                     ou senha, e nunca importa EscaliburKeys.
 //   EscaliburEngines  os motores de envio, troca e historico de cada rede: juntam o
-//                     leitor (Network) e o planejador (Chains). Do modulo de chaves so
-//                     usa tipos publicos de dado (conta derivada); nunca assina, nunca
-//                     abre cofre.
+//                     leitor (Network) e o planejador (Chains). Nao depende do modulo de
+//                     chaves: nao enxerga chaveiro, Secure Enclave, cofre nem assinador.
 //
 // As duas bibliotecas em C sao compiladas do fonte, dentro do repositorio, e
 // travadas por digesto (secp256k1.lock, argon2.lock). Nenhum pacote remoto.
@@ -84,7 +83,7 @@ let package = Package(
         ),
         .target(
             name: "EscaliburEngines",
-            dependencies: ["EscaliburCore", "EscaliburChains", "EscaliburKeys", "EscaliburNetwork"],
+            dependencies: ["EscaliburCore", "EscaliburChains", "EscaliburNetwork"],
             path: "Sources/EscaliburEngines"
         ),
         .testTarget(
@@ -112,7 +111,7 @@ let package = Package(
         ),
         .testTarget(
             name: "EscaliburEnginesTests",
-            dependencies: ["EscaliburEngines"],
+            dependencies: ["EscaliburEngines", "EscaliburKeys"],
             path: "Tests/EscaliburEnginesTests",
             resources: [.copy("Fixtures")]
         ),

@@ -18,7 +18,7 @@ Para mostrar saldos, preços e histórico, e para enviar e trocar, o app fala di
 
 A lista abaixo é completa: o app não consegue falar com nenhum outro endereço, e o código confere isso a cada versão.
 
-- **Preços e gráficos:** `api.coingecko.com`, `api.coinpaprika.com`, `www.okx.com`
+- **Preços, gráficos e logos das moedas:** `api.coingecko.com`, `api.coinpaprika.com`, `assets.coingecko.com`, `coin-images.coingecko.com`, `www.okx.com`
 - **Bitcoin, Litecoin e Dogecoin:** `api.blockchair.com`, `api.blockcypher.com`, `blockstream.info`, `litecoinspace.org`, `mempool.emzy.de`, `mempool.space`
 - **Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain e Avalanche:** `1rpc.io`, `api.avax.network`, `api.routescan.io`, `arb1.arbitrum.io`, `arbitrum-one-rpc.publicnode.com`, `arbitrum.blockscout.com`, `arbitrum.drpc.org`, `arbitrum.meowrpc.com`, `avalanche-c-chain-rpc.publicnode.com`, `avalanche.drpc.org`, `base-rpc.publicnode.com`, `base.blockscout.com`, `base.drpc.org`, `bsc-dataseed.bnbchain.org`, `bsc-dataseed1.defibit.io`, `bsc-dataseed1.ninicoin.io`, `bsc-rpc.publicnode.com`, `cloudflare-eth.com`, `eth.blockscout.com`, `eth.drpc.org`, `ethereum-rpc.publicnode.com`, `explorer.optimism.io`, `mainnet.base.org`, `mainnet.optimism.io`, `optimism-rpc.publicnode.com`, `optimism.drpc.org`, `polygon-bor-rpc.publicnode.com`, `polygon.blockscout.com`, `polygon.drpc.org`
 - **Envio protegido na Ethereum:** `rpc.flashbots.net`, `rpc.mevblocker.io`

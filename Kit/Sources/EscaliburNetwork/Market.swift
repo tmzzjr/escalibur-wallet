@@ -246,7 +246,10 @@ public actor MarketService {
 /// dentro do processo que assina), tamanho limitado, cache so em memoria.
 public actor ImageLoader {
     public static let shared = ImageLoader()
-    static let allowedHosts: Set<String> = ["coin-images.coingecko.com", "assets.coingecko.com"]
+    /// De onde as logos podem vir. Entram no hosts.lock e na Politica de privacidade
+    /// como qualquer outro endereco.
+    static let origins = ["https://coin-images.coingecko.com", "https://assets.coingecko.com"]
+    static let allowedHosts: Set<String> = Set(origins.compactMap { URL(string: $0)?.host })
     static let maxBytes = 96 * 1024
 
     private var cache: [URL: Data] = [:]

@@ -36,7 +36,7 @@ final class StubProtocol: URLProtocol, @unchecked Sendable {
 
 @Suite("Cliente HTTP: limites")
 struct HTTPClientTests {
-    let client = HTTPClient(protocolClasses: [StubProtocol.self])
+    let client = HTTPClient(protocolClasses: [StubProtocol.self], allowedHosts: ["stub.example"])
 
     @Test("Resposta pequena passa")
     func small() async throws {
@@ -63,8 +63,17 @@ struct HTTPClientTests {
         await #expect(throws: HTTPClient.Failure.status(503)) {
             try await client.get(URL(string: "https://stub.example/erro")!)
         }
-        await #expect(throws: HTTPClient.Failure.invalidResponse) {
+        await #expect(throws: HTTPClient.Failure.hostNotAllowed) {
             try await client.get(URL(string: "http://stub.example/pequeno")!)
         }
+    }
+
+    @Test("Host fora da lista nao sai do aparelho")
+    func hostNotAllowed() async {
+        await #expect(throws: HTTPClient.Failure.hostNotAllowed) {
+            try await client.get(URL(string: "https://outro.example/pequeno")!)
+        }
+        #expect(AllowedHosts.all.contains("mempool.space"))
+        #expect(!AllowedHosts.all.contains("stub.example"))
     }
 }
