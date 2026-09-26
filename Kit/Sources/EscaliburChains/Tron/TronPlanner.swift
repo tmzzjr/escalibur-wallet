@@ -318,7 +318,10 @@ public enum TronPlanner {
             if percent > 10 { warnings.append(.highFee(percentOfAmount: percent)) }
         }
 
-        let review = PlanReview(kind: .send, title: "Enviar \(TronFormat.trx(amount))", lines: lines, warnings: warnings)
+        let review = PlanReview(
+            kind: .send, title: "Enviar \(TronFormat.trx(amount))", lines: lines, warnings: warnings,
+            recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo
+        )
         let transaction = try TronTransaction(raw: raw, path: owner.path, publicKey: owner.publicKey)
         return SigningPlan(walletID: walletID, chain: .tron, review: review, transactions: [transaction], createdAt: now)
     }
@@ -404,7 +407,10 @@ public enum TronPlanner {
         lines.append(.init("Custo estimado", "\(TronFormat.trx(fees.totalBurn)) queimados"))
         lines.append(.init("Taxa máxima (fee_limit)", TronFormat.trx(feeLimit)))
 
-        let review = PlanReview(kind: .send, title: "Enviar \(TronFormat.usdt(amount))", lines: lines, warnings: warnings)
+        let review = PlanReview(
+            kind: .send, title: "Enviar \(TronFormat.usdt(amount))", lines: lines, warnings: warnings,
+            recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo
+        )
         let transaction = try TronTransaction(raw: raw, path: owner.path, publicKey: owner.publicKey)
         return SigningPlan(walletID: walletID, chain: .tron, review: review, transactions: [transaction], createdAt: now)
     }

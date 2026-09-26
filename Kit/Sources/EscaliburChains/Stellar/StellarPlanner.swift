@@ -157,7 +157,8 @@ public enum StellarPlanner {
             kind: .send,
             title: "Enviar \(StellarAmount.format(amount, .native))",
             lines: destinationLines(target) + memoLines(memo) + extraLines + feeLines(fee, operations: 1),
-            warnings: warnings
+            warnings: warnings,
+            recipient: target.address, recipientTag: memo.recipientTag
         )
         return try makePlan([body], memo: memo, feePerOperation: fee, review: review, context: context)
     }
@@ -195,7 +196,8 @@ public enum StellarPlanner {
             kind: .send,
             title: "Enviar \(StellarAmount.format(amount, asset))",
             lines: destinationLines(target) + memoLines(memo) + assetLines(asset, label: "Emissor")
-                + feeLines(fee, operations: 1)
+                + feeLines(fee, operations: 1),
+            recipient: target.address, recipientTag: memo.recipientTag
         )
         return try makePlan(
             [.payment(destination: target, asset: asset, amount: value)],

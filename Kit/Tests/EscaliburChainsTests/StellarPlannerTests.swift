@@ -51,6 +51,7 @@ struct StellarPlannerTests {
         #expect(plan.chain == .stellar)
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 12,5 XLM")
+        expectRecipient(plan)
         #expect(plan.review.lines.contains(PlanReview.Line("Para", StellarTestKeys.sep5Account1, verbatim: true)))
         #expect(plan.review.lines.contains(PlanReview.Line("Memo (texto)", "pedido 42", verbatim: true)))
         #expect(plan.review.lines.contains(PlanReview.Line("Taxa máxima", "0,00001 XLM")))
@@ -217,6 +218,7 @@ struct StellarPlannerTests {
             Self.usdc, amount: 20 * Self.xlm, to: StellarTestKeys.sep5Account1, destination: ok, context: try context()
         )
         #expect(plan.review.title == "Enviar 20 USDC")
+        expectRecipient(plan)
         #expect(plan.review.lines.contains(PlanReview.Line("Emissor", "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", verbatim: true)))
         #expect(try transaction(plan).tx.operations == [StellarOperation(.payment(
             destination: try StellarTestKeys.muxed(StellarTestKeys.sep5Account1), asset: Self.usdc, amount: 200_000_000))])
@@ -253,6 +255,7 @@ struct StellarPlannerTests {
         // XLM pelo caminho de ativo cai no envio nativo.
         let native = try StellarPlanner.planSendAsset(.native, amount: Self.xlm, to: to, destination: Self.existing, context: ctx)
         #expect(native.review.title == "Enviar 1 XLM")
+        expectRecipient(native)
     }
 
     // MARK: Aceitar ativo

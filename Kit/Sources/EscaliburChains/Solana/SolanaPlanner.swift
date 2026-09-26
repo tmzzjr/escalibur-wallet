@@ -285,7 +285,7 @@ public enum SolanaPlanner {
         lines.append(PlanReview.Line("Total", SolanaAmountText.sol(lamports + fee)))
         lines.append(PlanReview.Line("Saldo depois", SolanaAmountText.sol(network.balance - lamports - fee)))
 
-        let review = PlanReview(kind: .send, title: "Enviar \(SolanaAmountText.sol(lamports))", lines: lines, warnings: warnings)
+        let review = PlanReview(kind: .send, title: "Enviar \(SolanaAmountText.sol(lamports))", lines: lines, warnings: warnings, recipient: to.base58)
         return SigningPlan(walletID: walletID, chain: .solana, review: review, transactions: [transaction], createdAt: now)
     }
 
@@ -436,7 +436,7 @@ public enum SolanaPlanner {
         if !token.isVerified { warnings.append(.unverifiedToken(symbol: token.symbol)) }
 
         let title = "Enviar \(SolanaAmountText.format(amount, decimals: decimals, symbol: token.symbol))"
-        let review = PlanReview(kind: .send, title: title, lines: lines, warnings: warnings)
+        let review = PlanReview(kind: .send, title: title, lines: lines, warnings: warnings, recipient: recipientWallet.base58)
         return SigningPlan(walletID: walletID, chain: .solana, review: review, transactions: [transaction], createdAt: now)
     }
 

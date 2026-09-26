@@ -157,7 +157,8 @@ public enum TONPlanner {
             kind: .send,
             title: "Enviar \(TONFormat.amount(amount, decimals: 9, symbol: "TON"))",
             lines: lines,
-            warnings: warnings
+            warnings: warnings,
+            recipient: parsed.address.raw, recipientTag: context.comment
         )
         return SigningPlan(walletID: walletID, chain: .ton, review: review, transactions: [transfer], createdAt: now)
     }
@@ -224,7 +225,7 @@ public enum TONPlanner {
         ))
         lines += context.commonLines(fee: state.estimatedFee)
 
-        let review = PlanReview(kind: .send, title: "Enviar \(amountText)", lines: lines)
+        let review = PlanReview(kind: .send, title: "Enviar \(amountText)", lines: lines, recipient: parsed.address.raw, recipientTag: context.comment)
         return SigningPlan(walletID: walletID, chain: .ton, review: review, transactions: [transfer], createdAt: now)
     }
 

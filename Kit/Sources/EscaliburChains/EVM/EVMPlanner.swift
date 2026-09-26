@@ -67,7 +67,7 @@ public enum EVMPlanner {
                 .init("Para", recipient.checksummed, verbatim: true),
                 .init("Valor", amountText),
             ] + feeLines(chain: chain, quote: quote, count: 1) + [.init("Nonce", "\(nonce)")],
-            warnings: warnings, transactionCount: 1
+            warnings: warnings, transactionCount: 1, recipient: recipient.checksummed
         )
         return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: [transaction], createdAt: now)
     }
@@ -128,7 +128,7 @@ public enum EVMPlanner {
                 .init("Valor", amountText),
                 .init("Contrato do token", token.contract.checksummed, verbatim: true),
             ] + feeLines(chain: chain, quote: quote, count: 1) + [.init("Nonce", "\(nonce)")],
-            warnings: warnings, transactionCount: 1
+            warnings: warnings, transactionCount: 1, recipient: recipient.checksummed
         )
         return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: [transaction], createdAt: now)
     }

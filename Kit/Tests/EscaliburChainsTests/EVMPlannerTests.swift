@@ -49,6 +49,7 @@ struct EVMPlannerTests {
         #expect(transaction.value == amount)
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 0,5\u{00A0}ETH")
+        expectRecipient(plan)
         #expect(plan.review.lines.contains(PlanReview.Line("Para", "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", verbatim: true)))
         #expect(Self.line(plan, "Taxa estimada") == "0,00000252\u{00A0}ETH")
         #expect(Self.line(plan, "Taxa máxima") == "0,00000399\u{00A0}ETH")
@@ -204,6 +205,7 @@ struct EVMPlannerTests {
         #expect(transaction.data == ERC20.transfer(to: Self.recipient, amount: BigUInt(1_500_000)))
         #expect(transaction.gasLimit == 54_000)
         #expect(plan.review.title == "Enviar 1,5\u{00A0}USDC")
+        expectRecipient(plan)
         #expect(plan.review.lines.contains(PlanReview.Line("Contrato do token", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", verbatim: true)))
 
         #expect(throws: EVMPlanError.refused(.recipientIsTokenContract)) {

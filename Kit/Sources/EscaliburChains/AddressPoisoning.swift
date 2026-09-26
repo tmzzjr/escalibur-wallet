@@ -1,0 +1,60 @@
+import Foundation
+
+/// Deteccao de envenenamento de endereco.
+///
+/// O golpe: o atacante gera um endereco com o comeco e o fim iguais aos de um que o
+/// dono ja usou e manda um valor minusculo, para o endereco falso aparecer no
+/// historico. Quem copia de la, conferindo so as pontas, paga o atacante.
+///
+/// A comparacao ignora o prefixo fixo de cada rede (o atacante nao precisa gerar
+/// "0x" nem "bc1q", entao eles nao contam como coincidencia) e olha as pontas do
+/// resto. Duas formas da mesma conta (caixa do EIP-55, amigavel e crua da TON) nao
+/// sao parecidas: sao a mesma.
+public enum AddressPoisoning {
+    /// Coincidencias de ponta que um atacante consegue gerar em minutos. Acima disso
+    /// o custo cresce 16 a 58 vezes por caractere.
+    static let minimumPrefix = 3
+    static let minimumSuffix = 3
+    static let minimumTotal = 7
+
+    /// O primeiro endereco de `known` parecido com `address`, se houver.
+    public static func lookalike(_ address: String, among known: [String], chain: Chain) -> String? {
+        let target = body(address, chain: chain)
+        guard target.count >= 16 else { return nil }
+        let targetAccount = Address.canonicalRecipient(address, chain: chain)
+        return known.first { other in
+            let candidate = body(other, chain: chain)
+            guard candidate.count >= 16, candidate != target else { return false }
+            if let targetAccount, Address.canonicalRecipient(other, chain: chain) == targetAccount { return false }
+            let head = commonPrefix(candidate, target)
+            let tail = commonPrefix(String(candidate.reversed()), String(target.reversed()))
+            return head >= minimumPrefix && tail >= minimumSuffix && head + tail >= minimumTotal
+        }
+    }
+
+    /// O endereco sem o prefixo que a rede impoe, em minusculas.
+    static func body(_ address: String, chain: Chain) -> String {
+        var text = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch chain.family {
+        case .evm:
+            if text.hasPrefix("0x") { text.removeFirst(2) }
+        case .utxo:
+            if let hrp = UTXOParams.for(chain).bech32HRP, text.hasPrefix(hrp + "1") {
+                text.removeFirst(hrp.count + 2)  // hrp, separador e versao (q, p)
+            } else if !text.isEmpty {
+                text.removeFirst()  // caractere de versao do base58
+            }
+        case .tron, .xrpl, .stellar:
+            if !text.isEmpty { text.removeFirst() }
+        case .ton:
+            if text.hasPrefix("0:") { text.removeFirst(2) } else if text.count > 2 { text.removeFirst(2) }
+        case .solana:
+            break
+        }
+        return text
+    }
+
+    static func commonPrefix(_ a: String, _ b: String) -> Int {
+        zip(a, b).prefix { $0 == $1 }.count
+    }
+}

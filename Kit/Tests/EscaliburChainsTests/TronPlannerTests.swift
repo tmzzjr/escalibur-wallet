@@ -98,6 +98,7 @@ struct TronPlannerTests {
         #expect(plan.walletID == Self.walletID)
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 12,5 TRX")
+        expectRecipient(plan)
         #expect(plan.review.warnings.isEmpty)
         #expect(Self.line(plan, "Para") == Self.destination)
         // 268 = 265 do recibo das txs de 1 sun mais 3 bytes do varint de 12,5 TRX.
@@ -203,6 +204,7 @@ struct TronPlannerTests {
         let plan = try Self.sendUSDT(50_000_000, state: Self.state(trx: 20_000_000, usdt: 100_000_000, energy: 64_285, holdsUSDT: true))
         let tx = try Self.tron(plan)
         #expect(plan.review.title == "Enviar 50 USDT")
+        expectRecipient(plan)
         #expect(Self.line(plan, "Rede") == "Tron (TRC-20)")
         #expect(Self.line(plan, "Contrato do USDT") == "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")
         #expect(Self.line(plan, "Energia") == "64.285 de energia, 6,4285 TRX queimados")

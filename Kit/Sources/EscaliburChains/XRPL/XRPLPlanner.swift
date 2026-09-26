@@ -161,7 +161,10 @@ public enum XRPLPlanner {
         if let text = intent.memo, !text.isEmpty { lines.append(PlanReview.Line("Memo", text)) }
         lines += notices
 
-        let review = PlanReview(kind: .send, title: "Enviar \(XRPLFormat.xrp(intent.drops))", lines: lines, warnings: warnings)
+        let review = PlanReview(
+            kind: .send, title: "Enviar \(XRPLFormat.xrp(intent.drops))", lines: lines, warnings: warnings,
+            recipient: resolved.address, recipientTag: tag.map { String($0) }
+        )
         return SigningPlan(walletID: walletID, chain: .xrpl, review: review, transactions: [transaction], createdAt: now)
     }
 

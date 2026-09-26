@@ -106,6 +106,33 @@ public enum Address {
         return result
     }
 
+    /// A identidade de um destino para comparacao: a mesma conta escrita de formas
+    /// diferentes (caixa do EIP-55 e do bech32, endereco X do XRP Ledger, forma
+    /// amigavel ou crua da TON) vira o mesmo texto. Nil se nao for endereco valido.
+    public static func canonicalRecipient(_ text: String, chain: Chain) -> String? {
+        guard case .success(let destination) = validate(text, for: chain) else { return nil }
+        switch chain.family {
+        case .evm: return destination.address.lowercased()
+        case .utxo:
+            let lower = destination.address.lowercased()
+            if let hrp = UTXOParams.for(chain).bech32HRP, lower.hasPrefix(hrp + "1") { return lower }
+            return destination.address
+        case .ton:
+            guard case .success(let parsed) = TONAddress.parse(text) else { return nil }
+            return parsed.address.raw.lowercased()
+        case .stellar: return destination.address.uppercased()
+        case .tron, .solana, .xrpl: return destination.address
+        }
+    }
+
+    /// O destino que entrou no plano e o que o dono digitou sao a mesma conta?
+    public static func sameRecipient(_ planned: String?, _ typed: String, chain: Chain) -> Bool {
+        guard let planned, let a = canonicalRecipient(planned, chain: chain), let b = canonicalRecipient(typed, chain: chain) else {
+            return false
+        }
+        return a == b
+    }
+
     /// Adivinha a rede de um texto que parece endereco. So para a mensagem de erro
     /// e para detectar a rede ao observar um endereco: nunca decide sozinho para
     /// onde o dinheiro vai.

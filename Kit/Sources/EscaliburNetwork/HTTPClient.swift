@@ -177,10 +177,15 @@ public actor ProviderPool {
         throw lastError
     }
 
-    /// Pergunta a dois provedores e exige que concordem. Nonce, sequence e saldo
-    /// que vao para uma transacao passam por aqui (docs/seguranca.md §5.5).
+    /// Pergunta a provedores distintos e exige que dois concordem. Nonce, sequence e
+    /// saldo que vao para uma transacao passam por aqui (docs/seguranca.md §5.5).
+    ///
+    /// Nunca aceita uma resposta so: com menos de dois provedores respondendo, falha.
+    /// Os que estao no banco do circuit breaker entram no fim da fila, porque um
+    /// consenso que so tem um provedor vivo nao e consenso.
     public func agreeing<T: Sendable & Equatable>(_ operation: @Sendable (Provider) async throws -> T) async throws -> T {
-        let candidates = Array(available().prefix(3))
+        let live = available()
+        let candidates = live + providers.filter { !live.contains($0) }
         var answers: [T] = []
         for provider in candidates {
             do {
@@ -192,7 +197,6 @@ public actor ProviderPool {
                 reportFailure(provider)
             }
         }
-        if candidates.count == 1, let only = answers.first { return only }
         throw ConsensusFailure(answers: answers.count)
     }
 }

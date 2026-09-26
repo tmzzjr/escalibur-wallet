@@ -72,6 +72,7 @@ struct XRPLPlannerTests {
 
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 50 XRP")
+        expectRecipient(plan)
         #expect(Self.line(plan, "Para") == PlanReview.Line("Para", Self.destination, verbatim: true))
         #expect(Self.line(plan, "Tag de destino") == PlanReview.Line("Tag de destino", "7", verbatim: true))
         #expect(Self.line(plan, "Taxa da rede")?.value == "0,000012 XRP")

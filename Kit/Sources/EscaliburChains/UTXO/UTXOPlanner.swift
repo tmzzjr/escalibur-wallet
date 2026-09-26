@@ -394,7 +394,8 @@ public enum UTXOPlanner {
                 leftBehind: intent.amount == .all ? leftBehind.map(\.output.value) : []
             ),
             warnings: warnings,
-            transactionCount: 1
+            transactionCount: 1,
+            recipient: destination.address
         )
         return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: [signable], createdAt: now)
     }

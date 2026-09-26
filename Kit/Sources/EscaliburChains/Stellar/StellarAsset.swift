@@ -159,6 +159,12 @@ public enum StellarMemo: Hashable, Sendable {
         }
     }
 
+    /// O memo para a conferencia contra o digitado; sem memo, nenhum.
+    public var recipientTag: String? {
+        if case .none = self { return nil }
+        return reviewValue
+    }
+
     public var reviewValue: String {
         switch self {
         case .none: return "sem memo"

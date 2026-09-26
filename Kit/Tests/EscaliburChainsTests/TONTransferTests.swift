@@ -212,6 +212,7 @@ struct TONTransferTests {
         )
         #expect(plan.chain == .ton)
         #expect(plan.review.title == "Enviar 1,5 TON")
+        expectRecipient(plan)
         #expect(plan.review.lines.contains(PlanReview.Line("Para", TONAddressTests.bounceable, verbatim: true)))
         #expect(plan.review.lines.contains(PlanReview.Line("Comentário", "pedido 42", verbatim: true)))
         #expect(plan.review.lines.contains(PlanReview.Line("Taxa estimada", "0,005 TON")))
@@ -295,6 +296,7 @@ struct TONTransferTests {
             now: Self.now
         )
         #expect(plan.review.title == "Enviar 12,5 USDT")
+        expectRecipient(plan)
         #expect(plan.review.lines.contains(PlanReview.Line("Contrato do token", "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs", verbatim: true)))
         let decoded = try Self.signAndDecode(plan)
         let message = try Self.decodeInternal(decoded.message)

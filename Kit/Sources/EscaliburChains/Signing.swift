@@ -162,12 +162,22 @@ public struct PlanReview: Sendable, Equatable {
     public let warnings: [Warning]
     /// Quantas transacoes o dono vai assinar neste plano.
     public let transactionCount: Int
+    /// Num envio: o destino exatamente como entrou na transacao, e a tag, o memo ou o
+    /// comentario que foi junto. O app confere contra o que o dono digitou antes de
+    /// mostrar a revisao e de novo antes de assinar (`Address.sameRecipient`).
+    public let recipient: String?
+    public let recipientTag: String?
 
-    public init(kind: Kind, title: String, lines: [Line], warnings: [Warning] = [], transactionCount: Int = 1) {
+    public init(
+        kind: Kind, title: String, lines: [Line], warnings: [Warning] = [], transactionCount: Int = 1,
+        recipient: String? = nil, recipientTag: String? = nil
+    ) {
         self.kind = kind
         self.title = title
         self.lines = lines
         self.warnings = warnings
         self.transactionCount = transactionCount
+        self.recipient = recipient
+        self.recipientTag = recipientTag
     }
 }

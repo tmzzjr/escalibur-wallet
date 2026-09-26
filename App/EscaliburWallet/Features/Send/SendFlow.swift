@@ -18,6 +18,8 @@ final class SendModel {
     var destinationProblem: String?
     var destinationInfo: DestinationInfo?
     var lookalike: String?
+    /// Com endereco parecido, os 6 ultimos caracteres digitados pelo dono.
+    var lookalikeCheck = ""
     var isFirstSend = false
     var tagText = ""
     var skippedTag = false
@@ -43,6 +45,14 @@ final class SendModel {
         guard let holding else { return nil }
         if sendAll { return spendable?.amount }
         return Fmt.parseAmount(amountText, decimals: holding.asset.decimals)
+    }
+
+    /// Sem endereco parecido, nada a conferir. Com ele, so segue quem digitou o fim
+    /// do endereco de verdade, lendo-o em vez de reconhecer as pontas.
+    var lookalikeCleared: Bool {
+        guard lookalike != nil, let address = destination?.address else { return true }
+        let typed = lookalikeCheck.trimmingCharacters(in: .whitespaces).lowercased()
+        return typed.count == 6 && typed == address.suffix(6).lowercased()
     }
 
     var needsTagStep: Bool {
@@ -226,13 +236,24 @@ struct SendStages: View {
 
             if let lookalike = model.lookalike {
                 Banner(kind: .caution, title: "Endereço parecido com um que você já usou",
-                       message: "Começa e termina igual a \(Fmt.address(lookalike)), mas o meio é diferente. Esse é um golpe comum. Confira o endereço inteiro.")
+                       message: "Começa e termina igual a \(Fmt.address(lookalike)), mas o meio é diferente. Golpistas mandam centavos de um endereço assim para ele aparecer no seu histórico.")
                     .padding(.top, Space.md)
+                Text("Para seguir, digite os 6 últimos caracteres do endereço de destino, lendo no endereço inteiro acima.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
+                    .fixedSize(horizontal: false, vertical: true)
+                TextField("", text: $model.lookalikeCheck, prompt: Text("6 últimos").foregroundColor(Palette.inkDead))
+                    .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .padding(Space.sm)
+                    .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(Palette.body))
+                    .frame(maxWidth: 180, alignment: .leading)
+                    .padding(.top, Space.xs)
+                    .accessibilityIdentifier("conferir-fim-endereco")
             }
 
             contacts.padding(.top, Space.lg)
             Spacer()
-            PrimaryButton(title: "Continuar", enabled: model.destination != nil, loading: model.working) {
+            PrimaryButton(title: "Continuar", enabled: model.destination != nil && model.lookalikeCleared, loading: model.working) {
                 Task { await continueFromDestination() }
             }
         }
@@ -285,6 +306,7 @@ struct SendStages: View {
         model.destination = nil
         model.destinationProblem = nil
         model.lookalike = nil
+        model.lookalikeCheck = ""
         let text = model.destinationText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         switch Address.validate(text, for: chain) {
@@ -297,7 +319,11 @@ struct SendStages: View {
             if let tag = destination.tag { model.tagText = String(tag) }
             let sent = session.metadata.sentTo[chain.id] ?? []
             model.isFirstSend = !sent.contains(destination.address)
-            model.lookalike = AddressPoisoning.lookalike(destination.address, among: sent + model.wallet.accounts.map(\.address))
+            // Tudo que o dono pode reconhecer de vista: para onde ja enviou, os
+            // contatos e os enderecos de todas as carteiras deste iPhone.
+            let contacts = session.metadata.contacts.filter { $0.chainID == chain.id }.map(\.address)
+            let wallets = session.metadata.wallets.compactMap { $0.account(chain)?.address }
+            model.lookalike = AddressPoisoning.lookalike(destination.address, among: sent + contacts + wallets, chain: chain)
         case .failure(let problem):
             model.destinationProblem = Self.message(problem, chain: chain)
         }
@@ -464,7 +490,13 @@ struct SendStages: View {
         model.error = nil
         defer { model.working = false }
         do {
-            model.plan = try await engine.plan(request)
+            let plan = try await engine.plan(request)
+            guard planMatches(plan) else {
+                model.plan = nil
+                model.error = "O envio montado não confere com o destino digitado. Nada foi assinado."
+                return
+            }
+            model.plan = plan
             model.stage = .review
         } catch {
             model.error = (error as? LocalizedError)?.errorDescription ?? "Não foi possível preparar o envio."
@@ -473,21 +505,37 @@ struct SendStages: View {
 
     // MARK: E6 Revisao
 
+    /// O plano confere com o que o dono digitou: mesma carteira, mesma rede, mesmo
+    /// destino e mesma tag. A revisao mostra o plano, nunca a intencao, e esta
+    /// conferencia e o que garante que os dois sao o mesmo envio.
+    private func planMatches(_ plan: SigningPlan) -> Bool {
+        guard let chain = model.chain, let destination = model.destination else { return false }
+        guard plan.review.kind == .send, plan.chain.id == chain.id, plan.walletID == model.wallet.id else { return false }
+        guard Address.sameRecipient(plan.review.recipient, destination.address, chain: chain) else { return false }
+        return Self.sameTag(plan.review.recipientTag, model.tagText)
+    }
+
+    static func sameTag(_ planned: String?, _ typed: String?) -> Bool {
+        let a = planned.flatMap { $0.isEmpty ? nil : $0 }
+        let b = typed.flatMap { $0.isEmpty ? nil : $0 }
+        if let a, let b, let x = UInt64(a), let y = UInt64(b) { return x == y }
+        return a == b
+    }
+
     private var reviewStage: some View {
         let holding = model.holding!
         let price = holding.asset.coingeckoID.flatMap { portfolio.quotes[$0]?.price }
         let amount = model.amount ?? 0
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Revise o envio").typeStyle(.title).foregroundStyle(Palette.ink)
-                Text(Fmt.crypto(amount, decimals: holding.asset.decimals, symbol: holding.asset.symbol, style: .full))
-                    .typeStyle(.figure).foregroundStyle(Palette.ink).padding(.top, Space.lg)
-                if let price {
-                    Text(Fmt.fiat(Fmt.double(amount, decimals: holding.asset.decimals) * price, session.currency))
-                        .typeStyle(.body).foregroundStyle(Palette.inkSoft)
-                }
-                destinationPlate.padding(.top, Space.lg)
                 if let plan = model.plan {
+                    Text(plan.review.title).typeStyle(.title).foregroundStyle(Palette.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let price {
+                        Text("cerca de \(Fmt.fiat(Fmt.double(amount, decimals: holding.asset.decimals) * price, session.currency))")
+                            .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, 2)
+                    }
+                    verbatimPlate(plan).padding(.top, Space.lg)
                     VStack(alignment: .leading, spacing: Space.xs) {
                         ForEach(Array(plan.review.lines.filter { !$0.verbatim }.enumerated()), id: \.offset) { _, line in
                             HStack(alignment: .top) {
@@ -513,7 +561,7 @@ struct SendStages: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Space.sm) {
-                PrimaryButton(title: "Enviar \(Fmt.crypto(amount, decimals: holding.asset.decimals, symbol: holding.asset.symbol))", loading: model.working) {
+                PrimaryButton(title: model.plan?.review.title ?? "Enviar", loading: model.working) {
                     Task { await send() }
                 }
                 if model.isFirstSend {
@@ -526,20 +574,30 @@ struct SendStages: View {
         }
     }
 
-    private var destinationPlate: some View {
+    /// Os valores que se conferem caractere por caractere, exatamente como estao no
+    /// plano: destino, tag, memo, contrato do token.
+    private func verbatimPlate(_ plan: SigningPlan) -> some View {
         VStack(alignment: .leading, spacing: Space.sm) {
-            Text(KnownExchanges.name(for: model.destination?.address ?? "").map { "Para \($0)" } ?? "Para")
-                .typeStyle(.note).foregroundStyle(Palette.plateMuted)
-            AddressBlocks(address: model.destination?.address ?? "", onPlate: true)
-            if !model.tagText.isEmpty {
-                Text(tagNoun.prefix(1).uppercased() + tagNoun.dropFirst())
-                    .typeStyle(.note).foregroundStyle(Palette.plateMuted).padding(.top, Space.xs)
-                Text(verbatim: model.tagText).font(TypeStyle.mono.font).fontWeight(.bold).foregroundStyle(Palette.plateInk)
+            ForEach(Array(plan.review.lines.filter(\.verbatim).enumerated()), id: \.offset) { index, line in
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    Text(line.label == "Para" ? KnownExchanges.name(for: line.value).map { "Para \($0)" } ?? "Para" : line.label)
+                        .typeStyle(.note).foregroundStyle(Palette.plateMuted)
+                    if Self.looksLikeAddress(line.value) {
+                        AddressBlocks(address: line.value, onPlate: true)
+                    } else {
+                        Text(verbatim: line.value).font(TypeStyle.mono.font).fontWeight(.bold).foregroundStyle(Palette.plateInk)
+                    }
+                }
+                .padding(.top, index == 0 ? 0 : Space.xs)
             }
         }
         .padding(Space.base)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(LacquerPlate(cut: 20).fill(Palette.live))
+    }
+
+    static func looksLikeAddress(_ value: String) -> Bool {
+        value.count >= 26 && !value.contains(" ")
     }
 
     private func warnings(_ plan: SigningPlan) -> [String] {
@@ -564,6 +622,10 @@ struct SendStages: View {
 
     private func send() async {
         guard let plan = model.plan, let engine, let chain = model.chain, let holding = model.holding else { return }
+        guard planMatches(plan) else {
+            model.error = "O envio montado não confere com o destino digitado. Nada foi assinado."
+            return
+        }
         guard !plan.isExpired() else {
             model.stage = .amount
             model.error = "Os dados da rede venceram. Revise de novo."
@@ -639,24 +701,6 @@ struct SendStages: View {
             PrimaryButton(title: "Concluir", action: close).padding(.top, Space.sm)
         }
         .sensoryFeedback(.success, trigger: model.stage == .done)
-    }
-}
-
-/// Deteccao de envenenamento de endereco: mesmos 4 primeiros e 4 ultimos
-/// caracteres (depois do prefixo) de um endereco conhecido, com o meio diferente.
-enum AddressPoisoning {
-    static func lookalike(_ address: String, among known: [String]) -> String? {
-        func core(_ text: String) -> String {
-            var body = text.lowercased()
-            for prefix in ["0x", "bc1q", "ltc1q", "bc1p"] where body.hasPrefix(prefix) { body = String(body.dropFirst(prefix.count)) }
-            return body
-        }
-        let target = core(address)
-        guard target.count > 12 else { return nil }
-        return known.first { other in
-            let candidate = core(other)
-            return candidate != target && candidate.prefix(4) == target.prefix(4) && candidate.suffix(4) == target.suffix(4)
-        }
     }
 }
 
