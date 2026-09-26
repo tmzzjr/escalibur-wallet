@@ -1,3 +1,4 @@
+import EscaliburCore
 import Foundation
 
 /// A familia de uma rede: decide curva, formato de endereco e de transacao.
@@ -10,7 +11,7 @@ public enum ChainFamily: String, Codable, Sendable, CaseIterable {
     case tron
     case ton
 
-    public var curve: HDKey.Curve {
+    public var curve: Curve {
         switch self {
         case .utxo, .evm, .xrpl, .tron: return .secp256k1
         case .solana, .stellar, .ton: return .ed25519

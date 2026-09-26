@@ -1,3 +1,5 @@
+import EscaliburChains
+import EscaliburCore
 import Foundation
 
 /// Uma chave estendida privada: 32 bytes de chave e 32 de chain code, os dois em
@@ -6,26 +8,13 @@ import Foundation
 /// O chain code nao e segredo sozinho, mas junto de uma chave filha nao endurecida
 /// ele reconstroi a chave mae. Por isso mora na mesma regiao zeravel que a chave.
 public final class HDKey: @unchecked Sendable {
-    public enum Curve: Sendable {
-        /// BIP-32 sobre secp256k1.
-        case secp256k1
-        /// SLIP-10 sobre Ed25519: so derivacao endurecida existe.
-        case ed25519
-
-        var hmacKey: [UInt8] {
-            switch self {
-            case .secp256k1: return Array("Bitcoin seed".utf8)
-            case .ed25519: return Array("ed25519 seed".utf8)
-            }
-        }
-    }
-
     public enum Failure: Error, Equatable {
         case invalidSeed
         case nonHardenedEd25519
         case invalidChild(UInt32)
     }
 
+    /// BIP-32 sobre secp256k1; SLIP-10 sobre Ed25519 (so derivacao endurecida).
     public let curve: Curve
     /// A chave privada (32 bytes).
     public let key: SecureBytes
@@ -54,7 +43,8 @@ public final class HDKey: @unchecked Sendable {
 
     public static func master(seed: SecureBytes, curve: Curve) throws -> HDKey {
         guard (16...64).contains(seed.count) else { throw Failure.invalidSeed }
-        let i = Hash.hmacSHA512(key: curve.hmacKey, secureData: seed)
+        let hmacKey = curve == .secp256k1 ? Array("Bitcoin seed".utf8) : Array("ed25519 seed".utf8)
+        let i = Hash.hmacSHA512(key: hmacKey, secureData: seed)
         defer { i.wipe() }
         let (key, chain) = split(i)
         if curve == .secp256k1, !Secp256k1.isValidPrivateKey(key) {
@@ -152,7 +142,7 @@ public final class HDKey: @unchecked Sendable {
 
     /// Serializacao xprv. Existe para os vetores oficiais do BIP-32 e so para eles:
     /// nenhuma tela do app exibe ou exporta chave privada estendida.
-    func extendedPrivateKeyForTesting() -> String {
+    package func extendedPrivateKeyForTesting() -> String {
         var payload: [UInt8] = [0x04, 0x88, 0xAD, 0xE4]
         payload.append(depth)
         payload += parentFingerprint

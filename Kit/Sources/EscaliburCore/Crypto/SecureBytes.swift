@@ -37,7 +37,7 @@ public final class SecureBytes: @unchecked Sendable {
     private let base: UnsafeMutableRawPointer
 
     public let capacity: Int
-    private(set) var count: Int = 0
+    public private(set) var count: Int = 0
 
     private var wiped = false
 
@@ -114,6 +114,16 @@ public final class SecureBytes: @unchecked Sendable {
         memset_s(base, capacity, 0, capacity)
         count = 0
         bytes.withUnsafeBufferPointer { append(contentsOf: $0) }
+    }
+
+    /// Deixa uma funcao C escrever `count` bytes direto na regiao, sem copia
+    /// intermediaria. O conteudo anterior e apagado antes.
+    public func fill(count: Int, _ body: (UnsafeMutableRawPointer) -> Void) {
+        rearm()
+        precondition(count <= capacity, "SecureBytes: capacidade estourada")
+        memset_s(base, capacity, 0, capacity)
+        body(base)
+        self.count = count
     }
 
     // MARK: Leitura

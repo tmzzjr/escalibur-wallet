@@ -27,7 +27,8 @@ struct EnvelopeTests {
         let opened = try Envelope.open(data, password: Self.secure("senha longa de teste"))
         #expect(opened.phrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) } == Self.phrase)
         #expect(opened.label == "Principal")
-        #expect(throws: CryptoError.cannotOpen) {
+        #expect(opened.passphrase.count == 0)
+        #expect(throws: Envelope.Failure.cannotOpen) {
             try Envelope.open(data, password: Self.secure("senha errada"))
         }
     }
@@ -42,6 +43,30 @@ struct EnvelopeTests {
         let opened = try Envelope.open(data, password: Self.secure("cavalo correto bateria grampo"))
         #expect(opened.phrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) } == Self.phrase)
         #expect(opened.label == "Interoperabilidade")
+    }
+
+    @Test("Envelope lacrado por implementacao independente (tools/lacrar-referencia.py)")
+    func independentSealer() throws {
+        let url = try #require(Bundle.module.url(forResource: "referencia-python", withExtension: "esclbr", subdirectory: "Fixtures"))
+        let opened = try Envelope.open(try Data(contentsOf: url), password: Self.secure("senha de referencia em python"))
+        #expect(opened.phrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) } == "legal winner thank year wave sausage worth useful legal winner thank yellow")
+        #expect(opened.passphrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) } == "TREZOR")
+        #expect(opened.label == "Lacrado em Python")
+        // A 25a palavra honrada: a seed tem de ser a do vetor oficial com "TREZOR".
+        let seed = try BIP39.seed(phrase: opened.phrase, passphrase: "TREZOR")
+        #expect(seed.withUnsafeBytes { Array($0) }.hex == "2e8905819b8723fe2c1d161860e5ee1830318dbf49a83bd451cfb8440c28bd6fa457fe1296106559a3c80937a1c1069be3a3a5bd381ee6260e8d9739fce1f607")
+    }
+
+    @Test("Arquivo hostil: tamanho e cabecalho recusados antes de derivar")
+    func hostileFile() {
+        #expect(throws: Envelope.Failure.notAnEnvelope) { try Envelope.inspect(Data(repeating: 0, count: 100)) }
+        #expect(throws: Envelope.Failure.notAnEnvelope) { try Envelope.inspect(Data(repeating: 0, count: 16_504)) }
+    }
+
+    @Test("Nome vindo de arquivo alheio perde controles bidirecionais")
+    func sanitize() {
+        #expect(Envelope.sanitize("Carteira\u{202E}lanigiro", limit: 64) == "Carteiralanigiro")
+        #expect(Envelope.sanitize(String(repeating: "a", count: 100), limit: 64).count == 64)
     }
 
     /// Gera a fixture. Roda so com ESCALIBUR_GERAR_FIXTURE=1, e o arquivo gerado e

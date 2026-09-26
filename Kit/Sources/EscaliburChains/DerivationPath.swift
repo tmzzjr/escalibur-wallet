@@ -1,3 +1,4 @@
+import EscaliburCore
 import Foundation
 
 /// Um caminho de derivacao como `m/44'/60'/0'/0/0`.

@@ -557,6 +557,29 @@ public enum VaultFile {
         password: SecureBytes,
         bindingSecret: SecureBytes? = nil
     ) throws -> Opened {
+        let raw = try openBlock(data, password: password, bindingSecret: bindingSecret)
+        defer { raw.block.wipe() }
+        let bytes = raw.block.withUnsafeBytes { Array($0) }
+        var clearable = bytes
+        defer { clearable.resetBytes() }
+        guard let contents = try? VaultContents.decode(clearable) else { throw CryptoError.cannotOpen }
+        return Opened(contents: contents, slotIndex: raw.slotIndex, header: raw.header)
+    }
+
+    /// O bloco decifrado de um compartimento, ainda em buffer seguro.
+    ///
+    /// E a abertura de verdade. `open` decodifica o bloco para `String` (o caminho do
+    /// Escalibur, que exibe a frase); a carteira usa este e decodifica direto para
+    /// `SecureBytes` (`OpeningContents`), porque importar nao pode deixar a frase no
+    /// heap pela vida do processo.
+    ///
+    /// **Os quatro compartimentos sao sempre tentados, na mesma ordem, mesmo depois de
+    /// um abrir.** Parar no primeiro entregaria pelo relogio quantos estao em uso.
+    public static func openBlock(
+        _ data: Data,
+        password: SecureBytes,
+        bindingSecret: SecureBytes? = nil
+    ) throws -> (block: SecureBytes, slotIndex: Int, header: VaultFormat.Header_) {
         let file = [UInt8](data)
         guard file.count == VaultFormat.fileLength else {
             throw CryptoError.malformedVault("arquivo com tamanho fora do formato")
@@ -564,10 +587,6 @@ public enum VaultFile {
         let header = try VaultFormat.Header_.decode(file)
         let headerBytes = Array(file[0..<VaultFormat.headerLength])
 
-        // O cabecalho que exige vinculo com o aparelho nao abre sem o segredo do
-        // vinculo. Sem esta guarda, a abertura ignorava `header.binding`, tentava so
-        // com a senha e falhava com "nao foi possivel abrir": indistinguivel de senha
-        // errada, no unico caso em que o motivo e outro e o dono precisa sabe-lo.
         if header.binding == .secureEnclave, bindingSecret == nil {
             throw CryptoError.malformedVault(
                 "este cofre está vinculado a um aparelho, e este app ainda não sabe reproduzir o vínculo"
@@ -581,25 +600,15 @@ public enum VaultFile {
         )
         defer { masterKey.wipe() }
 
-        var found: Opened?
+        var found: (SecureBytes, Int)?
 
         for slotIndex in 0..<VaultFormat.slotCount {
             let base = VaultFormat.headerLength + slotIndex * VaultFormat.slotLength
-            let slotSalt = Array(
-                file[(base + VaultFormat.Slot.salt)..<(base + VaultFormat.Slot.salt + 32)]
-            )
-            let wrapSalt = Array(
-                file[(base + VaultFormat.Slot.wrapSalt)..<(base + VaultFormat.Slot.wrapSalt + 32)]
-            )
-            let wrappedDEK = Array(
-                file[(base + VaultFormat.Slot.wrappedDEK)..<(base + VaultFormat.Slot.wrappedDEK + 48)]
-            )
-            let payloadSalt = Array(
-                file[(base + VaultFormat.Slot.payloadSalt)..<(base + VaultFormat.Slot.payloadSalt + 32)]
-            )
-            let payload = Array(
-                file[(base + VaultFormat.Slot.payload)..<(base + VaultFormat.slotLength)]
-            )
+            let slotSalt = Array(file[(base + VaultFormat.Slot.salt)..<(base + VaultFormat.Slot.salt + 32)])
+            let wrapSalt = Array(file[(base + VaultFormat.Slot.wrapSalt)..<(base + VaultFormat.Slot.wrapSalt + 32)])
+            let wrappedDEK = Array(file[(base + VaultFormat.Slot.wrappedDEK)..<(base + VaultFormat.Slot.wrappedDEK + 48)])
+            let payloadSalt = Array(file[(base + VaultFormat.Slot.payloadSalt)..<(base + VaultFormat.Slot.payloadSalt + 32)])
+            let payload = Array(file[(base + VaultFormat.Slot.payload)..<(base + VaultFormat.slotLength)])
 
             let kek = VaultFormat.encryptionKey(
                 masterKey: masterKey,
@@ -625,13 +634,9 @@ public enum VaultFile {
             }
 
             let payloadAAD = aadForPayload(
-                header: headerBytes,
-                slotIndex: slotIndex,
-                slotSalt: slotSalt,
-                wrapSalt: wrapSalt,
-                wrappedDEK: wrappedDEK
+                header: headerBytes, slotIndex: slotIndex, slotSalt: slotSalt,
+                wrapSalt: wrapSalt, wrappedDEK: wrappedDEK
             )
-            // O `Data` da DEK desembrulhada vira chave e e zerado na saida do escopo.
             var dekBytes = [UInt8](dekData)
             defer { dekBytes.resetBytes() }
             let payloadKey = VaultFormat.messageKey(
@@ -653,25 +658,22 @@ public enum VaultFile {
             else {
                 continue
             }
-            // O `blockData` que sai do ChaChaPoly carrega a frase em claro e nunca era
-            // zerado: so a copia em `block` era. Agora as duas somem.
-            var block = Array(blockData)
             var clearable = blockData
             defer {
-                block.resetBytes()
                 clearable.withUnsafeMutableBytes { raw in
                     guard let address = raw.baseAddress else { return }
                     memset_s(address, raw.count, 0, raw.count)
                 }
             }
-
-            if found == nil, let contents = try? VaultContents.decode(block) {
-                found = Opened(contents: contents, slotIndex: slotIndex, header: header)
+            if found == nil {
+                let block = SecureBytes(capacity: VaultFormat.plaintextLength)
+                clearable.withUnsafeBytes { block.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
+                found = (block, slotIndex)
             }
         }
 
         guard let found else { throw CryptoError.cannotOpen }
-        return found
+        return (found.0, found.1, header)
     }
 
     // MARK: Dados autenticados

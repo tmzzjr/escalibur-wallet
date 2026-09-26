@@ -41,35 +41,46 @@ public enum Hash {
         ripemd160(sha256(bytes))
     }
 
+    // MARK: HMAC
+    //
+    // HMAC sempre pelo CommonCrypto, escrevendo direto no destino. O
+    // `HashedAuthenticationCode` do CryptoKit nao tem endereco para zerar, e na
+    // derivacao BIP-32 a saida do HMAC E a chave privada filha.
+
     public static func hmacSHA512(key: [UInt8], data: [UInt8]) -> [UInt8] {
-        Array(HMAC<SHA512>.authenticationCode(for: data, using: SymmetricKey(data: key)))
-    }
-
-    public static func hmacSHA256(key: [UInt8], data: [UInt8]) -> [UInt8] {
-        Array(HMAC<SHA256>.authenticationCode(for: data, using: SymmetricKey(data: key)))
-    }
-
-    /// HMAC-SHA512 com a chave e a mensagem vindo de buffers seguros, e a saida
-    /// escrita direto num `SecureBytes`. E o passo de derivacao BIP-32 e SLIP-10.
-    public static func hmacSHA512(key: [UInt8], secureData: SecureBytes) -> SecureBytes {
-        let out = SecureBytes(capacity: 64)
-        let code = secureData.withUnsafeBytes { raw in
-            HMAC<SHA512>.authenticationCode(for: raw, using: SymmetricKey(data: key))
-        }
-        code.withUnsafeBytes { raw in
-            out.append(contentsOf: raw.bindMemory(to: UInt8.self))
-        }
+        var out = [UInt8](repeating: 0, count: 64)
+        CCHmac(CCHmacAlgorithm(kCCHmacAlgSHA512), key, key.count, data, data.count, &out)
         return out
     }
 
-    public static func hmacSHA512(secureKey: SecureBytes, secureData: SecureBytes) -> SecureBytes {
-        let out = SecureBytes(capacity: 64)
-        let key = secureKey.withUnsafeBytes { SymmetricKey(data: $0) }
-        let code = secureData.withUnsafeBytes { raw in
-            HMAC<SHA512>.authenticationCode(for: raw, using: key)
+    public static func hmacSHA256(key: [UInt8], data: [UInt8]) -> [UInt8] {
+        var out = [UInt8](repeating: 0, count: 32)
+        CCHmac(CCHmacAlgorithm(kCCHmacAlgSHA256), key, key.count, data, data.count, &out)
+        return out
+    }
+
+    /// HMAC-SHA512 com chave publica e mensagem secreta; saida em buffer seguro.
+    public static func hmacSHA512(key: [UInt8], secureData: SecureBytes) -> SecureBytes {
+        key.withUnsafeBytes { keyRaw in
+            secureData.withUnsafeBytes { dataRaw in
+                hmacSHA512Raw(key: keyRaw, data: dataRaw)
+            }
         }
-        code.withUnsafeBytes { raw in
-            out.append(contentsOf: raw.bindMemory(to: UInt8.self))
+    }
+
+    /// HMAC-SHA512 com chave e mensagem secretas; saida em buffer seguro.
+    public static func hmacSHA512(secureKey: SecureBytes, secureData: SecureBytes) -> SecureBytes {
+        secureKey.withUnsafeBytes { keyRaw in
+            secureData.withUnsafeBytes { dataRaw in
+                hmacSHA512Raw(key: keyRaw, data: dataRaw)
+            }
+        }
+    }
+
+    private static func hmacSHA512Raw(key: UnsafeRawBufferPointer, data: UnsafeRawBufferPointer) -> SecureBytes {
+        let out = SecureBytes(capacity: 64)
+        out.fill(count: 64) { destination in
+            CCHmac(CCHmacAlgorithm(kCCHmacAlgSHA512), key.baseAddress, key.count, data.baseAddress, data.count, destination)
         }
         return out
     }
@@ -77,23 +88,26 @@ public enum Hash {
     /// PBKDF2-HMAC-SHA512. A senha entra e o resultado sai em buffer seguro.
     public static func pbkdf2SHA512(password: SecureBytes, salt: [UInt8], rounds: UInt32, length: Int) throws -> SecureBytes {
         let out = SecureBytes(capacity: length)
-        var scratch = [UInt8](repeating: 0, count: length)
-        defer { scratch.resetBytes() }
-        let status = password.withUnsafeBytes { raw in
-            CCKeyDerivationPBKDF(
-                CCPBKDFAlgorithm(kCCPBKDF2),
-                raw.baseAddress?.assumingMemoryBound(to: CChar.self),
-                raw.count,
-                salt,
-                salt.count,
-                CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA512),
-                rounds,
-                &scratch,
-                length
-            )
+        var status: Int32 = 0
+        password.withUnsafeBytes { raw in
+            out.fill(count: length) { destination in
+                status = CCKeyDerivationPBKDF(
+                    CCPBKDFAlgorithm(kCCPBKDF2),
+                    raw.baseAddress?.assumingMemoryBound(to: CChar.self),
+                    raw.count,
+                    salt,
+                    salt.count,
+                    CCPseudoRandomAlgorithm(kCCPRFHmacAlgSHA512),
+                    rounds,
+                    destination.assumingMemoryBound(to: UInt8.self),
+                    length
+                )
+            }
         }
-        guard status == kCCSuccess else { throw CryptoError.keyDerivationFailed(code: Int32(status)) }
-        out.replaceAll(with: scratch)
+        guard status == kCCSuccess else {
+            out.wipe()
+            throw CryptoError.keyDerivationFailed(code: status)
+        }
         return out
     }
 

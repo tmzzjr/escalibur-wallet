@@ -54,6 +54,41 @@ public enum BIP39 {
         return out
     }
 
+    /// O caminho inverso: a entropia de uma frase valida, em buffer seguro.
+    ///
+    /// A carteira guarda a entropia (16 a 32 bytes) e nao as palavras. A frase e a
+    /// seed sao reconstruidas quando preciso, e a entropia e o menor segredo que
+    /// reconstroi as duas.
+    public static func entropy(fromPhrase phrase: SecureBytes, language: BIP39Language, store: WordlistStore = .shared) throws -> SecureBytes {
+        let list = try store.wordlist(for: language)
+        var text = phrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }
+        defer { text = "" }
+        let words = text.split(separator: " ").map(String.init)
+        guard Mnemonic.validWordCounts.contains(words.count) else {
+            throw CryptoError.malformedVault("tamanho de frase fora do padrão")
+        }
+        var bits = [UInt8]()
+        defer { bits.resetBytes() }
+        for word in words {
+            guard let index = list.position(of: word) else { throw CryptoError.malformedVault("palavra fora da lista") }
+            for b in (0..<11).reversed() { bits.append(UInt8((Int(index) >> b) & 1)) }
+        }
+        let entropyBits = words.count * 32 / 3
+        let out = SecureBytes(capacity: entropyBits / 8)
+        for byteIndex in 0..<(entropyBits / 8) {
+            var byte: UInt8 = 0
+            for b in 0..<8 { byte = byte << 1 | bits[byteIndex * 8 + b] }
+            out.append(byte)
+        }
+        // O checksum precisa fechar: entropia de frase invalida nao sai daqui.
+        let digest = out.withUnsafeBytes { Array(SHA256.hash(data: $0)) }
+        for i in 0..<(entropyBits / 32) where bits[entropyBits + i] != (digest[i / 8] >> (7 - i % 8)) & 1 {
+            out.wipe()
+            throw CryptoError.malformedVault("checksum da frase não fecha")
+        }
+        return out
+    }
+
     /// A seed de 64 bytes: PBKDF2-HMAC-SHA512(frase NFKD, "mnemonic" + passphrase NFKD, 2048).
     ///
     /// `phrase` precisa ja estar na forma canonica de `Mnemonic.canonicalize`. A

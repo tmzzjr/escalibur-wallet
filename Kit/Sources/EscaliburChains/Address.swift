@@ -1,3 +1,4 @@
+import EscaliburCore
 import Foundation
 
 /// Derivacao e validacao de endereco, por familia de rede.
@@ -10,8 +11,9 @@ public enum Address {
 
     public enum Problem: Error, Equatable, Sendable {
         case empty
-        /// O texto e um endereco valido, mas de outra familia de rede.
-        case otherNetwork(ChainFamily)
+        /// O texto e um endereco valido, mas de outra rede. Para EVM, a rede
+        /// representante e a Ethereum: o mesmo endereco vale em todas.
+        case otherNetwork(Chain)
         /// O checksum nao fecha: letra trocada ou endereco truncado.
         case badChecksum
         case malformed
@@ -24,6 +26,11 @@ public enum Address {
     public struct Destination: Equatable, Sendable {
         public let address: String
         public let tag: UInt64?
+
+        public init(address: String, tag: UInt64?) {
+            self.address = address
+            self.tag = tag
+        }
     }
 
     // MARK: Derivacao a partir da chave publica
@@ -93,21 +100,22 @@ public enum Address {
         case .ton: result = TONAddress.validate(text)
         }
         if case .failure(let problem) = result, problem == .malformed || problem == .badChecksum,
-           let other = guessFamily(text), other != chain.family {
+           let other = guessChain(text), other.id != chain.id, !(other.family == .evm && chain.family == .evm) {
             return .failure(.otherNetwork(other))
         }
         return result
     }
 
-    /// Adivinha a familia de um texto que parece endereco. So para a mensagem de
-    /// erro: nunca decide para onde o dinheiro vai.
-    public static func guessFamily(_ text: String) -> ChainFamily? {
-        if case .success = validateEVM(text) { return .evm }
+    /// Adivinha a rede de um texto que parece endereco. So para a mensagem de erro
+    /// e para detectar a rede ao observar um endereco: nunca decide sozinho para
+    /// onde o dinheiro vai.
+    public static func guessChain(_ text: String) -> Chain? {
+        if case .success = validateEVM(text) { return .ethereum }
         if case .success = validateTron(text) { return .tron }
         if case .success = XRPLAddress.validate(text) { return .xrpl }
         if case .success = StellarKey.validateDestination(text) { return .stellar }
         for chain in [Chain.bitcoin, .litecoin, .dogecoin] {
-            if case .success = validateUTXO(text, chain: chain) { return .utxo }
+            if case .success = validateUTXO(text, chain: chain) { return chain }
         }
         if case .success = TONAddress.validate(text) { return .ton }
         if case .success = validateSolana(text) { return .solana }
@@ -192,6 +200,15 @@ public enum XRPLAddress {
             return nil
         }
         return Array(payload.dropFirst())
+    }
+
+    /// Codifica um X-address da rede principal (XLS-5d): a conta e a tag juntas.
+    public static func xAddress(classic: String, tag: UInt32?) -> String? {
+        guard let account = accountID(classic) else { return nil }
+        var payload: [UInt8] = [0x05, 0x44] + account
+        payload.append(tag == nil ? 0 : 1)
+        payload += (tag ?? 0).littleEndianByteArray + [0, 0, 0, 0]
+        return Base58.ripple.encodeCheck(payload)
     }
 
     static func validate(_ text: String) -> Result<Address.Destination, Address.Problem> {

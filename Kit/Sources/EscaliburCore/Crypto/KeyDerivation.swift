@@ -175,6 +175,38 @@ public enum KDFCalibration {
     /// caminho no app para re-derivar depois.
     public static let sealFloorKiB: UInt32 = 256 * 1024
 
+    /// Memoria disponivel ao processo agora, em bytes. No iOS e o teto do jetsam.
+    public static func availableMemoryBytes() -> UInt64 {
+        #if os(iOS)
+        return UInt64((0..<3).map { _ in os_proc_available_memory() }.max() ?? 0)
+        #else
+        return ProcessInfo.processInfo.physicalMemory / 2
+        #endif
+    }
+
+    /// Custo medido deste aparelho, em segundos por KiB por passe. Medido uma vez,
+    /// com uma derivacao pequena, e reaproveitado.
+    private static let unitCost: Double = {
+        let probeMemory: UInt32 = 64 * 1024
+        let probe = SecureBytes(capacity: 16)
+        probe.replaceAll(with: [UInt8](repeating: 0x61, count: 16))
+        defer { probe.wipe() }
+        let salt = [UInt8](repeating: 0x00, count: VaultFormat.saltLength)
+        let started = Date()
+        _ = try? KeyDerivation.deriveMasterKey(
+            password: probe, salt: salt,
+            parameters: KDFParameters(memoryKiB: probeMemory, passes: 2, lanes: lanes)
+        )
+        return Date().timeIntervalSince(started) / (Double(probeMemory) * 2)
+    }()
+
+    /// Quanto uma derivacao com estes parametros leva neste aparelho. A interface usa
+    /// para avisar antes de abrir um envelope caro vindo de fora.
+    public static func estimatedSeconds(for parameters: KDFParameters) -> Double {
+        let laneFactor = Double(lanes) / Double(max(1, min(Int(parameters.lanes), Int(lanes))))
+        return unitCost * Double(parameters.memoryKiB) * Double(parameters.passes) * laneFactor
+    }
+
     public static func memoryCeilingKiB() -> UInt32 {
         let physical = ProcessInfo.processInfo.physicalMemory
         // Tres medidas, vale a maior: uma so pode cair num vale transitorio.

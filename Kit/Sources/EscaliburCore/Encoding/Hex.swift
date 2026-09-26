@@ -57,7 +57,7 @@ public extension Data {
     var hex: String { Hex.encode(self) }
 }
 
-extension FixedWidthInteger {
+public extension FixedWidthInteger {
     /// Os bytes do inteiro em big-endian, do tamanho do tipo.
     var bigEndianByteArray: [UInt8] {
         withUnsafeBytes(of: self.bigEndian) { Array($0) }

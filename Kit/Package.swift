@@ -2,12 +2,16 @@
 //
 // O nucleo da Escalibur Wallet.
 //
-// Dois modulos Swift, com uma fronteira que e verificada por script:
+// Quatro modulos Swift, com fronteiras verificadas por script (tools/verificar.sh):
 //
-//   EscaliburCore     chaves, assinatura, codificacao das redes, envelope .esclbr.
-//                     Nao tem codigo de rede. Nada que sai daqui toca a internet.
-//   EscaliburNetwork  provedores, RPC, precos, cotacoes de swap. Nunca ve seed,
-//                     chave privada, PIN ou senha: recebe e devolve dados publicos.
+//   EscaliburCore     primitivas: buffer seguro, hashes, curvas, Argon2id, BIP-39,
+//                     codificacoes e o envelope .esclbr compartilhado com o Escalibur.
+//   EscaliburChains   as redes: enderecos, transacoes, validacao do que se assina.
+//                     Puro: sem rede e sem chave privada. Diz O QUE assinar.
+//   EscaliburKeys     chaveiro, Secure Enclave, derivacao privada e o assinador, que
+//                     so aceita um plano validado por EscaliburChains.
+//   EscaliburNetwork  provedores, RPC, precos, cotacoes. Nunca ve seed, chave, PIN
+//                     ou senha, e nunca importa EscaliburKeys.
 //
 // As duas bibliotecas em C sao compiladas do fonte, dentro do repositorio, e
 // travadas por digesto (secp256k1.lock, argon2.lock). Nenhum pacote remoto.
@@ -18,6 +22,8 @@ let package = Package(
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "EscaliburCore", targets: ["EscaliburCore"]),
+        .library(name: "EscaliburChains", targets: ["EscaliburChains"]),
+        .library(name: "EscaliburKeys", targets: ["EscaliburKeys"]),
         .library(name: "EscaliburNetwork", targets: ["EscaliburNetwork"]),
     ],
     targets: [
@@ -57,8 +63,18 @@ let package = Package(
             resources: [.copy("Resources/Wordlists")]
         ),
         .target(
-            name: "EscaliburNetwork",
+            name: "EscaliburChains",
             dependencies: ["EscaliburCore"],
+            path: "Sources/EscaliburChains"
+        ),
+        .target(
+            name: "EscaliburKeys",
+            dependencies: ["EscaliburCore", "EscaliburChains"],
+            path: "Sources/EscaliburKeys"
+        ),
+        .target(
+            name: "EscaliburNetwork",
+            dependencies: ["EscaliburCore", "EscaliburChains"],
             path: "Sources/EscaliburNetwork"
         ),
         .testTarget(
@@ -66,6 +82,17 @@ let package = Package(
             dependencies: ["EscaliburCore"],
             path: "Tests/EscaliburCoreTests",
             resources: [.copy("Fixtures")]
+        ),
+        .testTarget(
+            name: "EscaliburChainsTests",
+            dependencies: ["EscaliburChains"],
+            path: "Tests/EscaliburChainsTests",
+            resources: [.copy("Fixtures")]
+        ),
+        .testTarget(
+            name: "EscaliburKeysTests",
+            dependencies: ["EscaliburKeys"],
+            path: "Tests/EscaliburKeysTests"
         ),
         .testTarget(
             name: "EscaliburNetworkTests",
