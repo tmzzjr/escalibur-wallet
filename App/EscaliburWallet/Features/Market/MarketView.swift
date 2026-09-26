@@ -98,14 +98,17 @@ struct MarketRow: View {
                 Text(coin.marketCap.map { Fmt.compact($0, currency) } ?? coin.name)
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft)
             }
+            .layoutPriority(0)
             Spacer(minLength: Space.xs)
             Sparkline(values: coin.sparkline, up: (coin.change24h ?? 0) >= 0)
-                .frame(width: 64, height: 24)
+                .frame(width: 52, height: 24)
             VStack(alignment: .trailing, spacing: 4) {
                 Text(Fmt.price(coin.price, currency)).typeStyle(.row).foregroundStyle(Palette.ink)
+                    .lineLimit(1).minimumScaleFactor(0.75)
                 ChangePill(change: coin.change24h)
             }
-            .frame(minWidth: 96, alignment: .trailing)
+            .frame(width: 118, alignment: .trailing)
+            .layoutPriority(1)
         }
         .padding(.horizontal, Space.gutter)
         .frame(height: Height.row + 8)
