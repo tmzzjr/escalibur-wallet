@@ -1,25 +1,620 @@
+import EscaliburChains
+import EscaliburCore
+import EscaliburKeys
+import EscaliburNetwork
 import SwiftUI
 
-/// T1: Trocar. O motor de cotacao e a validacao entram com a camada de troca.
+/// O estado da aba Trocar.
+@MainActor
+@Observable
+final class TradeModel {
+    var chain: Chain = .base
+    var sell: Asset?
+    var buy: Asset?
+    var amountText = ""
+    var slippageBps = 50
+    var automaticSlippage = true
+    var quote: TradeQuote?
+    var quoting = false
+    var error: String?
+    var nextRefresh = 15
+    var acceptedHighImpact = false
+    var invertedRate = false
+    var showDetails = false
+
+    // Ordem limite
+    var targetPriceText = ""
+    var validFor: TimeInterval = 7 * 86_400
+
+    var amountIn: BigUInt? {
+        guard let sell else { return nil }
+        return Fmt.parseAmount(amountText, decimals: sell.decimals)
+    }
+
+    func reset(to chain: Chain) {
+        self.chain = chain
+        sell = .native(chain)
+        buy = TokenRegistry.tokens.first { $0.chainID == chain.id && $0.isStablecoin }
+        quote = nil
+        error = nil
+        amountText = ""
+    }
+}
+
+/// T1 e L1: trocar agora ou por ordem limite, dentro de uma rede.
 struct TradeView: View {
+    @Environment(AppSession.self) private var session
+    @Environment(Portfolio.self) private var portfolio
     @Environment(Router.self) private var router
+    @State private var model = TradeModel()
+    @State private var picking: Side?
+    @State private var slippageSheet = false
+    @State private var routeSheet = false
+    @State private var reviewing = false
+
+    enum Side: Identifiable { case sell, buy; var id: Self { self } }
+
+    private var engine: (any TradeEngine)? { TradeEngines.engine(for: model.chain) }
+    private var tradeChains: [Chain] { [.base, .ethereum, .arbitrum, .optimism, .polygon, .bnb, .avalanche, .solana, .xrpl, .stellar] }
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Trocar").typeStyle(.title).foregroundStyle(Palette.ink)
-                Picker("", selection: Bindable(router).tradeMode) {
-                    Text("Agora").tag(Router.TradeMode.now)
-                    Text("Ordem limite").tag(Router.TradeMode.limit)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Text("Trocar").typeStyle(.title).foregroundStyle(Palette.ink)
+                        Spacer()
+                        Button { slippageSheet = true } label: {
+                            Image(systemName: "slider.horizontal.3").font(.system(size: 17, weight: .medium)).foregroundStyle(Palette.inkSoft)
+                                .frame(width: Height.touch, height: Height.touch)
+                        }
+                        .accessibilityLabel("Tolerância de preço")
+                    }
+                    modePicker.padding(.top, Space.sm)
+                    chainChips.padding(.top, Space.md)
+                    if session.selectedWallet?.isWatchOnly == true {
+                        Banner(kind: .neutral, title: "Esta carteira só observa. Escolha outra carteira para trocar.").padding(.top, Space.md)
+                    }
+                    if router.tradeMode == .now { nowForm.padding(.top, Space.md) } else { limitForm.padding(.top, Space.md) }
                 }
-                .pickerStyle(.segmented)
-                .padding(.top, Space.md)
-                Spacer()
+                .padding(.horizontal, Space.gutter)
+                .padding(.top, Space.xs)
+                .padding(.bottom, Space.xl)
             }
-            .padding(.horizontal, Space.gutter)
-            .padding(.top, Space.xs)
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom) { footer }
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
         }
+        .onAppear { if model.sell == nil { model.reset(to: .base) } }
+        .sheet(item: $picking) { side in
+            TokenPickerSheet(chain: model.chain, exclude: side == .sell ? model.buy : model.sell) { asset in
+                if side == .sell { model.sell = asset } else { model.buy = asset }
+                model.quote = nil
+                picking = nil
+            }
+        }
+        .sheet(isPresented: $slippageSheet) { SlippageSheet(model: model) }
+        .sheet(isPresented: $routeSheet) { if let quote = model.quote { RouteSheet(quote: quote) } }
+        .task(id: quoteKey) { await refreshQuote() }
+    }
+
+    private var quoteKey: String {
+        "\(model.chain.id)|\(model.sell?.id ?? "")|\(model.buy?.id ?? "")|\(model.amountText)|\(model.slippageBps)|\(router.tradeMode == .now)"
+    }
+
+    // MARK: Cabecalho
+
+    private var modePicker: some View {
+        HStack(spacing: 0) {
+            ForEach([(Router.TradeMode.now, "Agora"), (.limit, "Ordem limite")], id: \.0) { mode, title in
+                Button { withAnimation(Motion.select) { router.tradeMode = mode } } label: {
+                    Text(title).typeStyle(.label)
+                        .foregroundStyle(router.tradeMode == mode ? Palette.ink : Palette.inkMuted)
+                        .frame(maxWidth: .infinity).frame(height: 36)
+                        .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(router.tradeMode == mode ? Palette.rail : .clear))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(2)
+        .background(RoundedRectangle(cornerRadius: Radius.track, style: .continuous).fill(Palette.body))
+        .sensoryFeedback(.selection, trigger: router.tradeMode)
+    }
+
+    private var chainChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Space.xs) {
+                ForEach(tradeChains) { chain in
+                    Button { model.reset(to: chain) } label: {
+                        HStack(spacing: 6) {
+                            NetworkBadge(chain: chain, size: 18, ring: .clear)
+                            Text(chain.name).typeStyle(.label)
+                        }
+                        .foregroundStyle(model.chain == chain ? Palette.ink : Palette.inkSoft)
+                        .padding(.horizontal, Space.sm).frame(height: Height.chip)
+                        .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                            .fill(model.chain == chain ? Palette.control : Palette.body)
+                            .overlay(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).stroke(model.chain == chain ? Palette.edgeStrong : Palette.edge, lineWidth: 1)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    // MARK: Agora
+
+    private var nowForm: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack {
+                VStack(spacing: 4) {
+                    AmountBox(title: "Você paga", asset: model.sell, amount: $model.amountText, balance: balance(model.sell),
+                              fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
+                              onPick: { picking = .sell }, onFraction: setFraction)
+                    AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(receiveText), balance: balance(model.buy),
+                              fiat: fiat(model.quote?.expectedOut, model.buy), editable: false, over: false,
+                              onPick: { picking = .buy }, onFraction: nil)
+                }
+                Button(action: flip) {
+                    Image(systemName: "arrow.up.arrow.down").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Palette.rail))
+                        .overlay(Circle().stroke(Palette.void, lineWidth: 4))
+                }
+                .sensoryFeedback(.impact(weight: .light), trigger: model.sell?.id)
+                .accessibilityLabel("Inverter")
+            }
+
+            quoteLines.padding(.top, Space.md)
+        }
+    }
+
+    private var receiveText: String {
+        guard let quote = model.quote, let buy = model.buy else { return "" }
+        return Fmt.plainDecimal(quote.expectedOut, decimals: buy.decimals)
+    }
+
+    @ViewBuilder
+    private var quoteLines: some View {
+        if let quote = model.quote, let sell = model.sell, let buy = model.buy {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Button { model.invertedRate.toggle() } label: {
+                    Text(rateText(quote, sell: sell, buy: buy)).typeStyle(.note).foregroundStyle(Palette.ink)
+                }
+                .buttonStyle(.plain)
+                Button { routeSheet = true } label: {
+                    HStack(spacing: 4) {
+                        Text(quote.legs.count > 1
+                             ? "Dividida entre \(quote.legs.count) provedores para você receber mais"
+                             : "Melhor preço entre \(quote.providersCompared) provedores: \(quote.legs.first?.provider ?? "")")
+                            .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        Text("Ver rota").typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.ink)
+                    }
+                }
+                .buttonStyle(.plain)
+                Text(feeText(quote)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                impactLine(quote)
+                Button { withAnimation(Motion.flip) { model.showDetails.toggle() } } label: {
+                    HStack(spacing: 4) {
+                        Text("Detalhes").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        Image(systemName: "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                            .rotationEffect(.degrees(model.showDetails ? 180 : 0))
+                    }
+                }
+                .buttonStyle(.plain)
+                if model.showDetails {
+                    detail("Você recebe no mínimo", Fmt.crypto(quote.minimumOut, decimals: buy.decimals, symbol: buy.symbol, style: .full))
+                    detail("Tolerância de preço", "\(Fmt.grouped(Double(model.slippageBps) / 100, fractionDigits: 2, trimZeros: true))%")
+                    if let impact = quote.priceImpactPercent { detail("Impacto no preço", "\(Fmt.grouped(impact, fractionDigits: 2))%") }
+                    if model.chain == .ethereum, session.metadata.settings.mevProtection { detail("Proteção contra robôs", "ligada") }
+                }
+            }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+        } else if let error = model.error {
+            Banner(kind: .neutral, title: error)
+        }
+    }
+
+    @ViewBuilder
+    private func impactLine(_ quote: TradeQuote) -> some View {
+        switch PriceImpact.level(quote.priceImpactPercent) {
+        case .normal: EmptyView()
+        case .visible:
+            Text("Impacto no preço \(Fmt.grouped(quote.priceImpactPercent ?? 0, fractionDigits: 2))%").typeStyle(.note).foregroundStyle(Palette.down)
+        case .confirm:
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text("Esta ordem move o preço em \(Fmt.grouped(quote.priceImpactPercent ?? 0, fractionDigits: 1))%. Dividir em ordens menores ajuda.")
+                    .typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
+                Toggle(isOn: $model.acceptedHighImpact) {
+                    Text("Entendo e quero trocar assim").typeStyle(.note).foregroundStyle(Palette.ink)
+                }
+                .tint(Palette.down)
+            }
+        case .blocked:
+            Text("Esta troca perderia \(Fmt.grouped(quote.priceImpactPercent ?? 0, fractionDigits: 0))% para o impacto no preço. Divida em ordens menores ou use uma ordem limite.")
+                .typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func detail(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            Spacer()
+            Text(value).typeStyle(.note).foregroundStyle(Palette.ink)
+        }
+    }
+
+    private func rateText(_ quote: TradeQuote, sell: Asset, buy: Asset) -> String {
+        let inAmount = Fmt.double(quote.amountIn, decimals: sell.decimals)
+        let outAmount = Fmt.double(quote.expectedOut, decimals: buy.decimals)
+        guard inAmount > 0, outAmount > 0 else { return "" }
+        if model.invertedRate {
+            return "1 \(buy.symbol) = \(Fmt.grouped(inAmount / outAmount, fractionDigits: 6, trimZeros: true)) \(sell.symbol)"
+        }
+        return "1 \(sell.symbol) = \(Fmt.grouped(outAmount / inAmount, fractionDigits: 6, trimZeros: true)) \(buy.symbol)"
+    }
+
+    private func feeText(_ quote: TradeQuote) -> String {
+        let network = quote.networkFeeFiat.map { "rede \(Fmt.fiat($0, session.currency))" } ?? "rede"
+        return "Taxas: \(network) · sem taxa da Escalibur"
+    }
+
+    // MARK: Ordem limite
+
+    private var limitForm: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            AmountBox(title: "Você vende", asset: model.sell, amount: $model.amountText, balance: balance(model.sell),
+                      fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
+                      onPick: { picking = .sell }, onFraction: setFraction)
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text("Quando 1 \(model.sell?.symbol ?? "") valer").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                HStack(alignment: .firstTextBaseline) {
+                    TextField("0", text: $model.targetPriceText)
+                        .font(.system(size: 28, weight: .bold).monospacedDigit()).foregroundStyle(Palette.ink)
+                        .keyboardType(.decimalPad)
+                    Text(model.buy?.symbol ?? "").typeStyle(.action).foregroundStyle(Palette.inkSoft)
+                }
+                HStack(spacing: Space.xs) {
+                    ForEach([0, 5, 10, 20], id: \.self) { percent in
+                        Chip(title: percent == 0 ? "Atual" : "+\(percent)%") { setTarget(percent) }
+                    }
+                }
+            }
+            .padding(Space.md)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+            AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(limitReceiveText), balance: balance(model.buy),
+                      fiat: nil, editable: false, over: false, onPick: { picking = .buy }, onFraction: nil)
+            HStack {
+                Text("Vale por").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                Spacer()
+                ForEach([(3600.0, "1 hora"), (86_400.0, "1 dia"), (604_800.0, "7 dias"), (2_592_000.0, "30 dias")], id: \.0) { seconds, title in
+                    Chip(title: title, selected: model.validFor == seconds) { model.validFor = seconds }
+                }
+            }
+            .padding(.top, Space.sm)
+            if let engine {
+                Text(engine.limitCustodyNote).typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var limitReceiveText: String {
+        guard let amount = model.amountIn, let sell = model.sell, let buy = model.buy,
+              let target = Double(model.targetPriceText.replacingOccurrences(of: ",", with: ".")), target > 0 else { return "" }
+        let value = Fmt.double(amount, decimals: sell.decimals) * target
+        return Fmt.grouped(value, fractionDigits: min(buy.decimals, 6), trimZeros: true)
+    }
+
+    private func setTarget(_ percent: Int) {
+        guard let sell = model.sell, let buy = model.buy,
+              let sellPrice = sell.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }),
+              let buyPrice = buy.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }), buyPrice > 0 else { return }
+        let current = sellPrice / buyPrice * (1 + Double(percent) / 100)
+        model.targetPriceText = Fmt.grouped(current, fractionDigits: 6, trimZeros: true).replacingOccurrences(of: ".", with: "")
+    }
+
+    // MARK: Rodape
+
+    private var over: Bool {
+        guard let amount = model.amountIn, let sell = model.sell else { return false }
+        return amount > (holding(sell)?.amount ?? 0)
+    }
+
+    private var footer: some View {
+        ActionFooter {
+            if router.tradeMode == .now, model.quote != nil {
+                Text("Nova cotação em \(model.nextRefresh) s").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+            }
+            PrimaryButton(title: primaryTitle, enabled: primaryEnabled, loading: model.quoting && model.quote == nil && model.amountIn != nil) {
+                reviewing = true
+            }
+        }
+    }
+
+    private var primaryTitle: String {
+        guard engine != nil else { return "Trocar \(model.chain.id == "xrpl" ? "no" : "na") \(model.chain.name) chega em breve" }
+        guard let amount = model.amountIn, !amount.isZero else { return "Digite um valor" }
+        if over { return "Saldo de \(model.sell?.symbol ?? "") insuficiente" }
+        if router.tradeMode == .limit { return "Revisar ordem" }
+        if model.quoting && model.quote == nil { return "Buscando o melhor preço" }
+        if PriceImpact.level(model.quote?.priceImpactPercent) == .blocked { return "Impacto no preço alto demais" }
+        return model.quote?.needsApproval == true ? "Autorizar \(model.sell?.symbol ?? "") e trocar" : "Revisar troca"
+    }
+
+    private var primaryEnabled: Bool {
+        guard engine != nil, let amount = model.amountIn, !amount.isZero, !over else { return false }
+        if router.tradeMode == .limit { return !limitReceiveText.isEmpty }
+        switch PriceImpact.level(model.quote?.priceImpactPercent) {
+        case .blocked: return false
+        case .confirm: return model.acceptedHighImpact
+        default: return model.quote != nil
+        }
+    }
+
+    // MARK: Acoes
+
+    private func holding(_ asset: Asset?) -> Holding? {
+        guard let asset, let chain = asset.chain else { return nil }
+        return portfolio.balance(chain)?.holdings.first { $0.asset.id == asset.id }
+    }
+
+    private func balance(_ asset: Asset?) -> String? {
+        guard let asset else { return nil }
+        let amount = holding(asset)?.amount ?? 0
+        return "Saldo: \(Fmt.crypto(amount, decimals: asset.decimals, symbol: nil, style: asset.isStablecoin ? .stable : .list))"
+    }
+
+    private func fiat(_ amount: BigUInt?, _ asset: Asset?) -> String? {
+        guard let amount, let asset, let price = asset.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) else { return nil }
+        return "≈ \(Fmt.fiat(Fmt.double(amount, decimals: asset.decimals) * price, session.currency))"
+    }
+
+    private func setFraction(_ fraction: Double) {
+        guard let sell = model.sell, let total = holding(sell)?.amount else { return }
+        let part = fraction >= 1 ? total : total * BigUInt(UInt64(fraction * 100)) / BigUInt(100)
+        model.amountText = Fmt.plainDecimal(part, decimals: sell.decimals)
+    }
+
+    private func flip() {
+        withAnimation(Motion.flip) {
+            let sell = model.sell
+            model.sell = model.buy
+            model.buy = sell
+            model.amountText = ""
+            model.quote = nil
+        }
+    }
+
+    private func refreshQuote() async {
+        guard router.tradeMode == .now, let engine, let wallet = session.selectedWallet, !wallet.isWatchOnly,
+              let sell = model.sell, let buy = model.buy, let amount = model.amountIn, !amount.isZero,
+              let account = wallet.account(model.chain) else {
+            model.quote = nil
+            return
+        }
+        try? await Task.sleep(for: .milliseconds(400))
+        guard !Task.isCancelled else { return }
+        while !Task.isCancelled {
+            model.quoting = true
+            model.error = nil
+            do {
+                let request = TradeRequest(walletID: wallet.id, chain: model.chain, account: account, sell: sell, buy: buy,
+                                           amountIn: amount, slippageBasisPoints: model.slippageBps)
+                model.quote = try await engine.quote(request)
+            } catch {
+                model.quote = nil
+                model.error = (error as? LocalizedError)?.errorDescription
+                    ?? "Nenhum provedor troca \(sell.symbol) por \(buy.symbol) \(model.chain.id == "xrpl" ? "no" : "na") \(model.chain.name) agora. Tente um valor menor ou outro par."
+            }
+            model.quoting = false
+            for second in stride(from: 15, through: 1, by: -1) {
+                model.nextRefresh = second
+                try? await Task.sleep(for: .seconds(1))
+                if Task.isCancelled { return }
+            }
+        }
+    }
+}
+
+/// Caixa de valor do swap: "Voce paga" e "Voce recebe".
+struct AmountBox: View {
+    let title: String
+    let asset: Asset?
+    @Binding var amount: String
+    let balance: String?
+    let fiat: String?
+    let editable: Bool
+    let over: Bool
+    let onPick: () -> Void
+    let onFraction: ((Double) -> Void)?
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            HStack {
+                Text(title).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                Spacer()
+                if let balance { Text(balance).typeStyle(.note).foregroundStyle(over ? Palette.down : Palette.inkSoft) }
+            }
+            HStack(alignment: .center, spacing: Space.sm) {
+                if editable {
+                    TextField("0", text: $amount)
+                        .font(.system(size: 32, weight: .bold).monospacedDigit())
+                        .foregroundStyle(over ? Palette.down : Palette.ink)
+                        .keyboardType(.decimalPad)
+                        .focused($focused)
+                        .minimumScaleFactor(0.5)
+                } else {
+                    Text(amount.isEmpty ? "0" : amount)
+                        .font(.system(size: 32, weight: .bold).monospacedDigit())
+                        .foregroundStyle(amount.isEmpty ? Palette.inkDead : Palette.ink)
+                        .lineLimit(1).minimumScaleFactor(0.5)
+                    Spacer(minLength: 0)
+                }
+                Button(action: onPick) {
+                    HStack(spacing: 6) {
+                        if let asset {
+                            CoinLogo(coingeckoID: asset.coingeckoID, symbol: asset.symbol, size: 24, network: asset.chain, ringColor: Palette.rail)
+                            Text(asset.symbol).typeStyle(.action).foregroundStyle(Palette.ink)
+                        } else {
+                            Text("Escolher").typeStyle(.action).foregroundStyle(Palette.ink)
+                        }
+                        Image(systemName: "chevron.down").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                    }
+                    .padding(.horizontal, Space.sm)
+                    .frame(height: Height.tokenChip)
+                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
+                }
+                .buttonStyle(.plain)
+            }
+            HStack {
+                Text(fiat ?? " ").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                Spacer()
+                if let onFraction {
+                    ForEach([(0.25, "25%"), (0.5, "50%"), (1.0, "Máx")], id: \.0) { fraction, label in
+                        Button { onFraction(fraction) } label: {
+                            Text(label).typeStyle(.label).foregroundStyle(Palette.inkSoft)
+                                .padding(.horizontal, Space.xs).frame(height: 28)
+                                .background(RoundedRectangle(cornerRadius: Radius.chip).fill(Palette.rail))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(Space.md)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(focused ? Palette.edgeStrong : Palette.edge, lineWidth: 1))
+        )
+    }
+}
+
+/// T2: escolher token dentro da rede.
+struct TokenPickerSheet: View {
+    @Environment(Portfolio.self) private var portfolio
+    @Environment(\.dismiss) private var dismiss
+    let chain: Chain
+    let exclude: Asset?
+    let onPick: (Asset) -> Void
+    @State private var query = ""
+
+    var body: some View {
+        let all = TokenRegistry.assets(on: chain).filter { $0.id != exclude?.id }
+        let shown = query.isEmpty ? all : all.filter { $0.symbol.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query) }
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(title: "Escolher token") { dismiss() }
+            TextField("", text: $query, prompt: Text("Buscar por nome").foregroundColor(Palette.inkDead))
+                .typeStyle(.body).foregroundStyle(Palette.ink)
+                .padding(.horizontal, Space.md).frame(height: 44)
+                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
+                .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(shown) { asset in
+                        Button { onPick(asset) } label: {
+                            HStack(spacing: Space.sm) {
+                                CoinLogo(coingeckoID: asset.coingeckoID, symbol: asset.symbol, size: 36, network: asset.chain, ringColor: Palette.body)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(asset.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
+                                    Text(asset.name).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                                }
+                                Spacer()
+                                if let amount = portfolio.balance(chain)?.holdings.first(where: { $0.asset.id == asset.id })?.amount, !amount.isZero {
+                                    Text(Fmt.crypto(amount, decimals: asset.decimals)).typeStyle(.note).foregroundStyle(Palette.ink)
+                                }
+                            }
+                            .padding(.horizontal, Space.gutter).frame(height: Height.row)
+                        }
+                        .buttonStyle(RowStyle(surface: .body))
+                    }
+                }
+                .padding(.top, Space.xs)
+            }
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Palette.body)
+        .presentationCornerRadius(Radius.sheet)
+    }
+}
+
+/// T4: tolerancia de preco.
+struct SlippageSheet: View {
+    @Bindable var model: TradeModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(title: "Tolerância de preço") { dismiss() }
+            Text("Se o preço piorar mais que isso antes de a troca executar, ela é cancelada e só a taxa da rede é cobrada.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: Space.xs) {
+                ForEach([10, 50, 100, 300], id: \.self) { bps in
+                    Chip(title: "\(Fmt.grouped(Double(bps) / 100, fractionDigits: 1, trimZeros: true))%", selected: model.slippageBps == bps) {
+                        model.slippageBps = bps
+                    }
+                }
+            }
+            .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+            if model.slippageBps >= 300 {
+                Text("Tolerância alta atrai robôs que exploram essa diferença.")
+                    .typeStyle(.note).foregroundStyle(Palette.caution).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
+            } else if model.slippageBps <= 10 {
+                Text("Com tolerância tão baixa, a troca tende a falhar, e a taxa da rede é cobrada mesmo assim.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
+            }
+            Spacer()
+        }
+        .presentationDetents([.medium])
+        .presentationBackground(Palette.body)
+        .presentationCornerRadius(Radius.sheet)
+    }
+}
+
+/// T3: a rota, com a divisao entre provedores como ganho medido.
+struct RouteSheet: View {
+    let quote: TradeQuote
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(title: quote.legs.count > 1 ? "Como a sua ordem foi dividida" : "Rota da troca") { dismiss() }
+            VStack(alignment: .leading, spacing: Space.sm) {
+                ForEach(Array(quote.legs.enumerated()), id: \.offset) { _, leg in
+                    HStack {
+                        Text(leg.provider).typeStyle(.row).foregroundStyle(Palette.ink)
+                        Spacer()
+                        Text("\(Int((leg.fraction * 100).rounded()))%").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        Text(Fmt.crypto(leg.expectedOut, decimals: quote.buy.decimals, symbol: quote.buy.symbol)).typeStyle(.note).foregroundStyle(Palette.ink)
+                    }
+                }
+                Text(quote.legs.count > 1
+                     ? "São \(quote.legs.count) transações, uma por provedor, confirmadas com um único Face ID. Cada parte é independente: se uma não passar, você fica com o que foi trocado, e o saldo daquela parte continua na sua carteira."
+                     : "Tudo acontece numa transação só. Ou executa inteira, ou nada sai da sua carteira.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true).padding(.top, Space.xs)
+                if !quote.alternatives.isEmpty {
+                    Text("Outras cotações").typeStyle(.heading).foregroundStyle(Palette.ink).padding(.top, Space.md)
+                    ForEach(Array(quote.alternatives.enumerated()), id: \.offset) { _, alternative in
+                        HStack {
+                            Text(alternative.provider).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                            Spacer()
+                            Text(Fmt.crypto(alternative.out, decimals: quote.buy.decimals, symbol: quote.buy.symbol)).typeStyle(.note).foregroundStyle(Palette.ink)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+            Spacer()
+        }
+        .presentationDetents([.medium, .large])
+        .presentationBackground(Palette.body)
+        .presentationCornerRadius(Radius.sheet)
     }
 }

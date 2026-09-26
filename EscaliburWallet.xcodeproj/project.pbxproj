@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0B7E83EED78DFCB68FCE521B /* MarketView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BADB432EFAFD601991FB0A /* MarketView.swift */; };
 		0BD31CF923D94F41C7BF61FE /* FORMATO.md in Resources */ = {isa = PBXBuildFile; fileRef = CF3019F2F06749CD522B32AB /* FORMATO.md */; };
+		0F75BD6459AB8BA01C96D2C0 /* TradeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3B0561273993D9507D4A1A /* TradeEngine.swift */; };
 		12BD568C64CF45967323782A /* EscaliburCore in Frameworks */ = {isa = PBXBuildFile; productRef = A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */; };
 		17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */; };
 		19E1559AA99AE5A16A3BD1AC /* QRScannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7543B278315E1446160A8DAF /* QRScannerSheet.swift */; };
@@ -103,6 +104,7 @@
 		C10914896D99BB58942178E3 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
 		C114911EA7725CA6C7171D11 /* VoiceGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceGate.swift; sourceTree = "<group>"; };
 		C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinLogo.swift; sourceTree = "<group>"; };
+		CB3B0561273993D9507D4A1A /* TradeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeEngine.swift; sourceTree = "<group>"; };
 		CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		CF3019F2F06749CD522B32AB /* FORMATO.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FORMATO.md; sourceTree = "<group>"; };
 		D0E6EBFF95E21A9523382BC5 /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
@@ -196,6 +198,7 @@
 		3CB515FF159E32BF5AB17040 /* Trade */ = {
 			isa = PBXGroup;
 			children = (
+				CB3B0561273993D9507D4A1A /* TradeEngine.swift */,
 				E34BAC1217309C0064F23CE7 /* TradeView.swift */,
 			);
 			path = Trade;
@@ -473,6 +476,7 @@
 				4B2656C01E316BE9F63E4445 /* SendEngine.swift in Sources */,
 				7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */,
 				EAD6592758D7814329227F15 /* SettingsView.swift in Sources */,
+				0F75BD6459AB8BA01C96D2C0 /* TradeEngine.swift in Sources */,
 				A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */,
 				E74B179E19640B5584F2F303 /* Typography.swift in Sources */,
 				271A5135782331B746AC5833 /* VoiceGate.swift in Sources */,
