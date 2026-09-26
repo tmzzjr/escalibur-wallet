@@ -65,11 +65,17 @@ struct UTXOSendEngine: SendEngine {
             guard let summary = UTXOEngineSupport.summary(plan) else { throw UTXOPlanError.internalCheckFailed }
             let fee = EngineFormat.amount(summary.fee, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol)
             let left = state.network.coins.count - summary.inputCount
+            // O que a leitura deixou de fora tambem fica fora do maximo, e a nota diz.
+            var notes = [String]()
+            if left > 0 {
+                notes.append("\(left) \(left == 1 ? "moeda pequena ou ainda sem confirmação fica" : "moedas pequenas ou ainda sem confirmação ficam") fora do máximo.")
+            }
+            if let skipped = UTXOPlanner.skippedText(state.network.skipped) {
+                notes.append("Fora da leitura: \(skipped).")
+            }
             return Spendable(
                 amount: summary.amount,
-                reserveNote: left > 0
-                    ? "\(left) \(left == 1 ? "moeda pequena ou ainda sem confirmação fica" : "moedas pequenas ou ainda sem confirmação ficam") fora do máximo."
-                    : nil,
+                reserveNote: notes.isEmpty ? nil : notes.joined(separator: " "),
                 feeNote: "Já descontada a taxa da rede de \(fee), a \(UTXOEngineSupport.rateText(rate, chain: chain))."
             )
         } catch {

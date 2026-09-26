@@ -37,4 +37,16 @@ struct UTXODustTests {
         #expect(kept[0].1.count == 2)
         #expect(skipped.isEmpty)
     }
+
+    @Test("Regressao M3: cada motivo de fora da leitura chega ao plano: poeira, teto, ou sem prova")
+    func skippedReasons() {
+        #expect(UTXORejectedCoin.Reason.uneconomic.skipped == .uneconomic)
+        #expect(UTXORejectedCoin.Reason.overLimit.skipped == .overLimit)
+        for reason: UTXORejectedCoin.Reason in [
+            .previousTransactionUnavailable, .previousTransactionMalformed, .previousTransactionMismatch, .outputIndexOutOfRange,
+            .notOurScript, .claimedValueMismatch,
+        ] {
+            #expect(reason.skipped == .unverified)
+        }
+    }
 }

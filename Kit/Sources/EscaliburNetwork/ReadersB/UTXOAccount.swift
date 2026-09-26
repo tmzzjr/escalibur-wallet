@@ -163,6 +163,19 @@ public struct UTXORejectedCoin: Sendable, Equatable {
     }
 }
 
+extension UTXORejectedCoin.Reason {
+    /// O motivo como o planejamento o diz na revisao.
+    public var skipped: UTXOSkippedCoin.Reason {
+        switch self {
+        case .uneconomic: return .uneconomic
+        case .overLimit: return .overLimit
+        case .previousTransactionUnavailable, .previousTransactionMalformed, .previousTransactionMismatch,
+             .outputIndexOutOfRange, .notOurScript, .claimedValueMismatch:
+            return .unverified
+        }
+    }
+}
+
 /// Niveis de taxa para a tela, e as estimativas por fonte para o teto do planejamento.
 public struct UTXOFeeLevels: Sendable, Equatable {
     public let slow: UTXOFeeRate

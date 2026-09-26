@@ -304,7 +304,10 @@ public struct UTXOReader: Sendable {
         let minimum = levels.fast.fee(weight: discovery.account.kind.inputWeight)
         let coins = try await coins(for: discovery.used, minimumValue: minimum)
         return UTXOSpendState(
-            network: UTXONetworkState(coins: coins.coins, feeEstimates: levels.estimates, tipHeight: coins.tipHeight),
+            network: UTXONetworkState(
+                coins: coins.coins, feeEstimates: levels.estimates, tipHeight: coins.tipHeight,
+                skipped: coins.rejected.map { UTXOSkippedCoin(outpoint: $0.outpoint, reason: $0.reason.skipped) }
+            ),
             change: discovery.changeAddress, fees: levels, rejected: coins.rejected
         )
     }

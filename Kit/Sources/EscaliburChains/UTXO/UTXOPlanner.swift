@@ -36,11 +36,37 @@ public struct UTXONetworkState: Sendable {
     public let feeEstimates: [UTXOFeeRate]
     /// Altura do ultimo bloco. Vira o nLockTime, contra fee sniping.
     public let tipHeight: UInt32
+    /// As moedas que o provedor listou e que ficaram fora da leitura, com o motivo. Nao
+    /// entram na transacao; entram na revisao, para "enviar tudo" nao esconder o que
+    /// fica para tras (auditoria 2, M3).
+    public let skipped: [UTXOSkippedCoin]
 
-    public init(coins: [UTXOCoin], feeEstimates: [UTXOFeeRate], tipHeight: UInt32) {
+    public init(coins: [UTXOCoin], feeEstimates: [UTXOFeeRate], tipHeight: UInt32, skipped: [UTXOSkippedCoin] = []) {
         self.coins = coins
         self.feeEstimates = feeEstimates
         self.tipHeight = tipHeight
+        self.skipped = skipped
+    }
+}
+
+/// Uma moeda que a leitura deixou de fora.
+public struct UTXOSkippedCoin: Sendable, Equatable {
+    public enum Reason: String, Sendable, Equatable {
+        /// Vale menos do que custa gasta-la agora (poeira). Nem foi conferida.
+        case uneconomic
+        /// Alem do teto de moedas conferidas numa leitura (ficam as maiores).
+        case overLimit
+        /// A transacao anterior nao veio, nao fecha com o txid, ou a saida nao e desta
+        /// chave ou nao vale o anunciado: sem prova, a moeda nao entra.
+        case unverified
+    }
+
+    public let outpoint: UTXOOutpoint
+    public let reason: Reason
+
+    public init(outpoint: UTXOOutpoint, reason: Reason) {
+        self.outpoint = outpoint
+        self.reason = reason
     }
 }
 
@@ -283,6 +309,7 @@ public enum UTXOPlanner {
         let fee: UInt64
         let absorbed: UInt64
         var leftBehind = [VerifiedCoin]()
+        var leftBehindUneconomic = 0
 
         switch intent.amount {
         case .all:
@@ -290,6 +317,11 @@ public enum UTXOPlanner {
             selected = usable.map(\.0)
             if intent.coinControl == nil {
                 leftBehind = verified.filter { coin in !selected.contains { $0.coin.outpoint == coin.coin.outpoint } }
+                // As que nao pagam a propria entrada a esta taxa sao poeira; as outras (pequenas
+                // protegidas, sem confirmacao) ainda valem alguma coisa.
+                leftBehindUneconomic = leftBehind.filter { coin in
+                    feeRate.fee(weight: coin.kind.inputWeight) >= coin.output.value
+                }.count
             }
             guard !selected.isEmpty else { throw UTXOPlanError.noSpendableCoins }
             let total = try sum(selected.map(\.output.value), max: rules.maxMoney * 2)
@@ -392,12 +424,18 @@ public enum UTXOPlanner {
         let own = verified.compactMap { UTXOScript.address(for: $0.output.scriptPubKey, chain: chain) } + [changeInfo?.address].compactMap { $0 }
         warnings += addressWarnings(destination: destination.address, known: intent.knownAddresses, own: own)
 
+        // "Enviar tudo" so e dito quando o que fica de fora e poeira: moeda que ainda vale
+        // (pequena protegida, sem confirmacao, alem do teto de leitura ou sem prova) fica de
+        // fora e a revisao diz quantas e por que.
+        let skipped = intent.coinControl == nil ? network.skipped : []
+        let valuableLeft = (leftBehind.count - leftBehindUneconomic) + skipped.filter { $0.reason != .uneconomic }.count
         let review = PlanReview(
             kind: .send,
             title: "Enviar \(UTXOFormat.amount(amount, chain: chain))",
             lines: reviewLines(
                 chain: chain, destination: destination.address, summary: summary,
-                leftBehind: intent.amount == .all ? leftBehind.map(\.output.value) : []
+                leftBehind: intent.amount == .all ? leftBehind.map(\.output.value) : [],
+                skipped: skipped, valuableLeft: intent.amount == .all ? valuableLeft : 0
             ),
             warnings: warnings,
             transactionCount: 1,
@@ -484,7 +522,9 @@ public enum UTXOPlanner {
 
     // MARK: Revisao
 
-    static func reviewLines(chain: Chain, destination: String, summary: UTXOSendSummary, leftBehind: [UInt64]) -> [PlanReview.Line] {
+    static func reviewLines(
+        chain: Chain, destination: String, summary: UTXOSendSummary, leftBehind: [UInt64], skipped: [UTXOSkippedCoin] = [], valuableLeft: Int = 0
+    ) -> [PlanReview.Line] {
         let sats = { (value: BigUInt) in value.uint64 ?? 0 }
         var lines = [
             PlanReview.Line("Para", destination, verbatim: true),
@@ -495,8 +535,11 @@ public enum UTXOPlanner {
         let absorbed = sats(summary.absorbedIntoFee)
         if let change = summary.change {
             lines.append(PlanReview.Line("Troco", "\(UTXOFormat.amount(sats(change), chain: chain)), volta para a sua carteira"))
-        } else if summary.sendsAll {
+        } else if summary.sendsAll, valuableLeft == 0 {
             lines.append(PlanReview.Line("Troco", "Nenhum: enviar tudo"))
+        } else if summary.sendsAll {
+            let noun = valuableLeft == 1 ? "1 moeda que ainda vale fica" : "\(valuableLeft) moedas que ainda valem ficam"
+            lines.append(PlanReview.Line("Troco", "Nenhum: envia tudo o que as moedas escolhidas pagam; \(noun) de fora"))
         } else if absorbed > 0 {
             lines.append(PlanReview.Line(
                 "Troco",
@@ -513,7 +556,26 @@ public enum UTXOPlanner {
                 "\(leftBehind.count) \(noun), \(UTXOFormat.amount(total, chain: chain)): pequenas, sem confirmação ou que não pagam a própria taxa"
             ))
         }
+        if let text = skippedText(skipped) {
+            lines.append(PlanReview.Line("Fora da leitura", text))
+        }
         return lines
+    }
+
+    /// "3 moedas: 2 que não pagam a própria taxa, 1 sem prova da transação anterior".
+    public static func skippedText(_ skipped: [UTXOSkippedCoin]) -> String? {
+        guard !skipped.isEmpty else { return nil }
+        var parts = [String]()
+        for (reason, one, many) in [
+            (UTXOSkippedCoin.Reason.uneconomic, "que não paga a própria taxa", "que não pagam a própria taxa"),
+            (.overLimit, "além do limite de moedas lidas de uma vez", "além do limite de moedas lidas de uma vez"),
+            (.unverified, "sem prova da transação anterior", "sem prova da transação anterior"),
+        ] {
+            let count = skipped.filter { $0.reason == reason }.count
+            if count > 0 { parts.append("\(count) \(count == 1 ? one : many)") }
+        }
+        let noun = skipped.count == 1 ? "1 moeda" : "\(skipped.count) moedas"
+        return "\(noun): \(parts.joined(separator: ", "))"
     }
 
     /// Primeiro envio e endereco parecido (docs/seguranca.md §4.10): mesmos 4

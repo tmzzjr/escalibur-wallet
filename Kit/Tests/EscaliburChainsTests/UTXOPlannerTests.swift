@@ -258,11 +258,46 @@ struct UTXOPlannerTests {
         #expect(summary.amount == BigUInt(64_110))
         #expect(summary.change == nil)
         #expect(summary.sendsAll)
-        #expect(plan.review.lines.first { $0.label == "Troco" }?.value == "Nenhum: enviar tudo")
+        // A moeda de 800 sats fica de fora (pequena, protegida) e ainda vale mais que a
+        // propria taxa: nao e "enviar tudo".
+        #expect(plan.review.lines.first { $0.label == "Troco" }?.value
+            == "Nenhum: envia tudo o que as moedas escolhidas pagam; 1 moeda que ainda vale fica de fora")
         #expect(plan.review.lines.last?.label == "Fica na carteira")
         #expect(plan.review.lines.last?.value.hasPrefix("1 moeda, 0,000008 BTC") == true)
         let parsed = try Self.checkSigned(signed, tx, rate: Self.rate(5))
         #expect(parsed.outputs.count == 1)
+    }
+
+    @Test("Regressao M3: o que a leitura deixou de fora aparece com quantidade e motivo, e so poeira permite dizer 'enviar tudo'")
+    func skippedCoins() throws {
+        let account = try UTXOTestAccount(.bitcoin, purpose: 84)
+        let coins = [try account.coin(40_000, index: 0), try account.coin(25_000, index: 1)]
+        func outpoint(_ n: UInt8) -> UTXOOutpoint { UTXOOutpoint(txid: UTXOTxID(bytes: [UInt8](repeating: n, count: 32))!, vout: 0) }
+        func plan(_ skipped: [UTXOSkippedCoin]) throws -> SigningPlan {
+            try UTXOPlanner.planSend(
+                walletID: Self.wallet, chain: .bitcoin, intent: Self.intent(.all, change: nil),
+                network: UTXONetworkState(coins: coins, feeEstimates: [Self.rate(8), Self.rate(6)], tipHeight: Self.height, skipped: skipped)
+            )
+        }
+        func line(_ plan: SigningPlan, _ label: String) -> String? { plan.review.lines.first { $0.label == label }?.value }
+
+        let clean = try plan([])
+        #expect(line(clean, "Troco") == "Nenhum: enviar tudo" && line(clean, "Fora da leitura") == nil)
+
+        // So poeira de fora: ainda e "enviar tudo", e a revisao conta a poeira.
+        let dust = try plan([.init(outpoint: outpoint(1), reason: .uneconomic), .init(outpoint: outpoint(2), reason: .uneconomic)])
+        #expect(line(dust, "Troco") == "Nenhum: enviar tudo")
+        #expect(line(dust, "Fora da leitura") == "2 moedas: 2 que não pagam a própria taxa")
+
+        // Moeda sem prova ou alem do teto de leitura: nao e "enviar tudo".
+        let partial = try plan([
+            .init(outpoint: outpoint(1), reason: .uneconomic), .init(outpoint: outpoint(2), reason: .overLimit),
+            .init(outpoint: outpoint(3), reason: .unverified),
+        ])
+        #expect(line(partial, "Troco") == "Nenhum: envia tudo o que as moedas escolhidas pagam; 2 moedas que ainda valem ficam de fora")
+        #expect(line(partial, "Fora da leitura")
+            == "3 moedas: 1 que não paga a própria taxa, 1 além do limite de moedas lidas de uma vez, 1 sem prova da transação anterior")
+        #expect(UTXOPlanner.skippedText([]) == nil)
     }
 
     @Test("Taxa: piso, teto compilado, 2x a maior estimativa, duas fontes que concordam, teto absoluto e aviso acima de 1%")
