@@ -258,6 +258,35 @@ struct ConfirmWordsView: View {
     }
 }
 
+/// O check desenhado: disco tingido e o traco em 400 ms. Com reduzir movimento, so
+/// aparece.
+struct DrawnCheck: View {
+    @State private var progress: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            Circle().fill(Palette.upTint)
+            Path { path in
+                path.move(to: CGPoint(x: 17, y: 29))
+                path.addLine(to: CGPoint(x: 25, y: 37))
+                path.addLine(to: CGPoint(x: 40, y: 20))
+            }
+            .trim(from: 0, to: progress)
+            .stroke(Palette.up, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: 56, height: 56)
+        .onAppear {
+            if reduceMotion {
+                withAnimation(.easeIn(duration: 0.15)) { progress = 1 }
+            } else {
+                withAnimation(.easeOut(duration: 0.4).delay(0.15)) { progress = 1 }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 /// O5: carteira criada, com nome editavel.
 struct WalletCreatedView: View {
     @Environment(AppSession.self) private var session
@@ -266,31 +295,45 @@ struct WalletCreatedView: View {
     let onFinish: () -> Void
     @State private var name = ""
     @State private var sealing = false
+    @State private var done = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 40)).foregroundStyle(Palette.up)
-            Text("Carteira criada").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+            DrawnCheck()
+            Text("Carteira criada").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
             Text("Endereços prontos em \(wallet.accounts.count) redes. Guarde o papel longe do iPhone: se o iPhone sumir, o papel traz a carteira de volta, aqui ou em qualquer carteira BIP-39.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Nome da carteira").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
-            TextField("", text: $name)
-                .typeStyle(.row).foregroundStyle(Palette.ink)
-                .padding(.horizontal, Space.md).frame(height: Height.field)
-                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
-                .padding(.top, Space.xs)
+            HStack {
+                TextField("", text: $name)
+                    .typeStyle(.row).foregroundStyle(Palette.ink)
+                    .submitLabel(.done)
+                    .onSubmit(save)
+                Image(systemName: "pencil").font(.system(size: 15)).foregroundStyle(Palette.inkMuted)
+            }
+            .padding(.horizontal, Space.md).frame(height: Height.field)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+            .padding(.top, Space.xs)
             Spacer()
-            SecondaryButton(title: "Guardar também num envelope Escalibur") { sealing = true }
-            PrimaryButton(title: "Ir para a carteira") { save(); onFinish() }.padding(.top, Space.sm)
+            PrimaryButton(title: "Ir para a carteira") { save(); onFinish() }
+            HStack {
+                Spacer()
+                TertiaryButton(title: "Guardar também num envelope Escalibur") { sealing = true }
+                Spacer()
+            }
+            .padding(.top, Space.xs)
         }
         .padding(.horizontal, Space.gutter)
         .padding(.top, Space.xl)
         .padding(.bottom, Space.xs)
         .background(Palette.void.ignoresSafeArea())
-        .onAppear { name = wallet.name }
-        .sensoryFeedback(.success, trigger: true)
+        .onAppear {
+            name = wallet.name
+            done = true
+        }
+        .sensoryFeedback(.success, trigger: done)
         .fullScreenCover(isPresented: $sealing) {
             SealEnvelopeFlow(wallet: wallet) { sealing = false }
         }

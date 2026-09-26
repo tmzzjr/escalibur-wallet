@@ -58,9 +58,15 @@ struct PINDots: View {
     var body: some View {
         HStack(spacing: 16) {
             ForEach(0..<PINPolicy.digits, id: \.self) { index in
-                Circle()
-                    .fill(failed ? Palette.down : (index < filled ? Palette.ink : Palette.rail))
-                    .frame(width: 12, height: 12)
+                ZStack {
+                    Circle().stroke(failed ? Palette.down : Palette.inkMuted, lineWidth: 1.5)
+                    Circle()
+                        .fill(failed ? Palette.down : Palette.ink)
+                        .scaleEffect(index < filled || failed ? 1 : 0.6)
+                        .opacity(index < filled || failed ? 1 : 0)
+                        .animation(.easeOut(duration: 0.12), value: filled)
+                }
+                .frame(width: 12, height: 12)
             }
         }
         .modifier(Shake(animatableData: CGFloat(shake)))
@@ -152,6 +158,9 @@ struct PINScreen<Footer: View>: View {
     let title: String
     let subtitle: String?
     let entry: PINEntry
+    /// O selo so no desbloqueio: nas telas de criar e confirmar ele tira o olhar
+    /// dos pontos.
+    var showsBadge = false
     var biometryIcon: String? = nil
     var onBiometry: (() -> Void)? = nil
     var working = false
@@ -162,7 +171,7 @@ struct PINScreen<Footer: View>: View {
         VStack(spacing: 0) {
             Spacer(minLength: Space.lg)
             VStack(spacing: Space.xs) {
-                WalletBadge(size: 44).padding(.bottom, Space.md)
+                if showsBadge { WalletBadge(size: 44).padding(.bottom, Space.md) }
                 Text(title).typeStyle(.title).foregroundStyle(Palette.ink).multilineTextAlignment(.center)
                 if let subtitle {
                     Text(subtitle).typeStyle(.body).foregroundStyle(Palette.inkSoft)
@@ -190,7 +199,7 @@ struct PINScreen<Footer: View>: View {
             PINPad(entry: entry, biometryIcon: biometryIcon, onBiometry: onBiometry, onComplete: onComplete)
                 .disabled(working)
             footer
-                .padding(.top, Space.md)
+                .padding(.top, Space.lg)
                 .padding(.bottom, Space.xs)
         }
         .frame(maxWidth: .infinity)

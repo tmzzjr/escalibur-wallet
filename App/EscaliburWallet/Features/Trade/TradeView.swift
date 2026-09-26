@@ -51,34 +51,47 @@ struct TradeView: View {
     @State private var slippageSheet = false
     @State private var routeSheet = false
     @State private var reviewing = false
+    @State private var receivingAsset: Asset?
 
     enum Side: Identifiable { case sell, buy; var id: Self { self } }
 
     private var engine: (any TradeEngine)? { TradeEngines.engine(for: model.chain) }
-    private var tradeChains: [Chain] { [.base, .ethereum, .arbitrum, .optimism, .polygon, .bnb, .avalanche, .solana, .xrpl, .stellar] }
+    private var tradeChains: [Chain] { TradeEngines.chains }
+    @State private var flipTurns = 0
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        Text("Trocar").typeStyle(.title).foregroundStyle(Palette.ink)
-                        Spacer()
-                        Button { slippageSheet = true } label: {
-                            Image(systemName: "slider.horizontal.3").font(.system(size: 17, weight: .medium)).foregroundStyle(Palette.inkSoft)
-                                .frame(width: Height.touch, height: Height.touch)
+                    TabTitle(title: "Trocar") {
+                        if !tradeChains.isEmpty {
+                            Button { slippageSheet = true } label: {
+                                Image(systemName: "slider.horizontal.3").font(.system(size: 17, weight: .medium)).foregroundStyle(Palette.inkSoft)
+                                    .frame(width: Height.touch, height: Height.touch, alignment: .trailing)
+                            }
+                            .accessibilityLabel("Tolerância de preço")
                         }
-                        .accessibilityLabel("Tolerância de preço")
                     }
-                    modePicker.padding(.top, Space.sm)
-                    chainChips.padding(.top, Space.md)
-                    if session.selectedWallet?.isWatchOnly == true {
-                        Banner(kind: .neutral, title: "Esta carteira só observa. Escolha outra carteira para trocar.").padding(.top, Space.md)
+                    if tradeChains.isEmpty {
+                        VStack(alignment: .leading, spacing: Space.xs) {
+                            Text("Trocas chegam numa atualização").typeStyle(.row).foregroundStyle(Palette.ink)
+                            Text("Enviar e receber já funcionam em todas as redes. A troca entra rede por rede, cada uma depois de passar pela validação de segurança.")
+                                .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+                    } else {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Segmented(options: [(Router.TradeMode.now, "Imediata"), (.limit, "Limite")], selection: Bindable(router).tradeMode)
+                                .padding(.top, Space.sm)
+                            chainChips.padding(.top, Space.md)
+                            if session.selectedWallet?.isWatchOnly == true {
+                                Banner(kind: .neutral, title: "Esta carteira só observa. Escolha outra carteira para trocar.").padding(.top, Space.md)
+                            }
+                            if router.tradeMode == .now { nowForm.padding(.top, Space.md) } else { limitForm.padding(.top, Space.md) }
+                        }
+                        .padding(.horizontal, Space.gutter)
                     }
-                    if router.tradeMode == .now { nowForm.padding(.top, Space.md) } else { limitForm.padding(.top, Space.md) }
                 }
-                .padding(.horizontal, Space.gutter)
-                .padding(.top, Space.xs)
                 .padding(.bottom, Space.xl)
             }
             .scrollDismissesKeyboard(.interactively)
@@ -86,7 +99,7 @@ struct TradeView: View {
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
         }
-        .onAppear { if model.sell == nil { model.reset(to: .base) } }
+        .onAppear { if model.sell == nil, let first = tradeChains.first { model.reset(to: first) } }
         .sheet(item: $picking) { side in
             TokenPickerSheet(chain: model.chain, exclude: side == .sell ? model.buy : model.sell) { asset in
                 if side == .sell { model.sell = asset } else { model.buy = asset }
@@ -95,6 +108,7 @@ struct TradeView: View {
             }
         }
         .sheet(isPresented: $slippageSheet) { SlippageSheet(model: model) }
+        .sheet(item: $receivingAsset) { asset in ReceiveSheet(preselected: asset) }
         .sheet(isPresented: $routeSheet) { if let quote = model.quote { RouteSheet(quote: quote) } }
         .task(id: quoteKey) { await refreshQuote() }
     }
@@ -104,23 +118,6 @@ struct TradeView: View {
     }
 
     // MARK: Cabecalho
-
-    private var modePicker: some View {
-        HStack(spacing: 0) {
-            ForEach([(Router.TradeMode.now, "Agora"), (.limit, "Ordem limite")], id: \.0) { mode, title in
-                Button { withAnimation(Motion.select) { router.tradeMode = mode } } label: {
-                    Text(title).typeStyle(.label)
-                        .foregroundStyle(router.tradeMode == mode ? Palette.ink : Palette.inkMuted)
-                        .frame(maxWidth: .infinity).frame(height: 36)
-                        .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(router.tradeMode == mode ? Palette.rail : .clear))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(2)
-        .background(RoundedRectangle(cornerRadius: Radius.track, style: .continuous).fill(Palette.body))
-        .sensoryFeedback(.selection, trigger: router.tradeMode)
-    }
 
     private var chainChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -141,29 +138,37 @@ struct TradeView: View {
                 }
             }
         }
+        .scrollClipDisabled()
     }
 
     // MARK: Agora
 
+    private var fractionAction: ((Double) -> Void)? {
+        guard hasBalance(model.sell) else { return nil }
+        return { fraction in setFraction(fraction) }
+    }
+
     private var nowForm: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ZStack {
-                VStack(spacing: 4) {
-                    AmountBox(title: "Você paga", asset: model.sell, amount: $model.amountText, balance: balance(model.sell),
-                              fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
-                              onPick: { picking = .sell }, onFraction: setFraction)
-                    AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(receiveText), balance: balance(model.buy),
-                              fiat: fiat(model.quote?.expectedOut, model.buy), editable: false, over: false,
-                              onPick: { picking = .buy }, onFraction: nil)
-                }
-                Button(action: flip) {
-                    Image(systemName: "arrow.up.arrow.down").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
-                        .frame(width: 36, height: 36)
-                        .background(Circle().fill(Palette.rail))
-                        .overlay(Circle().stroke(Palette.void, lineWidth: 4))
-                }
-                .sensoryFeedback(.impact(weight: .light), trigger: model.sell?.id)
-                .accessibilityLabel("Inverter")
+            VStack(spacing: 4) {
+                AmountBox(title: "Você paga", asset: model.sell, amount: $model.amountText, balance: balance(model.sell),
+                          fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
+                          onPick: { picking = .sell }, onFraction: fractionAction)
+                AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(receiveText), balance: balance(model.buy),
+                          fiat: fiat(model.quote?.expectedOut, model.buy), editable: false, over: false,
+                          onPick: { picking = .buy }, onFraction: nil)
+                    .overlay(alignment: .top) {
+                        Button(action: flip) {
+                            Image(systemName: "arrow.up.arrow.down").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
+                                .rotationEffect(.degrees(Double(flipTurns) * 180))
+                                .frame(width: 36, height: 36)
+                                .background(Circle().fill(Palette.rail))
+                                .overlay(Circle().stroke(Palette.void, lineWidth: 4))
+                        }
+                        .offset(y: -20)
+                        .sensoryFeedback(.impact(weight: .light), trigger: flipTurns)
+                        .accessibilityLabel("Inverter")
+                    }
             }
 
             quoteLines.padding(.top, Space.md)
@@ -328,13 +333,20 @@ struct TradeView: View {
 
     private var footer: some View {
         ActionFooter {
+            if !tradeChains.isEmpty {
             if router.tradeMode == .now, model.quote != nil {
                 Text("Nova cotação em \(model.nextRefresh) s").typeStyle(.note).foregroundStyle(Palette.inkMuted)
             }
-            PrimaryButton(title: primaryTitle, enabled: primaryEnabled, loading: model.quoting && model.quote == nil && model.amountIn != nil) {
-                reviewing = true
+            if !hasBalance(model.sell), let sell = model.sell {
+                SecondaryButton(title: "Receber \(sell.symbol)", height: Height.primary) { receivingAsset = sell }
+            } else {
+                PrimaryButton(title: primaryTitle, enabled: primaryEnabled, loading: model.quoting && model.quote == nil && model.amountIn != nil) {
+                    reviewing = true
+                }
+            }
             }
         }
+        .padding(.bottom, Space.xs)
     }
 
     private var primaryTitle: String {
@@ -367,12 +379,16 @@ struct TradeView: View {
     private func balance(_ asset: Asset?) -> String? {
         guard let asset else { return nil }
         let amount = holding(asset)?.amount ?? 0
-        return "Saldo: \(Fmt.crypto(amount, decimals: asset.decimals, symbol: nil, style: asset.isStablecoin ? .stable : .list))"
+        return "Saldo \(Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol, style: .list))"
+    }
+
+    private func hasBalance(_ asset: Asset?) -> Bool {
+        !(holding(asset)?.amount.isZero ?? true)
     }
 
     private func fiat(_ amount: BigUInt?, _ asset: Asset?) -> String? {
-        guard let amount, let asset, let price = asset.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) else { return nil }
-        return "≈ \(Fmt.fiat(Fmt.double(amount, decimals: asset.decimals) * price, session.currency))"
+        guard let asset, let price = asset.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) else { return nil }
+        return "≈ \(Fmt.fiat(Fmt.double(amount ?? 0, decimals: asset.decimals) * price, session.currency))"
     }
 
     private func setFraction(_ fraction: Double) {
@@ -382,6 +398,7 @@ struct TradeView: View {
     }
 
     private func flip() {
+        withAnimation(Motion.flip) { flipTurns += 1 }
         withAnimation(Motion.flip) {
             let sell = model.sell
             model.sell = model.buy
@@ -474,7 +491,7 @@ struct AmountBox: View {
                 .buttonStyle(.plain)
             }
             HStack {
-                Text(fiat ?? " ").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                Text(fiat ?? " ").typeStyle(.note).foregroundStyle(amount.isEmpty ? Palette.inkMuted : Palette.inkSoft)
                 Spacer()
                 if let onFraction {
                     ForEach([(0.25, "25%"), (0.5, "50%"), (1.0, "Máx")], id: \.0) { fraction, label in

@@ -97,8 +97,7 @@ struct ActivityView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Atividade").typeStyle(.title).foregroundStyle(Palette.ink)
-                        .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+                    TabTitle("Atividade")
 
                     if let failed = feed.failed.first {
                         Banner(kind: .neutral, title: "Não foi possível ler o histórico \(failed.id == "xrpl" ? "do" : "da") \(failed.name).",

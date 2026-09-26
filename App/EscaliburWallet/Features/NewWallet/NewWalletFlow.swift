@@ -95,17 +95,15 @@ struct NewWalletFlow: View {
                 fact("eye.slash", "Aparecem 3 palavras por vez, por 60 segundos.")
             }
             .padding(.top, Space.lg)
-            HStack(spacing: Space.xs) {
-                Chip(title: "12 palavras", selected: wordCount == 12) { wordCount = 12 }
-                Chip(title: "24 palavras", selected: wordCount == 24) { wordCount = 24 }
-            }
-            .padding(.top, Space.lg)
-            Text("12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar.")
-                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
             if let error {
                 Banner(kind: .failure, title: error).padding(.top, Space.md)
             }
             Spacer()
+            Segmented(options: [(12, "12 palavras"), (24, "24 palavras")], selection: $wordCount)
+                .frame(width: 220)
+            Text("12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar.")
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
+                .padding(.bottom, Space.lg)
             PrimaryButton(title: "Mostrar as palavras", loading: saving) { Task { await start() } }
         }
         .padding(.horizontal, Space.gutter)
@@ -114,8 +112,8 @@ struct NewWalletFlow: View {
     }
 
     private func fact(_ icon: String, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: Space.sm) {
-            Image(systemName: icon).font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.inkSoft).frame(width: 22)
+        HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+            Image(systemName: icon).font(.system(size: 17, weight: .regular)).foregroundStyle(Palette.inkSoft).frame(width: 24)
             Text(text).typeStyle(.body).foregroundStyle(Palette.ink).fixedSize(horizontal: false, vertical: true)
         }
     }

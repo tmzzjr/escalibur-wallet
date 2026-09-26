@@ -15,6 +15,7 @@ struct LockView: View {
             title: "Digite o seu PIN",
             subtitle: nil,
             entry: entry,
+            showsBadge: true,
             biometryIcon: session.biometryEnabled ? "faceid" : nil,
             onBiometry: { Task { await tryBiometry() } },
             working: working,

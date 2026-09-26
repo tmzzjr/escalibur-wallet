@@ -39,8 +39,6 @@ struct ReceiveSheet: View {
     @Environment(\.dismiss) private var dismiss
     let preselected: Asset?
 
-    @State private var asset: Asset?
-    @State private var chain: Chain?
     @State private var query = ""
     @State private var backingUp = false
 
@@ -51,36 +49,25 @@ struct ReceiveSheet: View {
             Group {
                 if let wallet, !wallet.hasBackup, !wallet.isWatchOnly {
                     blocked
-                } else if let asset, let chain {
-                    addressView(asset: asset, chain: chain)
+                } else if let preselected, let chain = preselected.chain {
+                    addressView(asset: preselected, chain: chain)
                 } else {
                     chooser
                 }
             }
             .background(Palette.body.ignoresSafeArea())
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.inkSoft)
-                            .frame(width: 30, height: 30).background(Circle().fill(Palette.control))
-                    }
-                    .accessibilityLabel("Fechar")
-                }
-                if asset != nil, preselected == nil {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { asset = nil; chain = nil } label: {
-                            Image(systemName: "chevron.left").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.inkSoft)
-                        }
-                        .accessibilityLabel("Voltar")
-                    }
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: Asset.self) { item in
+                if let chain = item.chain {
+                    addressView(asset: item, chain: chain)
+                        .background(Palette.body.ignoresSafeArea())
+                        .toolbar(.visible, for: .navigationBar)
+                        .navigationBarTitleDisplayMode(.inline)
                 }
             }
         }
         .presentationBackground(Palette.body)
         .presentationCornerRadius(Radius.sheet)
-        .onAppear {
-            if let preselected { asset = preselected; chain = preselected.chain }
-        }
         .fullScreenCover(isPresented: $backingUp) {
             if let wallet { RevealFlow(wallet: wallet, purpose: .backup) { backingUp = false } }
         }
@@ -88,6 +75,7 @@ struct ReceiveSheet: View {
 
     private var blocked: some View {
         VStack(alignment: .leading, spacing: 0) {
+            HStack { Spacer(); closeButton }
             Text("Grave a senha da carteira antes de receber").typeStyle(.title).foregroundStyle(Palette.ink)
             Text("Esta carteira ainda não tem cópia. Se o iPhone sumir antes disso, o que chegar aqui se perde. Leva 2 minutos.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
@@ -99,40 +87,59 @@ struct ReceiveSheet: View {
 
     // MARK: R1
 
+    private var closeButton: some View {
+        Button { dismiss() } label: {
+            Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                .frame(width: Height.touch, height: Height.touch)
+        }
+        .accessibilityLabel("Fechar")
+    }
+
     private var chooser: some View {
         let accounts = Set(wallet?.accounts.map(\.chainID) ?? [])
         let all = Chain.all.filter { accounts.contains($0.id) }.flatMap { TokenRegistry.assets(on: $0) }
         let filtered = query.isEmpty ? all : all.filter { $0.symbol.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query) }
-        let popular = ["bitcoin:native", "ethereum:native", "solana:native", "xrpl:native", "tron:TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"]
-        let sorted = filtered.sorted { (popular.firstIndex(of: $0.id) ?? 99) < (popular.firstIndex(of: $1.id) ?? 99) }
+        let held = Set(Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings).filter { !$0.amount.isZero }.map(\.asset.id))
+        let inWallet = filtered.filter { held.contains($0.id) }
+        let others = filtered.filter { !held.contains($0.id) }
         return VStack(alignment: .leading, spacing: 0) {
-            Text("Receber").typeStyle(.title).foregroundStyle(Palette.ink).padding(.horizontal, Space.gutter)
-            TextField("", text: $query, prompt: Text("Buscar").foregroundColor(Palette.inkDead))
-                .typeStyle(.body).foregroundStyle(Palette.ink)
-                .padding(.horizontal, Space.md).frame(height: 44)
-                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
+            SheetHeader(title: "Receber") { dismiss() }
+            SearchField(prompt: "Buscar", text: $query, surface: Palette.rail)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.md)
             ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(sorted) { item in
-                        Button { asset = item; chain = item.chain } label: {
-                            HStack(spacing: Space.sm) {
-                                CoinLogo(coingeckoID: item.coingeckoID, symbol: item.symbol, size: 36, network: item.chain, ringColor: Palette.body)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
-                                    Text(item.name == item.chain?.name ? item.name : "\(item.name) · \(item.chain?.name ?? "")").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                                }
-                                Spacer()
-                            }
-                            .padding(.horizontal, Space.gutter).frame(height: Height.row)
-                        }
-                        .buttonStyle(RowStyle(surface: .body))
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    if !inWallet.isEmpty {
+                        sectionTitle("Na carteira")
+                        ForEach(inWallet) { assetRow($0) }
+                        sectionTitle("Todos")
                     }
+                    ForEach(others) { assetRow($0) }
                 }
                 .padding(.top, Space.xs)
             }
         }
-        .padding(.top, Space.xs)
+    }
+
+    private func sectionTitle(_ text: String) -> some View {
+        Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            .padding(.horizontal, Space.gutter).padding(.top, Space.md).padding(.bottom, Space.xxs)
+    }
+
+    private func assetRow(_ item: Asset) -> some View {
+        NavigationLink(value: item) {
+            HStack(spacing: Space.sm) {
+                CoinLogo(coingeckoID: item.coingeckoID, symbol: item.symbol, size: 36, network: item.chain, ringColor: Palette.body)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
+                    Text(item.kind == .native ? (item.chain?.name ?? "") : "\(item.name) · \(item.chain?.name ?? "")")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+            }
+            .padding(.horizontal, Space.gutter).frame(height: Height.row)
+        }
+        .buttonStyle(RowStyle(surface: .body))
     }
 
     // MARK: R2
@@ -142,6 +149,7 @@ struct ReceiveSheet: View {
         let balance = portfolio.balance(chain)
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                if preselected != nil { HStack { Spacer(); closeButton } }
                 Text("Receber \(asset.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
                 Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
 

@@ -18,6 +18,7 @@ struct RevealFlow: View {
     @State private var confirming = false
     @State private var working = false
     @State private var error: String?
+    @State private var acknowledged: Set<Int> = []
 
     var body: some View {
         NavigationStack {
@@ -48,21 +49,54 @@ struct RevealFlow: View {
 
     private var warning: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Image(systemName: "exclamationmark.shield").font(.system(size: 36)).foregroundStyle(Palette.ink)
             Text("Ninguém da Escalibur vai pedir estas palavras")
-                .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+                .typeStyle(.title).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Suporte, gerente de exchange, recuperação de conta: quem pede a senha da carteira está tentando roubar o saldo. Veja sozinho, longe de câmeras.")
+            Text("Suporte, gerente de exchange, recuperação de conta: quem pede a senha da carteira está tentando roubar o saldo.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 0) {
+                ForEach(Array(Self.statements.enumerated()), id: \.offset) { index, statement in
+                    Button {
+                        if acknowledged.contains(index) { acknowledged.remove(index) } else { acknowledged.insert(index) }
+                    } label: {
+                        HStack(spacing: Space.sm) {
+                            ZStack {
+                                Circle().stroke(acknowledged.contains(index) ? Palette.ink : Palette.inkMuted, lineWidth: 1.5)
+                                if acknowledged.contains(index) {
+                                    Circle().fill(Palette.ink)
+                                    Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(Palette.onLive)
+                                }
+                            }
+                            .frame(width: 22, height: 22)
+                            Text(statement).typeStyle(.body).foregroundStyle(Palette.ink)
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                        }
+                        .frame(minHeight: Height.rowCompact)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .sensoryFeedback(.selection, trigger: acknowledged.contains(index))
+                }
+            }
+            .padding(.top, Space.lg)
             if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }
             Spacer()
-            PrimaryButton(title: "Ver as palavras", loading: working) { Task { await open() } }
+            PrimaryButton(title: "Ver as palavras", enabled: acknowledged.count == Self.statements.count, loading: working) {
+                Task { await open() }
+            }
         }
         .padding(.horizontal, Space.gutter)
         .padding(.top, Space.md)
         .padding(.bottom, Space.xs)
     }
+
+    static let statements = [
+        "Quem tem as palavras tem o saldo.",
+        "A Escalibur nunca pede as palavras.",
+        "Vou ver sozinho, longe de câmeras.",
+    ]
 
     private func open() async {
         working = true

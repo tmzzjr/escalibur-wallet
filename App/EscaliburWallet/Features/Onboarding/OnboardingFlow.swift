@@ -38,16 +38,13 @@ struct OnboardingFlow: View {
 
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 0) {
+            WalletBadge(size: 40).padding(.top, Space.md)
             Spacer()
-            WalletBadge(size: 64)
             Text("Uma carteira que só você abre")
-                .typeStyle(.title)
-                .font(.system(size: 34, weight: .bold))
-                .tracking(-1)
+                .typeStyle(.hero)
                 .foregroundStyle(Palette.ink)
-                .padding(.top, Space.lg)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("As chaves ficam neste iPhone. Sem conta e sem e‑mail: a Escalibur não tem como ver, mover nem recuperar o seu saldo.")
+            Text("As chaves ficam neste iPhone. Sem conta e sem e\u{2011}mail: a Escalibur não tem como ver, mover nem recuperar o seu saldo.")
                 .typeStyle(.body)
                 .foregroundStyle(Palette.inkSoft)
                 .padding(.top, Space.sm)
@@ -62,10 +59,10 @@ struct OnboardingFlow: View {
                        message: "Configure um código em Ajustes do iPhone. Sem ele, o iOS não protege as chaves da carteira.")
                     .padding(.top, Space.lg)
             }
-            Spacer()
             PrimaryButton(title: "Começar", enabled: KeyServices.deviceIsEligible) {
                 step = .choosePIN
             }
+            .padding(.top, Space.xl)
             Text("Ao continuar, você aceita os Termos de uso e a Política de privacidade.")
                 .typeStyle(.note)
                 .foregroundStyle(Palette.inkMuted)
