@@ -101,6 +101,14 @@ public enum BIP39 {
         return try Hash.pbkdf2SHA512(password: phrase, salt: salt, rounds: 2048, length: 64)
     }
 
+    /// A seed com a 25a palavra vinda de buffer seguro. A passphrase passa so por
+    /// NFKD: sem minusculas, sem trim, sem colapsar espacos (BIP-39).
+    public static func seed(phrase: SecureBytes, passphrase: SecureBytes) throws -> SecureBytes {
+        var text = passphrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }
+        defer { text = "" }
+        return try seed(phrase: phrase, passphrase: text)
+    }
+
     /// Valida uma frase ja em buffer. Devolve o idioma em que ela fecha.
     ///
     /// Passa pela `String` do Swift porque o validador do Escalibur trabalha com

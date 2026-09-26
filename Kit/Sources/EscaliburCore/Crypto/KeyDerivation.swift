@@ -16,6 +16,12 @@ public struct KDFParameters: Equatable, Sendable {
     /// Faixas de trilha.
     public var lanes: UInt8
 
+    public init(memoryKiB: UInt32, passes: UInt32, lanes: UInt8) {
+        self.memoryKiB = memoryKiB
+        self.passes = passes
+        self.lanes = lanes
+    }
+
     /// O padrao de referencia, para aparelho que aguenta.
     /// `p = 4`, e nao 1.
     ///
