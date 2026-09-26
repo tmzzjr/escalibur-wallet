@@ -126,6 +126,10 @@ struct TradeCoWTests {
         #expect(plan.uid == (try plan.order.uid(owner: S.owner)))
         #expect(plan.prerequisiteCount == 1)
         #expect(plan.signingPlan.review.kind == .limitOrder)
+        // Os movimentos sao os da ordem assinada: sellAmount, buyAmount e receiver.
+        #expect(plan.signingPlan.review.outgoing == PlanReview.Movement(assetID: "base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: 100_000_000))
+        #expect(plan.signingPlan.review.incomingMinimum == PlanReview.Movement(assetID: "base:native", amount: plan.order.buyAmount))
+        #expect(plan.signingPlan.review.beneficiary == plan.order.receiver.checksummed)
         let lines = Dictionary(uniqueKeysWithValues: plan.signingPlan.review.lines.map { ($0.label, $0.value) })
         #expect(lines["Recebe, no mínimo"] == "0,04\u{00A0}ETH")
         #expect(lines["Preço-alvo"] == "1\u{00A0}USDC = 0,0004\u{00A0}ETH")
@@ -159,6 +163,12 @@ struct TradeCoWTests {
         #expect(plan.order.sellToken == weth.contract)
         #expect(plan.order.buyAmount == 1_500_000_000)
         #expect(plan.signingPlan.review.lines.contains { $0.label == "Antes" && $0.value.contains("WETH") })
+        // Vende o nativo (o embrulho vai pelo mesmo valor), recebe USDC da lista.
+        #expect(plan.signingPlan.review.outgoing == PlanReview.Movement(assetID: "base:native", amount: amount))
+        #expect(wrap.value == plan.order.sellAmount)
+        #expect(plan.signingPlan.review.incomingMinimum == PlanReview.Movement(
+            assetID: "base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: 1_500_000_000
+        ))
     }
 
     @Test("Recusas: rede sem CoW, validade fora da janela, ordem aberta no mesmo token, outra conta")

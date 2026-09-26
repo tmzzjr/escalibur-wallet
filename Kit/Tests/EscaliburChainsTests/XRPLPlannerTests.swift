@@ -66,6 +66,8 @@ struct XRPLPlannerTests {
         #expect(tx.unsigned[.flags] == .uint32(XRPLTransactionFlags.fullyCanonicalSig))
         #expect(tx.unsigned[.destinationTag] == .uint32(7))
         #expect(tx.unsigned[.amount] == .amount(.xrp(drops: 50 * Self.xrp)))
+        // O que sai e o Amount gravado.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "xrpl:native", amount: 50 * Self.xrp))
         #expect(tx.unsigned[.networkID] == nil)
         #expect(tx.unsigned[.sendMax] == nil && tx.unsigned[.deliverMin] == nil)
         #expect(tx.memos == [try XRPLMemo.text("aluguel")])

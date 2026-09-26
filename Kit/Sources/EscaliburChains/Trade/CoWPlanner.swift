@@ -383,7 +383,14 @@ public enum CoWPlanner {
                 : "A ordem assinada vai para a CoW depois que as transações acima confirmarem"),
             .init("Cancelar", "Pelo app, grátis mas sem garantia; ou na cadeia, garantido, pagando taxa de rede"),
         ]
-        let title = "Ordem limite: vender \(TradeText.amount(intent.sellAmount, intent.sell)) por \(intent.buy.symbol)"
-        return PlanReview(kind: .limitOrder, title: title, lines: lines, transactionCount: feeQuotes.count + 1)
+        let title = "Ordem limite: vender \(TradeText.amount(order.sellAmount, intent.sell)) por \(intent.buy.symbol)"
+        // Os movimentos saem da ordem assinada: vende `sellAmount` (o nativo, quando o
+        // embrulho vem antes, pelo mesmo valor), recebe pelo menos `buyAmount`, e quem
+        // recebe e o `receiver` gravado.
+        return PlanReview(
+            kind: .limitOrder, title: title, lines: lines, transactionCount: feeQuotes.count + 1,
+            outgoing: intent.sell.movement(order.sellAmount), incomingMinimum: intent.buy.movement(order.buyAmount),
+            beneficiary: order.receiver.checksummed
+        )
     }
 }

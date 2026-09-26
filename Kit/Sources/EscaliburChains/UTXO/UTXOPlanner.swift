@@ -395,7 +395,9 @@ public enum UTXOPlanner {
             ),
             warnings: warnings,
             transactionCount: 1,
-            recipient: destination.address
+            recipient: destination.address,
+            // A saida para o destino, conferida acima na transacao montada.
+            outgoing: .native(chain, BigUInt(amount))
         )
         return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: [signable], createdAt: now)
     }

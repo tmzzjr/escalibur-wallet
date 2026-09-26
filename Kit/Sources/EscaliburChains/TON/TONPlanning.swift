@@ -158,7 +158,8 @@ public enum TONPlanner {
             title: "Enviar \(TONFormat.amount(amount, decimals: 9, symbol: "TON"))",
             lines: lines,
             warnings: warnings,
-            recipient: parsed.address.raw, recipientTag: context.comment
+            recipient: parsed.address.raw, recipientTag: context.comment,
+            outgoing: .native(.ton, message.amount)
         )
         return SigningPlan(walletID: walletID, chain: .ton, review: review, transactions: [transfer], createdAt: now)
     }
@@ -225,7 +226,16 @@ public enum TONPlanner {
         ))
         lines += context.commonLines(fee: state.estimatedFee)
 
-        let review = PlanReview(kind: .send, title: "Enviar \(amountText)", lines: lines, recipient: parsed.address.raw, recipientTag: context.comment)
+        // O que sai e o valor gravado no corpo do jetton transfer, no mestre do USDT; o
+        // TON anexado volta no excesso e fica na linha propria.
+        let listedMaster: (String) -> Bool = { contract in
+            if case .success(let parsed) = TONAddress.parse(contract) { return parsed.address == TONJetton.usdtMaster }
+            return false
+        }
+        let review = PlanReview(
+            kind: .send, title: "Enviar \(amountText)", lines: lines, recipient: parsed.address.raw, recipientTag: context.comment,
+            outgoing: .token(.ton, amount, fallback: TONJetton.usdtMaster.friendly(bounceable: true), matching: listedMaster)
+        )
         return SigningPlan(walletID: walletID, chain: .ton, review: review, transactions: [transfer], createdAt: now)
     }
 

@@ -99,6 +99,8 @@ struct TronPlannerTests {
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 12,5 TRX")
         expectRecipient(plan)
+        // O que sai e o amount do TransferContract (conferido abaixo).
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "tron:native", amount: 12_500_000))
         #expect(plan.review.warnings.isEmpty)
         #expect(Self.line(plan, "Para") == Self.destination)
         // 268 = 265 do recibo das txs de 1 sun mais 3 bytes do varint de 12,5 TRX.
@@ -205,6 +207,8 @@ struct TronPlannerTests {
         let tx = try Self.tron(plan)
         #expect(plan.review.title == "Enviar 50 USDT")
         expectRecipient(plan)
+        // O que sai e o valor da calldata transfer (conferida abaixo), no USDT da lista.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "tron:TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", amount: 50_000_000))
         #expect(Self.line(plan, "Rede") == "Tron (TRC-20)")
         #expect(Self.line(plan, "Contrato do USDT") == "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")
         #expect(Self.line(plan, "Energia") == "64.285 de energia, 6,4285 TRX queimados")

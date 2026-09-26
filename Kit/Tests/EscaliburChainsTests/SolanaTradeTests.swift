@@ -179,6 +179,14 @@ struct SolanaTradePlanTests {
         let lines = Dictionary(plan.review.lines.map { ($0.label, $0.value) }, uniquingKeysWith: { a, _ in a })
         #expect(plan.review.title == "Trocar 0,05 SOL por USDC")
         #expect(lines["Sai"] == "0,05 SOL")
+        // Os movimentos saem da rota decodificada da mensagem compilada.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "solana:native", amount: BigUInt(draft.route.inAmount)))
+        #expect(plan.review.outgoing?.amount == 50_000_000)
+        #expect(plan.review.incomingMinimum == PlanReview.Movement(
+            assetID: "solana:EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", amount: BigUInt(draft.route.minimumOut)
+        ))
+        #expect(plan.review.incomingMinimum?.amount == 6_050_064)
+        #expect(plan.review.beneficiary == (try F.owner().publicKey.base58))
         #expect(lines["Entra, no mínimo"] == "6,050064 USDC")
         #expect(lines["Estimativa"] == "6,080466 USDC")
         #expect(lines["Preço"] == "1 SOL ≈ 121,60932 USDC")

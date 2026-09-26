@@ -144,6 +144,8 @@ struct UTXOPlannerTests {
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 0,0006 BTC")
         expectRecipient(plan)
+        // O que sai e a saida para o destino (conferida abaixo na transacao assinada).
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "bitcoin:native", amount: 60_000))
         #expect(plan.review.lines.map(\.label) == ["Para", "Valor", "Rede", "Taxa", "Troco"])
         #expect(plan.review.lines[0].value == Self.destination && plan.review.lines[0].verbatim)
         #expect(plan.review.lines[3].value == "0,00000705 BTC (5 sat/vB)")

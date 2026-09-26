@@ -285,7 +285,11 @@ public enum SolanaPlanner {
         lines.append(PlanReview.Line("Total", SolanaAmountText.sol(lamports + fee)))
         lines.append(PlanReview.Line("Saldo depois", SolanaAmountText.sol(network.balance - lamports - fee)))
 
-        let review = PlanReview(kind: .send, title: "Enviar \(SolanaAmountText.sol(lamports))", lines: lines, warnings: warnings, recipient: to.base58)
+        // O que sai e o valor da instrucao de transferencia montada.
+        let review = PlanReview(
+            kind: .send, title: "Enviar \(SolanaAmountText.sol(lamports))", lines: lines, warnings: warnings, recipient: to.base58,
+            outgoing: .native(.solana, BigUInt(amount))
+        )
         return SigningPlan(walletID: walletID, chain: .solana, review: review, transactions: [transaction], createdAt: now)
     }
 
@@ -436,7 +440,11 @@ public enum SolanaPlanner {
         if !token.isVerified { warnings.append(.unverifiedToken(symbol: token.symbol)) }
 
         let title = "Enviar \(SolanaAmountText.format(amount, decimals: decimals, symbol: token.symbol))"
-        let review = PlanReview(kind: .send, title: title, lines: lines, warnings: warnings, recipient: recipientWallet.base58)
+        // O que sai e o valor do TransferChecked montado, no mint conferido.
+        let review = PlanReview(
+            kind: .send, title: title, lines: lines, warnings: warnings, recipient: recipientWallet.base58,
+            outgoing: .token(.solana, contract: token.mint.base58, BigUInt(rawAmount))
+        )
         return SigningPlan(walletID: walletID, chain: .solana, review: review, transactions: [transaction], createdAt: now)
     }
 

@@ -637,7 +637,18 @@ public enum SolanaSwapPlanner {
             lines.append(PlanReview.Line("Taxa do emissor de \(buy.symbol)", "até " + percentText(bps: bps)))
             warnings.append(.highFee(percentOfAmount: Double(bps) / 100))
         }
-        return PlanReview(kind: .swap, title: "Trocar \(sellText) por \(buy.symbol)", lines: lines, warnings: warnings)
+        // Os movimentos saem da rota decodificada da mensagem compilada: entra
+        // exatamente `inAmount` do mint vendido, sai pelo menos `minimumOut` do comprado,
+        // na conta de token do proprio dono (ou no proprio dono, quando compra SOL).
+        return PlanReview(
+            kind: .swap, title: "Trocar \(sellText) por \(buy.symbol)", lines: lines, warnings: warnings,
+            outgoing: movement(sell, BigUInt(draft.route.inAmount)), incomingMinimum: movement(buy, BigUInt(draft.route.minimumOut)),
+            beneficiary: draft.owner.publicKey.base58
+        )
+    }
+
+    static func movement(_ asset: SolanaSwapAsset, _ amount: BigUInt) -> PlanReview.Movement {
+        asset.isNativeSOL ? .native(.solana, amount) : .token(.solana, contract: asset.mint.base58, amount)
     }
 
     /// "1 SOL ≈ 121,6612 USDC", calculado da cotacao decodificada, truncado nas

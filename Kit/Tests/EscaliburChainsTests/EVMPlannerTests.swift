@@ -50,6 +50,9 @@ struct EVMPlannerTests {
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 0,5\u{00A0}ETH")
         expectRecipient(plan)
+        // O que sai e o `value` da transacao montada, no nativo da rede.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "ethereum:native", amount: transaction.value))
+        #expect(plan.review.incomingMinimum == nil && plan.review.beneficiary == nil)
         #expect(plan.review.lines.contains(PlanReview.Line("Para", "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", verbatim: true)))
         #expect(Self.line(plan, "Taxa estimada") == "0,00000252\u{00A0}ETH")
         #expect(Self.line(plan, "Taxa máxima") == "0,00000399\u{00A0}ETH")
@@ -206,6 +209,8 @@ struct EVMPlannerTests {
         #expect(transaction.gasLimit == 54_000)
         #expect(plan.review.title == "Enviar 1,5\u{00A0}USDC")
         expectRecipient(plan)
+        // O que sai e o valor da calldata `transfer`, com o id do USDC da lista.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "ethereum:0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", amount: 1_500_000))
         #expect(plan.review.lines.contains(PlanReview.Line("Contrato do token", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", verbatim: true)))
 
         #expect(throws: EVMPlanError.refused(.recipientIsTokenContract)) {

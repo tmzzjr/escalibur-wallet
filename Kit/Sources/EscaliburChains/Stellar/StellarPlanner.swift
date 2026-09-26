@@ -158,7 +158,8 @@ public enum StellarPlanner {
             title: "Enviar \(StellarAmount.format(amount, .native))",
             lines: destinationLines(target) + memoLines(memo) + extraLines + feeLines(fee, operations: 1),
             warnings: warnings,
-            recipient: target.address, recipientTag: memo.recipientTag
+            recipient: target.address, recipientTag: memo.recipientTag,
+            outgoing: try sent(body)
         )
         return try makePlan([body], memo: memo, feePerOperation: fee, review: review, context: context)
     }
@@ -192,17 +193,16 @@ public enum StellarPlanner {
         let fee = try feePerOperation(context.network)
         try requireBalance(context.account.spendable(baseReserve: context.network.baseReserve), covers: fee, asset: .native)
 
+        let body = StellarOperation.Body.payment(destination: target, asset: asset, amount: value)
         let review = PlanReview(
             kind: .send,
             title: "Enviar \(StellarAmount.format(amount, asset))",
             lines: destinationLines(target) + memoLines(memo) + assetLines(asset, label: "Emissor")
                 + feeLines(fee, operations: 1),
-            recipient: target.address, recipientTag: memo.recipientTag
+            recipient: target.address, recipientTag: memo.recipientTag,
+            outgoing: try sent(body)
         )
-        return try makePlan(
-            [.payment(destination: target, asset: asset, amount: value)],
-            memo: memo, feePerOperation: fee, review: review, context: context
-        )
+        return try makePlan([body], memo: memo, feePerOperation: fee, review: review, context: context)
     }
 
     // MARK: Aceitar ativo
@@ -296,10 +296,17 @@ public enum StellarPlanner {
         lines += assetLines(receiveAsset, label: "Emissor de \(receiveAsset.code)")
         lines += extraLines + feeLines(fee, operations: bodies.count)
 
+        // Os movimentos saem do path payment montado: sai exatamente `sendAmount`, entra
+        // pelo menos `destMin`, e o destino gravado e a propria conta.
+        guard case .pathPaymentStrictSend(_, let sent, let destination, _, let minimum, _)? = bodies.last else {
+            throw StellarPlanError.minimumReceiveZero
+        }
         let review = PlanReview(
             kind: .swap,
             title: "Trocar \(StellarAmount.format(sendAmount, sendAsset)) por \(receiveAsset.code)",
-            lines: lines
+            lines: lines,
+            outgoing: movement(sendAsset, BigUInt(UInt64(sent))), incomingMinimum: movement(receiveAsset, BigUInt(UInt64(minimum))),
+            beneficiary: destination.address
         )
         return try makePlan(bodies, memo: .none, feePerOperation: fee, review: review, context: context)
     }
@@ -360,10 +367,19 @@ public enum StellarPlanner {
         lines += assetLines(buyingAsset, label: "Emissor de \(buyingAsset.code)")
         lines += feeLines(fee, operations: bodies.count)
 
+        // Os movimentos saem da oferta montada: vende `amount`, e pelo preco n/d gravado
+        // recebe pelo menos piso(amount x n / d), que nunca fica abaixo do minimo pedido
+        // (o preco e arredondado para cima). Quem recebe e a conta que assina.
+        guard case .manageSellOffer(_, _, let offered, let limit, _)? = bodies.last, limit.n > 0, limit.d > 0 else {
+            throw StellarPlanError.priceNotRepresentable
+        }
+        let atLeast = BigUInt(UInt64(offered)) * BigUInt(UInt64(limit.n)) / BigUInt(UInt64(limit.d))
         let review = PlanReview(
             kind: .limitOrder,
             title: "Vender \(StellarAmount.format(sellAmount, sellingAsset)) por \(buyingAsset.code)",
-            lines: lines
+            lines: lines,
+            outgoing: movement(sellingAsset, BigUInt(UInt64(offered))), incomingMinimum: movement(buyingAsset, atLeast),
+            beneficiary: context.source.account.address
         )
         return try makePlan(bodies, memo: .none, feePerOperation: fee, review: review, context: context)
     }
@@ -500,6 +516,27 @@ public enum StellarPlanner {
         )
         let transaction = StellarTransaction(tx: tx, path: context.source.path, signer: context.source.account)
         return SigningPlan(walletID: context.walletID, chain: .stellar, review: review, transactions: [transaction], createdAt: context.now)
+    }
+
+    // MARK: Movimentos
+
+    /// Um ativo da Stellar como movimento do plano, com o id da lista curada.
+    static func movement(_ asset: StellarAsset, _ amount: BigUInt) -> PlanReview.Movement {
+        guard let issuer = asset.issuer else { return .native(.stellar, amount) }
+        return .issued(.stellar, code: asset.code, issuer: issuer.address, amount)
+    }
+
+    /// O que sai numa operacao de envio montada: o valor do Payment ou o saldo inicial
+    /// do CreateAccount (sempre XLM).
+    static func sent(_ body: StellarOperation.Body) throws -> PlanReview.Movement {
+        switch body {
+        case .payment(_, let asset, let amount):
+            return movement(asset, BigUInt(UInt64(amount)))
+        case .createAccount(_, let startingBalance):
+            return movement(.native, BigUInt(UInt64(startingBalance)))
+        default:
+            throw StellarPlanError.amountZero
+        }
     }
 
     // MARK: Tela

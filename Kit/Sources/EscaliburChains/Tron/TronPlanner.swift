@@ -318,9 +318,12 @@ public enum TronPlanner {
             if percent > 10 { warnings.append(.highFee(percentOfAmount: percent)) }
         }
 
+        // O que sai e o `amount` do TransferContract montado.
+        guard case .transfer(_, _, let sent) = raw.contract else { throw TronPlanError.zeroAmount }
         let review = PlanReview(
             kind: .send, title: "Enviar \(TronFormat.trx(amount))", lines: lines, warnings: warnings,
-            recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo
+            recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo,
+            outgoing: .native(.tron, sent)
         )
         let transaction = try TronTransaction(raw: raw, path: owner.path, publicKey: owner.publicKey)
         return SigningPlan(walletID: walletID, chain: .tron, review: review, transactions: [transaction], createdAt: now)
@@ -407,9 +410,14 @@ public enum TronPlanner {
         lines.append(.init("Custo estimado", "\(TronFormat.trx(fees.totalBurn)) queimados"))
         lines.append(.init("Taxa máxima (fee_limit)", TronFormat.trx(feeLimit)))
 
+        // O que sai e o valor da calldata `transfer` montada, no contrato compilado.
+        guard case .triggerSmartContract(_, let contract, _, let data) = raw.contract, contract == TRC20.usdt.contract,
+              let decoded = TRC20.decodeTransfer(data)
+        else { throw TronPlanError.zeroAmount }
         let review = PlanReview(
             kind: .send, title: "Enviar \(TronFormat.usdt(amount))", lines: lines, warnings: warnings,
-            recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo
+            recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo,
+            outgoing: .token(.tron, contract: TRC20.usdt.contract.base58, decoded.amount)
         )
         let transaction = try TronTransaction(raw: raw, path: owner.path, publicKey: owner.publicKey)
         return SigningPlan(walletID: walletID, chain: .tron, review: review, transactions: [transaction], createdAt: now)
