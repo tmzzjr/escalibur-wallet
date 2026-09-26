@@ -1,0 +1,257 @@
+{
+  "note": "Transacoes da rede principal (e uma da testnet, a de jetton V4R2) assinadas pelo wallet-core e transmitidas; o teste do wallet-core cita o link do tonviewer de cada uma. Com seqno 0 o wallet-core grava valid_until = 0xFFFFFFFF.",
+  "vectors": [
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign.rs test_ton_sign_transfer_and_deploy_4b1d9f",
+      "privateKey": "e97620499dfee0107c0cd7f0ecb2afb3323d385b3a82320a5e3fa1fbdca6e722",
+      "version": "V4R2",
+      "seqno": 0,
+      "validUntil": 4294967295,
+      "deploy": true,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "UQA6whN_oU5h9jPljnlDSWRYQNDPkLaUqqaEWULNB_Zoykuu",
+          "amount": "100000",
+          "bounce": true
+        }
+      ],
+      "boc": "te6cckECGgEAA7QAAkWIAFLpyT6KaTlAPrZhoz1G7c/wY1KAfkGWAG3ajTKt4CFkHgECAgE0AwQBnPhb8QZRko0VcLtSmZsGLICPVXj7+QmBkrCrCL1R1bdHYWibC86XsAcA2dgem8QSl8xxsChuCd2oVG1FoMVUUgEpqaMX/////wAAAAAAAwUBFP8A9KQT9LzyyAsGAFEAAAAAKamjFyoNBiYB1ihabNBrDwYVwXUbvpGlthGturFziw2Dl/PLQAFmYgAdYQm/0Kcw+xnyxzyhpLIsIGhnyFtKVVNCLKFmg/s0ZRgMNQAAAAAAAAAAAAAAAAABBwIBIAgJAAACAUgKCwT48oMI1xgg0x/TH9MfAvgju/Jk7UTQ0x/TH9P/9ATRUUO68qFRUbryogX5AVQQZPkQ8qP4ACSkyMsfUkDLH1Iwy/9SEPQAye1U+A8B0wchwACfbFGTINdKltMH1AL7AOgw4CHAAeMAIcAC4wABwAORMOMNA6TIyx8Syx/L/wwNDg8C5tAB0NMDIXGwkl8E4CLXScEgkl8E4ALTHyGCEHBsdWe9IoIQZHN0cr2wkl8F4AP6QDAg+kQByMoHy//J0O1E0IEBQNch9AQwXIEBCPQKb6Exs5JfB+AF0z/IJYIQcGx1Z7qSODDjDQOCEGRzdHK6kl8G4w0QEQIBIBITAG7SB/oA1NQi+QAFyMoHFcv/ydB3dIAYyMsFywIizxZQBfoCFMtrEszMyXP7AMhAFIEBCPRR8qcCAHCBAQjXGPoA0z/IVCBHgQEI9FHyp4IQbm90ZXB0gBjIywXLAlAGzxZQBPoCFMtqEssfyz/Jc/sAAgBsgQEI1xj6ANM/MFIkgQEI9Fnyp4IQZHN0cnB0gBjIywXLAlAFzxZQA/oCE8tqyx8Syz/Jc/sAAAr0AMntVAB4AfoA9AQw+CdvIjBQCqEhvvLgUIIQcGx1Z4MesXCAGFAEywUmzxZY+gIZ9ADLaRfLH1Jgyz8gyYBA+wAGAIpQBIEBCPRZMO1E0IEBQNcgyAHPFvQAye1UAXKwjiOCEGRzdHKDHrFwgBhQBcsFUAPPFiP6AhPLassfyz/JgED7AJJfA+ICASAUFQBZvSQrb2omhAgKBrkPoCGEcNQICEekk30pkQzmkD6f+YN4EoAbeBAUiYcVnzGEAgFYFhcAEbjJftRNDXCx+AA9sp37UTQgQFA1yH0BDACyMoHy//J0AGBAQj0Cm+hMYAIBIBgZABmtznaiaEAga5Drhf/AABmvHfaiaEAQa5DrhY/AaTiNAg==",
+      "hash": "4b1d9f09856af70ea1058b557a87c9ba2abb0bca2029e0cbbe8c659d5dae4ce1"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign.rs test_ton_sign_transfer_and_deploy",
+      "privateKey": "63474e5fe9511f1526a50567ce142befc343e71a49b865ac3908f58667319cb8",
+      "version": "V4R2",
+      "seqno": 0,
+      "validUntil": 4294967295,
+      "deploy": true,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "EQDYW_1eScJVxtitoBRksvoV9cCYo4uKGWLVNIHB1JqRR3n0",
+          "amount": "10",
+          "bounce": true
+        }
+      ],
+      "boc": "te6ccgICABoAAQAAA8sAAAJFiADN98eLgHfrkE8l8gmT8X5REpTVR6QnqDhArTbKlVvbZh4ABAABAZznxvGBhoRXhPogxNY8QmHlihJWxg5t6KptqcAIZlVks1r+Z+r1avCWNCeqeLC/oaiVN4mDx/E1+Zhi33G25rcIKamjF/////8AAAAAAAMAAgFiYgBsLf6vJOEq42xW0AoyWX0K+uBMUcXFDLFqmkDg6k1Io4hQAAAAAAAAAAAAAAAAAQADAAACATQABgAFAFEAAAAAKamjF/Qsd/kxvqIOxdAVBzEna7suKGCUdmEkWyMZ74Ez7o1BQAEU/wD0pBP0vPLICwAHAgEgAA0ACAT48oMI1xgg0x/TH9MfAvgju/Jk7UTQ0x/TH9P/9ATRUUO68qFRUbryogX5AVQQZPkQ8qP4ACSkyMsfUkDLH1Iwy/9SEPQAye1U+A8B0wchwACfbFGTINdKltMH1AL7AOgw4CHAAeMAIcAC4wABwAORMOMNA6TIyx8Syx/L/wAMAAsACgAJAAr0AMntVABsgQEI1xj6ANM/MFIkgQEI9Fnyp4IQZHN0cnB0gBjIywXLAlAFzxZQA/oCE8tqyx8Syz/Jc/sAAHCBAQjXGPoA0z/IVCBHgQEI9FHyp4IQbm90ZXB0gBjIywXLAlAGzxZQBPoCFMtqEssfyz/Jc/sAAgBu0gf6ANTUIvkABcjKBxXL/8nQd3SAGMjLBcsCIs8WUAX6AhTLaxLMzMlz+wDIQBSBAQj0UfKnAgIBSAAXAA4CASAAEAAPAFm9JCtvaiaECAoGuQ+gIYRw1AgIR6STfSmRDOaQPp/5g3gSgBt4EBSJhxWfMYQCASAAEgARABG4yX7UTQ1wsfgCAVgAFgATAgEgABUAFAAZrx32omhAEGuQ64WPwAAZrc52omhAIGuQ64X/wAA9sp37UTQgQFA1yH0BDACyMoHy//J0AGBAQj0Cm+hMYALm0AHQ0wMhcbCSXwTgItdJwSCSXwTgAtMfIYIQcGx1Z70ighBkc3RyvbCSXwXgA/pAMCD6RAHIygfL/8nQ7UTQgQFA1yH0BDBcgQEI9ApvoTGzkl8H4AXTP8glghBwbHVnupI4MOMNA4IQZHN0crqSXwbjDQAZABgAilAEgQEI9Fkw7UTQgQFA1yDIAc8W9ADJ7VQBcrCOI4IQZHN0coMesXCAGFAFywVQA88WI/oCE8tqyx/LP8mAQPsAkl8D4gB4AfoA9AQw+CdvIjBQCqEhvvLgUIIQcGx1Z4MesXCAGFAEywUmzxZY+gIZ9ADLaRfLH1Jgyz8gyYBA+wAG",
+      "hash": "b3d9462c13a8c67e19b62002447839c386de51415ace3ff6473b1e6294299819"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign.rs test_ton_sign_transfer_ordinary",
+      "privateKey": "c38f49de2fb13223a9e7d37d5d0ffbdd89a5eb7c8b0ee4d1c299f2cefe7dc4a0",
+      "version": "V4R2",
+      "seqno": 6,
+      "validUntil": 1671132440,
+      "deploy": false,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "EQBm--PFwDv1yCeS-QTJ-L8oiUpqo9IT1BwgVptlSq3ts90Q",
+          "amount": "10",
+          "bounce": true
+        }
+      ],
+      "boc": "te6ccgICAAQAAQAAALAAAAFFiAGwt/q8k4SrjbFbQCjJZfQr64ExRxcUMsWqaQODqTUijgwAAQGcEUPkil2aZ4s8KKparSep/OKHMC8vuXafFbW2HGp/9AcTRv0J5T4dwyW1G0JpHw+g5Ov6QI3Xo0O9RFr3KidICimpoxdjm3UYAAAABgADAAIBYmIAM33x4uAd+uQTyXyCZPxflESlNVHpCeoOECtNsqVW9tmIUAAAAAAAAAAAAAAAAAEAAwAA",
+      "hash": "3908cf8b570c1d3d261c62620c9f368db11f6e821a07614cff64de2e7319f81b"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign.rs test_ton_sign_transfer_all_balance_non_bounceable",
+      "privateKey": "c38f49de2fb13223a9e7d37d5d0ffbdd89a5eb7c8b0ee4d1c299f2cefe7dc4a0",
+      "version": "V4R2",
+      "seqno": 8,
+      "validUntil": 1681102222,
+      "deploy": false,
+      "mode": 130,
+      "messages": [
+        {
+          "to": "UQBm--PFwDv1yCeS-QTJ-L8oiUpqo9IT1BwgVptlSq3ts4DV",
+          "amount": "0",
+          "bounce": false
+        }
+      ],
+      "boc": "te6ccgICAAQAAQAAAK8AAAFFiAGwt/q8k4SrjbFbQCjJZfQr64ExRxcUMsWqaQODqTUijgwAAQGcRQQvxdU1u4QoE2Pas0AsZQMc9lea3+wtSvaC6QfLUlyJ9oISMCFnaErpyFHelDhPu4iuZqhkoLwjkR1VYhFSCimpoxdkM5WOAAAACACCAAIBYEIAM33x4uAd+uQTyXyCZPxflESlNVHpCeoOECtNsqVW9tmAAAAAAAAAAAAAAAAAAQADAAA=",
+      "hash": "e9c816780fa8e578bae309c2e098db8eb16aa25545b3ad2b61bb711ec9562795"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign.rs test_ton_sign_transfer_with_ascii_comment",
+      "privateKey": "c38f49de2fb13223a9e7d37d5d0ffbdd89a5eb7c8b0ee4d1c299f2cefe7dc4a0",
+      "version": "V4R2",
+      "seqno": 10,
+      "validUntil": 1681102222,
+      "deploy": false,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "EQBm--PFwDv1yCeS-QTJ-L8oiUpqo9IT1BwgVptlSq3ts90Q",
+          "amount": "10",
+          "bounce": true,
+          "comment": "test comment"
+        }
+      ],
+      "boc": "te6ccgICAAQAAQAAAMAAAAFFiAGwt/q8k4SrjbFbQCjJZfQr64ExRxcUMsWqaQODqTUijgwAAQGcY4XlvKqu7spxyjL6vyBSKjbskDgqkHhqBsdTe900RGrzExtpvwc04j94v8HOczEWSMCXjTXk0z+CVUXSL54qCimpoxdkM5WOAAAACgADAAIBYmIAM33x4uAd+uQTyXyCZPxflESlNVHpCeoOECtNsqVW9tmIUAAAAAAAAAAAAAAAAAEAAwAgAAAAAHRlc3QgY29tbWVudA==",
+      "hash": "a8c6943d5587f590c43fcdb0e894046f1965c615e19bcaf0c8407e9ccb74518d"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign.rs test_ton_sign_transfer_with_utf8_comment",
+      "privateKey": "c38f49de2fb13223a9e7d37d5d0ffbdd89a5eb7c8b0ee4d1c299f2cefe7dc4a0",
+      "version": "V4R2",
+      "seqno": 11,
+      "validUntil": 1681102222,
+      "deploy": false,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "EQBm--PFwDv1yCeS-QTJ-L8oiUpqo9IT1BwgVptlSq3ts90Q",
+          "amount": "10",
+          "bounce": true,
+          "comment": "тестовый комментарий"
+        }
+      ],
+      "boc": "te6ccgICAAQAAQAAANsAAAFFiAGwt/q8k4SrjbFbQCjJZfQr64ExRxcUMsWqaQODqTUijgwAAQGchoDa7EdGQuPuehHy3+0X9WNVEvYxdBtaEWn15oYUX8PEKyzztYy94Xq0T2XdhVvj2H7PTSQ+D/Ny1IBRCxk0BimpoxdkM5WOAAAACwADAAIBYmIAM33x4uAd+uQTyXyCZPxflESlNVHpCeoOECtNsqVW9tmIUAAAAAAAAAAAAAAAAAEAAwBWAAAAANGC0LXRgdGC0L7QstGL0Lkg0LrQvtC80LzQtdC90YLQsNGA0LjQuQ==",
+      "hash": "1091dfae81583d3972825633592c24eab0d3d74c91f60fda9d4afe7535103633"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign.rs test_ton_sign_transfer_jettons",
+      "privateKey": "c054900a527538c1b4325688a421c0469b171c29f23a62da216e90b0df2412ee",
+      "version": "V4R2",
+      "seqno": 0,
+      "validUntil": 4294967295,
+      "deploy": true,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "EQBiaD8PO1NwfbxSkwbcNT9rXDjqhiIvXWymNO-edV0H5lja",
+          "amount": "100000000",
+          "bounce": true,
+          "jetton": {
+            "queryId": "69",
+            "amount": "1000000000",
+            "destination": "EQAFwMs5ha8OgZ9M4hQr80z9NkE7rGxUpE1hCFndiY6JnDx8",
+            "responseDestination": "EQBaKIMq5Am2p_rfR1IFTwsNWHxBkOpLTmwUain5Fj4llTXk",
+            "forwardTon": "1"
+          }
+        }
+      ],
+      "boc": "te6ccgICABoAAQAABCMAAAJFiAC0UQZVyBNtT/W+jqQKnhYasPiDIdSWnNgo1FPyLHxLKh4ABAABAZz3iNHD1z2mxbtpFAtmbVevYMnB4yHPkF3WAsL3KHcrqCw0SWezOg4lVz1zzSReeFDx98ByAqY9+eR5VF3xyugAKamjF/////8AAAAAAAMAAgFoYgAxNB+Hnam4Pt4pSYNuGp+1rhx1QxEXrrZTGnfPOq6D8yAvrwgAAAAAAAAAAAAAAAAAAQADAKoPin6lAAAAAAAAAEVDuaygCAALgZZzC14dAz6ZxChX5pn6bIJ3WNipSJrCELO7Ex0TOQAWiiDKuQJtqf630dSBU8LDVh8QZDqS05sFGop+RY+JZUICAgE0AAYABQBRAAAAACmpoxfOamBhePRNnx/pqQViBzW0dDCy/+1WLV1VhgbVTL6i30ABFP8A9KQT9LzyyAsABwIBIAANAAgE+PKDCNcYINMf0x/THwL4I7vyZO1E0NMf0x/T//QE0VFDuvKhUVG68qIF+QFUEGT5EPKj+AAkpMjLH1JAyx9SMMv/UhD0AMntVPgPAdMHIcAAn2xRkyDXSpbTB9QC+wDoMOAhwAHjACHAAuMAAcADkTDjDQOkyMsfEssfy/8ADAALAAoACQAK9ADJ7VQAbIEBCNcY+gDTPzBSJIEBCPRZ8qeCEGRzdHJwdIAYyMsFywJQBc8WUAP6AhPLassfEss/yXP7AABwgQEI1xj6ANM/yFQgR4EBCPRR8qeCEG5vdGVwdIAYyMsFywJQBs8WUAT6AhTLahLLH8s/yXP7AAIAbtIH+gDU1CL5AAXIygcVy//J0Hd0gBjIywXLAiLPFlAF+gIUy2sSzMzJc/sAyEAUgQEI9FHypwICAUgAFwAOAgEgABAADwBZvSQrb2omhAgKBrkPoCGEcNQICEekk30pkQzmkD6f+YN4EoAbeBAUiYcVnzGEAgEgABIAEQARuMl+1E0NcLH4AgFYABYAEwIBIAAVABQAGa8d9qJoQBBrkOuFj8AAGa3OdqJoQCBrkOuF/8AAPbKd+1E0IEBQNch9AQwAsjKB8v/ydABgQEI9ApvoTGAC5tAB0NMDIXGwkl8E4CLXScEgkl8E4ALTHyGCEHBsdWe9IoIQZHN0cr2wkl8F4AP6QDAg+kQByMoHy//J0O1E0IEBQNch9AQwXIEBCPQKb6Exs5JfB+AF0z/IJYIQcGx1Z7qSODDjDQOCEGRzdHK6kl8G4w0AGQAYAIpQBIEBCPRZMO1E0IEBQNcgyAHPFvQAye1UAXKwjiOCEGRzdHKDHrFwgBhQBcsFUAPPFiP6AhPLassfyz/JgED7AJJfA+IAeAH6APQEMPgnbyIwUAqhIb7y4FCCEHBsdWeDHrFwgBhQBMsFJs8WWPoCGfQAy2kXyx9SYMs/IMmAQPsABg==",
+      "hash": "3e4dac37acdc99ca670b3747ab2730e818727d9d25c80d3987abe501356d0da0"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign_wallet_v5r1.rs test_ton_sign_wallet_v5r1_transfer_and_deploy",
+      "privateKey": "3570e35f54cfb843f2cfaf2b8cae7ceeb7b32225d7dbbd86f611056d74d9073e",
+      "version": "V5R1",
+      "seqno": 0,
+      "validUntil": 4294967295,
+      "deploy": true,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "EQBe6DtCpJZe8M4t-crMXe93JlEYgSl30S5OUuMSLOfeQfBu",
+          "amount": "10",
+          "bounce": true
+        }
+      ],
+      "boc": "te6cckECGwEAA2sAAkWIACm9HPyVOpjCNOG6nbf+EwCONRHHpeMQsIlCoWNKhUaaHgECAgE0AwQBoXNpZ25///8R/////wAAAACACOfqY7L3l3aKc58eNxuJTaeH/fgBw2aG0coM+hjDpjWhJKbYKmsAD8v054HYSuO6vN3bQnV5U19BhsGfe1MDoAUBFP8A9KQT9LzyyAsGAFGAAAAAP///iKrcG+d35KaMMtuxik4jqNofFL51Mu1f8Qf19onqsDlyIAIKDsPIbQMWBwIBIAgJAWJiAC90HaFSSy94Zxb85WYu97uTKIxAlLvolycpcYkWc+8giFAAAAAAAAAAAAAAAAABFgIBSAoLAQLyDALc0CDXScEgkVuPYyDXCx8gghBleHRuvSGCEHNpbnS9sJJfA+CCEGV4dG66jrSAINchAdB01yH6QDD6RPgo+kQwWL2RW+DtRNCBAUHXIfQFgwf0Dm+hMZEw4YBA1yFwf9s84DEg10mBAoC5kTDgcOIXDQIBIA4PAR4g1wsfghBzaWduuvLgin8NAeaO8O2i7fshgwjXIgKDCNcjIIAg1yHTH9Mf0x/tRNDSANMfINMf0//XCgAK+QFAzPkQmiiUXwrbMeHywIffArNQB7Dy0IRRJbry4IVQNrry4Ib4I7vy0IgikvgA3gGkf8jKAMsfAc8Wye1UIJL4D95w2zzYFwIBIBARABm+Xw9qJoQICg65D6AsAgFuEhMCAUgUFQAZrc52omhAIOuQ64X/wAAZrx32omhAEOuQ64WPwAAXsyX7UTQcdch1wsfgABGyYvtRNDXCgCAAAAP27aLt+wL0BCFukmwhjkwCIdc5MHCUIccAs44tAdcoIHYeQ2wg10nACPLgkyDXSsAC8uCTINcdBscSwgBSMLDy0InXTNc5MAGk6GwShAe78uCT10rAAPLgk+1V4tIAAcAAkVvg69csCBQgkXCWAdcsCBwS4lIQseMPINdKGBkaAJYB+kAB+kT4KPpEMFi68uCR7UTQgQFB1xj0BQSdf8jKAEAEgwf0U/Lgi44UA4MH9Fvy4Iwi1woAIW4Bs7Dy0JDiyFADzxYS9ADJ7VQAcjDXLAgkji0h8uCS0gDtRNDSAFETuvLQj1RQMJExnAGBAUDXIdcKAPLgjuLIygBYzxbJ7VST8sCN4gAQk1vbMeHXTNB8Ui06",
+      "hash": "437dae441a95a6bccdcdcea2560c313de24f13dd85c76d5d7ecaab1e70a1e52b"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign_wallet_v5r1.rs test_ton_sign_wallet_v5r1_transfer_ordinary",
+      "privateKey": "3570e35f54cfb843f2cfaf2b8cae7ceeb7b32225d7dbbd86f611056d74d9073e",
+      "version": "V5R1",
+      "seqno": 1,
+      "validUntil": 1723469663,
+      "deploy": false,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "EQBe6DtCpJZe8M4t-crMXe93JlEYgSl30S5OUuMSLOfeQfBu",
+          "amount": "10",
+          "bounce": true
+        }
+      ],
+      "boc": "te6cckEBBQEAuQABRYgAKb0c/JU6mMI04bqdt/4TAI41Ecel4xCwiUKhY0qFRpoMAQGhc2lnbn///xFmug9fAAAAAbsTmIIbTn/5n8piniYykIpNGhw0mstvB4PfGuTjdh7eIY3HAokbPMSdaAoOXq8mTWzT2p3v6XSoqTh7XKacOIDgAgIKDsPIbQMEAwFiYgAvdB2hUksveGcW/OVmLve7kyiMQJS76JcnKXGJFnPvIIhQAAAAAAAAAAAAAAAAAQQAAN6nHJg=",
+      "hash": "5216454a18fc406e8ce2750f10b55139d63f200c524a4799a2387eb765c2d885"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign_wallet_v5r1.rs test_ton_sign_wallet_v5r1_transfer_all_balance_non_bounceable",
+      "privateKey": "3570e35f54cfb843f2cfaf2b8cae7ceeb7b32225d7dbbd86f611056d74d9073e",
+      "version": "V5R1",
+      "seqno": 2,
+      "validUntil": 1723470825,
+      "deploy": false,
+      "mode": 130,
+      "messages": [
+        {
+          "to": "UQBe6DtCpJZe8M4t-crMXe93JlEYgSl30S5OUuMSLOfeQa2r",
+          "amount": "0",
+          "bounce": false
+        }
+      ],
+      "boc": "te6cckEBBQEAuAABRYgAKb0c/JU6mMI04bqdt/4TAI41Ecel4xCwiUKhY0qFRpoMAQGhc2lnbn///xFmuhPpAAAAAq9jgguGOlFmpN566XBRCth1GfF8kVEc0DJkvLPKOa7MQMGzr0L1xpLt5OLovDpy4KwPqNxALo/b9NluZDLcukPgAgIKDsPIbYIEAwFgQgAvdB2hUksveGcW/OVmLve7kyiMQJS76JcnKXGJFnPvIIAAAAAAAAAAAAAAAAABBAAAI3vzjA==",
+      "hash": "7fc99e41a6d53267ef50e2740ff353ca38b5aabe0b279f2d4e43c8e9d95848f1"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign_wallet_v5r1.rs test_ton_sign_wallet_v5r1_transfer_with_ascii_comment",
+      "privateKey": "3570e35f54cfb843f2cfaf2b8cae7ceeb7b32225d7dbbd86f611056d74d9073e",
+      "version": "V5R1",
+      "seqno": 3,
+      "validUntil": 1723472681,
+      "deploy": false,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "EQBe6DtCpJZe8M4t-crMXe93JlEYgSl30S5OUuMSLOfeQfBu",
+          "amount": "10",
+          "bounce": true,
+          "comment": "test comment"
+        }
+      ],
+      "boc": "te6cckEBBgEAywABRYgAKb0c/JU6mMI04bqdt/4TAI41Ecel4xCwiUKhY0qFRpoMAQGhc2lnbn///xFmuhspAAAAA6oLkiOh1mWEhej/y/dCZAZZT1hFo6aX9ROjIOX5HvwBz99SLLlCmTJd4QV1Vp9D9eaTXL7aT28rswEjyBSYpwPgAgIKDsPIbQMDBAAAAWJiAC90HaFSSy94Zxb85WYu97uTKIxAlLvolycpcYkWc+8giFAAAAAAAAAAAAAAAAABBQAgAAAAAHRlc3QgY29tbWVudDHkkjo=",
+      "hash": "b9cf6c325f44cb7c90eac5f8f0428cd27152789a2ad897048b4c4ccd32d857a3"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign_wallet_v5r1.rs test_ton_sign_wallet_v5r1_transfer_with_utf8_comment",
+      "privateKey": "3570e35f54cfb843f2cfaf2b8cae7ceeb7b32225d7dbbd86f611056d74d9073e",
+      "version": "V5R1",
+      "seqno": 4,
+      "validUntil": 1723472948,
+      "deploy": false,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "EQBe6DtCpJZe8M4t-crMXe93JlEYgSl30S5OUuMSLOfeQfBu",
+          "amount": "10",
+          "bounce": true,
+          "comment": "тестовый комментарий"
+        }
+      ],
+      "boc": "te6cckEBBgEA5gABRYgAKb0c/JU6mMI04bqdt/4TAI41Ecel4xCwiUKhY0qFRpoMAQGhc2lnbn///xFmuhw0AAAABIDSMWXCM7WX+aQyurxO4nsYaqKhHm4ndzkjAS00AhtXe5fpKHUvVAFDvyqCi5T/PI/fwyZdralzzpXTrQaRP0CgAgIKDsPIbQMDBAAAAWJiAC90HaFSSy94Zxb85WYu97uTKIxAlLvolycpcYkWc+8giFAAAAAAAAAAAAAAAAABBQBWAAAAANGC0LXRgdGC0L7QstGL0Lkg0LrQvtC80LzQtdC90YLQsNGA0LjQuV6Inwc=",
+      "hash": "b628eb5c031e84bbdf1122d65a019fd51e63856e023288a8d756450ff9aeb058"
+    },
+    {
+      "source": "trustwallet/wallet-core rust/tw_tests/tests/chains/ton/ton_sign_wallet_v5r1.rs test_ton_sign_wallet_v5r1_transfer_jettons",
+      "privateKey": "502d60b0f3327382e7d0585b789f1db9aa04907fe5cddc5c28818ec163ebf4ba",
+      "version": "V5R1",
+      "seqno": 0,
+      "validUntil": 4294967295,
+      "deploy": true,
+      "mode": 3,
+      "messages": [
+        {
+          "to": "EQDg4AjfaxQBVsUFueenkKlHLhhYWrcBvCEzbEgfrT0nxuGC",
+          "amount": "100000000",
+          "bounce": true,
+          "jetton": {
+            "queryId": "69",
+            "amount": "120000",
+            "destination": "UQAU3o5-Sp1MYRpw3U7b_wmARxqI49LxiFhEoVCxpUKjTYXk",
+            "responseDestination": "UQCh41gQP1A4I0lnAn6yAfitDAIYpXG6UFIXqeSz1TVxNOJ_",
+            "forwardTon": "1"
+          }
+        }
+      ],
+      "boc": "te6cckECHAEAA8QAAkWIAUPGsCB+oHBGks4E/WQD8VoYBDFK43SgpC9TyWeqauJoHgECAgE0AwQBoXNpZ25///8R/////wAAAACK9TWZkcw/aJwl28F2cStjO8o6owv7/VKsx3RW0XtPaiwwFgi+CkmtzzJLGGp24JEwbwslQ1jNHyRqqUEM41AD4AUBFP8A9KQT9LzyyAsGAFGAAAAAP///iOEJZED3G4tDJvijkvHmVvq03ZLJ8Db8Bmagv84HH0SSIAIKDsPIbQMHCAIBIAkKAAABaGIAcHAEb7WKAKtigtzz08hUo5cMLC1bgN4QmbYkD9aek+MgL68IAAAAAAAAAAAAAAAAAAELAgFIDA0BAvIOAKgPin6lAAAAAAAAAEUwHUwIACm9HPyVOpjCNOG6nbf+EwCONRHHpeMQsIlCoWNKhUabACh41gQP1A4I0lnAn6yAfitDAIYpXG6UFIXqeSz1TVxNAgIC3NAg10nBIJFbj2Mg1wsfIIIQZXh0br0hghBzaW50vbCSXwPgghBleHRuuo60gCDXIQHQdNch+kAw+kT4KPpEMFi9kVvg7UTQgQFB1yH0BYMH9A5voTGRMOGAQNchcH/bPOAxINdJgQKAuZEw4HDiGA8CASAQEQEeINcLH4IQc2lnbrry4Ip/DwHmjvDtou37IYMI1yICgwjXIyCAINch0x/TH9Mf7UTQ0gDTHyDTH9P/1woACvkBQMz5EJoolF8K2zHh8sCH3wKzUAew8tCEUSW68uCFUDa68uCG+CO78tCIIpL4AN4BpH/IygDLHwHPFsntVCCS+A/ecNs82BgCASASEwAZvl8PaiaECAoOuQ+gLAIBbhQVAgFIFhcAGa3OdqJoQCDrkOuF/8AAGa8d9qJoQBDrkOuFj8AAF7Ml+1E0HHXIdcLH4AARsmL7UTQ1woAgA/btou37AvQEIW6SbCGOTAIh1zkwcJQhxwCzji0B1yggdh5DbCDXScAI8uCTINdKwALy4JMg1x0GxxLCAFIwsPLQiddM1zkwAaTobBKEB7vy4JPXSsAA8uCT7VXi0gABwACRW+Dr1ywIFCCRcJYB1ywIHBLiUhCx4w8g10oZGhsAlgH6QAH6RPgo+kQwWLry4JHtRNCBAUHXGPQFBJ1/yMoAQASDB/RT8uCLjhQDgwf0W/LgjCLXCgAhbgGzsPLQkOLIUAPPFhL0AMntVAByMNcsCCSOLSHy4JLSAO1E0NIAURO68tCPVFAwkTGcAYEBQNch1woA8uCO4sjKAFjPFsntVJPywI3iABCTW9sx4ddM0JlgUSM=",
+      "hash": "09aa4514997060d6bfa7cf9f2268143f228bc4dbaae264792bb53e1b7cdb14d8"
+    }
+  ]
+}
