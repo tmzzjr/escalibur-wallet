@@ -128,8 +128,9 @@ struct MarketRow: View {
     }
 }
 
-/// A pilula de variacao: texto na cor sobre fundo tingido solido. Nunca texto branco
-/// sobre verde (contraste 2,29:1).
+/// A pilula de variacao do dia: seta cheia e numero sem sinal (a seta ja diz a
+/// direcao), na cor da direcao sobre o fundo tingido da mesma cor. Nunca texto branco
+/// sobre verde (contraste 2,29:1). Variacao abaixo de 0,01% e neutra, sem seta.
 struct ChangePill: View {
     let change: Double?
 
@@ -137,13 +138,27 @@ struct ChangePill: View {
         let value = change ?? 0
         let up = value > 0.004
         let down = value < -0.004
-        Text(Fmt.percent(value))
-            .typeStyle(.label).monospacedDigit()
-            .foregroundStyle(up ? Palette.up : (down ? Palette.down : Palette.inkSoft))
-            .lineLimit(1)
-            .padding(.horizontal, Space.xs)
-            .frame(minWidth: 72, minHeight: 24)
-            .background(RoundedRectangle(cornerRadius: Radius.badge, style: .continuous).fill(up ? Palette.upTint : (down ? Palette.downTint : Palette.rail)))
+        let tint = up ? Palette.up : (down ? Palette.down : Palette.inkSoft)
+        HStack(spacing: 4) {
+            if up || down {
+                Image(systemName: up ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
+                    .font(.system(size: 8, weight: .bold))
+            }
+            Text(Fmt.percent(abs(value)).replacingOccurrences(of: "+", with: ""))
+                .typeStyle(.label).monospacedDigit()
+                .contentTransition(.numericText(value: value))
+        }
+        .foregroundStyle(tint)
+        .lineLimit(1)
+        .padding(.horizontal, Space.sm)
+        .frame(minWidth: 80, minHeight: 28)
+        .background(
+            Capsule(style: .continuous)
+                .fill(up ? Palette.upTint : (down ? Palette.downTint : Palette.rail))
+                .overlay(Capsule(style: .continuous).strokeBorder(tint.opacity(0.22), lineWidth: 1))
+        )
+        .animation(Motion.fade, value: value)
+        .accessibilityLabel(up ? "Subiu \(Fmt.percent(abs(value)))" : (down ? "Caiu \(Fmt.percent(abs(value)))" : "Estável"))
     }
 }
 
