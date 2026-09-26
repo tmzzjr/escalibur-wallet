@@ -52,6 +52,11 @@ struct OnboardingFlow: View {
                 .foregroundStyle(Palette.inkSoft)
                 .padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
+            if DeviceIntegrity.suspicious {
+                Banner(kind: .caution, title: "Este iPhone parece ter jailbreak",
+                       message: "Apps de fora da App Store podem ler o que este app guarda.")
+                    .padding(.top, Space.lg)
+            }
             if !KeyServices.deviceIsEligible {
                 Banner(kind: .failure, title: "Este iPhone não tem código",
                        message: "Configure um código em Ajustes do iPhone. Sem ele, o iOS não protege as chaves da carteira.")

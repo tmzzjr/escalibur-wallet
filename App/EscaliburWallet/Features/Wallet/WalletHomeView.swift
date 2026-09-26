@@ -30,6 +30,11 @@ struct WalletHomeView: View {
                             .padding(.top, Space.lg)
                     }
                     statusBanners
+                    if DeviceIntegrity.suspicious {
+                        Banner(kind: .caution, title: "Este iPhone parece ter jailbreak",
+                               message: "Apps de fora da App Store podem ler o que este app guarda. Para valor alto, prefira uma carteira de hardware.")
+                            .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+                    }
                     assets.padding(.top, Space.xl)
                 }
                 .padding(.bottom, Space.xl)
@@ -47,6 +52,7 @@ struct WalletHomeView: View {
             #if DEBUG
             if DebugDemo.screen == "detalhe", let first = portfolio.rows.first { router.walletPath.append(first) }
             if DebugDemo.screen == "receber" { receiving = true }
+            if DebugDemo.screen == "revelar" { backingUp = true }
             #endif
         }
         .sheet(isPresented: $switching) {

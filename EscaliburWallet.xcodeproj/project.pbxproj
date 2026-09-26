@@ -50,6 +50,7 @@
 		D9993FE2FD6DDDCA4F84E8C6 /* PriceChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */; };
 		D9BE60229797504784BC6F97 /* KeyServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1722E329135DB398B784E8C8 /* KeyServices.swift */; };
 		DA717CEE0E76AEF1F0CBCE9A /* LEIA-ME.txt in Resources */ = {isa = PBXBuildFile; fileRef = 445327A094057374455F9FD5 /* LEIA-ME.txt */; };
+		DAC0E966C277EFDAF466D0EB /* DeviceIntegrity.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5ECD2EB5627AA912E7957E4 /* DeviceIntegrity.swift */; };
 		E09B8272656E909426D4987D /* Buttons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B99C8E82247CAD42E358D7 /* Buttons.swift */; };
 		E345A5856750B23E38B8A35E /* SealEnvelopeFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */; };
 		E74B179E19640B5584F2F303 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38287337A415C5A48CB564C8 /* Typography.swift */; };
@@ -114,6 +115,7 @@
 		E7441E45998B7F6AA7BCE1E4 /* Marks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Marks.swift; sourceTree = "<group>"; };
 		E7B2519CA657D4A05E4C4A06 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metrics.swift; sourceTree = "<group>"; };
 		F5287E825D53043F109D791D /* RecordWordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWordsView.swift; sourceTree = "<group>"; };
+		F5ECD2EB5627AA912E7957E4 /* DeviceIntegrity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIntegrity.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -152,6 +154,7 @@
 			children = (
 				A98E0FCFFA466C4A03F3490A /* AppSession.swift */,
 				71977F38FE1026DDFD0C189A /* DebugDemo.swift */,
+				F5ECD2EB5627AA912E7957E4 /* DeviceIntegrity.swift */,
 				355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */,
 				4A0E9C686393C93E1E34895B /* PlatformGuards.swift */,
 				7E67A652A823737F6EAC7745 /* RootView.swift */,
@@ -447,6 +450,7 @@
 				76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */,
 				5932324C0521646D89823F75 /* ContactsView.swift in Sources */,
 				424496A6E4E34E2651C3AC55 /* DebugDemo.swift in Sources */,
+				DAC0E966C277EFDAF466D0EB /* DeviceIntegrity.swift in Sources */,
 				17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */,
 				2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */,
 				F8EA2B1B268220A255B30FAB /* ImportPhraseView.swift in Sources */,
