@@ -90,6 +90,8 @@ enum EVMEngineMessages {
         case .notEVMChain, .chainMismatch: return "Os dados da rede não conferem com esta operação. Nada foi assinado."
         case .nonceNeedsTwoSources, .nonceSourcesDisagree:
             return "Os provedores da rede não concordaram sobre a sua conta. Nada foi assinado. Tente de novo em instantes."
+        case .localNonceQueueAhead:
+            return "Uma transação enviada deste aparelho não aparece mais na rede. Confira a Atividade antes de enviar outra. Nada foi assinado."
         case .invalidGasEstimate, .gasLimitAboveCap: return "A rede estimou um custo fora do normal para esta transação. Nada foi assinado."
         case .feeAboveCeiling: return "A taxa da rede está acima do limite de segurança agora. Tente de novo mais tarde."
         case .missingL1DataFee: return "Não foi possível ler a parte da taxa paga à L1. Tente de novo em instantes."

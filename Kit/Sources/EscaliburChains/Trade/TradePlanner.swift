@@ -220,7 +220,7 @@ public enum TradePlanner {
 
     static func derivedState(_ base: EVMNetworkState, gas: UInt64, l1: BigUInt?, hasCode: Bool) -> EVMNetworkState {
         EVMNetworkState(
-            chain: base.chain, pendingNonces: base.pendingNonces, localNextNonce: base.localNextNonce,
+            chain: base.chain, pendingNonces: base.pendingNonces, localNextNonce: base.localNextNonce, localPendingCount: base.localPendingCount,
             baseFeePerGas: base.baseFeePerGas, priorityFees: base.priorityFees, gasEstimate: gas,
             l1DataFee: l1, nativeBalance: base.nativeBalance, destinationHasCode: hasCode
         )

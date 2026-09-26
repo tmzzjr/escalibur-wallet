@@ -136,6 +136,23 @@ struct EVMTradeEngineTests {
         #expect(await state.reads.map(\.provider) == [provider])
     }
 
+    @Test("Regressao M1: a fila local do pedido chega ao plano da troca; sem ela, o nonce e o das fontes")
+    func planWithNonceQueue() async throws {
+        let counter = EVMCallCounter()
+        let state = FakeTradeChain()
+        let engine = H.engine(state: state, sources: try H.sources(counter), transport: try H.baseTransport())
+        let base = try F.request()
+        // As fontes dizem 7; a fila diz que a 7 esta em transito e o proximo e 8.
+        let request = TradeRequest(
+            walletID: base.walletID, chain: base.chain, account: base.account, sell: base.sell, buy: base.buy, amountIn: base.amountIn,
+            slippageBasisPoints: base.slippageBasisPoints, nonceQueue: PendingNonceQueue(nextNonce: 8, pendingHashes: ["0x01"])
+        )
+        let plan = try await engine.plan(request, quote: try await engine.quote(request))
+        let approve = try #require(plan.transactions.first as? EVMTransaction)
+        #expect(approve.nonce == 8)
+        #expect(await state.reads.first?.localNextNonce == 8)
+    }
+
     @Test("Regressao: leitura lenta antes da recotacao nao faz a cotacao recem-validada parecer do futuro")
     func slowReadBeforeRequote() async throws {
         // O plano capturava o instante antes da leitura de mercado e da recotacao, e o

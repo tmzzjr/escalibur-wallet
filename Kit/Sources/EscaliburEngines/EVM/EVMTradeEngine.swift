@@ -183,12 +183,16 @@ public struct EVMTradeEngine: TradeEngine {
         // uma para a proxima, porque todas vao ser assinadas agora e executadas em sequencia.
         // Cada plano leva o instante em que foi montado, depois da recotacao e da leitura:
         // o prazo de 60 s conta dali, e a cotacao recem-validada nunca parece "do futuro".
+        // O nonce de cada perna: a fila local do app e, depois da primeira, as transacoes
+        // das pernas anteriores, que entram na conta como em transito.
         var plans = [SigningPlan]()
         var nextNonce: UInt64?
+        var plannedAhead: UInt64 = 0
         var spentNative = BigUInt()
         var spentSell = BigUInt()
         for (index, leg) in requoted.enumerated() {
-            let read = try await services.chainState.read(for: leg.quote, localNextNonce: nextNonce)
+            let fetched = try await services.chainState.read(for: leg.quote, localNextNonce: nextNonce ?? request.nonceQueue?.nextNonce)
+            let read = fetched.replacingNetwork(fetched.network.applying(request.nonceQueue, plannedNext: nextNonce, plannedAhead: plannedAhead))
             let state = Self.remaining(read, spentNative: spentNative, spentSell: spentSell)
             let step = requoted.count > 1 ? TradeSplitStep(index: index, count: requoted.count, shareBps: leg.shareBps) : nil
             let plan = try TradePlanner.planSwap(
@@ -198,6 +202,7 @@ public struct EVMTradeEngine: TradeEngine {
             let transactions = plan.transactions.compactMap { $0 as? EVMTransaction }
             guard transactions.count == plan.transactions.count, let last = transactions.last else { throw EVMEngineFailure.batchMismatch }
             nextNonce = last.nonce + 1
+            plannedAhead += UInt64(transactions.count)
             spentNative = spentNative + Self.maximumNativeCost(transactions, state: state)
             if !intent.sell.isNative { spentSell = spentSell + leg.quote.intent.amountIn }
             plans.append(plan)
@@ -253,7 +258,7 @@ public struct EVMTradeEngine: TradeEngine {
         let network = state.network
         let adjusted = EVMNetworkState(
             chain: network.chain, pendingNonces: network.pendingNonces, localNextNonce: network.localNextNonce,
-            baseFeePerGas: network.baseFeePerGas, priorityFees: network.priorityFees, gasEstimate: network.gasEstimate,
+            localPendingCount: network.localPendingCount, baseFeePerGas: network.baseFeePerGas, priorityFees: network.priorityFees, gasEstimate: network.gasEstimate,
             l1DataFee: network.l1DataFee, nativeBalance: network.nativeBalance.subtractingReportingUnderflow(spentNative) ?? 0,
             destinationHasCode: network.destinationHasCode
         )
@@ -314,7 +319,11 @@ public struct EVMTradeEngine: TradeEngine {
         let open = try await services.cow.openSellTotal(owner: account.address, sellToken: sellToken.contract, chain: chain)
         guard open.isZero else { throw EVMEngineFailure.openOrderExists }
 
-        let state = try await services.chainState.readCoW(intent: intent, openOrdersSellTotal: open, localNextNonce: nil)
+        let read = try await services.chainState.readCoW(intent: intent, openOrdersSellTotal: open, localNextNonce: request.nonceQueue?.nextNonce)
+        let state = CoWChainState(
+            network: read.network.applying(request.nonceQueue), sellToken: read.sellToken, wrapGasEstimate: read.wrapGasEstimate,
+            wrapL1DataFee: read.wrapL1DataFee, openOrdersSellTotal: read.openOrdersSellTotal
+        )
         // O prazo do plano e o validTo da ordem contam de agora, depois das leituras.
         let now = Date()
         let plan = try CoWPlanner.planLimitOrder(walletID: request.walletID, account: account, intent: intent, state: state, now: now)
@@ -446,7 +455,9 @@ public struct EVMTradeEngine: TradeEngine {
 
     /// Fora da cadeia: o `OrderCancellations` da CoW. Na cadeia: `invalidateOrder(uid)`,
     /// com o gas da chamada exata e o nonce de duas fontes.
-    public func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan {
+    public func planCancel(
+        _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
+    ) async throws -> SigningPlan {
         switch via {
         case .offchain:
             return try planLimitOrderCancellation(walletID: walletID, account: account, orderUIDs: [order.id])
@@ -457,7 +468,9 @@ public struct EVMTradeEngine: TradeEngine {
                 guard order.id.hasPrefix("0x"), let uid = Hex.decode(order.id), uid.count == CoWProtocol.uidLength else {
                     throw EVMEngineFailure.invalidOrderReference
                 }
-                let state = try await services.chainState.readCancellation(chain: chain, owner: owner.address, uid: uid, localNextNonce: nil)
+                let state = try await services.chainState.readCancellation(
+                    chain: chain, owner: owner.address, uid: uid, localNextNonce: nonceQueue?.nextNonce
+                ).applying(nonceQueue)
                 return try CoWPlanner.planOnchainCancellation(walletID: walletID, account: owner, chain: chain, uid: uid, state: state)
             } catch {
                 throw EVMEngineMessages.userFacing(error, .cancellation, chain: chain)
@@ -526,5 +539,15 @@ public struct EVMTradeEngine: TradeEngine {
         } catch {
             throw EVMEngineMessages.userFacing(error, .cancellation, chain: chain)
         }
+    }
+}
+
+extension TradeChainState {
+    /// O mesmo estado com outro estado de rede (a fila local aplicada).
+    func replacingNetwork(_ network: EVMNetworkState) -> TradeChainState {
+        TradeChainState(
+            network: network, sellToken: sellToken, routerHasCode: routerHasCode, routerPin: routerPin, simulations: simulations,
+            approveL1DataFee: approveL1DataFee, swapL1DataFee: swapL1DataFee, approveL1Gas: approveL1Gas, swapL1Gas: swapL1Gas
+        )
     }
 }

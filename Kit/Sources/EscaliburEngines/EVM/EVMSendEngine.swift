@@ -126,9 +126,10 @@ public struct EVMSendEngine: SendEngine {
 
         switch context.asset {
         case .native:
+            // O nonce: duas fontes, e a diferenca entre elas so passa com a fila local.
             let state = try await reader.networkState(
                 chain: chain, account: owner, intent: .native(to: context.recipient, amount: request.amount)
-            )
+            ).applying(request.nonceQueue)
             // "Enviar tudo" e recalculado com o estado deste plano: o disponivel que a tela
             // mostrou pode ter sido calculado com outra baseFee.
             let amount = request.sendAll ? try EVMPlanner.maxNativeSendAmount(chain: chain, state: state, speed: speed) : request.amount
@@ -145,6 +146,7 @@ public struct EVMSendEngine: SendEngine {
             let tokenState = try await reader.tokenState(token: token, owner: owner)
             let amount = request.sendAll ? tokenState.balance : request.amount
             let state = try await reader.networkState(chain: chain, account: owner, intent: .token(token, to: context.recipient, amount: amount))
+                .applying(request.nonceQueue)
             plan = try EVMPlanner.planTokenSend(
                 walletID: request.walletID, account: context.account, token: token, to: context.recipient, amount: amount,
                 state: state, tokenState: tokenState, speed: speed, policy: policy

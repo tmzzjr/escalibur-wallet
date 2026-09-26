@@ -41,10 +41,14 @@ public struct SendRequest: Sendable {
     public let utxoUsage: UTXOUsage?
     /// Enderecos para onde esta carteira ja enviou nesta rede, para os avisos do plano.
     public let knownAddresses: [String]
+    /// EVM: a fila local de transacoes desta conta ainda em transito. Sem ela, as fontes
+    /// de nonce tem de concordar exatamente.
+    public let nonceQueue: PendingNonceQueue?
 
     public init(
         walletID: UUID, chain: Chain, asset: Asset, account: DerivedAccount, destination: String, tag: String?,
-        amount: BigUInt, sendAll: Bool, feeLevel: FeeLevel, utxoUsage: UTXOUsage?, knownAddresses: [String] = []
+        amount: BigUInt, sendAll: Bool, feeLevel: FeeLevel, utxoUsage: UTXOUsage?, knownAddresses: [String] = [],
+        nonceQueue: PendingNonceQueue? = nil
     ) {
         self.walletID = walletID
         self.chain = chain
@@ -57,6 +61,38 @@ public struct SendRequest: Sendable {
         self.feeLevel = feeLevel
         self.utxoUsage = utxoUsage
         self.knownAddresses = knownAddresses
+        self.nonceQueue = nonceQueue
+    }
+}
+
+/// A fila local de transacoes EVM de uma conta: o que este aparelho transmitiu e a rede
+/// ainda nao confirmou (auditoria 2, M1).
+///
+/// O app guarda, por carteira, rede e endereco, cada transacao transmitida (nonce e id)
+/// ate o `status` dela dizer confirmada ou falhou, e o proximo nonce depois da ultima. O
+/// motor le a rede em duas fontes e so aceita a diferenca entre elas que estas
+/// transacoes explicam; sem a fila, as fontes tem de concordar exatamente.
+public struct PendingNonceQueue: Sendable, Equatable {
+    /// O nonce seguinte ao da ultima transacao transmitida desta conta.
+    public let nextNonce: UInt64
+    /// Os ids (hash) das transacoes transmitidas e ainda nao confirmadas, em ordem de
+    /// nonce. Os nonces delas sao `nextNonce - pendingHashes.count` ate `nextNonce - 1`.
+    public let pendingHashes: [String]
+
+    public init(nextNonce: UInt64, pendingHashes: [String]) {
+        self.nextNonce = nextNonce
+        self.pendingHashes = pendingHashes
+    }
+}
+
+extension EVMNetworkState {
+    /// O estado lido da rede com a fila local do app e, numa troca em varias pernas, as
+    /// transacoes das pernas anteriores deste mesmo plano (`plannedAhead`, que ainda nem
+    /// foram transmitidas e que `plannedNext` segue).
+    func applying(_ queue: PendingNonceQueue?, plannedNext: UInt64? = nil, plannedAhead: UInt64 = 0) -> EVMNetworkState {
+        let next = plannedNext ?? queue?.nextNonce
+        let pending = UInt64(queue?.pendingHashes.count ?? 0) + plannedAhead
+        return withLocalQueue(nextNonce: next, pendingCount: pending)
     }
 }
 

@@ -7,7 +7,8 @@ import Foundation
 // Regras (docs/seguranca.md 4.3, 5.5):
 // - todo RPC tem o `eth_chainId` conferido contra a constante compilada antes do
 //   primeiro uso;
-// - nonce pending de duas fontes (o plano usa o maior e recusa divergencia);
+// - nonce pending de duas fontes (o plano exige que concordem, ou que a fila local do
+//   app explique a diferenca);
 // - baseFee: o maior de duas fontes; saldo e allowance: o menor de duas (o plano
 //   recusa se nao cobre, em vez de apostar no maior);
 // - codigo do router e implementacao/faceta fixada: duas fontes concordando;

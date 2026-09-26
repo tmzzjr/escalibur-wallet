@@ -191,7 +191,9 @@ struct StellarTradeEngine: TradeEngine {
 
     /// `ManageSellOffer` com quantidade zero, com os ativos da oferta como as Horizons a
     /// mostram agora, nunca como a tela mandou.
-    func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan {
+    func planCancel(
+        _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
+    ) async throws -> SigningPlan {
         guard via == .onchain, order.chain == .stellar, let offerID = Int64(order.id) else {
             throw SendEngineError.message("Esta oferta não é da Stellar.")
         }

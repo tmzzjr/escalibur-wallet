@@ -205,7 +205,9 @@ struct XRPLTradeEngine: TradeEngine {
 
     /// `OfferCancel` da oferta, depois de conferir nos dois servidores que ela ainda esta
     /// aberta: cancelar a que nao existe so gastaria a taxa.
-    func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan {
+    func planCancel(
+        _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
+    ) async throws -> SigningPlan {
         guard via == .onchain, order.chain == .xrpl, let sequence = UInt32(order.id) else {
             throw SendEngineError.message("Esta oferta não é do XRP Ledger.")
         }

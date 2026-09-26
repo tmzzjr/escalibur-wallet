@@ -42,10 +42,14 @@ public struct EVMNetworkState: Sendable, Equatable {
     /// A rede a que estes dados se referem. Tem de ser a do plano.
     public let chain: Chain
     /// `eth_getTransactionCount(conta, "pending")` de pelo menos duas fontes
-    /// independentes. O plano usa o maior e recusa se divergirem demais.
+    /// independentes. Sem a fila local, tem de ser iguais; com ela, a diferenca so passa
+    /// se as transacoes deste aparelho ainda em transito a explicam.
     public let pendingNonces: [UInt64]
     /// O proximo nonce segundo a fila local de transacoes enviadas e ainda nao vistas.
     public let localNextNonce: UInt64?
+    /// Quantas transacoes da fila local ainda nao foram vistas confirmadas (as de nonce
+    /// `localNextNonce - localPendingCount` ate `localNextNonce - 1`).
+    public let localPendingCount: UInt64
     /// baseFee do proximo bloco. Com mais de um provedor, o maior.
     public let baseFeePerGas: BigUInt
     public let priorityFees: EVMPriorityFees
@@ -62,19 +66,32 @@ public struct EVMNetworkState: Sendable, Equatable {
     public let destinationHasCode: Bool
 
     public init(
-        chain: Chain, pendingNonces: [UInt64], localNextNonce: UInt64? = nil, baseFeePerGas: BigUInt,
+        chain: Chain, pendingNonces: [UInt64], localNextNonce: UInt64? = nil, localPendingCount: UInt64 = 0, baseFeePerGas: BigUInt,
         priorityFees: EVMPriorityFees, gasEstimate: UInt64, l1DataFee: BigUInt? = nil,
         nativeBalance: BigUInt, destinationHasCode: Bool
     ) {
         self.chain = chain
         self.pendingNonces = pendingNonces
         self.localNextNonce = localNextNonce
+        self.localPendingCount = localPendingCount
         self.baseFeePerGas = baseFeePerGas
         self.priorityFees = priorityFees
         self.gasEstimate = gasEstimate
         self.l1DataFee = l1DataFee
         self.nativeBalance = nativeBalance
         self.destinationHasCode = destinationHasCode
+    }
+}
+
+extension EVMNetworkState {
+    /// O mesmo estado lido da rede, com a fila local deste aparelho: o proximo nonce
+    /// segundo ela e quantas transacoes dela ainda estao em transito.
+    public func withLocalQueue(nextNonce: UInt64?, pendingCount: UInt64) -> EVMNetworkState {
+        EVMNetworkState(
+            chain: chain, pendingNonces: pendingNonces, localNextNonce: nextNonce, localPendingCount: nextNonce == nil ? 0 : pendingCount,
+            baseFeePerGas: baseFeePerGas, priorityFees: priorityFees, gasEstimate: gasEstimate, l1DataFee: l1DataFee,
+            nativeBalance: nativeBalance, destinationHasCode: destinationHasCode
+        )
     }
 }
 
@@ -166,8 +183,12 @@ public enum EVMPlanError: Error, Equatable, Sendable {
     /// Estado, token e plano nao sao da mesma rede.
     case chainMismatch
     case nonceNeedsTwoSources
-    /// As fontes de nonce divergem mais do que uma transacao em transito explica.
+    /// As fontes de nonce divergem mais do que as transacoes deste aparelho em transito
+    /// explicam (sem a fila local, qualquer divergencia).
     case nonceSourcesDisagree
+    /// A fila local esta a frente da rede alem do que ela mesma tem em transito: uma
+    /// transacao dela sumiu (substituida ou descartada) e o app precisa limpar a fila.
+    case localNonceQueueAhead
     case invalidGasEstimate
     case gasLimitAboveCap
     /// A baseFee atual ja passa do teto da rede: esperar.
@@ -190,22 +211,37 @@ public enum EVMPlanError: Error, Equatable, Sendable {
 }
 
 enum EVMFeeCalculator {
-    /// Diferenca maxima aceita entre as fontes de nonce pending. Uma ou duas
-    /// transacoes em transito explicam diferenca pequena; diferenca grande e
-    /// provedor mentindo, e um nonce la na frente produziria uma transacao assinada
-    /// que so executa no futuro, quando o dono ja esqueceu dela.
-    static let maxNonceSpread: UInt64 = 4
-    /// Quanto a fila local pode estar a frente das fontes.
-    static let maxLocalLead: UInt64 = 16
+    /// Quantas transacoes da fila local podem estar em transito de uma vez.
+    static let maxLocalPending: UInt64 = 16
 
+    /// O nonce da proxima transacao (auditoria 2, M1).
+    ///
+    /// Um nonce acima do real produz uma transacao assinada que so executa no futuro,
+    /// quando o dono ja esqueceu dela; um abaixo substitui uma transacao em transito. Por
+    /// isso nenhuma folga e dada sem explicacao:
+    /// - sem a fila local, as fontes tem de concordar: a diferenca pode ser uma transacao
+    ///   deste aparelho ainda nao propagada ou um provedor mentindo, e so a fila sabe;
+    /// - com a fila, cada fonte tem de estar entre o primeiro nonce em transito e o
+    ///   proximo da fila, e vale o da fila;
+    /// - fontes iguais e acima da fila: a rede viu transacoes que a fila nao conhece
+    ///   (outro aparelho com a mesma frase), e vale o da rede.
     static func nonce(_ state: EVMNetworkState) throws -> UInt64 {
         guard state.pendingNonces.count >= 2, let high = state.pendingNonces.max(), let low = state.pendingNonces.min() else {
             throw EVMPlanError.nonceNeedsTwoSources
         }
-        guard high - low <= maxNonceSpread else { throw EVMPlanError.nonceSourcesDisagree }
-        guard let local = state.localNextNonce else { return high }
-        guard local <= high + maxLocalLead else { throw EVMPlanError.nonceSourcesDisagree }
-        return max(high, local)
+        guard let local = state.localNextNonce else {
+            guard low == high else { throw EVMPlanError.nonceSourcesDisagree }
+            return high
+        }
+        let pending = min(state.localPendingCount, maxLocalPending)
+        let firstInFlight = local >= pending ? local - pending : 0
+        if low == high {
+            if high >= local { return high }
+            guard high >= firstInFlight else { throw EVMPlanError.localNonceQueueAhead }
+            return local
+        }
+        guard low >= firstInFlight, high <= local else { throw EVMPlanError.nonceSourcesDisagree }
+        return local
     }
 
     static func quote(

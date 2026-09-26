@@ -16,11 +16,11 @@ struct EVMPlannerTests {
     static let usdc = EVMToken(chain: .ethereum, contract: T.address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"), symbol: "USDC", decimals: 6)
 
     static func state(
-        _ chain: Chain = .ethereum, nonces: [UInt64] = [12, 12], local: UInt64? = nil, baseFee: BigUInt = BigUInt(70_000_000),
+        _ chain: Chain = .ethereum, nonces: [UInt64] = [12, 12], local: UInt64? = nil, pending: UInt64 = 0, baseFee: BigUInt = BigUInt(70_000_000),
         tips: EVMPriorityFees = EVMPriorityFees(slow: BigUInt(10_000_000), normal: BigUInt(50_000_000), fast: BigUInt(2_000_000_000)),
         gas: UInt64 = 21_000, l1: BigUInt? = nil, balance: BigUInt = ether, hasCode: Bool = false
     ) -> EVMNetworkState {
-        EVMNetworkState(chain: chain, pendingNonces: nonces, localNextNonce: local, baseFeePerGas: baseFee, priorityFees: tips,
+        EVMNetworkState(chain: chain, pendingNonces: nonces, localNextNonce: local, localPendingCount: pending, baseFeePerGas: baseFee, priorityFees: tips,
                         gasEstimate: gas, l1DataFee: l1, nativeBalance: balance, destinationHasCode: hasCode)
     }
 
@@ -107,18 +107,30 @@ struct EVMPlannerTests {
         }
     }
 
-    @Test("Nonce: duas fontes, o maior, e recusa quando divergem demais")
+    @Test("Regressao M1: nonce de duas fontes; divergencia so passa com a fila local que a explica")
     func nonce() throws {
         let account = try T.account(T.testKey)
-        func plan(_ nonces: [UInt64], local: UInt64? = nil) throws -> UInt64 {
+        func plan(_ nonces: [UInt64], local: UInt64? = nil, pending: UInt64 = 0) throws -> UInt64 {
             Self.only(try EVMPlanner.planNativeSend(walletID: Self.wallet, account: account, chain: .ethereum, to: Self.recipient, amount: 1,
-                                                    state: Self.state(nonces: nonces, local: local))).nonce
+                                                    state: Self.state(nonces: nonces, local: local, pending: pending))).nonce
         }
-        #expect(try plan([12, 13]) == 13)
-        #expect(try plan([12, 13], local: 15) == 15)
+        #expect(try plan([13, 13]) == 13)
         #expect(throws: EVMPlanError.nonceNeedsTwoSources) { try plan([12]) }
-        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 500]) }
-        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 12], local: 100) }
+        // Sem a fila, nenhuma folga: antes valia o maior com ate 4 de diferenca, e um
+        // provedor que somasse 1 fazia a transacao assinada esperar um nonce do futuro.
+        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 13]) }
+        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 16]) }
+        // Com a fila: uma transacao deste aparelho em transito (nonce 12) explica 12 e 13.
+        #expect(try plan([12, 13], local: 13, pending: 1) == 13)
+        #expect(try plan([12, 12], local: 14, pending: 2) == 14)
+        // A fila diz 15 com uma em transito (14): uma fonte em 12 nao e explicada.
+        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 13], local: 15, pending: 1) }
+        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 500], local: 13, pending: 1) }
+        // Fila a frente sem transacao em transito que explique: uma delas sumiu.
+        #expect(throws: EVMPlanError.localNonceQueueAhead) { try plan([12, 12], local: 14, pending: 1) }
+        #expect(throws: EVMPlanError.localNonceQueueAhead) { try plan([12, 12], local: 100, pending: 0) }
+        // As duas fontes acima da fila: outro aparelho com a mesma frase enviou; vale a rede.
+        #expect(try plan([20, 20], local: 14, pending: 0) == 20)
     }
 
     @Test("Saldo, valor zero, destino queimado e rede trocada")

@@ -73,8 +73,13 @@ public struct TradeRequest: Sendable {
     public let buy: Asset
     public let amountIn: BigUInt
     public let slippageBasisPoints: Int
+    /// EVM: a fila local de transacoes desta conta ainda em transito (`PendingNonceQueue`).
+    public let nonceQueue: PendingNonceQueue?
 
-    public init(walletID: UUID, chain: Chain, account: DerivedAccount, sell: Asset, buy: Asset, amountIn: BigUInt, slippageBasisPoints: Int) {
+    public init(
+        walletID: UUID, chain: Chain, account: DerivedAccount, sell: Asset, buy: Asset, amountIn: BigUInt, slippageBasisPoints: Int,
+        nonceQueue: PendingNonceQueue? = nil
+    ) {
         self.walletID = walletID
         self.chain = chain
         self.account = account
@@ -82,6 +87,7 @@ public struct TradeRequest: Sendable {
         self.buy = buy
         self.amountIn = amountIn
         self.slippageBasisPoints = slippageBasisPoints
+        self.nonceQueue = nonceQueue
     }
 }
 
@@ -98,8 +104,13 @@ public struct LimitOrderRequest: Sendable {
     /// a oferta vai sem prazo; na CoW, que exige um, a ordem vale o maximo pratico do
     /// protocolo (`CoWProtocol.untilCancelledValidity`) e a revisao diz isso.
     public let validFor: TimeInterval?
+    /// EVM: a fila local de transacoes desta conta ainda em transito (`PendingNonceQueue`).
+    public let nonceQueue: PendingNonceQueue?
 
-    public init(walletID: UUID, chain: Chain, account: DerivedAccount, sell: Asset, buy: Asset, amountIn: BigUInt, minimumOut: BigUInt, validFor: TimeInterval?) {
+    public init(
+        walletID: UUID, chain: Chain, account: DerivedAccount, sell: Asset, buy: Asset, amountIn: BigUInt, minimumOut: BigUInt,
+        validFor: TimeInterval?, nonceQueue: PendingNonceQueue? = nil
+    ) {
         self.walletID = walletID
         self.chain = chain
         self.account = account
@@ -108,6 +119,7 @@ public struct LimitOrderRequest: Sendable {
         self.amountIn = amountIn
         self.minimumOut = minimumOut
         self.validFor = validFor
+        self.nonceQueue = nonceQueue
     }
 }
 
@@ -182,7 +194,10 @@ public protocol TradeEngine: Sendable {
     func openOrders(account: DerivedAccount) async throws -> [OpenOrder]
     /// O plano que cancela a ordem, por um dos jeitos que `order.cancellations` oferece.
     /// O plano sai com `kind == .cancelOrder` e vai para `submit` como os outros.
-    func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan
+    /// `nonceQueue`: no EVM, a fila local da conta (o cancelamento na cadeia usa nonce).
+    func planCancel(
+        _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
+    ) async throws -> SigningPlan
 }
 
 extension TradeEngine {
@@ -190,14 +205,21 @@ extension TradeEngine {
         throw SendEngineError.unavailable("Ordens limite ainda não estão disponíveis nesta rede.")
     }
 
-    public func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan {
+    public func planCancel(
+        _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
+    ) async throws -> SigningPlan {
         throw SendEngineError.unavailable("Ordens limite ainda não estão disponíveis nesta rede.")
+    }
+
+    /// Cancela pelo jeito escolhido, sem fila local.
+    public func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan {
+        try await planCancel(order, walletID: walletID, account: account, via: via, nonceQueue: nil)
     }
 
     /// Cancela pelo jeito preferido da ordem.
     public func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount) async throws -> SigningPlan {
         guard let via = order.cancellations.first else { throw SendEngineError.unavailable("Esta ordem não pode ser cancelada pela carteira.") }
-        return try await planCancel(order, walletID: walletID, account: account, via: via)
+        return try await planCancel(order, walletID: walletID, account: account, via: via, nonceQueue: nil)
     }
 }
 

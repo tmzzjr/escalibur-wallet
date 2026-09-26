@@ -55,6 +55,36 @@ struct EVMSendEngineTests {
         #expect(Set(transport.calls("eth_chainId").map(\.host)) == ["a.test", "b.test"])
     }
 
+    @Test("Regressao M1: nonce divergente entre os provedores so passa com a fila local que explica a diferenca")
+    func nonceQueue() async throws {
+        // O segundo provedor ja viu uma transacao deste aparelho (0x5095) que o primeiro nao viu.
+        let transport = try F.transport()
+        transport.prepend { call in
+            call.host == "b.test" && call.method == "eth_getTransactionCount" ? EVMFixtures.result("\"0x5096\"") : nil
+        }
+        // Sem a fila: recusa, em vez de apostar no maior.
+        await #expect(throws: SendEngineError.self) { _ = try await Self.engine(transport).plan(Self.request()) }
+        // Com a fila dizendo que a 0x5095 esta em transito: vale o proximo da fila.
+        let queue = PendingNonceQueue(nextNonce: 0x5096, pendingHashes: ["0x" + String(repeating: "ab", count: 32)])
+        let request = SendRequest(
+            walletID: UUID(), chain: .ethereum, asset: .native(.ethereum), account: A.binance8(on: .ethereum),
+            destination: A.binance14.checksummed, tag: nil, amount: 1_000, sendAll: false, feeLevel: .normal, utxoUsage: nil,
+            nonceQueue: queue
+        )
+        let plan = try await Self.engine(transport).plan(request)
+        #expect(try #require(plan.transactions.first as? EVMTransaction).nonce == 0x5096)
+        // A fila a frente do que ela explica: a transacao dela sumiu, e o motor diz isso.
+        let lost = SendRequest(
+            walletID: UUID(), chain: .ethereum, asset: .native(.ethereum), account: A.binance8(on: .ethereum),
+            destination: A.binance14.checksummed, tag: nil, amount: 1_000, sendAll: false, feeLevel: .normal, utxoUsage: nil,
+            nonceQueue: PendingNonceQueue(nextNonce: 0x5099, pendingHashes: [])
+        )
+        let fresh = try F.transport()
+        await #expect(throws: SendEngineError.message(
+            "Uma transação enviada deste aparelho não aparece mais na rede. Confira a Atividade antes de enviar outra. Nada foi assinado."
+        )) { _ = try await Self.engine(fresh).plan(lost) }
+    }
+
     @Test("USDC: a transferencia exata roda em eth_call, de dois provedores, antes do plano sair")
     func tokenPlanSimulated() async throws {
         let transport = try F.transport()

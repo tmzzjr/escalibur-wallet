@@ -95,8 +95,8 @@ public actor EVMReader {
 
     /// Tudo que `EVMPlanner` precisa para montar o plano de `intent`.
     ///
-    /// - nonce `pending` de dois provedores (o plano usa o maior e recusa divergencia
-    ///   grande); `localNextNonce` vem da fila local do app.
+    /// - nonce `pending` de dois provedores (o plano exige que concordem, ou que a fila
+    ///   local do app explique a diferenca); `localNextNonce` vem dessa fila.
     /// - baseFee do proximo bloco e gorjetas p25/p50/p75 de `eth_feeHistory(10)`, a
     ///   maior baseFee entre dois provedores.
     /// - `eth_estimateGas` da chamada exata; `eth_getCode` do destino certo e saldo
