@@ -132,7 +132,7 @@ enum XRPLPlanComposer {
         }
         return XRPLAccountState(
             address: account.address, sequenceReadings: account.sequenceReadings.map { $0 + 1 },
-            balance: balance, ownerCount: account.ownerCount + 1, flags: account.flags
+            balance: balance, ownerCount: account.ownerCount + 1, flags: account.flags, ledgerIndex: account.ledgerIndex
         )
     }
 }

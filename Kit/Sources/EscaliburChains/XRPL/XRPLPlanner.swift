@@ -19,6 +19,9 @@ public enum XRPLPlanError: Error, Equatable, Sendable {
     case feeAboveCap(fee: BigUInt, cap: BigUInt)
     /// Ledger validado zero ou tao alto que o +20 da a volta: dado de servidor errado.
     case invalidLedgerIndex
+    /// O `server_info` de um servidor diz um ledger longe do que os dois servidores leram
+    /// a conta: um deles mente ou esta parado.
+    case ledgerIndexMismatch
     /// Saldo gastavel (saldo menos reserva) menor que o necessario.
     case insufficientFunds(spendable: BigUInt, required: BigUInt)
 
@@ -77,6 +80,9 @@ public enum XRPLPlanner {
     /// LastLedgerSequence = ultimo validado + 20 (uns 80 segundos). Sem isso uma
     /// transacao presa pode entrar horas depois, com outro preco e outro contexto.
     public static let ledgerWindow: UInt32 = 20
+    /// Diferenca maxima entre o ledger do `server_info` e o pinado da leitura da conta:
+    /// uns 40 segundos de ledgers, o tempo entre as duas leituras com folga.
+    public static let maxLedgerDrift: UInt32 = 10
     /// Rede principal. NetworkID so entra na transacao acima de 1024.
     public static let mainnetNetworkID: UInt32 = 0
     /// Oferta vale no maximo 30 dias, como a ordem limite das outras redes (§4.5).
@@ -385,8 +391,16 @@ public enum XRPLPlanner {
         let fee = fee(openLedgerFee: ledger.openLedgerFee)
         guard fee <= maxFeeDrops else { throw XRPLPlanError.feeAboveCap(fee: fee, cap: maxFeeDrops) }
 
-        let (last, overflow) = ledger.validatedLedgerIndex.addingReportingOverflow(ledgerWindow)
-        guard !overflow, ledger.validatedLedgerIndex > 0 else { throw XRPLPlanError.invalidLedgerIndex }
+        // O LastLedgerSequence parte do ledger em que dois servidores leram a conta (o
+        // pinado); o `server_info`, de um servidor so, tem de estar perto dele.
+        var validated = ledger.validatedLedgerIndex
+        if let pinned = account.ledgerIndex {
+            let drift = pinned > validated ? pinned - validated : validated - pinned
+            guard drift <= maxLedgerDrift else { throw XRPLPlanError.ledgerIndexMismatch }
+            validated = pinned
+        }
+        let (last, overflow) = validated.addingReportingOverflow(ledgerWindow)
+        guard !overflow, validated > 0 else { throw XRPLPlanError.invalidLedgerIndex }
 
         return Common(sequence: sequence, fee: fee, lastLedgerSequence: last, spendable: spendable(account: account, ledger: ledger))
     }

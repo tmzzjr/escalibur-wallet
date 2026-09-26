@@ -86,6 +86,19 @@ struct XRPLPlannerTests {
         #expect(signed.encoded == XRPLFixtures.hex(signed.raw))
     }
 
+    @Test("Regressao B2: LastLedgerSequence do ledger pinado nas duas leituras, com o server_info perto dele")
+    func pinnedLedger() throws {
+        let signer = try XRPLTestKeys.signer()
+        var account = Self.account(signer)
+        account.ledgerIndex = 100_000_004
+        let plan = try Self.send(XRPLSendIntent(destination: Self.destination, drops: Self.xrp), account: account)
+        #expect(try Self.transaction(plan).unsigned[.lastLedgerSequence] == .uint32(100_000_024))
+        account.ledgerIndex = 100_000_011
+        #expect(throws: XRPLPlanError.ledgerIndexMismatch) {
+            try Self.send(XRPLSendIntent(destination: Self.destination, drops: Self.xrp), account: account)
+        }
+    }
+
     @Test("Tag obrigatoria (lsfRequireDestTag): sem tag bloqueia, com tag passa")
     func requireDestTag() throws {
         let flagged = Self.found(XRPLAccountFlags.requireDestTag)

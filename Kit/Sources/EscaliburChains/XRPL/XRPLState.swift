@@ -40,13 +40,20 @@ public struct XRPLAccountState: Sendable, Equatable {
     public var ownerCount: UInt32
     /// `account_data.Flags`.
     public var flags: UInt32
+    /// O ledger validado em que os dois servidores leram a conta. Um numero de ledger que
+    /// os dois tem: o LastLedgerSequence sai daqui, e nao do `server_info` de um servidor
+    /// so (auditoria 2, B2).
+    public var ledgerIndex: UInt32?
 
-    public init(address: String, sequenceReadings: [UInt32], balance: BigUInt, ownerCount: UInt32, flags: UInt32 = 0) {
+    public init(
+        address: String, sequenceReadings: [UInt32], balance: BigUInt, ownerCount: UInt32, flags: UInt32 = 0, ledgerIndex: UInt32? = nil
+    ) {
         self.address = address
         self.sequenceReadings = sequenceReadings
         self.balance = balance
         self.ownerCount = ownerCount
         self.flags = flags
+        self.ledgerIndex = ledgerIndex
     }
 }
 

@@ -96,6 +96,8 @@ enum XRPLEngineSupport {
         switch error {
         case .stateForOtherAccount, .implausibleReserve, .invalidLedgerIndex, .destinationStateMismatch:
             return NetworkFailureText.malformed
+        case .ledgerIndexMismatch:
+            return NetworkFailureText.disagree
         case .masterKeyDisabled:
             return "Esta conta desativou a chave mestra no XRP Ledger. A carteira não tem a chave que assina por ela."
         case .sequenceUnconfirmed, .destinationUnconfirmed:
