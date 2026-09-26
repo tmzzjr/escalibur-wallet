@@ -89,7 +89,7 @@ struct EVMActivityTests {
     func bnbUnavailable() async throws {
         let source = try #require(ActivitySources.source(for: .bnb))
         #expect(source is EVMUnavailableActivitySource)
-        await #expect(throws: SendEngineError.message("O histórico da BNB Chain ainda não está disponível nesta versão.")) {
+        await #expect(throws: SendEngineError.unavailable("O histórico da BNB Chain ainda não está disponível nesta versão.")) {
             _ = try await source.history(chain: .bnb, account: A.binance8(on: .bnb), usage: nil)
         }
     }

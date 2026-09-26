@@ -21,16 +21,7 @@ struct UTXOSendEngine: SendEngine {
     /// achou), ate o app chamar `usage(after:current:)` depois de transmitir.
     static let planUsage = ShortLivedMemory<UUID, UTXOUsage>(lifetime: 30 * 60)
 
-    /// A varredura de uma conta vale um minuto: o maximo e a revisao do mesmo envio
-    /// usam a mesma, em vez de dobrar as consultas e bater no limite dos provedores
-    /// publicos. So enderecos e indices; as moedas e a taxa sao lidas de novo a cada vez.
-    /// Depois de transmitir, tudo e esquecido.
-    static let discoveries = ShortLivedMemory<DiscoveryKey, UTXODiscovery>(lifetime: 60, capacity: 8)
 
-    struct DiscoveryKey: Hashable, Sendable {
-        let account: UTXOAccount
-        let usage: UTXOUsage?
-    }
 
     init(chain: Chain, reader: UTXOReader) {
         self.chain = chain
@@ -145,7 +136,7 @@ struct UTXOSendEngine: SendEngine {
             throw SendEngineError.message(NetworkFailureText.inconsistent)
         }
         let txid = try UTXOEngineSupport.localTxid(transaction, chain: chain)
-        Self.discoveries.forgetAll()
+        UTXODiscoveryCache.forgetAll()
         do {
             let receipt = try await reader.broadcast(transaction)
             guard receipt.txid == txid else { throw ChainReaderError.signedTransactionInconsistent }
@@ -165,13 +156,7 @@ struct UTXOSendEngine: SendEngine {
     // MARK: Apoio
 
     private func discover(_ account: UTXOAccount, usage: UTXOUsage?) async throws -> UTXODiscovery {
-        let key = DiscoveryKey(account: account, usage: usage)
-        if let cached = Self.discoveries.recall(key) { return cached }
-        let fresh = try await reader.discover(
-            account, gapLimit: UTXOEngineSupport.gapLimit, knownUsed: UTXOEngineSupport.knownUsed(usage, account: account)
-        )
-        Self.discoveries.remember(fresh, for: key)
-        return fresh
+        try await UTXODiscoveryCache.discover(account, usage: usage, reader: reader)
     }
 
     private func destination(_ request: SendRequest) throws -> Address.Destination {

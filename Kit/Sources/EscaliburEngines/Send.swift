@@ -105,11 +105,15 @@ public enum TransferStatus: Sendable, Equatable {
 public enum SendEngineError: LocalizedError, Equatable {
     case unsupported(Chain)
     case message(String)
+    /// O recurso nao existe nesta versao para esta rede (sem indexador publico, sem
+    /// protocolo avaliado). Tentar de novo nao muda nada: a tela diz o motivo e nao
+    /// oferece "tentar de novo".
+    case unavailable(String)
 
     public var errorDescription: String? {
         switch self {
         case .unsupported(let chain): return "Enviar pela rede \(chain.name) chega numa atualização em breve. Receber já funciona."
-        case .message(let text): return text
+        case .message(let text), .unavailable(let text): return text
         }
     }
 }

@@ -51,7 +51,7 @@ public struct EVMUnavailableActivitySource: ActivitySource {
     }
 
     public func history(chain: Chain, account: DerivedAccount, usage: UTXOUsage?) async throws -> [ActivityEntry] {
-        throw SendEngineError.message("O histórico da \(self.chain.name) ainda não está disponível nesta versão.")
+        throw SendEngineError.unavailable("O histórico da \(self.chain.name) ainda não está disponível nesta versão.")
     }
 }
 

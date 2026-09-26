@@ -12,6 +12,16 @@ struct RootView: View {
     /// o fluxo em tela cheia: o dono caia na carteira sem ver as palavras.
     @State private var firstRun = false
 
+    /// O modo demo (so em DEBUG) importa a carteira de teste sozinho: nao ha primeira
+    /// carteira para acompanhar.
+    private static var isDemo: Bool {
+        #if DEBUG
+        return DebugDemo.enabled
+        #else
+        return false
+        #endif
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             Palette.void.ignoresSafeArea()
@@ -49,7 +59,7 @@ struct RootView: View {
                         AddWalletView(isFirst: true) { firstRun = false }
                     }
                 }
-                .onAppear { if session.metadata.wallets.isEmpty { firstRun = true } }
+                .onAppear { if session.metadata.wallets.isEmpty, !Self.isDemo { firstRun = true } }
             } else {
                 MainTabs()
                     .fullScreenCover(item: Binding(

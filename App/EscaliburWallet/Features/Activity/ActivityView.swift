@@ -8,9 +8,20 @@ import SwiftUI
 @Observable
 final class ActivityFeed {
     private(set) var entries: [ActivityEntry] = []
+    /// Redes que falharam agora (rede fora do ar, limite do provedor): vale tentar de novo.
     private(set) var failed: [Chain] = []
+    /// Redes cujo historico esta versao nao le, com o motivo dito pelo motor. Tentar de
+    /// novo nao muda nada, entao nao ha botao.
+    private(set) var unavailable: [(chain: Chain, reason: String)] = []
     private(set) var loading = false
+    private(set) var loadedOnce = false
     private(set) var suspiciousCount = 0
+
+    enum Outcome: Sendable {
+        case items([ActivityEntry])
+        case unavailable(String)
+        case failed
+    }
 
     func load(_ wallet: WalletMeta?, disabled: Set<String>) async {
         guard let wallet, !loading else { return }
@@ -18,20 +29,35 @@ final class ActivityFeed {
         defer { loading = false }
         var collected: [ActivityEntry] = []
         var failures: [Chain] = []
-        await withTaskGroup(of: (Chain, [ActivityEntry]?).self) { group in
+        var missing: [(chain: Chain, reason: String)] = []
+        await withTaskGroup(of: (Chain, Outcome).self) { group in
             for account in wallet.accounts {
                 guard let chain = Chain.find(account.chainID), !disabled.contains(chain.id),
                       let source = ActivitySources.source(for: chain) else { continue }
                 let usage = wallet.utxoUsage[chain.id]
-                group.addTask { (chain, try? await source.history(chain: chain, account: account, usage: usage)) }
+                group.addTask {
+                    do {
+                        return (chain, .items(try await source.history(chain: chain, account: account, usage: usage)))
+                    } catch SendEngineError.unavailable(let reason) {
+                        return (chain, .unavailable(reason))
+                    } catch {
+                        return (chain, .failed)
+                    }
+                }
             }
-            for await (chain, items) in group {
-                if let items { collected += items } else { failures.append(chain) }
+            for await (chain, outcome) in group {
+                switch outcome {
+                case .items(let items): collected += items
+                case .unavailable(let reason): missing.append((chain, reason))
+                case .failed: failures.append(chain)
+                }
             }
         }
         suspiciousCount = collected.filter(\.suspicious).count
         entries = collected.filter { !$0.suspicious }.sorted { $0.date > $1.date }
-        failed = failures
+        failed = failures.sorted { $0.name < $1.name }
+        unavailable = missing.sorted { $0.chain.name < $1.chain.name }
+        loadedOnce = true
     }
 }
 
@@ -68,14 +94,22 @@ struct ActivityView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     TabTitle("Atividade")
 
-                    if let failed = feed.failed.first {
-                        Banner(kind: .neutral, title: "Não foi possível ler o histórico \(failed.id == "xrpl" ? "do" : "da") \(failed.name).",
+                    if !feed.failed.isEmpty {
+                        Banner(kind: .neutral, title: "Não foi possível ler o histórico de \(Self.names(feed.failed)) agora.",
                                actionTitle: "Tentar de novo") { Task { await reload() } }
                             .padding(.horizontal, Space.gutter).padding(.top, Space.md)
                     }
 
-                    if feed.entries.isEmpty && !feed.loading {
-                        empty.padding(.top, Space.lg)
+                    if feed.entries.isEmpty {
+                        if feed.loading || !feed.loadedOnce {
+                            HStack(spacing: Space.sm) {
+                                ProgressView().tint(Palette.inkSoft)
+                                Text("Lendo o histórico de cada rede").typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                            }
+                            .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+                        } else {
+                            empty.padding(.top, Space.lg)
+                        }
                     }
 
                     if !pending.isEmpty {
@@ -83,6 +117,12 @@ struct ActivityView: View {
                     }
                     ForEach(grouped, id: \.0) { title, items in
                         section(title, items)
+                    }
+
+                    ForEach(feed.unavailable, id: \.chain.id) { item in
+                        Text(item.reason).typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                            .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     if feed.suspiciousCount > 0 {
@@ -101,6 +141,18 @@ struct ActivityView: View {
         }
         .task(id: session.selectedWallet?.id) { await reload() }
         .sheet(isPresented: $receiving) { ReceiveSheet(preselected: nil) }
+    }
+
+    /// "Stellar", "Stellar e Dogecoin", "Stellar, Dogecoin e mais 2 redes".
+    static func names(_ chains: [Chain]) -> String {
+        let names = chains.map(\.name)
+        switch names.count {
+        case 0: return ""
+        case 1: return names[0]
+        case 2: return "\(names[0]) e \(names[1])"
+        case 3: return "\(names[0]), \(names[1]) e \(names[2])"
+        default: return "\(names[0]), \(names[1]) e mais \(names.count - 2) redes"
+        }
     }
 
     private func reload() async {
@@ -185,9 +237,12 @@ struct ActivityRow: View {
             }
             Spacer(minLength: Space.sm)
             if let asset = entry.asset {
-                Text(hidden ? Redaction.short : (sign + Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol)))
+                Text(hidden ? Redaction.short : (sign + Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .list)))
                     .typeStyle(.row)
-                    .foregroundStyle(entry.direction == .received ? Palette.up : Palette.ink)
+                    .foregroundStyle(isFailed ? Palette.inkMuted : (entry.direction == .received ? Palette.up : Palette.ink))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .strikethrough(isFailed)
             }
         }
         .padding(.horizontal, Space.gutter)
@@ -196,7 +251,11 @@ struct ActivityRow: View {
     }
 
     private var isFailed: Bool { if case .failed = entry.status { return true }; return false }
-    private var sign: String { entry.direction == .received ? "+" : (entry.direction == .sent ? Fmt.minus : "") }
+    /// Sem sinal quando nada se moveu: valor zero, ou transacao que falhou.
+    private var sign: String {
+        guard !entry.amount.isZero, !isFailed else { return "" }
+        return entry.direction == .received ? "+" : (entry.direction == .sent ? Fmt.minus : "")
+    }
 }
 
 /// H2: detalhe da transacao.
