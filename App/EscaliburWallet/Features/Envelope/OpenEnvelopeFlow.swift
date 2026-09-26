@@ -55,11 +55,16 @@ struct OpenEnvelopeFlow: View {
     @State private var opened: Envelope.Contents?
     @State private var revealDraft: PhraseDraft?
     @State private var importing = false
+    /// Carteira montada a partir do envelope, esperando o dono conferir os enderecos.
+    @State private var pending: (secret: WalletSecret, preview: ImportPreview, name: String, words: Int)?
 
     var body: some View {
         NavigationStack {
             Group {
-                if let revealDraft, let opened {
+                if let pending {
+                    ImportPreviewView(preview: pending.preview, hasPassphrase: pending.secret.passphrase.count > 0, saving: importing,
+                                      onSave: { Task { await save() } }, onBack: discardPending)
+                } else if let revealDraft, let opened {
                     RecordWordsView(draft: revealDraft, walletName: opened.label.isEmpty ? "Envelope" : opened.label,
                                     passphrase: opened.passphrase.count > 0 ? opened.passphrase : nil) {
                         close()
@@ -214,13 +219,14 @@ struct OpenEnvelopeFlow: View {
             contents.passphrase.withUnsafeBytes { passCopy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
             let secret = try WalletSecret.from(phrase: phraseCopy, language: contents.language, passphrase: passCopy)
             phraseCopy.wipe()
-            guard let credential = await auth.credential(reason: "Guardar a carteira do envelope neste iPhone") else {
+            do {
+                let preview = try await ImportPreview.make(secret)
+                let name = contents.label.isEmpty ? "Carteira \(session.metadata.wallets.count + 1)" : contents.label
+                pending = (secret, preview, name, words)
+            } catch {
                 secret.wipe()
-                return
+                throw error
             }
-            let name = contents.label.isEmpty ? "Carteira \(session.metadata.wallets.count + 1)" : contents.label
-            _ = try await session.addWallet(secret: secret, name: name, origin: .importedEnvelope, wordCount: words, backupConfirmed: true, credential: credential)
-            close()
         } catch let walletError as WalletError {
             error = walletError.errorDescription
         } catch {
@@ -234,10 +240,36 @@ struct OpenEnvelopeFlow: View {
         revealDraft = PhraseDraft(phrase: copy, wordCount: words)
     }
 
+    /// Guarda depois da conferencia dos enderecos.
+    private func save() async {
+        guard let pending else { return }
+        importing = true
+        defer { importing = false }
+        guard let credential = await auth.credential(reason: "Guardar a carteira do envelope neste iPhone") else { return }
+        do {
+            _ = try await session.addWallet(secret: pending.secret, name: pending.name, origin: .importedEnvelope,
+                                            wordCount: pending.words, backupConfirmed: true, credential: credential)
+            self.pending = nil
+            close()
+        } catch let walletError as WalletError {
+            discardPending()
+            error = walletError.errorDescription
+        } catch {
+            discardPending()
+            self.error = "Não foi possível importar a carteira."
+        }
+    }
+
+    private func discardPending() {
+        pending?.secret.wipe()
+        pending = nil
+    }
+
     private func close() {
         password.wipe()
         opened?.wipe()
         revealDraft?.wipe()
+        pending?.secret.wipe()
         onClose()
     }
 }

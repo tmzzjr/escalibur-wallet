@@ -80,6 +80,8 @@ struct ImportPhraseView: View {
     @State private var pasteNotice = false
     @State private var working = false
     @State private var focused = false
+    /// A carteira ja montada, esperando o dono conferir os enderecos.
+    @State private var pending: (secret: WalletSecret, preview: ImportPreview)?
 
     private var suggestions: [String] {
         let prefix = Mnemonic.canonicalize(typed)
@@ -95,6 +97,16 @@ struct ImportPhraseView: View {
     }
 
     var body: some View {
+        if let pending {
+            ImportPreviewView(preview: pending.preview, hasPassphrase: pending.secret.passphrase.count > 0, saving: working,
+                              onSave: { Task { await save() } }, onBack: discardPending)
+                .guardedAgainstCapture()
+        } else {
+            form
+        }
+    }
+
+    private var form: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Importar com a senha da carteira").typeStyle(.title).foregroundStyle(Palette.ink)
@@ -167,6 +179,7 @@ struct ImportPhraseView: View {
         .background(Palette.void.ignoresSafeArea())
         .guardedAgainstCapture()
         .onDisappear {
+            pending?.secret.wipe()
             entry.wipe()
             passphrase.wipe()
             passphraseAgain.wipe()
@@ -253,17 +266,12 @@ struct ImportPhraseView: View {
                 if usesPassphrase { passphrase.withUnsafeBytes { pass.append(contentsOf: $0.bindMemory(to: UInt8.self)) } }
                 let secret = try WalletSecret.from(phrase: phrase, language: language, passphrase: pass)
                 phrase.wipe()
-                guard let credential = await auth.credential(reason: "Guardar a carteira importada neste iPhone") else {
+                do {
+                    pending = (secret, try await ImportPreview.make(secret))
+                } catch {
                     secret.wipe()
-                    return
+                    throw error
                 }
-                let name = "Carteira \(session.metadata.wallets.count + 1)"
-                _ = try await session.addWallet(secret: secret, name: session.metadata.wallets.isEmpty ? "Carteira principal" : name,
-                                                origin: .importedPhrase, wordCount: entry.count, backupConfirmed: true, credential: credential)
-                entry.wipe()
-                onFinished()
-            } catch let walletError as WalletError {
-                message = walletError.errorDescription
             } catch {
                 message = "Não foi possível importar a carteira."
             }
@@ -280,6 +288,33 @@ struct ImportPhraseView: View {
             message = "Esta frase vale em mais de um idioma, e a escolha muda a carteira. Importe pela versão em inglês da frase."
         }
         phrase.wipe()
+    }
+
+    /// Guarda depois da conferencia. A RK so existe dentro de `addWallet`.
+    private func save() async {
+        guard let pending else { return }
+        working = true
+        defer { working = false }
+        guard let credential = await auth.credential(reason: "Guardar a carteira importada neste iPhone") else { return }
+        do {
+            let name = "Carteira \(session.metadata.wallets.count + 1)"
+            _ = try await session.addWallet(secret: pending.secret, name: session.metadata.wallets.isEmpty ? "Carteira principal" : name,
+                                            origin: .importedPhrase, wordCount: entry.count, backupConfirmed: true, credential: credential)
+            self.pending = nil
+            entry.wipe()
+            onFinished()
+        } catch let walletError as WalletError {
+            discardPending()
+            message = walletError.errorDescription
+        } catch {
+            discardPending()
+            message = "Não foi possível importar a carteira."
+        }
+    }
+
+    private func discardPending() {
+        pending?.secret.wipe()
+        pending = nil
     }
 }
 

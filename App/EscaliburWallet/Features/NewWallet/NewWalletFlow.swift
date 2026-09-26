@@ -117,6 +117,7 @@ struct NewWalletFlow: View {
                 fact("clock", "Leva cerca de 2 minutos.")
                 fact("pencil.and.scribble", "Anote no papel, à mão. Captura de tela vai para a Fototeca e sobe para o iCloud.")
                 fact("eye.slash", "Aparecem 3 palavras por vez, por 60 segundos.")
+                fact("iphone.slash", "A carteira não vai para o backup do iPhone. Num iPhone novo, só as palavras ou um envelope trazem ela de volta.")
             }
             .padding(.top, Space.lg)
             if let error {

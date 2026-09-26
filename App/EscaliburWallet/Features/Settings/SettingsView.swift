@@ -554,9 +554,12 @@ struct NetworksSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Para ler saldos, o app consulta um nó de cada rede. Esse nó vê os seus endereços e o seu IP.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.md)
+                Text("Para ler saldos, cotações e enviar, o app fala direto com nós públicos de cada rede, de empresas diferentes. Não existe servidor da Escalibur no meio.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.md)
                     .fixedSize(horizontal: false, vertical: true)
+                Banner(kind: .neutral, title: "Esses nós veem o seu IP",
+                       message: "Eles veem o IP deste iPhone e os endereços consultados, e podem perceber que esses endereços são da mesma pessoa. Uma VPN esconde o IP. Desligar uma rede que você não usa para as consultas dela.")
+                    .padding(.horizontal, Space.gutter).padding(.top, Space.md)
                 SettingsGroup {
                     ForEach(Chain.all) { chain in
                         Toggle(isOn: Binding(
