@@ -199,6 +199,58 @@ struct EVMReaderTests {
         }
     }
 
+    // MARK: Leituras do motor de envio
+
+    @Test("eth_call da transacao exata: dois provedores, no bloco fixado, com from e value")
+    func simulateCall() async throws {
+        let transport = try Self.transport()
+        let data = ERC20.transfer(to: Self.destination, amount: 1)
+        let returned = try await Self.reader(transport).simulateCall(chain: .ethereum, from: Self.owner, to: Self.destination, value: 5, data: data)
+        #expect(returned.count == 32)
+        let calls = transport.requests.filter { FixtureTransport.method($0.body.flatMap { try? StrictJSON.parse($0) }) == "eth_call" }
+        #expect(Set(calls.map(\.url.host)) == ["a.test", "b.test"])
+        for request in calls {
+            let params = FixtureTransport.params(request.body.flatMap { try? StrictJSON.parse($0) })
+            #expect(try params[0].field("from", "call").string("from") == Self.owner.checksummed)
+            #expect(try params[0].field("value", "call").string("value") == "0x5")
+            #expect(try params[0].field("data", "call").string("data") == Hex.encode(data, prefix: true))
+            #expect(try params[1].string("block") == "0x18da4d2")
+        }
+    }
+
+    @Test("eth_call da transacao exata: revert em um provedor ou retornos diferentes recusam, sem cair para um so")
+    func simulateCallRefusals() async throws {
+        let data = ERC20.transfer(to: Self.destination, amount: 1)
+        let revert = rpcError(code: 3, message: "execution reverted")
+        let reverting = try Self.transport(overrides: ["b.test": ["eth_call": revert]])
+        await #expect(throws: ReaderError.executionReverted) {
+            _ = try await Self.reader(reverting, providers: ["a", "b", "c"])
+                .simulateCall(chain: .ethereum, from: Self.owner, to: Self.destination, value: 0, data: data)
+        }
+        let other = try Self.transport(overrides: ["b.test": ["eth_call": rpcResult("\"0x\"")]])
+        await #expect(throws: ReaderError.providersDisagree(field: "eth_call")) {
+            _ = try await Self.reader(other, providers: ["a", "b", "c"])
+                .simulateCall(chain: .ethereum, from: Self.owner, to: Self.destination, value: 0, data: data)
+        }
+        // Provedor fora do ar nao conta: o terceiro completa as duas respostas.
+        let down = try Self.transport(overrides: ["b.test": ["eth_call": Data("<html>".utf8)]])
+        let returned = try await Self.reader(down, providers: ["a", "b", "c"])
+            .simulateCall(chain: .ethereum, from: Self.owner, to: Self.destination, value: 0, data: data)
+        #expect(returned.count == 32)
+    }
+
+    @Test("Codigo do destino com dois provedores concordando")
+    func hasCode() async throws {
+        #expect(try await Self.reader(try Self.transport()).hasCode(chain: .ethereum, address: Self.destination) == false)
+        let code = try ReaderFixtures.data("evm", "eth_getCode-delegacao7702")
+        let delegated = try Self.transport(overrides: ["a.test": ["eth_getCode": code], "b.test": ["eth_getCode": code]])
+        #expect(try await Self.reader(delegated).hasCode(chain: .ethereum, address: Self.destination))
+        let split = try Self.transport(overrides: ["b.test": ["eth_getCode": code]])
+        await #expect(throws: ReaderError.providersDisagree(field: "eth_getCode")) {
+            _ = try await Self.reader(split).hasCode(chain: .ethereum, address: Self.destination)
+        }
+    }
+
     // MARK: Transmissao e acompanhamento
 
     static func signed(_ raw: [UInt8] = [0x02, 0xC0]) -> SignedTransaction {

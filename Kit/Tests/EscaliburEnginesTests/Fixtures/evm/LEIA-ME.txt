@@ -1,0 +1,60 @@
+Respostas gravadas dos provedores para os testes dos motores EVM
+(Kit/Tests/EscaliburEnginesTests/EVM/). Todas de contas publicas de exchange, fundacao ou
+DAO; nenhum dado de usuario. Gravadas em 26/09/2026 (UTC).
+
+Ethereum, JSON-RPC em ethereum-rpc.publicnode.com, uma chamada por arquivo, byte a byte
+como veio (sem reformatar). Ponta 0x18da60c; saldo, codigo e eth_call no bloco fixado
+0x18da60b (ponta menos 1, o mesmo atraso que o EVMReader usa na Ethereum).
+Dono: "Binance 8" 0xF977814e90dA44bFA03b6295A0616a897441aceC.
+Destino comum: "Binance 14" 0x28C6c06298d514Db089934071355E5743bf21d60 (sem codigo).
+Destino contrato: Safe da GnosisDAO 0x849D52316331967b6fF1198e5E32A0eB168D039d (proxy).
+Contrato que reverte com ETH puro: deposito da Beacon Chain 0x00000000219ab540356cBB839Cbe05303d7705Fa.
+Token: USDC 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48.
+
+  eth_chainId-ethereum.json               eth_chainId (0x1)
+  eth_chainId-base.json                   eth_chainId em base-rpc.publicnode.com (0x2105),
+                                          para o provedor "de outra rede"
+  eth_blockNumber-ethereum.json           eth_blockNumber
+  eth_getTransactionCount-binance8.json   eth_getTransactionCount(dono, "pending")
+  eth_feeHistory-ethereum.json            eth_feeHistory(0xa, "latest", [25, 50, 75])
+  eth_getBalance-binance8.json            eth_getBalance(dono, bloco fixado)
+  eth_getCode-binance14.json              eth_getCode(Binance 14) = 0x
+  eth_getCode-safe.json                   eth_getCode(Safe)
+  eth_getCode-usdc.json                   eth_getCode(USDC)
+  eth_estimateGas-nativo.json             1000 wei para a Binance 14
+  eth_estimateGas-safe.json               1000 wei para o Safe
+  eth_estimateGas-usdc.json               transfer(Binance 14, 1 USDC)
+  balanceOf-usdc-binance8.json            eth_call balanceOf(dono) no USDC
+  eth_call-transfer-usdc.json             eth_call da transferencia exata, from = dono: true
+  eth_call-transfer-usdc-revert.json      a mesma com valor acima do saldo: revert
+  eth_call-nativo-safe.json               1000 wei para o Safe, from = dono: 0x
+  eth_call-nativo-deposit-revert.json     1000 wei para o contrato de deposito: revert
+  eth_getTransactionReceipt-binance8.json recibo de 0x16d93ffd...10cfc (transacao do dono)
+
+Base, Blockscout (base.blockscout.com/api/v2) da Binance 8:
+  blockscout-transactions-base-binance8.json     /addresses/{dono}/transactions
+  blockscout-token-transfers-base-binance8.json  /addresses/{dono}/token-transfers?type=ERC-20
+Recortadas com jq so para reduzir tamanho: os 14 primeiros itens de transacoes e os 20
+primeiros de transferencias, e em cada item so os campos que o leitor le (hash, status,
+timestamp, from.hash, to.hash, value, fee.value; transaction_hash, log_index, timestamp,
+from.hash, to.hash, token.address_hash, total.value), mais block_number, token.symbol e
+total.decimals para quem for conferir. sha256 das respostas inteiras, antes do recorte:
+  transacoes      5317e88e2283743880085099a27ec7179a54876aa2f37a6ffd1436a1b47a570b
+  transferencias  fa722912ddfcdd31d0d908e50625ac44d4fff6636e3d9f434839ad20762ae7ec
+A pagina tem golpes reais: "EṬH" falso do sosia 0xaF2007aD...20c9, po de
+0x2652742D...1008 e tokens fora da lista.
+
+troca/: copias exatas das respostas dos agregadores gravadas para os testes de
+EscaliburChains (Kit/Tests/EscaliburChainsTests/Fixtures/trade, ver o LEIA-ME de la), 100
+USDC -> ETH na Base, tolerancia 0,5%, dono 0x9d8A62f656a8d1615C1294fd71e9CFb3E4855A4F (a
+chave de teste da EIP-155, que so aparece nos testes sem rede):
+  velora-base-usdc-eth.json        b619588e40c78692ec78cacb35394aa1e865c7fe5c93dd893d7515c4040624a2
+  kyber-base-usdc-eth-routes.json  f561f50a3ddd08b591559b5461a75e1993b468ed1c1b8861fcb236948f60c60e
+  kyber-base-usdc-eth-build.json   dd7984e3bc499531591f1bcda21697034e6fd8cceb196697643a2bf02e33e79d
+  lifi-base-usdc-eth.json          f756eaec6f549ba69929c310968096076f779b66a3f754025b9439b7ee374ea4
+  de1-base-usdc-eth.json           aefe754661cbfc62ac08cf20f6d90e05942e01dcd009d7028bf34d59a3165898
+
+Quando um teste precisa de um caso que a rede nao ofereceu (recibo revertido, provedor que
+diverge, saldo zero, transferencia que devolve false), ele altera a resposta gravada dentro
+do proprio teste e diz o que alterou. O estado de cadeia da troca (nonce, taxas, simulacao
+eth_simulateV1) e sintetico e esta descrito em EVMTradeTestSupport.swift.
