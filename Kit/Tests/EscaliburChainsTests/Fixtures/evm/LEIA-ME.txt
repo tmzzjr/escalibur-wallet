@@ -1,0 +1,25 @@
+Vetores da familia EVM. Todos baixados de raw.githubusercontent.com em 25/09/2026 e
+reduzidos a um subconjunto; o SHA-256 do arquivo de origem esta dentro de cada JSON.
+
+ethers-transactions.json
+  ethers-io/ethers.js, testcases/transactions.json.gz
+  (sha256 44efc88fae0cd5f65aa5efbd2e60fc6e7433420ea72f76c5658635ccf15565c1)
+  49 transacoes com chave privada, campos e bytes sem assinatura e assinados, em
+  tipo 2 (EIP-1559) e legado EIP-155. EVMTransactionTests assina com a chave do
+  vetor (RFC 6979) e compara byte a byte.
+
+ethers-abi.json
+  ethers-io/ethers.js, testcases/abi.json.gz
+  (sha256 8d20a4070e8c8a95cca7e1f8d3f8efbc281f5a79e39123f9abb102f0cc169aa0)
+  300 valores com o retorno cru de um contrato compilado pelo solc 0.8.13. Tuplas
+  aninhadas, arrays fixos e dinamicos, int negativo, bytes<N>, string UTF-8.
+  EVMABITests decodifica, compara com o valor e recodifica.
+
+ethers-typed-data.json
+  ethers-io/ethers.js, testcases/typed-data.json.gz
+  (sha256 0402e1478ccab9359140b59775f00ccf068d1be35779658b2c24b4965f043924)
+  As 130 mensagens EIP-712, remontadas no formato eth_signTypedData_v4, com o
+  encodeData da mensagem e o digesto. EVMEIP712Tests confere os dois.
+
+Os exemplos que estao no texto das especificacoes (EIP-155, EIP-55, EIP-712 "Mail",
+ERC-681, abi-spec da Solidity) ficam literais dentro dos testes, com a fonte citada.
