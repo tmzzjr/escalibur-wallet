@@ -72,6 +72,12 @@ public enum Endpoints {
         .init(name: "tatum", baseURL: url("https://solana-mainnet.gateway.tatum.io")),
     ]
 
+    /// Jupiter Swap API v2, so leitura de cotacao e instrucoes: a transacao e
+    /// montada e conferida no app (docs/seguranca.md §4.6). Sem chave: 30
+    /// requisicoes por minuto por IP (confirmado em 26/09/2026). O `lite-api` esta
+    /// sendo aposentado em favor do acesso sem chave a este host.
+    public static let jupiterSwap = url("https://api.jup.ag/swap/v2")
+
     public static let xrpl: [ProviderPool.Provider] = [
         .init(name: "xrplcluster", baseURL: url("https://xrplcluster.com")),
         .init(name: "ripple-s2", baseURL: url("https://s2.ripple.com:51234")),

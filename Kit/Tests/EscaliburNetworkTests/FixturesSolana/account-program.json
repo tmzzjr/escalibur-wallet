@@ -1,0 +1,27 @@
+{
+ "jsonrpc": "2.0",
+ "result": {
+  "context": {
+   "apiVersion": "4.2.2",
+   "slot": 450547018
+  },
+  "value": {
+   "data": {
+    "parsed": {
+     "info": {
+      "programData": "4Ec7ZxZS6Sbdg5UGSLHbAnM7GQHp2eFd4KYWRexAipQT"
+     },
+     "type": "program"
+    },
+    "program": "bpf-upgradeable-loader",
+    "space": 36
+   },
+   "executable": true,
+   "lamports": 6949115527,
+   "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+   "rentEpoch": 18446744073709551615,
+   "space": 36
+  }
+ },
+ "id": 1
+}
