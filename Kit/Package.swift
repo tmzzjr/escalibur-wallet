@@ -113,7 +113,8 @@ let package = Package(
         .testTarget(
             name: "EscaliburEnginesTests",
             dependencies: ["EscaliburEngines"],
-            path: "Tests/EscaliburEnginesTests"
+            path: "Tests/EscaliburEnginesTests",
+            resources: [.copy("Fixtures")]
         ),
     ]
 )
