@@ -1,0 +1,157 @@
+{
+  "_links": {
+    "self": {
+      "href": "https://horizon.stellar.lobstr.co/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY/trades?cursor=\u0026limit=4\u0026order=desc"
+    },
+    "next": {
+      "href": "https://horizon.stellar.lobstr.co/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY/trades?cursor=277545949218488321-1\u0026limit=4\u0026order=desc"
+    },
+    "prev": {
+      "href": "https://horizon.stellar.lobstr.co/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY/trades?cursor=277545949218488324-1\u0026limit=4\u0026order=asc"
+    }
+  },
+  "_embedded": {
+    "records": [
+      {
+        "_links": {
+          "self": {
+            "href": ""
+          },
+          "base": {
+            "href": "https://horizon.stellar.lobstr.co/accounts/GCSO6DAFG52JZDJOB2ZXY3FZBCFJIEINR2BXNA2TTTCMFAOL5SQMIPW6"
+          },
+          "counter": {
+            "href": "https://horizon.stellar.lobstr.co/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY"
+          },
+          "operation": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545949218488324"
+          }
+        },
+        "id": "277545949218488324-1",
+        "paging_token": "277545949218488324-1",
+        "ledger_close_time": "2026-09-26T03:03:09Z",
+        "trade_type": "orderbook",
+        "base_offer_id": "4889231967645876228",
+        "base_account": "GCSO6DAFG52JZDJOB2ZXY3FZBCFJIEINR2BXNA2TTTCMFAOL5SQMIPW6",
+        "base_amount": "0.0038037",
+        "base_asset_type": "credit_alphanum4",
+        "base_asset_code": "USDC",
+        "base_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        "counter_offer_id": "1859057119",
+        "counter_account": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "counter_amount": "0.0173042",
+        "counter_asset_type": "native",
+        "base_is_seller": false,
+        "price": {
+          "n": "10000000",
+          "d": "2198119"
+        }
+      },
+      {
+        "_links": {
+          "self": {
+            "href": ""
+          },
+          "base": {
+            "href": "https://horizon.stellar.lobstr.co/accounts/GCSO6DAFG52JZDJOB2ZXY3FZBCFJIEINR2BXNA2TTTCMFAOL5SQMIPW6"
+          },
+          "counter": {
+            "href": "https://horizon.stellar.lobstr.co/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY"
+          },
+          "operation": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545949218488323"
+          }
+        },
+        "id": "277545949218488323-1",
+        "paging_token": "277545949218488323-1",
+        "ledger_close_time": "2026-09-26T03:03:09Z",
+        "trade_type": "orderbook",
+        "base_offer_id": "4889231967645876227",
+        "base_account": "GCSO6DAFG52JZDJOB2ZXY3FZBCFJIEINR2BXNA2TTTCMFAOL5SQMIPW6",
+        "base_amount": "0.0038037",
+        "base_asset_type": "credit_alphanum4",
+        "base_asset_code": "USDC",
+        "base_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        "counter_offer_id": "1859057119",
+        "counter_account": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "counter_amount": "0.0173042",
+        "counter_asset_type": "native",
+        "base_is_seller": false,
+        "price": {
+          "n": "10000000",
+          "d": "2198119"
+        }
+      },
+      {
+        "_links": {
+          "self": {
+            "href": ""
+          },
+          "base": {
+            "href": "https://horizon.stellar.lobstr.co/accounts/GCSO6DAFG52JZDJOB2ZXY3FZBCFJIEINR2BXNA2TTTCMFAOL5SQMIPW6"
+          },
+          "counter": {
+            "href": "https://horizon.stellar.lobstr.co/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY"
+          },
+          "operation": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545949218488322"
+          }
+        },
+        "id": "277545949218488322-1",
+        "paging_token": "277545949218488322-1",
+        "ledger_close_time": "2026-09-26T03:03:09Z",
+        "trade_type": "orderbook",
+        "base_offer_id": "4889231967645876226",
+        "base_account": "GCSO6DAFG52JZDJOB2ZXY3FZBCFJIEINR2BXNA2TTTCMFAOL5SQMIPW6",
+        "base_amount": "0.0038037",
+        "base_asset_type": "credit_alphanum4",
+        "base_asset_code": "USDC",
+        "base_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        "counter_offer_id": "1859057119",
+        "counter_account": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "counter_amount": "0.0173042",
+        "counter_asset_type": "native",
+        "base_is_seller": false,
+        "price": {
+          "n": "10000000",
+          "d": "2198119"
+        }
+      },
+      {
+        "_links": {
+          "self": {
+            "href": ""
+          },
+          "base": {
+            "href": "https://horizon.stellar.lobstr.co/accounts/GCSO6DAFG52JZDJOB2ZXY3FZBCFJIEINR2BXNA2TTTCMFAOL5SQMIPW6"
+          },
+          "counter": {
+            "href": "https://horizon.stellar.lobstr.co/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY"
+          },
+          "operation": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545949218488321"
+          }
+        },
+        "id": "277545949218488321-1",
+        "paging_token": "277545949218488321-1",
+        "ledger_close_time": "2026-09-26T03:03:09Z",
+        "trade_type": "orderbook",
+        "base_offer_id": "4889231967645876225",
+        "base_account": "GCSO6DAFG52JZDJOB2ZXY3FZBCFJIEINR2BXNA2TTTCMFAOL5SQMIPW6",
+        "base_amount": "0.0038037",
+        "base_asset_type": "credit_alphanum4",
+        "base_asset_code": "USDC",
+        "base_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        "counter_offer_id": "1859057119",
+        "counter_account": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "counter_amount": "0.0173042",
+        "counter_asset_type": "native",
+        "base_is_seller": false,
+        "price": {
+          "n": "10000000",
+          "d": "2198119"
+        }
+      }
+    ]
+  }
+}

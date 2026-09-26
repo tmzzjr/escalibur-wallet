@@ -61,6 +61,13 @@ public enum Endpoints {
         ],
     ]
 
+    /// Litecoin fora do Esplora: segunda e terceira fonte de taxa, rotas extras de
+    /// transmissao e contingencia de leitura (so ha um Esplora publico de LTC).
+    public static let litecoinExtra: [ProviderPool.Provider] = [
+        .init(name: "blockcypher", baseURL: url("https://api.blockcypher.com/v1/ltc/main")),
+        .init(name: "blockchair", baseURL: url("https://api.blockchair.com/litecoin")),
+    ]
+
     public static let dogecoin: [ProviderPool.Provider] = [
         .init(name: "blockcypher", baseURL: url("https://api.blockcypher.com/v1/doge/main")),
         .init(name: "blockchair", baseURL: url("https://api.blockchair.com/dogecoin")),

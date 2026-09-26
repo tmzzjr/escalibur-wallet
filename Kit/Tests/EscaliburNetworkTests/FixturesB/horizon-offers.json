@@ -1,0 +1,104 @@
+{
+  "_links": {
+    "self": {
+      "href": "https://horizon.stellar.org/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY/offers?cursor=\u0026limit=3\u0026order=asc"
+    },
+    "next": {
+      "href": "https://horizon.stellar.org/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY/offers?cursor=1859054349\u0026limit=3\u0026order=asc"
+    },
+    "prev": {
+      "href": "https://horizon.stellar.org/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY/offers?cursor=1859051262\u0026limit=3\u0026order=desc"
+    }
+  },
+  "_embedded": {
+    "records": [
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon.stellar.org/offers/1859051262"
+          },
+          "offer_maker": {
+            "href": "https://horizon.stellar.org/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY"
+          }
+        },
+        "id": "1859051262",
+        "paging_token": "1859051262",
+        "seller": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "selling": {
+          "asset_type": "credit_alphanum4",
+          "asset_code": "USDC",
+          "asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"
+        },
+        "buying": {
+          "asset_type": "native"
+        },
+        "amount": "65.8336200",
+        "price_r": {
+          "n": 5000000,
+          "d": 1097227
+        },
+        "price": "4.5569422",
+        "last_modified_ledger": 64621196,
+        "last_modified_time": "2026-09-26T03:02:39Z"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon.stellar.org/offers/1859051263"
+          },
+          "offer_maker": {
+            "href": "https://horizon.stellar.org/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY"
+          }
+        },
+        "id": "1859051263",
+        "paging_token": "1859051263",
+        "seller": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "selling": {
+          "asset_type": "credit_alphanum4",
+          "asset_code": "USDC",
+          "asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"
+        },
+        "buying": {
+          "asset_type": "native"
+        },
+        "amount": "65.8110900",
+        "price_r": {
+          "n": 10000000,
+          "d": 2193703
+        },
+        "price": "4.5585022",
+        "last_modified_ledger": 64621196,
+        "last_modified_time": "2026-09-26T03:02:39Z"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon.stellar.org/offers/1859054349"
+          },
+          "offer_maker": {
+            "href": "https://horizon.stellar.org/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY"
+          }
+        },
+        "id": "1859054349",
+        "paging_token": "1859054349",
+        "seller": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "selling": {
+          "asset_type": "credit_alphanum4",
+          "asset_code": "USDC",
+          "asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"
+        },
+        "buying": {
+          "asset_type": "native"
+        },
+        "amount": "65.8291200",
+        "price_r": {
+          "n": 78125,
+          "d": 17143
+        },
+        "price": "4.5572537",
+        "last_modified_ledger": 64621196,
+        "last_modified_time": "2026-09-26T03:02:39Z"
+      }
+    ]
+  }
+}
