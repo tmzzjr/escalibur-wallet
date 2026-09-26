@@ -144,7 +144,8 @@ No Escalibur de hoje nenhum destes achados é grave, porque lá o PIN não prote
 ### 2.2 As chaves
 
 ```
-PIN ─Argon2id─► AP ─(applicationPassword)─► item rk.pin = ECIES(K_dev.pub, RK) ─SE(K_dev)─► RK
+PIN ─Argon2id─► AP ─(applicationPassword)─► item rk.pin = ECIES(K_dev.pub, ChaChaPoly(K_pin, RK)) ─SE(K_dev)─► ─K_pin─► RK
+                AP ─HKDF(salt, "escalibur-wallet/v1/rk.pin")─► K_pin
 biometria (decisão no SEP) ─────────────────► item rk.bio = ECIES(K_bio.pub, RK) ─SE(K_bio)─► RK
 RK ─HKDF "escalibur-wallet/v1/index"──────────► K_idx ─► metadados.bin (xpubs, endereços, nomes, catálogo)
 RK ─HKDF(salt_w, "…/v1/dek" ‖ walletID)───────► KEK_w ─► DEK_w ─HKDF(salt_s,"…/v1/seed")─► registro da seed
@@ -202,12 +203,18 @@ Consequência que vai por escrito no onboarding:
 - **AP = Argon2id(PIN, salt 16 bytes do CSPRNG, m=256 MiB, p=2, t calibrado entre 2 e 4 para dar até cerca de 0,8 s).**
   - Os parâmetros ficam gravados em `pin.kdf` e são lidos de lá, o que permite migrar depois.
   - O Argon2 existe mesmo com o chaveiro fazendo a checagem porque é ele que o atacante no aparelho paga a cada chute. Sem ele, cada chute custa milissegundos e 10^6 PINs saem em horas.
-- **Não existe digest de PIN em lugar nenhum.** O PIN errado é recusado pelo próprio chaveiro. Não há comparação no código do app, então não há oráculo de tempo.
-- **Troca de PIN em duas fases:**
-  1. Grava `rk.pin.novo` com AP e salt novos.
-  2. Lê de volta e decifra, para conferir.
-  3. Apaga `rk.pin` e renomeia com `SecItemUpdate` de `kSecAttrAccount`.
-  - Um crash no meio nunca deixa o dono sem nenhum caminho de volta.
+- **Não existe digest de PIN em lugar nenhum.** O PIN errado é recusado pelo chaveiro e, de novo, pela camada interna. Não há comparação no código do app, então não há oráculo de tempo.
+- **Camada interna (auditoria 1).** Dentro do embrulho do SE, a RK vai cifrada com ChaChaPoly sob K_pin = HKDF(AP, salt). Isso torna o desenho independente do resultado do spike abaixo: se a senha de aplicativo for só uma regra de acesso, quem copiar o item e conseguir usar o SE deste aparelho ainda precisa do PIN, e cada chute custa um Argon2id de 256 MiB. Falha de autenticação na camada interna conta como PIN errado.
+- **O simulador não aplica a senha de aplicativo.** `LAContext.setCredential(_, type: .applicationPassword)` devolve `false` no simulador, e o item é gravado sem ela. Lá, só a camada interna recusa o PIN errado; o teste de interface de ponta a ponta confere isso a cada rodada. No aparelho, `false` é erro e o cadastro para.
+- **Troca de PIN atômica:**
+  1. Grava `rk.pin.novo` com AP e salt novos, e lê de volta para conferir.
+  2. O ponto sem volta é apagar `rk.pin`. Antes dele, qualquer falha apaga o pendente e o PIN antigo continua o único.
+  3. Depois dele, a troca está feita: o pendente abre com o PIN novo. A promoção a principal (gravar `rk.pin` com o PIN novo, conferir, apagar o pendente) é tentada na hora e, se falhar, concluída no próximo desbloqueio.
+  - Com os dois slots presentes (crash entre os passos 1 e 2), o desbloqueio tenta os dois na mesma tentativa. O antigo abrindo desfaz a troca; o novo abrindo a conclui.
+  - Uma troca nova é recusada enquanto houver uma interrompida: o desbloqueio resolve primeiro.
+- **Cadastro só com resposta definitiva.** O chaveiro que não consegue responder (`probe` = desconhecido) nunca vira "não existe": `isSetUp` responde sim e o cadastro recusa. `createKey(.device)` nunca substitui a K_dev em silêncio. Sobras de um cadastro interrompido só são apagadas quando nenhum slot da RK existe.
+- **Contador de tentativas.** O prazo usa só o relógio monotônico (`CLOCK_MONOTONIC_RAW`, que conta o tempo dormindo) e a identidade do boot (`kern.bootsessionuuid`). Mudar o relógio de parede não encurta nem estica a espera. Depois de reiniciar, a espera recomeça cheia; ler o contador nunca grava, quem regrava é a abertura do app e a volta ao primeiro plano. Face ID aceito zera o contador, como no iPhone.
+- **Face ID recusado não apaga o atalho.** Só o cadastro de rostos diferente do gravado ao ligar, ou a K_bio que o SEP já destruiu, apagam `rk.bio`.
 
 **Spike obrigatório antes de construir sobre isto.**
 - O que é documentado: o header do SDK descreve `kSecAccessControlApplicationPassword` como "Application provided password for data encryption key generation. This is not a constraint but additional item encryption mechanism."

@@ -31,10 +31,14 @@ final class AuthCoordinator {
 
     /// Executa uma operacao com a chave raiz, caindo para o PIN se o Face ID for
     /// cancelado ou tiver mudado. Devolve nil se o dono desistir.
+    ///
+    /// `requirePIN` para o que entrega ou destroi a carteira inteira (ver as palavras,
+    /// exportar envelope, remover): o rosto pode ser apresentado a forca ou com o dono
+    /// dormindo; o PIN precisa ser dito.
     func perform<T: Sendable>(
-        _ session: AppSession, reason: String, _ body: @escaping @Sendable (SecureBytes) throws -> T
+        _ session: AppSession, reason: String, requirePIN: Bool = false, _ body: @escaping @Sendable (SecureBytes) throws -> T
     ) async throws -> T? {
-        guard let first = await credential(reason: reason) else { return nil }
+        guard let first = await credential(reason: reason, forcePIN: requirePIN) else { return nil }
         do {
             return try await session.withRootKey(first, body)
         } catch RootKeyVault.Failure.cancelled, RootKeyVault.Failure.biometryChanged {

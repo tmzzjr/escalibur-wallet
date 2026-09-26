@@ -80,8 +80,9 @@ public enum Envelope {
         // de digitar, ou que abre com outra frase, nao sai daqui.
         let check = try open(data, password: password)
         defer { check.wipe() }
-        let same = phrase.withUnsafeBytes { a in check.phrase.withUnsafeBytes { b in Hash.constantTimeEqual(Array(a), Array(b)) } }
-        guard same else { throw CryptoError.malformedVault("o envelope gravado não confere com a frase") }
+        let samePhrase = Hash.constantTimeEqual(phrase, check.phrase)
+        let samePassphrase = check.passphrase.withUnsafeBytes { Hash.constantTimeEqual(Array(passphrase.utf8), Array($0)) }
+        guard samePhrase, samePassphrase else { throw CryptoError.malformedVault("o envelope gravado não confere com a frase") }
         return data
     }
 

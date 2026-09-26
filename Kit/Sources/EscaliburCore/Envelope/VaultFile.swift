@@ -475,7 +475,7 @@ public enum VaultFile {
         decoyContents: VaultContents,
         decoyPassword: SecureBytes
     ) throws -> Data {
-        guard !constantTimeEqual(realPassword, decoyPassword) else {
+        guard !Hash.constantTimeEqual(realPassword, decoyPassword) else {
             throw CryptoError.malformedVault(
                 "a senha da isca precisa ser diferente da senha do cofre"
             )
@@ -516,18 +516,6 @@ public enum VaultFile {
             passes: max(kdf.passes, KDFParameters.passesRange.lowerBound),
             lanes: kdf.lanes
         )
-    }
-
-    /// Compara dois segredos em tempo constante sobre o conteudo.
-    private static func constantTimeEqual(_ a: SecureBytes, _ b: SecureBytes) -> Bool {
-        guard a.count == b.count else { return false }
-        return a.withUnsafeBytes { left in
-            b.withUnsafeBytes { right in
-                var diff: UInt8 = 0
-                for index in 0..<left.count { diff |= left[index] ^ right[index] }
-                return diff == 0
-            }
-        }
     }
 
     /// Um indice uniforme em `0..<limit`, por rejeicao de amostra.

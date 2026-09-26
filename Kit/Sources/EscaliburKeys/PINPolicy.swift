@@ -11,7 +11,7 @@ public enum PINPolicy {
     /// cobre repeticao, sequencia, padrao de teclado e os PINs de 6 digitos mais
     /// comuns em vazamentos (Markert et al., IEEE S&P 2020, e listas publicas).
     public static func isBlocked(_ digits: [UInt8]) -> Bool {
-        guard digits.count == Self.digits else { return true }
+        guard digits.count == Self.digits, digits.allSatisfy({ $0 <= 9 }) else { return true }
         let d = digits.map { Int($0) }
         // Todos iguais.
         if Set(d).count == 1 { return true }
@@ -26,19 +26,32 @@ public enum PINPolicy {
         if d[0] == d[5], d[1] == d[4], d[2] == d[3] { return true }
         // So dois digitos distintos (111222, 100001) tem pouca entropia de fato.
         if Set(d).count == 2 { return true }
-        let text = d.map(String.init).joined()
-        return common.contains(text)
+        // Datas: o primeiro palpite de quem roubou o iPhone junto com a carteira e o
+        // documento. DDMMAA, MMDDAA e AAMMDD, qualquer ano.
+        if isDate(d) { return true }
+        // Inteiro de 6 casas: o literal com zero a esquerda (010203) vale o mesmo.
+        let value = d.reduce(0) { $0 * 10 + $1 }
+        return common.contains(value)
+    }
+
+    static func isDate(_ d: [Int]) -> Bool {
+        let a = d[0] * 10 + d[1], b = d[2] * 10 + d[3], c = d[4] * 10 + d[5]
+        func valid(day: Int, month: Int) -> Bool {
+            guard (1...12).contains(month), day >= 1 else { return false }
+            let lengths = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+            return day <= lengths[month - 1]
+        }
+        return valid(day: a, month: b) || valid(day: b, month: a) || valid(day: c, month: b)
     }
 
     /// PINs frequentes que as regras acima nao pegam: teclado, datas e palavras.
-    private static let common: Set<String> = [
-        "147258", "258369", "159753", "357159", "147852", "258456", "789456", "456789",
-        "147369", "963852", "741852", "852963", "159357", "753159", "951357", "124578",
-        "102030", "010203", "112358", "131313", "142536", "198700", "199000", "200000",
-        "123654", "654123", "123789", "789123", "321654", "147147", "159159",
-        "520520", "521521", "520131", "131420", "696969", "123698", "987456",
-        "102938", "019283", "135790", "246810", "135791", "112211", "121314", "101010",
-        "202020", "303030", "007007", "171717", "181818", "191919", "252525", "282828",
+    private static let common: Set<Int> = [
+        147258, 258369, 159753, 357159, 147852, 258456, 789456, 456789, 147369, 963852,
+        741852, 852963, 159357, 753159, 951357, 124578, 102030, 010203, 112358, 131313,
+        142536, 198700, 199000, 200000, 123654, 654123, 123789, 789123, 321654, 147147,
+        159159, 520520, 521521, 520131, 131420, 696969, 123698, 987456, 102938, 019283,
+        135790, 246810, 135791, 112211, 121314, 101010, 202020, 303030, 007007, 171717,
+        181818, 191919, 252525, 282828,
     ]
 
     /// A escada de atraso, em segundos, depois de `failures` erros seguidos.
@@ -60,75 +73,96 @@ public enum PINPolicy {
 
     // MARK: Relogios
 
-    /// Tempo desde o boot, que nao anda para tras quando alguem muda o relogio.
-    static var uptime: TimeInterval {
+    /// Tempo desde o boot, contando o tempo dormindo, e que nao anda para tras quando
+    /// alguem muda o relogio. O relogio de parede nunca entra na conta da espera:
+    /// adiantar nao encurta, atrasar nao tranca o dono por um ano.
+    public static var uptime: TimeInterval {
         var time = timespec()
         clock_gettime(CLOCK_MONOTONIC_RAW, &time)
         return TimeInterval(time.tv_sec) + TimeInterval(time.tv_nsec) / 1e9
     }
 
-    /// O instante do ultimo boot. Se mudou, o relogio monotonico recomecou do zero,
-    /// e o prazo gravado com ele deixou de fazer sentido.
-    static var bootTime: TimeInterval {
-        var boot = timeval()
-        var size = MemoryLayout<timeval>.size
-        var mib: [Int32] = [CTL_KERN, KERN_BOOTTIME]
-        guard sysctl(&mib, 2, &boot, &size, nil, 0) == 0 else { return 0 }
-        return TimeInterval(boot.tv_sec) + TimeInterval(boot.tv_usec) / 1e6
+    /// Identidade deste boot (`kern.bootsessionuuid`). Se mudou, o relogio monotonico
+    /// recomecou do zero e o prazo gravado com ele deixou de valer. Comparar um UUID
+    /// e exato; o instante do boot em ponto flutuante oscilava com ajuste de NTP.
+    static var bootSession: [UInt8] {
+        var size = 0
+        guard sysctlbyname("kern.bootsessionuuid", nil, &size, nil, 0) == 0, size > 0 else { return unknownBoot }
+        var buffer = [CChar](repeating: 0, count: size)
+        guard sysctlbyname("kern.bootsessionuuid", &buffer, &size, nil, 0) == 0 else { return unknownBoot }
+        let text = String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+        guard let uuid = UUID(uuidString: text) else { return unknownBoot }
+        return withUnsafeBytes(of: uuid.uuid) { Array($0) }
     }
+
+    /// Sem identidade de boot, cada leitura parece um boot novo: a espera recomeca
+    /// cheia. Falha para o lado do dono esperar mais, nunca menos.
+    static let unknownBoot = [UInt8](repeating: 0, count: 16)
 }
 
 /// O registro de tentativas, gravado no chaveiro.
+///
+/// Formato 2 (29 bytes): versao, erros (u32), prazo no relogio monotonico (f64) e a
+/// identidade do boot em que o prazo foi gravado (16 bytes).
 struct AttemptRecord: Equatable {
     var failures: UInt32
-    var wallDeadline: TimeInterval
     var uptimeDeadline: TimeInterval
-    var bootTime: TimeInterval
+    var bootSession: [UInt8]
 
-    static let zero = AttemptRecord(failures: 0, wallDeadline: 0, uptimeDeadline: 0, bootTime: 0)
+    static let zero = AttemptRecord(failures: 0, uptimeDeadline: 0, bootSession: PINPolicy.unknownBoot)
+    private static let version: UInt8 = 2
 
     var encoded: Data {
-        var out = Data()
+        var out = Data([Self.version])
         out.append(contentsOf: failures.bigEndianByteArray)
-        for value in [wallDeadline, uptimeDeadline, bootTime] {
-            out.append(contentsOf: value.bitPattern.bigEndianByteArray)
-        }
+        out.append(contentsOf: uptimeDeadline.bitPattern.bigEndianByteArray)
+        out.append(contentsOf: bootSession)
         return out
     }
 
-    init(failures: UInt32, wallDeadline: TimeInterval, uptimeDeadline: TimeInterval, bootTime: TimeInterval) {
+    init(failures: UInt32, uptimeDeadline: TimeInterval, bootSession: [UInt8]) {
         self.failures = failures
-        self.wallDeadline = wallDeadline
         self.uptimeDeadline = uptimeDeadline
-        self.bootTime = bootTime
+        self.bootSession = bootSession
     }
 
     init?(_ data: Data) {
-        guard data.count == 28 else { return nil }
         let bytes = [UInt8](data)
-        func u64(_ at: Int) -> UInt64 { bytes[at..<(at + 8)].reduce(0) { $0 << 8 | UInt64($1) } }
-        failures = bytes[0..<4].reduce(0) { $0 << 8 | UInt32($1) }
-        wallDeadline = Double(bitPattern: u64(4))
-        uptimeDeadline = Double(bitPattern: u64(12))
-        bootTime = Double(bitPattern: u64(20))
+        switch bytes.count {
+        case 29 where bytes[0] == Self.version:
+            failures = bytes[1..<5].reduce(0) { $0 << 8 | UInt32($1) }
+            uptimeDeadline = Double(bitPattern: bytes[5..<13].reduce(0) { $0 << 8 | UInt64($1) })
+            bootSession = Array(bytes[13..<29])
+        case 28:
+            // Formato 1, de antes da auditoria: so o numero de erros ainda vale. O
+            // boot desconhecido faz a espera recomecar cheia no proximo acesso.
+            failures = bytes[0..<4].reduce(0) { $0 << 8 | UInt32($1) }
+            uptimeDeadline = 0
+            bootSession = PINPolicy.unknownBoot
+        default:
+            return nil
+        }
     }
 
     /// Registro do erro numero `failures`, com o prazo contado a partir de agora.
-    static func after(failures: UInt32, now: Date = .now) -> AttemptRecord {
-        let delay = PINPolicy.delay(afterFailures: failures)
-        return AttemptRecord(
+    static func after(failures: UInt32) -> AttemptRecord {
+        AttemptRecord(
             failures: failures,
-            wallDeadline: now.timeIntervalSince1970 + delay,
-            uptimeDeadline: PINPolicy.uptime + delay,
-            bootTime: PINPolicy.bootTime
+            uptimeDeadline: PINPolicy.uptime + PINPolicy.delay(afterFailures: failures),
+            bootSession: PINPolicy.bootSession
         )
     }
 
-    /// Quanto falta de espera. Vale o maior dos dois relogios enquanto o boot e o
-    /// mesmo; mudar o relogio de parede nao encurta nada.
-    func remaining(now: Date = .now) -> TimeInterval {
-        let wall = wallDeadline - now.timeIntervalSince1970
-        let mono = uptimeDeadline - PINPolicy.uptime
-        return max(0, wall, mono)
+    /// O prazo foi gravado em outro boot (ou num formato antigo)?
+    var isFromAnotherBoot: Bool {
+        failures > 0 && (bootSession == PINPolicy.unknownBoot || bootSession != PINPolicy.bootSession)
+    }
+
+    /// Quanto falta de espera. De outro boot, a resposta e a espera cheia ate alguem
+    /// regravar o prazo (`RootKeyVault.rebaseAttempts`); ler nunca escreve.
+    func remaining() -> TimeInterval {
+        let full = PINPolicy.delay(afterFailures: failures)
+        guard !isFromAnotherBoot else { return full }
+        return min(full, max(0, uptimeDeadline - PINPolicy.uptime))
     }
 }

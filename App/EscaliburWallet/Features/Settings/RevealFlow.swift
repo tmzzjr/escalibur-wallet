@@ -105,7 +105,7 @@ struct RevealFlow: View {
         let id = wallet.id
         do {
             guard await VoiceGate.shared.confirm(.reveal, session: session) else { return }
-            let result: (SecureBytes, String?)? = try await auth.perform(session, reason: "Ver a senha de \(wallet.name)") { rk in
+            let result: (SecureBytes, String?)? = try await auth.perform(session, reason: "Ver a senha de \(wallet.name)", requirePIN: true) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }
                 let pass = secret.passphrase.count > 0 ? secret.passphrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) } : nil

@@ -16,35 +16,62 @@ private let fastKDF = KDFParameters(memoryKiB: 64 * 1024, passes: 2, lanes: 1)
 
 @Suite("Chave raiz: PIN, atraso, biometria")
 struct RootKeyVaultTests {
-    func makeVault() -> (RootKeyVault, MemoryStore) {
+    func makeVault() -> (RootKeyVault, MemoryStore, SoftwareWrapper) {
         let store = MemoryStore()
-        return (RootKeyVault(store: store, wrapper: SoftwareWrapper()), store)
+        let wrapper = SoftwareWrapper()
+        return (RootKeyVault(store: store, wrapper: wrapper, pinParameters: fastKDF), store, wrapper)
     }
+
+    func bytes(_ secret: SecureBytes) -> [UInt8] { secret.withUnsafeBytes { Array($0) } }
 
     @Test("PIN certo devolve a mesma RK; PIN errado e recusado pelo armazenamento")
     func pinRoundTrip() throws {
-        let (vault, _) = makeVault()
-        let rk = try vault.setUp(pin: secure("482916"), kdf: fastKDF)
-        let original = rk.withUnsafeBytes { Array($0) }
+        let (vault, _, _) = makeVault()
+        let rk = try vault.setUp(pin: secure("482916"))
         #expect(vault.isSetUp)
-        let again = try vault.unlock(pin: secure("482916"))
-        #expect(again.withUnsafeBytes { Array($0) } == original)
+        #expect(bytes(try vault.unlock(pin: secure("482916"))) == bytes(rk))
         #expect(throws: RootKeyVault.Failure.wrongPIN(remainingBeforeWipe: nil)) { try vault.unlock(pin: secure("482917")) }
     }
 
-    @Test("PIN da lista de bloqueio e recusado")
+    @Test("Camada interna: sem a senha de aplicativo valendo, o PIN errado continua sem abrir")
+    func innerLayer() throws {
+        let (vault, store, _) = makeVault()
+        let rk = try vault.setUp(pin: secure("482916"))
+        // O pior caso do spike: o chaveiro entrega o item a quem pedir.
+        store.enforcesApplicationPassword = false
+        #expect(throws: RootKeyVault.Failure.wrongPIN(remainingBeforeWipe: nil)) { try vault.unlock(pin: secure("482917")) }
+        #expect(bytes(try vault.unlock(pin: secure("482916"))) == bytes(rk))
+        // O item copiado nao contem a RK em claro em lugar nenhum.
+        let raw = try #require(store.raw("rk.pin"))
+        let key = bytes(rk)
+        #expect(!(0...(raw.count - key.count)).contains { Array(raw[$0..<($0 + key.count)]) == key })
+    }
+
+    @Test("PIN da lista de bloqueio e recusado, incluindo datas")
     func blocklist() {
-        let (vault, _) = makeVault()
-        for pin in ["123456", "000000", "121212", "654321", "112233", "147258", "890123"] {
-            #expect(throws: RootKeyVault.Failure.blockedPIN) { try vault.setUp(pin: secure(pin), kdf: fastKDF) }
+        let (vault, _, _) = makeVault()
+        for pin in ["123456", "000000", "121212", "654321", "112233", "147258", "890123", "010203", "250390", "031590", "901225"] {
+            #expect(throws: RootKeyVault.Failure.blockedPIN) { try vault.setUp(pin: secure(pin)) }
         }
         #expect(!PINPolicy.isBlocked([4, 8, 2, 9, 1, 6]))
+        #expect(!PINPolicy.isBlocked([7, 3, 0, 5, 8, 4]))
+        // Digito fora de 0 a 9 nunca passa.
+        #expect(PINPolicy.isBlocked([4, 8, 2, 9, 1, 0x2F]))
+        // A lista inteira nao pode engolir o espaco: datas e padroes ficam abaixo de 15%.
+        var blocked = 0
+        for value in 0..<1_000_000 {
+            var n = value
+            var digits = [UInt8](repeating: 0, count: 6)
+            for i in (0..<6).reversed() { digits[i] = UInt8(n % 10); n /= 10 }
+            if PINPolicy.isBlocked(digits) { blocked += 1 }
+        }
+        #expect(blocked < 150_000)
     }
 
     @Test("Escada de atraso: o terceiro erro ja espera, e o acerto zera")
     func throttle() throws {
-        let (vault, _) = makeVault()
-        _ = try vault.setUp(pin: secure("482916"), kdf: fastKDF)
+        let (vault, _, _) = makeVault()
+        _ = try vault.setUp(pin: secure("482916"))
         _ = try? vault.unlock(pin: secure("000001"))
         _ = try? vault.unlock(pin: secure("000002"))
         #expect(vault.throttleRemaining() == 0)
@@ -55,40 +82,147 @@ struct RootKeyVaultTests {
         #expect(vault.failureCount() == 3)
     }
 
+    @Test("Prazo de outro boot: ler nao grava, e a espera recomeca cheia ao regravar")
+    func rebootRebase() throws {
+        let (vault, store, _) = makeVault()
+        _ = try vault.setUp(pin: secure("482916"))
+        let otherBoot = [UInt8](repeating: 7, count: 16)
+        let stale = AttemptRecord(failures: 5, uptimeDeadline: 1, bootSession: otherBoot)
+        try store.update(stale.encoded, account: "pin.tentativas")
+        #expect(vault.throttleRemaining() == PINPolicy.delay(afterFailures: 5))
+        #expect(store.raw("pin.tentativas") == stale.encoded)
+        vault.rebaseAttempts()
+        let rebasedData = try #require(store.raw("pin.tentativas"))
+        let rebased = try #require(AttemptRecord(rebasedData))
+        #expect(rebased.failures == 5)
+        #expect(rebased.bootSession == PINPolicy.bootSession)
+        #expect(vault.throttleRemaining() > 55 && vault.throttleRemaining() <= 60)
+    }
+
+    @Test("Registro de tentativas no formato antigo ainda guarda o numero de erros")
+    func legacyAttempts() throws {
+        var legacy = Data(UInt32(4).bigEndianByteArray)
+        legacy.append(Data(count: 24))
+        let record = try #require(AttemptRecord(legacy))
+        #expect(record.failures == 4)
+        #expect(record.isFromAnotherBoot)
+        #expect(AttemptRecord(Data(count: 10)) == nil)
+    }
+
     @Test("Apagar apos 10 erros destroi tudo")
     func wipeAfterErrors() throws {
-        let (vault, store) = makeVault()
-        _ = try vault.setUp(pin: secure("482916"), kdf: fastKDF)
+        let (vault, store, wrapper) = makeVault()
+        _ = try vault.setUp(pin: secure("482916"))
         try vault.setWipeAfterErrors(true)
         // Encurta o teste gravando nove erros sem espera, como se o tempo tivesse passado.
-        try store.update(AttemptRecord(failures: 9, wallDeadline: 0, uptimeDeadline: 0, bootTime: PINPolicy.bootTime).encoded, account: "pin.tentativas")
+        try store.update(AttemptRecord(failures: 9, uptimeDeadline: 0, bootSession: PINPolicy.bootSession).encoded, account: "pin.tentativas")
         #expect(throws: RootKeyVault.Failure.wiped) { try vault.unlock(pin: secure("000001")) }
         #expect(!vault.isSetUp)
+        #expect(!wrapper.hasKey(.device))
     }
 
     @Test("Biometria liga, destranca e desliga sem tocar o PIN")
     func biometry() throws {
-        let (vault, _) = makeVault()
-        let rk = try vault.setUp(pin: secure("482916"), kdf: fastKDF)
-        let original = rk.withUnsafeBytes { Array($0) }
+        let (vault, _, _) = makeVault()
+        let rk = try vault.setUp(pin: secure("482916"))
         try vault.enableBiometry(rk: rk)
         #expect(vault.isBiometryEnabled)
-        let viaFace = try vault.unlockWithBiometry(reason: "teste")
-        #expect(viaFace.withUnsafeBytes { Array($0) } == original)
+        #expect(bytes(try vault.unlockWithBiometry(reason: "teste")) == bytes(rk))
         vault.disableBiometry()
         #expect(!vault.isBiometryEnabled)
         #expect(throws: RootKeyVault.Failure.biometryNotEnabled) { try vault.unlockWithBiometry(reason: "teste") }
-        #expect(try vault.unlock(pin: secure("482916")).withUnsafeBytes { Array($0) } == original)
+        #expect(bytes(try vault.unlock(pin: secure("482916"))) == bytes(rk))
+    }
+
+    @Test("Face ID recusado nao apaga o atalho; Face ID aceito zera os erros de PIN")
+    func biometryFailures() throws {
+        let (vault, _, wrapper) = makeVault()
+        let rk = try vault.setUp(pin: secure("482916"))
+        try vault.enableBiometry(rk: rk)
+        wrapper.refuseBiometry = true
+        #expect(throws: RootKeyVault.Failure.cancelled) { try vault.unlockWithBiometry(reason: "teste") }
+        #expect(vault.isBiometryEnabled)
+
+        wrapper.refuseBiometry = false
+        _ = try? vault.unlock(pin: secure("000001"))
+        _ = try? vault.unlock(pin: secure("000002"))
+        #expect(vault.failureCount() == 2)
+        _ = try vault.unlockWithBiometry(reason: "teste")
+        #expect(vault.failureCount() == 0)
+
+        // A chave do SE sumiu (cadastro de rosto novo): o slot e apagado.
+        wrapper.deleteKey(.biometry)
+        #expect(throws: RootKeyVault.Failure.biometryChanged) { try vault.unlockWithBiometry(reason: "teste") }
+        #expect(!vault.isBiometryEnabled)
     }
 
     @Test("Troca de PIN preserva a RK e aposenta o PIN antigo")
     func changePIN() throws {
-        let (vault, _) = makeVault()
-        let rk = try vault.setUp(pin: secure("482916"), kdf: fastKDF)
-        let original = rk.withUnsafeBytes { Array($0) }
+        let (vault, store, _) = makeVault()
+        let rk = try vault.setUp(pin: secure("482916"))
         try vault.changePIN(rk: rk, newPIN: secure("730584"))
-        #expect(try vault.unlock(pin: secure("730584")).withUnsafeBytes { Array($0) } == original)
+        #expect(bytes(try vault.unlock(pin: secure("730584"))) == bytes(rk))
         #expect(throws: RootKeyVault.Failure.self) { try vault.unlock(pin: secure("482916")) }
+        #expect(store.probe("rk.pin.novo") == .absent)
+        #expect(throws: RootKeyVault.Failure.blockedPIN) { try vault.changePIN(rk: rk, newPIN: secure("111111")) }
+    }
+
+    @Test("Troca interrompida antes do ponto sem volta: o PIN antigo desfaz, o novo conclui")
+    func interruptedChangeBeforeCommit() throws {
+        do {
+            let (vault, store, _) = makeVault()
+            let rk = try vault.setUp(pin: secure("482916"))
+            try vault.writePINSlot(rk: rk, pin: secure("730584"), kdf: fastKDF, suffix: ".novo")
+            #expect(bytes(try vault.unlock(pin: secure("482916"))) == bytes(rk))
+            #expect(store.probe("rk.pin.novo") == .absent)
+            #expect(throws: RootKeyVault.Failure.self) { try vault.unlock(pin: secure("730584")) }
+        }
+        do {
+            let (vault, store, _) = makeVault()
+            let rk = try vault.setUp(pin: secure("482916"))
+            try vault.writePINSlot(rk: rk, pin: secure("730584"), kdf: fastKDF, suffix: ".novo")
+            #expect(bytes(try vault.unlock(pin: secure("730584"))) == bytes(rk))
+            #expect(store.probe("rk.pin.novo") == .absent)
+            #expect(bytes(try vault.unlock(pin: secure("730584"))) == bytes(rk))
+            #expect(throws: RootKeyVault.Failure.self) { try vault.unlock(pin: secure("482916")) }
+        }
+    }
+
+    @Test("Troca interrompida depois do ponto sem volta: so o PIN novo, e o principal volta")
+    func interruptedChangeAfterCommit() throws {
+        let (vault, store, _) = makeVault()
+        let rk = try vault.setUp(pin: secure("482916"))
+        try vault.writePINSlot(rk: rk, pin: secure("730584"), kdf: fastKDF, suffix: ".novo")
+        try store.delete("rk.pin")
+        try store.delete("pin.kdf")
+        #expect(vault.isSetUp)
+        // Trocar de novo agora e recusado: o desbloqueio resolve primeiro.
+        #expect(throws: RootKeyVault.Failure.storage) { try vault.changePIN(rk: rk, newPIN: secure("594031")) }
+        #expect(bytes(try vault.unlock(pin: secure("730584"))) == bytes(rk))
+        #expect(store.probe("rk.pin") == .present)
+        #expect(store.probe("rk.pin.novo") == .absent)
+    }
+
+    @Test("Cadastro: recusa com slot existente, recusa com chaveiro mudo, limpa orfaos")
+    func setUpGuards() throws {
+        let (vault, store, wrapper) = makeVault()
+        _ = try vault.setUp(pin: secure("482916"))
+        #expect(throws: RootKeyVault.Failure.alreadySetUp) { try vault.setUp(pin: secure("730584")) }
+        #expect(throws: EnclaveError.self) { try wrapper.createKey(.device) }
+
+        let (mute, muteStore, _) = makeVault()
+        muteStore.unknown = ["rk.pin"]
+        #expect(mute.isSetUp)
+        #expect(throws: RootKeyVault.Failure.storage) { try mute.setUp(pin: secure("482916")) }
+
+        // Cadastro interrompido: K_dev e contador sem nenhum slot. O proximo cadastro segue.
+        let (orphan, orphanStore, orphanWrapper) = makeVault()
+        try orphanWrapper.createKey(.device)
+        try orphanStore.add(Data([1]), account: "pin.tentativas", protection: .standard, context: nil)
+        #expect(!orphan.isSetUp)
+        let rk = try orphan.setUp(pin: secure("482916"))
+        #expect(bytes(try orphan.unlock(pin: secure("482916"))) == bytes(rk))
+        _ = store
     }
 }
 

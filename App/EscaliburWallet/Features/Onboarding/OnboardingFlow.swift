@@ -82,8 +82,7 @@ struct OnboardingFlow: View {
 
     private func choose() {
         let pin = entry.take()
-        let digits = pin.withUnsafeBytes { $0.map { $0 &- 0x30 } }
-        if PINPolicy.isBlocked(digits) {
+        if RootKeyVault.isBlocked(pin) {
             pin.wipe()
             entry.fail("Este PIN é fácil de adivinhar. Escolha outro.")
             return
@@ -95,7 +94,7 @@ struct OnboardingFlow: View {
     private func confirm() async {
         let second = entry.take()
         guard let first = firstPIN else { return }
-        let same = first.withUnsafeBytes { a in second.withUnsafeBytes { b in Hash.constantTimeEqual(Array(a), Array(b)) } }
+        let same = Hash.constantTimeEqual(first, second)
         second.wipe()
         guard same else {
             first.wipe()

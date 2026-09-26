@@ -27,7 +27,10 @@ final class AppSession {
     var metadata = Metadata()
     /// A chave dos metadados. Existe so enquanto o app esta destrancado.
     private var indexKey: SymmetricKey?
-    private var backgroundedAt: Date?
+    /// Instante da ida para o segundo plano no relogio monotonico, que conta o tempo
+    /// dormindo e nao anda com o relogio de parede: atrasar o relogio nao evita o
+    /// bloqueio automatico.
+    private var backgroundedAt: TimeInterval?
 
     init() {
         #if DEBUG
@@ -38,6 +41,7 @@ final class AppSession {
         }
         #endif
         KeyServices.firstLaunchCleanup()
+        KeyServices.root.rebaseAttempts()
         phase = KeyServices.root.isSetUp ? .locked : .onboarding
     }
 
@@ -122,10 +126,11 @@ final class AppSession {
     func scenePhaseChanged(_ scenePhase: ScenePhase) {
         switch scenePhase {
         case .background:
-            backgroundedAt = .now
+            backgroundedAt = PINPolicy.uptime
         case .active:
+            KeyServices.root.rebaseAttempts()
             if phase == .unlocked, let since = backgroundedAt,
-               Date.now.timeIntervalSince(since) >= Double(metadata.settings.autoLockSeconds) {
+               PINPolicy.uptime - since >= Double(AutoLockView.clamped(metadata.settings.autoLockSeconds)) {
                 lock()
             }
             backgroundedAt = nil
@@ -145,6 +150,17 @@ final class AppSession {
     /// sincrona, fora do MainActor. A RK nao atravessa nenhum `await`: nasce, e usada
     /// e zerada dentro da mesma funcao sincrona (docs/seguranca.md §2.9).
     func withRootKey<T: Sendable>(_ credential: Credential, _ body: @escaping @Sendable (SecureBytes) throws -> T) async throws -> T {
+        do {
+            return try await rootKeyTask(credential, body)
+        } catch RootKeyVault.Failure.wiped {
+            // O decimo erro veio de uma folha de PIN no meio de uma operacao: o cofre
+            // ja apagou as chaves, e os metadados vao junto.
+            eraseEverything()
+            throw RootKeyVault.Failure.wiped
+        }
+    }
+
+    private func rootKeyTask<T: Sendable>(_ credential: Credential, _ body: @escaping @Sendable (SecureBytes) throws -> T) async throws -> T {
         try await Task.detached(priority: .userInitiated) {
             let rk: SecureBytes
             switch credential {

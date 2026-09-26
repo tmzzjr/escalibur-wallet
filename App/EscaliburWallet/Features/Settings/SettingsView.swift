@@ -258,7 +258,7 @@ struct WalletSettingsView: View {
     private func remove() async {
         guard let wallet else { return }
         if !wallet.isWatchOnly {
-            guard (try? await auth.perform(session, reason: "Remover \(wallet.name) deste iPhone", { _ in true })) == true else { return }
+            guard (try? await auth.perform(session, reason: "Remover \(wallet.name) deste iPhone", requirePIN: true, { _ in true })) == true else { return }
         }
         session.remove(wallet)
         dismiss()
@@ -274,6 +274,7 @@ struct SecuritySettingsView: View {
     @State private var biometryPIN = false
     @State private var changingPIN = false
     @State private var wipeError: String?
+    @State private var wipeOn = KeyServices.root.wipeAfterErrorsEnabled
 
     var body: some View {
         ScrollView {
@@ -302,7 +303,7 @@ struct SecuritySettingsView: View {
                 .padding(.top, Space.md)
 
                 SettingsGroup {
-                    Toggle(isOn: Binding(get: { KeyServices.root.wipeAfterErrorsEnabled }, set: { on in setWipe(on) })) {
+                    Toggle(isOn: Binding(get: { wipeOn }, set: { on in Task { await setWipe(on) } })) {
                         Text("Apagar depois de 10 PINs errados").typeStyle(.body).foregroundStyle(Palette.ink)
                     }
                     .tint(Palette.down)
@@ -326,13 +327,22 @@ struct SecuritySettingsView: View {
         .fullScreenCover(isPresented: $changingPIN) { ChangePINFlow { changingPIN = false } }
     }
 
-    private func setWipe(_ on: Bool) {
+    /// Ligar ou desligar pede o PIN: ligado, e uma forma de destruir as carteiras
+    /// errando de proposito; desligado, tira a barreira contra quem tenta adivinhar.
+    private func setWipe(_ on: Bool) async {
         if on, let missing = session.metadata.wallets.first(where: { !$0.hasBackup && !$0.isWatchOnly }) {
             wipeError = "Confirme a cópia de \(missing.name) antes de ligar."
             return
         }
         wipeError = nil
-        try? KeyServices.root.setWipeAfterErrors(on)
+        let reason = on ? "Apagar depois de 10 PINs errados" : "Desligar o apagamento depois de 10 PINs errados"
+        guard (try? await auth.perform(session, reason: reason, requirePIN: true, { _ in true })) == true else { return }
+        do {
+            try KeyServices.root.setWipeAfterErrors(on)
+            wipeOn = on
+        } catch {
+            wipeError = "Não foi possível mudar agora. Tente de novo."
+        }
     }
 }
 
@@ -361,6 +371,7 @@ struct EnableBiometrySheet: View {
 }
 
 struct ChangePINFlow: View {
+    @Environment(AppSession.self) private var session
     let onDone: () -> Void
     @State private var step = 0
     @State private var entry = PINEntry()
@@ -377,6 +388,16 @@ struct ChangePINFlow: View {
         }
     }
 
+    /// Antes do ponto sem volta, qualquer falha deixa o PIN atual valendo.
+    static func message(for error: Error) -> String {
+        switch error as? RootKeyVault.Failure {
+        case .wrongPIN: return "O PIN atual não confere."
+        case .throttled(let seconds): return "Tentativas demais. Tente de novo em \(LockView.duration(seconds))."
+        case .blockedPIN: return "Este PIN é fácil de adivinhar. Escolha outro."
+        default: return "Não foi possível trocar. O PIN atual continua valendo."
+        }
+    }
+
     private func advance() {
         let pin = entry.take()
         switch step {
@@ -384,7 +405,7 @@ struct ChangePINFlow: View {
             current = pin
             step = 1
         case 1:
-            if PINPolicy.isBlocked(pin.withUnsafeBytes { $0.map { $0 &- 0x30 } }) {
+            if RootKeyVault.isBlocked(pin) {
                 pin.wipe()
                 entry.fail("Este PIN é fácil de adivinhar. Escolha outro.")
                 return
@@ -393,7 +414,7 @@ struct ChangePINFlow: View {
             step = 2
         default:
             guard let current, let newPIN else { return }
-            let same = newPIN.withUnsafeBytes { a in pin.withUnsafeBytes { b in Hash.constantTimeEqual(Array(a), Array(b)) } }
+            let same = Hash.constantTimeEqual(newPIN, pin)
             pin.wipe()
             guard same else {
                 entry.fail("Os dois não conferem. Escolha de novo.")
@@ -410,10 +431,13 @@ struct ChangePINFlow: View {
                         try KeyServices.root.changePIN(rk: rk, newPIN: newPIN)
                     }.value
                     onDone()
+                } catch RootKeyVault.Failure.wiped {
+                    session.eraseEverything()
+                    onDone()
                 } catch {
                     working = false
                     step = 0
-                    entry.fail("O PIN atual não confere.")
+                    entry.fail(Self.message(for: error))
                 }
             }
         }
@@ -422,14 +446,19 @@ struct ChangePINFlow: View {
 
 struct AutoLockView: View {
     @Environment(AppSession.self) private var session
-    static let options = [0, 60, 300, 900]
+    @Environment(AuthCoordinator.self) private var auth
+    @State private var error: String?
+    static let options = [0, 30, 60]
+
+    /// O maior prazo oferecido. Um valor gravado por uma versao anterior (5 ou 15
+    /// minutos) vale como este.
+    static func clamped(_ seconds: Int) -> Int { min(max(seconds, 0), options.last ?? 60) }
 
     static func label(_ seconds: Int) -> String {
-        switch seconds {
+        switch clamped(seconds) {
         case 0: return "Ao sair do app"
-        case 60: return "Depois de 1 minuto"
-        case 300: return "Depois de 5 minutos"
-        default: return "Depois de 15 minutos"
+        case 30: return "Depois de 30 segundos"
+        default: return "Depois de 1 minuto"
         }
     }
 
@@ -438,13 +467,12 @@ struct AutoLockView: View {
             SettingsGroup {
                 ForEach(Self.options, id: \.self) { seconds in
                     Button {
-                        session.metadata.settings.autoLockSeconds = seconds
-                        try? session.persist()
+                        Task { await choose(seconds) }
                     } label: {
                         HStack {
                             Text(Self.label(seconds)).typeStyle(.body).foregroundStyle(Palette.ink)
                             Spacer()
-                            if session.metadata.settings.autoLockSeconds == seconds {
+                            if Self.clamped(session.metadata.settings.autoLockSeconds) == seconds {
                                 Image(systemName: "checkmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
                             }
                         }
@@ -453,10 +481,33 @@ struct AutoLockView: View {
                 }
             }
             .padding(.top, Space.md)
+            Text(error ?? "Encurtar vale na hora. Alongar pede o PIN.")
+                .typeStyle(.note).foregroundStyle(error == nil ? Palette.inkMuted : Palette.down)
+                .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Palette.void.ignoresSafeArea())
         .navigationTitle("Bloquear o app")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Encurtar so reduz a janela de quem pega o iPhone destravado. Alongar amplia, e
+    /// por isso pede o PIN.
+    private func choose(_ seconds: Int) async {
+        error = nil
+        let current = Self.clamped(session.metadata.settings.autoLockSeconds)
+        guard seconds != current else { return }
+        if seconds > current {
+            guard (try? await auth.perform(session, reason: "Bloquear o app \(Self.label(seconds).lowercased())", requirePIN: true, { _ in true })) == true else { return }
+        }
+        let previous = session.metadata.settings.autoLockSeconds
+        session.metadata.settings.autoLockSeconds = seconds
+        do {
+            try session.persist()
+        } catch {
+            session.metadata.settings.autoLockSeconds = previous
+            self.error = "Não foi possível salvar. Tente de novo."
+        }
     }
 }
 

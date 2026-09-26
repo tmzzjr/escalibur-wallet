@@ -248,7 +248,7 @@ struct ImportPhraseView: View {
         switch BIP39.validate(phrase) {
         case .valid(let language):
             if usesPassphrase {
-                let same = passphrase.withUnsafeBytes { a in passphraseAgain.withUnsafeBytes { b in Hash.constantTimeEqual(Array(a), Array(b)) } }
+                let same = Hash.constantTimeEqual(passphrase, passphraseAgain)
                 guard same, passphraseLength > 0 else {
                     message = "As duas versões da 25ª palavra não conferem."
                     phrase.wipe()

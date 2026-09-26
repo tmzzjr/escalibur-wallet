@@ -89,5 +89,16 @@ final class OnboardingFlowTests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Saldo total"].waitForExistence(timeout: 10))
         shot("08-carteira", app)
+
+        // Reabrir: o PIN errado e recusado, o certo destrava. No simulador o chaveiro
+        // nao aplica a senha de aplicativo, entao isto exercita a camada interna.
+        app.terminate()
+        app.launchArguments = []
+        app.launch()
+        type(pin: "730584", in: app)
+        XCTAssertTrue(app.staticTexts["PIN incorreto."].waitForExistence(timeout: 15))
+        shot("09-pin-errado", app)
+        type(pin: pin, in: app)
+        XCTAssertTrue(app.staticTexts["Saldo total"].waitForExistence(timeout: 15))
     }
 }

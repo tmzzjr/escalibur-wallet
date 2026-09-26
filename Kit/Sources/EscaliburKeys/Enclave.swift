@@ -32,9 +32,8 @@ public enum WrapSlot: String, Sendable, CaseIterable {
 public enum EnclaveError: Error, Equatable, Sendable {
     case unavailable
     case keyMissing
-    /// O cadastro de biometria mudou desde que a chave foi criada: o SEP invalidou
-    /// `K_bio`. O caminho de volta e o PIN.
-    case biometryChanged
+    /// A autenticacao nao liberou a chave desta vez. Se o cadastro de rostos mudou, e
+    /// o RootKeyVault que decide, comparando o estado gravado.
     case cancelled
     case failed(String)
 }
@@ -51,6 +50,9 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
     private func tag(_ slot: WrapSlot) -> Data { Data((Self.tagPrefix + slot.rawValue).utf8) }
 
     public func createKey(_ slot: WrapSlot) throws {
+        // A chave do aparelho nunca e substituida em silencio: ela e o que abre a RK
+        // de todas as carteiras. So a da biometria e recriada ao religar.
+        if slot == .device, hasKey(.device) { throw EnclaveError.failed("chave do aparelho ja existe") }
         deleteKey(slot)
         let flags: SecAccessControlCreateFlags = slot == .device
             ? [.privateKeyUsage]
@@ -116,70 +118,29 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
 
     public func unwrap(_ blob: Data, slot: WrapSlot, reason: String?) throws -> SecureBytes {
         let context = LAContext()
-        // Nenhum reuso de autenticacao: cada assinatura pede presenca nova.
+        // Nenhum reuso de autenticacao: cada assinatura pede presenca nova. Sem botao
+        // de alternativa do sistema: a alternativa e o PIN do app.
         context.touchIDAuthenticationAllowableReuseDuration = 0
+        context.localizedFallbackTitle = ""
         if let reason { context.localizedReason = reason } else { context.interactionNotAllowed = true }
         let key: SecKey
         do {
             key = try privateKey(slot, context: context)
         } catch {
-            throw slot == .biometry ? EnclaveError.biometryChanged : EnclaveError.keyMissing
+            throw EnclaveError.keyMissing
         }
         var error: Unmanaged<CFError>?
         guard let plain = SecKeyCreateDecryptedData(key, Self.algorithm, blob as CFData, &error) else {
-            let code = (error?.takeRetainedValue() as Error?).map { ($0 as NSError).code } ?? 0
-            if code == Int(errSecUserCanceled) || code == LAError.userCancel.rawValue || code == LAError.appCancel.rawValue {
+            let nsError = (error?.takeRetainedValue() as Error?).map { $0 as NSError }
+            // Qualquer recusa da autenticacao (cancelar, ligacao chegando, bloqueio por
+            // tentativas, rosto nao reconhecido) e "nao desta vez", nao "a biometria
+            // mudou". Quem decide se o cadastro mudou e o RootKeyVault, pelo estado.
+            if nsError?.domain == LAErrorDomain || nsError?.code == Int(errSecUserCanceled) || nsError?.code == Int(errSecAuthFailed) {
                 throw EnclaveError.cancelled
             }
-            throw slot == .biometry ? EnclaveError.biometryChanged : EnclaveError.failed("desembrulho")
+            throw EnclaveError.failed("desembrulho")
         }
         return SecureBytes.consuming(plain)
-    }
-}
-
-/// Embrulho em software, para os testes no Mac e para o simulador, que nao tem
-/// Secure Enclave. So existe fora de compilacao para aparelho: verificar.sh recusa
-/// qualquer uso dele que nao esteja atras de `targetEnvironment(simulator)` ou em teste.
-public final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
-    private var keys: [WrapSlot: P256.KeyAgreement.PrivateKey] = [:]
-    private let lock = NSLock()
-
-    public init() {}
-
-    public func createKey(_ slot: WrapSlot) throws {
-        lock.lock(); defer { lock.unlock() }
-        keys[slot] = P256.KeyAgreement.PrivateKey()
-    }
-
-    public func hasKey(_ slot: WrapSlot) -> Bool {
-        lock.lock(); defer { lock.unlock() }
-        return keys[slot] != nil
-    }
-
-    public func deleteKey(_ slot: WrapSlot) {
-        lock.lock(); defer { lock.unlock() }
-        keys[slot] = nil
-    }
-
-    public func wrap(_ secret: SecureBytes, slot: WrapSlot) throws -> Data {
-        lock.lock(); defer { lock.unlock() }
-        guard let key = keys[slot] else { throw EnclaveError.keyMissing }
-        let ephemeral = P256.KeyAgreement.PrivateKey()
-        let shared = try ephemeral.sharedSecretFromKeyAgreement(with: key.publicKey)
-        let symmetric = shared.hkdfDerivedSymmetricKey(using: SHA256.self, salt: Data(), sharedInfo: Data("wrap".utf8), outputByteCount: 32)
-        let sealed = try secret.withUnsafeData { try ChaChaPoly.seal($0, using: symmetric) }
-        return ephemeral.publicKey.x963Representation + sealed.combined
-    }
-
-    public func unwrap(_ blob: Data, slot: WrapSlot, reason: String?) throws -> SecureBytes {
-        lock.lock(); defer { lock.unlock() }
-        guard let key = keys[slot] else { throw slot == .biometry ? EnclaveError.biometryChanged : EnclaveError.keyMissing }
-        guard blob.count > 65 else { throw EnclaveError.failed("embrulho curto") }
-        let ephemeral = try P256.KeyAgreement.PublicKey(x963Representation: blob.prefix(65))
-        let shared = try key.sharedSecretFromKeyAgreement(with: ephemeral)
-        let symmetric = shared.hkdfDerivedSymmetricKey(using: SHA256.self, salt: Data(), sharedInfo: Data("wrap".utf8), outputByteCount: 32)
-        let plain = try ChaChaPoly.open(ChaChaPoly.SealedBox(combined: blob.dropFirst(65)), using: symmetric)
-        return SecureBytes.consuming(plain as CFData)
     }
 }
 

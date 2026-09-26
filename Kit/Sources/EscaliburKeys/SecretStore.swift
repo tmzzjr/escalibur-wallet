@@ -12,10 +12,15 @@ public protocol SecretStore: Sendable {
     func delete(_ account: String) throws
     func deleteAll() throws
     func exists(_ account: String) -> Bool
+    /// Existe, nao existe, ou o chaveiro nao conseguiu dizer. "Nao sei" nunca pode ser
+    /// tratado como "nao existe": isso levaria a um cadastro que apaga a chave antiga.
+    func probe(_ account: String) -> ItemState
     /// Um contexto que carrega a senha de aplicativo para a proxima operacao, sem
     /// nenhuma interface (`interactionNotAllowed`).
-    func applicationPasswordContext(_ password: SecureBytes) -> LAContext?
+    func applicationPasswordContext(_ password: SecureBytes) throws -> LAContext?
 }
+
+public enum ItemState: Sendable, Equatable { case present, absent, unknown }
 
 /// A protecao de cada item. So existem estas duas, e as duas sao
 /// `WhenPasscodeSetThisDeviceOnly`: o item some se o dono tirar o codigo do iPhone,
@@ -64,6 +69,7 @@ public final class KeychainStore: SecretStore, @unchecked Sendable {
         if let context { query[kSecUseAuthenticationContext as String] = context }
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
+        release(context)
         switch status {
         case errSecSuccess: return result as? Data
         case errSecItemNotFound: return nil
@@ -87,6 +93,7 @@ public final class KeychainStore: SecretStore, @unchecked Sendable {
         }
         if let context { query[kSecUseAuthenticationContext as String] = context }
         let status = SecItemAdd(query as CFDictionary, nil)
+        release(context)
         switch status {
         case errSecSuccess: return
         case errSecDecode, errSecNotAvailable: throw StoreError.passcodeNotSet
@@ -118,21 +125,47 @@ public final class KeychainStore: SecretStore, @unchecked Sendable {
         guard status == errSecSuccess || status == errSecItemNotFound else { throw StoreError.unexpected(status) }
     }
 
-    public func exists(_ account: String) -> Bool {
+    public func exists(_ account: String) -> Bool { probe(account) == .present }
+
+    public func probe(_ account: String) -> ItemState {
         var query = baseQuery(account)
         query[kSecReturnAttributes as String] = kCFBooleanTrue
         let context = LAContext()
         context.interactionNotAllowed = true
         query[kSecUseAuthenticationContext as String] = context
         let status = SecItemCopyMatching(query as CFDictionary, nil)
-        return status == errSecSuccess || status == errSecInteractionNotAllowed || status == errSecAuthFailed
+        context.invalidate()
+        switch status {
+        case errSecSuccess, errSecInteractionNotAllowed, errSecAuthFailed: return .present
+        case errSecItemNotFound: return .absent
+        default: return .unknown
+        }
     }
 
-    public func applicationPasswordContext(_ password: SecureBytes) -> LAContext? {
+    /// O contexto e usado numa chamada so e invalidado logo depois (ver `read` e
+    /// `add`), para a senha de aplicativo nao ficar retida num objeto vivo.
+    public func applicationPasswordContext(_ password: SecureBytes) throws -> LAContext? {
         let context = LAContext()
         context.interactionNotAllowed = true
         let ok = password.withUnsafeData { context.setCredential($0, type: .applicationPassword) }
-        return ok ? context : nil
+        guard ok else {
+            #if targetEnvironment(simulator)
+            // O simulador recusa a credencial e grava o item sem senha de aplicativo.
+            // La, quem recusa o PIN errado e so a camada interna do RootKeyVault.
+            context.invalidate()
+            return nil
+            #else
+            context.invalidate()
+            throw StoreError.unexpected(errSecParam)
+            #endif
+        }
+        return context
+    }
+
+    private func release(_ context: LAContext?) {
+        guard let context else { return }
+        context.setCredential(nil, type: .applicationPassword)
+        context.invalidate()
     }
 
     /// No aparelho, `WhenPasscodeSetThisDeviceOnly`. O simulador nao tem codigo de
@@ -145,56 +178,5 @@ public final class KeychainStore: SecretStore, @unchecked Sendable {
         #else
         return kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly
         #endif
-    }
-}
-
-/// Armazenamento em memoria, para testes. Simula a recusa por senha de aplicativo
-/// comparando a credencial, o que o chaveiro real faz por dentro.
-public final class MemoryStore: SecretStore, @unchecked Sendable {
-    private var items: [String: (Data, ItemProtection, Data?)] = [:]
-    private let lock = NSLock()
-    /// Credencial usada pela proxima leitura ou gravacao com senha de aplicativo.
-    public var pendingCredential: Data?
-
-    public init() {}
-
-    public func read(_ account: String, context: LAContext?) throws -> Data? {
-        lock.lock(); defer { lock.unlock() }
-        guard let (data, protection, credential) = items[account] else { return nil }
-        if protection == .applicationPassword, credential != pendingCredential { throw StoreError.authenticationFailed }
-        return data
-    }
-
-    public func add(_ data: Data, account: String, protection: ItemProtection, context: LAContext?) throws {
-        lock.lock(); defer { lock.unlock() }
-        guard items[account] == nil else { throw StoreError.unexpected(errSecDuplicateItem) }
-        items[account] = (data, protection, protection == .applicationPassword ? pendingCredential : nil)
-    }
-
-    public func update(_ data: Data, account: String) throws {
-        lock.lock(); defer { lock.unlock() }
-        guard let existing = items[account] else { throw StoreError.unexpected(errSecItemNotFound) }
-        items[account] = (data, existing.1, existing.2)
-    }
-
-    public func delete(_ account: String) throws {
-        lock.lock(); defer { lock.unlock() }
-        items[account] = nil
-    }
-
-    public func deleteAll() throws {
-        lock.lock(); defer { lock.unlock() }
-        items.removeAll()
-    }
-
-    public func exists(_ account: String) -> Bool {
-        lock.lock(); defer { lock.unlock() }
-        return items[account] != nil
-    }
-
-    public func applicationPasswordContext(_ password: SecureBytes) -> LAContext? {
-        lock.lock(); defer { lock.unlock() }
-        pendingCredential = password.withUnsafeBytes { Data($0) }
-        return nil
     }
 }

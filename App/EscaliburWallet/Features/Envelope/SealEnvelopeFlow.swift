@@ -205,7 +205,7 @@ struct SealEnvelopeFlow: View {
         error = nil
         let id = wallet.id
         do {
-            let result: (SecureBytes, String)? = try await auth.perform(session, reason: "Lacrar a senha de \(wallet.name) num envelope") { rk in
+            let result: (SecureBytes, String)? = try await auth.perform(session, reason: "Lacrar a senha de \(wallet.name) num envelope", requirePIN: true) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }
                 let phrase = try secret.phrase()
@@ -246,7 +246,7 @@ struct SealEnvelopeFlow: View {
     }
 
     private func seal() async {
-        let same = password.withUnsafeBytes { a in repeatPassword.withUnsafeBytes { b in Hash.constantTimeEqual(Array(a), Array(b)) } }
+        let same = Hash.constantTimeEqual(password, repeatPassword)
         guard same else {
             error = "As duas não conferem. Digite a senha do envelope de novo."
             repeatPassword.wipe()

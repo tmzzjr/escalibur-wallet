@@ -118,4 +118,16 @@ public enum Hash {
         for i in 0..<a.count { diff |= a[i] ^ b[i] }
         return diff == 0
     }
+
+    /// A mesma comparacao sem copiar os segredos para `Array`.
+    public static func constantTimeEqual(_ a: SecureBytes, _ b: SecureBytes) -> Bool {
+        a.withUnsafeBytes { x in
+            b.withUnsafeBytes { y in
+                guard x.count == y.count else { return false }
+                var diff: UInt8 = 0
+                for i in 0..<x.count { diff |= x[i] ^ y[i] }
+                return diff == 0
+            }
+        }
+    }
 }

@@ -4,6 +4,7 @@ import EscaliburKeys
 import Foundation
 import LocalAuthentication
 import Security
+import UIKit
 
 /// Os objetos do modulo de chaves, montados uma vez.
 ///
@@ -41,15 +42,41 @@ enum KeyServices {
     }
 
     /// O item do chaveiro sobrevive a desinstalacao do app. Na primeira abertura
-    /// depois de instalar, se o marcador nao existe e ha itens, eles sao apagados:
-    /// "apagar o app apaga as carteiras" passa a ser verdade, e reinstalar para zerar
-    /// o contador de tentativas destroi o que se queria atacar.
+    /// depois de instalar, os itens que sobraram sao apagados: "apagar o app apaga as
+    /// carteiras" passa a ser verdade, e reinstalar para zerar o contador de
+    /// tentativas destroi o que se queria atacar.
+    ///
+    /// So com certeza de instalacao nova: dados protegidos disponiveis, e nenhum dos
+    /// tres sinais de uso (marcador nas preferencias, arquivo marcador, arquivo de
+    /// metadados). O iOS pode abrir o app em segundo plano antes do primeiro
+    /// desbloqueio, quando as preferencias leem vazio; um "instalacao nova" falso ali
+    /// apagaria tudo.
+    @MainActor
     static func firstLaunchCleanup() {
-        let marker = "instalacao.marcada"
-        guard !UserDefaults.standard.bool(forKey: marker) else { return }
-        root.wipeAll()
-        MetadataStore.deleteFile()
-        UserDefaults.standard.set(true, forKey: marker)
+        guard UIApplication.shared.isProtectedDataAvailable else { return }
+        let defaultsKey = "instalacao.marcada"
+        let files = FileManager.default
+        let marker = installMarker
+        let installed = UserDefaults.standard.bool(forKey: defaultsKey)
+            || files.fileExists(atPath: marker.path)
+            || files.fileExists(atPath: MetadataStore.file.path)
+        if !installed {
+            root.wipeAll()
+        }
+        UserDefaults.standard.set(true, forKey: defaultsKey)
+        if !files.fileExists(atPath: marker.path) {
+            try? files.createDirectory(at: marker.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? Data().write(to: marker, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            var url = marker
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = true
+            try? url.setResourceValues(values)
+        }
+    }
+
+    private static var installMarker: URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return base.appendingPathComponent("instalacao.marca")
     }
 }
 
@@ -65,6 +92,7 @@ final class SimulatorWrapper: KeyWrapper, @unchecked Sendable {
     }
 
     func createKey(_ slot: WrapSlot) throws {
+        if slot == .device, hasKey(.device) { throw EnclaveError.failed("chave do aparelho ja existe") }
         deleteKey(slot)
         try store.add(P256.KeyAgreement.PrivateKey().rawRepresentation, account: "sim.\(slot.rawValue)", protection: .standard, context: nil)
     }
@@ -83,7 +111,7 @@ final class SimulatorWrapper: KeyWrapper, @unchecked Sendable {
     }
 
     func unwrap(_ blob: Data, slot: WrapSlot, reason: String?) throws -> SecureBytes {
-        guard let key = key(slot) else { throw slot == .biometry ? EnclaveError.biometryChanged : EnclaveError.keyMissing }
+        guard let key = key(slot) else { throw EnclaveError.keyMissing }
         if slot == .biometry {
             // O Face ID simulado (Features > Face ID no simulador) decide aqui.
             let context = LAContext()
