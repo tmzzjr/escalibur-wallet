@@ -218,6 +218,7 @@ struct SealEnvelopeFlow: View {
         error = nil
         let id = wallet.id
         do {
+            guard await VoiceGate.shared.confirm(.envelope, session: session) else { return }
             let result: (SecureBytes, String)? = try await auth.perform(session, reason: "Lacrar a senha de \(wallet.name) num envelope", requirePIN: true) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }

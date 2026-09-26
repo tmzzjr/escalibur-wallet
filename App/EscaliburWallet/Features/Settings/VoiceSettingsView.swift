@@ -4,7 +4,12 @@ import SwiftUI
 /// S4: confirmacao por voz, como camada depois do Face ID ou do PIN.
 struct VoiceSettingsView: View {
     @Environment(AppSession.self) private var session
+    @Environment(AuthCoordinator.self) private var auth
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var listener = SpeechListener()
+    /// Mudar qualquer coisa aqui pede o PIN: desligar tira uma camada, e ligar com
+    /// uma frase do ladrao trancaria o dono fora das proprias palavras.
+    @State private var authorized = false
     @State private var step = 0
     @State private var first = ""
     @State private var message: String?
@@ -22,7 +27,9 @@ struct VoiceSettingsView: View {
                        message: "Quem ouvir você falar pode repetir a frase. Ela protege contra quem viu o seu PIN, não contra quem está perto. A voz é processada neste iPhone e não sai dele.")
                     .padding(.top, Space.md)
 
-                if !VoiceGate.isSupported {
+                if !authorized {
+                    EmptyView()
+                } else if !VoiceGate.isSupported {
                     Text("Este iPhone não reconhece fala em português sem internet, então a confirmação por voz não está disponível.")
                         .typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.md)
                         .fixedSize(horizontal: false, vertical: true)
@@ -36,6 +43,20 @@ struct VoiceSettingsView: View {
         }
         .background(Palette.void.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            guard !authorized else { return }
+            let ok = (try? await auth.perform(session, reason: "Mudar a confirmação por voz", requirePIN: true, { _ in true })) == true
+            if ok { authorized = true } else { dismiss() }
+        }
+    }
+
+    private func save() {
+        do {
+            try session.persist()
+            message = nil
+        } catch {
+            message = "Não foi possível salvar. Tente de novo."
+        }
     }
 
     private var enrollment: some View {
@@ -63,18 +84,21 @@ struct VoiceSettingsView: View {
                 toggle("Pedir para lacrar envelope", \.onEnvelope)
                 Toggle(isOn: Binding(get: { settings.onSendAboveFiat != nil }, set: { on in
                     session.metadata.settings.voice.onSendAboveFiat = on ? 5000 : nil
-                    try? session.persist()
+                    save()
                 })) {
                     Text("Pedir em envios acima de \(Fmt.fiat(5000, session.currency))").typeStyle(.body).foregroundStyle(Palette.ink)
                 }
                 .tint(Palette.up).padding(.horizontal, Space.md).frame(height: Height.rowCompact)
             }
             .padding(.top, Space.lg)
+            if let message {
+                Text(message).typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.xs)
+            }
             DestructiveButton(title: "Desligar a confirmação por voz") {
                 session.metadata.settings.voice.enabled = false
                 session.metadata.voicePhraseHash = nil
                 session.metadata.voicePhraseSalt = nil
-                try? session.persist()
+                save()
             }
             .padding(.top, Space.lg)
         }
@@ -83,7 +107,7 @@ struct VoiceSettingsView: View {
     private func toggle(_ title: String, _ key: WritableKeyPath<VoiceSettings, Bool>) -> some View {
         Toggle(isOn: Binding(get: { settings[keyPath: key] }, set: { value in
             session.metadata.settings.voice[keyPath: key] = value
-            try? session.persist()
+            save()
         })) {
             Text(title).typeStyle(.body).foregroundStyle(Palette.ink)
         }
@@ -116,7 +140,9 @@ struct VoiceSettingsView: View {
         session.metadata.voicePhraseSalt = salt
         session.metadata.voicePhraseHash = VoiceGate.digest(heard, salt: salt)
         session.metadata.settings.voice.enabled = true
-        try? session.persist()
+        session.metadata.settings.voice.failedChallenges = nil
+        session.metadata.settings.voice.lockedUntil = nil
+        save()
         first = ""
         step = 0
     }

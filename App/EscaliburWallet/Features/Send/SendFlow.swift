@@ -633,8 +633,9 @@ struct SendStages: View {
             model.error = "Os dados da rede venceram. Revise de novo."
             return
         }
-        let price = holding.asset.coingeckoID.flatMap { portfolio.quotes[$0]?.price } ?? 0
-        let fiat = Fmt.double(model.amount ?? 0, decimals: holding.asset.decimals) * price
+        // Sem cotacao, o valor em reais e desconhecido e a voz e pedida (falha fechada).
+        let price = holding.asset.coingeckoID.flatMap { portfolio.quotes[$0]?.price }
+        let fiat = price.map { Fmt.double(model.amount ?? 0, decimals: holding.asset.decimals) * $0 }
         guard await VoiceGate.shared.confirm(.send(fiat: fiat), session: session) else { return }
         model.working = true
         defer { model.working = false }

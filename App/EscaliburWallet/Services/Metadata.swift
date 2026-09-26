@@ -88,6 +88,11 @@ struct VoiceSettings: Codable, Equatable {
     var onReveal = true
     var onEnvelope = true
     var onSendAboveFiat: Double? = 5000
+    /// Desafios de voz falhos em seguida (tres tentativas cada). Opcional para os
+    /// metadados gravados antes deste campo continuarem abrindo.
+    var failedChallenges: Int?
+    /// Depois de tres desafios falhos, as acoes com voz esperam ate aqui.
+    var lockedUntil: Date?
 }
 
 /// O arquivo de metadados, cifrado.

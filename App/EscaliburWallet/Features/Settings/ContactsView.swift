@@ -53,6 +53,7 @@ struct ContactsView: View {
 
 struct AddContactSheet: View {
     @Environment(AppSession.self) private var session
+    @Environment(AuthCoordinator.self) private var auth
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var address = ""
@@ -85,7 +86,7 @@ struct AddContactSheet: View {
             }
             .safeAreaInset(edge: .bottom) {
                 ActionFooter {
-                    PrimaryButton(title: "Salvar", enabled: !name.isEmpty && (try? validation.get()) != nil) { save() }
+                    PrimaryButton(title: "Salvar", enabled: !name.isEmpty && (try? validation.get()) != nil) { Task { await save() } }
                 }
             }
             .background(Palette.body.ignoresSafeArea())
@@ -108,12 +109,20 @@ struct AddContactSheet: View {
         }
     }
 
-    private func save() {
+    /// Um contato vira endereco de confianca: aparece como atalho no envio e entra na
+    /// conferencia de endereco parecido. Por isso gravar pede Face ID ou PIN, como
+    /// qualquer operacao que muda para onde o dinheiro pode ir.
+    private func save() async {
         guard case .success(let destination) = validation else { return }
         let finalTag = destination.tag.map(String.init) ?? (tag.isEmpty ? nil : tag)
+        guard (try? await auth.perform(session, reason: "Salvar o contato \(String(name.prefix(40)))", { _ in true })) == true else { return }
         session.metadata.contacts.append(Contact(id: UUID(), name: String(name.prefix(40)), chainID: chain.id, address: destination.address, tag: finalTag))
-        try? session.persist()
-        dismiss()
+        do {
+            try session.persist()
+            dismiss()
+        } catch {
+            session.metadata.contacts.removeAll { $0.address == destination.address && $0.chainID == chain.id && $0.name == String(name.prefix(40)) }
+        }
     }
 }
 

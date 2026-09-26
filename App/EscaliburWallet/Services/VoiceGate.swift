@@ -23,14 +23,22 @@ import SwiftUI
 final class VoiceGate {
     static let shared = VoiceGate()
 
-    enum Action { case reveal, envelope, send(fiat: Double) }
+    /// `send(fiat:)` com nil quando nao ha cotacao: sem saber o valor, a voz e pedida.
+    enum Action { case reveal, envelope, send(fiat: Double?) }
 
     struct Challenge: Identifiable {
         let id = UUID()
         let continuation: CheckedContinuation<Bool, Never>
         let expected: String
         let salt: String
+        let session: AppSession
+        /// Preenchido quando as acoes com voz estao em espera: a folha so avisa.
+        let lockedUntil: Date?
     }
+
+    /// Tres desafios falhos em seguida pausam as acoes com voz por 15 minutos.
+    static let challengesBeforeLock = 3
+    static let lockSeconds: TimeInterval = 15 * 60
 
     var challenge: Challenge?
 
@@ -47,19 +55,44 @@ final class VoiceGate {
         switch action {
         case .reveal: guard settings.onReveal else { return true }
         case .envelope: guard settings.onEnvelope else { return true }
-        case .send(let fiat): guard let limit = settings.onSendAboveFiat, fiat >= limit else { return true }
+        case .send(let fiat):
+            guard let limit = settings.onSendAboveFiat else { return true }
+            if let fiat, fiat < limit { return true }
         }
+        let locked = settings.lockedUntil.flatMap { $0 > .now ? $0 : nil }
         return await withCheckedContinuation { continuation in
-            let challenge = Challenge(continuation: continuation, expected: hash, salt: salt)
+            let challenge = Challenge(continuation: continuation, expected: hash, salt: salt, session: session, lockedUntil: locked)
             self.challenge = challenge
             OverlayWindow.shared.show(VoiceChallengeSheet(challenge: challenge))
         }
     }
 
-    func finish(_ challenge: Challenge, passed: Bool) {
+    /// `exhausted`: o dono errou as tres tentativas deste desafio (fechar a folha nao
+    /// conta como falha).
+    func finish(_ challenge: Challenge, passed: Bool, exhausted: Bool = false) {
         self.challenge = nil
         OverlayWindow.shared.hide()
+        let session = challenge.session
+        if passed {
+            session.metadata.settings.voice.failedChallenges = nil
+            session.metadata.settings.voice.lockedUntil = nil
+            try? session.persist()
+        } else if exhausted {
+            let failures = (session.metadata.settings.voice.failedChallenges ?? 0) + 1
+            if failures >= Self.challengesBeforeLock {
+                session.metadata.settings.voice.failedChallenges = nil
+                session.metadata.settings.voice.lockedUntil = Date.now.addingTimeInterval(Self.lockSeconds)
+            } else {
+                session.metadata.settings.voice.failedChallenges = failures
+            }
+            try? session.persist()
+        }
         challenge.continuation.resume(returning: passed)
+    }
+
+    /// A frase dita confere com a gravada? HMAC comparado em tempo constante.
+    static func matches(_ heard: String, expected: String, salt: String) -> Bool {
+        Hash.constantTimeEqual(Array(digest(heard, salt: salt).utf8), Array(expected.utf8))
     }
 
     // MARK: Frase
@@ -166,6 +199,11 @@ struct VoiceChallengeSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SheetHeader(title: "Diga a sua frase de voz") { VoiceGate.shared.finish(challenge, passed: false) }
+            if let until = challenge.lockedUntil {
+                Text("Muitas tentativas de voz seguidas. As operações que pedem voz voltam às \(until.formatted(date: .omitted, time: .shortened)).")
+                    .typeStyle(.body).foregroundStyle(Palette.down).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Text("Depois do Face ID ou do PIN, a frase que só você sabe. O iPhone reconhece a frase, não a sua voz.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
@@ -181,7 +219,7 @@ struct VoiceChallengeSheet: View {
                 Text(message).typeStyle(.note).foregroundStyle(Palette.down).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
             }
             Spacer()
-            PrimaryButton(title: listener.listening ? "Ouvindo" : "Falar agora", enabled: !listener.listening) {
+            PrimaryButton(title: listener.listening ? "Ouvindo" : "Falar agora", enabled: !listener.listening && challenge.lockedUntil == nil) {
                 Task { await listen() }
             }
             .padding(.horizontal, Space.gutter).padding(.bottom, Space.xs)
@@ -198,13 +236,13 @@ struct VoiceChallengeSheet: View {
             return
         }
         let heard = await listener.listen()
-        if VoiceGate.digest(heard, salt: challenge.salt) == challenge.expected {
+        if VoiceGate.matches(heard, expected: challenge.expected, salt: challenge.salt) {
             VoiceGate.shared.finish(challenge, passed: true)
             return
         }
         attempts += 1
         if attempts >= 3 {
-            VoiceGate.shared.finish(challenge, passed: false)
+            VoiceGate.shared.finish(challenge, passed: false, exhausted: true)
         } else {
             message = "Não reconheci. Fale de novo, perto do iPhone."
         }
