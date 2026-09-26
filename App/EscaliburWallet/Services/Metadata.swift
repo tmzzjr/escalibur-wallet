@@ -1,5 +1,6 @@
 import CryptoKit
 import EscaliburChains
+import EscaliburEngines
 import EscaliburKeys
 import EscaliburNetwork
 import Foundation
@@ -61,10 +62,6 @@ struct WalletMeta: Codable, Equatable, Identifiable, Hashable {
     func account(_ chain: Chain) -> DerivedAccount? { accounts.first { $0.chainID == chain.id } }
 }
 
-struct UTXOUsage: Codable, Equatable, Hashable {
-    var receiveUsed: Int = 0
-    var changeUsed: Int = 0
-}
 
 struct Contact: Codable, Equatable, Identifiable, Hashable {
     let id: UUID

@@ -21,6 +21,7 @@ CORE=Kit/Sources/EscaliburCore
 CHAINS=Kit/Sources/EscaliburChains
 KEYS=Kit/Sources/EscaliburKeys
 NET=Kit/Sources/EscaliburNetwork
+ENG=Kit/Sources/EscaliburEngines
 APP=App/EscaliburWallet
 
 swift_em() { find "$@" -name "*.swift" 2>/dev/null; }
@@ -39,21 +40,27 @@ achados=$(procurar 'import (Network|WebKit|SafariServices|CFNetwork)\b|URLSessio
 achados=$(procurar 'NSClassFromString|NSSelectorFromString|dlopen|dlsym|objc_msgSend|\.perform\(' "$CORE" "$CHAINS" "$KEYS")
 [ -n "$achados" ] && { aviso "reflexao que contornaria a fronteira"; echo "$achados"; } || ok "sem reflexao no nucleo, nas redes e nas chaves"
 
-achados=$(swift_em "$APP" "$CORE" "$CHAINS" "$KEYS" | xargs grep -lE 'URLSession' 2>/dev/null)
+achados=$(swift_em "$APP" "$CORE" "$CHAINS" "$KEYS" "$ENG" | xargs grep -lE 'URLSession' 2>/dev/null)
 [ -n "$achados" ] && { aviso "URLSession fora do modulo de rede"; echo "$achados"; } || ok "URLSession so no modulo de rede"
 
-achados=$(procurar 'URLSession\.shared|AsyncImage' "$APP" "$NET" "$CORE" "$CHAINS" "$KEYS")
+achados=$(procurar 'URLSession\.shared|AsyncImage' "$APP" "$NET" "$CORE" "$CHAINS" "$KEYS" "$ENG")
 [ -n "$achados" ] && { aviso "URLSession.shared ou AsyncImage (gravam cache em disco)"; echo "$achados"; } || ok "sem URLSession.shared e sem AsyncImage"
 
 achados=$(procurar 'import EscaliburKeys|SecureBytes|WalletSecret|RootKeyVault|WalletVault|Mnemonic|HDKey' "$NET")
 [ -n "$achados" ] && { aviso "o modulo de rede enxerga segredo"; echo "$achados"; } || ok "o modulo de rede nao enxerga segredo nem chave"
 
-achados=$(procurar 'Secp256k1\.sign|Ed25519\.sign' "$CHAINS" "$NET" "$APP")
+achados=$(procurar 'SecureBytes|WalletSecret|RootKeyVault|WalletVault|KeychainStore|SecureEnclaveWrapper|Signer\b|Mnemonic|HDKey|SecretStore' "$ENG")
+[ -n "$achados" ] && { aviso "os motores enxergam segredo, cofre ou assinador"; echo "$achados"; } || ok "os motores so usam dado publico do modulo de chaves"
+
+achados=$(procurar 'import (Network|WebKit|SafariServices|CFNetwork)\b|URLRequest|NWConnection|WKWebView' "$ENG")
+[ -n "$achados" ] && { aviso "os motores falam com a rede sem passar pelo modulo de rede"; echo "$achados"; } || ok "os motores so falam com a rede pelo modulo de rede"
+
+achados=$(procurar 'Secp256k1\.sign|Ed25519\.sign' "$CHAINS" "$NET" "$APP" "$ENG")
 [ -n "$achados" ] && { aviso "assinatura fora do modulo de chaves"; echo "$achados"; } || ok "so o modulo de chaves assina"
 
 # 2. Hosts travados.
 secao "hosts"
-hosts_atuais=$(grep -ohE 'https://[A-Za-z0-9.-]+' $(swift_em "$NET") "$APP/Resources/Info.plist" 2>/dev/null | sort -u)
+hosts_atuais=$(grep -ohE 'https://[A-Za-z0-9.-]+' $(swift_em "$NET" "$ENG") "$APP/Resources/Info.plist" 2>/dev/null | sort -u)
 if [ "${1:-}" = "--atualizar-hosts" ]; then
     echo "$hosts_atuais" > hosts.lock
     ok "hosts.lock atualizado"

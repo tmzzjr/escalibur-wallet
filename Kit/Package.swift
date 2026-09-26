@@ -12,6 +12,10 @@
 //                     so aceita um plano validado por EscaliburChains.
 //   EscaliburNetwork  provedores, RPC, precos, cotacoes. Nunca ve seed, chave, PIN
 //                     ou senha, e nunca importa EscaliburKeys.
+//   EscaliburEngines  os motores de envio, troca e historico de cada rede: juntam o
+//                     leitor (Network) e o planejador (Chains). Do modulo de chaves so
+//                     usa tipos publicos de dado (conta derivada); nunca assina, nunca
+//                     abre cofre.
 //
 // As duas bibliotecas em C sao compiladas do fonte, dentro do repositorio, e
 // travadas por digesto (secp256k1.lock, argon2.lock). Nenhum pacote remoto.
@@ -25,6 +29,7 @@ let package = Package(
         .library(name: "EscaliburChains", targets: ["EscaliburChains"]),
         .library(name: "EscaliburKeys", targets: ["EscaliburKeys"]),
         .library(name: "EscaliburNetwork", targets: ["EscaliburNetwork"]),
+        .library(name: "EscaliburEngines", targets: ["EscaliburEngines"]),
     ],
     targets: [
         .target(
@@ -77,6 +82,11 @@ let package = Package(
             dependencies: ["EscaliburCore", "EscaliburChains"],
             path: "Sources/EscaliburNetwork"
         ),
+        .target(
+            name: "EscaliburEngines",
+            dependencies: ["EscaliburCore", "EscaliburChains", "EscaliburKeys", "EscaliburNetwork"],
+            path: "Sources/EscaliburEngines"
+        ),
         .testTarget(
             name: "EscaliburCoreTests",
             dependencies: ["EscaliburCore"],
@@ -99,6 +109,11 @@ let package = Package(
             dependencies: ["EscaliburNetwork"],
             path: "Tests/EscaliburNetworkTests",
             resources: [.copy("Fixtures"), .copy("FixturesB"), .copy("FixturesSolana")]
+        ),
+        .testTarget(
+            name: "EscaliburEnginesTests",
+            dependencies: ["EscaliburEngines"],
+            path: "Tests/EscaliburEnginesTests"
         ),
     ]
 )

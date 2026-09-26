@@ -34,6 +34,8 @@ targets:
         product: EscaliburKeys
       - package: EscaliburKit
         product: EscaliburNetwork
+      - package: EscaliburKit
+        product: EscaliburEngines
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thomazjr.escalibur.wallet

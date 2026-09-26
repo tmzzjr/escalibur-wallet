@@ -1,39 +1,8 @@
 import EscaliburChains
 import EscaliburCore
+import EscaliburEngines
 import EscaliburKeys
 import SwiftUI
-
-/// Um item da Atividade, igual para todas as redes. Cada leitor de historico
-/// converte o formato da propria rede para este.
-struct ActivityEntry: Identifiable, Hashable, Sendable {
-    enum Direction: String, Sendable { case sent, received, swap, approval, order, other }
-    enum Status: Hashable, Sendable { case pending(String?), confirmed, failed(String?) }
-
-    let id: String
-    let chainID: String
-    let direction: Direction
-    let asset: Asset?
-    let amount: BigUInt
-    let counterparty: String?
-    let date: Date
-    let status: Status
-    let fee: BigUInt?
-    let hash: String
-    /// Valor zero ou poeira vinda de desconhecido, de endereco parecido com um
-    /// nosso, ou token fora da lista: escondido por padrao (envenenamento).
-    let suspicious: Bool
-
-    var chain: Chain? { Chain.find(chainID) }
-}
-
-/// Quem sabe ler o historico de uma rede. Registrado por rede quando o leitor existe.
-protocol ActivitySource: Sendable {
-    func history(chain: Chain, account: DerivedAccount, usage: UTXOUsage?) async throws -> [ActivityEntry]
-}
-
-enum ActivitySources {
-    static func source(for chain: Chain) -> (any ActivitySource)? { nil }
-}
 
 @MainActor
 @Observable

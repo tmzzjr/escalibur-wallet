@@ -1,5 +1,6 @@
 import EscaliburChains
 import EscaliburCore
+import EscaliburEngines
 import EscaliburKeys
 import EscaliburNetwork
 import SwiftUI

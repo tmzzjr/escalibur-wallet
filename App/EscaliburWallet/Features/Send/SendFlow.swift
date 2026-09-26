@@ -1,5 +1,6 @@
 import EscaliburChains
 import EscaliburCore
+import EscaliburEngines
 import EscaliburKeys
 import EscaliburNetwork
 import SwiftUI
@@ -475,7 +476,8 @@ struct SendStages: View {
         return SendRequest(
             walletID: model.wallet.id, chain: chain, asset: holding.asset, account: account,
             destination: destination.address, tag: model.tagText.isEmpty ? nil : model.tagText,
-            amount: amount, sendAll: sendAll, feeLevel: model.feeLevel, utxoUsage: model.wallet.utxoUsage[chain.id]
+            amount: amount, sendAll: sendAll, feeLevel: model.feeLevel, utxoUsage: model.wallet.utxoUsage[chain.id],
+            knownAddresses: session.metadata.sentTo[chain.id] ?? []
         )
     }
 
