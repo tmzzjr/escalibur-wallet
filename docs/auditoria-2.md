@@ -40,3 +40,23 @@ Médio
 
 Baixo
 - B1 tetos de taxa EVM de uma fonte, BNB alto; B2 LastLedgerSequence de um servidor; B3 leituras de uma fonte na Solana e TON; B4 regra de uma ordem CoW por token só pela API; B5 troca EVM sem prazo na cadeia; B6 índice de troco de um provedor; B7 documentação dizendo mais do que o código faz.
+
+## Estado da revisão dos motores (Kit, branch seguranca-2)
+
+| Achado | Estado | Onde |
+|---|---|---|
+| A1 Stellar | Corrigido: cotação nas duas Horizons e `destMin` da maior; rota só por XLM e ativos da lista; preço de referência (5% bloqueia, 2% avisa) | `StellarTradeEngine`, `StellarReader.quoteStrictSendOnBoth`, `StellarPlanner.planSwap` |
+| A2 Solana | Corrigido: preço de referência fora da Jupiter, par não estável sem referência recusado; simulação lê as contas de token do dono nos mints da lista | `SolanaSwapPlanner`, `SolanaTradeEngine`, `SolanaNetworkReader.swapAccounts` |
+| A3 Ordens limite | Corrigido no Kit: `openOrders` e `planCancel` no `TradeEngine` (CoW, XRP Ledger, Stellar); "até cancelar" com `validFor: nil`. A tela de ordens abertas é do app | `Trade.swift` |
+| M1 nonce EVM | Corrigido no Kit: `PendingNonceQueue` no pedido; sem a fila, fontes iguais. O app guarda a fila | `EVMFeeCalculator.nonce` |
+| M2 teto UTXO | Corrigido: teto compilado, duas fontes no máximo 3x distantes, o menor de duas, aviso acima de 1% | `UTXORules`, `UTXOFeeConsensus` |
+| M3 moedas deixadas | Corrigido: `skipped` na revisão, "enviar tudo" só com poeira de fora | `UTXOPlanner` |
+| M4 vencimento | Corrigido: Solana com duas fontes e altura finalizada com folga; Tron pelo bloco solidificado em dois provedores e relógio conferido no plano | `SolanaTransfers`, `TronReader.status`, `TronPlanner` |
+| M5 âncora EVM | Corrigido: referência obrigatória ou duas cotações e a maior estimativa | `TradeValidator.anchored` |
+| M6 `sequence` | Corrigido: interno; compositores nomeados | `Signing.swift`, `TradePlanner.combineSplit`, `XRPLPlanner.combineTrustlineAndOffer` |
+| B1 | Corrigido: mediana de duas fontes, gas pela menor, BNB 1 gwei, aviso de taxa no envio de token | `EVMReader`, `TradeStateReader`, `EVMFeeProfile`, `EVMSendEngine` |
+| B2 | Corrigido: LastLedgerSequence do ledger pinado | `XRPLPlanner.common` |
+| B3 | Corrigido na Solana (destino, conta de token e mint em dois RPCs); a TON segue com leituras de uma fonte além do `seqno` | `SolanaNetworkReader` |
+| B4, B5 | Fora desta rodada | |
+| B6 | Corrigido: troco conferido em dois provedores | `UTXOReader.isUnused`, `UTXOSendEngine` |
+| B7 | Corrigido: `docs/redes/motores.md` e `docs/blockchain.md` dizem o que o código faz; a DEX do XRP Ledger está desligada (a lista curada não tem token do XRP Ledger) | |
