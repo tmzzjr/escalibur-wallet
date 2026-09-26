@@ -591,7 +591,13 @@ struct SendStages: View {
         guard let chain = model.chain, let destination = model.destination else { return false }
         guard plan.review.kind == .send, plan.chain.id == chain.id, plan.walletID == model.wallet.id else { return false }
         guard Address.sameRecipient(plan.review.recipient, destination.address, chain: chain) else { return false }
-        return Self.sameTag(plan.review.recipientTag, model.tagText)
+        guard Self.sameTag(plan.review.recipientTag, model.tagText) else { return false }
+        // O ativo e o valor que saem, lidos da transacao pelo planejador: o pedido
+        // exato, ou no enviar tudo no maximo o saldo que a tela mostrou (a taxa pode
+        // ter caido entre a estimativa e o plano) (auditoria 2, M1).
+        guard let holding = model.holding, let requested = model.amount else { return false }
+        return (try? PlanIntentCheck.send(plan.review, asset: holding.asset, amount: model.sendAll ? nil : requested,
+                                          ceiling: holding.amount, chain: chain)) != nil
     }
 
     static func sameTag(_ planned: String?, _ typed: String?) -> Bool {
@@ -604,7 +610,8 @@ struct SendStages: View {
     private var reviewStage: some View {
         let holding = model.holding!
         let price = holding.asset.coingeckoID.flatMap { portfolio.quotes[$0]?.price }
-        let amount = model.amount ?? 0
+        // O valor em reais sai do plano, o que a transacao move, e nao do campo.
+        let amount = model.plan?.review.outgoing?.amount ?? model.amount ?? 0
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 if let plan = model.plan {
@@ -665,7 +672,8 @@ struct SendStages: View {
         }
         // Sem cotacao, o valor em reais e desconhecido e a voz e pedida (falha fechada).
         let price = holding.asset.coingeckoID.flatMap { portfolio.quotes[$0]?.price }
-        let fiat = price.map { Fmt.double(model.amount ?? 0, decimals: holding.asset.decimals) * $0 }
+        let moved = plan.review.outgoing?.amount ?? model.amount ?? 0
+        let fiat = price.map { Fmt.double(moved, decimals: holding.asset.decimals) * $0 }
         guard await VoiceGate.shared.confirm(.send(fiat: fiat), session: session) else { return }
         model.working = true
         defer { model.working = false }

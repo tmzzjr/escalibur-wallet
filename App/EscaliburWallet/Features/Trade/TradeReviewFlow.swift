@@ -102,7 +102,7 @@ struct TradeReviewFlow: View {
                 if let plan {
                     Text(plan.review.title).typeStyle(.title).foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let fiat = item.fiat {
+                    if let fiat {
                         Text("cerca de \(Fmt.fiat(fiat, session.currency))").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, 2)
                     }
                     PlanVerbatimPlate(review: plan.review).padding(.top, Space.lg)
@@ -190,14 +190,35 @@ struct TradeReviewFlow: View {
         }
     }
 
-    /// Desta carteira, desta rede e do tipo pedido. O resto do conteudo foi validado
-    /// pelo planejador da rede (minimo decodificado da transacao, contrato na lista).
+    /// Desta carteira, desta rede e do tipo pedido; vende o ativo pedido, nunca mais
+    /// que o valor; garante pelo menos o minimo mostrado do ativo comprado; e o que
+    /// entra vai para a propria conta (auditoria 2, M1). O resto foi validado pelo
+    /// planejador da rede (minimo decodificado da transacao, contrato na lista).
     private func planMatches(_ plan: SigningPlan) -> Bool {
         guard let wallet = session.selectedWallet, plan.walletID == wallet.id, plan.chain.id == item.chain.id else { return false }
-        switch item.kind {
-        case .swap: return plan.review.kind == .swap
-        case .limit: return plan.review.kind == .limitOrder
+        do {
+            switch item.kind {
+            case .swap(let request, let quote):
+                guard plan.review.kind == .swap else { return false }
+                try PlanIntentCheck.trade(plan.review, sell: request.sell, amountIn: request.amountIn, buy: request.buy,
+                                          minimumOut: quote.minimumOut, owner: request.account.address, chain: item.chain)
+            case .limit(let request):
+                guard plan.review.kind == .limitOrder else { return false }
+                try PlanIntentCheck.trade(plan.review, sell: request.sell, amountIn: request.amountIn, buy: request.buy,
+                                          minimumOut: request.minimumOut, owner: request.account.address, chain: item.chain)
+            }
+            return true
+        } catch {
+            return false
         }
+    }
+
+    /// O valor vendido em moeda do dono, do que o plano move: e o que a voz e o
+    /// "cerca de" usam. Sem plano, a estimativa da tela anterior.
+    private var fiat: Double? {
+        guard let outgoing = plan?.review.outgoing else { return item.fiat }
+        guard let price = assets.sell.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) else { return nil }
+        return Fmt.double(outgoing.amount, decimals: assets.sell.decimals) * price
     }
 
     private func confirm() async {
@@ -208,7 +229,7 @@ struct TradeReviewFlow: View {
             return
         }
         guard planMatches(plan) else { return }
-        guard await VoiceGate.shared.confirm(.send(fiat: item.fiat), session: session) else { return }
+        guard await VoiceGate.shared.confirm(.send(fiat: fiat), session: session) else { return }
         do {
             guard let signed = try await auth.perform(session, reason: plan.review.title, { rk in
                 try Signer.sign(plan, rootKey: rk, vault: KeyServices.wallets)
