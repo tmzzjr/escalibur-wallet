@@ -320,6 +320,14 @@ struct ImportPhraseView: View {
 
 /// O8: observar um endereco, sem poder enviar.
 struct WatchAddressView: View {
+    /// "Ethereum, Base, ... e Celo", na ordem da interface: a lista acompanha as redes
+    /// compiladas.
+    static var evmNetworkNames: String {
+        let names = Chain.evmChains.map(\.name)
+        guard let last = names.last, names.count > 1 else { return names.first ?? "" }
+        return names.dropLast().joined(separator: ", ") + " e " + last
+    }
+
     @Environment(AppSession.self) private var session
     let onFinished: () -> Void
     @State private var address = ""
@@ -345,7 +353,7 @@ struct WatchAddressView: View {
             .labelStyle(.titleOnly).tint(Palette.rail).padding(.top, Space.xs)
             if let detected {
                 Text(detected.family == .evm
-                     ? "Endereço EVM: vale em Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain e Avalanche."
+                     ? "Endereço EVM: vale em \(Self.evmNetworkNames)."
                      : "Endereço \(detected.name)")
                     .typeStyle(.note).foregroundStyle(Palette.up).padding(.top, Space.sm)
             } else if !address.isEmpty {

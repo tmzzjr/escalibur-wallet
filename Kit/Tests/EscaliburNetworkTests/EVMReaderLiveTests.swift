@@ -30,7 +30,12 @@ struct EVMReaderLiveTests {
         return account
     }
 
-    @Test("Envio nativo planejado nas sete redes com o estado real", arguments: Chain.evmChains)
+    /// As redes em que a Binance 8 tem saldo nativo (conferido em 26/09/2026). Na X Layer,
+    /// na Unichain e na Celo ela nao tem (ou nao paga a taxa); essas redes sao conferidas
+    /// por `secondWaveState`, com uma conta que tem saldo.
+    static let funded: [Chain] = [.ethereum, .base, .arbitrum, .optimism, .polygon, .bnb, .avalanche, .plasma, .linea, .sonic]
+
+    @Test("Envio nativo planejado com o estado real nas redes em que a conta tem saldo", arguments: funded)
     func nativePlan(chain: Chain) async throws {
         let account = try account()
         let amount = BigUInt(1_000)
@@ -54,7 +59,7 @@ struct EVMReaderLiveTests {
         Live.note("\(chain.id): nonces \(state.pendingNonces), baseFee \(state.baseFeePerGas), gas \(state.gasEstimate), l1 \(state.l1DataFee?.description ?? "-")")
     }
 
-    @Test("Envio de token da lista planejado com saldo real", arguments: Chain.evmChains)
+    @Test("Envio de token da lista planejado com saldo real", arguments: funded)
     func tokenPlan(chain: Chain) async throws {
         let account = try account()
         var planned = false
@@ -137,7 +142,8 @@ struct EVMReaderLiveTests {
         #expect((confirmations ?? 0) > 1)
     }
 
-    @Test("Historico pelos indexadores publicos", arguments: [Chain.ethereum, .base, .optimism, .arbitrum, .polygon, .avalanche])
+    @Test("Historico pelos indexadores publicos",
+          arguments: [Chain.ethereum, .base, .optimism, .arbitrum, .polygon, .avalanche, .plasma, .linea, .unichain, .celo])
     func history(chain: Chain) async throws {
         let page = try await reader.history(chain: chain, address: try account().address)
         #expect(page.items.count <= ActivityRules.pageSize)
@@ -145,10 +151,58 @@ struct EVMReaderLiveTests {
         Live.note("\(chain.id): \(page.items.count) itens, \(page.suspiciousCount) suspeitos, completo \(page.isComplete)")
     }
 
-    @Test("BNB Chain sem indexador publico: historico indisponivel, com motivo")
+    @Test("BNB Chain, X Layer e Sonic sem indexador publico: historico indisponivel, com motivo")
     func bnbHistoryUnsupported() async throws {
-        await #expect(throws: ReaderError.self) {
-            _ = try await reader.history(chain: .bnb, address: Self.destination)
+        for chain in [Chain.bnb, .xlayer, .sonic] {
+            await #expect(throws: ReaderError.self) {
+                _ = try await reader.history(chain: chain, address: Self.destination)
+            }
         }
+    }
+
+    // MARK: Segunda leva
+
+    /// "Relay: Solver" (rotulo do Etherscan, do Basescan e do Blockscan), conta sem codigo
+    /// com saldo nativo e stablecoin nas seis redes novas (conferido em 26/09/2026: XPL e
+    /// USDT0 na Plasma, OKB e USDC na X Layer, ETH e USDC na Linea e na Unichain, S e USDC
+    /// na Sonic, CELO e USDC na Celo). So o endereco: o leitor nao precisa de chave
+    /// publica, e nada aqui vira plano assinavel.
+    static let secondWaveHolder = try! EVMAddress("0xf70da97812CB96acDF810712Aa562db8dfA3dbEF")
+
+    /// O stablecoin que a conta tem em cada rede.
+    static func stablecoin(on chain: Chain) throws -> EVMToken {
+        let symbol = chain.id == "plasma" ? "USDT" : "USDC"
+        let asset = try #require(TokenRegistry.assets(on: chain).first { $0.symbol == symbol })
+        guard case .token(let contract) = asset.kind else { throw ReaderError.invalidInput("nativo") }
+        return EVMToken(chain: chain, contract: try EVMAddress(contract), symbol: asset.symbol, decimals: UInt8(asset.decimals))
+    }
+
+    @Test("Redes novas: nonce de dois provedores, taxa, estimativa, saldo, codigo e transfer simulado",
+          arguments: [Chain.plasma, .xlayer, .linea, .unichain, .sonic, .celo])
+    func secondWaveState(chain: Chain) async throws {
+        let holder = Self.secondWaveHolder
+        let native = try await reader.networkState(chain: chain, account: holder, intent: .native(to: Self.destination, amount: 1_000))
+        #expect(native.pendingNonces.count >= 2)
+        #expect(native.gasEstimate == 21_000)
+        #expect(!native.nativeBalance.isZero)
+        #expect(native.destinationHasCode == false)
+        let profile = try #require(EVMFeeProfile.for(chain))
+        #expect((native.l1DataFee != nil) == profile.chargesL1DataFee)
+        if profile.l1DataFeeMayBeZero { #expect(native.l1DataFee == 0) }
+        // A taxa lida cabe com folga no teto de sanidade da rede.
+        #expect(native.baseFeePerGas * BigUInt(2) + profile.maxPriorityFee <= profile.maxFeeCeiling)
+
+        let token = try Self.stablecoin(on: chain)
+        let tokenState = try await reader.tokenState(token: token, owner: holder)
+        #expect(tokenState.contractHasCode)
+        #expect(!tokenState.balance.isZero)
+        let transfer = try await reader.networkState(chain: chain, account: holder, intent: .token(token, to: Self.destination, amount: 1))
+        #expect(transfer.gasEstimate > 21_000)
+        // O `transfer` exato, em dois provedores no mesmo bloco: devolve `true`.
+        let returned = try await reader.simulateCall(chain: chain, from: holder, to: token.contract, value: 0,
+                                                     data: ERC20.transfer(to: Self.destination, amount: 1))
+        #expect(returned == [UInt8](repeating: 0, count: 31) + [1])
+        Live.note("\(chain.id): nonces \(native.pendingNonces), baseFee \(native.baseFeePerGas), l1 \(native.l1DataFee?.description ?? "-"), "
+            + "\(token.symbol) gas \(transfer.gasEstimate)")
     }
 }

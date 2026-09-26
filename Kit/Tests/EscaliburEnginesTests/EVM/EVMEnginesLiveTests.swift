@@ -56,6 +56,68 @@ struct EVMEnginesLiveTests {
         Self.note("\(chain.id): nativo e USDC planejados, nonce \(nonce.map(String.init) ?? "-"), avisos \(token.review.warnings)")
     }
 
+    // MARK: Segunda leva
+
+    /// O que a Binance 8 (a unica conta de teste com chave publica conhecida) tem nas
+    /// redes novas, conferido em 26/09/2026: XPL e 100 milhoes de USDT0 na Plasma; ETH na
+    /// Linea e S na Sonic, sem stablecoin. Na X Layer, na Unichain e na Celo ela nao paga
+    /// a taxa: o estado real dessas redes e conferido em EVMReaderLiveTests.secondWaveState,
+    /// por endereco, e o plano completo espera uma conta com saldo e chave publica.
+    static let secondWave: [(chain: Chain, stablecoin: String?)] = [(.plasma, "USDT"), (.linea, nil), (.sonic, nil)]
+
+    @Test("Redes novas: envio nativo e de stablecoin com estado real, destino conferido no plano", arguments: secondWave.indices)
+    func secondWaveSendPlans(index: Int) async throws {
+        let (chain, stablecoin) = Self.secondWave[index]
+        let engine = try #require(SendEngines.engine(for: chain))
+        let info = try await engine.destination(A.binance14.checksummed, chain: chain)
+        #expect(!info.isContract)
+
+        let native = try await engine.plan(Self.send(chain, asset: .native(chain), amount: 1_000))
+        #expect(native.review.kind == .send)
+        #expect(native.review.recipient == A.binance14.checksummed)
+        let transaction = try #require(native.transactions.first as? EVMTransaction)
+        #expect(transaction.chainID == chain.evmChainID)
+        #expect(transaction.transactionType == 2)
+
+        if let stablecoin {
+            let asset = try #require(TokenRegistry.assets(on: chain).first { $0.symbol == stablecoin })
+            let token = try await engine.plan(Self.send(chain, asset: asset, amount: 1))
+            #expect(token.review.recipient == A.binance14.checksummed)
+            let call = try #require(token.transactions.first as? EVMTransaction)
+            #expect(call.data == ERC20.transfer(to: A.binance14, amount: 1))
+            if case .token(let contract) = asset.kind { #expect(call.to.checksummed == contract) }
+        }
+        Self.note("\(chain.id): nativo planejado, nonce \(transaction.nonce)\(stablecoin.map { ", \($0) planejado" } ?? "")")
+    }
+
+    @Test("Redes novas com troca: cotacao validada contra a allowlist; plano simulado onde a conta tem saldo",
+          arguments: [Chain.plasma, .linea, .unichain, .sonic])
+    func secondWaveTrade(chain: Chain) async throws {
+        let engine = try #require(TradeEngines.engine(for: chain))
+        let buy = try #require(TokenRegistry.assets(on: chain).first { $0.isStablecoin })
+        // Uns poucos centavos da moeda nativa: 0,1 XPL, 0,0001 ETH, 1 S.
+        let amount: BigUInt = switch chain.id {
+        case "plasma": BigUInt(decimal: "100000000000000000")!
+        case "sonic": BigUInt(decimal: "1000000000000000000")!
+        default: BigUInt(decimal: "100000000000000")!
+        }
+        let request = TradeRequest(walletID: UUID(), chain: chain, account: A.binance8(on: chain), sell: .native(chain),
+                                   buy: buy, amountIn: amount, slippageBasisPoints: 100)
+        let quote = try await engine.quote(request)
+        #expect(quote.providersCompared >= 1)
+        #expect(quote.minimumOut > 0 && quote.minimumOut <= quote.expectedOut)
+        for leg in quote.legs {
+            let provider = try #require(TradeProvider.allCases.first { $0.displayName == leg.provider })
+            #expect(TradeAllowlist.router(for: provider, on: chain) != nil, "\(chain.id) \(leg.provider)")
+        }
+        if ["plasma", "sonic"].contains(chain.id) {
+            let plan = try await engine.plan(request, quote: quote)
+            #expect(plan.review.kind == .swap)
+            #expect(plan.review.lines.contains { $0.label.hasSuffix("Taxa da Escalibur") && $0.value == "Sem taxa da Escalibur" })
+        }
+        Self.note("\(chain.id): \(quote.providersCompared) provedores, pernas \(quote.legs.map(\.provider)), minimo \(quote.minimumOut)")
+    }
+
     @Test("Troca na Base: rodada entre provedores, recotacao e plano com a simulacao real")
     func tradeBase() async throws {
         let engine = try #require(TradeEngines.engine(for: .base))
@@ -85,14 +147,16 @@ struct EVMEnginesLiveTests {
         Self.note("base: ordem limite com \(plan.review.transactionCount) etapas: \(plan.review.title)")
     }
 
-    @Test("Historico real da Base; a BNB Chain diz que ainda nao tem")
+    @Test("Historico real da Base; BNB Chain, X Layer e Sonic dizem que ainda nao tem")
     func activity() async throws {
         let base = try #require(ActivitySources.source(for: .base))
         let entries = try await base.history(chain: .base, account: A.binance8(on: .base), usage: nil)
         #expect(!entries.isEmpty)
         #expect(entries.allSatisfy { $0.chainID == "base" })
         Self.note("base: \(entries.count) itens, \(entries.filter(\.suspicious).count) suspeitos")
-        let bnb = try #require(ActivitySources.source(for: .bnb))
-        await #expect(throws: SendEngineError.self) { _ = try await bnb.history(chain: .bnb, account: A.binance8(on: .bnb), usage: nil) }
+        for chain in [Chain.bnb, .xlayer, .sonic] {
+            let source = try #require(ActivitySources.source(for: chain))
+            await #expect(throws: SendEngineError.self) { _ = try await source.history(chain: chain, account: A.binance8(on: chain), usage: nil) }
+        }
     }
 }

@@ -28,7 +28,10 @@ public struct VeloraClient: TradeQuoteSource {
 
     public func propose(_ request: TradeQuoteRequest) async throws -> TradeProposal {
         let intent = request.intent
-        guard let chainID = intent.chain.evmChainID else { throw TradeProviderError.unsupported(provider) }
+        // Rede sem o router na allowlist nem recebe pedido: a resposta seria recusada.
+        guard let chainID = intent.chain.evmChainID, TradeAllowlist.router(for: .velora, on: intent.chain) != nil else {
+            throw TradeProviderError.unsupported(provider)
+        }
         let owner = TradeWire.lower(intent.owner)
         let url = try TradeWire.url(base, "swap", [
             ("srcToken", TradeWire.token(intent.sell, native: TradeWire.eeee)), ("srcDecimals", "\(intent.sell.decimals)"),
@@ -107,8 +110,11 @@ public struct KyberSwapClient: TradeQuoteSource {
     let client: HTTPClient
     let base: URL
 
+    /// O trecho de rede na URL. Plasma, Linea, Unichain e Sonic conferidos ao vivo em
+    /// 26/09/2026 (`/routes` e `/route/build` devolvendo o router da allowlist).
     static let slugs: [UInt64: String] = [
         1: "ethereum", 42161: "arbitrum", 8453: "base", 10: "optimism", 137: "polygon", 56: "bsc", 43114: "avalanche",
+        9745: "plasma", 59144: "linea", 130: "unichain", 146: "sonic",
     ]
     static let headers = ["x-client-id": "escalibur"]
 
@@ -216,7 +222,9 @@ public struct LiFiClient: TradeQuoteSource {
 
     public func propose(_ request: TradeQuoteRequest) async throws -> TradeProposal {
         let intent = request.intent
-        guard let chainID = intent.chain.evmChainID else { throw TradeProviderError.unsupported(provider) }
+        guard let chainID = intent.chain.evmChainID, TradeAllowlist.router(for: .lifi, on: intent.chain) != nil else {
+            throw TradeProviderError.unsupported(provider)
+        }
         let owner = TradeWire.lower(intent.owner)
         // Tolerancia como fracao decimal: 50 bps = "0.005".
         let slippage = TradeDecimal(mantissa: BigUInt(intent.slippageBps), scale: 4)

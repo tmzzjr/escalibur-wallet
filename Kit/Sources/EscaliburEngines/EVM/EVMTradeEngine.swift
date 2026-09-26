@@ -26,19 +26,23 @@ public struct EVMTradeEngine: TradeEngine {
     let services: EVMTradeServices
 
     /// `nil` onde a troca nao tem as duas fontes de simulacao que a validacao exige
-    /// (docs/seguranca.md 4.9). Hoje so a Avalanche: nenhum RPC publico implementa
-    /// `eth_simulateV1` la.
+    /// (docs/seguranca.md 4.9) ou nenhum router na allowlist. Hoje: Avalanche (nenhum RPC
+    /// publico implementa `eth_simulateV1` la), X Layer e Celo (Endpoints.tradeSimulation
+    /// diz por que).
     public init?(chain: Chain) {
         self.init(chain: chain, services: .live)
     }
 
     init?(chain: Chain, services: EVMTradeServices) {
-        guard EVMEngineSupport.isSupported(chain), (Endpoints.tradeSimulation[chain.id]?.count ?? 0) >= 2 else { return nil }
+        guard EVMEngineSupport.isSupported(chain), (Endpoints.tradeSimulation[chain.id]?.count ?? 0) >= 2,
+              !TradeAllowlist.routers(on: chain).isEmpty
+        else { return nil }
         self.chain = chain
         self.services = services
     }
 
-    /// A CoW atende todas as redes da troca menos a OP.
+    /// A CoW atende Ethereum, Arbitrum, Base, Polygon, BNB Chain, Plasma e Linea entre as
+    /// redes com troca.
     public var supportsLimitOrders: Bool { CoWProtocol.supports(chain) }
 
     public var limitCustodyNote: String {

@@ -58,8 +58,9 @@ public actor EVMReader {
 
     // MARK: Tetos e constantes
 
-    /// Teto de sanidade da taxa L1 (OP e Base): 0,01 ETH por transacao. Hoje sao
-    /// milionesimos de ETH; acima disso o oraculo esta errado ou o provedor mente, e a
+    /// Teto de sanidade da taxa L1 (redes OP Stack): 0,01 da moeda nativa por
+    /// transacao. Hoje sao milionesimos de ETH na OP, na Base e na Unichain, e zero na
+    /// Celo e na X Layer; acima disso o oraculo esta errado ou o provedor mente, e a
     /// conferencia de saldo com esse numero nao significaria nada.
     static let maxL1DataFee = BigUInt(10_000_000_000_000_000)
 
@@ -87,6 +88,11 @@ public actor EVMReader {
         case 1: return 1
         case 42161: return 40
         case 56: return 12
+        // Blocos de 1 s (Plasma, X Layer, Unichain, Celo) e de ~1,7 s (Sonic).
+        case 9745, 196, 130, 42220: return 10
+        case 146: return 6
+        // Linea: bloco so com transacao, de 4 a 18 s entre um e outro.
+        case 59144: return 2
         default: return 5
         }
     }
@@ -117,7 +123,7 @@ public actor EVMReader {
         async let code = hasCode(chain, call.codeTarget, block: pin, pool: pool, providers: providers)
         async let balance = nativeBalance(chain, account, block: pin, pool: pool, providers: providers)
         let l1: BigUInt? = profile.chargesL1DataFee
-            ? try await l1DataFee(chain, call: call, pool: pool, providers: providers)
+            ? try await l1DataFee(chain, call: call, mayBeZero: profile.l1DataFeeMayBeZero, pool: pool, providers: providers)
             : nil
 
         let (baseFee, tips) = try await fees
@@ -280,8 +286,9 @@ public actor EVMReader {
     // MARK: Historico
 
     /// Os ultimos movimentos da conta na rede, pelo indexador publico (Blockscout; na
-    /// Avalanche, Routescan). O endereco vai no caminho do GET: esses indexadores nao
-    /// tem consulta por POST (docs/seguranca.md §5.3; o relay proprio resolve).
+    /// Avalanche e na Plasma, Routescan). O endereco vai no caminho do GET: esses
+    /// indexadores nao tem consulta por POST (docs/seguranca.md §5.3; o relay proprio
+    /// resolve).
     public func history(chain: Chain, address: EVMAddress) async throws -> ActivityPage {
         guard chain.family == .evm else { throw ReaderError.invalidInput("rede nao EVM") }
         guard let providers = historyProviders[chain.id], !providers.isEmpty else {
@@ -526,8 +533,11 @@ public actor EVMReader {
 
     /// Taxa L1 das redes OP Stack: `getL1FeeUpperBound(tamanho)`, com o tamanho maximo
     /// que a transacao sem assinatura pode ter (o oraculo soma a assinatura). O maior de
-    /// dois provedores, com teto de sanidade.
-    private func l1DataFee(_ chain: Chain, call: PlannedCall, pool: ProviderPool, providers: [Provider]) async throws -> BigUInt {
+    /// dois provedores, com teto de sanidade. Zero so vale onde o perfil da rede diz que
+    /// o oraculo responde zero (Celo e X Layer).
+    private func l1DataFee(
+        _ chain: Chain, call: PlannedCall, mayBeZero: Bool, pool: ProviderPool, providers: [Provider]
+    ) async throws -> BigUInt {
         let size = Self.unsignedSizeUpperBound(dataCount: call.data.count)
         let data = try Self.l1FeeUpperBound.encodeCall([.uint(BigUInt(size))])
         let request: StrictJSON = .object(["to": .string(Self.gasPriceOracle.checksummed), "data": .string(Hex.encode(data, prefix: true))])
@@ -538,7 +548,7 @@ public actor EVMReader {
             do { return try ERC20.decodeUInt256(returned) } catch { throw ReaderError.malformed(field: "getL1FeeUpperBound") }
         }
         guard let fee = answers.map(\.value).max() else { throw lastError ?? ReaderError.notEnoughProviders(needed: 1, got: 0) }
-        guard !fee.isZero, fee <= Self.maxL1DataFee else { throw ReaderError.implausibleValue(field: "getL1FeeUpperBound") }
+        guard mayBeZero || !fee.isZero, fee <= Self.maxL1DataFee else { throw ReaderError.implausibleValue(field: "getL1FeeUpperBound") }
         return fee
     }
 
@@ -692,7 +702,9 @@ public actor EVMReader {
             let path = "tokenTransfers.items[\(offset)]"
             tokens.append(TokenRow(
                 hash: try item.field("transaction_hash", path).string(path + ".transaction_hash"),
-                index: try item.field("log_index", path).uint64(path + ".log_index").description,
+                // Inteiro com sinal: o Blockscout da Celo da indice negativo as transferencias
+                // de CELO que ele sintetiza (sem log proprio), e isso nao pode derrubar a pagina.
+                index: try item.field("log_index", path).int64(path + ".log_index").description,
                 date: try isoDate(try item.field("timestamp", path).string(path + ".timestamp"), path + ".timestamp"),
                 from: try address(try item.field("from", path).field("hash", path + ".from"), path + ".from.hash"),
                 to: try address(try item.field("to", path).field("hash", path + ".to"), path + ".to.hash"),
@@ -703,7 +715,7 @@ public actor EVMReader {
         return assemble(chain: chain, owner: owner, rows: rows, tokens: tokens, complete: complete)
     }
 
-    /// Formato Etherscan (Routescan na Avalanche): `txlist` e `tokentx`.
+    /// Formato Etherscan (Routescan na Avalanche e na Plasma): `txlist` e `tokentx`.
     static func parseEtherscanHistory(
         chain: Chain, owner: EVMAddress, transactions: StrictJSON, tokenTransfers: StrictJSON, complete: Bool = true
     ) throws -> ActivityPage {
@@ -753,11 +765,22 @@ public actor EVMReader {
         return assemble(chain: chain, owner: owner, rows: rows, tokens: tokens, complete: complete)
     }
 
+    /// Contratos ERC-20 que sao a propria moeda nativa. Celo: o CELO e nativo e ERC-20
+    /// ao mesmo tempo, sem embrulho (docs.celo.org, "Token Duality"): `transfer` no
+    /// contrato move o saldo nativo por um precompile, e o indexador mostra esse
+    /// movimento como transferencia do token. No historico ele vale como CELO nativo; se
+    /// fosse lido como token fora da lista, todo CELO recebido por contrato sumiria como
+    /// suspeito.
+    static let nativeTokenContracts: [UInt64: EVMAddress] = [
+        42220: EVMAddress(bytesUnchecked: [UInt8](hex: "471ece3750da237f93b8e339c536989b8978a438")!),
+    ]
+
     /// Junta transacoes e transferencias de token por hash e aplica as regras de
     /// `ActivityRules`: saiu um ativo e entrou outro na mesma transacao do dono, troca;
     /// recebimento de valor zero, de token fora da lista ou po, suspeito.
     static func assemble(chain: Chain, owner: EVMAddress, rows: [TransactionRow], tokens: [TokenRow], complete: Bool = true) -> ActivityPage {
         let native = Asset.native(chain)
+        let nativeContract = chain.evmChainID.flatMap { nativeTokenContracts[$0] }
         var suspicious = SuspiciousSummary()
         var items: [ActivityItem] = []
         let rowsByHash = Dictionary(rows.map { ($0.hash.lowercased(), $0) }, uniquingKeysWith: { first, _ in first })
@@ -785,7 +808,10 @@ public actor EVMReader {
                 ))
             }
             for token in tokensByHash[hash] ?? [] where token.from == owner || token.to == owner {
-                let asset = TokenRegistry.find(chainID: chain.id, contract: token.contract.checksummed)
+                let isNative = token.contract == nativeContract
+                // O mesmo valor ja contado pela transacao (envio nativo direto) nao entra duas vezes.
+                if isNative, let row, row.value == token.amount, row.from == token.from, row.to == token.to { continue }
+                let asset = isNative ? native : TokenRegistry.find(chainID: chain.id, contract: token.contract.checksummed)
                 let outgoing = token.from == owner
                 let incoming = token.to == owner
                 movements.append(Movement(

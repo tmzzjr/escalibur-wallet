@@ -47,6 +47,51 @@ public enum Endpoints {
             .init(name: "publicnode", baseURL: url("https://avalanche-c-chain-rpc.publicnode.com")),
             .init(name: "drpc", baseURL: url("https://avalanche.drpc.org")),
         ],
+        // Segunda leva, conferida em 26/09/2026: em cada RPC, sem chave, `eth_chainId`,
+        // `eth_getTransactionCount` pending, `eth_feeHistory`, `eth_estimateGas`,
+        // `eth_getCode` e `eth_call`. Tres operadores diferentes por rede; o segundo
+        // endpoint oficial da mesma empresa (xlayerrpc.okx.com) fica de fora, porque o
+        // consenso de dois provedores tem de ser de dois operadores.
+        // Plasma: o RPC da Plasma (docs.plasma.org, "Connect to Plasma") e os gateways
+        // publicos da thirdweb e da Tenderly (parceiros em "RPC Providers"). O dRPC so
+        // atende a Plasma no plano pago.
+        "plasma": [
+            .init(name: "plasma", baseURL: url("https://rpc.plasma.to")),
+            .init(name: "thirdweb", baseURL: url("https://9745.rpc.thirdweb.com")),
+            .init(name: "tenderly", baseURL: url("https://plasma.gateway.tenderly.co")),
+        ],
+        // X Layer: o RPC da OKX (web3.okx.com, "RPC endpoints", 100 req/s por IP), dRPC e
+        // thirdweb. A PublicNode nao atende a X Layer.
+        "xlayer": [
+            .init(name: "okx", baseURL: url("https://rpc.xlayer.tech")),
+            .init(name: "drpc", baseURL: url("https://xlayer.drpc.org")),
+            .init(name: "thirdweb", baseURL: url("https://196.rpc.thirdweb.com")),
+        ],
+        "linea": [
+            .init(name: "linea", baseURL: url("https://rpc.linea.build")),
+            .init(name: "publicnode", baseURL: url("https://linea-rpc.publicnode.com")),
+            .init(name: "drpc", baseURL: url("https://linea.drpc.org")),
+        ],
+        // Unichain: o RPC oficial vai por ultimo. Atras dele ha nos com filas diferentes, e
+        // o nonce `pending` de uma conta parada saiu milhares abaixo do `latest` em
+        // 26/09/2026; na frente, o consenso de nonce recusaria o plano toda vez.
+        "unichain": [
+            .init(name: "publicnode", baseURL: url("https://unichain-rpc.publicnode.com")),
+            .init(name: "drpc", baseURL: url("https://unichain.drpc.org")),
+            .init(name: "unichain", baseURL: url("https://mainnet.unichain.org")),
+        ],
+        "sonic": [
+            .init(name: "soniclabs", baseURL: url("https://rpc.soniclabs.com")),
+            .init(name: "publicnode", baseURL: url("https://sonic-rpc.publicnode.com")),
+            .init(name: "drpc", baseURL: url("https://sonic.drpc.org")),
+        ],
+        // Celo: forno da cLabs (docs.celo.org, "Network Information"), PublicNode e
+        // thirdweb. O dRPC da Celo recusa `eth_blockNumber` e o nonce sem chave.
+        "celo": [
+            .init(name: "forno", baseURL: url("https://forno.celo.org")),
+            .init(name: "publicnode", baseURL: url("https://celo-rpc.publicnode.com")),
+            .init(name: "thirdweb", baseURL: url("https://42220.rpc.thirdweb.com")),
+        ],
     ]
 
     /// API no estilo Esplora (mempool.space e forks).
@@ -126,6 +171,14 @@ public enum Endpoints {
     /// BNB Chain: nenhum indexador publico sem chave (BscScan e Etherscan v2 exigem
     /// plano pago para a rede 56, conferido em 25/09/2026); fica sem historico ate o relay.
     /// Todos conferidos ao vivo em 25/09/2026.
+    ///
+    /// Segunda leva, conferida em 26/09/2026 (`/addresses/{a}/transactions` e
+    /// `/token-transfers` sem chave; os hosts vem do registro chains.blockscout.com):
+    /// Linea pela API do Blockscout em `api-explorer.linea.build` (o explorer.linea.build
+    /// so serve a pagina); Unichain e Celo pela equipe Blockscout; Plasma pelo Routescan
+    /// (`txlist` e `tokentx` da rede 9745). X Layer e Sonic nao tem indexador sem chave
+    /// (OKLink e Etherscan v2 pedem chave; nem Blockscout nem Routescan atendem) e ficam
+    /// sem historico, como a BNB Chain.
     public static let evmHistory: [String: [ProviderPool.Provider]] = [
         "ethereum": [.init(name: "blockscout", baseURL: url("https://eth.blockscout.com/api/v2"))],
         "base": [.init(name: "blockscout", baseURL: url("https://base.blockscout.com/api/v2"))],
@@ -133,6 +186,10 @@ public enum Endpoints {
         "arbitrum": [.init(name: "blockscout", baseURL: url("https://arbitrum.blockscout.com/api/v2"))],
         "polygon": [.init(name: "blockscout", baseURL: url("https://polygon.blockscout.com/api/v2"))],
         "avalanche": [.init(name: "routescan", baseURL: url("https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api"))],
+        "plasma": [.init(name: "routescan", baseURL: url("https://api.routescan.io/v2/network/mainnet/evm/9745/etherscan/api"))],
+        "linea": [.init(name: "blockscout", baseURL: url("https://api-explorer.linea.build/api/v2"))],
+        "unichain": [.init(name: "blockscout", baseURL: url("https://unichain.blockscout.com/api/v2"))],
+        "celo": [.init(name: "blockscout", baseURL: url("https://celo.blockscout.com/api/v2"))],
     ]
 
     /// Reservas de RPC EVM para os leitores de estado, somadas as listas de `evm`. BNB
@@ -179,6 +236,15 @@ public enum Endpoints {
     /// 26/09/2026). A troca exige duas fontes (docs/seguranca.md 4.9). Avalanche: nenhum
     /// RPC publico implementa o metodo hoje (api.avax.network, publicnode e drpc devolvem
     /// "method does not exist"), entao troca na Avalanche fica bloqueada ate o relay.
+    ///
+    /// Segunda leva (26/09/2026, envio nativo e `transfer` de USDC simulados, com o log
+    /// sintetico de 0xEeee e o `Transfer` do token): Plasma pelo RPC da Plasma e pela
+    /// thirdweb (a Tenderly devolve 429 no metodo); Linea e Unichain pela PublicNode e
+    /// pelo dRPC (o RPC oficial recusa o metodo); Sonic nos tres. Sem troca: X Layer
+    /// (nenhum agregador da lista cota a rede: KyberSwap, Velora e De¹ nao atendem, e a
+    /// LI.FI nao devolve rota) e Celo (o CELO nativo e tambem ERC-20, e nenhum agregador
+    /// da lista cota a moeda nativa pelo endereco 0xEeee ou 0x0; so ficaria troca entre
+    /// tokens).
     public static let tradeSimulation: [String: [ProviderPool.Provider]] = [
         "ethereum": [
             .init(name: "publicnode", baseURL: url("https://ethereum-rpc.publicnode.com")),
@@ -210,5 +276,22 @@ public enum Endpoints {
             .init(name: "1rpc", baseURL: url("https://1rpc.io/bnb")),
         ],
         "avalanche": [],
+        "plasma": [
+            .init(name: "plasma", baseURL: url("https://rpc.plasma.to")),
+            .init(name: "thirdweb", baseURL: url("https://9745.rpc.thirdweb.com")),
+        ],
+        "linea": [
+            .init(name: "publicnode", baseURL: url("https://linea-rpc.publicnode.com")),
+            .init(name: "drpc", baseURL: url("https://linea.drpc.org")),
+        ],
+        "unichain": [
+            .init(name: "publicnode", baseURL: url("https://unichain-rpc.publicnode.com")),
+            .init(name: "drpc", baseURL: url("https://unichain.drpc.org")),
+        ],
+        "sonic": [
+            .init(name: "soniclabs", baseURL: url("https://rpc.soniclabs.com")),
+            .init(name: "publicnode", baseURL: url("https://sonic-rpc.publicnode.com")),
+            .init(name: "drpc", baseURL: url("https://sonic.drpc.org")),
+        ],
     ]
 }

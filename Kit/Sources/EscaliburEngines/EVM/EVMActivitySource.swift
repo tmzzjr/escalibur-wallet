@@ -5,7 +5,7 @@ import EscaliburNetwork
 import Foundation
 
 /// O historico de uma rede EVM, pelo indexador publico do `EVMReader` (Blockscout; na
-/// Avalanche, Routescan).
+/// Avalanche e na Plasma, Routescan).
 ///
 /// O leitor ja tira da pagina o que qualquer um empurra para o historico de qualquer
 /// conta: recebimento de valor zero, de token fora da lista e po, e a "saida" que o dono
@@ -16,8 +16,8 @@ public struct EVMActivitySource: ActivitySource {
     public let chain: Chain
     let reader: EVMReader
 
-    /// `nil` fora das redes EVM com indexador publico sem chave. A BNB Chain usa
-    /// `EVMUnavailableActivitySource`.
+    /// `nil` fora das redes EVM com indexador publico sem chave. BNB Chain, X Layer e
+    /// Sonic usam `EVMUnavailableActivitySource`.
     public init?(chain: Chain) {
         self.init(chain: chain, reader: .shared)
     }
@@ -41,8 +41,9 @@ public struct EVMActivitySource: ActivitySource {
 }
 
 /// Rede EVM sem indexador publico sem chave (BNB Chain: BscScan e Etherscan v2 exigem
-/// plano pago para a rede 56). O motor de envio funciona; o historico diz que ainda nao
-/// existe, em vez de mostrar uma lista vazia que pareceria "nenhum movimento".
+/// plano pago para a rede 56; X Layer: OKLink pede chave; Sonic: so o Etherscan v2, com
+/// chave). O motor de envio funciona; o historico diz que ainda nao existe, em vez de
+/// mostrar uma lista vazia que pareceria "nenhum movimento".
 public struct EVMUnavailableActivitySource: ActivitySource {
     public let chain: Chain
 

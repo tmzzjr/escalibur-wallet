@@ -94,13 +94,40 @@ struct EVMActivityTests {
         }
     }
 
-    @Test("Registro: as sete redes EVM tem envio e historico; troca fora da Avalanche; ordem limite fora da OP")
+    @Test("X Layer e Sonic: sem indexador sem chave, o historico diz que ainda nao existe")
+    func secondWaveUnavailable() async throws {
+        for chain in [Chain.xlayer, .sonic] {
+            let source = try #require(ActivitySources.source(for: chain))
+            #expect(source is EVMUnavailableActivitySource)
+            await #expect(throws: SendEngineError.unavailable("O histórico da \(chain.name) ainda não está disponível nesta versão.")) {
+                _ = try await source.history(chain: chain, account: A.binance8(on: chain), usage: nil)
+            }
+        }
+    }
+
+    @Test("Registro: as treze redes EVM tem envio e historico; troca fora de Avalanche, X Layer e Celo; ordem limite pela CoW")
     func registry() throws {
         for chain in Chain.evmChains {
             #expect(SendEngines.engine(for: chain) is EVMSendEngine, "\(chain.id)")
             #expect(ActivitySources.source(for: chain) != nil, "\(chain.id)")
         }
+        // Sem indexador publico sem chave: o historico diz que nao tem.
+        for chain in Chain.evmChains {
+            let unavailable = ActivitySources.source(for: chain) is EVMUnavailableActivitySource
+            #expect(unavailable == ["bnb", "xlayer", "sonic"].contains(chain.id), "\(chain.id)")
+        }
         #expect(TradeEngines.engine(for: .avalanche) == nil)
+        #expect(TradeEngines.engine(for: .xlayer) == nil)
+        #expect(TradeEngines.engine(for: .celo) == nil)
+        for chain in [Chain.plasma, .linea] {
+            let engine = try #require(TradeEngines.engine(for: chain), "\(chain.id)")
+            #expect(engine.supportsLimitOrders, "\(chain.id)")
+        }
+        for chain in [Chain.unichain, .sonic] {
+            let engine = try #require(TradeEngines.engine(for: chain), "\(chain.id)")
+            #expect(!engine.supportsLimitOrders, "\(chain.id)")
+            #expect(engine.limitCustodyNote == "Ordens limite ainda não estão disponíveis na \(chain.name).")
+        }
         let optimism = try #require(TradeEngines.engine(for: .optimism))
         #expect(!optimism.supportsLimitOrders)
         #expect(optimism.limitCustodyNote == "Ordens limite ainda não estão disponíveis na Optimism.")
@@ -110,6 +137,7 @@ struct EVMActivityTests {
             #expect(engine.limitCustodyNote == "O valor fica na sua carteira até a ordem executar. Você pode cancelar a qualquer momento.")
         }
         // So as EVM: outras familias registram troca nos proprios arquivos.
-        #expect(TradeEngines.chains.filter { $0.family == .evm }.map(\.id) == ["ethereum", "base", "arbitrum", "optimism", "polygon", "bnb"])
+        #expect(TradeEngines.chains.filter { $0.family == .evm }.map(\.id)
+            == ["ethereum", "base", "arbitrum", "optimism", "polygon", "bnb", "plasma", "linea", "unichain", "sonic"])
     }
 }

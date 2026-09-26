@@ -131,9 +131,9 @@ Para validade, não. A assinatura aleatorizada verifica como qualquer Ed25519 e 
 **Vetores:** BIP-32 (vetores 1 a 5), BIP-39 (vectors.json do Trezor, passphrase "TREZOR"), BIP-84/86/49, exemplos do BIP-143, `bip-0340/test-vectors.csv`, `bip-0341/wallet-test-vectors.json`, válidos e inválidos do BIP-173/350, `key_io_valid.json` e `base58_encode_decode.json` do Bitcoin Core.
 - Âncoras [P]: "abandon×11 about" em `m/84'/0'/0'/0/0` dá `bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu`, e em `m/86'/0'/0'/0/0` dá `bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr`.
 
-### 2.2 EVM (Ethereum 1, Arbitrum 42161, Base 8453, OP 10, Polygon 137, BNB 56, Avalanche C 43114)
+### 2.2 EVM (Ethereum 1, Arbitrum 42161, Base 8453, OP 10, Polygon 137, BNB 56, Avalanche C 43114, Plasma 9745, X Layer 196, Linea 59144, Unichain 130, Sonic 146, Celo 42220)
 
-`eth_chainId` confirmado ao vivo em todas. [W]
+`eth_chainId` confirmado ao vivo em todas (as seis últimas em 26/09/2026). [W]
 
 **Derivação e descoberta**
 - Um endereço serve para todas as redes (coin type 60).
@@ -142,7 +142,7 @@ Para validade, não. A assinatura aleatorizada verifica como qualquer Ed25519 e 
   - `m/44'/60'/i'/0/0`: Ledger Live. [P]
   - `m/44'/60'/0'/i`: Ledger legado (MEW/MyCrypto). [P]
   - O Phantom declara EVM em `m/44'/60'/0'/0/i` e, quando há atividade, `m/44'/60'/1'/0/i` e `m/44'/60'/2'/0/i`. [W, mas a tabela é estranha; conferir]
-- **Descoberta:** gap 5 por esquema. Uma conta é ativa se tiver nonce > 0 em qualquer das 7 redes, ou saldo nativo, ou saldo em token da lista curada. Nonce 0 com token recebido passa despercebido se só olhar nonce.
+- **Descoberta:** gap 5 por esquema. Uma conta é ativa se tiver nonce > 0 em qualquer das 13 redes, ou saldo nativo, ou saldo em token da lista curada. Nonce 0 com token recebido passa despercebido se só olhar nonce.
 
 **Assinatura e endereço**
 - Endereço: `keccak256(pub64)[12:]`, com checksum EIP-55. Entrada toda em minúsculas não tem checksum: exija confirmação extra.
@@ -168,6 +168,12 @@ Para validade, não. A assinatura aleatorizada verifica como qualquer Ed25519 e 
   - Polygon: baseFee ~245 gwei; tip mínimo de 25 gwei. [W]
   - Avalanche: ~0,04 gwei.
   - **BNB:** baseFee = 0 e tip de 0,05 gwei. [W ao vivo; mínimo de 0,05 gwei W] Aceita tipo 2 com maxFee = maxPriority = gasPrice [P]; manter legado como fallback.
+  - Plasma: baseFee de 7 wei, tip de 1 a 64 wei. [W]
+  - X Layer: baseFee de 0,02 gwei. OP Stack, mas o oráculo de taxa L1 devolve zero. [W]
+  - Linea: baseFee fixa de 7 wei; o sequenciador exige preço mínimo que depende do tamanho da transação (`linea_estimateGas` pede ~0,04 gwei para envio simples). A carteira usa piso de 0,1 gwei na gorjeta. [W]
+  - Unichain: baseFee de 0,0005 gwei e taxa L1 à parte, como Base e OP. [W]
+  - Sonic: baseFee com piso de 50 gwei (`eth_getRules`), tip de 1 wei. [W]
+  - Celo: baseFee no piso de 200 gwei; OP Stack com o oráculo de taxa L1 em zero. O CELO nativo também é o ERC-20 `0x471E…a438` (token duality): o histórico lê as transferências desse contrato como CELO nativo. [W]
 
 **Armadilhas**
 - **Nonce:** pegar o *pending* em ≥ 2 RPCs e usar o maior; manter fila local. Substituição exige +10% em maxFee **e** em tip. [P] Cancelar = self-send de 0 com o mesmo nonce.
@@ -176,7 +182,7 @@ Para validade, não. A assinatura aleatorizada verifica como qualquer Ed25519 e 
 - **USDT na mainnet** exige `approve(0)` antes de mudar uma allowance não-zero. [P]
 - **Permit/Permit2 off-chain** é tão perigoso quanto approval.
 - **Envenenamento de endereço:** transferências de 0 vindas de sósias no histórico.
-- **Mesmo endereço em 7 redes:** exchange que só aceita Ethereum recebe em Base. Mostre a rede em destaque.
+- **Mesmo endereço em 13 redes:** exchange que só aceita Ethereum recebe em Base. Mostre a rede em destaque.
 - **Tokens falsos:** lista curada por (chainId, contrato).
 - **Crédito de valor alto:** usar a tag `finalized`/`safe`.
 - **Histórico:** RPC não dá histórico. Precisa de indexador (Blockscout público ou Etherscan v2 com key). [P]
@@ -192,6 +198,14 @@ Para validade, não. A assinatura aleatorizada verifica como qualquer Ed25519 e 
 | Polygon | (`polygon-rpc.com` morto) | `polygon-bor-rpc.publicnode.com` | `polygon.drpc.org`, `1rpc.io/matic` |
 | BNB | `bsc-dataseed.bnbchain.org` | `bsc-rpc.publicnode.com` | `1rpc.io/bnb` (drpc com rate-limit) |
 | Avalanche | `api.avax.network/ext/bc/C/rpc` | `avalanche-c-chain-rpc.publicnode.com` | `avalanche.drpc.org`, `1rpc.io/avax/c` |
+| Plasma | `rpc.plasma.to` | `9745.rpc.thirdweb.com` | `plasma.gateway.tenderly.co` (dRPC só no plano pago) |
+| X Layer | `rpc.xlayer.tech` | `xlayer.drpc.org` | `196.rpc.thirdweb.com` |
+| Linea | `rpc.linea.build` | `linea-rpc.publicnode.com` | `linea.drpc.org` |
+| Unichain | `mainnet.unichain.org` | `unichain-rpc.publicnode.com` | `unichain.drpc.org` |
+| Sonic | `rpc.soniclabs.com` | `sonic-rpc.publicnode.com` | `sonic.drpc.org` |
+| Celo | `forno.celo.org` | `celo-rpc.publicnode.com` | `42220.rpc.thirdweb.com` (dRPC recusa sem chave) |
+
+Histórico sem chave da segunda leva: Routescan na Plasma, Blockscout na Linea (`api-explorer.linea.build`), na Unichain e na Celo. X Layer e Sonic não têm indexador sem chave (OKLink e Etherscan v2 pedem chave). [W]
 
 Swaps na Ethereum: broadcast por RPC com proteção de MEV (Flashbots Protect, MEV Blocker). [P]
 

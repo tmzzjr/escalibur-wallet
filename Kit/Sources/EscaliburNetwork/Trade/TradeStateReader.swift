@@ -261,7 +261,7 @@ public actor TradeStateReader {
 
     // MARK: Parcelas L1
 
-    /// OP e Base: `getL1FeeUpperBound(tamanho)`, o maior de duas fontes.
+    /// Redes OP Stack: `getL1FeeUpperBound(tamanho)`, o maior de duas fontes.
     public func l1DataFee(chain: Chain, calldataSize: Int) async throws -> BigUInt? {
         guard EVMFeeProfile.for(chain)?.chargesL1DataFee == true else { return nil }
         let data = try Self.getL1FeeUpperBound.encodeCall([.uint(BigUInt(calldataSize + Self.transactionOverhead))])

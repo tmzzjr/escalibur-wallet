@@ -509,7 +509,7 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
 
 ### 4.11 Identificadores de rede, compilados e conferidos
 
-- EVM: Ethereum 1, Arbitrum 42161, Base 8453, OP 10, Polygon 137, BNB 56, Avalanche 43114.
+- EVM: Ethereum 1, Arbitrum 42161, Base 8453, OP 10, Polygon 137, BNB 56, Avalanche 43114, Plasma 9745, X Layer 196, Linea 59144, Unichain 130, Sonic 146, Celo 42220.
 - A passphrase da Stellar.
 - Tudo num arquivo travado por lock, e as mudanças passam pelo CODEOWNERS.
 

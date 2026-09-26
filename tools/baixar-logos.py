@@ -5,7 +5,9 @@ Logos embarcados, e nao baixados em tempo de uso: pedir o logo de um token a um 
 conta ao CDN quais tokens a carteira tem. Roda uma vez por versao; o resultado vai
 para o repositorio e passa por revisao como qualquer outro arquivo.
 
-    python3 tools/baixar-logos.py
+    python3 tools/baixar-logos.py              todos
+    python3 tools/baixar-logos.py celo linea   so os nomes dados (id do CoinGecko da
+                                               moeda ou id da rede em Chain.swift)
 """
 import json, os, sys, urllib.request, hashlib
 
@@ -13,11 +15,15 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(RAIZ, "App/EscaliburWallet/Resources/Assets.xcassets/Logos")
 MOEDAS = ["bitcoin", "ethereum", "solana", "ripple", "stellar", "tron", "the-open-network", "litecoin",
           "dogecoin", "binancecoin", "avalanche-2", "polygon-ecosystem-token", "tether", "usd-coin", "dai",
-          "wrapped-bitcoin", "weth", "chainlink", "uniswap", "arbitrum", "optimism", "jupiter-exchange-solana"]
+          "wrapped-bitcoin", "weth", "chainlink", "uniswap", "arbitrum", "optimism", "jupiter-exchange-solana",
+          "plasma", "okb", "sonic-3", "celo"]
 REDES = {"base": "base", "arbitrum": "arbitrum-one", "optimism": "optimistic-ethereum", "polygon": "polygon-pos",
          "bnb": "binance-smart-chain", "avalanche": "avalanche", "ethereum": "ethereum", "solana": "solana",
          "tron": "tron", "ton": "the-open-network", "stellar": "stellar", "xrpl": "xrp", "litecoin": "litecoin",
-         "dogecoin": "dogecoin", "bitcoin": "bitcoin"}
+         "dogecoin": "dogecoin", "bitcoin": "bitcoin",
+         "plasma": "plasma", "xlayer": "x-layer", "linea": "linea", "unichain": "unichain", "sonic": "sonic",
+         "celo": "celo"}
+SO = set(sys.argv[1:])
 
 def get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "EscaliburWallet-tools"})
@@ -39,11 +45,14 @@ def salvar(nome, url):
 os.makedirs(ASSETS, exist_ok=True)
 json.dump({"info": {"author": "xcode", "version": 1}, "properties": {"provides-namespace": False}},
           open(os.path.join(ASSETS, "Contents.json"), "w"))
-mercados = json.loads(get("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=" + ",".join(MOEDAS)))
-for m in mercados:
-    salvar("logo-" + m["id"], m["image"])
+moedas = [m for m in MOEDAS if not SO or m in SO]
+if moedas:
+    mercados = json.loads(get("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=" + ",".join(moedas)))
+    for m in mercados:
+        salvar("logo-" + m["id"], m["image"])
 plataformas = {p["id"]: p for p in json.loads(get("https://api.coingecko.com/api/v3/asset_platforms"))}
 for rede, pid in REDES.items():
+    if SO and rede not in SO: continue
     p = plataformas.get(pid)
     img = (p or {}).get("image") or {}
     url = img.get("large") or img.get("small")
