@@ -96,13 +96,18 @@ public actor SolanaPlanningService {
     /// dois RPCs, contas e estado, rascunho validado, simulacao e plano. Se a
     /// mensagem nao couber num pacote, pede rota com menos contas.
     /// `sellMint`/`buyMint` com o mint do SOL embrulhado significam SOL.
+    ///
+    /// `reference`: o preco de mercado de fora da Jupiter. O planejador recusa o par sem
+    /// ele (fora dois stablecoins da lista) e a cotacao mais de 5% pior que ele.
     public func planSwap(
         walletID: UUID, owner: SolanaOwner, sellMint: SolanaPublicKey, buyMint: SolanaPublicKey, amountIn: BigUInt, slippageBps: UInt16,
-        minimumOutShown: BigUInt? = nil
+        minimumOutShown: BigUInt? = nil, reference: TradeMarketReference = .none
     ) async throws -> SigningPlan {
         let sell = try await reader.swapAsset(mint: sellMint)
         let buy = try await reader.swapAsset(mint: buyMint)
-        let intent = SolanaSwapIntent(sell: sell, buy: buy, amountIn: amountIn, slippageBps: slippageBps, minimumOutShown: minimumOutShown)
+        let intent = SolanaSwapIntent(
+            sell: sell, buy: buy, amountIn: amountIn, slippageBps: slippageBps, minimumOutShown: minimumOutShown, reference: reference
+        )
         guard let amount = amountIn.uint64 else { throw SolanaSwapError.amountTooLarge }
         let accounts = try await reader.swapAccounts(owner: owner.publicKey, sell: sell, buy: buy)
         var lastError: Error = SolanaSwapError.plan(.transactionTooLarge(0))

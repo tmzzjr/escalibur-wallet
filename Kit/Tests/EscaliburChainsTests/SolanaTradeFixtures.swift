@@ -81,10 +81,17 @@ enum SolanaTradeFixtures {
         let accounts: SolanaSwapAccounts
     }
 
-    static func solToUSDC(slippage: UInt16 = 50, minimumShown: BigUInt? = nil, buy: SolanaSwapAsset = usdc) -> Case {
+    /// Preco de referencia coerente com as gravacoes: 0,05 SOL por uns 6,08 USDC.
+    static let solToUSDCReference = TradeMarketReference(oracleOut: 6_080_000)
+
+    static func solToUSDC(
+        slippage: UInt16 = 50, minimumShown: BigUInt? = nil, buy: SolanaSwapAsset = usdc, reference: TradeMarketReference = solToUSDCReference
+    ) -> Case {
         Case(
             name: "build-sol-usdc",
-            intent: SolanaSwapIntent(sell: .sol, buy: buy, amountIn: BigUInt(50_000_000), slippageBps: slippage, minimumOutShown: minimumShown),
+            intent: SolanaSwapIntent(
+                sell: .sol, buy: buy, amountIn: BigUInt(50_000_000), slippageBps: slippage, minimumOutShown: minimumShown, reference: reference
+            ),
             accounts: SolanaSwapAccounts(source: nil, destination: .missing, destinationRentMinimum: tokenRent, wrappedSOLRentMinimum: tokenRent)
         )
     }
@@ -92,7 +99,9 @@ enum SolanaTradeFixtures {
     static func usdcToSOL(owner: SolanaPublicKey) throws -> Case {
         Case(
             name: "build-usdc-sol",
-            intent: SolanaSwapIntent(sell: usdc, buy: .sol, amountIn: BigUInt(5_000_000), slippageBps: 100),
+            intent: SolanaSwapIntent(
+                sell: usdc, buy: .sol, amountIn: BigUInt(5_000_000), slippageBps: 100, reference: TradeMarketReference(oracleOut: 41_100_000)
+            ),
             accounts: SolanaSwapAccounts(
                 source: try tokenAccount(owner, usdcMint, amount: 7_000_000), destination: .missing,
                 destinationRentMinimum: tokenRent, wrappedSOLRentMinimum: tokenRent

@@ -37,7 +37,7 @@ protocol SolanaEngineNetwork: Sendable {
     func lookupTables(_ addresses: [SolanaPublicKey]) async throws -> [SolanaAddressLookupTable]
     func planSwap(
         walletID: UUID, owner: SolanaOwner, sellMint: SolanaPublicKey, buyMint: SolanaPublicKey, amountIn: BigUInt, slippageBps: UInt16,
-        minimumOutShown: BigUInt
+        minimumOutShown: BigUInt, reference: TradeMarketReference
     ) async throws -> SigningPlan
 
     // MARK: Transmissao e acompanhamento
@@ -122,11 +122,11 @@ struct SolanaLiveNetwork: SolanaEngineNetwork {
 
     func planSwap(
         walletID: UUID, owner: SolanaOwner, sellMint: SolanaPublicKey, buyMint: SolanaPublicKey, amountIn: BigUInt, slippageBps: UInt16,
-        minimumOutShown: BigUInt
+        minimumOutShown: BigUInt, reference: TradeMarketReference
     ) async throws -> SigningPlan {
         try await planning.planSwap(
             walletID: walletID, owner: owner, sellMint: sellMint, buyMint: buyMint, amountIn: amountIn, slippageBps: slippageBps,
-            minimumOutShown: minimumOutShown
+            minimumOutShown: minimumOutShown, reference: reference
         )
     }
 

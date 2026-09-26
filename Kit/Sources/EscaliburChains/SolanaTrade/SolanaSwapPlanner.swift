@@ -83,13 +83,21 @@ public struct SolanaSwapIntent: Sendable, Equatable {
     /// O minimo que a tela mostrou antes de o dono tocar em Trocar, de uma cotacao
     /// anterior. A rota montada nao pode garantir menos que isso.
     public let minimumOutShown: BigUInt?
+    /// O preco de mercado de `amountIn` em unidades do comprado, de fora da Jupiter (o
+    /// oraculo do app). Sem ele, so dois stablecoins da lista trocam (a paridade e a
+    /// referencia); qualquer outro par recusa.
+    public let reference: TradeMarketReference
 
-    public init(sell: SolanaSwapAsset, buy: SolanaSwapAsset, amountIn: BigUInt, slippageBps: UInt16, minimumOutShown: BigUInt? = nil) {
+    public init(
+        sell: SolanaSwapAsset, buy: SolanaSwapAsset, amountIn: BigUInt, slippageBps: UInt16, minimumOutShown: BigUInt? = nil,
+        reference: TradeMarketReference = .none
+    ) {
         self.sell = sell
         self.buy = buy
         self.amountIn = amountIn
         self.slippageBps = slippageBps
         self.minimumOutShown = minimumOutShown
+        self.reference = reference
     }
 }
 
@@ -105,11 +113,21 @@ public struct SolanaSwapAccounts: Sendable, Equatable {
     /// saldo durante a transacao e volta ao dono quando ela e fechada no fim.
     public let wrappedSOLRentMinimum: BigUInt
 
-    public init(source: SolanaTokenAccountState?, destination: SolanaDestinationTokenAccount, destinationRentMinimum: BigUInt, wrappedSOLRentMinimum: BigUInt) {
+    /// As outras contas de token do dono nos mints da lista curada, como estao antes da
+    /// troca. A simulacao pede o estado final delas tambem, e nenhuma pode perder saldo:
+    /// uma rota que drenasse outra conta do dono passaria despercebida olhando so os dois
+    /// lados da troca (auditoria 2, A2).
+    public let guarded: [SolanaAccountSnapshot]
+
+    public init(
+        source: SolanaTokenAccountState?, destination: SolanaDestinationTokenAccount, destinationRentMinimum: BigUInt, wrappedSOLRentMinimum: BigUInt,
+        guarded: [SolanaAccountSnapshot] = []
+    ) {
         self.source = source
         self.destination = destination
         self.destinationRentMinimum = destinationRentMinimum
         self.wrappedSOLRentMinimum = wrappedSOLRentMinimum
+        self.guarded = guarded
     }
 }
 
@@ -163,6 +181,12 @@ public enum SolanaSwapError: Error, Equatable, Sendable {
     case simulationSpentTooMuch(asset: String, spent: BigUInt, limit: BigUInt)
     case simulationReceivedTooLittle(asset: String, received: BigUInt, minimum: BigUInt)
     case simulationNoComputeUnits
+    /// Outra conta de token do dono perde saldo na simulacao.
+    case simulationTouchedOtherAccount(SolanaPublicKey)
+    /// Par que nao e de dois stablecoins, sem preco de referencia de fora da Jupiter.
+    case noPriceReference
+    /// A cotacao fica mais de 5% pior que o preco de referencia.
+    case priceFarFromReference(deviationBps: Int)
 }
 
 /// O rascunho: a mensagem montada e conferida, pronta para simular. Nao e
@@ -191,6 +215,8 @@ public struct SolanaSwapDraft: Sendable {
     let createsDestination: Bool
     /// A maior taxa de rede que o rascunho pode cobrar (limite maximo de CU).
     let draftFee: BigUInt
+    /// Quanto a cotacao fica abaixo da referencia, em bps.
+    let referenceDeviationBps: Int?
 }
 
 public enum SolanaSwapPlanner {
@@ -251,6 +277,7 @@ public enum SolanaSwapPlanner {
             throw SolanaSwapError.route(error)
         }
         try checkRoute(route, intent: intent, amountIn: amountIn, proposal: proposal, owner: me, source: sourceAccount, destination: destinationAccount)
+        let deviation = try checkReference(intent, quoted: route.quotedOutAmount)
 
         // Contas de token do dono.
         if !sell.isNativeSOL {
@@ -300,11 +327,14 @@ public enum SolanaSwapPlanner {
         var simulationAccounts = [me]
         if !sell.isNativeSOL { simulationAccounts.append(sourceAccount) }
         if !buy.isNativeSOL { simulationAccounts.append(destinationAccount) }
+        for guarded in accounts.guarded where !simulationAccounts.contains(guarded.address) {
+            simulationAccounts.append(guarded.address)
+        }
         return SolanaSwapDraft(
             message: message, simulationTransactionBase64: SolanaSimulationEncoding.unsignedTransactionBase64(message),
             simulationAccounts: simulationAccounts, route: route, walletID: walletID, owner: owner, intent: intent, proposal: proposal,
             lookupTables: tables, accounts: accounts, network: network, sourceAccount: sourceAccount, destinationAccount: destinationAccount,
-            wrappedAccount: wrappedAccount, createsDestination: createsDestination, draftFee: draftFee
+            wrappedAccount: wrappedAccount, createsDestination: createsDestination, draftFee: draftFee, referenceDeviationBps: deviation
         )
     }
 
@@ -460,6 +490,31 @@ public enum SolanaSwapPlanner {
         }
     }
 
+    /// O preco de referencia de fora da Jupiter (auditoria 2, A2): a Jupiter propoe rota,
+    /// cotacao e minimo, e sem outra fonte ela escolheria sozinha quanto o dono recebe.
+    /// Com referencia, a cotacao mais de 5% pior recusa; dois stablecoins da lista usam a
+    /// paridade; qualquer outro par sem referencia recusa.
+    static func checkReference(_ intent: SolanaSwapIntent, quoted: UInt64) throws -> Int? {
+        var reference = intent.reference
+        if reference.oracleOut == nil, let sell = listedStable(intent.sell), let buy = listedStable(intent.buy) {
+            reference = TradeMarketReference(amountIn: intent.amountIn, sellDecimals: sell.decimals, buyDecimals: buy.decimals, sellPriceUSD: "1", buyPriceUSD: "1")
+        }
+        guard reference.oracleOut != nil else { throw SolanaSwapError.noPriceReference }
+        do {
+            return try reference.check(expected: BigUInt(quoted))
+        } catch TradeRefusal.priceFarFromOracle(let deviation) {
+            throw SolanaSwapError.priceFarFromReference(deviationBps: deviation)
+        }
+    }
+
+    /// O stablecoin da lista curada com este mint, com as mesmas casas.
+    static func listedStable(_ asset: SolanaSwapAsset) -> Asset? {
+        guard !asset.isNativeSOL, asset.isVerified else { return nil }
+        return TokenRegistry.tokens.first {
+            $0.chainID == Chain.solana.id && $0.kind == .token(contract: asset.mint.base58) && $0.isStablecoin && $0.decimals == Int(asset.decimals)
+        }
+    }
+
     /// Saldo de SOL: no pico precisa cobrir taxa, valor (se vende SOL), rent da
     /// conta criada e o rent temporario do SOL embrulhado; no fim o dono fica com
     /// pelo menos o minimo de rent (a troca nunca zera a conta).
@@ -588,6 +643,15 @@ public enum SolanaSwapPlanner {
                 throw SolanaSwapError.simulationReceivedTooLittle(asset: intent.buy.symbol, received: received, minimum: minimum)
             }
         }
+
+        // As outras contas de token do dono: a troca nao mexe nelas para baixo.
+        for before in draft.accounts.guarded where before.address != draft.sourceAccount && before.address != draft.destinationAccount {
+            guard before.exists, let held = before.tokenAmount, held > 0 else { continue }
+            let after = try snapshot(before.address)
+            guard after.exists, after.tokenMint == before.tokenMint, after.tokenOwner == me, let now = after.tokenAmount, now >= held else {
+                throw SolanaSwapError.simulationTouchedOtherAccount(before.address)
+            }
+        }
     }
 
     // MARK: Revisao
@@ -611,6 +675,9 @@ public enum SolanaSwapPlanner {
         if !priority.isZero { lines.append(PlanReview.Line("Inclui prioridade", SolanaAmountText.sol(priority))) }
         if !permanentRent.isZero {
             lines.append(PlanReview.Line("Criação da sua conta de \(buy.symbol)", SolanaAmountText.sol(permanentRent)))
+        }
+        if TradeMarketReference.warns(draft.referenceDeviationBps), let deviation = draft.referenceDeviationBps {
+            lines.append(PlanReview.Line("Preço de referência", "\(percentText(bps: UInt16(clamping: deviation))) pior que o preço médio de mercado"))
         }
         lines.append(PlanReview.Line("Escalibur", "Sem taxa da Escalibur"))
         lines.append(PlanReview.Line("Provedor", draft.proposal.provider))

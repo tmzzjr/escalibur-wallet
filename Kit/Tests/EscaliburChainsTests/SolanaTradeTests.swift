@@ -409,6 +409,72 @@ struct SolanaTradeRefusalTests {
     }
 }
 
+/// A Jupiter nao e a unica fonte de preco (auditoria 2, A2).
+@Suite("Solana troca: preco de referencia e contas vigiadas")
+struct SolanaTradeReferenceTests {
+    @Test("Regressao A2: sem referencia, so dois stablecoins da lista trocam (pela paridade)")
+    func noReference() throws {
+        #expect(throws: SolanaSwapError.noPriceReference) { try F.draft(F.solToUSDC(reference: .none)) }
+        let owner = try F.owner().publicKey
+        let stable = try F.usdcToUSDT(owner: owner)
+        #expect(stable.intent.reference.oracleOut == nil)
+        _ = try F.draft(stable)
+        // Token "estavel" fora da lista nao tem paridade.
+        let impostor = SolanaSwapAsset(mint: F.stranger, program: .token, decimals: 6, symbol: "USDT", isVerified: false, extensions: [])
+        #expect(SolanaSwapPlanner.listedStable(impostor) == nil)
+        #expect(SolanaSwapPlanner.listedStable(F.usdt)?.symbol == "USDT")
+    }
+
+    @Test("Regressao A2: cotacao mais de 5% pior que a referencia recusa; entre 2% e 5% a revisao diz quanto")
+    func farFromReference() throws {
+        // A rota gravada cota 6,080466 USDC por 0,05 SOL.
+        #expect(throws: SolanaSwapError.priceFarFromReference(deviationBps: 645)) {
+            try F.draft(F.solToUSDC(reference: TradeMarketReference(oracleOut: 6_500_000)))
+        }
+        let draft = try F.draft(F.solToUSDC(reference: TradeMarketReference(oracleOut: 6_250_000)))
+        let plan = try SolanaSwapPlanner.plan(draft, simulation: try F.honestSimulation(draft), now: F.now)
+        #expect(plan.review.lines.contains(PlanReview.Line("Preço de referência", "2,71% pior que o preço médio de mercado")))
+        let calm = try F.draft(F.solToUSDC())
+        let quiet = try SolanaSwapPlanner.plan(calm, simulation: try F.honestSimulation(calm), now: F.now)
+        #expect(!quiet.review.lines.contains { $0.label == "Preço de referência" })
+    }
+
+    @Test("Regressao A2: a simulacao olha as outras contas de token do dono nos mints da lista")
+    func guardedAccounts() throws {
+        let owner = try F.owner().publicKey
+        let jupMint = try SolanaPublicKey(base58: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN")
+        let jupATA = try F.ata(owner, jupMint)
+        let before = SolanaAccountSnapshot(
+            address: jupATA, exists: true, lamports: 2_039_280, programOwner: SolanaProgramID.token,
+            tokenMint: jupMint, tokenOwner: owner, tokenAmount: 1_000_000
+        )
+        let base = F.solToUSDC()
+        let guarded = F.Case(name: base.name, intent: base.intent, accounts: SolanaSwapAccounts(
+            source: nil, destination: .missing, destinationRentMinimum: F.tokenRent, wrappedSOLRentMinimum: F.tokenRent, guarded: [before]
+        ))
+        let draft = try F.draft(guarded)
+        #expect(draft.simulationAccounts.contains(jupATA))
+        let honest = try F.honestSimulation(draft).accounts
+        _ = try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: honest + [before]), now: F.now)
+
+        let drained = SolanaAccountSnapshot(
+            address: jupATA, exists: true, lamports: 2_039_280, programOwner: SolanaProgramID.token,
+            tokenMint: jupMint, tokenOwner: owner, tokenAmount: 0
+        )
+        #expect(throws: SolanaSwapError.simulationTouchedOtherAccount(jupATA)) {
+            try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: honest + [drained]), now: F.now)
+        }
+        #expect(throws: SolanaSwapError.simulationTouchedOtherAccount(jupATA)) {
+            try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(
+                error: nil, unitsConsumed: 150_000, accounts: honest + [.missing(jupATA)]
+            ), now: F.now)
+        }
+        #expect(throws: SolanaSwapError.simulationMissingAccount(jupATA)) {
+            try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: honest), now: F.now)
+        }
+    }
+}
+
 /// A simulacao como segunda opiniao.
 @Suite("Solana troca: conferencia da simulacao")
 struct SolanaTradeSimulationTests {

@@ -28,6 +28,19 @@ enum SolanaNetFixtures {
 
 private typealias N = SolanaNetFixtures
 
+@Suite("Solana rede: contas vigiadas na troca")
+struct SolanaNetGuardedTests {
+    @Test("Regressao A2: os ATAs do dono nos mints da lista, fora os dois lados da troca")
+    func guardedAccounts() throws {
+        // O ATA de USDC de toly.sol e o gravado (9SHQ...): a derivacao e a do Token classico.
+        let all = SolanaNetworkReader.guardedAccounts(owner: N.toly, excluding: [])
+        #expect(all.contains(N.tolyUSDC))
+        #expect(all.count == TokenRegistry.tokens.filter { $0.chainID == Chain.solana.id }.count)
+        let withoutUSDC = SolanaNetworkReader.guardedAccounts(owner: N.toly, excluding: [N.usdc])
+        #expect(!withoutUSDC.contains(N.tolyUSDC) && withoutUSDC.count == all.count - 1)
+    }
+}
+
 @Suite("Solana rede: leitura de contas")
 struct SolanaNetAccountTests {
     func account(_ name: String) throws -> RPCAccount? {

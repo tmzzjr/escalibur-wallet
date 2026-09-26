@@ -178,6 +178,12 @@ enum SolanaEngineMessages {
         case .simulationFailed, .simulationMissingAccount, .simulationWrongAccount, .simulationSpentTooMuch,
              .simulationReceivedTooLittle, .simulationNoComputeUnits:
             return swapSimulationFailed
+        case .simulationTouchedOtherAccount:
+            return "A simulação mostrou outra conta de token sua perdendo saldo. Troca bloqueada. Nada foi assinado."
+        case .noPriceReference:
+            return "Sem preço de referência do mercado agora, esta troca fica bloqueada: a cotação da Jupiter não tem com o que ser comparada. Tente de novo em instantes."
+        case .priceFarFromReference(let deviation):
+            return MarketReference.farText(deviationBps: deviation)
         }
     }
 

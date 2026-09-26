@@ -143,6 +143,7 @@ public actor SolanaNetworkReader {
 
     /// O estado atual de contas (lamports, dono, token), em base64.
     public func snapshots(_ addresses: [SolanaPublicKey]) async throws -> [SolanaAccountSnapshot] {
+        guard !addresses.isEmpty else { return [] }
         let result: RPCContextual<[RPCAccount?]> = try await call(
             "getMultipleAccounts", [.array(addresses.map { .string($0.base58) }), .object(["encoding": .string("base64"), "commitment": .string("confirmed")])]
         )
@@ -222,7 +223,23 @@ public actor SolanaNetworkReader {
         if buy.program == .token2022 {
             destinationRent = try await rentExemptMinimum(dataSize: try await mintInfo(buy.mint).tokenAccountSize)
         }
-        return SolanaSwapAccounts(source: source, destination: destination, destinationRentMinimum: destinationRent, wrappedSOLRentMinimum: wrappedRent)
+        let guarded = try await snapshots(Self.guardedAccounts(owner: owner, excluding: [sell.mint, buy.mint]))
+        return SolanaSwapAccounts(
+            source: source, destination: destination, destinationRentMinimum: destinationRent, wrappedSOLRentMinimum: wrappedRent,
+            guarded: guarded
+        )
+    }
+
+    /// As contas de token do dono nos mints da lista curada, fora os dois lados da
+    /// troca: a simulacao confere que nenhuma perde saldo. Os mints da lista (USDC, USDT
+    /// e JUP) sao do programa Token classico, e o ATA e derivado com ele.
+    static func guardedAccounts(owner: SolanaPublicKey, excluding: [SolanaPublicKey]) -> [SolanaPublicKey] {
+        TokenRegistry.tokens.compactMap { asset -> SolanaPublicKey? in
+            guard asset.chainID == Chain.solana.id, case .token(let contract) = asset.kind,
+                  let mint = try? SolanaPublicKey(base58: contract), !excluding.contains(mint)
+            else { return nil }
+            return try? SolanaAssociatedToken.address(owner: owner, mint: mint, tokenProgram: .token)
+        }
     }
 
     /// Token fora da lista nao ganha nome vindo da rede: aparece pelo inicio do mint.
