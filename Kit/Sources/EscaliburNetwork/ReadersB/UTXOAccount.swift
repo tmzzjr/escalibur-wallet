@@ -146,6 +146,12 @@ public struct UTXORejectedCoin: Sendable, Equatable {
         /// O valor que o provedor anunciou nao e o da saida conferida. A moeda pode
         /// existir, mas quem mente o valor nao merece o resto da alegacao.
         case claimedValueMismatch
+        /// Vale menos do que custa gasta-la na taxa rapida de agora (poeira). Nao e
+        /// conferida nem baixada: o planejador a deixaria de fora de qualquer jeito, e
+        /// baixar a transacao anterior de centenas delas travaria o envio.
+        case uneconomic
+        /// Alem do teto de moedas conferidas numa leitura, que ficam com as maiores.
+        case overLimit
     }
 
     public let outpoint: UTXOOutpoint

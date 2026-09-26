@@ -132,11 +132,20 @@ public struct UTXOReader: Sendable {
     /// Para cada moeda: baixa `/tx/{txid}/hex`, confere o txid (`UTXOPreviousOutput.verify`),
     /// confere que a saida paga o script da chave derivada localmente e que o valor
     /// anunciado e o da saida. O que nao fecha vai para `rejected`, com o motivo.
-    public func coins(for addresses: [UTXODerivedAddress]) async throws -> UTXOCoinReading {
+    ///
+    /// Poeira de desconhecidos (centenas de moedas minusculas mandadas por robos) nao
+    /// pode travar o envio: moeda que vale menos que `minimumValue` nao e baixada, e so
+    /// as `maxCoins` maiores sao conferidas. As duas ficam em `rejected` com o motivo.
+    /// O valor que decide aqui e o anunciado pelo provedor; um provedor que mente para
+    /// baixo so tira uma moeda desta leitura, e um que mente para cima cai na conferencia.
+    public func coins(
+        for addresses: [UTXODerivedAddress], minimumValue: UInt64 = 0, maxCoins: Int = UTXOReader.maxCoinsVerified
+    ) async throws -> UTXOCoinReading {
         let tip = try await tipHeight()
-        let listed = try await ReaderConcurrency.map(addresses, limit: Self.parallelism) { address in
+        let everything = try await ReaderConcurrency.map(addresses, limit: Self.parallelism) { address in
             (address, try await self.withProvider(spread: Int(address.index)) { try await $0.unspent(address.address) })
         }
+        let (listed, skipped) = Self.selectClaims(everything, minimumValue: minimumValue, maxCoins: maxCoins)
 
         var txids: [UTXOTxID] = []
         var seenTx = Set<UTXOTxID>()
@@ -149,7 +158,7 @@ public struct UTXOReader: Sendable {
         let rawByTx = Dictionary(raws.map { ($0.0, $0.1) }, uniquingKeysWith: { first, _ in first })
 
         var coins: [UTXOCoin] = []
-        var rejected: [UTXORejectedCoin] = []
+        var rejected: [UTXORejectedCoin] = skipped
         var values: [UTXOOutpoint: UInt64] = [:]
         var seenCoin = Set<UTXOOutpoint>()
         for (address, claims) in listed {
@@ -182,6 +191,34 @@ public struct UTXOReader: Sendable {
             }
         }
         return UTXOCoinReading(coins: coins, rejected: rejected, tipHeight: tip, values: values)
+    }
+
+    /// Teto de moedas conferidas numa leitura. Cada uma custa uma transacao anterior
+    /// baixada; 200 cobre qualquer carteira de uso pessoal e ainda termina em segundos.
+    public static let maxCoinsVerified = 200
+
+    /// Separa o que vale conferir: acima do minimo, as maiores primeiro, ate o teto.
+    static func selectClaims(
+        _ listed: [(UTXODerivedAddress, [UTXOUnspentClaim])], minimumValue: UInt64, maxCoins: Int
+    ) -> (kept: [(UTXODerivedAddress, [UTXOUnspentClaim])], skipped: [UTXORejectedCoin]) {
+        var skipped: [UTXORejectedCoin] = []
+        var candidates: [(address: Int, claim: UTXOUnspentClaim)] = []
+        for (position, entry) in listed.enumerated() {
+            for claim in entry.1 {
+                if claim.claimedValue < minimumValue {
+                    skipped.append(UTXORejectedCoin(outpoint: claim.outpoint, reason: .uneconomic))
+                } else {
+                    candidates.append((position, claim))
+                }
+            }
+        }
+        candidates.sort { $0.claim.claimedValue > $1.claim.claimedValue }
+        for extra in candidates.dropFirst(maxCoins) {
+            skipped.append(UTXORejectedCoin(outpoint: extra.claim.outpoint, reason: .overLimit))
+        }
+        var kept = listed.map { ($0.0, [UTXOUnspentClaim]()) }
+        for chosen in candidates.prefix(maxCoins) { kept[chosen.address].1.append(chosen.claim) }
+        return (kept, skipped)
     }
 
     /// A transacao anterior de um provedor cujo txid bate. Se nenhum entregar uma que
@@ -263,10 +300,11 @@ public struct UTXOReader: Sendable {
     /// Moedas, taxas, altura e troco: o que `UTXOPlanner.planSend` pede.
     public func spendState(_ discovery: UTXODiscovery) async throws -> UTXOSpendState {
         guard discovery.account.chain == chain else { throw ChainReaderError.unsupportedAccount }
-        async let reading = coins(for: discovery.used)
-        async let fees = feeLevels()
-        let coins = try await reading
-        let levels = try await fees
+        // A taxa vem antes: e ela que diz o que e poeira agora (moeda que nao paga a
+        // propria entrada na taxa rapida).
+        let levels = try await feeLevels()
+        let minimum = levels.fast.fee(weight: discovery.account.kind.inputWeight)
+        let coins = try await coins(for: discovery.used, minimumValue: minimum)
         return UTXOSpendState(
             network: UTXONetworkState(coins: coins.coins, feeEstimates: levels.estimates, tipHeight: coins.tipHeight),
             change: discovery.changeAddress, fees: levels, rejected: coins.rejected

@@ -40,4 +40,9 @@ final class ShortLivedMemory<Key: Hashable & Sendable, Value: Sendable>: Sendabl
             return entry.value
         }
     }
+
+    /// Esquece tudo agora (depois de uma transmissao, o que foi lembrado envelheceu).
+    func forgetAll() {
+        entries.withLock { $0.removeAll() }
+    }
 }
