@@ -44,3 +44,25 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/EscaliburWallet/Resources/EscaliburWallet.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_STRICT_CONCURRENCY: complete
+  EscaliburWalletUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: App/EscaliburWalletUITests
+    dependencies:
+      - target: EscaliburWallet
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.thomazjr.escalibur.wallet.uitests
+        DEVELOPMENT_TEAM: 2UNWMDD93S
+        TEST_TARGET_NAME: EscaliburWallet
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_STRICT_CONCURRENCY: minimal
+schemes:
+  EscaliburWallet:
+    build:
+      targets:
+        EscaliburWallet: all
+    test:
+      targets:
+        - EscaliburWalletUITests

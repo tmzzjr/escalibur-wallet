@@ -1,6 +1,7 @@
 import EscaliburCore
 import EscaliburKeys
 import SwiftUI
+import UIKit
 
 /// Pede presenca do dono para uma operacao: Face ID quando ligado, PIN quando nao,
 /// ou quando o Face ID falhar. Uma folha de PIN so, hospedada na raiz do app.
@@ -22,7 +23,9 @@ final class AuthCoordinator {
             return .biometry(reason: reason)
         }
         return await withCheckedContinuation { continuation in
-            pinRequest = PINRequest(reason: reason, continuation: continuation)
+            let request = PINRequest(reason: reason, continuation: continuation)
+            pinRequest = request
+            OverlayWindow.shared.show(PINRequestSheet(request: request, coordinator: self))
         }
     }
 
@@ -42,6 +45,7 @@ final class AuthCoordinator {
 
     fileprivate func finish(_ request: PINRequest, with credential: Credential?) {
         pinRequest = nil
+        OverlayWindow.shared.hide()
         request.continuation.resume(returning: credential)
     }
 }
@@ -60,5 +64,31 @@ struct PINRequestSheet: View {
         }
         .interactiveDismissDisabled()
         .presentationBackground(Palette.void)
+    }
+}
+
+/// Uma janela propria, acima de tudo, para pedir o PIN ou a voz no meio de qualquer
+/// fluxo. Folha do SwiftUI nao abre por baixo de uma tela cheia ja apresentada, e o
+/// pedido de presenca precisa aparecer de onde quer que a operacao tenha comecado.
+@MainActor
+final class OverlayWindow {
+    static let shared = OverlayWindow()
+    private var window: UIWindow?
+
+    func show<Content: View>(_ content: Content) {
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else { return }
+        let host = UIHostingController(rootView: content.preferredColorScheme(.dark))
+        host.view.backgroundColor = UIColor(Palette.void)
+        let window = UIWindow(windowScene: scene)
+        window.windowLevel = .alert + 1
+        window.rootViewController = host
+        window.overrideUserInterfaceStyle = .dark
+        window.makeKeyAndVisible()
+        self.window = window
+    }
+
+    func hide() {
+        window?.isHidden = true
+        window = nil
     }
 }

@@ -50,12 +50,15 @@ final class VoiceGate {
         case .send(let fiat): guard let limit = settings.onSendAboveFiat, fiat >= limit else { return true }
         }
         return await withCheckedContinuation { continuation in
-            challenge = Challenge(continuation: continuation, expected: hash, salt: salt)
+            let challenge = Challenge(continuation: continuation, expected: hash, salt: salt)
+            self.challenge = challenge
+            OverlayWindow.shared.show(VoiceChallengeSheet(challenge: challenge))
         }
     }
 
     func finish(_ challenge: Challenge, passed: Bool) {
         self.challenge = nil
+        OverlayWindow.shared.hide()
         challenge.continuation.resume(returning: passed)
     }
 

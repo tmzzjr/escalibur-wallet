@@ -30,6 +30,13 @@ final class AppSession {
     private var backgroundedAt: Date?
 
     init() {
+        #if DEBUG
+        // Testes de interface comecam do zero, como uma instalacao nova.
+        if ProcessInfo.processInfo.arguments.contains("-reset") {
+            KeyServices.root.wipeAll()
+            MetadataStore.deleteFile()
+        }
+        #endif
         KeyServices.firstLaunchCleanup()
         phase = KeyServices.root.isSetUp ? .locked : .onboarding
     }

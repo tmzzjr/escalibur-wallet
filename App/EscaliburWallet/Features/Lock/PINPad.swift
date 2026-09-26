@@ -116,6 +116,7 @@ struct PINPad: View {
             .buttonStyle(PINKeyStyle())
             .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: entry.count)
             .accessibilityLabel("\(digit)")
+            .accessibilityIdentifier("tecla-\(digit)")
         case .none:
             if let biometryIcon, let onBiometry {
                 functionKey(systemImage: biometryIcon, label: "Usar Face ID", action: onBiometry)

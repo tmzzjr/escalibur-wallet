@@ -7,6 +7,10 @@ struct RootView: View {
     @Environment(Router.self) private var router
     @Environment(\.scenePhase) private var scenePhase
     @State private var offeredBiometry = false
+    /// A primeira carteira e guardada antes de as palavras aparecerem. Sem esta
+    /// marca, a raiz trocava para a tela principal no instante do guardar e derrubava
+    /// o fluxo em tela cheia: o dono caia na carteira sem ver as palavras.
+    @State private var firstRun = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -23,12 +27,6 @@ struct RootView: View {
         .onOpenURL { url in
             if url.pathExtension.lowercased() == "esclbr" { router.incomingEnvelope = url }
         }
-        .sheet(item: Bindable(auth).pinRequest) { request in
-            PINRequestSheet(request: request, coordinator: auth)
-        }
-        .sheet(item: Bindable(VoiceGate.shared).challenge) { challenge in
-            VoiceChallengeSheet(challenge: challenge)
-        }
         .onAppear { EnvelopeFile.sweepInbox() }
         #if DEBUG
         .task { await DebugDemo.prepare(session: session, router: router) }
@@ -43,12 +41,15 @@ struct RootView: View {
         case .locked:
             LockView().transition(.opacity)
         case .unlocked:
-            if session.metadata.wallets.isEmpty {
-                if !offeredBiometry, KeyServices.biometryAvailable, !session.biometryEnabled {
-                    BiometryOfferView { offeredBiometry = true }
-                } else {
-                    AddWalletView(isFirst: true) {}
+            if session.metadata.wallets.isEmpty || firstRun {
+                Group {
+                    if !offeredBiometry, KeyServices.biometryAvailable, !session.biometryEnabled {
+                        BiometryOfferView { offeredBiometry = true }
+                    } else {
+                        AddWalletView(isFirst: true) { firstRun = false }
+                    }
                 }
+                .onAppear { if session.metadata.wallets.isEmpty { firstRun = true } }
             } else {
                 MainTabs()
                     .fullScreenCover(item: Binding(

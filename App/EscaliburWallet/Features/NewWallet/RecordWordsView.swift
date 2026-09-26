@@ -129,6 +129,7 @@ struct RecordWordsView: View {
                 .foregroundStyle(Palette.plateMuted)
                 .frame(width: 34, alignment: .leading)
             Text(verbatim: word)
+                .accessibilityIdentifier(index.map { "palavra-\($0)" } ?? "palavra-25")
                 .font(.system(size: 30, weight: .semibold, design: .monospaced))
                 .foregroundStyle(Palette.plateInk)
                 .minimumScaleFactor(0.6)
