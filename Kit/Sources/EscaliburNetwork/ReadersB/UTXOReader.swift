@@ -126,6 +126,24 @@ public struct UTXOReader: Sendable {
         return UTXODiscovery(account: account, gapLimit: gapLimit, used: used, scanned: scanned, nextReceive: nextReceive, nextChange: nextChange)
     }
 
+    /// O endereco nunca recebeu nada, segundo dois provedores diferentes: basta um ver
+    /// historico para contar como usado. Serve ao troco, que a varredura achou livre com
+    /// um provedor so por endereco (auditoria 2, B6): um provedor que esconde o historico
+    /// faria o troco cair num endereco ja usado, e isso liga os pagamentos na cadeia.
+    public func isUnused(_ address: String) async throws -> Bool {
+        var answers = [UInt64]()
+        for provider in await pool.available() where answers.count < 2 {
+            do {
+                answers.append(try await client(provider).transactionCount(address))
+                await pool.reportSuccess(provider)
+            } catch {
+                await pool.reportFailure(provider)
+            }
+        }
+        guard answers.count == 2 else { throw ChainReaderError.notEnoughSources(needed: 2, got: answers.count) }
+        return answers.allSatisfy { $0 == 0 }
+    }
+
     // MARK: Moedas
 
     /// As moedas nao gastas dos enderecos, cada uma com a transacao anterior inteira.
