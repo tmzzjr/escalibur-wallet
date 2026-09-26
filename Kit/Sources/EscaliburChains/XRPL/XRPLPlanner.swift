@@ -473,7 +473,8 @@ public enum XRPLPlanner {
     static func executionText(_ intent: XRPLOfferIntent) -> String {
         var text: String
         switch intent.timeInForce {
-        case .goodTilExpiration: text = "Fica no livro até executar, ser cancelada ou expirar"
+        case .goodTilExpiration:
+            text = intent.expiration == nil ? "Fica no livro até executar ou ser cancelada" : "Fica no livro até executar, ser cancelada ou expirar"
         case .immediateOrCancel: text = "Executa o que der agora e cancela o resto"
         case .fillOrKill: text = "Executa tudo agora ou nada"
         }

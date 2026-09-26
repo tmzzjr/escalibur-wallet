@@ -34,7 +34,7 @@ struct XRPLTradeEngine: TradeEngine {
     var supportsLimitOrders: Bool { true }
 
     var limitCustodyNote: String {
-        "O valor fica na sua conta, reservado pela oferta, até executar, vencer ou você cancelar. Enquanto a oferta estiver no livro, a rede prende a reserva de um objeto em XRP."
+        "O valor fica na sua conta, reservado pela oferta, até executar, vencer (se tiver prazo) ou você cancelar pelas ordens abertas. Enquanto a oferta estiver no livro, a rede prende a reserva de um objeto em XRP."
     }
 
     static let provider = "DEX do XRP Ledger"

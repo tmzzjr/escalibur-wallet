@@ -38,7 +38,7 @@ struct StellarTradeEngine: TradeEngine {
     var supportsLimitOrders: Bool { true }
 
     var limitCustodyNote: String {
-        "O valor fica na sua conta, reservado pela oferta, até executar ou você cancelar. A Stellar não tem prazo para ofertas: ela fica aberta até executar ou ser cancelada, e prende uma reserva de XLM enquanto isso."
+        "O valor fica na sua conta, reservado pela oferta, até executar ou você cancelar pelas ordens abertas. A Stellar não tem prazo para ofertas: ela fica aberta até executar ou ser cancelada, e prende uma reserva de XLM enquanto isso."
     }
 
     static let provider = "DEX da Stellar"

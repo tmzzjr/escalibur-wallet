@@ -387,6 +387,7 @@ struct XRPLPlannerTests {
         #expect(offer.expiration == nil)
         #expect(try Self.transaction(plan).unsigned[.expiration] == nil)
         #expect(Self.line(plan, "Validade")?.value == "Não expira: fica no livro até executar ou você cancelar")
+        #expect(Self.line(plan, "Execução")?.value == "Fica no livro até executar ou ser cancelada")
         #expect(Self.line(plan, "Expira em") == nil)
         #expect(throws: XRPLPlanError.expirationInPast) {
             try Self.offer(XRPLOfferIntent(
