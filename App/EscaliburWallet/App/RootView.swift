@@ -71,10 +71,16 @@ struct RootView: View {
 struct MainTabs: View {
     @Environment(Router.self) private var router
 
+    /// `wallet.bifold` existe a partir do iOS 18; antes, a prancheta do `wallet.pass`.
+    static var walletSymbol: String {
+        if #available(iOS 18.0, *) { return "wallet.bifold" }
+        return "wallet.pass"
+    }
+
     var body: some View {
         TabView(selection: Bindable(router).tab) {
             WalletHomeView()
-                .tabItem { Label("Carteira", systemImage: "wallet.pass") }
+                .tabItem { Label("Carteira", systemImage: Self.walletSymbol) }
                 .tag(Router.Tab.wallet)
             MarketView()
                 .tabItem { Label("Mercado", systemImage: "chart.line.uptrend.xyaxis") }

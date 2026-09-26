@@ -77,7 +77,6 @@ struct WalletHomeView: View {
             HStack {
                 Button { switching = true } label: {
                     HStack(spacing: Space.xs) {
-                        if let wallet { WalletGlyph(id: wallet.id, size: 24, selected: true) }
                         Text(wallet?.name ?? "Carteira").typeStyle(.action).foregroundStyle(Palette.ink).lineLimit(1)
                         if wallet?.isWatchOnly == true {
                             Text("Só observar").typeStyle(.label).foregroundStyle(Palette.inkSoft)
@@ -97,11 +96,11 @@ struct WalletHomeView: View {
                     Image(systemName: hide ? "eye.slash" : "eye")
                         .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(Palette.inkSoft)
-                        .frame(width: Height.touch, height: Height.touch)
+                        .frame(width: Height.touch, height: Height.touch, alignment: .trailing)
                 }
                 .accessibilityLabel(hide ? "Mostrar valores" : "Ocultar valores")
             }
-            .padding(.horizontal, Space.gutter - 4)
+            .padding(.horizontal, Space.gutter)
 
             Text("Saldo total").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.md)
@@ -136,9 +135,8 @@ struct WalletHomeView: View {
                 QuickAction(title: "Enviar", systemImage: "arrow.up") { router.present(.send(nil)) }
             }
             QuickAction(title: "Receber", systemImage: "arrow.down") { receiving = true }
-            if wallet?.isWatchOnly != true {
+            if wallet?.isWatchOnly != true, !TradeEngines.chains.isEmpty {
                 QuickAction(title: "Trocar", systemImage: "arrow.left.arrow.right") { router.tab = .trade }
-                QuickAction(title: "Limite", systemImage: "scope") { router.tab = .trade; router.tradeMode = .limit }
             }
         }
         .padding(.horizontal, Space.xs)
@@ -191,9 +189,15 @@ struct WalletHomeView: View {
             }
             .padding(.top, Space.xs)
             if portfolio.unknownTokens > 0 {
-                Text("\(portfolio.unknownTokens) \(portfolio.unknownTokens == 1 ? "token desconhecido escondido" : "tokens desconhecidos escondidos")")
-                    .typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                    .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+                NavigationLink { ManageAssetsView() } label: {
+                    HStack(spacing: 4) {
+                        Text("\(portfolio.unknownTokens) \(portfolio.unknownTokens == 1 ? "token desconhecido escondido" : "tokens desconhecidos escondidos")")
+                            .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                    }
+                    .frame(minHeight: Height.touch)
+                }
+                .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
             }
         }
         }
@@ -249,13 +253,20 @@ struct BalanceFigure: View {
             Text(currency.symbol)
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(Palette.inkSoft)
-            Text(hidden ? "••••••" : Fmt.grouped(value, fractionDigits: 2))
-                .typeStyle(.display)
-                .foregroundStyle(Palette.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .contentTransition(.numericText(value: value))
-                .animation(Motion.number, value: value)
+            if hidden {
+                Text("••••••").typeStyle(.display).foregroundStyle(Palette.ink)
+            } else {
+                // O inteiro sozinho no tamanho grande; os centavos menores e mais claros,
+                // como o "R$", na mesma linha de base.
+                let text = Fmt.grouped(value, fractionDigits: 2)
+                let parts = text.split(separator: ",", maxSplits: 1).map(String.init)
+                (Text(parts[0]).style(.display).foregroundColor(Palette.ink)
+                 + Text("," + (parts.count > 1 ? parts[1] : "00")).font(.system(size: 28, weight: .bold).monospacedDigit()).foregroundColor(Palette.inkSoft))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .contentTransition(.numericText(value: value))
+                    .animation(Motion.number, value: value)
+            }
         }
         .accessibilityElement(children: .combine)
     }
@@ -321,7 +332,7 @@ struct WalletSwitcherSheet: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
                                     Text(subtitle(wallet)).typeStyle(.note)
-                                        .foregroundStyle(!wallet.hasBackup && !wallet.isWatchOnly ? Palette.down : Palette.inkSoft)
+                                        .foregroundStyle(!wallet.hasBackup && !wallet.isWatchOnly ? Palette.caution : Palette.inkSoft)
                                 }
                                 Spacer()
                                 if wallet.id == session.selectedWallet?.id {

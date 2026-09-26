@@ -31,7 +31,8 @@ struct PrimaryStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(enabled ? Palette.onLive : Palette.inkDead)
+            // Desligado continua legivel (4,8:1): o texto diz o que falta.
+            .foregroundStyle(enabled ? Palette.onLive : Palette.inkMuted)
             .background(
                 RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
                     .fill(enabled ? (configuration.isPressed ? Palette.livePress : Palette.live) : Palette.rail)

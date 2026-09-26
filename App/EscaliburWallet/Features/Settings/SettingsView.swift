@@ -12,12 +12,11 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Ajustes").typeStyle(.title).foregroundStyle(Palette.ink)
-                        .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+                    TabTitle("Ajustes")
 
                     SettingsGroup {
                         NavigationLink { WalletsListView() } label: {
-                            SettingsRow(icon: "wallet.pass", title: "Carteiras", value: "\(session.metadata.wallets.count)")
+                            SettingsRow(icon: MainTabs.walletSymbol, title: "Carteiras", value: "\(session.metadata.wallets.count)")
                         }
                         NavigationLink { SecuritySettingsView() } label: {
                             SettingsRow(icon: "lock", title: "Segurança")
@@ -33,10 +32,10 @@ struct SettingsView: View {
 
                     SettingsSection(title: "Preferências") {
                         NavigationLink { CurrencySettingsView() } label: {
-                            SettingsRow(icon: "banknote", title: "Moeda", value: session.currency == .brl ? "Real (R$)" : "Dólar (US$)")
+                            SettingsRow(icon: session.currency == .brl ? "brazilianrealsign.circle" : "dollarsign.circle", title: "Moeda", value: session.currency == .brl ? "Real (R$)" : "Dólar (US$)")
                         }
                         NavigationLink { NetworksSettingsView() } label: {
-                            SettingsRow(icon: "point.3.connected.trianglepath.dotted", title: "Redes",
+                            SettingsRow(icon: "network", title: "Redes",
                                         value: "\(Chain.all.count - session.metadata.settings.disabledChainIDs.count) ligadas")
                         }
                     }
@@ -95,7 +94,7 @@ struct SettingsRow: View {
 
     var body: some View {
         HStack(spacing: Space.sm) {
-            Image(systemName: icon).font(.system(size: 16, weight: .medium)).foregroundStyle(Palette.inkSoft).frame(width: 24)
+            Image(systemName: icon).font(.system(size: 17, weight: .regular)).foregroundStyle(Palette.inkSoft).frame(width: 28)
             Text(title).typeStyle(.body).foregroundStyle(Palette.ink)
             Spacer()
             if let value { Text(value).typeStyle(.note).foregroundStyle(valueColor) }
@@ -124,7 +123,7 @@ struct WalletsListView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
                                     Text(wallet.hasBackup || wallet.isWatchOnly ? originText(wallet) : "Sem cópia")
-                                        .typeStyle(.note).foregroundStyle(wallet.hasBackup || wallet.isWatchOnly ? Palette.inkSoft : Palette.down)
+                                        .typeStyle(.note).foregroundStyle(wallet.hasBackup || wallet.isWatchOnly ? Palette.inkSoft : Palette.caution)
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
@@ -182,7 +181,7 @@ struct WalletSettingsView: View {
                         SettingsSection(title: "Cópias") {
                             SettingsRow(icon: "doc.text", title: "Papel",
                                         value: wallet.hasBackup ? (wallet.backupConfirmedAt.map { "confirmado em \(Self.day($0))" } ?? "importada") : "não confirmado",
-                                        valueColor: wallet.hasBackup ? Palette.inkSoft : Palette.down, chevron: false)
+                                        valueColor: wallet.hasBackup ? Palette.inkSoft : Palette.caution, chevron: false)
                             SettingsRow(icon: "envelope", title: "Envelope Escalibur",
                                         value: wallet.envelopeSealedAt.map { "lacrado em \(Self.day($0))" } ?? "nenhum", chevron: false)
                         }

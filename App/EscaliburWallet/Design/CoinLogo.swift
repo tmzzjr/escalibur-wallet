@@ -45,12 +45,23 @@ struct CoinLogo: View {
     @ViewBuilder
     private var base: some View {
         if let image = bundled ?? remote {
-            Image(uiImage: image)
-                .resizable()
-                .interpolation(.high)
-                .scaledToFit()
-                .clipShape(Circle())
-                .background(Circle().fill(Self.darkLogos.contains(coingeckoID ?? "") ? Palette.logoDisc : Color.clear))
+            if Self.bareLogos.contains(coingeckoID ?? "") {
+                // Logo sem circulo proprio (o losango do ETH, as faixas do SOL): vai
+                // num disco, com o glifo a 62%, para a coluna de circulos nao quebrar.
+                Image(uiImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .padding(size * 0.19)
+                    .background(Circle().fill(Palette.control))
+            } else {
+                Image(uiImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .clipShape(Circle())
+                    .background(Circle().fill(Self.darkLogos.contains(coingeckoID ?? "") ? Palette.logoDisc : Color.clear))
+            }
         } else {
             Circle().fill(Palette.control)
                 .overlay(Text(String(symbol.prefix(2)).uppercased()).font(.system(size: size * 0.34, weight: .semibold)).foregroundStyle(Palette.inkSoft))
@@ -59,6 +70,7 @@ struct CoinLogo: View {
 
     /// Logos escuros que somem no preto ganham um disco claro atras.
     static let darkLogos: Set<String> = ["ripple", "stellar"]
+    static let bareLogos: Set<String> = ["ethereum", "solana", "tether", "weth"]
 
     private func isNative(on chain: Chain) -> Bool {
         coingeckoID == chain.coingeckoID
@@ -66,13 +78,22 @@ struct CoinLogo: View {
 }
 
 struct NetworkBadge: View {
+    static let bareNetworks: Set<String> = []
     let chain: Chain
     var size: CGFloat = 16
     var ring: Color = Palette.void
 
     var body: some View {
         Group {
-            if let image = UIImage(named: "rede-\(chain.id)") ?? UIImage(named: "logo-\(chain.coingeckoID)") {
+            if chain.id == "base" {
+                // A marca da Base (o quadrado) num disco azul cheio: o arquivo da
+                // plataforma e um quadrado solto, que num circulo parece icone quebrado.
+                Circle().fill(Color(hex: 0x0052FF))
+                    .overlay(RoundedRectangle(cornerRadius: size * 0.06, style: .continuous).fill(Color.white).frame(width: size * 0.38, height: size * 0.38))
+            } else if Self.bareNetworks.contains(chain.id), let image = UIImage(named: "rede-\(chain.id)") ?? UIImage(named: "logo-\(chain.coingeckoID)") {
+                Image(uiImage: image).resizable().interpolation(.high).scaledToFit().padding(size * 0.18)
+                    .background(Circle().fill(Palette.control))
+            } else if let image = UIImage(named: "rede-\(chain.id)") ?? UIImage(named: "logo-\(chain.coingeckoID)") {
                 Image(uiImage: image).resizable().interpolation(.high).scaledToFit().clipShape(Circle())
                     .background(Circle().fill(chain.id == "xrpl" || chain.id == "stellar" ? Palette.logoDisc : Palette.control))
             } else {

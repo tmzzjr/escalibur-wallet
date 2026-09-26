@@ -7,10 +7,11 @@ import SwiftUI
 /// fonte monoespacada. Mono de verdade existe em dois estilos, e so para endereco e
 /// palavra da frase.
 enum TypeStyle {
-    case display, figure, key, title, heading, action, row, body, note, label, axis, mono, monoSmall
+    case hero, display, figure, key, title, heading, action, row, body, note, label, axis, mono, monoSmall
 
     var font: Font {
         switch self {
+        case .hero: return .system(size: 34, weight: .bold)
         case .display: return .system(size: 40, weight: .bold).monospacedDigit()
         case .figure: return .system(size: 32, weight: .bold).monospacedDigit()
         case .key: return .system(size: 30, weight: .medium)
@@ -29,6 +30,7 @@ enum TypeStyle {
 
     var tracking: CGFloat {
         switch self {
+        case .hero: return -0.8
         case .display: return -1.0
         case .figure: return -0.6
         case .title: return -0.6
@@ -42,7 +44,7 @@ enum TypeStyle {
         switch self {
         case .body: return 4
         case .note: return 3
-        case .title: return 6
+        case .title, .hero: return 2
         default: return 0
         }
     }

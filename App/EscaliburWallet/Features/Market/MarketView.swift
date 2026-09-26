@@ -23,31 +23,22 @@ struct MarketView: View {
         NavigationStack(path: Bindable(router).marketPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Mercado").typeStyle(.title).foregroundStyle(Palette.ink)
-                        .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
-                    TextField("", text: $query, prompt: Text("Buscar moeda").foregroundColor(Palette.inkDead))
-                        .typeStyle(.body).foregroundStyle(Palette.ink)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .padding(.horizontal, Space.md).frame(height: 44)
-                        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
-                        .padding(.horizontal, Space.gutter).padding(.top, Space.md)
-                    HStack {
-                        Text("Moeda").typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                        Spacer()
-                        Text("Preço e 24h").typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                    }
-                    .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+                    TabTitle("Mercado")
+                    SearchField(prompt: "Buscar moeda", text: $query)
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.sm)
 
                     if coins.isEmpty && loading {
                         ForEach(0..<8, id: \.self) { _ in
                             HStack(spacing: Space.sm) {
-                                Circle().fill(Palette.body).frame(width: 36, height: 36)
+                                Circle().fill(Palette.body).frame(width: 40, height: 40)
                                 VStack(alignment: .leading, spacing: 8) { SkeletonBar(width: 48); SkeletonBar(width: 88) }
                                 Spacer()
+                                SkeletonBar(width: 72, height: 16)
                                 SkeletonBar(width: 72, height: 28)
                             }
                             .padding(.horizontal, Space.gutter).frame(height: Height.row)
                         }
+                        .padding(.top, Space.sm)
                     } else if coins.isEmpty && failed {
                         Banner(kind: .neutral, title: "Não foi possível carregar o mercado agora.", actionTitle: "Tentar de novo") {
                             Task { await load() }
@@ -61,6 +52,7 @@ struct MarketView: View {
                                 .buttonStyle(RowStyle())
                         }
                     }
+                    .padding(.top, Space.sm)
                 }
                 .padding(.bottom, Space.xl)
             }
@@ -71,7 +63,13 @@ struct MarketView: View {
                 MarketCoinDetail(coin: coin)
             }
         }
-        .task { if coins.isEmpty { await load() } }
+        .task {
+            // Lista viva: atualiza a cada 30 s enquanto a aba esta na tela.
+            while !Task.isCancelled {
+                await load()
+                try? await Task.sleep(for: .seconds(30))
+            }
+        }
     }
 
     private func load() async {
@@ -92,26 +90,20 @@ struct MarketRow: View {
 
     var body: some View {
         HStack(spacing: Space.sm) {
-            CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 36, remoteURL: coin.imageURL)
+            CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 40, remoteURL: coin.imageURL)
             VStack(alignment: .leading, spacing: 2) {
                 Text(coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
-                Text(coin.marketCap.map { Fmt.compact($0, currency) } ?? coin.name)
-                    .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                Text(verbatim: coin.name).typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
             }
-            .layoutPriority(0)
             Spacer(minLength: Space.xs)
-            Sparkline(values: coin.sparkline, up: (coin.change24h ?? 0) >= 0)
-                .frame(width: 52, height: 24)
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(Fmt.price(coin.price, currency)).typeStyle(.row).foregroundStyle(Palette.ink)
-                    .lineLimit(1).minimumScaleFactor(0.75)
-                ChangePill(change: coin.change24h)
-            }
-            .frame(width: 118, alignment: .trailing)
-            .layoutPriority(1)
+            Text(Fmt.price(coin.price, currency)).typeStyle(.row).foregroundStyle(Palette.ink)
+                .lineLimit(1)
+                .frame(width: 120, alignment: .trailing)
+                .contentTransition(.numericText(value: coin.price))
+            ChangePill(change: coin.change24h)
         }
         .padding(.horizontal, Space.gutter)
-        .frame(height: Height.row + 8)
+        .frame(height: Height.row)
         .contentShape(Rectangle())
     }
 }
@@ -163,7 +155,8 @@ struct MarketCoinDetail: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 MarketChartSection(coingeckoID: coin.id, symbol: coin.symbol, name: coin.name,
-                                   livePrice: coin.price, liveChange: coin.change24h, remoteLogo: coin.imageURL)
+                                   livePrice: coin.price, liveChange: coin.change24h,
+                                   isStable: ["tether", "usd-coin", "dai"].contains(coin.id))
                 VStack(alignment: .leading, spacing: Space.sm) {
                     Text("Sobre o mercado").typeStyle(.heading).foregroundStyle(Palette.ink)
                     stat("Capitalização", coin.marketCap.map { Fmt.compact($0, session.currency) })
@@ -180,6 +173,15 @@ struct MarketCoinDetail: View {
         }
         .background(Palette.void.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 6) {
+                    CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 20, remoteURL: coin.imageURL)
+                    Text(verbatim: coin.name).typeStyle(.action).foregroundStyle(Palette.ink)
+                }
+            }
+        }
     }
 
     private func stat(_ label: String, _ value: String?) -> some View {

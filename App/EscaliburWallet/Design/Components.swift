@@ -132,15 +132,98 @@ struct Chip: View {
                 .frame(height: Height.chip)
                 .background(
                     RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
-                        .fill(selected ? Palette.control : Palette.body)
+                        .fill(selected ? Palette.control : Color.clear)
                         .overlay(
                             RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
-                                .stroke(selected ? Palette.edgeStrong : Palette.edge, lineWidth: 1)
+                                .stroke(selected ? Color.clear : Palette.edge, lineWidth: 1)
                         )
                 )
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: selected)
+    }
+}
+
+// MARK: Escolha exclusiva
+
+/// O unico desenho de escolha exclusiva do app ("Imediata | Limite", "12 | 24
+/// palavras"): trilho body, segmento control que desliza.
+struct Segmented<Value: Hashable>: View {
+    let options: [(Value, String)]
+    @Binding var selection: Value
+    @Namespace private var namespace
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(options, id: \.0) { value, title in
+                Button {
+                    withAnimation(Motion.select) { selection = value }
+                } label: {
+                    Text(title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(selection == value ? Palette.ink : Palette.inkMuted)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
+                        .background {
+                            if selection == value {
+                                RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                                    .fill(Palette.control)
+                                    .matchedGeometryEffect(id: "segmento", in: namespace)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(2)
+        .background(RoundedRectangle(cornerRadius: Radius.track, style: .continuous).fill(Palette.body))
+        .sensoryFeedback(.selection, trigger: selection)
+    }
+}
+
+// MARK: Titulo de aba
+
+/// O titulo de cada aba, sempre na mesma altura, para o texto nao pular ao trocar.
+struct TabTitle<Trailing: View>: View {
+    let title: String
+    @ViewBuilder var trailing: Trailing
+
+    var body: some View {
+        HStack(alignment: .center) {
+            Text(title).typeStyle(.title).foregroundStyle(Palette.ink)
+            Spacer()
+            trailing
+        }
+        .frame(height: Height.bar)
+        .padding(.horizontal, Space.gutter)
+    }
+}
+
+extension TabTitle where Trailing == EmptyView {
+    init(_ title: String) {
+        self.title = title
+        self.trailing = EmptyView()
+    }
+}
+
+// MARK: Busca
+
+struct SearchField: View {
+    let prompt: String
+    @Binding var text: String
+    var surface: Color = Palette.body
+
+    var body: some View {
+        HStack(spacing: Space.xs) {
+            Image(systemName: "magnifyingglass").font(.system(size: 15, weight: .medium)).foregroundStyle(Palette.inkMuted)
+            TextField("", text: $text, prompt: Text(prompt).foregroundColor(Palette.inkMuted))
+                .typeStyle(.body).foregroundStyle(Palette.ink)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+        }
+        .padding(.horizontal, Space.md)
+        .frame(height: 44)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(surface))
     }
 }
 
