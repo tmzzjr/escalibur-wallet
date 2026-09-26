@@ -181,6 +181,13 @@ public enum KDFCalibration {
     /// caminho no app para re-derivar depois.
     public static let sealFloorKiB: UInt32 = 256 * 1024
 
+    /// Ha memoria para derivar com o piso de lacre agora, com folga para a
+    /// interface? Sem ela, o sistema mataria o app no meio do lacre; melhor recusar
+    /// antes e pedir para fechar outros apps.
+    public static func canSeal() -> Bool {
+        availableMemoryBytes() >= UInt64(sealFloorKiB) * 1024 + 150 * 1024 * 1024
+    }
+
     /// Memoria disponivel ao processo agora, em bytes. No iOS e o teto do jetsam.
     public static func availableMemoryBytes() -> UInt64 {
         #if os(iOS)
@@ -236,7 +243,9 @@ public enum KDFCalibration {
     /// Mede a taxa real deste aparelho com uma derivacao pequena e escolhe o maior
     /// numero de passes que ainda cabe no tempo alvo.
     public static func calibrate(password sample: SecureBytes? = nil) -> KDFParameters {
-        let memory = memoryCeilingKiB()
+        // Nunca abaixo do piso de lacre: um vale de memoria nao pode enfraquecer o
+        // arquivo. Quem lacra confere antes se ha memoria (`canSeal`).
+        let memory = max(memoryCeilingKiB(), sealFloorKiB)
 
         let probeMemory: UInt32 = 64 * 1024
         let probe = SecureBytes(capacity: 16)

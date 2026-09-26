@@ -28,6 +28,10 @@ public enum Envelope {
         case unknownLanguage
         /// Abriu, mas a frase dentro nao fecha o checksum BIP-39.
         case invalidPhrase
+        /// Lacrar: o aparelho nao tem memoria livre agora para o piso de 256 MiB.
+        case notEnoughMemory
+        /// Lacrar: senha abaixo do piso de `PasswordStrength`.
+        case weakPassword
     }
 
     /// O que um envelope aberto entrega a carteira.
@@ -67,6 +71,8 @@ public enum Envelope {
         password: SecureBytes,
         parameters: KDFParameters? = nil
     ) throws -> Data {
+        guard PasswordStrength.verdict(password) == .strong else { throw Failure.weakPassword }
+        guard KDFCalibration.canSeal() else { throw Failure.notEnoughMemory }
         let chosen = parameters ?? KDFCalibration.calibrate()
         let language: BIP39Language
         if case .valid(let detected) = BIP39.validate(phrase) { language = detected } else { throw Failure.invalidPhrase }

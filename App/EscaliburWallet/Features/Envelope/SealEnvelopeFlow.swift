@@ -21,11 +21,14 @@ struct SealEnvelopeFlow: View {
     @State private var repeatPassword = SecureBytes(capacity: 256)
     @State private var repeatLength = 0
     @State private var label = ""
-    @State private var suggestion: [String]?
+    @State private var suggestion: [String] = []
+    @State private var customPassword = false
     @State private var error: String?
     @State private var working = false
     @State private var sealed: SealedFile?
-    @State private var kdf = KDFCalibration.calibrate()
+    /// Para mostrar custo e tempo. Comeca no piso de lacre e e trocado pela medida
+    /// deste aparelho, feita fora da thread principal.
+    @State private var kdf = KDFParameters(memoryKiB: KDFCalibration.sealFloorKiB, passes: 3, lanes: KDFCalibration.lanes)
 
     enum Step { case intro, create, repeatIt, sealing, done }
 
@@ -54,12 +57,10 @@ struct SealEnvelopeFlow: View {
         }
         .interactiveDismissDisabled()
         .guardedAgainstCapture()
-        .sheet(item: Binding(get: { suggestion.map { Suggestion(words: $0) } }, set: { if $0 == nil { suggestion = nil } })) { item in
-            suggestionSheet(item.words)
+        .task {
+            kdf = await Task.detached(priority: .utility) { KDFCalibration.calibrate() }.value
         }
     }
-
-    struct Suggestion: Identifiable { let id = UUID(); let words: [String] }
 
     @ViewBuilder
     private var content: some View {
@@ -85,25 +86,65 @@ struct SealEnvelopeFlow: View {
         }
     }
 
+    /// O caminho padrao e o forte: seis palavras sorteadas. Criar a propria senha
+    /// existe, mas passa pelo piso de 60 bits.
     private var create: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Crie a senha do envelope").typeStyle(.title).foregroundStyle(Palette.ink)
             Text("Só ela abre o envelope, em qualquer aparelho. Não é o PIN e não pode ser a senha da carteira. Não existe redefinir.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
-            PasswordBox(buffer: password, length: $passwordLength, placeholder: "Senha do envelope") { proceedFromCreate() }
-                .padding(.top, Space.lg)
-            costLine.padding(.top, Space.sm)
-            TertiaryButton(title: "Sugerir 6 palavras sorteadas") { suggest() }
+            if customPassword {
+                PasswordBox(buffer: password, length: $passwordLength, placeholder: "Senha do envelope") { proceedFromCreate() }
+                    .padding(.top, Space.lg)
+                costLine.padding(.top, Space.sm)
+                TertiaryButton(title: "Usar 6 palavras sorteadas") {
+                    password.wipe()
+                    passwordLength = 0
+                    error = nil
+                    customPassword = false
+                }
+            } else {
+                Text(verbatim: suggestion.joined(separator: " "))
+                    .font(.system(size: 22, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Palette.plateInk)
+                    .padding(Space.base)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(LacquerPlate().fill(Palette.live))
+                    .padding(.top, Space.lg)
+                    .textSelection(.disabled)
+                    .accessibilityIdentifier("palavras-envelope")
+                Text("Seis palavras sorteadas neste iPhone. Com o arquivo nas mãos, o crime organizado levaria \(PasswordCost.describe(PasswordCost.seconds(bits: 66, kdf: kdf))) para adivinhar.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Anote em outro lugar, longe do papel da senha da carteira.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
+                HStack(spacing: Space.sm) {
+                    TertiaryButton(title: "Sortear outras") { suggest() }
+                    TertiaryButton(title: "Prefiro criar a minha") {
+                        error = nil
+                        customPassword = true
+                    }
+                }
+            }
             if let error { Text(error).typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.xs).fixedSize(horizontal: false, vertical: true) }
             Spacer()
-            PrimaryButton(title: "Continuar", enabled: passwordLength > 0) { proceedFromCreate() }
+            if customPassword {
+                PrimaryButton(title: "Continuar", enabled: passwordLength > 0) { proceedFromCreate() }
+            } else {
+                PrimaryButton(title: "Anotei, continuar", enabled: !suggestion.isEmpty) {
+                    password.replaceAll(with: Array(suggestion.joined(separator: " ").utf8))
+                    passwordLength = password.count
+                    proceedFromCreate()
+                }
+            }
         }
+        .onAppear { if suggestion.isEmpty { suggest() } }
     }
 
     private var costLine: some View {
-        let bits = passwordLength == 0 ? 0 : PasswordCost.bits(password)
+        let bits = passwordLength == 0 ? 0 : PasswordStrength.bits(password)
         let seconds = PasswordCost.seconds(bits: bits, kdf: kdf)
-        let weak = passwordLength > 0 && seconds < 31_557_600
+        let weak = passwordLength > 0 && bits < PasswordStrength.minimumBits
         return VStack(alignment: .leading, spacing: Space.xxs) {
             Text(passwordLength == 0
                  ? "Digite para ver quanto custa adivinhar."
@@ -112,8 +153,9 @@ struct SealEnvelopeFlow: View {
                 .foregroundStyle(weak ? Palette.down : Palette.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
             if weak {
-                Text("Para um arquivo que pode ir para a nuvem, use 6 palavras sorteadas.")
+                Text("Abaixo do mínimo para um envelope. Use uma frase mais longa ou 6 palavras sorteadas.")
                     .typeStyle(.note).foregroundStyle(Palette.down)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -168,35 +210,6 @@ struct SealEnvelopeFlow: View {
         .sensoryFeedback(.success, trigger: sealed?.id)
     }
 
-    private func suggestionSheet(_ words: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "6 palavras sorteadas") { suggestion = nil }
-            Text(verbatim: words.joined(separator: " "))
-                .font(.system(size: 22, weight: .semibold, design: .monospaced))
-                .foregroundStyle(Palette.plateInk)
-                .padding(Space.base)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(LacquerPlate().fill(Palette.live))
-                .padding(.horizontal, Space.gutter).padding(.top, Space.md)
-                .textSelection(.disabled)
-            Text("Adivinhar: \(PasswordCost.describe(PasswordCost.seconds(bits: 66, kdf: kdf))) para o crime organizado.")
-                .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
-            Text("Anote em outro lugar, longe do papel da senha da carteira.")
-                .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.xxs)
-            Spacer()
-            PrimaryButton(title: "Usar estas palavras") {
-                password.replaceAll(with: Array(words.joined(separator: " ").utf8))
-                passwordLength = password.count
-                suggestion = nil
-            }
-            .padding(.horizontal, Space.gutter).padding(.bottom, Space.xs)
-        }
-        .presentationDetents([.medium])
-        .presentationBackground(Palette.body)
-        .presentationCornerRadius(Radius.sheet)
-        .guardedAgainstCapture()
-    }
-
     // MARK: Acoes
 
     private func unlockPhrase() async {
@@ -223,22 +236,23 @@ struct SealEnvelopeFlow: View {
     }
 
     private func suggest() {
-        let words = phraseWords()
-        suggestion = try? PasswordCost.suggestion(avoiding: words)
-    }
-
-    private func phraseWords() -> Set<String> {
-        guard let phrase else { return [] }
-        return Set(phrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }.split(separator: " ").map(String.init))
+        suggestion = (try? PasswordStrength.suggestion(avoiding: phrase)) ?? []
     }
 
     private func proceedFromCreate() {
         guard passwordLength > 0 else { return }
-        let typed = password.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }.lowercased()
-        let words = phraseWords()
-        let used = typed.split(whereSeparator: { !$0.isLetter }).map(String.init).filter { words.contains($0) }
-        if used.count >= 2 {
+        if let phrase, PasswordStrength.reusesPhrase(password, phrase: phrase) {
             error = "Esta senha usa palavras da própria carteira. Quem achar o papel abre o envelope. Escolha outra."
+            return
+        }
+        switch PasswordStrength.verdict(password) {
+        case .strong:
+            break
+        case .digitsOnly:
+            error = "Só números não bastam para um arquivo que pode ir para a nuvem. Use 6 palavras sorteadas ou uma frase longa."
+            return
+        case .weak(let bits):
+            error = "Com o arquivo nas mãos, o crime organizado levaria \(PasswordCost.describe(PasswordCost.seconds(bits: bits, kdf: kdf))) para adivinhar esta senha. Use 6 palavras sorteadas ou uma frase mais longa."
             return
         }
         error = nil
@@ -270,6 +284,9 @@ struct SealEnvelopeFlow: View {
             updated.envelopeSealedAt = .now
             session.update(updated)
             step = .done
+        } catch Envelope.Failure.notEnoughMemory {
+            self.error = "Pouca memória livre agora. Feche outros apps e tente de novo."
+            step = .repeatIt
         } catch {
             self.error = "Não foi possível lacrar o envelope."
             step = .repeatIt

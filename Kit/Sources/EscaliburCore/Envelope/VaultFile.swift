@@ -181,9 +181,11 @@ public enum VaultFile {
         let slot = try slotIndex ?? randomSlotIndex()
         precondition((0..<VaultFormat.slotCount).contains(slot))
 
+        // Nenhum arquivo nasce abaixo do piso de lacre, venha o parametro de onde vier:
+        // o cabecalho grava o custo para sempre.
         let header = VaultFormat.Header_(
             vaultID: UUID(),
-            kdf: parameters,
+            kdf: raisedToFloor(parameters),
             kdfSalt: try randomBytes(VaultFormat.saltLength),
             binding: .passwordOnly,
             bindingPublicKey: [UInt8](repeating: 0, count: 65),
@@ -229,7 +231,7 @@ public enum VaultFile {
 
         let header = VaultFormat.Header_(
             vaultID: UUID(),
-            kdf: parameters,
+            kdf: raisedToFloor(parameters),
             kdfSalt: try randomBytes(VaultFormat.saltLength),
             binding: binding,
             bindingPublicKey: [UInt8](repeating: 0, count: 65),

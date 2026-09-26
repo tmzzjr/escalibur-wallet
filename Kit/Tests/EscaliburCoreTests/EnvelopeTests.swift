@@ -20,17 +20,42 @@ struct EnvelopeTests {
     func roundTrip() throws {
         let data = try Envelope.seal(
             phrase: BIP39.canonical(Self.phrase), label: "Principal",
-            password: Self.secure("senha longa de teste"), parameters: Self.fast
+            password: Self.secure(Self.strong), parameters: Self.fast
         )
         #expect(data.count == 16_504)
         #expect(Envelope.looksLikeEnvelope(data))
-        let opened = try Envelope.open(data, password: Self.secure("senha longa de teste"))
+        let opened = try Envelope.open(data, password: Self.secure(Self.strong))
         #expect(opened.phrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) } == Self.phrase)
         #expect(opened.label == "Principal")
         #expect(opened.passphrase.count == 0)
         #expect(throws: Envelope.Failure.cannotOpen) {
             try Envelope.open(data, password: Self.secure("senha errada"))
         }
+    }
+
+    /// Seis palavras da lista: 66 bits, acima do piso de lacre.
+    static let strong = "crane violin orbit maple harbor tunnel"
+
+    @Test("Senha abaixo do piso nao lacra")
+    func weakPasswordRefused() {
+        #expect(throws: Envelope.Failure.weakPassword) {
+            try Envelope.seal(phrase: BIP39.canonical(Self.phrase), label: "x", password: Self.secure("senha longa de teste"), parameters: Self.fast)
+        }
+        #expect(throws: Envelope.Failure.weakPassword) {
+            try Envelope.seal(phrase: BIP39.canonical(Self.phrase), label: "x", password: Self.secure("12345678"), parameters: Self.fast)
+        }
+    }
+
+    @Test("Nenhum envelope nasce abaixo de 256 MiB, mesmo pedindo menos")
+    func sealFloor() throws {
+        let weak = KDFParameters(memoryKiB: 64 * 1024, passes: 2, lanes: 1)
+        let data = try Envelope.seal(
+            phrase: BIP39.canonical(Self.phrase), label: "Principal",
+            password: Self.secure(Self.strong), parameters: weak
+        )
+        let header = try Envelope.inspect(data)
+        #expect(header.kdf.memoryKiB >= KDFCalibration.sealFloorKiB)
+        #expect(KDFCalibration.calibrate().memoryKiB >= KDFCalibration.sealFloorKiB)
     }
 
     @Test("Envelope de referencia, conferido pelo decifrar.py do Escalibur")
@@ -73,10 +98,12 @@ struct EnvelopeTests {
     /// conferido a parte com `python3 tools/decifrar.py` antes de entrar no repo.
     @Test("Gerar fixture de interoperabilidade", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_GERAR_FIXTURE"] == "1"))
     func generateFixture() throws {
-        let data = try Envelope.seal(
-            phrase: BIP39.canonical(Self.phrase), label: "Interoperabilidade",
-            password: Self.secure("cavalo correto bateria grampo"), parameters: Self.fast
-        )
+        // A fixture guarda a senha de antes do piso de 60 bits; o lacre vai direto ao
+        // arquivo para continuar reproduzivel com a mesma senha.
+        let phrase = try BIP39.canonical(Self.phrase)
+        guard case .valid(let language) = BIP39.validate(phrase) else { Issue.record("frase"); return }
+        let sealing = SealingContents(mnemonic: phrase, passphrase: "", label: "Interoperabilidade", notes: "", language: language, kind: .bip39)
+        let data = try VaultFile.create(sealing: sealing, password: Self.secure("cavalo correto bateria grampo"), parameters: Self.fast)
         let out = URL(fileURLWithPath: ProcessInfo.processInfo.environment["ESCALIBUR_FIXTURE_SAIDA"] ?? "/tmp/interop.esclbr")
         try data.write(to: out)
     }
