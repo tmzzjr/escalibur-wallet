@@ -1,0 +1,27 @@
+Respostas gravadas da Horizon em 2026-09-26 (UTC), para os testes do motor Stellar
+(Tests/EscaliburEnginesTests/Stellar). Contas publicas; nenhum dado de usuario. Os campos
+`_links` foram removidos (so URLs da propria Horizon, que o leitor nao le).
+
+SDF (horizon.stellar.org) e LOBSTR (horizon.stellar.lobstr.co), o nome diz qual:
+  account-dono-*.json         GET /accounts/GA5XIGA5C7QTPTWXQHY6MCJRMTRZDOSHR6EFIBNDQTCQHG262N4GGKTM
+                              (a conta "do dono" nos testes: XLM, USDC da Circle e outras linhas)
+  account-memo-*.json         GET /accounts/GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37
+                              (config.memo_required = 1, linha de USDC)
+  account-comum-*.json        GET /accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY
+  account-inexistente-*.json  GET /accounts/GDRXE2BQUC3AZNPVFSCEZ76NJ3WWL25FYFK6RGZGIEKWE4SOOHSUJUJ6 (404)
+  transaction-*.json          GET /transactions/69178363c4d302d79d513e3bf2e9f19d0464b986514b479fb40babf608e29eb3
+                              (sem envelope_xdr, result_xdr, result_meta_xdr, fee_meta_xdr e signatures)
+So SDF:
+  ledgers.json                GET /ledgers?order=desc&limit=1
+  fee_stats.json              GET /fee_stats
+  paths-xlm-usdc.json         GET /paths/strict-send, 100 XLM para USDC da Circle
+  paths-xlm-usdc-referencia.json  o mesmo, 0,1 XLM (referencia do impacto no preco)
+  paths-usdc-xlm.json         GET /paths/strict-send, 10 USDC para XLM
+  paths-usdc-xlm-referencia.json  o mesmo, 0,01 USDC
+  operations-dono.json        GET /accounts/GA5XIGA5.../operations?order=desc&limit=30&include_failed=false
+                              (tem poeira real de 0,001 XLM de enderecos parecidos com remetentes reais)
+  trades-dono.json            GET /accounts/GA5XIGA5.../trades?order=desc&limit=30
+
+O que os testes montam, e dizem onde: a resposta da transmissao (POST /transactions), e,
+nos casos que a rede nao ofereceu na hora (conta sem a linha de USDC, preco que mudou,
+remetente com endereco parecido), trechos trocados da gravacao.

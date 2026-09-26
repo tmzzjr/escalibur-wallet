@@ -1,0 +1,16 @@
+{
+  "name": "DOGE.main",
+  "height": 6390045,
+  "hash": "5a74ba6ee6a970ec290c8d1846a47d4047627a08f98958ae3e81c67d4e972a7b",
+  "time": "2026-09-26T08:04:20.025516904Z",
+  "latest_url": "https://api.blockcypher.com/v1/doge/main/blocks/5a74ba6ee6a970ec290c8d1846a47d4047627a08f98958ae3e81c67d4e972a7b",
+  "previous_hash": "b5fd1b53c0305caed0a57afedd9fccec7890a41fb66134c29b7e701fd23a785d",
+  "previous_url": "https://api.blockcypher.com/v1/doge/main/blocks/b5fd1b53c0305caed0a57afedd9fccec7890a41fb66134c29b7e701fd23a785d",
+  "peer_count": 165,
+  "unconfirmed_count": 61,
+  "high_fee_per_kb": 176419262,
+  "medium_fee_per_kb": 57237765,
+  "low_fee_per_kb": 13836570,
+  "last_fork_height": 6388093,
+  "last_fork_hash": "579298e9cf32f03a43358fc39ec8a10b6cda54e311b15e4d1f57be60837973b5"
+}

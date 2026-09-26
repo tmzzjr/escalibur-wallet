@@ -1,0 +1,1 @@
+{"result":{"error":"txnNotFound","error_code":29,"error_message":"Transaction not found.","searched_all":true,"request":{"binary":false,"command":"tx","max_ledger":107244179,"min_ledger":107243700,"transaction":"0000000000000000000000000000000000000000000000000000000000000001"},"status":"error"}}
