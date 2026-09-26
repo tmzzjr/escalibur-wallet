@@ -1,0 +1,31 @@
+Respostas gravadas dos provedores em 2026-09-25/26 (UTC), para os testes ReaderB*.
+
+Esplora (mempool.space, blockstream.info, litecoinspace.org):
+  esplora-address.json          GET /address/bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu
+  esplora-txs.json              GET /address/bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu/txs (as 6 primeiras)
+  esplora-utxo.json             GET /address/bc1q7mful77lv7ynvsjfnrnadzawrfrgcqaqe9test/utxo
+  esplora-tx-hex.txt            GET /tx/27d9f98446480c9ac44b44c968cc2f942ae45a2908c218ee773bb64aeb011fee/hex
+  esplora-tx-status.json        GET /tx/fd4b2c20cea81c2319f460114d2303b2dc3494524cc07cde015eebb38033cdcd/status
+  esplora-tip-height.txt        GET /blocks/tip/height
+  esplora-fees-precise.json     GET mempool.space /api/v1/fees/precise
+  esplora-fee-estimates.json    GET blockstream.info /api/fee-estimates
+  litecoinspace-fees-precise.json  GET litecoinspace.org /api/v1/fees/precise
+Blockcypher:
+  blockcypher-ltc-chain.json    GET /v1/ltc/main
+  blockcypher-doge-chain.json   GET /v1/doge/main
+  blockcypher-doge-address.json GET /v1/doge/main/addrs/DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC?limit=50
+Blockchair:
+  blockchair-doge-stats.json    GET /dogecoin/stats, reduzida aos campos lidos (o resto do
+                                objeto "data" e o "context" completo foram cortados).
+Horizon (SDF, e LOBSTR onde o nome diz):
+  horizon-account.json, horizon-account-lobstr.json   GET /accounts/GA5XIGA5C7QTPTWXQHY6MCJRMTRZDOSHR6EFIBNDQTCQHG262N4GGKTM
+  horizon-account-memo-required.json                  GET /accounts/GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37
+  horizon-account-404.json                            GET /accounts/GDRXE2BQ... (conta que nao existe)
+  horizon-ledgers.json          GET /ledgers?order=desc&limit=1
+  horizon-fee-stats.json        GET /fee_stats
+  horizon-paths-strict-send.json  GET /paths/strict-send (100 XLM para USDC da Circle)
+  horizon-offers.json           GET /accounts/GB3FQB7J.../offers?limit=3
+  horizon-operations.json       GET /accounts/GA5XIGA5.../operations?order=desc&limit=30
+  horizon-operations-offers.json  LOBSTR GET /accounts/GB3FQB7J.../operations?limit=6
+  horizon-trades.json           LOBSTR GET /accounts/GB3FQB7J.../trades?limit=4
+  horizon-transaction.json      GET /transactions/f374929844a4725abdbb61bda497b8c99833d877ec224ee6d41af00cb23601cb

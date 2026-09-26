@@ -1,0 +1,245 @@
+{
+  "_links": {
+    "self": {
+      "href": "https://horizon.stellar.lobstr.co/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY/operations?cursor=\u0026include_failed=false\u0026limit=6\u0026order=desc"
+    },
+    "next": {
+      "href": "https://horizon.stellar.lobstr.co/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY/operations?cursor=277545962103463937\u0026include_failed=false\u0026limit=6\u0026order=desc"
+    },
+    "prev": {
+      "href": "https://horizon.stellar.lobstr.co/accounts/GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY/operations?cursor=277545962103463942\u0026include_failed=false\u0026limit=6\u0026order=asc"
+    }
+  },
+  "_embedded": {
+    "records": [
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463942"
+          },
+          "transaction": {
+            "href": "https://horizon.stellar.lobstr.co/transactions/83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f"
+          },
+          "effects": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463942/effects"
+          },
+          "succeeds": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=desc\u0026cursor=277545962103463942"
+          },
+          "precedes": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=asc\u0026cursor=277545962103463942"
+          }
+        },
+        "id": "277545962103463942",
+        "paging_token": "277545962103463942",
+        "transaction_successful": true,
+        "source_account": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "type": "manage_sell_offer",
+        "type_i": 3,
+        "created_at": "2026-09-26T03:03:24Z",
+        "transaction_hash": "83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f",
+        "amount": "300.0000000",
+        "price": "0.2199298",
+        "price_r": {
+          "n": 1099649,
+          "d": 5000000
+        },
+        "buying_asset_type": "credit_alphanum4",
+        "buying_asset_code": "USDC",
+        "buying_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        "selling_asset_type": "native",
+        "offer_id": "1859056139"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463941"
+          },
+          "transaction": {
+            "href": "https://horizon.stellar.lobstr.co/transactions/83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f"
+          },
+          "effects": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463941/effects"
+          },
+          "succeeds": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=desc\u0026cursor=277545962103463941"
+          },
+          "precedes": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=asc\u0026cursor=277545962103463941"
+          }
+        },
+        "id": "277545962103463941",
+        "paging_token": "277545962103463941",
+        "transaction_successful": true,
+        "source_account": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "type": "manage_sell_offer",
+        "type_i": 3,
+        "created_at": "2026-09-26T03:03:24Z",
+        "transaction_hash": "83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f",
+        "amount": "300.0000000",
+        "price": "0.2198420",
+        "price_r": {
+          "n": 109921,
+          "d": 500000
+        },
+        "buying_asset_type": "credit_alphanum4",
+        "buying_asset_code": "USDC",
+        "buying_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        "selling_asset_type": "native",
+        "offer_id": "1859057120"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463940"
+          },
+          "transaction": {
+            "href": "https://horizon.stellar.lobstr.co/transactions/83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f"
+          },
+          "effects": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463940/effects"
+          },
+          "succeeds": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=desc\u0026cursor=277545962103463940"
+          },
+          "precedes": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=asc\u0026cursor=277545962103463940"
+          }
+        },
+        "id": "277545962103463940",
+        "paging_token": "277545962103463940",
+        "transaction_successful": true,
+        "source_account": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "type": "manage_sell_offer",
+        "type_i": 3,
+        "created_at": "2026-09-26T03:03:24Z",
+        "transaction_hash": "83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f",
+        "amount": "300.0000000",
+        "price": "0.2198270",
+        "price_r": {
+          "n": 219827,
+          "d": 1000000
+        },
+        "buying_asset_type": "credit_alphanum4",
+        "buying_asset_code": "USDC",
+        "buying_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        "selling_asset_type": "native",
+        "offer_id": "1859057119"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463939"
+          },
+          "transaction": {
+            "href": "https://horizon.stellar.lobstr.co/transactions/83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f"
+          },
+          "effects": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463939/effects"
+          },
+          "succeeds": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=desc\u0026cursor=277545962103463939"
+          },
+          "precedes": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=asc\u0026cursor=277545962103463939"
+          }
+        },
+        "id": "277545962103463939",
+        "paging_token": "277545962103463939",
+        "transaction_successful": true,
+        "source_account": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "type": "manage_buy_offer",
+        "type_i": 12,
+        "created_at": "2026-09-26T03:03:24Z",
+        "transaction_hash": "83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f",
+        "amount": "300.0000000",
+        "price": "0.2193737",
+        "price_r": {
+          "n": 2193737,
+          "d": 10000000
+        },
+        "buying_asset_type": "native",
+        "selling_asset_type": "credit_alphanum4",
+        "selling_asset_code": "USDC",
+        "selling_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        "offer_id": "1859051263"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463938"
+          },
+          "transaction": {
+            "href": "https://horizon.stellar.lobstr.co/transactions/83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f"
+          },
+          "effects": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463938/effects"
+          },
+          "succeeds": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=desc\u0026cursor=277545962103463938"
+          },
+          "precedes": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=asc\u0026cursor=277545962103463938"
+          }
+        },
+        "id": "277545962103463938",
+        "paging_token": "277545962103463938",
+        "transaction_successful": true,
+        "source_account": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "type": "manage_buy_offer",
+        "type_i": 12,
+        "created_at": "2026-09-26T03:03:24Z",
+        "transaction_hash": "83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f",
+        "amount": "300.0000000",
+        "price": "0.2193963",
+        "price_r": {
+          "n": 2193963,
+          "d": 10000000
+        },
+        "buying_asset_type": "native",
+        "selling_asset_type": "credit_alphanum4",
+        "selling_asset_code": "USDC",
+        "selling_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        "offer_id": "1859054349"
+      },
+      {
+        "_links": {
+          "self": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463937"
+          },
+          "transaction": {
+            "href": "https://horizon.stellar.lobstr.co/transactions/83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f"
+          },
+          "effects": {
+            "href": "https://horizon.stellar.lobstr.co/operations/277545962103463937/effects"
+          },
+          "succeeds": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=desc\u0026cursor=277545962103463937"
+          },
+          "precedes": {
+            "href": "https://horizon.stellar.lobstr.co/effects?order=asc\u0026cursor=277545962103463937"
+          }
+        },
+        "id": "277545962103463937",
+        "paging_token": "277545962103463937",
+        "transaction_successful": true,
+        "source_account": "GB3FQB7JYQ37PVYL3DE7ZWYMQCDXZFQBLA23HHJOYA3MIOHCSLT3BCYY",
+        "type": "manage_buy_offer",
+        "type_i": 12,
+        "created_at": "2026-09-26T03:03:24Z",
+        "transaction_hash": "83dca072b97f08887d0c02781735c5f0f2a99f8170e63f947690b8affa591c8f",
+        "amount": "300.0000000",
+        "price": "0.2194113",
+        "price_r": {
+          "n": 2194113,
+          "d": 10000000
+        },
+        "buying_asset_type": "native",
+        "selling_asset_type": "credit_alphanum4",
+        "selling_asset_code": "USDC",
+        "selling_asset_issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+        "offer_id": "1859051262"
+      }
+    ]
+  }
+}

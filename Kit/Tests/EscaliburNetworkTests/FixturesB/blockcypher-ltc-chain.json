@@ -1,0 +1,16 @@
+{
+  "name": "LTC.main",
+  "height": 3184437,
+  "hash": "d872c56ceea679671cc76e269a99f8a776aa7f5ab483da4a3430a134cd552a8e",
+  "time": "2026-09-26T02:53:56.946152979Z",
+  "latest_url": "https://api.blockcypher.com/v1/ltc/main/blocks/d872c56ceea679671cc76e269a99f8a776aa7f5ab483da4a3430a134cd552a8e",
+  "previous_hash": "008833dcf88b2cc30177980f2a76d62093f01cc14d88cd5212dbc508dc3959bd",
+  "previous_url": "https://api.blockcypher.com/v1/ltc/main/blocks/008833dcf88b2cc30177980f2a76d62093f01cc14d88cd5212dbc508dc3959bd",
+  "peer_count": 322,
+  "unconfirmed_count": 733,
+  "high_fee_per_kb": 12095,
+  "medium_fee_per_kb": 9359,
+  "low_fee_per_kb": 6846,
+  "last_fork_height": 3181529,
+  "last_fork_hash": "bb8a547963ef3a6c4fc562d3f5cc45157ddc75227086b8bcdaba2e4109586c92"
+}
