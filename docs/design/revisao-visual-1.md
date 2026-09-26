@@ -1,0 +1,7 @@
+# Revisão visual 1 (agente de UI, 2026-09-26, sobre 11 telas do simulador)
+
+As 5 de maior retorno: (1) logos em disco e asset da Base; (2) Trocar sem CTA morto, Enviar/Receber na mesma ordem em todo lugar; (3) detalhe do ativo sem tab bar, posição como número grande, gráfico com ≤120 pontos, piso de escala e ponto final inteiro; (4) Mercado em linha única no padrão OKX (sem minigráfico, sem cabeçalho, 64pt); (5) fluxos sem vazio de template (boas-vindas ancorada embaixo, checklist no aviso, check desenhado, título com entrelinha 2).
+
+Sistêmico: S1 logos transparentes (ETH, SOL, USDT) em disco control com glifo a 62%; Base como disco azul. S2 title.lineSpacing 6→2, estilo hero 34 bold −0.8. S3 placeholder inkMuted + lupa; CTA desligado com texto inkMuted; segmento selecionado control; chip não selecionado transparente com contorno, selecionado control sem contorno. S4 componente Segmented único (trilho body r10, segmento control r8, 36pt). S5 ícones da direita alinhados à margem de 20. S6 TabTitle com altura fixa 44. S7 detalhes sem tab bar; rodapé do Trocar +8. S8 "Sem cópia" em âmbar.
+
+Faltando para corretora grande: preço vivo (15 s, tick up/down 600 ms), detalhes sem tab bar, esqueletos, título que recolhe ao rolar, cursor do gráfico com balão e haptic por ponto e pulso no último ponto, centavos menores no saldo, transições (push no Receber, giro do inverter, check desenhado), tipo dinâmico.
