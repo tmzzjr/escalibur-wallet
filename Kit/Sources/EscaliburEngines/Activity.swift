@@ -49,5 +49,15 @@ public protocol ActivitySource: Sendable {
 }
 
 public enum ActivitySources {
-    public static func source(for chain: Chain) -> (any ActivitySource)? { nil }
+    public static func source(for chain: Chain) -> (any ActivitySource)? {
+        switch chain.family {
+        case .utxo: return EngineRegistry.utxoActivity(chain)
+        case .evm: return EngineRegistry.evmActivity(chain)
+        case .solana: return EngineRegistry.solanaActivity(chain)
+        case .xrpl: return EngineRegistry.xrplActivity(chain)
+        case .stellar: return EngineRegistry.stellarActivity(chain)
+        case .tron: return EngineRegistry.tronActivity(chain)
+        case .ton: return EngineRegistry.tonActivity(chain)
+        }
+    }
 }

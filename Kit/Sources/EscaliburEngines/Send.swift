@@ -125,9 +125,24 @@ public struct UTXOUsage: Codable, Equatable, Hashable, Sendable {
     }
 }
 
-/// Os motores disponiveis nesta versao.
+/// Os motores disponiveis nesta versao. Cada familia registra os seus no proprio
+/// arquivo (Families/), para os motores de redes diferentes nunca disputarem linha.
 public enum SendEngines {
     public static func engine(for chain: Chain) -> (any SendEngine)? {
-        nil
+        switch chain.family {
+        case .utxo: return EngineRegistry.utxoSend(chain)
+        case .evm: return EngineRegistry.evmSend(chain)
+        case .solana: return EngineRegistry.solanaSend(chain)
+        case .xrpl: return EngineRegistry.xrplSend(chain)
+        case .stellar: return EngineRegistry.stellarSend(chain)
+        case .tron: return EngineRegistry.tronSend(chain)
+        case .ton: return EngineRegistry.tonSend(chain)
+        }
     }
+}
+
+extension SendEngine {
+    /// Depois de um envio, o novo uso de enderecos UTXO (indice de troco que
+    /// avancou). Nil quando a rede nao tem isso ou nada mudou.
+    public func usage(after plan: SigningPlan, current: UTXOUsage?) -> UTXOUsage? { nil }
 }

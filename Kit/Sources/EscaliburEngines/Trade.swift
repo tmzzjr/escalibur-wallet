@@ -126,7 +126,15 @@ public enum TradeEngines {
     public static var chains: [Chain] { Chain.all.filter { engine(for: $0) != nil } }
 
     public static func engine(for chain: Chain) -> (any TradeEngine)? {
-        nil
+        switch chain.family {
+        case .utxo: return EngineRegistry.utxoTrade(chain)
+        case .evm: return EngineRegistry.evmTrade(chain)
+        case .solana: return EngineRegistry.solanaTrade(chain)
+        case .xrpl: return EngineRegistry.xrplTrade(chain)
+        case .stellar: return EngineRegistry.stellarTrade(chain)
+        case .tron: return EngineRegistry.tronTrade(chain)
+        case .ton: return EngineRegistry.tonTrade(chain)
+        }
     }
 }
 

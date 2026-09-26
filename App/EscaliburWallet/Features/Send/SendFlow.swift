@@ -645,6 +645,12 @@ struct SendStages: View {
             model.stage = .sending
             let id = try await engine.broadcast(signed, chain: chain)
             model.resultID = id
+            // Troco num endereco novo: o indice avanca para o proximo envio nao repetir.
+            if let usage = engine.usage(after: plan, current: model.wallet.utxoUsage[chain.id]),
+               var wallet = session.metadata.wallets.first(where: { $0.id == model.wallet.id }) {
+                wallet.utxoUsage[chain.id] = usage
+                session.update(wallet)
+            }
             if let address = model.destination?.address {
                 var sent = session.metadata.sentTo[chain.id] ?? []
                 if !sent.contains(address) { sent.append(address) }
