@@ -42,6 +42,7 @@ struct AssetDetailView: View {
                     Text(verbatim: row.name).typeStyle(.action).foregroundStyle(Palette.ink)
                 }
             }
+            ToolbarItem(placement: .topBarTrailing) { FavoriteButton(coingeckoID: row.coingeckoID) }
         }
         .safeAreaInset(edge: .bottom) {
             if session.selectedWallet?.isWatchOnly != true {
@@ -49,8 +50,11 @@ struct AssetDetailView: View {
                     HStack(spacing: Space.sm) {
                         SecondaryButton(title: "Enviar", height: Height.primary) { router.present(.send(row.positions.first?.asset)) }
                         SecondaryButton(title: "Receber", height: Height.primary) { receiving = true }
-                        if canTrade {
-                            PrimaryButton(title: "Trocar") { router.tab = .trade }
+                        if canTrade, let asset = row.positions.first?.asset {
+                            PrimaryButton(title: "Trocar") {
+                                router.tradePreset = (asset, true)
+                                router.tab = .trade
+                            }
                         }
                     }
                 }

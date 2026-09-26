@@ -75,6 +75,8 @@ struct Settings: Codable, Equatable {
     var currency: String = "brl"
     /// Unidade do saldo total na tela da carteira (`Fmt.DisplayUnit`). Nil: a moeda do app.
     var totalUnit: String?
+    /// Moedas marcadas com coracao (ids do CoinGecko), fixadas no topo do Mercado.
+    var favoriteCoins: [String]?
     var hideBalances = false
     var biometryEnabled = false
     var autoLockSeconds: Int = 60

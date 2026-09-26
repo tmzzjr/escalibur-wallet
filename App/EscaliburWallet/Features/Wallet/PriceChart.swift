@@ -177,27 +177,33 @@ struct PeriodPicker: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 2) {
             ForEach(ChartRange.allCases) { option in
                 Button {
-                    withAnimation(Motion.select) { range = option }
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) { range = option }
                 } label: {
                     Text(title(option))
                         .typeStyle(.label)
                         .foregroundStyle(range == option ? Palette.ink : Palette.inkMuted)
                         .frame(maxWidth: .infinity)
-                        .frame(height: Height.chip)
+                        .frame(minHeight: 34)
                         .background {
                             if range == option {
                                 Capsule(style: .continuous)
                                     .fill(Palette.control)
+                                    .overlay(Capsule(style: .continuous).strokeBorder(Palette.edgeStrong, lineWidth: 1))
+                                    .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
                                     .matchedGeometryEffect(id: "period", in: namespace)
                             }
                         }
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(range == option ? .isSelected : [])
             }
         }
+        .padding(3)
+        .background(Capsule(style: .continuous).fill(Palette.body))
         .sensoryFeedback(.selection, trigger: range)
     }
 }

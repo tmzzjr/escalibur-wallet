@@ -22,6 +22,9 @@ final class Router {
     var walletPath = NavigationPath()
     var marketPath = NavigationPath()
     var flow: Flow?
+    /// Ativo que a aba Trocar deve abrir escolhido, vindo do detalhe de uma moeda.
+    /// `sell` verdadeiro: vender este ativo; falso: comprar.
+    var tradePreset: (asset: Asset, sell: Bool)?
     /// Envelope aberto pelo sistema (AirDrop, Arquivos) esperando o app destravar.
     var incomingEnvelope: URL?
 

@@ -96,7 +96,11 @@ struct TradeView: View {
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
         }
-        .onAppear { if model.sell == nil, let first = tradeChains.first { model.reset(to: first) } }
+        .onAppear {
+            if model.sell == nil, let first = tradeChains.first { model.reset(to: first) }
+            applyPreset()
+        }
+        .onChange(of: router.tradePreset?.asset.id) { _, _ in applyPreset() }
         .sheet(item: $picking) { side in
             TokenPickerSheet(chain: model.chain, exclude: side == .sell ? model.buy : model.sell) { asset in
                 if side == .sell { model.sell = asset } else { model.buy = asset }
@@ -117,6 +121,21 @@ struct TradeView: View {
             }
         }
         .task(id: quoteKey) { await refreshQuote() }
+    }
+
+    /// Chegando do detalhe de uma moeda: a rede dela e ela como venda ou compra.
+    private func applyPreset() {
+        guard let preset = router.tradePreset, let chain = preset.asset.chain, tradeChains.contains(chain) else { return }
+        router.tradePreset = nil
+        router.tradeMode = .now
+        model.reset(to: chain)
+        if preset.sell {
+            model.sell = preset.asset
+            if model.buy == preset.asset { model.buy = TokenRegistry.tokens.first { $0.chainID == chain.id && $0.isStablecoin && $0 != preset.asset } ?? .native(chain) }
+        } else {
+            model.buy = preset.asset
+            if model.sell == preset.asset { model.sell = TokenRegistry.tokens.first { $0.chainID == chain.id && $0.isStablecoin && $0 != preset.asset } }
+        }
     }
 
     private var quoteKey: String {

@@ -1,4 +1,5 @@
 import Charts
+import EscaliburChains
 import EscaliburNetwork
 import SwiftUI
 
@@ -13,6 +14,20 @@ struct MarketView: View {
     @State private var query = ""
     @State private var loading = false
     @State private var failed = false
+
+    private var favoriteIDs: [String] { session.metadata.settings.favoriteCoins ?? [] }
+
+    /// As marcadas com coracao, na ordem em que foram marcadas.
+    private var favorites: [MarketCoin] {
+        favoriteIDs.compactMap { id in filtered.first { $0.id == id } }
+    }
+
+    private var others: [MarketCoin] { filtered.filter { !favoriteIDs.contains($0.id) } }
+
+    private func sectionTitle(_ text: String) -> some View {
+        Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            .padding(.horizontal, Space.gutter).padding(.top, Space.md).padding(.bottom, Space.xxs)
+    }
 
     private var filtered: [MarketCoin] {
         guard !query.isEmpty else { return coins }
@@ -46,13 +61,22 @@ struct MarketView: View {
                         .padding(.horizontal, Space.gutter).padding(.top, Space.md)
                     }
 
-                    LazyVStack(spacing: 0) {
-                        ForEach(filtered) { coin in
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        if !favorites.isEmpty {
+                            sectionTitle("Favoritas")
+                            ForEach(favorites) { coin in
+                                NavigationLink(value: coin) { MarketRow(coin: coin, currency: session.currency) }
+                                    .buttonStyle(RowStyle())
+                            }
+                            sectionTitle("Todas")
+                        }
+                        ForEach(others) { coin in
                             NavigationLink(value: coin) { MarketRow(coin: coin, currency: session.currency) }
                                 .buttonStyle(RowStyle())
                         }
                     }
                     .padding(.top, Space.sm)
+                    .animation(Motion.fade, value: favoriteIDs)
                 }
                 .padding(.bottom, Space.xl)
             }
@@ -186,7 +210,10 @@ struct Sparkline: View {
 
 struct MarketCoinDetail: View {
     @Environment(AppSession.self) private var session
+    @Environment(Router.self) private var router
     let coin: MarketCoin
+
+    private var tradable: Asset? { CoinTrade.asset(for: coin.id) }
 
     var body: some View {
         ScrollView {
@@ -194,15 +221,11 @@ struct MarketCoinDetail: View {
                 MarketChartSection(coingeckoID: coin.id, symbol: coin.symbol, name: coin.name,
                                    livePrice: coin.price, liveChange: coin.change24h,
                                    isStable: ["tether", "usd-coin", "dai"].contains(coin.id))
-                VStack(alignment: .leading, spacing: Space.sm) {
-                    Text("Sobre o mercado").typeStyle(.heading).foregroundStyle(Palette.ink)
-                    stat("Capitalização", coin.marketCap.map { Fmt.compact($0, session.currency) })
-                    stat("Volume em 24h", coin.volume24h.map { Fmt.compact($0, session.currency) })
-                    stat("Posição por capitalização", coin.rank.map { "\($0)º" })
-                }
-                .padding(Space.md)
-                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+                MarketStats(items: [
+                    ("Capitalização", coin.marketCap.map { Fmt.compact($0, session.currency) } ?? "sem dado"),
+                    ("Volume em 24h", coin.volume24h.map { Fmt.compact($0, session.currency) } ?? "sem dado"),
+                    ("Posição no mercado", coin.rank.map { "\($0)º" } ?? "sem dado"),
+                ])
                 .padding(.horizontal, Space.gutter)
                 .padding(.top, Space.xl)
             }
@@ -218,14 +241,17 @@ struct MarketCoinDetail: View {
                     Text(verbatim: coin.name).typeStyle(.action).foregroundStyle(Palette.ink)
                 }
             }
+            ToolbarItem(placement: .topBarTrailing) { FavoriteButton(coingeckoID: coin.id) }
         }
-    }
-
-    private func stat(_ label: String, _ value: String?) -> some View {
-        HStack {
-            Text(label).typeStyle(.note).foregroundStyle(Palette.inkSoft)
-            Spacer()
-            Text(value ?? "sem dado").typeStyle(.note).foregroundStyle(Palette.ink)
+        .safeAreaInset(edge: .bottom) {
+            if let tradable, session.selectedWallet?.isWatchOnly != true {
+                ActionFooter {
+                    PrimaryButton(title: "Trocar por \(coin.symbol.uppercased())") {
+                        router.tradePreset = (tradable, false)
+                        router.tab = .trade
+                    }
+                }
+            }
         }
     }
 }

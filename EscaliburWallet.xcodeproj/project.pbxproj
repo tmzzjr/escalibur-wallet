@@ -69,7 +69,9 @@
 		E9B262D8C5C872AC0A1391B7 /* TradeReviewFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD76B5A4D8E49D97000A77E /* TradeReviewFlow.swift */; };
 		EAD6592758D7814329227F15 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7372B2C6D0156F65AA215FE5 /* SettingsView.swift */; };
 		ECDF3B3B1D37C45AF88FD2A8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */; };
+		F188A8EA4A5EBDCD53F891E7 /* CoinActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C75178B68BC09E156440A1 /* CoinActions.swift */; };
 		F2B74E9DFA78D4082923023D /* AssetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB2C6C888DAF848A575AD7A /* AssetDetailView.swift */; };
+		F442789E52824CD5BF6184A6 /* CoinDetailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D40F7F537F7FF07C6720903 /* CoinDetailTests.swift */; };
 		F60A5B68C1C271353B804B0B /* ReceiveSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2CB54D5FE5615D8A3F582F8 /* ReceiveSheet.swift */; };
 		F6959527BC4CC168A38CFA35 /* LockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DB4670DA96F1FBC6FF41CC /* LockView.swift */; };
 		F8EA2B1B268220A255B30FAB /* ImportPhraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98728880640B5B94955214E7 /* ImportPhraseView.swift */; };
@@ -105,6 +107,7 @@
 		31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealEnvelopeFlow.swift; sourceTree = "<group>"; };
 		355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscaliburWalletApp.swift; sourceTree = "<group>"; };
 		38287337A415C5A48CB564C8 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		3D40F7F537F7FF07C6720903 /* CoinDetailTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinDetailTests.swift; sourceTree = "<group>"; };
 		4027F05D922AF46864DCED58 /* Portfolio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Portfolio.swift; sourceTree = "<group>"; };
 		445327A094057374455F9FD5 /* LEIA-ME.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LEIA-ME.txt"; sourceTree = "<group>"; };
 		464E41DA23598ED80A750BD4 /* EscaliburWalletUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EscaliburWalletUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -114,6 +117,7 @@
 		634FB486C1AC19A1DC738122 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
 		6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalDocumentView.swift; sourceTree = "<group>"; };
 		71977F38FE1026DDFD0C189A /* DebugDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDemo.swift; sourceTree = "<group>"; };
+		72C75178B68BC09E156440A1 /* CoinActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinActions.swift; sourceTree = "<group>"; };
 		7372B2C6D0156F65AA215FE5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7543B278315E1446160A8DAF /* QRScannerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerSheet.swift; sourceTree = "<group>"; };
 		77C53992781573FB54743C00 /* SecureInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureInputField.swift; sourceTree = "<group>"; };
@@ -184,6 +188,7 @@
 		09B8D2977A8E44790180B01A /* Market */ = {
 			isa = PBXGroup;
 			children = (
+				72C75178B68BC09E156440A1 /* CoinActions.swift */,
 				A1BADB432EFAFD601991FB0A /* MarketView.swift */,
 			);
 			path = Market;
@@ -282,6 +287,7 @@
 		7719C44BCFB732B2DA3A73BE /* EscaliburWalletUITests */ = {
 			isa = PBXGroup;
 			children = (
+				3D40F7F537F7FF07C6720903 /* CoinDetailTests.swift */,
 				AD4DB38ABFB63662F684831D /* LegalTests.swift */,
 				CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */,
 				8E73AD40F44D72D64B0F550B /* ReceiveFlowTests.swift */,
@@ -535,6 +541,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F442789E52824CD5BF6184A6 /* CoinDetailTests.swift in Sources */,
 				534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */,
 				20F684E79E7161139654F6DE /* OnboardingFlowTests.swift in Sources */,
 				2A90FB479DFA2C8FA3B4A582 /* ReceiveFlowTests.swift in Sources */,
@@ -553,6 +560,7 @@
 				F2B74E9DFA78D4082923023D /* AssetDetailView.swift in Sources */,
 				2468359EF9FB1503F19395D5 /* AuthCoordinator.swift in Sources */,
 				E09B8272656E909426D4987D /* Buttons.swift in Sources */,
+				F188A8EA4A5EBDCD53F891E7 /* CoinActions.swift in Sources */,
 				B259A28741C3A8C0F7D74759 /* CoinLogo.swift in Sources */,
 				76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */,
 				5932324C0521646D89823F75 /* ContactsView.swift in Sources */,
