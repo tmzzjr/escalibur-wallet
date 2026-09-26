@@ -18,7 +18,7 @@ struct EVMLimitOrderTests {
     /// 100 USDC por no minimo 0,04 ETH.
     static let minimumOut = BigUInt(decimal: "40000000000000000")!
 
-    static func request(minimumOut: BigUInt = minimumOut, validFor: TimeInterval = week) throws -> LimitOrderRequest {
+    static func request(minimumOut: BigUInt = minimumOut, validFor: TimeInterval? = week) throws -> LimitOrderRequest {
         LimitOrderRequest(walletID: UUID(), chain: .base, account: try EVMTestAccounts.testAccount(on: .base), sell: F.usdc,
                           buy: .native(.base), amountIn: F.amount, minimumOut: minimumOut, validFor: validFor)
     }
@@ -134,5 +134,71 @@ struct EVMLimitOrderTests {
         #expect(throws: SendEngineError.message("Estas ordens não são desta conta.")) {
             _ = try engine.planLimitOrderCancellation(walletID: UUID(), account: account, orderUIDs: [Hex.encode(foreign, prefix: true)])
         }
+    }
+
+    @Test("Ate cancelar: a CoW exige prazo, e a ordem vale o maximo pratico dela, dito na revisao")
+    func untilCancelled() async throws {
+        let engine = H.engine(cow: FakeCoW(), sources: [], transport: try H.baseTransport())
+        let before = Date()
+        let plan = try await engine.planLimitOrder(Self.request(validFor: nil))
+        let order = try #require(plan.transactions.last as? EIP712ValidatedMessage)
+        guard case .number(let text)? = order.typedData.message["validTo"], let validTo = TimeInterval(text) else {
+            Issue.record("validTo"); return
+        }
+        let expected = before.timeIntervalSince1970 + CoWProtocol.untilCancelledValidity
+        #expect(validTo >= expected.rounded(.down) && validTo <= expected + 5)
+        #expect(CoWProtocol.untilCancelledValidity < 31_536_000)
+        #expect(plan.review.lines.contains { $0.label == "Válida até" && $0.value.contains("o prazo mais longo que a CoW aceita") })
+    }
+
+    static func status(uid: [UInt8], owner: EVMAddress, executed: BigUInt = 0) -> CoWOrderStatus {
+        CoWOrderStatus(
+            uid: uid, status: .open, invalidated: false, owner: owner, sellToken: F.usdcToken.contract,
+            buyToken: CoWProtocol.buyNativeToken, receiver: owner, sellAmount: F.amount, buyAmount: minimumOut,
+            validTo: 0x7000_0000, executedSellAmount: executed, executedBuyAmount: 0
+        )
+    }
+
+    @Test("Ordens abertas da CoW: o que falta vender, o minimo pelo preco gravado e os dois jeitos de cancelar")
+    func openOrders() async throws {
+        let cow = FakeCoW()
+        let chain = FakeTradeChain()
+        let engine = H.engine(state: chain, cow: cow, sources: [], transport: try H.baseTransport())
+        let account = try EVMTestAccounts.testAccount(on: .base)
+        let owner = try EVMAddress(account.address)
+        let uid = [UInt8](repeating: 0xAB, count: 32) + owner.bytes + [0x70, 0x00, 0x00, 0x00]
+        await cow.setOpen([Self.status(uid: uid, owner: owner, executed: 25_000_000)])
+        let orders = try await engine.openOrders(account: account)
+        #expect(orders.count == 1)
+        let open = try #require(orders.first)
+        #expect(open.id == Hex.encode(uid, prefix: true))
+        #expect(open.sell == F.usdc && open.buy == .native(.base))
+        #expect(open.remainingSell == 75_000_000)
+        #expect(open.minimumBuy == BigUInt(decimal: "30000000000000000")!)
+        #expect(open.expiresAt == Date(timeIntervalSince1970: TimeInterval(0x7000_0000)))
+        #expect(open.cancellations == [.offchain, .onchain] && open.sources == 1)
+
+        // Pela CoW: o pedido assinado vai pelo `submit` como qualquer plano.
+        let offchain = try await engine.planCancel(open, walletID: UUID(), account: account)
+        #expect(offchain.review.kind == .cancelOrder)
+        let ids = try await engine.submit(try EVMTestAccounts.sign(offchain), plan: offchain)
+        #expect(ids == [open.id])
+        #expect(await cow.cancelled.first?.uids == [uid])
+
+        // Na cadeia: invalidateOrder(uid) no GPv2Settlement, com o gas da chamada exata.
+        let onchain = try await engine.planCancel(open, walletID: UUID(), account: account, via: .onchain)
+        #expect(onchain.review.kind == .cancelOrder && onchain.review.lines.contains { $0.label == "Garantia" })
+        let transaction = try #require(onchain.transactions.first as? EVMTransaction)
+        let expectedCall = try CoWProtocol.invalidateOrderCall(uid: uid)
+        #expect(transaction.to == CoWProtocol.settlement && transaction.data == expectedCall)
+        #expect(await chain.cancellationReads == [uid])
+
+        // UID de outra conta nao vira plano.
+        let foreign = [UInt8](repeating: 0xAB, count: 32) + EVMTestAccounts.binance8.bytes + [0x70, 0x00, 0x00, 0x00]
+        let stranger = OpenOrder(
+            id: Hex.encode(foreign, prefix: true), chain: .base, sellAssetID: open.sellAssetID, buyAssetID: open.buyAssetID,
+            remainingSell: 1, minimumBuy: 1, expiresAt: nil, sources: 1, cancellations: [.onchain]
+        )
+        await #expect(throws: SendEngineError.self) { _ = try await engine.planCancel(stranger, walletID: UUID(), account: account) }
     }
 }

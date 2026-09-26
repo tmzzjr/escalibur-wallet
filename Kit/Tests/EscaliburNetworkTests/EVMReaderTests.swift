@@ -70,6 +70,28 @@ struct EVMReaderTests {
         #expect(plan.transactions.count == 1)
     }
 
+    @Test("Regressao B1: baseFee e gorjetas pela mediana de dois provedores; gas pela menor estimativa")
+    func twoSourceFees() async throws {
+        // O segundo provedor infla: baseFee 10x, gorjetas 10x e o gas 5x.
+        let inflated = rpcResult("""
+        {"oldestBlock":"0x1","baseFeePerGas":["0x1","\(BigUInt(587_617_660).hexString)"],"gasUsedRatio":[0.5],
+         "reward":[["\(BigUInt(1_730).hexString)","\(BigUInt(42_005_400).hexString)","\(BigUInt(1_000_000_000).hexString)"]]}
+        """)
+        let transport = try Self.transport(overrides: ["b.test": ["eth_feeHistory": inflated, "eth_estimateGas": rpcResult("\"0x19a28\"")]])
+        let state = try await Self.reader(transport).networkState(chain: .ethereum, account: Self.owner, intent: .native(to: Self.destination, amount: 1))
+        // A media das duas, nunca a maior: o exagero de um provedor entra pela metade, e o
+        // teto do perfil limita o resto.
+        #expect(state.baseFeePerGas == BigUInt(323_189_713))
+        #expect(state.priorityFees.normal == BigUInt(23_102_970))
+        #expect(state.gasEstimate == 21_000)
+        // Um provedor so de taxa nao basta.
+        let failing = try Self.transport(overrides: ["b.test": ["eth_feeHistory": rpcResult("null")]])
+        await #expect(throws: (any Error).self) {
+            _ = try await Self.reader(failing).networkState(chain: .ethereum, account: Self.owner, intent: .native(to: Self.destination, amount: 1))
+        }
+        #expect(EVMReader.median([1, 2, 3]) == 2 && EVMReader.median([2, 5]) == 4 && EVMReader.median([]) == 0)
+    }
+
     @Test("Saldo e codigo lidos num bloco fixo, alguns blocos atras da ponta")
     func pinnedBlock() async throws {
         let transport = try Self.transport()

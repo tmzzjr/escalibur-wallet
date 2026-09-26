@@ -94,11 +94,13 @@ public enum SigningError: Error, Equatable, Sendable {
 ///
 /// **O inicializador e interno a EscaliburChains.** Nenhum outro modulo, nem os motores
 /// de EscaliburEngines nem o app, constroi um plano: ele so nasce dos planejadores das
-/// redes, que conferem a intencao do dono contra o que vai ser assinado. De fora, so
-/// duas composicoes existem, as duas sobre planos ja validados aqui: somar avisos
-/// (`addingWarnings`) e encadear planos para assinar de uma vez (`sequence`). O
-/// assinador de EscaliburKeys so aceita este tipo, entao "assinar sem validar" nao
-/// compila.
+/// redes, que conferem a intencao do dono contra o que vai ser assinado. De fora, a
+/// unica composicao generica e somar avisos (`addingWarnings`). Encadear planos para
+/// assinar de uma vez (`sequence`) tambem e interno: so os compositores nomeados de
+/// cada rede (`TradePlanner.combineSplit`, `XRPLPlanner.combineTrustlineAndOffer`)
+/// juntam planos, e cada um deriva tipo, titulo, linhas e movimentos dos planos que
+/// junta. Nenhum motor escreve a revisao. O assinador de EscaliburKeys so aceita este
+/// tipo, entao "assinar sem validar" nao compila.
 public struct SigningPlan: Sendable {
     public let id: UUID
     public let walletID: UUID
@@ -136,6 +138,12 @@ public struct SigningPlan: Sendable {
         case empty
         /// Planos de carteiras ou de redes diferentes nao se assinam juntos.
         case mixedPlans
+        /// Um envio dentro de uma troca ou ordem: a revisao chamaria de troca uma
+        /// transferencia para outra pessoa.
+        case sendInsideTrade
+        /// As partes nao formam a operacao que o compositor junta (tipo, ativo, conta,
+        /// sequencia ou valores diferentes do que cada parte validou).
+        case partsDoNotMatch
     }
 
     /// O mesmo plano com avisos a mais, os que so o motor sabe (endereco parecido com
@@ -155,30 +163,43 @@ public struct SigningPlan: Sendable {
     }
 
     /// Planos ja validados, assinados de uma vez e transmitidos na ordem dada (a
-    /// autorizacao antes da troca, as pernas de uma divisao, as ofertas encadeadas).
+    /// autorizacao antes da troca, as pernas de uma divisao, a linha de confianca antes
+    /// da oferta).
     ///
-    /// A revisao e a soma das revisoes: as linhas de abertura (`lead`), depois as de
-    /// cada plano, com "Etapa n ·" na frente quando `stepPrefix`, sem as de rotulo em
-    /// `omitting` (o que a abertura ja resume). Os avisos de todos entram, sem
-    /// repeticao. O prazo conta do plano mais antigo.
-    public static func sequence(
+    /// **Interno.** So os compositores nomeados das redes chamam, com tipo, titulo,
+    /// abertura e movimentos que eles derivaram dos proprios planos. A revisao e a soma
+    /// das revisoes: as linhas de abertura (`lead`), depois as de cada plano, com
+    /// "Etapa n ·" na frente quando `stepPrefix`, sem as de rotulo em `omitting` (o que a
+    /// abertura ja resume). Linha de conferencia caractere a caractere (`verbatim`) nunca
+    /// sai, mesmo com o rotulo na lista. Troca e ordem nao levam envio dentro. Os avisos
+    /// de todos entram, sem repeticao. O prazo conta do plano mais antigo.
+    static func sequence(
         _ plans: [SigningPlan], kind: PlanReview.Kind, title: String, lead: [PlanReview.Line],
-        stepPrefix: Bool = false, omitting labels: Set<String> = []
+        stepPrefix: Bool = false, omitting labels: Set<String> = [],
+        outgoing: PlanReview.Movement?, incomingMinimum: PlanReview.Movement?, beneficiary: String?
     ) throws -> SigningPlan {
         guard let first = plans.first else { throw CompositionError.empty }
         guard plans.allSatisfy({ $0.walletID == first.walletID && $0.chain.id == first.chain.id }) else {
             throw CompositionError.mixedPlans
         }
+        if kind == .swap || kind == .limitOrder {
+            guard !plans.contains(where: { $0.review.kind == .send || $0.review.recipient != nil }) else {
+                throw CompositionError.sendInsideTrade
+            }
+        }
         var lines = lead
         for (index, plan) in plans.enumerated() {
-            for line in plan.review.lines where !labels.contains(line.label) {
+            for line in plan.review.lines where line.verbatim || !labels.contains(line.label) {
                 lines.append(PlanReview.Line(stepPrefix ? "Etapa \(index + 1) · \(line.label)" : line.label, line.value, verbatim: line.verbatim))
             }
         }
         var warnings: [PlanReview.Warning] = []
         for warning in plans.flatMap(\.review.warnings) where !warnings.contains(warning) { warnings.append(warning) }
         let transactions = plans.flatMap(\.transactions)
-        let review = PlanReview(kind: kind, title: title, lines: lines, warnings: warnings, transactionCount: transactions.count)
+        let review = PlanReview(
+            kind: kind, title: title, lines: lines, warnings: warnings, transactionCount: transactions.count,
+            outgoing: outgoing, incomingMinimum: incomingMinimum, beneficiary: beneficiary
+        )
         return SigningPlan(
             walletID: first.walletID, chain: first.chain, review: review, transactions: transactions,
             createdAt: plans.map(\.createdAt).min() ?? first.createdAt

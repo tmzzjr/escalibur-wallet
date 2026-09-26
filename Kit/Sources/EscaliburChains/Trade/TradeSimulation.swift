@@ -84,19 +84,20 @@ enum TradeSimulationCheck {
     /// O geth reporta valor nativo como Transfer deste endereco (`traceTransfers`).
     static let nativePseudoToken = TradeConstants.eeeeSentinel
 
-    /// O gas medido: de cada approve e da troca. Exige duas fontes diferentes, as duas
-    /// passando.
+    /// O gas medido: de cada approve e da troca, o menor das fontes (uma fonte que infla o
+    /// gas nao sobe a taxa maxima; o plano soma 20%). Exige duas fontes diferentes, as
+    /// duas passando.
     static func verify(
         _ simulations: [TradeSimulation], request: TradeSimulationRequest, quote: ValidatedTradeQuote
     ) throws -> (approvals: [UInt64], swap: UInt64) {
         let sources = Set(simulations.map(\.source))
         guard sources.count >= 2 else { throw TradeRefusal.simulationUnavailable }
-        var approvalGas = [UInt64](repeating: 0, count: request.approvals.count)
-        var swapGas: UInt64 = 0
+        var approvalGas = [UInt64](repeating: .max, count: request.approvals.count)
+        var swapGas = UInt64.max
         for simulation in simulations {
             let (approvals, swap) = try verify(simulation, request: request, quote: quote)
-            for index in approvals.indices { approvalGas[index] = max(approvalGas[index], approvals[index]) }
-            swapGas = max(swapGas, swap)
+            for index in approvals.indices { approvalGas[index] = min(approvalGas[index], approvals[index]) }
+            swapGas = min(swapGas, swap)
         }
         return (approvalGas, swapGas)
     }

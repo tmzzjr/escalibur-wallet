@@ -62,7 +62,7 @@ public actor XRPLReader {
         }
         return XRPLAccountState(
             address: address, sequenceReadings: [first.sequence, second.sequence],
-            balance: first.balance, ownerCount: first.ownerCount, flags: first.flags
+            balance: first.balance, ownerCount: first.ownerCount, flags: first.flags, ledgerIndex: readings[0].ledger
         )
     }
 

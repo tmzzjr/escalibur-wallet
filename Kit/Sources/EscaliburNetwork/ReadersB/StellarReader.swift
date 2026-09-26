@@ -12,8 +12,9 @@ import Foundation
 /// - destino: os dois sao consultados. Existencia tem de concordar, e basta um dizer
 ///   que o memo e obrigatorio (SEP-29) para ser obrigatorio: um provedor que esconde
 ///   o `config.memo_required` faria o deposito numa exchange se perder;
-/// - rede, cotacao e ofertas: um provedor. O planejamento poe teto na taxa, confere a
-///   reserva numa faixa e calcula o minimo da troca a partir da tolerancia.
+/// - cotacao da troca: as duas (`quoteStrictSendOnBoth`), e o minimo ancora na maior;
+/// - ofertas abertas: as duas (`offersOnBoth`), juntas;
+/// - rede: um provedor. O planejamento poe teto na taxa e confere a reserva numa faixa.
 public struct StellarReader: Sendable {
     let pool: ProviderPool
     let transport: ChainReaderTransport
@@ -178,11 +179,40 @@ public struct StellarReader: Sendable {
     /// Ofertas abertas da conta, para mostrar e para `StellarPlanner.planCancelOrder`.
     public func offers(_ id: StellarAccountID) async throws -> [StellarOpenOffer] {
         let page = try await first { provider in
-            try await self.get(HorizonPage<HorizonOffer>.self, provider, "accounts/\(id.address)/offers", [
-                URLQueryItem(name: "limit", value: "200"), URLQueryItem(name: "order", value: "asc"),
-            ])
+            try await self.get(HorizonPage<HorizonOffer>.self, provider, "accounts/\(id.address)/offers", Self.offersQuery)
         }
-        return try page.embedded.records.enumerated().map { index, record in
+        return try Self.offers(page, id: id)
+    }
+
+    /// As ofertas abertas nas duas Horizons, juntas: uma oferta que so uma mostra entra,
+    /// com a conta de quantas viram (`sources`). Uma Horizon que esconde uma oferta nao a
+    /// tira da lista de cancelar; a que inventa uma so faz o cancelamento falhar na rede.
+    /// As duas tem de responder.
+    public func offersOnBoth(_ id: StellarAccountID) async throws -> [(offer: StellarOpenOffer, sources: Int)] {
+        let pages = try await both { provider in
+            try await self.get(HorizonPage<HorizonOffer>.self, provider, "accounts/\(id.address)/offers", Self.offersQuery)
+        }
+        var merged: [(offer: StellarOpenOffer, sources: Int)] = []
+        for page in pages {
+            for offer in try Self.offers(page, id: id) {
+                if let index = merged.firstIndex(where: { $0.offer.id == offer.id }) {
+                    // A mesma oferta com outros termos nas duas: nao da para dizer qual vale.
+                    guard merged[index].offer.selling == offer.selling, merged[index].offer.buying == offer.buying else {
+                        throw ChainReaderError.providersDisagree
+                    }
+                    merged[index].sources += 1
+                } else {
+                    merged.append((offer, 1))
+                }
+            }
+        }
+        return merged
+    }
+
+    static let offersQuery = [URLQueryItem(name: "limit", value: "200"), URLQueryItem(name: "order", value: "asc")]
+
+    static func offers(_ page: HorizonPage<HorizonOffer>, id: StellarAccountID) throws -> [StellarOpenOffer] {
+        try page.embedded.records.enumerated().map { index, record in
             let field = "offers.\(index)"
             guard record.seller == id.address else { throw ChainReaderError.mismatchedResponse }
             guard let offerID = Int64(record.id), offerID > 0, record.priceR.n > 0, record.priceR.d > 0 else {
@@ -205,16 +235,47 @@ public struct StellarReader: Sendable {
     /// minimo a partir dele e da tolerancia, e a rede garante o minimo. Um provedor
     /// mentindo aqui faz, no pior caso, a troca falhar ou sair pela rota pior dentro
     /// da tolerancia. nil quando nao ha rota.
-    public func quoteStrictSend(send: StellarAsset, amount: BigUInt, receive: StellarAsset) async throws -> StellarPathQuote? {
-        guard !amount.isZero, send != receive else { return nil }
-        let sourceAmount = DecimalUnits.format(amount, decimals: Self.decimals)
-        let destination = receive.issuer.map { "\(receive.code):\($0.address)" } ?? "native"
-        let query = Self.assetQuery(send, prefix: "source_") + [
-            URLQueryItem(name: "source_amount", value: sourceAmount), URLQueryItem(name: "destination_assets", value: destination),
-        ]
+    public func quoteStrictSend(
+        send: StellarAsset, amount: BigUInt, receive: StellarAsset, allowedPath: [StellarAsset]? = nil
+    ) async throws -> StellarPathQuote? {
+        guard let query = Self.strictSendQuery(send: send, amount: amount, receive: receive) else { return nil }
         let page = try await first { provider in
             try await self.get(HorizonPage<HorizonPath>.self, provider, "paths/strict-send", query)
         }
+        return try Self.best(page, send: send, amount: amount, receive: receive, allowedPath: allowedPath)
+    }
+
+    /// A mesma cotacao nas duas Horizons, cada uma com a sua melhor rota (nil: aquela
+    /// Horizon nao achou rota). As duas tem de responder.
+    ///
+    /// Com uma Horizon so, ela escolhia a rota e o numero de onde sai o minimo: bastava
+    /// cotar baixo para a troca garantir menos (auditoria 2, A1). Com as duas, a troca
+    /// ancora o minimo na maior; uma Horizon que infla a cotacao so faz a troca falhar.
+    /// `allowedPath`: os unicos ativos por onde a rota pode passar.
+    public func quoteStrictSendOnBoth(
+        send: StellarAsset, amount: BigUInt, receive: StellarAsset, allowedPath: [StellarAsset]
+    ) async throws -> [StellarPathQuote?] {
+        guard let query = Self.strictSendQuery(send: send, amount: amount, receive: receive) else { return [nil, nil] }
+        let pages = try await both { provider in
+            try await self.get(HorizonPage<HorizonPath>.self, provider, "paths/strict-send", query)
+        }
+        return try pages.map { try Self.best($0, send: send, amount: amount, receive: receive, allowedPath: allowedPath) }
+    }
+
+    static func strictSendQuery(send: StellarAsset, amount: BigUInt, receive: StellarAsset) -> [URLQueryItem]? {
+        guard !amount.isZero, send != receive else { return nil }
+        let sourceAmount = DecimalUnits.format(amount, decimals: Self.decimals)
+        let destination = receive.issuer.map { "\(receive.code):\($0.address)" } ?? "native"
+        return Self.assetQuery(send, prefix: "source_") + [
+            URLQueryItem(name: "source_amount", value: sourceAmount), URLQueryItem(name: "destination_assets", value: destination),
+        ]
+    }
+
+    /// A rota que mais entrega, entre as que sao do par e do valor pedidos e so passam
+    /// por `allowedPath` (quando dado).
+    static func best(
+        _ page: HorizonPage<HorizonPath>, send: StellarAsset, amount: BigUInt, receive: StellarAsset, allowedPath: [StellarAsset]?
+    ) throws -> StellarPathQuote? {
         var best: StellarPathQuote?
         for (index, record) in page.embedded.records.enumerated() {
             let field = "paths.\(index)"
@@ -228,6 +289,7 @@ public struct StellarReader: Sendable {
             else { continue }
             let path = try record.path.map { try $0.asset(field: field) }
             guard path.count <= Self.maxPathLength, !path.contains(send), !path.contains(receive) else { continue }
+            if let allowedPath, !path.allSatisfy({ allowedPath.contains($0) }) { continue }
             let received = try DecimalUnits.parse(record.destinationAmount, decimals: Self.decimals, field: field)
             if received > (best?.receiveAmount ?? BigUInt()) {
                 best = StellarPathQuote(sendAsset: send, sendAmount: amount, receiveAsset: receive, receiveAmount: received, path: path)

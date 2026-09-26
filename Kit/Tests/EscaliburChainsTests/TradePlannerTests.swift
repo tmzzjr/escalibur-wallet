@@ -54,6 +54,11 @@ struct TradePlannerTests {
         #expect(Self.line(plan, "Parte da taxa paga à L1") != nil)
         #expect(Self.line(plan, "Etapas") == "2 transações: autorizar e trocar, nesta ordem")
         #expect(Self.line(plan, "Nonce") == "7 a 8")
+        // O que sai, o minimo que entra e quem recebe: da calldata da transacao montada.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: 100_000_000))
+        #expect(plan.review.incomingMinimum == PlanReview.Movement(assetID: "base:native", amount: quote.decoded.guaranteedOut))
+        #expect(plan.review.beneficiary == S.owner.checksummed)
+        #expect(plan.review.recipient == nil)
         // Nenhum texto com travessao.
         for line in plan.review.lines { #expect(!line.value.contains("—") && !line.value.contains("–")) }
 
@@ -62,6 +67,58 @@ struct TradePlannerTests {
             let signed = try transaction.assemble(with: [T.sign(transaction.signingDigest, key: T.testKey)])
             #expect(signed.raw.first == 0x02)
         }
+    }
+
+    @Test("Regressao A1: a divisao e escrita pelo compositor, das pernas validadas; envio, perna trocada ou nonce solto recusa")
+    func combineSplit() throws {
+        let account = try T.account(T.testKey)
+        let velora = try Self.quote(.velora, "velora-base-usdc-eth", S.baseIntent())
+        let kyber = try Self.quote(.kyberSwap, "kyber-base-usdc-eth-build", S.baseIntent())
+        func leg(_ quote: ValidatedTradeQuote, nonce: UInt64) throws -> SigningPlan {
+            try TradePlanner.planSwap(walletID: Self.wallet, account: account, quote: quote,
+                                      state: S.chainState(quote, allowance: 0, nonce: nonce), now: S.recordedAt)
+        }
+        let first = try leg(velora, nonce: 7)
+        let second = try leg(kyber, nonce: 9)
+        let joined = try TradePlanner.combineSplit([first, second], quotes: [velora, kyber])
+        #expect(joined.review.kind == .swap && joined.transactions.count == 4 && joined.review.transactionCount == 4)
+        #expect(joined.review.title == "Trocar 200\u{00A0}USDC por ETH em 2 etapas")
+        #expect(Self.line(joined, "Divisão") == "50% pela Velora, 50% pela KyberSwap")
+        #expect(Self.line(joined, "Sai") == "200\u{00A0}USDC")
+        #expect(joined.review.outgoing == PlanReview.Movement(assetID: "base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: 200_000_000))
+        #expect(joined.review.incomingMinimum == PlanReview.Movement(assetID: "base:native", amount: velora.guaranteedOut + kyber.guaranteedOut))
+        #expect(joined.review.beneficiary == S.owner.checksummed)
+        // As linhas de conferir de cada etapa continuam la.
+        #expect(joined.review.lines.contains(PlanReview.Line("Etapa 1 · Contrato do provedor", velora.to.checksummed, verbatim: true)))
+        #expect(joined.review.lines.contains(PlanReview.Line("Etapa 2 · Contrato do provedor", kyber.to.checksummed, verbatim: true)))
+
+        #expect(throws: SigningPlan.CompositionError.partsDoNotMatch) { try TradePlanner.combineSplit([first, second], quotes: [kyber, velora]) }
+        #expect(throws: SigningPlan.CompositionError.partsDoNotMatch) { try TradePlanner.combineSplit([first], quotes: [velora]) }
+        #expect(throws: SigningPlan.CompositionError.partsDoNotMatch) {
+            try TradePlanner.combineSplit([first, try leg(kyber, nonce: 10)], quotes: [velora, kyber])
+        }
+        // Um envio de USDC para outra conta no lugar da segunda perna.
+        let send = try EVMPlanner.planTokenSend(
+            walletID: Self.wallet, account: account, token: S.baseUSDC, to: S.stranger, amount: 100_000_000,
+            state: S.network(.base, nonce: 9, l1: BigUInt(10_000_000_000)),
+            tokenState: EVMTokenState(contractHasCode: true, balance: 500_000_000), now: S.recordedAt
+        )
+        #expect(throws: SigningPlan.CompositionError.sendInsideTrade) { try TradePlanner.combineSplit([first, send], quotes: [velora, kyber]) }
+    }
+
+    @Test("Regressao B1: o gas vem da menor das duas simulacoes; uma fonte que infla nao sobe a taxa maxima")
+    func lowerSimulatedGas() throws {
+        let account = try T.account(T.testKey)
+        let quote = try Self.quote(.kyberSwap, "kyber-base-usdc-eth-build", S.baseIntent())
+        let honest = S.simulation(quote, source: "publicnode", allowance: 0)
+        let inflated = TradeSimulation(source: "drpc", calls: honest.calls.map {
+            TradeSimulatedCall(success: $0.success, gasUsed: $0.gasUsed * 5, logs: $0.logs)
+        })
+        let plan = try TradePlanner.planSwap(walletID: Self.wallet, account: account, quote: quote,
+                                             state: S.chainState(quote, allowance: 0, simulations: [inflated, honest]), now: S.recordedAt)
+        // 310.000 e 46.000 da simulacao honesta, x 1,2.
+        #expect((plan.transactions[1] as! EVMTransaction).gasLimit == 372_000)
+        #expect((plan.transactions[0] as! EVMTransaction).gasLimit == 55_200)
     }
 
     @Test("Venda de nativo: so a troca, com msg.value, e a autorizacao dita 'nao precisa'")

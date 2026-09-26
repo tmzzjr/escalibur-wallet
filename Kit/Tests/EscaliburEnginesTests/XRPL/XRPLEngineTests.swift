@@ -123,6 +123,23 @@ struct XRPLEngineTests {
         #expect(everything.amount == .xrp(drops: 98_998_988))
     }
 
+    @Test("Regressao B2: o LastLedgerSequence parte do ledger que os dois servidores leram; server_info longe dele recusa")
+    func pinnedLedger() async throws {
+        // O server_info de um servidor diz 5 ledgers a frente: vale o pinado das duas leituras.
+        let ahead = String(decoding: try EngineFixture.data("xrpl", "server_info.json"), as: UTF8.self)
+            .replacingOccurrences(of: "\"seq\":107244179", with: "\"seq\":107244184")
+        let near = XRPLSendEngine(reader: N.reader(try N.fake(serverInfo: Data(ahead.utf8))))
+        let plan = try await near.plan(Self.request(to: N.plain, tag: "7"))
+        #expect(try #require(plan.transactions.first as? XRPLTransaction).lastLedgerSequence == N.ledger + 20)
+        // Mil ledgers a frente: um servidor mentindo ou parado; nada e montado.
+        let far = String(decoding: try EngineFixture.data("xrpl", "server_info.json"), as: UTF8.self)
+            .replacingOccurrences(of: "\"seq\":107244179", with: "\"seq\":107245179")
+        let lying = XRPLSendEngine(reader: N.reader(try N.fake(serverInfo: Data(far.utf8))))
+        await #expect(throws: SendEngineError.message(XRPLEngineSupport.text(.ledgerIndexMismatch))) {
+            _ = try await lying.plan(Self.request(to: N.plain, tag: "7"))
+        }
+    }
+
     @Test("Recusas: tag exigida, destino que nao quer XRP, tag que nao e numero, token")
     func refusals() async throws {
         let engine = XRPLSendEngine(reader: N.reader(try N.fake()))

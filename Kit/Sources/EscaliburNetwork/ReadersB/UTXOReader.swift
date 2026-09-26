@@ -14,7 +14,8 @@ import Foundation
 /// - enderecos saem da xpub **aqui**; o provedor so ve endereco, um por vez;
 /// - cada moeda vem com a transacao anterior inteira, e `UTXOPreviousOutput.verify`
 ///   prova o valor pelo txid; a saida tem de pagar o script da chave derivada;
-/// - taxa de pelo menos duas fontes, para o teto do planejamento (2x a maior);
+/// - taxa de pelo menos duas fontes que nao discordem mais de 3x, cada nivel pelo menor
+///   de duas ou pela mediana de tres (`UTXOFeeConsensus`), sob o teto compilado;
 /// - transmissao dos mesmos bytes em todos os provedores, com o txid calculado local.
 public struct UTXOReader: Sendable {
     public let chain: Chain
@@ -123,6 +124,24 @@ public struct UTXOReader: Sendable {
         // O laco so termina com gap cheio, entao as duas cadeias tem um livre.
         guard let nextReceive = firstUnused[false], let nextChange = firstUnused[true] else { throw ChainReaderError.tooManyAddresses }
         return UTXODiscovery(account: account, gapLimit: gapLimit, used: used, scanned: scanned, nextReceive: nextReceive, nextChange: nextChange)
+    }
+
+    /// O endereco nunca recebeu nada, segundo dois provedores diferentes: basta um ver
+    /// historico para contar como usado. Serve ao troco, que a varredura achou livre com
+    /// um provedor so por endereco (auditoria 2, B6): um provedor que esconde o historico
+    /// faria o troco cair num endereco ja usado, e isso liga os pagamentos na cadeia.
+    public func isUnused(_ address: String) async throws -> Bool {
+        var answers = [UInt64]()
+        for provider in await pool.available() where answers.count < 2 {
+            do {
+                answers.append(try await client(provider).transactionCount(address))
+                await pool.reportSuccess(provider)
+            } catch {
+                await pool.reportFailure(provider)
+            }
+        }
+        guard answers.count == 2 else { throw ChainReaderError.notEnoughSources(needed: 2, got: answers.count) }
+        return answers.allSatisfy { $0 == 0 }
     }
 
     // MARK: Moedas
@@ -263,37 +282,34 @@ public struct UTXOReader: Sendable {
         return low
     }
 
-    /// Taxa em tres niveis, mediana das fontes, com o piso da rede.
+    /// Taxa em tres niveis pela regra de `UTXOFeeConsensus`, com o piso da rede.
     ///
     /// Fontes: Bitcoin, `/v1/fees/precise` do mempool.space e do emzy e `/fee-estimates`
     /// da Blockstream; Litecoin, `/v1/fees/precise` do litecoinspace, o `high/medium/
     /// low_fee_per_kb` da Blockcypher e o sugerido da Blockchair; Dogecoin, Blockcypher
-    /// e Blockchair. Exige duas: o planejamento recusa taxa acima de 2x a maior delas.
+    /// e Blockchair. Exige duas que nao discordem mais de 3x; com duas, cada nivel e o
+    /// menor delas, e com tres ou mais, a mediana. O teto e compilado (`UTXORules`).
     public func feeLevels() async throws -> UTXOFeeLevels {
         let providers = await pool.available()
         let quotes = try await ReaderConcurrency.map(providers, limit: Self.parallelism) { provider in
             try? await self.client(provider).fees()
         }.compactMap { $0 }
         guard quotes.count >= 2 else { throw ChainReaderError.notEnoughSources(needed: 2, got: quotes.count) }
-        return Self.combine(quotes, minimum: UTXORules.for(chain).minimumFeeRate)
+        return try Self.combine(quotes, rules: UTXORules.for(chain))
     }
 
-    static func combine(_ quotes: [UTXOFeeQuote], minimum: UTXOFeeRate) -> UTXOFeeLevels {
-        let leveled = quotes.compactMap(\.levels)
-        func median(_ rates: [UTXOFeeRate]) -> UTXOFeeRate {
-            let sorted = rates.map(\.satPerKvB).sorted()
-            let middle = sorted.count / 2
-            if sorted.count % 2 == 1 { return UTXOFeeRate(satPerKvB: sorted[middle]) }
-            let (a, b) = (sorted[middle - 1], sorted[middle])
-            return UTXOFeeRate(satPerKvB: a / 2 + b / 2 + (a % 2 + b % 2 + 1) / 2)
+    static func combine(_ quotes: [UTXOFeeQuote], rules: UTXORules) throws -> UTXOFeeLevels {
+        do {
+            try UTXOFeeConsensus.check(quotes.map(\.fastest), rules: rules)
+        } catch UTXOPlanError.feeEstimatesDisagree {
+            throw ChainReaderError.providersDisagree
         }
-        // Fonte de numero unico so entra nos niveis quando nenhuma tem niveis.
-        let slowRates = leveled.isEmpty ? quotes.map(\.fastest) : leveled.map(\.slow)
-        let normalRates = leveled.isEmpty ? quotes.map(\.fastest) : leveled.map(\.normal)
-        let fastRates = leveled.isEmpty ? quotes.map(\.fastest) : leveled.map(\.fast)
-        let slow = max(median(slowRates), minimum)
-        let normal = max(median(normalRates), slow)
-        let fast = max(median(fastRates), normal)
+        // Fonte de numero unico vale o mesmo numero em todos os niveis.
+        let levels = quotes.map { $0.levels ?? ($0.fastest, $0.fastest, $0.fastest) }
+        let minimum = rules.minimumFeeRate
+        let slow = max(UTXOFeeConsensus.level(levels.map(\.slow)) ?? minimum, minimum)
+        let normal = max(UTXOFeeConsensus.level(levels.map(\.normal)) ?? slow, slow)
+        let fast = max(UTXOFeeConsensus.level(levels.map(\.fast)) ?? normal, normal)
         return UTXOFeeLevels(slow: slow, normal: normal, fast: fast, estimates: quotes.map(\.fastest), sources: quotes.map(\.source))
     }
 
@@ -306,7 +322,10 @@ public struct UTXOReader: Sendable {
         let minimum = levels.fast.fee(weight: discovery.account.kind.inputWeight)
         let coins = try await coins(for: discovery.used, minimumValue: minimum)
         return UTXOSpendState(
-            network: UTXONetworkState(coins: coins.coins, feeEstimates: levels.estimates, tipHeight: coins.tipHeight),
+            network: UTXONetworkState(
+                coins: coins.coins, feeEstimates: levels.estimates, tipHeight: coins.tipHeight,
+                skipped: coins.rejected.map { UTXOSkippedCoin(outpoint: $0.outpoint, reason: $0.reason.skipped) }
+            ),
             change: discovery.changeAddress, fees: levels, rejected: coins.rejected
         )
     }

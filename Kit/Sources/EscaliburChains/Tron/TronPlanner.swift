@@ -180,6 +180,10 @@ public enum TronPlanError: Error, Equatable, Sendable {
     case missingEnergyEstimate
     case energyEstimateOutOfRange(UInt64)
     case feeLimitAboveCeiling(BigUInt)
+    /// O relogio do aparelho esta longe da hora do bloco da rede. A expiracao da
+    /// transacao sai do mais tardio dos dois, e o acompanhamento decide "venceu" pela
+    /// hora da rede: com o relogio errado, a tela diria outra coisa que a rede.
+    case deviceClockSkew
 
     /// O motivo, para a tela.
     public var message: String {
@@ -227,6 +231,8 @@ public enum TronPlanError: Error, Equatable, Sendable {
             return "Não foi possível estimar a energia deste envio. Tente de novo em instantes."
         case .feeLimitAboveCeiling(let limit):
             return "A taxa máxima calculada (\(TronFormat.trx(limit))) passa do teto de segurança da carteira. Nada foi assinado."
+        case .deviceClockSkew:
+            return "O relógio do aparelho está diferente do horário da rede Tron. Ative data e hora automáticas e tente de novo. Nada foi assinado."
         }
     }
 }
@@ -262,6 +268,7 @@ public enum TronPlanner {
         state: TronNetworkState, now: Date = .now
     ) throws -> SigningPlan {
         try state.parameters.validate()
+        try checkClock(block: state.block, now: now)
         try checkControl(owner: owner, state: state)
         guard state.ownerControl.verdict != .notActivated else { throw TronPlanError.ownerNotActivated }
         let to = try resolveDestination(destination, owner: owner)
@@ -318,9 +325,12 @@ public enum TronPlanner {
             if percent > 10 { warnings.append(.highFee(percentOfAmount: percent)) }
         }
 
+        // O que sai e o `amount` do TransferContract montado.
+        guard case .transfer(_, _, let sent) = raw.contract else { throw TronPlanError.zeroAmount }
         let review = PlanReview(
             kind: .send, title: "Enviar \(TronFormat.trx(amount))", lines: lines, warnings: warnings,
-            recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo
+            recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo,
+            outgoing: .native(.tron, sent)
         )
         let transaction = try TronTransaction(raw: raw, path: owner.path, publicKey: owner.publicKey)
         return SigningPlan(walletID: walletID, chain: .tron, review: review, transactions: [transaction], createdAt: now)
@@ -334,6 +344,7 @@ public enum TronPlanner {
         state: TronNetworkState, now: Date = .now
     ) throws -> SigningPlan {
         try state.parameters.validate()
+        try checkClock(block: state.block, now: now)
         try checkControl(owner: owner, state: state)
         let to = try resolveDestination(destination, owner: owner)
         guard !amount.isZero else { throw TronPlanError.zeroAmount }
@@ -407,15 +418,29 @@ public enum TronPlanner {
         lines.append(.init("Custo estimado", "\(TronFormat.trx(fees.totalBurn)) queimados"))
         lines.append(.init("Taxa máxima (fee_limit)", TronFormat.trx(feeLimit)))
 
+        // O que sai e o valor da calldata `transfer` montada, no contrato compilado.
+        guard case .triggerSmartContract(_, let contract, _, let data) = raw.contract, contract == TRC20.usdt.contract,
+              let decoded = TRC20.decodeTransfer(data)
+        else { throw TronPlanError.zeroAmount }
         let review = PlanReview(
             kind: .send, title: "Enviar \(TronFormat.usdt(amount))", lines: lines, warnings: warnings,
-            recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo
+            recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo,
+            outgoing: .token(.tron, contract: TRC20.usdt.contract.base58, decoded.amount)
         )
         let transaction = try TronTransaction(raw: raw, path: owner.path, publicKey: owner.publicKey)
         return SigningPlan(walletID: walletID, chain: .tron, review: review, transactions: [transaction], createdAt: now)
     }
 
     // MARK: Regras comuns
+
+    /// Diferenca maxima entre o relogio do aparelho e a hora do bloco de cabeca lido
+    /// agora: a propagacao e o atraso normal de um no, com folga (auditoria 2, M4).
+    public static let maxClockSkewMillis: Int64 = 120_000
+
+    static func checkClock(block: TronBlockReference, now: Date) throws {
+        let difference = milliseconds(now) - block.timestamp
+        guard abs(difference) <= maxClockSkewMillis else { throw TronPlanError.deviceClockSkew }
+    }
 
     static func checkControl(owner: TronOwner, state: TronNetworkState) throws {
         guard state.ownerControl.address == owner.address else { throw TronPlanError.controlForOtherAccount }

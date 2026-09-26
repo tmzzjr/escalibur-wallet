@@ -140,6 +140,13 @@ actor FakeTradeChain: EVMTradeChainReading {
         )
     }
 
+    private(set) var cancellationReads: [[UInt8]] = []
+
+    func readCancellation(chain: Chain, owner: EVMAddress, uid: [UInt8], localNextNonce: UInt64?) async throws -> EVMNetworkState {
+        cancellationReads.append(uid)
+        return EVMTradeFixtures.network(localNextNonce: localNextNonce, gas: 36_000, l1: EVMTradeFixtures.l1Fee)
+    }
+
     func readCoW(intent: CoWLimitOrderIntent, openOrdersSellTotal: BigUInt, localNextNonce: UInt64?) async throws -> CoWChainState {
         CoWChainState(
             network: EVMTradeFixtures.network(localNextNonce: localNextNonce, gas: 60_000, l1: EVMTradeFixtures.l1Fee),
@@ -154,6 +161,7 @@ actor FakeTradeChain: EVMTradeChainReading {
 /// `CoWClient` (assinatura recuperando o dono sobre o digesto local) antes de responder.
 actor FakeCoW: EVMCoWService {
     var openTotal: BigUInt
+    var open: [CoWOrderStatus] = []
     private(set) var registered: [CoWAppData] = []
     private(set) var submitted: [[UInt8]] = []
     private(set) var cancelled: [(uids: [[UInt8]], owner: EVMAddress)] = []
@@ -173,6 +181,10 @@ actor FakeCoW: EVMCoWService {
     }
 
     func openSellTotal(owner: EVMAddress, sellToken: EVMAddress, chain: Chain) async throws -> BigUInt { openTotal }
+
+    func setOpen(_ orders: [CoWOrderStatus]) { open = orders }
+
+    func openOrders(owner: EVMAddress, chain: Chain, now: Date) async throws -> [CoWOrderStatus] { open.filter { $0.owner == owner } }
 
     func cancel(uids: [[UInt8]], chain: Chain, owner: EVMAddress, signature: SignedTransaction) async throws {
         let typed = try CoWPlanner.cancellationTypedData(chain: chain, uids: uids)

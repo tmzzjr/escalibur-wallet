@@ -99,6 +99,8 @@ struct TronPlannerTests {
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 12,5 TRX")
         expectRecipient(plan)
+        // O que sai e o amount do TransferContract (conferido abaixo).
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "tron:native", amount: 12_500_000))
         #expect(plan.review.warnings.isEmpty)
         #expect(Self.line(plan, "Para") == Self.destination)
         // 268 = 265 do recibo das txs de 1 sun mais 3 bytes do varint de 12,5 TRX.
@@ -116,6 +118,25 @@ struct TronPlannerTests {
         #expect(tx.raw.contract == .transfer(owner: try Self.owner().address, to: TronAddress(base58: Self.destination)!, amount: 12_500_000))
         #expect(TronTransaction.bandwidthBytes(of: tx.raw) == 268)
         #expect(tx.txID == Hash.sha256(tx.raw.serialized()))
+    }
+
+    @Test("Regressao M4: relogio do aparelho a mais de 2 minutos do bloco da rede recusa o plano")
+    func deviceClock() throws {
+        let state = try Self.state()
+        // O relogio do teste esta 2,5 s depois do bloco.
+        for offset in [-125.0, 121.0, 3_000.0] {
+            #expect(throws: TronPlanError.deviceClockSkew) {
+                try TronPlanner.planSendTRX(walletID: Self.walletID, owner: Self.owner(), to: Self.destination, amount: 1_000_000,
+                                            state: state, now: Self.now.addingTimeInterval(offset))
+            }
+            #expect(throws: TronPlanError.deviceClockSkew) {
+                try TronPlanner.planSendUSDT(walletID: Self.walletID, owner: Self.owner(), to: Self.destination, amount: 1_000_000,
+                                             state: try Self.state(trx: 20_000_000, usdt: 100_000_000, energy: 64_285, holdsUSDT: true),
+                                             now: Self.now.addingTimeInterval(offset))
+            }
+        }
+        _ = try TronPlanner.planSendTRX(walletID: Self.walletID, owner: Self.owner(), to: Self.destination, amount: 1_000_000,
+                                        state: state, now: Self.now.addingTimeInterval(100))
     }
 
     @Test("TRX sem cota: queima bytes x getTransactionFee")
@@ -205,6 +226,8 @@ struct TronPlannerTests {
         let tx = try Self.tron(plan)
         #expect(plan.review.title == "Enviar 50 USDT")
         expectRecipient(plan)
+        // O que sai e o valor da calldata transfer (conferida abaixo), no USDT da lista.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "tron:TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", amount: 50_000_000))
         #expect(Self.line(plan, "Rede") == "Tron (TRC-20)")
         #expect(Self.line(plan, "Contrato do USDT") == "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t")
         #expect(Self.line(plan, "Energia") == "64.285 de energia, 6,4285 TRX queimados")

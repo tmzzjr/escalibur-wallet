@@ -25,3 +25,8 @@ So SDF:
 O que os testes montam, e dizem onde: a resposta da transmissao (POST /transactions), e,
 nos casos que a rede nao ofereceu na hora (conta sem a linha de USDC, preco que mudou,
 remetente com endereco parecido), trechos trocados da gravacao.
+
+Montadas a partir de paths-xlm-usdc.json, para a regressao da auditoria 2 (A1):
+  paths-xlm-usdc-baixa.json          a mesma rota cotando 20 USDC (uma Horizon que cota baixo)
+  paths-xlm-usdc-intermediario.json  uma rota de 30 USDC por um "USDC" de outro emissor (fora
+                                     da lista) e a direta de 19 USDC

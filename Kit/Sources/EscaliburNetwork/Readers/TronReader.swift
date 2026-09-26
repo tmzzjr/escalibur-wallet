@@ -167,9 +167,11 @@ public actor TronReader {
 
     /// `gettransactioninfobyid` no no solidificado, em dois provedores: final so quando os
     /// dois tem o mesmo resultado no mesmo bloco. No no comum (ainda nao solidificado),
-    /// pendente. Sem nada nos dois e com `expiresAt` passado ha mais de dois minutos,
-    /// vencida.
-    public func status(of txID: String, expiresAt: Date? = nil, now: Date = .now) async throws -> TransactionStatus {
+    /// pendente. Sem nada nos dois, vencida so quando a hora do ultimo bloco solidificado,
+    /// nos dois provedores, passou de `expiresAt` por mais de dois minutos: nunca pelo
+    /// relogio do aparelho, que adiantado diria "venceu, pode enviar de novo" com a
+    /// transacao ainda valendo na rede (auditoria 2, M4).
+    public func status(of txID: String, expiresAt: Date? = nil) async throws -> TransactionStatus {
         guard let bytes = Hex.decode(txID), bytes.count == 32 else { throw ReaderError.invalidInput("txid") }
         let id = Hex.encode(bytes)
         let transport = self.transport
@@ -183,8 +185,30 @@ public actor TronReader {
             try Self.parseTransactionInfo(try await Self.post(transport, provider, "wallet/gettransactioninfobyid", ["value": .string(id)]), id: id)
         }
         if head != nil { return .pending }
-        if let expiresAt, now.timeIntervalSince(expiresAt) > 120 { return .failed(reason: "expired") }
+        if let expiresAt, try await solidifiedTime().timeIntervalSince(expiresAt) > Self.expiryMargin { return .failed(reason: "expired") }
         return .notFound
+    }
+
+    /// Folga depois da expiracao antes de dizer que venceu.
+    static let expiryMargin: TimeInterval = 120
+
+    /// A hora do ultimo bloco solidificado (`walletsolidity/getnowblock`) em dois
+    /// provedores: a menor. Um provedor adiantado sozinho nao faz nada vencer.
+    public func solidifiedTime() async throws -> Date {
+        let transport = self.transport
+        let times = try await Quorum.collect(await pool.available(), pool: pool, count: 2) { provider in
+            try Self.parseBlockTime(try await Self.post(transport, provider, "walletsolidity/getnowblock", [:]))
+        }.map(\.value)
+        guard let earliest = times.min() else { throw ReaderError.notEnoughProviders(needed: 2, got: 0) }
+        return Date(timeIntervalSince1970: TimeInterval(earliest) / 1000)
+    }
+
+    static func parseBlockTime(_ json: StrictJSON) throws -> Int64 {
+        let raw = try json.field("block_header", "getnowblock").field("raw_data", "getnowblock.block_header")
+        let path = "getnowblock.block_header.raw_data"
+        let timestamp = try raw.field("timestamp", path).int64(path + ".timestamp")
+        guard timestamp > 0 else { throw ReaderError.implausibleValue(field: path + ".timestamp") }
+        return timestamp
     }
 
     // MARK: Historico

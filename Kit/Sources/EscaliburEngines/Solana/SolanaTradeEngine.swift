@@ -12,6 +12,11 @@ import Foundation
 /// a Jupiter anuncia. O plano pede outra proposta, monta, simula e confere tudo de
 /// novo, e nao aceita garantir menos que a cotacao mostrou.
 ///
+/// A Jupiter e a unica fonte de rota; por isso nao e a unica fonte de preco (auditoria 2,
+/// A2): o preco de referencia vem do oraculo do app, e a cotacao mais de 5% pior que ele
+/// recusa. Par que nao e de dois stablecoins da lista, sem referencia, recusa. A simulacao
+/// tambem olha as outras contas de token do dono nos mints da lista.
+///
 /// Sem taxa: nem conta de taxa da plataforma nem `platformFeeBps`
 /// (`SolanaSwapPlanner.escaliburFeeBps` = 0, conferido nos bytes da rota).
 ///
@@ -20,6 +25,12 @@ import Foundation
 /// (docs/redes/solana.md). Sem decodificador completo, sem assinatura.
 struct SolanaTradeEngine: TradeEngine {
     static let shared = SolanaTradeEngine(network: SolanaLiveNetwork(), book: .shared)
+
+    init(network: any SolanaEngineNetwork, book: SolanaTransferBook, prices: any TradePriceOracle = MarketPriceOracle.shared) {
+        self.network = network
+        self.book = book
+        self.prices = prices
+    }
 
     /// Os degraus de `maxAccounts` do `SolanaPlanningService.planSwap`: sem limite e,
     /// se a mensagem nao couber num pacote, rotas com menos contas.
@@ -31,6 +42,7 @@ struct SolanaTradeEngine: TradeEngine {
 
     let network: any SolanaEngineNetwork
     let book: SolanaTransferBook
+    let prices: any TradePriceOracle
 
     var supportsLimitOrders: Bool { false }
 
@@ -45,7 +57,8 @@ struct SolanaTradeEngine: TradeEngine {
             let swap = try SolanaSwapRequest(request)
             let sell = try await verifiedAsset(swap.sell)
             let buy = try await verifiedAsset(swap.buy)
-            let intent = SolanaSwapIntent(sell: sell, buy: buy, amountIn: request.amountIn, slippageBps: swap.slippageBps)
+            let reference = await MarketReference.reference(amountIn: request.amountIn, sell: request.sell, buy: request.buy, oracle: prices)
+            let intent = SolanaSwapIntent(sell: sell, buy: buy, amountIn: request.amountIn, slippageBps: swap.slippageBps, reference: reference)
             let accounts = try await network.swapAccounts(owner: swap.owner.publicKey, sell: sell, buy: buy)
             let (draft, proposal, state) = try await draft(swap, intent: intent, accounts: accounts)
             let route = draft.route
@@ -116,6 +129,7 @@ struct SolanaTradeEngine: TradeEngine {
                 throw SolanaEngineProblem.quoteMismatch
             }
             guard quote.expiresAt > Date() else { throw SolanaEngineProblem.quoteExpired }
+            let reference = await MarketReference.reference(amountIn: request.amountIn, sell: request.sell, buy: request.buy, oracle: prices)
             var attempt = 1
             while true {
                 do {
@@ -123,7 +137,7 @@ struct SolanaTradeEngine: TradeEngine {
                     // minimo que a tela mostrou.
                     let plan = try await network.planSwap(
                         walletID: request.walletID, owner: swap.owner, sellMint: swap.sell.swapMint, buyMint: swap.buy.swapMint,
-                        amountIn: request.amountIn, slippageBps: swap.slippageBps, minimumOutShown: quote.minimumOut
+                        amountIn: request.amountIn, slippageBps: swap.slippageBps, minimumOutShown: quote.minimumOut, reference: reference
                     )
                     try Self.check(plan, request: request, swap: swap)
                     await book.planned(plan)

@@ -10,8 +10,8 @@ import Foundation
 /// calculado dos bytes. O acompanhamento segue o prazo do blockhash: enquanto a rede
 /// nao ve a transacao e o prazo nao passou, ela esta pendente e os mesmos bytes sao
 /// reenviados (o `sendTransaction` vai com `maxRetries: 0`, e o no nao reenvia por
-/// conta propria); passou do `lastValidBlockHeight` sem aparecer nem no historico,
-/// ela nunca mais entra.
+/// conta propria); passou do `lastValidBlockHeight` com folga na altura finalizada de
+/// dois provedores, sem aparecer no historico de nenhum dos dois, ela nunca mais entra.
 enum SolanaTransfers {
     static func transmit(
         _ signed: SignedTransaction, envelope: SolanaSignedEnvelope, network: any SolanaEngineNetwork, book: SolanaTransferBook,
@@ -57,9 +57,19 @@ enum SolanaTransfers {
         }
     }
 
+    /// Blocos alem do `lastValidBlockHeight` antes de dizer que venceu: a altura
+    /// finalizada anda atras da confirmada, e um no atrasado ainda poderia aceitar a
+    /// transacao perto do limite. 150 blocos sao cerca de um minuto.
+    static let expiryMargin: UInt64 = SolanaBroadcaster.expiryMargin
+
     /// O estado pela regra de `SolanaConfirmationTracker`. Sem prazo conhecido (a
     /// transacao nao foi transmitida nesta sessao), a busca vai direto ao historico e
     /// nunca conclui que venceu.
+    ///
+    /// "Venceu, pode enviar de novo" so com duas fontes (auditoria 2, M4): a altura
+    /// finalizada nos dois provedores passou do prazo com folga, e o historico dos dois
+    /// nao conhece a transacao. Com uma fonte so, um no que mente ou esta atrasado faria
+    /// o dono pagar duas vezes.
     static func confirmation(_ id: String, deadline: UInt64?, known: Bool, network: any SolanaEngineNetwork) async throws -> SolanaConfirmation {
         if let status = try await network.signatureStatus(id, searchHistory: !known) {
             return SolanaConfirmationTracker.evaluate(status: status, currentBlockHeight: 0, lastValidBlockHeight: .max)
@@ -67,9 +77,15 @@ enum SolanaTransfers {
         guard let deadline else { return .pending }
         let height = try await network.blockHeight()
         guard height > deadline else { return .pending }
-        // O prazo passou. Antes de dizer que venceu, o historico: ela pode ter entrado
-        // e saido do cache de status recentes do no.
-        let history = try await network.signatureStatus(id, searchHistory: true)
-        return SolanaConfirmationTracker.evaluate(status: history, currentBlockHeight: height, lastValidBlockHeight: deadline)
+        let (limit, overflow) = deadline.addingReportingOverflow(expiryMargin)
+        guard !overflow, let finalized = try await network.finalizedBlockHeights().min(), finalized > limit else { return .pending }
+        // O prazo passou nas duas fontes. Antes de dizer que venceu, o historico das duas:
+        // ela pode ter entrado e saido do cache de status recentes.
+        let histories = try await network.historyStatuses(id)
+        guard histories.count >= 2 else { return .pending }
+        if let found = histories.compactMap({ $0 }).first {
+            return SolanaConfirmationTracker.evaluate(status: found, currentBlockHeight: 0, lastValidBlockHeight: .max)
+        }
+        return .expired
     }
 }

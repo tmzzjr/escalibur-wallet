@@ -31,6 +31,14 @@ struct EVMTradeContext {
         )
     }
 
+    var sellIsStable: Bool { Self.isStable(sell, chain: chain) }
+    var buyIsStable: Bool { Self.isStable(buy, chain: chain) }
+
+    static func isStable(_ asset: EVMResolvedAsset, chain: Chain) -> Bool {
+        guard case .token(let token) = asset else { return false }
+        return TokenRegistry.find(chainID: chain.id, contract: token.contract.checksummed)?.isStablecoin == true
+    }
+
     /// O id do CoinGecko de um ativo resolvido: o da rede para o nativo, o da lista para
     /// o token.
     static func coingeckoID(_ asset: EVMResolvedAsset, chain: Chain) -> String? {
@@ -83,6 +91,9 @@ struct EVMTradeMarket: Sendable {
         var reference = TradeMarketReference.none
         if let sellPrice, let buyPrice {
             reference = TradeMarketReference(amountIn: intent.amountIn, sell: intent.sell, buy: intent.buy, sellPriceUSD: sellPrice, buyPriceUSD: buyPrice)
+        } else if context.sellIsStable, context.buyIsStable {
+            // Dois stablecoins da lista: a paridade e a referencia, sem perguntar a ninguem.
+            reference = TradeMarketReference(amountIn: intent.amountIn, sell: intent.sell, buy: intent.buy, sellPriceUSD: "1", buyPriceUSD: "1")
         }
         // Gas convertido para o token comprado pela mesma taxa para todos. Sem preco, a
         // conversao da zero e o ranking fica so pelo garantido, igual para todos.

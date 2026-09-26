@@ -182,6 +182,7 @@ actor RecordedSolanaNetwork: SolanaEngineNetwork {
     private(set) var sent: [SignedTransaction] = []
     private(set) var plannedLamports: [BigUInt] = []
     private(set) var shownMinimums: [BigUInt] = []
+    private(set) var references: [TradeMarketReference] = []
     private(set) var requestedRouteLimits: [Int?] = []
     private(set) var statusQueries: [Bool] = []
 
@@ -294,12 +295,13 @@ actor RecordedSolanaNetwork: SolanaEngineNetwork {
 
     func planSwap(
         walletID: UUID, owner: SolanaOwner, sellMint: SolanaPublicKey, buyMint: SolanaPublicKey, amountIn: BigUInt, slippageBps: UInt16,
-        minimumOutShown: BigUInt
+        minimumOutShown: BigUInt, reference: TradeMarketReference
     ) async throws -> SigningPlan {
         shownMinimums.append(minimumOutShown)
+        references.append(reference)
         let intent = SolanaSwapIntent(
             sell: try await swapAsset(mint: sellMint), buy: try await swapAsset(mint: buyMint), amountIn: amountIn, slippageBps: slippageBps,
-            minimumOutShown: minimumOutShown
+            minimumOutShown: minimumOutShown, reference: reference
         )
         let queued = planProposals.isEmpty ? nil : planProposals.removeFirst()
         guard let proposal = queued ?? proposals[Self.pair(sellMint, buyMint)], let accounts = swapAccountsValue else {
@@ -353,6 +355,25 @@ actor RecordedSolanaNetwork: SolanaEngineNetwork {
     }
 
     func blockHeight() async throws -> UInt64 { height }
+
+    /// A altura finalizada de cada um dos dois provedores; sem ajuste, a mesma altura.
+    var finalized: [UInt64]?
+    /// O historico do segundo provedor, quando difere do primeiro.
+    var secondHistory: [String: SolanaSignatureStatus] = [:]
+
+    func setFinalized(_ value: [UInt64]?) { finalized = value }
+    func setSecondHistory(_ id: String, _ status: SolanaSignatureStatus?) { secondHistory[id] = status }
+
+    func finalizedBlockHeights() async throws -> [UInt64] {
+        if statusFails { throw HTTPClient.Failure.timeout }
+        return finalized ?? [height, height]
+    }
+
+    func historyStatuses(_ signature: String) async throws -> [SolanaSignatureStatus?] {
+        if statusFails { throw HTTPClient.Failure.timeout }
+        let first = historyStatuses[signature] ?? recentStatuses[signature]
+        return [first, secondHistory[signature] ?? first]
+    }
 
     // MARK: Historico
 

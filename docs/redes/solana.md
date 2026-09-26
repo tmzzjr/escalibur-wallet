@@ -16,15 +16,16 @@ Arquivos: `Kit/Sources/EscaliburNetwork/Solana/` (SolanaRPC, SolanaAccountParser
 
 API que o app chama:
 - `SolanaPlanningService.shared`: `planSendSOL`, `planSendToken`, `quoteSwap`, `planSwap` (devolvem `SigningPlan`, sem assinar).
-- `SolanaNetworkReader.shared`: `networkState`, `destinationAccount`, `destinationTokenAccount`, `tokenState`, `mintInfo`, `swapAsset`, `swapAccounts`, `lookupTables` (2 RPCs), `simulate`, `snapshots`, `blockHeight`.
-- `SolanaBroadcaster.shared`: `send(SignedTransaction)` (2 provedores, `skipPreflight: false`), `status(of:)`, `waitForConfirmation(_:lastValidBlockHeight:target:)` (reenvia os mesmos bytes ate confirmar ou vencer).
+- `SolanaNetworkReader.shared`: `networkState`, `destinationAccount`, `destinationTokenAccount` e `mintInfo` (2 RPCs concordando), `tokenState`, `swapAsset`, `swapAccounts` (com as contas de token do dono nos mints da lista, para a simulação), `lookupTables` (2 RPCs), `simulate`, `snapshots`, `blockHeight`, `finalizedBlockHeights` (2 RPCs).
+- `SolanaBroadcaster.shared`: `send(SignedTransaction)` (2 provedores, `skipPreflight: false`), `status(of:)`, `historyStatuses(of:)` (2 RPCs), `waitForConfirmation(_:lastValidBlockHeight:target:)` (reenvia os mesmos bytes ate confirmar ou vencer; vencida so com a altura finalizada de 2 RPCs 150 blocos alem do prazo e o historico dos 2 sem a assinatura).
 - `SolanaHistoryReader.shared.recentActivity(owner:limit:knownAddresses:)` devolve `[SolanaActivity]` (carteira + ATAs dos tokens da lista, 30 por padrao).
 
 Troca pela Jupiter (docs/seguranca.md §4.6), conferido ao vivo em 26/09/2026:
 - `GET api.jup.ag/swap/v2/quote` e `/build`, sem chave, 30 req/min por IP; `lite-api.jup.ag` esta sendo aposentado. `platformFeeBps=0` (taxa da Escalibur compilada em `SolanaSwapPlanner.escaliburFeeBps = 0`).
 - O `/build` devolve `shared_accounts_route_v2` ou `route_v2`, formato conferido contra o IDL Anchor lido da cadeia. Nessas variantes os escalares (in, quoted_out, slippage, platform_fee, positive_slippage) vem antes do plano de rota; as variantes antigas sao recusadas por falta de decodificador completo.
 - Da proposta so a rota entra na mensagem; preparo e limpeza tem de ser identicos aos que a carteira monta (e a carteira usa os dela); gorjeta e `otherInstructions` recusam; orcamento de CU e da carteira. Tabelas lidas de 2 RPCs (igual ou prefixo). Mensagem v0 por `compileV0`, verificada por `SolanaMessageVerifier`, rota redecodificada da mensagem compilada.
-- Simulacao obrigatoria antes do plano: sai no maximo o valor, entra pelo menos o minimo na conta do dono, SOL do dono dentro de valor + taxa + rent. CU = consumo * 1,1.
+- Simulacao obrigatoria antes do plano: sai no maximo o valor, entra pelo menos o minimo na conta do dono, SOL do dono dentro de valor + taxa + rent, e nenhuma outra conta de token do dono nos mints da lista perde saldo. CU = consumo * 1,1.
+- Preco de referencia do oraculo do app (`SolanaSwapIntent.reference`): cotacao mais de 5% pior recusa, acima de 2% a revisao avisa; par que nao e de dois stablecoins da lista, sem referencia, recusa.
 - `/tx/v1/submit` (e `tx.jup.ag`) existe e responde sem chave, mas exige gorjeta >= 0,001 SOL a uma das 16 contas da Jupiter dentro da transacao: nao e terceira via de transmissao.
 
 Achados:

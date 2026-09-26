@@ -206,7 +206,7 @@ enum TradeTestSupport {
 
     static func chainState(_ quote: ValidatedTradeQuote, allowance: BigUInt? = 0, balance: BigUInt? = nil,
                            simulations: [TradeSimulation]? = nil, pin: EVMAddress?? = nil, nativeBalance: BigUInt? = nil,
-                           l1: BigUInt? = nil) -> TradeChainState {
+                           l1: BigUInt? = nil, nonce: UInt64 = 7) -> TradeChainState {
         let chain = quote.intent.chain
         var tokenState: EVMTokenState?
         if !quote.intent.sell.isNative {
@@ -219,7 +219,7 @@ enum TradeTestSupport {
         // OP e Base cobram taxa L1 a parte; o plano recusa sem ela.
         let l1Fee = l1 ?? (EVMFeeProfile.for(chain)?.chargesL1DataFee == true ? BigUInt(10_000_000_000) : nil)
         return TradeChainState(
-            network: network(chain, balance: nativeBalance ?? BigUInt(decimal: "1000000000000000000")!),
+            network: network(chain, nonce: nonce, balance: nativeBalance ?? BigUInt(decimal: "1000000000000000000")!),
             sellToken: tokenState, routerHasCode: true, routerPin: pin ?? quote.router.pin.expected, simulations: sims,
             approveL1DataFee: l1Fee, swapL1DataFee: l1Fee
         )

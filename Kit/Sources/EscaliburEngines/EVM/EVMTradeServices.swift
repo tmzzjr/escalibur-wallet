@@ -18,6 +18,7 @@ protocol EVMTradeChainReading: Sendable {
     func token(chain: Chain, token: EVMAddress, owner: EVMAddress, spender: EVMAddress) async throws -> EVMTokenState
     func read(for quote: ValidatedTradeQuote, localNextNonce: UInt64?) async throws -> TradeChainState
     func readCoW(intent: CoWLimitOrderIntent, openOrdersSellTotal: BigUInt, localNextNonce: UInt64?) async throws -> CoWChainState
+    func readCancellation(chain: Chain, owner: EVMAddress, uid: [UInt8], localNextNonce: UInt64?) async throws -> EVMNetworkState
 }
 
 extension TradeStateReader: EVMTradeChainReading {}
@@ -28,6 +29,7 @@ protocol EVMCoWService: Sendable {
     func registerAppData(_ appData: CoWAppData, chain: Chain) async throws
     func submit(_ plan: CoWLimitOrderPlan, signature: SignedTransaction) async throws -> [UInt8]
     func openSellTotal(owner: EVMAddress, sellToken: EVMAddress, chain: Chain) async throws -> BigUInt
+    func openOrders(owner: EVMAddress, chain: Chain, now: Date) async throws -> [CoWOrderStatus]
     func cancel(uids: [[UInt8]], chain: Chain, owner: EVMAddress, signature: SignedTransaction) async throws
 }
 
@@ -35,28 +37,10 @@ extension CoWClient: EVMCoWService {}
 
 /// Precos em dolar, como texto decimal, por id do CoinGecko. Servem para comparar
 /// provedores (gas convertido para o token comprado) e para a checagem de sanidade contra
-/// o oraculo. Nunca entram no minimo garantido, que e decodificado da calldata.
-protocol EVMPriceOracle: Sendable {
-    func usdPrices(_ ids: [String]) async throws -> [String: String]
-}
-
-/// O `MarketService` do app. O preco chega como `Double` (so exibicao); vira texto
-/// decimal aqui, e daqui em diante as contas sao inteiras.
-struct EVMMarketPriceOracle: EVMPriceOracle {
-    let service: MarketService
-
-    func usdPrices(_ ids: [String]) async throws -> [String: String] {
-        let quotes = try await service.quotes(ids: ids, currency: "usd")
-        return quotes.compactMapValues { Self.decimalText($0.price) }
-    }
-
-    /// Texto decimal sem expoente, ou `nil` para preco nao positivo ou nao finito.
-    static func decimalText(_ price: Double) -> String? {
-        guard price.isFinite, price > 0 else { return nil }
-        let text = Decimal(price).description
-        return TradeDecimal(text) == nil ? nil : text
-    }
-}
+/// o oraculo. Nunca entram no minimo garantido, que e decodificado da calldata. O mesmo
+/// oraculo das outras redes (Support/MarketReference.swift).
+typealias EVMPriceOracle = TradePriceOracle
+typealias EVMMarketPriceOracle = MarketPriceOracle
 
 /// Quanto esperar pela confirmacao da autorizacao antes de enviar a ordem limite a CoW
 /// (a CoW recusa ordem sem allowance).

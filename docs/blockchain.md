@@ -111,6 +111,7 @@ Para validade, não. A assinatura aleatorizada verifica como qualquer Ed25519 e 
 - `GET mempool.space/api/v1/fees/precise`. Hoje: fastest 1, halfHour 0,644, hour 0,347, economy 0,2, minimum 0,1 sat/vB. [W ao vivo]
 - O minrelay padrão caiu para 0,1 sat/vB no Core 29.1/30. [W] Nós antigos ainda pedem 1, então abaixo de 1 a propagação não é garantida. Use 1 como piso por padrão.
 - vsize por input [P]: P2WPKH ~68, P2TR ~57,5, P2SH-P2WPKH ~91, P2PKH ~148.
+- **Na v1 (código):** teto compilado por rede (`UTXORules.maxFeeRate`: 500 sat/vB no Bitcoin, 200 lit/vB no Litecoin, 10 DOGE/kB no Dogecoin), nunca derivado das fontes. Duas fontes de taxa, no máximo 3x distantes (perto do piso a comparação parte de 5x o piso); cada nível é o menor de duas ou a mediana de três (`UTXOFeeConsensus`). Aviso de taxa acima de 1% do valor. O troco só vai para índice que dois provedores veem sem histórico.
 
 **Armadilhas**
 - **Dust** (dustrelayfee de 3 sat/vB [W]): P2PKH 546, P2SH 540, P2WPKH 294, P2TR/P2WSH 330 sats. [P] Troco abaixo do dust vira taxa, e a tela tem que mostrar.
@@ -170,7 +171,8 @@ Para validade, não. A assinatura aleatorizada verifica como qualquer Ed25519 e 
   - **BNB:** baseFee = 0 e tip de 0,05 gwei. [W ao vivo; mínimo de 0,05 gwei W] Aceita tipo 2 com maxFee = maxPriority = gasPrice [P]; manter legado como fallback.
 
 **Armadilhas**
-- **Nonce:** pegar o *pending* em ≥ 2 RPCs e usar o maior; manter fila local. Substituição exige +10% em maxFee **e** em tip. [P] Cancelar = self-send de 0 com o mesmo nonce.
+- **Nonce:** *pending* em 2 RPCs. **Na v1 (código):** sem a fila local do app (`PendingNonceQueue`), os dois têm de concordar; com ela, cada fonte entre o primeiro nonce em trânsito e o próximo da fila, e vale o da fila. Nunca "o maior com folga". Substituição exige +10% em maxFee **e** em tip. [P] Cancelar = self-send de 0 com o mesmo nonce.
+- **Taxa na v1 (código):** baseFee e gorjetas pela mediana de 2 RPCs; `gasLimit` = a menor de 2 estimativas × 1,2; teto por rede em `EVMFeeProfile` (BNB: 1 gwei).
 - **chainId:** validar o `eth_chainId` de todo RPC antes de usar.
 - **Tokens fee-on-transfer e rebasing:** fee-on-transfer com parâmetro de taxa do integrador faz o swap do 1inch falhar sempre. [W]
 - **USDT na mainnet** exige `approve(0)` antes de mudar uma allowance não-zero. [P]
@@ -221,7 +223,7 @@ Swaps na Ethereum: broadcast por RPC com proteção de MEV (Flashbots Protect, M
   - CU limit, *loaded-accounts* e prioridade vão no header, e a prioridade é em **lamports absolutos**;
   - o padrão é zero, então tem que ser definido explicitamente;
   - a mensagem vem antes das assinaturas; enviar em base64.
-- **Validade:** blockhash vale ~150 blocos (~60 a 90 s). [P]
+- **Validade:** blockhash vale ~150 blocos (~60 a 90 s). [P] **Na v1 (código):** "venceu, pode enviar de novo" só quando a altura finalizada de dois RPCs passou do `lastValidBlockHeight` com 150 blocos de folga e o histórico dos dois não conhece a assinatura. Destino, conta de token do destino e mint são lidos de dois RPCs que concordam.
 - Sinalizar tx cuja primeira instrução é `AdvanceNonceAccount`: nonce durável, tática de drainer.
 
 **Taxa**
@@ -272,7 +274,7 @@ Swaps na Ethereum: broadcast por RPC com proteção de MEV (Flashbots Protect, M
 
 **Serialização**
 - Campos ordenados por (type code, field code).
-- Sempre incluir `LastLedgerSequence` = atual + 20.
+- Sempre incluir `LastLedgerSequence` = atual + 20. **Na v1 (código):** "atual" é o ledger validado em que dois servidores leram a conta; o `server_info` de um servidor a mais de 10 ledgers dele é recusado.
 - `NetworkID` só em redes com ID > 1024.
 - Na API v2 o JSON mostra `DeliverMax`, mas o campo binário continua `Amount`. [P]
 
@@ -364,6 +366,7 @@ Swaps na Ethereum: broadcast por RPC com proteção de MEV (Flashbots Protect, M
 **Armadilhas**
 - Dono com USDT e 0 TRX não consegue enviar. A empresa não patrocina; o app explica.
 - `fee_limit` baixo dá OUT_OF_ENERGY: a tx falha e queima energy.
+- **Vencimento na v1 (código):** a expiração é de 60 s a partir do maior entre a hora do bloco e o relógio; o plano é recusado com o relógio do aparelho a mais de 2 minutos do bloco. "Venceu" só pela hora do último bloco solidificado em dois provedores, nunca pelo relógio.
 - **Golpe de permissão:** ao importar, compare `owner_permission`/`active_permission` com a chave derivada e bloqueie se divergir. É o golpe da "seed com USDT" compartilhada. Na v1, recusar `AccountPermissionUpdate`.
 - Confusão entre TRC-20, ERC-20 e BEP-20.
 
@@ -440,7 +443,7 @@ Quote { provider, kind(.evmTx|.eip712|.solIx|.solTx|.deposit(memo)),
 **Fan-out**
 - Tudo em paralelo. Prazo mole de 1,5 s (mostra o que chegou) e duro de 4 s.
 - Circuit breaker: 3 falhas tiram o provedor por 60 s.
-- Cache de 10 s por (par, faixa de valor).
+- Cache de 10 s. **Na v1 (código):** pela intenção exata (a calldata carrega o valor), não por faixa.
 
 **Comparação líquida**
 
@@ -450,7 +453,9 @@ Quote { provider, kind(.evmTx|.eip712|.solIx|.solTx|.deposit(memo)),
 - Converter gas para o token de saída com **uma única** fonte de preço, igual para todos.
 - Intents (CoW, UniswapX) têm gas 0 para o usuário, mas o preenchimento é incerto: ranquear pelo `minOut`.
 
-**Honestidade da cotação:** simular o top-1 e o top-2 (§3.5). Quem simula mais de X bps abaixo do que cotou é rebaixado.
+**Honestidade da cotação:** simular o top-1 e o top-2 (§3.5). Quem simula mais de X bps abaixo do que cotou é rebaixado. **Na v1 (código):** simula a escolhida, em duas fontes, no plano; a comparação da rodada é pelo mínimo decodificado.
+
+**Âncora do mínimo (v1, código):** o `minOut` que o provedor escreve só é aceito ancorado fora dele. Com preço de referência (CoinGecko, ou a paridade entre dois stablecoins da lista), a cotação mais de 5% pior bloqueia e acima de 2% avisa. Sem referência, pelo menos duas cotações válidas, e só é escolhida a que garante o mínimo calculado da maior estimativa entre elas (`TradeValidator.anchored`).
 
 ### 3.3 Divisão entre provedores
 
@@ -471,6 +476,7 @@ Os agregadores já dividem entre DEXes internamente.
 **Liquidez correlacionada.** Cotações de agregadores diferentes costumam bater nos **mesmos pools**. A perna 1 move o preço da perna 2, e a soma das frações cotadas é uma ilusão. Por isso:
 - divida só quando as `routeSources` forem disjuntas;
 - **recote a perna 2 depois de a perna 1 confirmar**, com um `minOut` próprio.
+- **Na v1 (código):** as pernas são recotadas no plano, cada uma com o seu `minOut`, e montadas num plano só (`TradePlanner.combineSplit`), com nonces seguidos e assinadas de uma vez. A revisão diz que são transações independentes; a perna 2 não espera a 1 confirmar.
 
 **Atomicidade**
 
@@ -502,6 +508,12 @@ Os agregadores já dividem entre DEXes internamente.
 | Stellar | `ManageSellOffer`/`ManageBuyOffer` | preço n/d; reserva de 0,5 XLM; trava saldo | amount = 0 com o `offerID` | **não existe**: a oferta vive até cancelar, e o app tem que lembrar | não há |
 | BTC / cross | THORChain `=<` (limite em fila, com TTL) [W]; Chainflip `min_price` + `retry_duration` [W] | memo / parâmetros de refund | expira sozinho | TTL | afiliado / broker |
 
+- **Na v1 (código):**
+  - CoW: validade de 1 hora a 30 dias, ou "até cancelar" = 364 dias (o livro da CoW recusa acima de um ano: `default_max_order_validity_period` em cowprotocol/services), com a data na revisão. Cancelamento pela CoW (sem garantia) ou `invalidateOrder` (garantido). Uma ordem aberta por token vendido.
+  - 1inch LOP e Solana: fora.
+  - XRP Ledger: `OfferCreate` com `Expiration` opcional (sem ela, até cancelar), `OfferCancel`. **Desligado enquanto a lista curada não tiver token do XRP Ledger**, porque a DEX só troca com token da lista.
+  - Stellar: só `ManageSellOffer`, sem prazo. A carteira não precisa lembrar das ofertas: o motor lista as abertas lendo as duas Horizons e cancela com os ativos lidos da rede.
+  - O `TradeEngine` expõe `openOrders(account:)` e `planCancel(...)` para a tela de ordens abertas.
 - **Permit2** (UniswapX, 0x-Permit2) [P]:
   - domain `{name "Permit2", chainId, verifyingContract 0x000000000022D473030F116dDEE9F6B43aC78BA3}`, sem versão.
   - `PermitTransferFrom(TokenPermissions{token, amount}, spender, nonce, deadline)`; a variante *Witness* tem spender = reactor.
@@ -529,7 +541,7 @@ Os agregadores já dividem entre DEXes internamente.
    - destinatário = dono;
    - tokens e valores = os da tela;
    - `minOut` ≥ o mínimo que o **app** calculou;
-   - deadline ≤ 10 min;
+   - deadline ≤ 10 min (na v1, 20 min quando o router tem prazo; nenhum dos quatro routers da v1 tem, e a revisão diz para cancelar com o mesmo nonce);
    - recebedor da taxa = endereço da empresa **e** bps = configurado.
 5. `value` = 0 para venda de token, = amountIn para venda do nativo. Taxa nativa de bridge só se estiver declarada e aparecer na tela.
 6. Ignorar gas e gasPrice sugeridos pelo provedor; estimar por conta própria.
@@ -564,6 +576,7 @@ Os agregadores já dividem entre DEXes internamente.
 | THORChain (EVM) | lido em runtime de `inbound_addresses` em 2 fontes e comparado com a allowlist. Hoje: ETH `0xD37BbE5744D730a1d98d8DC97c42F0Ca46aD7146`, BSC `0xb30ec53f…f56b`, BASE/AVAX `0x00dc6100…f1d4` [W ao vivo] | router |
 
 - A allowlist vive **no binário**. A config remota só pode **desligar** provedor, nunca acrescentar endereço.
+- **Na v1 (código):** só Velora, KyberSwap, LI.FI e De¹ (`TradeAllowlist`) e a CoW. 1inch, 0x, UniswapX e OKX exigem key e ficam de fora.
 
 **Solana**
 1. Preferir `/build` (o app monta a tx).
@@ -573,7 +586,7 @@ Os agregadores já dividem entre DEXes internamente.
    - programas no topo ∈ {Jupiter v6 `JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4` [P], OKX, Token, Token-2022, ATA, ComputeBudget, System};
    - **teto de prioridade e de tip**;
    - recusar `SetAuthority`, `Approve` a delegado estranho, `CloseAccount` com destino ≠ dono, `Transfer` de SOL a desconhecido e `AdvanceNonce`.
-3. `simulateTransaction` com `accounts` das contas de token do dono e diff pré/pós.
+3. `simulateTransaction` com `accounts` das contas de token do dono e diff pré/pós. **Na v1 (código):** o dono, as duas contas da troca e as contas de token do dono nos mints da lista, que não podem perder saldo. Preço de referência do oráculo do app, com os degraus da EVM; par que não é de dois stablecoins da lista, sem referência, é recusado.
 
 **Cross-chain**
 - Endereço de destino e de refund = endereços que **o app derivou**.
@@ -582,7 +595,7 @@ Os agregadores já dividem entre DEXes internamente.
 - Memo parseado e conferido: destino, limite, afiliado = THORName da empresa, bps.
 - Cotação com menos de 10 min; **nunca cachear inbound**. [W]
 
-**XRPL e Stellar:** o app monta a tx. O limite é `SendMax`/`DeliverMin` ou `destMin`. Evitar `tfPartialPayment` fora de swap.
+**XRPL e Stellar:** o app monta a tx. O limite é `SendMax`/`DeliverMin` ou `destMin`. Evitar `tfPartialPayment` fora de swap. **Stellar na v1 (código):** a cotação vem das duas Horizons (as duas têm de responder) e o `destMin` sai da maior; a rota só passa por XLM e ativos da lista; com preço de referência, os degraus da EVM.
 
 ### 3.6 BTC e cross-chain
 

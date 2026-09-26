@@ -144,11 +144,14 @@ struct UTXOPlannerTests {
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 0,0006 BTC")
         expectRecipient(plan)
+        // O que sai e a saida para o destino (conferida abaixo na transacao assinada).
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "bitcoin:native", amount: 60_000))
         #expect(plan.review.lines.map(\.label) == ["Para", "Valor", "Rede", "Taxa", "Troco"])
         #expect(plan.review.lines[0].value == Self.destination && plan.review.lines[0].verbatim)
         #expect(plan.review.lines[3].value == "0,00000705 BTC (5 sat/vB)")
         #expect(plan.review.lines[4].value == "0,00039295 BTC, volta para a sua carteira")
-        #expect(plan.review.warnings.isEmpty)
+        // 705 sats de taxa sobre 60.000: 1,175%, acima do aviso de 1% (antes era 3%).
+        #expect(plan.review.warnings == [.highFee(percentOfAmount: 1.175)])
 
         let (signed, tx) = try account.sign(plan)
         let summary = try #require(tx.summary)
@@ -255,14 +258,49 @@ struct UTXOPlannerTests {
         #expect(summary.amount == BigUInt(64_110))
         #expect(summary.change == nil)
         #expect(summary.sendsAll)
-        #expect(plan.review.lines.first { $0.label == "Troco" }?.value == "Nenhum: enviar tudo")
+        // A moeda de 800 sats fica de fora (pequena, protegida) e ainda vale mais que a
+        // propria taxa: nao e "enviar tudo".
+        #expect(plan.review.lines.first { $0.label == "Troco" }?.value
+            == "Nenhum: envia tudo o que as moedas escolhidas pagam; 1 moeda que ainda vale fica de fora")
         #expect(plan.review.lines.last?.label == "Fica na carteira")
         #expect(plan.review.lines.last?.value.hasPrefix("1 moeda, 0,000008 BTC") == true)
         let parsed = try Self.checkSigned(signed, tx, rate: Self.rate(5))
         #expect(parsed.outputs.count == 1)
     }
 
-    @Test("Taxa: piso, teto de 2x a maior estimativa, duas fontes, teto absoluto e aviso acima de 3%")
+    @Test("Regressao M3: o que a leitura deixou de fora aparece com quantidade e motivo, e so poeira permite dizer 'enviar tudo'")
+    func skippedCoins() throws {
+        let account = try UTXOTestAccount(.bitcoin, purpose: 84)
+        let coins = [try account.coin(40_000, index: 0), try account.coin(25_000, index: 1)]
+        func outpoint(_ n: UInt8) -> UTXOOutpoint { UTXOOutpoint(txid: UTXOTxID(bytes: [UInt8](repeating: n, count: 32))!, vout: 0) }
+        func plan(_ skipped: [UTXOSkippedCoin]) throws -> SigningPlan {
+            try UTXOPlanner.planSend(
+                walletID: Self.wallet, chain: .bitcoin, intent: Self.intent(.all, change: nil),
+                network: UTXONetworkState(coins: coins, feeEstimates: [Self.rate(8), Self.rate(6)], tipHeight: Self.height, skipped: skipped)
+            )
+        }
+        func line(_ plan: SigningPlan, _ label: String) -> String? { plan.review.lines.first { $0.label == label }?.value }
+
+        let clean = try plan([])
+        #expect(line(clean, "Troco") == "Nenhum: enviar tudo" && line(clean, "Fora da leitura") == nil)
+
+        // So poeira de fora: ainda e "enviar tudo", e a revisao conta a poeira.
+        let dust = try plan([.init(outpoint: outpoint(1), reason: .uneconomic), .init(outpoint: outpoint(2), reason: .uneconomic)])
+        #expect(line(dust, "Troco") == "Nenhum: enviar tudo")
+        #expect(line(dust, "Fora da leitura") == "2 moedas: 2 que não pagam a própria taxa")
+
+        // Moeda sem prova ou alem do teto de leitura: nao e "enviar tudo".
+        let partial = try plan([
+            .init(outpoint: outpoint(1), reason: .uneconomic), .init(outpoint: outpoint(2), reason: .overLimit),
+            .init(outpoint: outpoint(3), reason: .unverified),
+        ])
+        #expect(line(partial, "Troco") == "Nenhum: envia tudo o que as moedas escolhidas pagam; 2 moedas que ainda valem ficam de fora")
+        #expect(line(partial, "Fora da leitura")
+            == "3 moedas: 1 que não paga a própria taxa, 1 além do limite de moedas lidas de uma vez, 1 sem prova da transação anterior")
+        #expect(UTXOPlanner.skippedText([]) == nil)
+    }
+
+    @Test("Taxa: piso, teto compilado, 2x a maior estimativa, duas fontes que concordam, teto absoluto e aviso acima de 1%")
     func feeLimits() throws {
         let account = try UTXOTestAccount(.bitcoin, purpose: 84)
         let coins = [try account.coin(2_000_000, index: 0), try account.coin(100_000_000, index: 1)]
@@ -292,25 +330,35 @@ struct UTXOPlannerTests {
         #expect(throws: UTXOPlanError.feeRateAboveCeiling(ceiling: Self.rate(1))) {
             try UTXOPlanner.planSend(walletID: Self.wallet, chain: .bitcoin, intent: Self.intent(.exact(100_000), rate: 2, change: change), network: quiet)
         }
-        // Estimativas gigantes nao estouram inteiro: a taxa cai no teto absoluto.
+        // Estimativas gigantes nao estouram inteiro, e o teto compilado recusa antes.
         let huge = UTXOFeeRate(satPerKvB: UInt64.max / 2)
-        #expect(throws: UTXOPlanError.feeAboveAbsoluteCap(cap: 10_000_000)) {
+        #expect(throws: UTXOPlanError.feeRateAboveNetworkCap(cap: Self.rate(500))) {
             try UTXOPlanner.planSend(
                 walletID: Self.wallet, chain: .bitcoin,
                 intent: UTXOSendIntent(destination: .init(address: Self.destination, tag: nil), amount: .exact(100_000), feeRate: huge, change: change),
                 network: UTXONetworkState(coins: coins, feeEstimates: [huge, huge], tipHeight: Self.height)
             )
         }
-        // Estimativas absurdas das duas fontes nao liberam taxa absurda: teto de 0,1 BTC.
-        #expect(throws: UTXOPlanError.feeAboveAbsoluteCap(cap: 10_000_000)) { try plan(80_000, [50_000, 50_000], 100_000) }
+        // Regressao M2: as duas fontes concordando em 50.000 sat/vB nao liberam nada; o teto
+        // e compilado, nao o dobro do que elas dizem.
+        #expect(throws: UTXOPlanError.feeRateAboveNetworkCap(cap: Self.rate(500))) { try plan(80_000, [50_000, 50_000], 100_000) }
+        #expect(throws: UTXOPlanError.feeRateAboveNetworkCap(cap: Self.rate(500))) { try plan(501, [400, 400], 100_000_000) }
+        _ = try plan(500, [400, 400], 100_000_000)
+        // Regressao M2: uma fonte 3x acima da outra (fora do piso) e recusa.
+        #expect(throws: UTXOPlanError.feeEstimatesDisagree) { try plan(8, [8, 40], 100_000) }
+        _ = try plan(8, [8, 24], 100_000)
+        // Perto do piso da rede (menos de 5 sat/vB) a diferenca nao conta.
+        _ = try plan(2, [1, 4], 100_000)
 
-        // 141 vB a 16 sat/vB = 2.256 sats sobre 50.000: 4,5%, acima de 3%.
+        // 141 vB a 16 sat/vB = 2.256 sats sobre 50.000: 4,5%, acima de 1%.
         let high = try plan(16, [8, 6], 50_000)
         guard case .highFee(let percent)? = high.review.warnings.first else {
             Issue.record("sem aviso de taxa alta"); return
         }
         #expect(abs(percent - 4.512) < 0.001)
+        // 705 sats sobre 100.000: 0,7%, sem aviso; sobre 60.000, 1,175%, avisa.
         #expect(try plan(5, [8, 6], 100_000).review.warnings.isEmpty)
+        #expect(try plan(5, [8, 6], 60_000).review.warnings == [.highFee(percentOfAmount: 1.175)])
     }
 
     @Test("Transacao anterior adulterada, moeda de outra chave, caminho errado, moeda repetida")
@@ -443,12 +491,13 @@ struct UTXOPlannerTests {
     @Test("Avisos de primeiro envio e de endereco parecido")
     func addressWarnings() throws {
         let account = try UTXOTestAccount(.bitcoin, purpose: 84)
-        let coins = [try account.coin(100_000)]
+        let coins = [try account.coin(1_000_000)]
         let change = try account.change()
+        // Valor alto o bastante para a taxa ficar abaixo de 1% e nao avisar.
         let plan = { (known: [String]?) in
             try UTXOPlanner.planSend(
                 walletID: Self.wallet, chain: .bitcoin,
-                intent: Self.intent(.exact(50_000), change: change, known: known), network: Self.state(coins)
+                intent: Self.intent(.exact(500_000), change: change, known: known), network: Self.state(coins)
             )
         }
         #expect(try plan(nil).review.warnings.isEmpty)

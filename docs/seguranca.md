@@ -397,8 +397,8 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
 6. **O ranking entre agregadores usa o `minOut` decodificado**, que é garantido na cadeia, e não o `expectedOut` cotado. Inflar o `expectedOut` é justamente como um provedor malicioso venceria a disputa.
 7. Checagem de sanidade contra oráculo: pior que o preço médio da CoinGecko em mais de 2%, avisa; em mais de 5%, bloqueia (desbloquear exige PIN). Oráculo e cotação chegam pelo mesmo relay, então isso é sanidade, não garantia.
 8. Gás:
-   - `maxFeePerGas ≤ 2 × max(baseFee de 2 provedores) + prioridade`, com teto por chain.
-   - `gasLimit ≤ estimativa × 1,3`, também com teto.
+   - `maxFeePerGas ≤ 2 × baseFee + prioridade`, com baseFee e prioridade pela mediana de 2 provedores e teto por chain.
+   - `gasLimit ≤ estimativa × 1,3` (na v1, a menor de 2 estimativas × 1,2), também com teto.
    - Taxa acima de US$ 20 ou de 3% do valor pede confirmação extra.
    - Na mainnet Ethereum, envio por RPC privado (Flashbots Protect ou MEV Blocker) para não ser sanduichado dentro do slippage.
 
@@ -432,8 +432,8 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
 - **Combinação de provedores**: nunca assinar duas ordens off-chain que gastem o mesmo saldo. Uma ordem antiga e esquecida executa quando o saldo volta. No máximo uma ordem aberta por `makerAsset` por chain, a não ser que o dono confirme que a soma cabe no saldo e que a aprovação cobre só essa soma.
 - **XRPL `OfferCreate`**:
   - `Account == self`; `TakerGets` e `TakerPays` com moeda e emissor da lista compilada. Emissor falso de "USD" é golpe comum.
-  - Flags só entre `tfSell`, `tfImmediateOrCancel`, `tfFillOrKill`, `tfPassive`. `Expiration` preenchido.
-  - `LastLedgerSequence` = ledger validado + 20. `Sequence` de 2 ou mais servidores. Taxa com teto.
+  - Flags só entre `tfSell`, `tfImmediateOrCancel`, `tfFillOrKill`, `tfPassive`. `Expiration` preenchido na troca; na ordem, opcional (sem ele, até o dono cancelar).
+  - `LastLedgerSequence` = ledger validado em que 2 servidores leram a conta + 20. `Sequence` de 2 ou mais servidores. Taxa com teto.
   - A tela diz "você entrega X, recebe no mínimo Y".
   - A reserva de 0,2 XRP por oferta é decidida por votação dos validadores: leia de `server_info`.
 - **Stellar `ManageSellOffer`**:
@@ -463,7 +463,7 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
 - A PSBT é montada localmente.
 - **Para cada UTXO, baixe a transação anterior inteira e confira que `txid == dSHA256(raw)`.** Valor e script saem dela, e o provedor não consegue mentir o valor para inflar a taxa.
 - O troco vai para `m/84'/0'/0'/1/i`, derivado localmente e conferido como nosso antes de assinar.
-- Taxa: até 2 vezes a maior de 2 estimativas, e até 3% do valor sem confirmação extra.
+- Taxa: teto compilado por rede; até 2 vezes a maior estimativa; 2 fontes no máximo 3x distantes; com 2, o menor de cada nível. Aviso acima de 1% do valor.
 - Endereço de destino: bech32 ou bech32m com HRP `bc`, ou base58 com checksum.
 - RBF ligado: `nSequence 0xFFFFFFFD`.
 - Não misturar UTXOs de pó automaticamente.

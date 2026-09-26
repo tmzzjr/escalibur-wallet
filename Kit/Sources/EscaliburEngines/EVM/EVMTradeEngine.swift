@@ -42,7 +42,7 @@ public struct EVMTradeEngine: TradeEngine {
 
     public var limitCustodyNote: String {
         guard supportsLimitOrders else { return "Ordens limite ainda não estão disponíveis na \(chain.name)." }
-        return "O valor fica na sua carteira até a ordem executar. Você pode cancelar a qualquer momento."
+        return "O valor fica na sua carteira até a ordem executar. Para cancelar, abra as ordens abertas: grátis pela CoW, sem garantia, ou na cadeia, garantido, com taxa de rede."
     }
 
     // MARK: Cotacao
@@ -60,13 +60,17 @@ public struct EVMTradeEngine: TradeEngine {
         let market = try await EVMTradeMarket.read(context, services: services)
         let set = await services.aggregator.quote(context.intent, market: market.reference, costs: market.costs)
         guard !set.ranked.isEmpty else { throw Self.emptyRound(set.failures) }
+        // O minimo ancorado fora do provedor: preco de referencia, ou duas cotacoes e a maior
+        // estimativa entre elas. Todas aparecem como alternativa; so as ancoradas podem ser
+        // a escolhida.
+        let eligible = Set(try TradeValidator.anchored(set.ranked.map(\.quote), market: market.reference).map(\.provider))
 
         // A autorizacao que ja existe barateia a troca: le a allowance dos spenders que
         // disputam o topo e ranqueia de novo com ela.
         let allowances = await allowances(for: Array(set.ranked.prefix(TradeSplitOptimizer.maxProviders)), context: context)
         let costs = market.costs.with(allowances: allowances)
         let ranked = TradeRanking.rank(set.ranked.map(\.quote), costs: costs)
-        guard let best = ranked.first else { throw EVMEngineFailure.noQuote }
+        guard let best = ranked.first(where: { eligible.contains($0.quote.provider) }) else { throw EVMEngineFailure.noQuote }
 
         var legs = [EVMTradeLeg(quote: best.quote, shareBps: 10_000)]
         if let gain = market.minimumSplitGain, TradeSplitOptimizer.shouldConsider(best),
@@ -175,20 +179,27 @@ public struct EVMTradeEngine: TradeEngine {
         let requoted = try await requote(legs, intent: intent, market: market)
 
         // O garantido novo nao pode ter caido abaixo do que a tela mostrou por mais que a
-        // tolerancia do dono: isso seria outra troca, nao a que ele revisou.
+        // tolerancia do dono: isso seria outra troca, nao a que ele revisou. Sem preco de
+        // referencia agora, a recotacao de um provedor so nao tem ancora de fora: o
+        // garantido tem de ser pelo menos o minimo que a tela mostrou, ancorado na rodada.
         let guaranteed = requoted.reduce(BigUInt()) { $0 + $1.quote.guaranteedOut }
-        guard guaranteed >= intent.minimumOut(forExpected: quote.minimumOut) else { throw EVMEngineFailure.priceMoved }
+        let floor = market.reference.oracleOut == nil ? quote.minimumOut : intent.minimumOut(forExpected: quote.minimumOut)
+        guard guaranteed >= floor else { throw EVMEngineFailure.priceMoved }
 
         // Uma perna depois da outra: nonce, saldo nativo e saldo do token vendido seguem de
         // uma para a proxima, porque todas vao ser assinadas agora e executadas em sequencia.
         // Cada plano leva o instante em que foi montado, depois da recotacao e da leitura:
         // o prazo de 60 s conta dali, e a cotacao recem-validada nunca parece "do futuro".
+        // O nonce de cada perna: a fila local do app e, depois da primeira, as transacoes
+        // das pernas anteriores, que entram na conta como em transito.
         var plans = [SigningPlan]()
         var nextNonce: UInt64?
+        var plannedAhead: UInt64 = 0
         var spentNative = BigUInt()
         var spentSell = BigUInt()
         for (index, leg) in requoted.enumerated() {
-            let read = try await services.chainState.read(for: leg.quote, localNextNonce: nextNonce)
+            let fetched = try await services.chainState.read(for: leg.quote, localNextNonce: nextNonce ?? request.nonceQueue?.nextNonce)
+            let read = fetched.replacingNetwork(fetched.network.applying(request.nonceQueue, plannedNext: nextNonce, plannedAhead: plannedAhead))
             let state = Self.remaining(read, spentNative: spentNative, spentSell: spentSell)
             let step = requoted.count > 1 ? TradeSplitStep(index: index, count: requoted.count, shareBps: leg.shareBps) : nil
             let plan = try TradePlanner.planSwap(
@@ -198,12 +209,15 @@ public struct EVMTradeEngine: TradeEngine {
             let transactions = plan.transactions.compactMap { $0 as? EVMTransaction }
             guard transactions.count == plan.transactions.count, let last = transactions.last else { throw EVMEngineFailure.batchMismatch }
             nextNonce = last.nonce + 1
+            plannedAhead += UInt64(transactions.count)
             spentNative = spentNative + Self.maximumNativeCost(transactions, state: state)
             if !intent.sell.isNative { spentSell = spentSell + leg.quote.intent.amountIn }
             plans.append(plan)
         }
         guard plans.count > 1 else { return plans[0] }
-        return try Self.combined(plans, legs: requoted, intent: intent, walletID: request.walletID)
+        // A revisao da divisao e escrita pelo compositor de EscaliburChains, a partir das
+        // pernas e das cotacoes validadas; o motor nao escreve titulo nem linha.
+        return try TradePlanner.combineSplit(plans, quotes: requoted.map(\.quote))
     }
 
     /// As pernas da cotacao mostrada: provedor conhecido, sem repeticao, valores que
@@ -251,7 +265,7 @@ public struct EVMTradeEngine: TradeEngine {
         let network = state.network
         let adjusted = EVMNetworkState(
             chain: network.chain, pendingNonces: network.pendingNonces, localNextNonce: network.localNextNonce,
-            baseFeePerGas: network.baseFeePerGas, priorityFees: network.priorityFees, gasEstimate: network.gasEstimate,
+            localPendingCount: network.localPendingCount, baseFeePerGas: network.baseFeePerGas, priorityFees: network.priorityFees, gasEstimate: network.gasEstimate,
             l1DataFee: network.l1DataFee, nativeBalance: network.nativeBalance.subtractingReportingUnderflow(spentNative) ?? 0,
             destinationHasCode: network.destinationHasCode
         )
@@ -274,30 +288,6 @@ public struct EVMTradeEngine: TradeEngine {
             total = total + transaction.maxExecutionCost + transaction.value + (l1 ?? 0)
         }
         return total
-    }
-
-    /// Uma troca dividida vira um plano so, assinado de uma vez: as transacoes de todas as
-    /// pernas em sequencia de nonce, e a revisao com a visao geral seguida das linhas de
-    /// cada etapa. O prazo do plano conta da primeira perna, a mais antiga.
-    static func combined(_ plans: [SigningPlan], legs: [EVMTradeLeg], intent: TradeIntent, walletID: UUID) throws -> SigningPlan {
-        let count = plans.reduce(0) { $0 + $1.review.transactionCount }
-        let guaranteed = legs.reduce(BigUInt()) { $0 + $1.quote.guaranteedOut }
-        let expected = legs.reduce(BigUInt()) { $0 + $1.quote.expectedOut }
-        let division = legs.map { "\(EVMEngineText.percent(bps: $0.shareBps)) pela \($0.quote.provider.displayName)" }
-        let lines: [PlanReview.Line] = [
-            .init("Rede", intent.chain.name),
-            .init("Sai", EVMEngineText.amount(intent.amountIn, intent.sell)),
-            .init("Entra, no mínimo", EVMEngineText.amount(guaranteed, intent.buy)),
-            .init("Estimativa", EVMEngineText.amount(expected, intent.buy)),
-            .init("Divisão", division.joined(separator: ", ")),
-            .init("Transações", "\(count) transações independentes, em sequência, assinadas de uma vez"),
-            .init("Se uma etapa falhar", "As outras continuam valendo: você fica com parte em \(intent.buy.symbol) e parte em \(intent.sell.symbol). Não existe desfazer, e a etapa que falhou custa só a taxa de rede."),
-            .init("Taxa da Escalibur", "Sem taxa da Escalibur"),
-        ]
-        let title = "Trocar \(EVMEngineText.amount(intent.amountIn, intent.sell)) por \(intent.buy.symbol) em \(plans.count) etapas"
-        return try SigningPlan.sequence(
-            plans, kind: .swap, title: title, lead: lines, stepPrefix: true, omitting: ["Rede", "Divisão", "Taxa da Escalibur"]
-        )
     }
 
     // MARK: Ordem limite
@@ -323,8 +313,9 @@ public struct EVMTradeEngine: TradeEngine {
         // exatamente esse minimo, nem um wei a menos.
         let price = try Self.limitPrice(minimumOut: request.minimumOut, sellAmount: request.amountIn,
                                         sellDecimals: sell.decimals, buyDecimals: buy.decimals)
+        // Sem prazo pedido ("ate cancelar"): a CoW exige um, e vale o maximo pratico dela.
         let intent = try CoWLimitOrderIntent(owner: account.address, sell: sell, buy: buy, sellAmount: request.amountIn,
-                                             price: price, validFor: request.validFor)
+                                             price: price, validFor: request.validFor ?? CoWProtocol.untilCancelledValidity)
         guard intent.buyAmount == request.minimumOut, let sellToken = intent.orderSellToken else {
             throw EVMEngineFailure.limitPriceNotRepresentable
         }
@@ -335,7 +326,11 @@ public struct EVMTradeEngine: TradeEngine {
         let open = try await services.cow.openSellTotal(owner: account.address, sellToken: sellToken.contract, chain: chain)
         guard open.isZero else { throw EVMEngineFailure.openOrderExists }
 
-        let state = try await services.chainState.readCoW(intent: intent, openOrdersSellTotal: open, localNextNonce: nil)
+        let read = try await services.chainState.readCoW(intent: intent, openOrdersSellTotal: open, localNextNonce: request.nonceQueue?.nextNonce)
+        let state = CoWChainState(
+            network: read.network.applying(request.nonceQueue), sellToken: read.sellToken, wrapGasEstimate: read.wrapGasEstimate,
+            wrapL1DataFee: read.wrapL1DataFee, openOrdersSellTotal: read.openOrdersSellTotal
+        )
         // O prazo do plano e o validTo da ordem contam de agora, depois das leituras.
         let now = Date()
         let plan = try CoWPlanner.planLimitOrder(walletID: request.walletID, account: account, intent: intent, state: state, now: now)
@@ -375,6 +370,7 @@ public struct EVMTradeEngine: TradeEngine {
             switch plan.review.kind {
             case .swap: return try await submitSwap(signed, plan: plan)
             case .limitOrder: return [try await submitLimitOrder(signed, plan: plan)]
+            case .cancelOrder: return try await submitCancellation(signed, plan: plan)
             default: throw EVMEngineFailure.batchMismatch
             }
         } catch {
@@ -425,6 +421,88 @@ public struct EVMTradeEngine: TradeEngine {
         throw EVMEngineFailure.prerequisiteTimedOut
     }
 
+    // MARK: Ordens abertas
+
+    /// As ordens abertas do dono na CoW, a unica fonte do livro de ordens: cada uma com o
+    /// UID conferido, o que falta vender e o minimo pelo preco gravado. Cancela pela CoW
+    /// (gratis, sem garantia) ou na cadeia (garantido, com taxa).
+    public func openOrders(account: DerivedAccount) async throws -> [OpenOrder] {
+        do {
+            guard supportsLimitOrders else { throw EVMEngineFailure.limitOrdersUnavailable }
+            let owner = try EVMEngineSupport.account(account, chain: chain)
+            let orders = try await services.cow.openOrders(owner: owner.address, chain: chain, now: Date())
+            return orders.map(Self.openOrder(chain: chain))
+        } catch {
+            throw EVMEngineMessages.userFacing(error, .cancellation, chain: chain)
+        }
+    }
+
+    static func openOrder(chain: Chain) -> (CoWOrderStatus) -> OpenOrder {
+        { status in
+            let remaining = status.remainingSellAmount
+            // O minimo pelo que falta: a mesma razao da ordem assinada, para cima.
+            let minimum = status.sellAmount.isZero ? BigUInt()
+                : (status.buyAmount * remaining + status.sellAmount - BigUInt(1)) / status.sellAmount
+            return OpenOrder(
+                id: Hex.encode(status.uid, prefix: true), chain: chain,
+                sellAssetID: assetID(status.sellToken, chain: chain), buyAssetID: assetID(status.buyToken, chain: chain),
+                remainingSell: remaining, minimumBuy: minimum,
+                expiresAt: Date(timeIntervalSince1970: TimeInterval(status.validTo)), sources: 1,
+                cancellations: [.offchain, .onchain]
+            )
+        }
+    }
+
+    /// O `Asset.id` de um token da ordem: a sentinela da CoW e o nativo; o resto, o token
+    /// da lista (ou rede e contrato, fora dela).
+    static func assetID(_ token: EVMAddress, chain: Chain) -> String {
+        if token == CoWProtocol.buyNativeToken { return Asset.native(chain).id }
+        return TokenRegistry.find(chainID: chain.id, contract: token.checksummed)?.id ?? "\(chain.id):\(token.checksummed)"
+    }
+
+    /// Fora da cadeia: o `OrderCancellations` da CoW. Na cadeia: `invalidateOrder(uid)`,
+    /// com o gas da chamada exata e o nonce de duas fontes.
+    public func planCancel(
+        _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
+    ) async throws -> SigningPlan {
+        switch via {
+        case .offchain:
+            return try planLimitOrderCancellation(walletID: walletID, account: account, orderUIDs: [order.id])
+        case .onchain:
+            do {
+                guard supportsLimitOrders, order.chain.id == chain.id else { throw EVMEngineFailure.limitOrdersUnavailable }
+                let owner = try EVMEngineSupport.account(account, chain: chain)
+                guard order.id.hasPrefix("0x"), let uid = Hex.decode(order.id), uid.count == CoWProtocol.uidLength else {
+                    throw EVMEngineFailure.invalidOrderReference
+                }
+                let state = try await services.chainState.readCancellation(
+                    chain: chain, owner: owner.address, uid: uid, localNextNonce: nonceQueue?.nextNonce
+                ).applying(nonceQueue)
+                return try CoWPlanner.planOnchainCancellation(walletID: walletID, account: owner, chain: chain, uid: uid, state: state)
+            } catch {
+                throw EVMEngineMessages.userFacing(error, .cancellation, chain: chain)
+            }
+        }
+    }
+
+    /// O cancelamento assinado: o fora da cadeia vai a CoW e devolve os UIDs; o da cadeia
+    /// e transmitido pela rota publica e devolve o id da transacao.
+    func submitCancellation(_ signed: [SignedTransaction], plan: SigningPlan) async throws -> [String] {
+        if plan.transactions.first is EIP712ValidatedMessage {
+            try await submitLimitOrderCancellation(signed, plan: plan)
+            guard let message = plan.transactions.first as? EIP712ValidatedMessage,
+                  case .array(let items)? = message.typedData.message["orderUids"]
+            else { throw EVMEngineFailure.batchMismatch }
+            return items.compactMap { if case .string(let text) = $0 { return text } else { return nil } }
+        }
+        let transactions = plan.transactions.compactMap { $0 as? EVMTransaction }
+        guard transactions.count == 1, plan.transactions.count == 1, transactions[0].to == CoWProtocol.settlement else {
+            throw EVMEngineFailure.batchMismatch
+        }
+        let ordered = try EVMEngineSupport.pairs(signed, transactions)
+        return try await EVMEngineSupport.broadcast(ordered, chain: chain, route: .publicMempool, reader: services.reader)
+    }
+
     // MARK: Cancelamento fora da cadeia
 
     /// Plano de cancelamento das ordens limite pela API da CoW: `OrderCancellations`
@@ -468,5 +546,15 @@ public struct EVMTradeEngine: TradeEngine {
         } catch {
             throw EVMEngineMessages.userFacing(error, .cancellation, chain: chain)
         }
+    }
+}
+
+extension TradeChainState {
+    /// O mesmo estado com outro estado de rede (a fila local aplicada).
+    func replacingNetwork(_ network: EVMNetworkState) -> TradeChainState {
+        TradeChainState(
+            network: network, sellToken: sellToken, routerHasCode: routerHasCode, routerPin: routerPin, simulations: simulations,
+            approveL1DataFee: approveL1DataFee, swapL1DataFee: swapL1DataFee, approveL1Gas: approveL1Gas, swapL1Gas: swapL1Gas
+        )
     }
 }

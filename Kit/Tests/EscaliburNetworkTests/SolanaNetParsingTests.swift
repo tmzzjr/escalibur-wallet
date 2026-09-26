@@ -28,6 +28,49 @@ enum SolanaNetFixtures {
 
 private typealias N = SolanaNetFixtures
 
+@Suite("Solana rede: destino e mint de duas fontes")
+struct SolanaNetTwoSourceTests {
+    static let other = try! SolanaPublicKey(base58: "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4")
+
+    func token(amount: BigUInt, owner: SolanaPublicKey = N.toly, frozen: Bool = false) -> SolanaTokenAccountState {
+        SolanaTokenAccountState(address: N.tolyUSDC, program: .token, mint: N.usdc, owner: owner, amount: amount, isFrozen: frozen)
+    }
+
+    @Test("Regressao B3: o destino so vale com os dois provedores concordando no tipo e no dono; saldo, o menor")
+    func destination() throws {
+        typealias R = SolanaNetworkReader
+        #expect(try R.mergeDestination(.nonexistent, .nonexistent) == .nonexistent)
+        #expect(try R.mergeDestination(.system(lamports: 10), .system(lamports: 7)) == .system(lamports: 7))
+        #expect(try R.mergeDestination(.tokenAccount(token(amount: 5)), .tokenAccount(token(amount: 3))) == .tokenAccount(token(amount: 3)))
+        #expect(try R.mergeDestination(.programOwned(owner: Self.other), .programOwned(owner: Self.other)) == .programOwned(owner: Self.other))
+        // Um provedor que diz "carteira comum" para uma conta de token (ou o contrario)
+        // faria o envio ir para o lugar errado: recusa.
+        #expect(throws: SolanaInconsistentResponse.self) { try R.mergeDestination(.system(lamports: 1), .tokenAccount(token(amount: 1))) }
+        #expect(throws: SolanaInconsistentResponse.self) { try R.mergeDestination(.nonexistent, .programOwned(owner: Self.other)) }
+        #expect(throws: SolanaInconsistentResponse.self) {
+            try R.mergeDestination(.tokenAccount(token(amount: 1)), .tokenAccount(token(amount: 1, owner: Self.other)))
+        }
+        #expect(throws: SolanaInconsistentResponse.self) { try R.mergeTokenAccount(.missing, .existing(token(amount: 1))) }
+        #expect(throws: SolanaInconsistentResponse.self) {
+            try R.mergeTokenAccount(.existing(token(amount: 1)), .existing(token(amount: 1, frozen: true)))
+        }
+        #expect(try R.mergeTokenAccount(.existing(token(amount: 9)), .existing(token(amount: 4))) == .existing(token(amount: 4)))
+    }
+}
+
+@Suite("Solana rede: contas vigiadas na troca")
+struct SolanaNetGuardedTests {
+    @Test("Regressao A2: os ATAs do dono nos mints da lista, fora os dois lados da troca")
+    func guardedAccounts() throws {
+        // O ATA de USDC de toly.sol e o gravado (9SHQ...): a derivacao e a do Token classico.
+        let all = SolanaNetworkReader.guardedAccounts(owner: N.toly, excluding: [])
+        #expect(all.contains(N.tolyUSDC))
+        #expect(all.count == TokenRegistry.tokens.filter { $0.chainID == Chain.solana.id }.count)
+        let withoutUSDC = SolanaNetworkReader.guardedAccounts(owner: N.toly, excluding: [N.usdc])
+        #expect(!withoutUSDC.contains(N.tolyUSDC) && withoutUSDC.count == all.count - 1)
+    }
+}
+
 @Suite("Solana rede: leitura de contas")
 struct SolanaNetAccountTests {
     func account(_ name: String) throws -> RPCAccount? {

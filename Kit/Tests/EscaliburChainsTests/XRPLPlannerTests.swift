@@ -50,7 +50,7 @@ struct XRPLPlannerTests {
     }
 
     static func curated() throws -> [XRPLCuratedAsset] {
-        [try XRPLCuratedAsset(currency: XRPLCurrency(code: "USD"), issuer: bitstamp, issuerName: "Bitstamp")]
+        [try XRPLCuratedAsset(currency: XRPLCurrency(code: "USD"), issuer: bitstamp, issuerName: "Bitstamp", decimals: 6)]
     }
 
     // MARK: Enviar XRP
@@ -66,6 +66,8 @@ struct XRPLPlannerTests {
         #expect(tx.unsigned[.flags] == .uint32(XRPLTransactionFlags.fullyCanonicalSig))
         #expect(tx.unsigned[.destinationTag] == .uint32(7))
         #expect(tx.unsigned[.amount] == .amount(.xrp(drops: 50 * Self.xrp)))
+        // O que sai e o Amount gravado.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "xrpl:native", amount: 50 * Self.xrp))
         #expect(tx.unsigned[.networkID] == nil)
         #expect(tx.unsigned[.sendMax] == nil && tx.unsigned[.deliverMin] == nil)
         #expect(tx.memos == [try XRPLMemo.text("aluguel")])
@@ -82,6 +84,19 @@ struct XRPLPlannerTests {
         let signed = try XRPLTestKeys.sign(tx)
         #expect(signed.id == XRPLFixtures.hex(Hash.sha512Half([0x54, 0x58, 0x4E, 0x00] + signed.raw)))
         #expect(signed.encoded == XRPLFixtures.hex(signed.raw))
+    }
+
+    @Test("Regressao B2: LastLedgerSequence do ledger pinado nas duas leituras, com o server_info perto dele")
+    func pinnedLedger() throws {
+        let signer = try XRPLTestKeys.signer()
+        var account = Self.account(signer)
+        account.ledgerIndex = 100_000_004
+        let plan = try Self.send(XRPLSendIntent(destination: Self.destination, drops: Self.xrp), account: account)
+        #expect(try Self.transaction(plan).unsigned[.lastLedgerSequence] == .uint32(100_000_024))
+        account.ledgerIndex = 100_000_011
+        #expect(throws: XRPLPlanError.ledgerIndexMismatch) {
+            try Self.send(XRPLSendIntent(destination: Self.destination, drops: Self.xrp), account: account)
+        }
     }
 
     @Test("Tag obrigatoria (lsfRequireDestTag): sem tag bloqueia, com tag passa")
@@ -328,6 +343,104 @@ struct XRPLPlannerTests {
             expiration: expiration, timeInForce: .fillOrKill
         ))
         #expect(try Self.transaction(fok).flags == XRPLTransactionFlags.fullyCanonicalSig | XRPLTransactionFlags.sell | XRPLTransactionFlags.fillOrKill)
+    }
+
+    @Test("Oferta: o que sai, o minimo que entra e quem recebe vem dos valores gravados; tudo ou nada e troca")
+    func offerMovements() throws {
+        let usd = try XRPLCurrency(code: "USD")
+        let signer = try XRPLTestKeys.signer()
+        let later = Self.now.addingTimeInterval(86_400)
+        let order = try Self.offer(XRPLOfferIntent(
+            give: .xrp(drops: 100 * Self.xrp), receiveAtLeast: .issued(currency: usd, issuer: Self.bitstamp, value: "50.5"), expiration: later
+        ))
+        #expect(order.review.kind == .limitOrder)
+        #expect(order.review.outgoing == PlanReview.Movement(assetID: "xrpl:native", amount: 100 * Self.xrp))
+        #expect(order.review.incomingMinimum == PlanReview.Movement(assetID: "xrpl:USD:\(Self.bitstamp)", amount: 50_500_000))
+        #expect(order.review.beneficiary == signer.address)
+
+        // Vender o token: sai o TakerGets em unidades de 6 casas, entra o minimo em drops.
+        let swap = try Self.offer(XRPLOfferIntent(
+            give: .issued(currency: usd, issuer: Self.bitstamp, value: "10.25"), receiveAtLeast: .xrp(drops: 20 * Self.xrp),
+            expiration: later, timeInForce: .fillOrKill
+        ))
+        #expect(swap.review.kind == .swap && swap.review.title == "Trocar 10,25 USD por XRP")
+        #expect(swap.review.outgoing == PlanReview.Movement(assetID: "xrpl:USD:\(Self.bitstamp)", amount: 10_250_000))
+        #expect(swap.review.incomingMinimum == PlanReview.Movement(assetID: "xrpl:native", amount: 20 * Self.xrp))
+
+        // Token curado sem as casas da carteira: sem como dizer o valor, sem plano.
+        let noDecimals = [try XRPLCuratedAsset(currency: usd, issuer: Self.bitstamp, issuerName: "Bitstamp")]
+        #expect(throws: XRPLPlanError.assetNotCurated(currency: "USD", issuer: Self.bitstamp)) {
+            try XRPLPlanner.planOffer(
+                XRPLOfferIntent(give: .xrp(drops: Self.xrp), receiveAtLeast: .issued(currency: usd, issuer: Self.bitstamp, value: "1"), expiration: later),
+                signer: signer, account: Self.account(signer), ledger: Self.ledger(), curated: noDecimals, walletID: Self.wallet, now: Self.now
+            )
+        }
+    }
+
+    @Test("Oferta sem prazo: sem Expiration, dita 'nao expira'; tudo ou nada sem prazo e recusado")
+    func offerWithoutExpiry() throws {
+        let usd = try XRPLCurrency(code: "USD")
+        let plan = try Self.offer(XRPLOfferIntent(
+            give: .xrp(drops: 100 * Self.xrp), receiveAtLeast: .issued(currency: usd, issuer: Self.bitstamp, value: "50"), expiration: nil
+        ))
+        guard case .offerCreate(let offer) = try Self.transaction(plan).body else { Issue.record("corpo errado"); return }
+        #expect(offer.expiration == nil)
+        #expect(try Self.transaction(plan).unsigned[.expiration] == nil)
+        #expect(Self.line(plan, "Validade")?.value == "Não expira: fica no livro até executar ou você cancelar")
+        #expect(Self.line(plan, "Execução")?.value == "Fica no livro até executar ou ser cancelada")
+        #expect(Self.line(plan, "Expira em") == nil)
+        #expect(throws: XRPLPlanError.expirationInPast) {
+            try Self.offer(XRPLOfferIntent(
+                give: .xrp(drops: Self.xrp), receiveAtLeast: .issued(currency: usd, issuer: Self.bitstamp, value: "1"), expiration: nil,
+                timeInForce: .fillOrKill
+            ))
+        }
+    }
+
+    @Test("Regressao A1: linha de confianca e oferta so se juntam na mesma conta, em sequencia, para o token comprado")
+    func trustlineAndOffer() throws {
+        let usd = try XRPLCurrency(code: "USD")
+        let eur = try XRPLCurrency(code: "EUR")
+        let signer = try XRPLTestKeys.signer()
+        let curated = try Self.curated() + [try XRPLCuratedAsset(currency: eur, issuer: Self.bitstamp, issuerName: "Bitstamp", decimals: 6)]
+        func trust(_ currency: XRPLCurrency, sequence: UInt32 = 77) throws -> SigningPlan {
+            try XRPLPlanner.planTrustline(
+                XRPLTrustlineIntent(currency: currency, issuer: Self.bitstamp, limit: "1000"), signer: signer,
+                account: Self.account(signer, sequences: [sequence, sequence]), ledger: Self.ledger(), curated: curated,
+                walletID: Self.wallet, now: Self.now
+            )
+        }
+        func offer(sequence: UInt32 = 78) throws -> SigningPlan {
+            try XRPLPlanner.planOffer(
+                XRPLOfferIntent(give: .xrp(drops: 10 * Self.xrp), receiveAtLeast: .issued(currency: usd, issuer: Self.bitstamp, value: "5"),
+                                expiration: Self.now.addingTimeInterval(300), timeInForce: .fillOrKill),
+                signer: signer, account: Self.account(signer, sequences: [sequence, sequence]), ledger: Self.ledger(), curated: curated,
+                walletID: Self.wallet, now: Self.now
+            )
+        }
+        let joined = try XRPLPlanner.combineTrustlineAndOffer(trust: try trust(usd), offer: try offer())
+        #expect(joined.review.kind == .swap && joined.review.title == "Trocar 10 XRP por USD")
+        #expect(joined.review.transactionCount == 2 && joined.transactions.count == 2)
+        #expect(joined.review.lines.first == PlanReview.Line("Transações", "2: primeiro aceitar USD, depois a troca"))
+        #expect(joined.review.lines.contains(PlanReview.Line("Endereço do emissor", Self.bitstamp, verbatim: true)))
+        #expect(joined.review.outgoing == PlanReview.Movement(assetID: "xrpl:native", amount: 10 * Self.xrp))
+        #expect(joined.review.incomingMinimum == PlanReview.Movement(assetID: "xrpl:USD:\(Self.bitstamp)", amount: 5_000_000))
+
+        // A linha e de outro token, fora de sequencia, ou as duas partes trocadas.
+        #expect(throws: SigningPlan.CompositionError.partsDoNotMatch) {
+            try XRPLPlanner.combineTrustlineAndOffer(trust: try trust(eur), offer: try offer())
+        }
+        #expect(throws: SigningPlan.CompositionError.partsDoNotMatch) {
+            try XRPLPlanner.combineTrustlineAndOffer(trust: try trust(usd), offer: try offer(sequence: 79))
+        }
+        #expect(throws: SigningPlan.CompositionError.partsDoNotMatch) {
+            try XRPLPlanner.combineTrustlineAndOffer(trust: try offer(), offer: try trust(usd))
+        }
+        // Um envio no lugar da oferta nao vira "troca".
+        let send = try Self.send(XRPLSendIntent(destination: Self.destination, drops: Self.xrp), account: Self.account(signer, sequences: [78, 78]))
+        #expect(throws: SigningPlan.CompositionError.partsDoNotMatch) {
+            try XRPLPlanner.combineTrustlineAndOffer(trust: try trust(usd), offer: send)
+        }
     }
 
     @Test("Oferta: emissor fora da lista, mesmo ativo, XRP dos dois lados, expiracao e saldo")

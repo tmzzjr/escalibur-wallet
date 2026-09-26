@@ -16,14 +16,17 @@ struct SolanaTradeEngineTests {
     /// Saldo sintetico da chave de teste: 2 SOL.
     static let balance = BigUInt(2_000_000_000)
 
-    func engine() async throws -> (SolanaTradeEngine, RecordedSolanaNetwork, SolanaTransferBook) {
+    /// O oraculo das gravacoes: 1 SOL por uns 121,6 dolares, o preco que a Jupiter cotou.
+    static let prices = FakeOracle(prices: ["solana": "121.6", "usd-coin": "1"])
+
+    func engine(prices: FakeOracle = prices) async throws -> (SolanaTradeEngine, RecordedSolanaNetwork, SolanaTransferBook) {
         let network = try RecordedSolanaNetwork(balance: Self.balance)
         await network.setSwapAsset(try F.usdcSwapAsset())
         await network.setTables(try F.tables())
         await network.setProposal(try F.proposal("jupiter-build-sol-usdc"))
         await network.setProposal(try F.proposal("jupiter-build-usdc-sol"))
         let book = SolanaTransferBook(resendInterval: 0)
-        return (SolanaTradeEngine(network: network, book: book), network, book)
+        return (SolanaTradeEngine(network: network, book: book, prices: prices), network, book)
     }
 
     /// As contas de token da chave de teste para cada proposta gravada: sem conta de
@@ -108,6 +111,26 @@ struct SolanaTradeEngineTests {
         #expect(quote.priceImpactPercent == 0)
         #expect(quote.expiresAt > before && quote.expiresAt <= Date().addingTimeInterval(SolanaTradeEngine.quoteLifetime))
         #expect(quote.providerFeeNote?.contains("Sem taxa da Escalibur") == true)
+    }
+
+    @Test("Regressao A2: sem preco de referencia, SOL por USDC recusa na cotacao e no plano; longe demais tambem")
+    func referenceRequired() async throws {
+        let (blind, network, _) = try await engine(prices: FakeOracle(prices: nil))
+        await network.setSwapAccounts(try accounts(sellingUSDC: false))
+        let text = await message { try await blind.quote(try solToUSDC()) }
+        #expect(text == SolanaEngineMessages.text(.noPriceReference))
+
+        let (far, farNetwork, _) = try await engine(prices: FakeOracle(prices: ["solana": "130", "usd-coin": "1"]))
+        await farNetwork.setSwapAccounts(try accounts(sellingUSDC: false))
+        let farText = await message { try await far.quote(try solToUSDC()) }
+        #expect(farText?.contains("pior que o preço de referência do mercado") == true)
+
+        // O plano pede a referencia de novo e a entrega ao planejador.
+        let (engine, recorded, _) = try await engine()
+        await recorded.setSwapAccounts(try accounts(sellingUSDC: false))
+        let quote = try await engine.quote(try solToUSDC())
+        _ = try await engine.plan(try solToUSDC(), quote: quote)
+        #expect(await recorded.references.last?.oracleOut == BigUInt(6_080_000))
     }
 
     @Test("Cotacao USDC -> SOL (route_v2): minimo garantido dos bytes")
@@ -296,5 +319,10 @@ struct SolanaTradeEngineTests {
             minimumOut: BigUInt(1), validFor: 3600
         )
         #expect(await message { try await engine.planLimitOrder(order) } == SolanaEngineMessages.text(SolanaEngineProblem.limitOrdersUnavailable))
+        // Sem ordem limite, sem lista de ordens abertas nem cancelamento: o motor diz que
+        // nao existe nesta rede, e a tela nao oferece tentar de novo.
+        await #expect(throws: SendEngineError.unavailable("Ordens limite ainda não estão disponíveis nesta rede.")) {
+            _ = try await engine.openOrders(account: F.account(try F.testKey()))
+        }
     }
 }

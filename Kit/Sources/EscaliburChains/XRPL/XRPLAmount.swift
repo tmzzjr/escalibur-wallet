@@ -276,3 +276,25 @@ public struct XRPLCurrency: Sendable, Hashable {
     /// O codigo como o JSON do rippled escreve: 3 letras ou 40 hex maiusculos.
     public var code: String { isoCode ?? XRPLBinary.hexUpper(bytes) }
 }
+
+extension XRPLDecimal {
+    /// O valor na menor unidade de um token com `decimals` casas: mantissa vezes
+    /// 10^(expoente + casas). O que passar das casas arredonda para cima ou para baixo,
+    /// conforme o lado: o que sai arredonda para cima e o minimo que entra para baixo, e
+    /// assim a conferencia da tela nunca ve menos saindo nem mais entrando do que a
+    /// transacao grava. nil para valor negativo ou fora de qualquer escala real.
+    func units(decimals: Int, roundingUp: Bool) -> BigUInt? {
+        guard !isNegative else { return nil }
+        guard !isZero else { return BigUInt() }
+        let limit = 40
+        let whole = BigUInt(mantissa)
+        let shift = exponent + decimals
+        if shift >= 0 {
+            guard shift <= limit else { return nil }
+            return whole * BigUInt.power(of: 10, shift)
+        }
+        guard -shift <= limit else { return roundingUp ? BigUInt(1) : BigUInt() }
+        let (quotient, remainder) = whole.quotientAndRemainder(dividingBy: BigUInt.power(of: 10, -shift))
+        return roundingUp && !remainder.isZero ? quotient + BigUInt(1) : quotient
+    }
+}

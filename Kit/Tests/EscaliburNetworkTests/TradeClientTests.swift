@@ -299,4 +299,27 @@ struct TradeCoWClientTests {
         #expect(status.remainingSellAmount == 0)
         #expect(CoWProtocol.owner(ofUID: status.uid) == status.owner)
     }
+
+    @Test("Ordens abertas: so as do dono, abertas, nao invalidadas, no prazo e com saldo a vender")
+    func openOrders() throws {
+        // A ordem real gravada, com o estado trocado aqui para cada caso.
+        let recorded = try JSONSerialization.jsonObject(with: try S.fixture("cow-base-order-limit")) as! [String: Any]
+        let owner = try EVMAddress(recorded["owner"] as! String)
+        let validTo = recorded["validTo"] as! Int
+        func order(_ changes: [String: Any]) -> [String: Any] { recorded.merging(changes) { _, new in new } }
+        let list: [[String: Any]] = [
+            order(["status": "open", "executedSellAmount": "0"]),
+            order(["status": "fulfilled"]),
+            order(["status": "open", "invalidated": true, "executedSellAmount": "0"]),
+            order(["status": "open", "executedSellAmount": recorded["sellAmount"] as! String]),
+        ]
+        let data = try JSONSerialization.data(withJSONObject: list)
+        let before = Date(timeIntervalSince1970: TimeInterval(validTo - 60))
+        let open = try CoWClient.openOrders(data, owner: owner, now: before)
+        #expect(open.count == 1 && open.first?.status == .open && open.first?.remainingSellAmount == BigUInt(decimal: recorded["sellAmount"] as! String))
+        // Vencida no relogio: fora.
+        #expect(try CoWClient.openOrders(data, owner: owner, now: Date(timeIntervalSince1970: TimeInterval(validTo + 1))).isEmpty)
+        // De outro dono: fora (o UID diz o dono, e a API nao escolhe por ele).
+        #expect(try CoWClient.openOrders(data, owner: try EVMAddress("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"), now: before).isEmpty)
+    }
 }

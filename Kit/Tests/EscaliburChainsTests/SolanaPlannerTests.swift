@@ -85,6 +85,8 @@ struct SolanaPlannerTests {
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 0,1 SOL")
         expectRecipient(plan)
+        // O que sai e o valor da instrucao de transferencia (conferida nos bytes abaixo).
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "solana:native", amount: 100_000_000))
         #expect(Self.line(plan, "Para") == Self.toly.base58)
         #expect(plan.review.lines.first { $0.label == "Para" }?.verbatim == true)
         #expect(Self.line(plan, "Taxa da rede") == "0,0000051 SOL")
@@ -250,6 +252,8 @@ struct SolanaPlannerTests {
         let (_, wire) = try Self.signAndCheck(plan)
         #expect(plan.review.title == "Enviar 12,5 USDC")
         expectRecipient(plan)
+        // O que sai e o valor do TransferChecked (conferido nos bytes abaixo), no mint da lista.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "solana:EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", amount: 12_500_000))
         #expect(Self.line(plan, "Para") == Self.toly.base58)
         #expect(Self.line(plan, "Conta de token do destino") == Self.tolyUSDC.base58)
         #expect(Self.line(plan, "Mint") == Self.usdc.base58)

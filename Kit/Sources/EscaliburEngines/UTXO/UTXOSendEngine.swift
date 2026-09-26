@@ -22,6 +22,9 @@ struct UTXOSendEngine: SendEngine {
 
 
 
+    /// Quantos enderecos de troco seguidos podem aparecer usados antes de desistir.
+    static let maxChangeProbes = 20
+
     init(chain: Chain, reader: UTXOReader) {
         self.chain = chain
         self.reader = reader
@@ -65,11 +68,17 @@ struct UTXOSendEngine: SendEngine {
             guard let summary = UTXOEngineSupport.summary(plan) else { throw UTXOPlanError.internalCheckFailed }
             let fee = EngineFormat.amount(summary.fee, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol)
             let left = state.network.coins.count - summary.inputCount
+            // O que a leitura deixou de fora tambem fica fora do maximo, e a nota diz.
+            var notes = [String]()
+            if left > 0 {
+                notes.append("\(left) \(left == 1 ? "moeda pequena ou ainda sem confirmação fica" : "moedas pequenas ou ainda sem confirmação ficam") fora do máximo.")
+            }
+            if let skipped = UTXOPlanner.skippedText(state.network.skipped) {
+                notes.append("Fora da leitura: \(skipped).")
+            }
             return Spendable(
                 amount: summary.amount,
-                reserveNote: left > 0
-                    ? "\(left) \(left == 1 ? "moeda pequena ou ainda sem confirmação fica" : "moedas pequenas ou ainda sem confirmação ficam") fora do máximo."
-                    : nil,
+                reserveNote: notes.isEmpty ? nil : notes.joined(separator: " "),
                 feeNote: "Já descontada a taxa da rede de \(fee), a \(UTXOEngineSupport.rateText(rate, chain: chain))."
             )
         } catch {
@@ -98,8 +107,20 @@ struct UTXOSendEngine: SendEngine {
         var changeIndex: UInt32?
         var change: UTXOChangeAddress?
         if !request.sendAll {
-            let index = try UTXOEngineSupport.changeIndex(usage: request.utxoUsage, discovery: discovery)
-            change = try UTXOEngineSupport.changeAddress(account, index: index)
+            // O indice livre da varredura, conferido em dois provedores: se um deles ve
+            // historico, o proximo (auditoria 2, B6).
+            var index = try UTXOEngineSupport.changeIndex(usage: request.utxoUsage, discovery: discovery)
+            var candidate = try UTXOEngineSupport.changeAddress(account, index: index)
+            var probes = 1
+            while try await !reader.isUnused(candidate.address) {
+                guard probes < Self.maxChangeProbes, index + 1 < UTXOReader.maxAddressesPerBranch else {
+                    throw SendEngineError.message(NetworkFailureText.scanLimit)
+                }
+                index += 1
+                probes += 1
+                candidate = try UTXOEngineSupport.changeAddress(account, index: index)
+            }
+            change = candidate
             changeIndex = index
         }
         let intent = UTXOSendIntent(

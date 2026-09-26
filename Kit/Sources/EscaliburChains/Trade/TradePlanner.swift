@@ -220,7 +220,7 @@ public enum TradePlanner {
 
     static func derivedState(_ base: EVMNetworkState, gas: UInt64, l1: BigUInt?, hasCode: Bool) -> EVMNetworkState {
         EVMNetworkState(
-            chain: base.chain, pendingNonces: base.pendingNonces, localNextNonce: base.localNextNonce,
+            chain: base.chain, pendingNonces: base.pendingNonces, localNextNonce: base.localNextNonce, localPendingCount: base.localPendingCount,
             baseFeePerGas: base.baseFeePerGas, priorityFees: base.priorityFees, gasEstimate: gas,
             l1DataFee: l1, nativeBalance: base.nativeBalance, destinationHasCode: hasCode
         )
@@ -300,8 +300,15 @@ public enum TradePlanner {
         lines.append(.init("Sem prazo na cadeia", "Se não confirmar logo, cancele com o mesmo nonce em vez de esperar"))
         lines.append(.init("Nonce", count == 1 ? "\(firstNonce)" : "\(firstNonce) a \(firstNonce + UInt64(count - 1))"))
 
-        let title = "Trocar \(TradeText.amount(intent.amountIn, intent.sell)) por \(intent.buy.symbol)"
-        return PlanReview(kind: .swap, title: title, lines: lines, warnings: quote.assessment.warnings, transactionCount: count)
+        // O que sai, o minimo que entra e quem recebe saem da calldata decodificada da
+        // transacao montada (`again == quote.decoded`), nunca da intencao.
+        let decoded = quote.decoded
+        let title = "Trocar \(TradeText.amount(decoded.amountIn, intent.sell)) por \(intent.buy.symbol)"
+        return PlanReview(
+            kind: .swap, title: title, lines: lines, warnings: quote.assessment.warnings, transactionCount: count,
+            outgoing: intent.sell.movement(decoded.amountIn), incomingMinimum: intent.buy.movement(decoded.guaranteedOut),
+            beneficiary: decoded.recipient.checksummed
+        )
     }
 
     static func providerFeeText(_ quote: ValidatedTradeQuote) -> String {
@@ -318,6 +325,84 @@ public enum TradePlanner {
             return "Nenhuma"
         case .de1:
             return "Embutida na rota; o mínimo já considera"
+        }
+    }
+}
+
+// MARK: Troca dividida
+
+extension TradePlanner {
+    /// Junta as pernas de uma troca dividida num plano so, assinado de uma vez: as
+    /// transacoes de todas as pernas em sequencia de nonce, e a revisao com a visao geral
+    /// seguida das linhas de cada etapa.
+    ///
+    /// Tudo o que a revisao diz sai daqui, das pernas: cada plano tem de ser uma troca
+    /// montada por `planSwap` a partir da cotacao validada na mesma posicao (a troca e a
+    /// ultima transacao, com o router, o valor e a calldata dela), da mesma conta, dos
+    /// mesmos ativos, com nonces seguidos. O motor so entrega os planos e as cotacoes;
+    /// nao escreve titulo nem linha. O prazo do plano conta da primeira perna.
+    public static func combineSplit(_ plans: [SigningPlan], quotes: [ValidatedTradeQuote]) throws -> SigningPlan {
+        guard plans.count >= 2, plans.count == quotes.count, plans.count <= TradeSplitOptimizer.maxProviders,
+              let reference = quotes.first?.intent
+        else { throw SigningPlan.CompositionError.partsDoNotMatch }
+        let owner = reference.owner
+        var nextNonce: UInt64?
+        for (plan, quote) in zip(plans, quotes) {
+            guard plan.review.kind == .swap else {
+                throw plan.review.kind == .send ? SigningPlan.CompositionError.sendInsideTrade : SigningPlan.CompositionError.partsDoNotMatch
+            }
+            let intent = quote.intent
+            guard intent.chain.id == reference.chain.id, intent.owner == owner, intent.sell == reference.sell, intent.buy == reference.buy,
+                  intent.slippageBps == reference.slippageBps, plan.chain.id == reference.chain.id
+            else { throw SigningPlan.CompositionError.partsDoNotMatch }
+            let transactions = plan.transactions.compactMap { $0 as? EVMTransaction }
+            guard transactions.count == plan.transactions.count, let swap = transactions.last,
+                  swap.to == quote.to, swap.value == quote.value, swap.data == quote.data,
+                  transactions.allSatisfy({ $0.account.address == owner && $0.chain.id == reference.chain.id }),
+                  plan.review.outgoing == intent.sell.movement(quote.decoded.amountIn),
+                  plan.review.incomingMinimum == intent.buy.movement(quote.guaranteedOut),
+                  plan.review.beneficiary == owner.checksummed
+            else { throw SigningPlan.CompositionError.partsDoNotMatch }
+            for transaction in transactions {
+                if let expected = nextNonce, transaction.nonce != expected { throw SigningPlan.CompositionError.partsDoNotMatch }
+                nextNonce = transaction.nonce + 1
+            }
+        }
+
+        let sell = reference.sell
+        let buy = reference.buy
+        let total = quotes.reduce(BigUInt()) { $0 + $1.decoded.amountIn }
+        let guaranteed = quotes.reduce(BigUInt()) { $0 + $1.guaranteedOut }
+        let expected = quotes.reduce(BigUInt()) { $0 + $1.expectedOut }
+        let count = plans.reduce(0) { $0 + $1.review.transactionCount }
+        let division = quotes.map { quote -> String in
+            let share = (quote.decoded.amountIn * BigUInt(10_000) / total).uint64.map(Int.init) ?? 0
+            return "\(TradeText.percent(bps: share)) pela \(quote.provider.displayName)"
+        }
+        let lead: [PlanReview.Line] = [
+            .init("Rede", reference.chain.name),
+            .init("Sai", TradeText.amount(total, sell)),
+            .init("Entra, no mínimo", TradeText.amount(guaranteed, buy)),
+            .init("Estimativa", TradeText.amount(expected, buy)),
+            .init("Divisão", division.joined(separator: ", ")),
+            .init("Transações", "\(count) transações independentes, em sequência, assinadas de uma vez"),
+            .init("Se uma etapa falhar", "As outras continuam valendo: você fica com parte em \(buy.symbol) e parte em \(sell.symbol). Não existe desfazer, e a etapa que falhou custa só a taxa de rede."),
+            .init("Taxa da Escalibur", "Sem taxa da Escalibur"),
+        ]
+        let title = "Trocar \(TradeText.amount(total, sell)) por \(buy.symbol) em \(plans.count) etapas"
+        return try SigningPlan.sequence(
+            plans, kind: .swap, title: title, lead: lead, stepPrefix: true, omitting: ["Rede", "Divisão", "Taxa da Escalibur"],
+            outgoing: sell.movement(total), incomingMinimum: buy.movement(guaranteed), beneficiary: owner.checksummed
+        )
+    }
+}
+
+extension TradeAsset {
+    /// O movimento deste ativo, com o id da lista curada.
+    func movement(_ amount: BigUInt) -> PlanReview.Movement {
+        switch self {
+        case .native(let chain): return .native(chain, amount)
+        case .token(let token): return .token(token.chain, contract: token.contract.checksummed, amount)
         }
     }
 }

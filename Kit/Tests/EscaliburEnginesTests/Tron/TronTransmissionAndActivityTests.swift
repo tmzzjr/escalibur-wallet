@@ -86,25 +86,45 @@ struct TronTransmissionAndActivityTests {
         #expect(status == .confirmed(detail: TronEngineText.confirmed))
     }
 
-    /// Resposta alterada no teste: `gettransactioninfobyid` volta `{}` nos dois nos.
-    @Test("Nada nos dois provedores: pendente ate dois minutos depois da expiracao, entao vencida")
+    /// A hora do ultimo bloco solidificado de cada provedor, trocada no meio do teste.
+    final class SolidClock: @unchecked Sendable {
+        private let lock = NSLock()
+        private var times: [String: Date] = [:]
+        func set(_ host: String, _ date: Date) { lock.withLock { times[host] = date } }
+        func block(_ host: String) -> Data? {
+            guard let date = lock.withLock({ times[host] }) else { return nil }
+            return R.encode(["blockID": String(repeating: "0", count: 64),
+                             "block_header": ["raw_data": ["number": 1, "timestamp": Int64(date.timeIntervalSince1970 * 1000)]]])
+        }
+    }
+
+    /// Resposta alterada no teste: `gettransactioninfobyid` volta `{}` nos dois nos, e o
+    /// bloco solidificado de cada no e montado aqui.
+    @Test("Regressao M4: vencida so quando o bloco solidificado dos dois provedores passou da expiracao, nunca pelo relogio do aparelho")
     func statusExpires() async throws {
         let empty = try R.data("gettransactioninfobyid-vazio")
         let (signed, raw) = try Self.recordedSigned()
         let expiration = Date(timeIntervalSince1970: TimeInterval(raw.expiration) / 1000)
         let accepted = R.encode(["result": true, "txid": signed.id])
-        let transport = try R.Transport { _, path, _ in
+        let solid = SolidClock()
+        let transport = try R.Transport { host, path, _ in
             if path.hasSuffix("gettransactioninfobyid") { return empty }
+            if path == "/walletsolidity/getnowblock" { return solid.block(host) }
             return path == "/wallet/broadcasthex" ? accepted : nil
         }
         let deadlines = TronSendEngine.Deadlines()
         let reader = TronReader(transport: transport, providers: R.providers)
         _ = try await TronSendEngine(reader: reader, deadlines: deadlines, now: { expiration }).broadcast([signed], chain: .tron)
+        // O relogio do aparelho uma hora adiantado nao decide nada.
+        let engine = TronSendEngine(reader: reader, deadlines: deadlines, now: { expiration.addingTimeInterval(3_600) })
 
-        let early = TronSendEngine(reader: reader, deadlines: deadlines, now: { expiration.addingTimeInterval(60) })
-        #expect(await early.status(signed.id, chain: .tron) == .pending)
-        let late = TronSendEngine(reader: reader, deadlines: deadlines, now: { expiration.addingTimeInterval(300) })
-        #expect(await late.status(signed.id, chain: .tron) == .failed(reason: TronEngineText.failure("expired")))
+        for host in ["publicnode.test", "trongrid.test"] { solid.set(host, expiration.addingTimeInterval(60)) }
+        #expect(await engine.status(signed.id, chain: .tron) == .pending)
+        // Um provedor adiantado sozinho nao faz vencer: vale a menor hora dos dois.
+        solid.set("trongrid.test", expiration.addingTimeInterval(600))
+        #expect(await engine.status(signed.id, chain: .tron) == .pending)
+        solid.set("publicnode.test", expiration.addingTimeInterval(300))
+        #expect(await engine.status(signed.id, chain: .tron) == .failed(reason: TronEngineText.failure("expired")))
         // Sem registro de expiracao (app reaberto), nunca vence: fica pendente.
         let forgotten = TronSendEngine(reader: reader, deadlines: TronSendEngine.Deadlines(), now: { expiration.addingTimeInterval(3_600) })
         #expect(await forgotten.status(signed.id, chain: .tron) == .pending)

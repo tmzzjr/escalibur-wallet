@@ -67,7 +67,8 @@ public enum EVMPlanner {
                 .init("Para", recipient.checksummed, verbatim: true),
                 .init("Valor", amountText),
             ] + feeLines(chain: chain, quote: quote, count: 1) + [.init("Nonce", "\(nonce)")],
-            warnings: warnings, transactionCount: 1, recipient: recipient.checksummed
+            warnings: warnings, transactionCount: 1, recipient: recipient.checksummed,
+            outgoing: .native(chain, transaction.value)
         )
         return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: [transaction], createdAt: now)
     }
@@ -111,7 +112,8 @@ public enum EVMPlanner {
             chain: chain, account: account, nonce: nonce, fee: quote.fee, gasLimit: quote.gasLimit,
             to: token.contract, value: 0, data: ERC20.transfer(to: recipient, amount: amount)
         )
-        try confirm(transaction, decodesTo: .tokenTransfer(token: token.contract, to: recipient, amount: amount), policy: policy)
+        // O valor que sai e o que a guarda decodifica da calldata montada.
+        let sent = try confirm(transaction, decodesTo: .tokenTransfer(token: token.contract, to: recipient, amount: amount), policy: policy)
 
         var warnings = [PlanReview.Warning]()
         if state.destinationHasCode { warnings.append(.destinationIsContract) }
@@ -128,7 +130,8 @@ public enum EVMPlanner {
                 .init("Valor", amountText),
                 .init("Contrato do token", token.contract.checksummed, verbatim: true),
             ] + feeLines(chain: chain, quote: quote, count: 1) + [.init("Nonce", "\(nonce)")],
-            warnings: warnings, transactionCount: 1, recipient: recipient.checksummed
+            warnings: warnings, transactionCount: 1, recipient: recipient.checksummed,
+            outgoing: .token(chain, contract: token.contract.checksummed, sent.tokenAmount ?? BigUInt())
         )
         return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: [transaction], createdAt: now)
     }
@@ -259,7 +262,8 @@ public enum EVMPlanner {
     }
 
     /// A transacao montada volta pela guarda, e o que ela le tem de ser a intencao.
-    static func confirm(_ transaction: EVMTransaction, decodesTo expected: EVMDecodedCall, policy: EVMCallPolicy) throws {
+    @discardableResult
+    static func confirm(_ transaction: EVMTransaction, decodesTo expected: EVMDecodedCall, policy: EVMCallPolicy) throws -> EVMDecodedCall {
         let decoded: EVMDecodedCall
         do {
             decoded = try EVMCallGuard.inspect(EVMCallProposal(transaction), policy: policy)
@@ -267,6 +271,7 @@ public enum EVMPlanner {
             throw EVMPlanError.refused(refusal)
         }
         guard decoded == expected else { throw EVMPlanError.refused(.malformedCalldata) }
+        return decoded
     }
 
     /// Taxa acima de 3% do valor pede confirmacao extra (docs/seguranca.md 4.3).
@@ -311,5 +316,13 @@ enum EVMText {
             grouped.append(digit)
         }
         return fraction.isEmpty ? String(grouped) : String(grouped) + "," + String(fraction)
+    }
+}
+
+extension EVMDecodedCall {
+    /// O valor de uma transferencia de token decodificada da calldata.
+    var tokenAmount: BigUInt? {
+        if case .tokenTransfer(_, _, let amount) = self { return amount }
+        return nil
     }
 }

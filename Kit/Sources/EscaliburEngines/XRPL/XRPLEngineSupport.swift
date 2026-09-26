@@ -87,7 +87,7 @@ enum XRPLEngineSupport {
         guard asset.chainID == Chain.xrpl.id, case .issued(let code, let issuer) = asset.kind,
               let currency = try? XRPLCurrency(code: code)
         else { return nil }
-        return try? XRPLCuratedAsset(currency: currency, issuer: issuer, issuerName: asset.name)
+        return try? XRPLCuratedAsset(currency: currency, issuer: issuer, issuerName: asset.name, decimals: asset.decimals)
     }
 
     // MARK: Erros
@@ -96,6 +96,8 @@ enum XRPLEngineSupport {
         switch error {
         case .stateForOtherAccount, .implausibleReserve, .invalidLedgerIndex, .destinationStateMismatch:
             return NetworkFailureText.malformed
+        case .ledgerIndexMismatch:
+            return NetworkFailureText.disagree
         case .masterKeyDisabled:
             return "Esta conta desativou a chave mestra no XRP Ledger. A carteira não tem a chave que assina por ela."
         case .sequenceUnconfirmed, .destinationUnconfirmed:

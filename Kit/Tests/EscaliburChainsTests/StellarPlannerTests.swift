@@ -52,6 +52,7 @@ struct StellarPlannerTests {
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 12,5 XLM")
         expectRecipient(plan)
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "stellar:native", amount: 125_000_000))
         #expect(plan.review.lines.contains(PlanReview.Line("Para", StellarTestKeys.sep5Account1, verbatim: true)))
         #expect(plan.review.lines.contains(PlanReview.Line("Memo (texto)", "pedido 42", verbatim: true)))
         #expect(plan.review.lines.contains(PlanReview.Line("Taxa máxima", "0,00001 XLM")))
@@ -219,6 +220,9 @@ struct StellarPlannerTests {
         )
         #expect(plan.review.title == "Enviar 20 USDC")
         expectRecipient(plan)
+        #expect(plan.review.outgoing == PlanReview.Movement(
+            assetID: "stellar:USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", amount: 200_000_000
+        ))
         #expect(plan.review.lines.contains(PlanReview.Line("Emissor", "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", verbatim: true)))
         #expect(try transaction(plan).tx.operations == [StellarOperation(.payment(
             destination: try StellarTestKeys.muxed(StellarTestKeys.sep5Account1), asset: Self.usdc, amount: 200_000_000))])
@@ -294,18 +298,24 @@ struct StellarPlannerTests {
         let me = StellarMuxedAccount(account: try StellarTestKeys.account(StellarTestKeys.sep5Account0))
         #expect(try transaction(plan).tx.operations == [StellarOperation(.pathPaymentStrictSend(
             sendAsset: .native, sendAmount: 100_000_000, destination: me, destAsset: Self.usdc, destMin: 24_750_000, path: []))])
+        // Os movimentos sao os do path payment: sendAmount, destMin e o destino gravado.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "stellar:native", amount: 100_000_000))
+        #expect(plan.review.incomingMinimum == PlanReview.Movement(
+            assetID: "stellar:USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", amount: 24_750_000
+        ))
+        #expect(plan.review.beneficiary == StellarTestKeys.sep5Account0)
 
         // Sem trustline do ativo comprado: ChangeTrust no mesmo tx, uma assinatura.
         let opening = try StellarPlanner.planSwap(
             send: .native, amount: 10 * Self.xlm, receive: Self.usdc, quotedReceive: 25_000_000,
-            slippageBasisPoints: 50, path: [Self.fakeUSDC], context: try context(subentries: 0, trustlines: [])
+            slippageBasisPoints: 50, context: try context(subentries: 0, trustlines: [])
         )
         let tx = try transaction(opening).tx
         #expect(tx.fee == 200)
         #expect(tx.operations.count == 2)
         #expect(tx.operations[0] == StellarOperation(.changeTrust(asset: Self.usdc, limit: Int64.max)))
         #expect(opening.review.lines.contains(PlanReview.Line("Tolerância", "0,5%")))
-        #expect(opening.review.lines.contains(PlanReview.Line("Rota", "XLM > USDC > USDC")))
+        #expect(opening.review.lines.contains(PlanReview.Line("Rota", "XLM > USDC")))
 
         let ctx = try context()
         #expect(throws: StellarPlanError.slippageTooHigh(maxBasisPoints: 500)) {
@@ -324,6 +334,28 @@ struct StellarPlannerTests {
             try StellarPlanner.planSwap(send: .native, amount: Self.xlm, receive: Self.usdc, quotedReceive: Self.xlm,
                                         slippageBasisPoints: 100, path: Array(repeating: Self.fakeUSDC, count: 6), context: ctx)
         }
+        // Regressao A1: a rota so passa por ativos da lista, nunca por um dos lados.
+        #expect(throws: StellarPlanError.pathAssetNotAllowed(Self.fakeUSDC)) {
+            try StellarPlanner.planSwap(send: .native, amount: Self.xlm, receive: Self.usdc, quotedReceive: Self.xlm,
+                                        slippageBasisPoints: 100, path: [Self.fakeUSDC], context: ctx)
+        }
+        #expect(throws: StellarPlanError.pathAssetNotAllowed(.native)) {
+            try StellarPlanner.planSwap(send: .native, amount: Self.xlm, receive: Self.usdc, quotedReceive: Self.xlm,
+                                        slippageBasisPoints: 100, path: [.native], context: ctx)
+        }
+        #expect(throws: StellarPlanError.pathAssetNotAllowed(Self.usdc)) {
+            try StellarPlanner.planSwap(send: .native, amount: Self.xlm, receive: Self.usdc, quotedReceive: Self.xlm,
+                                        slippageBasisPoints: 100, path: [Self.usdc], context: ctx)
+        }
+        // Referencia de mercado: 10 XLM valem 2,5 USDC; cotar 2,36 (5,6% pior) recusa, 2,43 (2,8%) avisa.
+        let reference = TradeMarketReference(oracleOut: 25_000_000)
+        #expect(throws: StellarPlanError.priceFarFromReference(deviationBasisPoints: 560)) {
+            try StellarPlanner.planSwap(send: .native, amount: 10 * Self.xlm, receive: Self.usdc, quotedReceive: 23_600_000,
+                                        slippageBasisPoints: 100, reference: reference, context: ctx)
+        }
+        let warned = try StellarPlanner.planSwap(send: .native, amount: 10 * Self.xlm, receive: Self.usdc, quotedReceive: 24_300_000,
+                                                 slippageBasisPoints: 100, reference: reference, context: ctx)
+        #expect(warned.review.lines.contains(PlanReview.Line("Preço de referência", "2,8% pior que o preço médio de mercado")))
         // Vendendo USDC: sai do saldo da trustline (50), a taxa sai do XLM.
         #expect(throws: StellarPlanError.insufficientBalance(available: 50 * Self.xlm, required: 60 * Self.xlm, asset: Self.usdc)) {
             try StellarPlanner.planSwap(send: Self.usdc, amount: 60 * Self.xlm, receive: .native, quotedReceive: Self.xlm, slippageBasisPoints: 100, context: ctx)
@@ -346,6 +378,12 @@ struct StellarPlannerTests {
         #expect(plan.review.lines.contains(PlanReview.Line("Validade", "Até você cancelar. A Stellar não expira ofertas.")))
         #expect(try transaction(plan).tx.operations == [StellarOperation(.manageSellOffer(
             selling: .native, buying: Self.usdc, amount: 900_000_000, price: StellarPrice(n: 3, d: 10), offerID: 0))])
+        // Vende o amount gravado; recebe pelo menos amount x 3/10.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "stellar:native", amount: 900_000_000))
+        #expect(plan.review.incomingMinimum == PlanReview.Movement(
+            assetID: "stellar:USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", amount: 270_000_000
+        ))
+        #expect(plan.review.beneficiary == StellarTestKeys.sep5Account0)
 
         // A oferta e uma subentrada nova: 100 - (2 + 1 + 1) x 0,5 = 98 XLM gastaveis,
         // e a taxa ainda precisa caber.
@@ -363,6 +401,9 @@ struct StellarPlannerTests {
             return
         }
         #expect(BigUInt(UInt64(amount)) * BigUInt(UInt64(price.n)) >= BigUInt(1_000_000_007) * BigUInt(UInt64(price.d)))
+        // O minimo que entra, pelo preco gravado, nunca fica abaixo do pedido.
+        #expect((odd.review.incomingMinimum?.amount ?? 0) >= BigUInt(1_000_000_007))
+        #expect(odd.review.incomingMinimum?.amount == BigUInt(UInt64(amount)) * BigUInt(UInt64(price.n)) / BigUInt(UInt64(price.d)))
 
         #expect(throws: StellarPlanError.priceNotRepresentable) {
             try StellarPlanner.planLimitOrder(sell: .native, amount: 30_000_000_000, buy: Self.usdc, minimumReceive: 1, context: try context(balance: 10_000 * Self.xlm))

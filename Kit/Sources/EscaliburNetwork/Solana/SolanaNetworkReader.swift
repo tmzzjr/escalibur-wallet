@@ -4,9 +4,11 @@ import Foundation
 
 /// Leitura do estado da Solana que os planejadores precisam, so dados publicos.
 ///
-/// Cada leitura vai ao primeiro provedor que responde, com contingencia pelo
-/// `ProviderPool`. As tabelas de enderecos, que trocariam o destino de uma troca sem
-/// mudar um byte da mensagem, vem de dois RPCs concordando (docs/seguranca.md §5.5).
+/// Leituras de estado de rede vao ao primeiro provedor que responde, com contingencia
+/// pelo `ProviderPool`. O que decide para onde o dinheiro vai vem de dois RPCs
+/// concordando (docs/seguranca.md §5.5): as tabelas de enderecos, que trocariam o
+/// destino de uma troca sem mudar um byte da mensagem, o destino de um envio, a conta
+/// de token dele e o mint (casas e extensoes).
 /// Consulta endereco por endereco; nada de chave, frase ou caminho passa por aqui.
 public actor SolanaNetworkReader {
     public static let shared = SolanaNetworkReader()
@@ -91,6 +93,26 @@ public actor SolanaNetworkReader {
         return epoch.blockHeight
     }
 
+    /// A altura finalizada em dois provedores diferentes (`getEpochInfo` finalizado, a
+    /// mesma leitura que da a altura do blockhash). Para decidir que uma transacao venceu:
+    /// uma fonte so, ou uma altura so confirmada, nao basta (auditoria 2, M4).
+    public func finalizedBlockHeights() async throws -> [UInt64] {
+        let client = self.client
+        var heights = [UInt64]()
+        for provider in await pool.available() where heights.count < 2 {
+            do {
+                let epoch: RPCEpochInfo = try await SolanaRPC.call(
+                    provider.baseURL, "getEpochInfo", [.object(["commitment": .string("finalized")])], client: client
+                )
+                heights.append(epoch.blockHeight)
+            } catch {
+                await pool.reportFailure(provider)
+            }
+        }
+        guard heights.count == 2 else { throw ConsensusFailure(answers: heights.count) }
+        return heights
+    }
+
     public func rentExemptMinimum(dataSize: Int) async throws -> BigUInt {
         BigUInt(try await call("getMinimumBalanceForRentExemption", [.number(Double(dataSize))], as: UInt64.self))
     }
@@ -143,6 +165,7 @@ public actor SolanaNetworkReader {
 
     /// O estado atual de contas (lamports, dono, token), em base64.
     public func snapshots(_ addresses: [SolanaPublicKey]) async throws -> [SolanaAccountSnapshot] {
+        guard !addresses.isEmpty else { return [] }
         let result: RPCContextual<[RPCAccount?]> = try await call(
             "getMultipleAccounts", [.array(addresses.map { .string($0.base58) }), .object(["encoding": .string("base64"), "commitment": .string("confirmed")])]
         )
@@ -156,27 +179,98 @@ public actor SolanaNetworkReader {
 
     // MARK: Destino e tokens
 
-    /// O que existe no endereco digitado: inexistente, carteira, conta de token (com
-    /// o mint) ou conta de programa.
-    public func destinationAccount(_ address: SolanaPublicKey) async throws -> SolanaDestinationAccount {
-        try SolanaAccountParser.destination(try await accountInfo(address), address: address)
+    /// A mesma leitura em dois provedores diferentes, juntadas por `merge`, que recusa o
+    /// que nao concorda. O destino de um envio e o mint de uma troca decidem para onde o
+    /// dinheiro vai e quantas casas ele tem: um provedor so nao decide (auditoria 2, B3).
+    func onTwo<T: Sendable>(
+        _ read: @escaping @Sendable (ProviderPool.Provider) async throws -> T, merge: (T, T) throws -> T
+    ) async throws -> T {
+        var answers = [T]()
+        for provider in await pool.available() where answers.count < 2 {
+            do {
+                answers.append(try await read(provider))
+                await pool.reportSuccess(provider)
+            } catch let error as SolanaAccountParseError {
+                // Resposta que nao e o que se espera (conta de outro dono, nao e mint): e a
+                // resposta, nao falha do provedor, e nao se tenta outro para contornar.
+                throw error
+            } catch {
+                await pool.reportFailure(provider)
+            }
+        }
+        guard answers.count == 2 else { throw ConsensusFailure(answers: answers.count) }
+        return try merge(answers[0], answers[1])
     }
 
-    /// O ATA de `owner` para o mint: existe? E de quem diz ser?
+    func accountInfo(_ address: SolanaPublicKey, at provider: ProviderPool.Provider) async throws -> RPCAccount? {
+        let result: RPCContextualOptional<RPCAccount> = try await SolanaRPC.call(
+            provider.baseURL, "getAccountInfo",
+            [.string(address.base58), .object(["encoding": .string("jsonParsed"), "commitment": .string("confirmed")])], client: client
+        )
+        return result.value
+    }
+
+    /// O que existe no endereco digitado: inexistente, carteira, conta de token (com
+    /// o mint) ou conta de programa. Dois provedores concordando no tipo e no dono.
+    public func destinationAccount(_ address: SolanaPublicKey) async throws -> SolanaDestinationAccount {
+        try await onTwo({ provider in
+            try SolanaAccountParser.destination(try await self.accountInfo(address, at: provider), address: address)
+        }, merge: Self.mergeDestination)
+    }
+
+    /// O ATA de `owner` para o mint: existe? E de quem diz ser? Dois provedores.
     public func destinationTokenAccount(owner: SolanaPublicKey, mint: SolanaPublicKey, program: SolanaTokenProgram, allowOwnerOffCurve: Bool = false) async throws -> SolanaDestinationTokenAccount {
         let ata = try SolanaAssociatedToken.address(owner: owner, mint: mint, tokenProgram: program, allowOwnerOffCurve: allowOwnerOffCurve)
-        guard let account = try await accountInfo(ata) else { return .missing }
-        let state = try SolanaAccountParser.tokenAccount(account, address: ata, program: program)
-        guard state.mint == mint, state.owner == owner else { throw SolanaAccountParseError.tokenAccountMismatch }
-        return .existing(state)
+        return try await onTwo({ provider in
+            guard let account = try await self.accountInfo(ata, at: provider) else { return SolanaDestinationTokenAccount.missing }
+            let state = try SolanaAccountParser.tokenAccount(account, address: ata, program: program)
+            guard state.mint == mint, state.owner == owner else { throw SolanaAccountParseError.tokenAccountMismatch }
+            return .existing(state)
+        }, merge: Self.mergeTokenAccount)
     }
 
-    /// O mint: programa, casas e extensoes Token-2022.
+    /// O mint: programa, casas e extensoes Token-2022. Dois provedores, iguais.
     public func mintInfo(_ mint: SolanaPublicKey) async throws -> SolanaMintInfo {
         let client = self.client
         let body = try SolanaRPC.body("getAccountInfo", [.string(mint.base58), .object(["encoding": .string("jsonParsed"), "commitment": .string("confirmed")])])
-        let data = try await pool.first { provider in try await client.post(provider.baseURL, json: body) }
-        return try SolanaAccountParser.mint(fromResponse: data, address: mint)
+        return try await onTwo({ provider in
+            try SolanaAccountParser.mint(fromResponse: try await client.post(provider.baseURL, json: body), address: mint)
+        }, merge: { a, b in
+            guard a == b else { throw SolanaInconsistentResponse(reason: "mint diferente nos dois provedores") }
+            return a
+        })
+    }
+
+    /// Duas leituras do mesmo destino: o mesmo tipo e o mesmo dono. Saldo muda de um
+    /// bloco para outro; vale o menor, que so pode fazer o plano pedir mais.
+    static func mergeDestination(_ a: SolanaDestinationAccount, _ b: SolanaDestinationAccount) throws -> SolanaDestinationAccount {
+        switch (a, b) {
+        case (.nonexistent, .nonexistent):
+            return .nonexistent
+        case (.system(let x), .system(let y)):
+            return .system(lamports: min(x, y))
+        case (.tokenAccount(let x), .tokenAccount(let y)):
+            return .tokenAccount(try mergeToken(x, y))
+        case (.programOwned(let x), .programOwned(let y)) where x == y:
+            return a
+        default:
+            throw SolanaInconsistentResponse(reason: "destino diferente nos dois provedores")
+        }
+    }
+
+    static func mergeTokenAccount(_ a: SolanaDestinationTokenAccount, _ b: SolanaDestinationTokenAccount) throws -> SolanaDestinationTokenAccount {
+        switch (a, b) {
+        case (.missing, .missing): return .missing
+        case (.existing(let x), .existing(let y)): return .existing(try mergeToken(x, y))
+        default: throw SolanaInconsistentResponse(reason: "conta de token diferente nos dois provedores")
+        }
+    }
+
+    static func mergeToken(_ x: SolanaTokenAccountState, _ y: SolanaTokenAccountState) throws -> SolanaTokenAccountState {
+        guard x.address == y.address, x.mint == y.mint, x.owner == y.owner, x.program == y.program, x.isFrozen == y.isFrozen else {
+            throw SolanaInconsistentResponse(reason: "conta de token diferente nos dois provedores")
+        }
+        return SolanaTokenAccountState(address: x.address, program: x.program, mint: x.mint, owner: x.owner, amount: min(x.amount, y.amount), isFrozen: x.isFrozen)
     }
 
     /// O token a enviar: mint, conta de origem do dono (o ATA) e o rent de uma conta
@@ -222,7 +316,23 @@ public actor SolanaNetworkReader {
         if buy.program == .token2022 {
             destinationRent = try await rentExemptMinimum(dataSize: try await mintInfo(buy.mint).tokenAccountSize)
         }
-        return SolanaSwapAccounts(source: source, destination: destination, destinationRentMinimum: destinationRent, wrappedSOLRentMinimum: wrappedRent)
+        let guarded = try await snapshots(Self.guardedAccounts(owner: owner, excluding: [sell.mint, buy.mint]))
+        return SolanaSwapAccounts(
+            source: source, destination: destination, destinationRentMinimum: destinationRent, wrappedSOLRentMinimum: wrappedRent,
+            guarded: guarded
+        )
+    }
+
+    /// As contas de token do dono nos mints da lista curada, fora os dois lados da
+    /// troca: a simulacao confere que nenhuma perde saldo. Os mints da lista (USDC, USDT
+    /// e JUP) sao do programa Token classico, e o ATA e derivado com ele.
+    static func guardedAccounts(owner: SolanaPublicKey, excluding: [SolanaPublicKey]) -> [SolanaPublicKey] {
+        TokenRegistry.tokens.compactMap { asset -> SolanaPublicKey? in
+            guard asset.chainID == Chain.solana.id, case .token(let contract) = asset.kind,
+                  let mint = try? SolanaPublicKey(base58: contract), !excluding.contains(mint)
+            else { return nil }
+            return try? SolanaAssociatedToken.address(owner: owner, mint: mint, tokenProgram: .token)
+        }
     }
 
     /// Token fora da lista nao ganha nome vindo da rede: aparece pelo inicio do mint.

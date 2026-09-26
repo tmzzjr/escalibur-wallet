@@ -372,4 +372,28 @@ struct TradeValidationTests {
         let intent = try S.baseIntent()
         #expect(intent.minimumOut(forExpected: 1_000_000) == 995_000)
     }
+
+    @Test("Regressao M5: sem referencia, o minimo ancora na maior estimativa de duas cotacoes; uma so recusa")
+    func anchoring() throws {
+        let intent = try S.baseIntent()
+        let velora = try TradeValidator.validate(S.proposal(.velora, "velora-base-usdc-eth"), intent: intent, now: S.recordedAt)
+        let kyber = try TradeValidator.validate(S.proposal(.kyberSwap, "kyber-base-usdc-eth-build"), intent: intent, now: S.recordedAt)
+        #expect(throws: TradeRefusal.noPriceAnchor) { try TradeValidator.anchored([velora], market: .none) }
+        #expect(try TradeValidator.anchored([], market: .none).isEmpty)
+        // Com referencia, cada uma ja passou pela sanidade de 5%: ficam todas.
+        #expect(try TradeValidator.anchored([velora], market: TradeMarketReference(oracleOut: velora.expectedOut)).count == 1)
+        // Sem referencia: fica so quem garante o minimo da maior estimativa.
+        let anchor = max(velora.expectedOut, kyber.expectedOut)
+        let kept = try TradeValidator.anchored([velora, kyber], market: .none)
+        #expect(!kept.isEmpty)
+        for quote in kept { #expect(quote.guaranteedOut + 2 >= intent.minimumOut(forExpected: anchor)) }
+        // Um provedor que cota baixo (estimativa e minimo rebaixados em 10%) nao passa.
+        let low = try TradeValidator.validate(
+            S.with(S.proposal(.kyberSwap, "kyber-base-usdc-eth-build"), expectedOut: kyber.expectedOut * 9 / 10),
+            intent: intent, now: S.recordedAt
+        )
+        let anchoredLow = try TradeValidator.anchored([velora, low], market: .none)
+        #expect(anchoredLow.map(\.expectedOut).contains(velora.expectedOut))
+        #expect(anchoredLow.allSatisfy { $0.guaranteedOut + 2 >= intent.minimumOut(forExpected: max(velora.expectedOut, low.expectedOut)) })
+    }
 }

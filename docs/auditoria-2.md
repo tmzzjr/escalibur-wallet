@@ -41,15 +41,15 @@ Médio
 Baixo
 - B1 tetos de taxa EVM de uma fonte, BNB alto; B2 LastLedgerSequence de um servidor; B3 leituras de uma fonte na Solana e TON; B4 regra de uma ordem CoW por token só pela API; B5 troca EVM sem prazo na cadeia; B6 índice de troco de um provedor; B7 documentação dizendo mais do que o código faz.
 
-## Tabela de estado
+## Estado da revisão de segurança
 
-Atualizada a cada correção. "motores" = ramo `seguranca-2`, em andamento, ainda fora do main.
+Atualizada a cada correção.
 
 | Achado | Estado | Onde |
 |---|---|---|
-| Seg A1 / Mot M6: `sequence` público | motores | `SigningPlan.sequence` interno, compositores nomeados por rede |
+| Seg A1 / Mot M6: `sequence` público | feito | `SigningPlan.sequence` interno, compositores nomeados por rede |
 | Seg A2: verificador, fronteiras, hosts | feito | `tools/verificar.sh`, `Package.swift`, `AllowedHosts` no `HTTPClient` |
-| Seg M1: ativo e valor amarrados ao plano | parte | planejadores preenchem `outgoing`/`incomingMinimum` (motores); a tela comparar vem depois do merge |
+| Seg M1: ativo e valor amarrados ao plano | parte | planejadores preenchem `outgoing`, `incomingMinimum` e `beneficiary` a partir da transação; falta a tela comparar |
 | Seg M2: desafio do endereço parecido | feito | o desafio pede os 6 caracteres do meio onde o destino difere do conhecido (`AddressPoisoning.differingSegment`), com os dois endereços lado a lado e o trecho marcado; conhecidos incluem para quem a carteira já pagou no histórico da rede; teste de interface em `SendLookalikeTests` |
 | Seg M3: transmissão ambígua | aberto | |
 | Seg M4: PIN errado dentro de envio ou troca | feito | `AuthCoordinator.perform` volta ao teclado com o aviso da tela de bloqueio; teste de interface em `EnvelopeFlowTests` |
@@ -63,4 +63,23 @@ Atualizada a cada correção. "motores" = ramo `seguranca-2`, em andamento, aind
 | Seg B6: palavras da importação em String | aceito | o campo UIKit guarda a palavra em digitação (uma por vez, limpo a cada palavra, sem correção, sem sugestão, sem ferramentas de escrita, área de transferência limpa depois de colar); a frase inteira só existe em `SecureBytes`. `String` do Swift não se apaga |
 | Seg B7: memo "0123" igual a 123 | aberto | |
 | Seg B8: CI sem hash no pip e sem compilar o app | aberto | |
-| Mot A1 Stellar, A2 Solana, A3 ordens, M1 a M5 | motores | ver commits do ramo `seguranca-2` |
+
+## Estado da revisão dos motores (Kit, branch seguranca-2)
+
+| Achado | Estado | Onde |
+|---|---|---|
+| A1 Stellar | Corrigido: cotação nas duas Horizons e `destMin` da maior; rota só por XLM e ativos da lista; preço de referência (5% bloqueia, 2% avisa) | `StellarTradeEngine`, `StellarReader.quoteStrictSendOnBoth`, `StellarPlanner.planSwap` |
+| A2 Solana | Corrigido: preço de referência fora da Jupiter, par não estável sem referência recusado; simulação lê as contas de token do dono nos mints da lista | `SolanaSwapPlanner`, `SolanaTradeEngine`, `SolanaNetworkReader.swapAccounts` |
+| A3 Ordens limite | Corrigido no Kit: `openOrders` e `planCancel` no `TradeEngine` (CoW, XRP Ledger, Stellar); "até cancelar" com `validFor: nil`. A tela de ordens abertas é do app | `Trade.swift` |
+| M1 nonce EVM | Corrigido no Kit: `PendingNonceQueue` no pedido; sem a fila, fontes iguais. O app guarda a fila | `EVMFeeCalculator.nonce` |
+| M2 teto UTXO | Corrigido: teto compilado, duas fontes no máximo 3x distantes, o menor de duas, aviso acima de 1% | `UTXORules`, `UTXOFeeConsensus` |
+| M3 moedas deixadas | Corrigido: `skipped` na revisão, "enviar tudo" só com poeira de fora | `UTXOPlanner` |
+| M4 vencimento | Corrigido: Solana com duas fontes e altura finalizada com folga; Tron pelo bloco solidificado em dois provedores e relógio conferido no plano | `SolanaTransfers`, `TronReader.status`, `TronPlanner` |
+| M5 âncora EVM | Corrigido: referência obrigatória ou duas cotações e a maior estimativa | `TradeValidator.anchored` |
+| M6 `sequence` | Corrigido: interno; compositores nomeados | `Signing.swift`, `TradePlanner.combineSplit`, `XRPLPlanner.combineTrustlineAndOffer` |
+| B1 | Corrigido: mediana de duas fontes, gas pela menor, BNB 1 gwei, aviso de taxa no envio de token | `EVMReader`, `TradeStateReader`, `EVMFeeProfile`, `EVMSendEngine` |
+| B2 | Corrigido: LastLedgerSequence do ledger pinado | `XRPLPlanner.common` |
+| B3 | Corrigido na Solana (destino, conta de token e mint em dois RPCs); a TON segue com leituras de uma fonte além do `seqno` | `SolanaNetworkReader` |
+| B4, B5 | Fora desta rodada | |
+| B6 | Corrigido: troco conferido em dois provedores | `UTXOReader.isUnused`, `UTXOSendEngine` |
+| B7 | Corrigido: `docs/redes/motores.md` e `docs/blockchain.md` dizem o que o código faz; a DEX do XRP Ledger está desligada (a lista curada não tem token do XRP Ledger) | |

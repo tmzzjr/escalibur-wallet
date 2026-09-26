@@ -6,9 +6,10 @@ API: `XRPLPlanner.planSend / planTrustline / planOffer / planCancelOffer` → `S
 
 A camada de rede preenche:
 - `XRPLLedgerState`: validatedLedgerIndex, reserveBase, reserveIncrement (drops, de server_info), openLedgerFee.
-- `XRPLAccountState`: address, sequenceReadings (≥ 2 servidores, iguais), balance, ownerCount, flags.
+- `XRPLAccountState`: address, sequenceReadings (≥ 2 servidores, iguais), balance, ownerCount, flags, ledgerIndex (o ledger das duas leituras; o LastLedgerSequence parte dele).
 - `XRPLDestinationState`: address, readings (.notFound/.found(flags:), ≥ 2 concordando), depositPreauthorized.
-- `XRPLCuratedAsset`: lista compilada de moeda + emissor.
+- `XRPLCuratedAsset`: lista compilada de moeda + emissor + casas do `Asset` (sem as casas, oferta não sai).
+- Oferta: `Expiration` opcional (sem ele, até cancelar); tudo ou nada vira troca (`.swap`). `XRPLPlanner.combineTrustlineAndOffer` junta a linha e a oferta. A troca na carteira está desligada enquanto a lista curada não tiver token do XRP Ledger.
 
 Decisões: lsfDisallowXRP exige `acknowledgesDisallowXRP`; reserva sempre exigida para trustline/oferta; lsfDisableMaster bloqueia; trustline com tfSetNoRipple; "XRP" recusado como código de moeda.
 Fora: Ed25519/family seed/Secret Numbers, multisig, tickets, paths em plano, MPT, swap.

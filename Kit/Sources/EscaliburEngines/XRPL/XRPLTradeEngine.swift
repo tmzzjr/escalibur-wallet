@@ -34,7 +34,7 @@ struct XRPLTradeEngine: TradeEngine {
     var supportsLimitOrders: Bool { true }
 
     var limitCustodyNote: String {
-        "O valor fica na sua conta, reservado pela oferta, até executar, vencer ou você cancelar. Enquanto a oferta estiver no livro, a rede prende a reserva de um objeto em XRP."
+        "O valor fica na sua conta, reservado pela oferta, até executar, vencer (se tiver prazo) ou você cancelar pelas ordens abertas. Enquanto a oferta estiver no livro, a rede prende a reserva de um objeto em XRP."
     }
 
     static let provider = "DEX do XRP Ledger"
@@ -86,11 +86,9 @@ struct XRPLTradeEngine: TradeEngine {
         try TradeMath.requireSlippage(request.slippageBasisPoints)
         try TradeMath.requireCurrent(quote, for: request)
         try XRPLEngineSupport.owner(request.account)
-        let give = EngineFormat.amount(request.amountIn, decimals: request.sell.decimals, symbol: request.sell.symbol)
         return try await offerPlan(
             walletID: request.walletID, account: request.account, sell: sell, buy: buy, give: request.amountIn, receive: quote.minimumOut,
-            expiration: Date().addingTimeInterval(Self.swapExpiration), timeInForce: .fillOrKill,
-            kind: .swap, title: "Trocar \(give) por \(request.buy.symbol)"
+            expiration: Date().addingTimeInterval(Self.swapExpiration), timeInForce: .fillOrKill
         )
     }
 
@@ -101,8 +99,8 @@ struct XRPLTradeEngine: TradeEngine {
         try XRPLEngineSupport.owner(request.account)
         return try await offerPlan(
             walletID: request.walletID, account: request.account, sell: sell, buy: buy, give: request.amountIn, receive: request.minimumOut,
-            expiration: Date().addingTimeInterval(request.validFor), timeInForce: .goodTilExpiration,
-            kind: .limitOrder, title: nil
+            // Sem prazo pedido, a oferta vai sem Expiration: fica ate executar ou o dono cancelar.
+            expiration: request.validFor.map { Date().addingTimeInterval($0) }, timeInForce: .goodTilExpiration
         )
     }
 
@@ -110,7 +108,7 @@ struct XRPLTradeEngine: TradeEngine {
     /// com o `TrustSet` antes quando a conta ainda nao aceita o token comprado.
     private func offerPlan(
         walletID: UUID, account owner: DerivedAccount, sell: XRPLTradeSide, buy: XRPLTradeSide, give: BigUInt, receive: BigUInt,
-        expiration: Date, timeInForce: XRPLTimeInForce, kind: PlanReview.Kind, title: String?
+        expiration: Date?, timeInForce: XRPLTimeInForce
     ) async throws -> SigningPlan {
         do {
             async let ledgerState = reader.ledgerState()
@@ -128,15 +126,15 @@ struct XRPLTradeEngine: TradeEngine {
             let boughtLine = try await buyLine
             let needsTrustline = !buy.isXRP && boughtLine == nil
 
-            var plans: [SigningPlan] = []
+            var trust: SigningPlan?
             if needsTrustline, let token = buy.curated {
-                let trust = try XRPLPlanner.planTrustline(
+                let line = try XRPLPlanner.planTrustline(
                     XRPLTrustlineIntent(currency: token.currency, issuer: token.issuer, limit: Self.trustLimit),
                     signer: try .init(path: owner.path, publicKey: owner.publicKey), account: account, ledger: ledger,
                     curated: curated, walletID: walletID
                 )
-                account = try XRPLPlanComposer.stateAfter(trust, account: account)
-                plans.append(trust)
+                account = try XRPLPlanComposer.stateAfter(line, account: account)
+                trust = line
             }
             let offer = try XRPLPlanner.planOffer(
                 XRPLOfferIntent(
@@ -147,13 +145,10 @@ struct XRPLTradeEngine: TradeEngine {
                 curated: curated, walletID: walletID
             )
             try Self.verify(offer, sell: sell, buy: buy, give: give, receive: receive, timeInForce: timeInForce)
-            plans.append(offer)
-
-            if plans.count == 1, title == nil { return offer }
-            let lead = needsTrustline
-                ? [PlanReview.Line("Transações", "2: primeiro aceitar \(buy.asset.symbol), depois a \(kind == .swap ? "troca" : "ordem")")]
-                : []
-            return try XRPLPlanComposer.sequence(plans, kind: kind, title: title ?? offer.review.title, lead: lead)
+            // Tipo, titulo, linhas e movimentos sao do planejador; com a linha de
+            // confianca antes, quem junta e o compositor de EscaliburChains.
+            guard let trust else { return offer }
+            return try XRPLPlanner.combineTrustlineAndOffer(trust: trust, offer: offer)
         } catch {
             throw XRPLEngineSupport.translate(error)
         }
@@ -169,6 +164,68 @@ struct XRPLTradeEngine: TradeEngine {
               case .offerCreate(let offer) = transaction.body,
               offer.takerGets == (try sell.amount(give)), offer.takerPays == (try buy.amount(receive)), offer.options == expected
         else { throw XRPLPlanError.transaction(.redundant) }
+    }
+
+    // MARK: Ordens abertas
+
+    /// As ofertas abertas da conta, lidas em dois servidores no mesmo ledger. So as de XRP
+    /// e tokens da lista: o valor de um token sai das casas que a lista da a ele, e sem
+    /// elas a tela nao teria como mostrar nem conferir a oferta.
+    func openOrders(account: DerivedAccount) async throws -> [OpenOrder] {
+        do {
+            let owner = try XRPLEngineSupport.owner(account)
+            let offers = try await reader.accountOffers(account: owner)
+            return offers.compactMap(openOrder)
+        } catch {
+            throw XRPLEngineSupport.translate(error)
+        }
+    }
+
+    func openOrder(_ offer: XRPLAccountOffer) -> OpenOrder? {
+        guard let sell = listed(offer.takerGets), let buy = listed(offer.takerPays),
+              let remaining = XRPLUnits.units(offer.takerGets, decimals: sell.decimals, roundingUp: false),
+              let minimum = XRPLUnits.units(offer.takerPays, decimals: buy.decimals, roundingUp: true)
+        else { return nil }
+        return OpenOrder(
+            id: String(offer.sequence), chain: .xrpl, sellAssetID: sell.id, buyAssetID: buy.id,
+            remainingSell: remaining, minimumBuy: minimum,
+            expiresAt: offer.expiration.map { Date(timeIntervalSince1970: XRPLPlanner.rippleEpoch + TimeInterval($0)) },
+            sources: 2, cancellations: [.onchain]
+        )
+    }
+
+    /// O `Asset` da carteira de um lado da oferta: XRP, ou token da lista pela moeda e emissor.
+    func listed(_ amount: XRPLAmount) -> Asset? {
+        switch amount {
+        case .xrp: return Asset.native(.xrpl)
+        case .issued(let issued):
+            return tokens.first { XRPLEngineSupport.curated($0).map { $0.currency == issued.currency && $0.issuer == issued.issuerAddress } ?? false }
+        }
+    }
+
+    /// `OfferCancel` da oferta, depois de conferir nos dois servidores que ela ainda esta
+    /// aberta: cancelar a que nao existe so gastaria a taxa.
+    func planCancel(
+        _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
+    ) async throws -> SigningPlan {
+        guard via == .onchain, order.chain == .xrpl, let sequence = UInt32(order.id) else {
+            throw SendEngineError.message("Esta oferta não é do XRP Ledger.")
+        }
+        do {
+            let owner = try XRPLEngineSupport.owner(account)
+            async let offers = reader.accountOffers(account: owner)
+            async let ledgerState = reader.ledgerState()
+            async let accountState = reader.accountState(address: owner)
+            guard try await offers.contains(where: { $0.sequence == sequence }) else {
+                throw SendEngineError.message("Esta oferta não está mais aberta: já executou, venceu ou foi cancelada.")
+            }
+            return try XRPLPlanner.planCancelOffer(
+                XRPLCancelOfferIntent(offerSequence: sequence), signer: try .init(path: account.path, publicKey: account.publicKey),
+                account: try await accountState, ledger: try await ledgerState, walletID: walletID
+            )
+        } catch {
+            throw XRPLEngineSupport.translate(error)
+        }
     }
 
     // MARK: Transmissao

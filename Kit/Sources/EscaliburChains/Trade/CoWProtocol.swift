@@ -38,10 +38,16 @@ public enum CoWProtocol {
         "Order(address sellToken,address buyToken,address receiver,uint256 sellAmount,uint256 buyAmount,uint32 validTo,bytes32 appData,uint256 feeAmount,string kind,bool partiallyFillable,string sellTokenBalance,string buyTokenBalance)"
     public static let cancellationsEncodedType = "OrderCancellations(bytes[] orderUids)"
 
-    /// Validade aceita: de 1 hora a 30 dias.
+    /// Validade escolhida pelo dono: de 1 hora a 30 dias.
     public static let minValidity: TimeInterval = 60 * 60
     public static let maxValidity: TimeInterval = 30 * 24 * 60 * 60
     public static let defaultValidity: TimeInterval = 7 * 24 * 60 * 60
+    /// "Ate cancelar". A CoW exige `validTo`, e o livro de ordens recusa validade acima de
+    /// um ano (`default_max_order_validity_period` = 31.536.000 s em
+    /// cowprotocol/services, crates/configs/src/orderbook/order_validation.rs, conferido
+    /// em 26/09/2026). Um dia a menos que isso cobre a diferenca de relogio e o tempo ate
+    /// a autorizacao confirmar. A revisao diz a data em que a ordem vence.
+    public static let untilCancelledValidity: TimeInterval = 364 * 24 * 60 * 60
     public static let uidLength = 56
 
     static let networks: [UInt64: String] = [
@@ -63,6 +69,11 @@ public enum CoWProtocol {
 
     static let depositFunction = try! ABIFunction("deposit()")                    // d0e30db0
     static let invalidateOrderFunction = try! ABIFunction("invalidateOrder(bytes)")  // 15337bc0
+
+    /// A calldata de `invalidateOrder(uid)`, para a rede estimar o gas do cancelamento.
+    public static func invalidateOrderCall(uid: [UInt8]) throws -> [UInt8] {
+        try invalidateOrderFunction.encodeCall([.bytes(uid)])
+    }
 
     public static func supports(_ chain: Chain) -> Bool {
         guard chain.family == .evm, let id = chain.evmChainID else { return false }

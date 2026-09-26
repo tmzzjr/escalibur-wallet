@@ -117,13 +117,9 @@ struct XRPLBookFill: Equatable {
     }
 }
 
-/// Junta planos do `XRPLPlanner` que precisam sair em sequencia: a linha de confianca
-/// (Sequence n) e a oferta (Sequence n + 1), quando a conta ainda nao aceita o token
-/// comprado.
-///
-/// Cada transacao foi montada e validada pelo planejador; aqui nenhum campo delas e
-/// tocado. So se confere que formam uma sequencia da mesma conta, e a revisao mostra as
-/// linhas de todas, com o titulo da operacao inteira.
+/// A conta depois da linha de confianca, para planejar a oferta que vem em seguida
+/// (Sequence n + 1). Quem junta os dois planos e confere a sequencia e
+/// `XRPLPlanner.combineTrustlineAndOffer`, em EscaliburChains.
 enum XRPLPlanComposer {
     /// A conta depois da primeira transacao, para planejar a segunda: Sequence mais um,
     /// a taxa a menos no saldo e um objeto a mais (a linha de confianca).
@@ -136,20 +132,7 @@ enum XRPLPlanComposer {
         }
         return XRPLAccountState(
             address: account.address, sequenceReadings: account.sequenceReadings.map { $0 + 1 },
-            balance: balance, ownerCount: account.ownerCount + 1, flags: account.flags
+            balance: balance, ownerCount: account.ownerCount + 1, flags: account.flags, ledgerIndex: account.ledgerIndex
         )
-    }
-
-    static func sequence(_ plans: [SigningPlan], kind: PlanReview.Kind, title: String, lead: [PlanReview.Line]) throws -> SigningPlan {
-        guard let first = plans.first, plans.allSatisfy({ $0.walletID == first.walletID && $0.chain == .xrpl }) else {
-            throw XRPLPlanError.transaction(.invalidSequence)
-        }
-        let transactions = plans.flatMap(\.transactions)
-        let ledger = transactions.compactMap { $0 as? XRPLTransaction }
-        guard ledger.count == transactions.count, let signer = ledger.first?.signer,
-              ledger.allSatisfy({ $0.signer == signer }),
-              zip(ledger, ledger.dropFirst()).allSatisfy({ $0.sequence + 1 == $1.sequence })
-        else { throw XRPLPlanError.transaction(.invalidSequence) }
-        return try SigningPlan.sequence(plans, kind: kind, title: title, lead: lead)
     }
 }

@@ -78,15 +78,46 @@ public struct TradeMarketReference: Sendable, Equatable {
     /// A partir de precos em dolar (texto decimal, como o oraculo devolve): converte
     /// `amountIn` para unidades do token comprado com aritmetica inteira exata.
     public init(amountIn: BigUInt, sell: TradeAsset, buy: TradeAsset, sellPriceUSD: String, buyPriceUSD: String) {
-        guard let sellPrice = TradeDecimal(sellPriceUSD), let buyPrice = TradeDecimal(buyPriceUSD), !buyPrice.mantissa.isZero else {
+        self.init(amountIn: amountIn, sellDecimals: sell.decimals, buyDecimals: buy.decimals, sellPriceUSD: sellPriceUSD, buyPriceUSD: buyPriceUSD)
+    }
+
+    /// O mesmo para qualquer rede, pelas casas de cada lado.
+    public init(amountIn: BigUInt, sellDecimals: Int, buyDecimals: Int, sellPriceUSD: String, buyPriceUSD: String) {
+        guard let sellPrice = TradeDecimal(sellPriceUSD), let buyPrice = TradeDecimal(buyPriceUSD), !buyPrice.mantissa.isZero,
+              (0...36).contains(sellDecimals), (0...36).contains(buyDecimals)
+        else {
             self.oracleOut = nil
             return
         }
         // out = amountIn * sellPrice / buyPrice * 10^(buyDecimals - sellDecimals)
-        var numerator = amountIn * sellPrice.mantissa * BigUInt.power(of: 10, buyPrice.scale + buy.decimals)
-        var denominator = buyPrice.mantissa * BigUInt.power(of: 10, sellPrice.scale + sell.decimals)
+        var numerator = amountIn * sellPrice.mantissa * BigUInt.power(of: 10, buyPrice.scale + buyDecimals)
+        var denominator = buyPrice.mantissa * BigUInt.power(of: 10, sellPrice.scale + sellDecimals)
         if denominator.isZero { denominator = 1; numerator = 0 }
         self.oracleOut = numerator / denominator
+    }
+
+    /// Quanto `expected` fica abaixo da referencia, em bps (negativo = melhor). nil sem
+    /// referencia.
+    public func deviationBps(expected: BigUInt) -> Int? {
+        guard let oracle = oracleOut, !oracle.isZero else { return nil }
+        return TradeMath.deviationBps(actual: expected, reference: oracle)
+    }
+
+    /// A sanidade das trocas de todas as redes (docs/seguranca.md 4.3 item 7): pior que a
+    /// referencia em mais de 5% recusa; devolve o desvio para a tela avisar acima de 2%.
+    /// Referencia e cotacao chegam por caminhos que o app nao controla, entao isto e
+    /// sanidade, nao garantia: a garantia e o minimo gravado na transacao.
+    @discardableResult
+    public func check(expected: BigUInt) throws -> Int? {
+        guard let deviation = deviationBps(expected: expected) else { return nil }
+        guard deviation <= TradeRiskAssessment.oracleBlockBps else { throw TradeRefusal.priceFarFromOracle(deviationBps: deviation) }
+        return deviation
+    }
+
+    /// Acima do degrau de aviso (2%).
+    public static func warns(_ deviation: Int?) -> Bool {
+        guard let deviation else { return false }
+        return deviation > TradeRiskAssessment.oracleWarnBps
     }
 }
 
@@ -245,6 +276,25 @@ public enum TradeValidator {
             decoded: decoded, expectedOut: expected, requiredMinimum: required, assessment: assessment,
             gasEstimate: proposal.gasEstimate, routeSources: proposal.routeSources, validatedAt: now
         )
+    }
+
+    /// O minimo ancorado fora do proprio provedor (auditoria 2, M5).
+    ///
+    /// Cada cotacao ja exige `minOut >= esperado x (1 - tolerancia)`, mas o esperado e o
+    /// numero que o proprio provedor anuncia: um provedor que cota baixo rebaixa o proprio
+    /// minimo. Por isso a troca so segue com uma ancora de fora:
+    /// - com preco de referencia, cada cotacao ja passou pela sanidade (5% pior bloqueia);
+    /// - sem referencia, pelo menos duas cotacoes validas, e so ficam as que garantem o
+    ///   minimo calculado da maior estimativa entre elas.
+    public static func anchored(_ quotes: [ValidatedTradeQuote], market: TradeMarketReference) throws -> [ValidatedTradeQuote] {
+        guard !quotes.isEmpty, market.oracleOut == nil else { return quotes }
+        guard quotes.count >= 2, let anchor = quotes.map(\.expectedOut).max() else { throw TradeRefusal.noPriceAnchor }
+        let kept = quotes.filter { $0.guaranteedOut + roundingSlack >= $0.intent.minimumOut(forExpected: anchor) }
+        guard !kept.isEmpty else {
+            let best = quotes.map(\.guaranteedOut).max() ?? BigUInt()
+            throw TradeRefusal.minimumOutTooLow(found: best, required: quotes[0].intent.minimumOut(forExpected: anchor))
+        }
+        return kept
     }
 
     /// Prazo ate 20 minutos a frente; vencido ou mais longe, recusa.

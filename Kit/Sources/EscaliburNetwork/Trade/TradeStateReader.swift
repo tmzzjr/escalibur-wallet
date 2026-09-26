@@ -7,9 +7,10 @@ import Foundation
 // Regras (docs/seguranca.md 4.3, 5.5):
 // - todo RPC tem o `eth_chainId` conferido contra a constante compilada antes do
 //   primeiro uso;
-// - nonce pending de duas fontes (o plano usa o maior e recusa divergencia);
-// - baseFee: o maior de duas fontes; saldo e allowance: o menor de duas (o plano
-//   recusa se nao cobre, em vez de apostar no maior);
+// - nonce pending de duas fontes (o plano exige que concordem, ou que a fila local do
+//   app explique a diferenca);
+// - baseFee e gorjetas: a mediana de duas fontes; saldo e allowance: o menor de duas
+//   (o plano recusa se nao cobre, em vez de apostar no maior);
 // - codigo do router e implementacao/faceta fixada: duas fontes concordando;
 // - simulacao `eth_simulateV1` com `traceTransfers` em duas fontes distintas; cada uma
 //   e conferida em EscaliburChains, e o gas vem dela;
@@ -125,30 +126,38 @@ public actor TradeStateReader {
         }
         let nonceValues = try await nonces.map(\.1)
         let balance = try await balances.map(\.1).min() ?? 0
-        var baseFee = BigUInt()
-        var tips: [[BigUInt]] = [[], [], []]
-        for (index, (_, history)) in try await histories.enumerated() {
+        // Cada fonte da a sua baseFee e as suas gorjetas (mediana dos 10 blocos); o plano
+        // leva a mediana das fontes (com duas, a media), nunca o numero de uma so
+        // (auditoria 2, B1).
+        var baseFees = [BigUInt]()
+        var sourceTips: [[BigUInt]] = [[], [], []]
+        for (_, history) in try await histories {
             guard let fees = history["baseFeePerGas"]?.arrayValue, let next = fees.last?.stringValue else {
                 throw TradeStateError.badResponse("feeHistory")
             }
-            baseFee = max(baseFee, try Self.hex(next))
-            if index == 0, let rewards = history["reward"]?.arrayValue {
-                for block in rewards {
-                    for column in 0..<3 {
-                        if let text = block[column]?.stringValue, let value = BigUInt(hex: text) { tips[column].append(value) }
-                    }
+            baseFees.append(try Self.hex(next))
+            var tips: [[BigUInt]] = [[], [], []]
+            for block in history["reward"]?.arrayValue ?? [] {
+                for column in 0..<3 {
+                    if let text = block[column]?.stringValue, let value = BigUInt(hex: text) { tips[column].append(value) }
                 }
             }
-        }
-        func median(_ values: [BigUInt]) -> BigUInt {
-            let sorted = values.sorted()
-            return sorted.isEmpty ? 0 : sorted[sorted.count / 2]
+            for column in 0..<3 { sourceTips[column].append(Self.median(tips[column])) }
         }
         return EVMNetworkState(
-            chain: chain, pendingNonces: nonceValues, localNextNonce: localNextNonce, baseFeePerGas: baseFee,
-            priorityFees: EVMPriorityFees(slow: median(tips[0]), normal: median(tips[1]), fast: median(tips[2])),
+            chain: chain, pendingNonces: nonceValues, localNextNonce: localNextNonce, baseFeePerGas: Self.median(baseFees),
+            priorityFees: EVMPriorityFees(slow: Self.median(sourceTips[0]), normal: Self.median(sourceTips[1]), fast: Self.median(sourceTips[2])),
             gasEstimate: gasEstimate, l1DataFee: l1DataFee, nativeBalance: balance, destinationHasCode: destinationHasCode
         )
+    }
+
+    /// A mediana; com numero par de valores, a media dos dois do meio, para cima.
+    static func median(_ values: [BigUInt]) -> BigUInt {
+        let sorted = values.sorted()
+        guard !sorted.isEmpty else { return 0 }
+        let middle = sorted.count / 2
+        if sorted.count % 2 == 1 { return sorted[middle] }
+        return (sorted[middle - 1] + sorted[middle] + 1) / 2
     }
 
     /// Codigo no endereco, em duas fontes concordando.
@@ -369,29 +378,42 @@ public actor TradeStateReader {
                              openOrdersSellTotal: openOrdersSellTotal)
     }
 
-    /// Gas de cada chamada: pela simulacao (duas fontes, o maior) ou, sem ela, por
-    /// `eth_estimateGas` chamada a chamada.
+    /// O estado do cancelamento na cadeia de uma ordem da CoW: `invalidateOrder(uid)` no
+    /// GPv2Settlement, com o gas medido da chamada exata e a taxa L1 dela.
+    public func readCancellation(chain: Chain, owner: EVMAddress, uid: [UInt8], localNextNonce: UInt64? = nil) async throws -> EVMNetworkState {
+        let data = try CoWProtocol.invalidateOrderCall(uid: uid)
+        let gas = try await gasUsed(chain: chain, calls: [.init(from: owner, to: CoWProtocol.settlement, value: 0, data: data)]).first ?? 0
+        let l1Gas = try await arbitrumL1Gas(chain: chain, to: CoWProtocol.settlement, data: data)
+        return try await network(
+            chain: chain, owner: owner, localNextNonce: localNextNonce, gasEstimate: gas + l1Gas,
+            l1DataFee: try await l1DataFee(chain: chain, calldataSize: data.count), destinationHasCode: true
+        )
+    }
+
+    /// Gas de cada chamada: pela simulacao (duas fontes, o menor) ou, sem ela, por
+    /// `eth_estimateGas` chamada a chamada (duas fontes, o menor). Uma fonte que infla o
+    /// gas nao sobe a taxa maxima; o plano soma 20% de folga (auditoria 2, B1).
     func gasUsed(chain: Chain, calls: [TradeSimulationRequest.Call]) async throws -> [UInt64] {
         if (Endpoints.tradeSimulation[chain.id] ?? []).count >= 2 {
             let simulations = try await simulate(chain: chain, calls: calls)
-            var gas = [UInt64](repeating: 0, count: calls.count)
+            var gas = [UInt64](repeating: .max, count: calls.count)
             for simulation in simulations {
                 guard simulation.calls.count == calls.count, simulation.calls.allSatisfy(\.success) else {
                     throw TradeStateError.badResponse("simulacao reverteu")
                 }
-                for (index, call) in simulation.calls.enumerated() { gas[index] = max(gas[index], call.gasUsed) }
+                for (index, call) in simulation.calls.enumerated() { gas[index] = min(gas[index], call.gasUsed) }
             }
             return gas
         }
         var out = [UInt64]()
         for call in calls {
-            let answers = try await collect(readProviders(chain), count: 1, what: "estimateGas") { provider in
+            let answers = try await collect(readProviders(chain), count: 2, what: "estimateGas") { provider in
                 try Self.hex(try await self.rpc(provider, chain: chain, "eth_estimateGas", [.object([
                     "from": Self.address(call.from), "to": Self.address(call.to),
                     "value": .string(call.value.hexString), "data": Self.data(call.data),
                 ])], as: String.self))
             }
-            guard let gas = answers.first?.1.uint64 else { throw TradeStateError.badResponse("estimateGas") }
+            guard let gas = answers.compactMap(\.1.uint64).min(), answers.count >= 2 else { throw TradeStateError.badResponse("estimateGas") }
             out.append(gas)
         }
         return out

@@ -16,11 +16,11 @@ struct EVMPlannerTests {
     static let usdc = EVMToken(chain: .ethereum, contract: T.address("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"), symbol: "USDC", decimals: 6)
 
     static func state(
-        _ chain: Chain = .ethereum, nonces: [UInt64] = [12, 12], local: UInt64? = nil, baseFee: BigUInt = BigUInt(70_000_000),
+        _ chain: Chain = .ethereum, nonces: [UInt64] = [12, 12], local: UInt64? = nil, pending: UInt64 = 0, baseFee: BigUInt = BigUInt(70_000_000),
         tips: EVMPriorityFees = EVMPriorityFees(slow: BigUInt(10_000_000), normal: BigUInt(50_000_000), fast: BigUInt(2_000_000_000)),
         gas: UInt64 = 21_000, l1: BigUInt? = nil, balance: BigUInt = ether, hasCode: Bool = false
     ) -> EVMNetworkState {
-        EVMNetworkState(chain: chain, pendingNonces: nonces, localNextNonce: local, baseFeePerGas: baseFee, priorityFees: tips,
+        EVMNetworkState(chain: chain, pendingNonces: nonces, localNextNonce: local, localPendingCount: pending, baseFeePerGas: baseFee, priorityFees: tips,
                         gasEstimate: gas, l1DataFee: l1, nativeBalance: balance, destinationHasCode: hasCode)
     }
 
@@ -50,6 +50,9 @@ struct EVMPlannerTests {
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 0,5\u{00A0}ETH")
         expectRecipient(plan)
+        // O que sai e o `value` da transacao montada, no nativo da rede.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "ethereum:native", amount: transaction.value))
+        #expect(plan.review.incomingMinimum == nil && plan.review.beneficiary == nil)
         #expect(plan.review.lines.contains(PlanReview.Line("Para", "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", verbatim: true)))
         #expect(Self.line(plan, "Taxa estimada") == "0,00000252\u{00A0}ETH")
         #expect(Self.line(plan, "Taxa máxima") == "0,00000399\u{00A0}ETH")
@@ -104,18 +107,30 @@ struct EVMPlannerTests {
         }
     }
 
-    @Test("Nonce: duas fontes, o maior, e recusa quando divergem demais")
+    @Test("Regressao M1: nonce de duas fontes; divergencia so passa com a fila local que a explica")
     func nonce() throws {
         let account = try T.account(T.testKey)
-        func plan(_ nonces: [UInt64], local: UInt64? = nil) throws -> UInt64 {
+        func plan(_ nonces: [UInt64], local: UInt64? = nil, pending: UInt64 = 0) throws -> UInt64 {
             Self.only(try EVMPlanner.planNativeSend(walletID: Self.wallet, account: account, chain: .ethereum, to: Self.recipient, amount: 1,
-                                                    state: Self.state(nonces: nonces, local: local))).nonce
+                                                    state: Self.state(nonces: nonces, local: local, pending: pending))).nonce
         }
-        #expect(try plan([12, 13]) == 13)
-        #expect(try plan([12, 13], local: 15) == 15)
+        #expect(try plan([13, 13]) == 13)
         #expect(throws: EVMPlanError.nonceNeedsTwoSources) { try plan([12]) }
-        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 500]) }
-        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 12], local: 100) }
+        // Sem a fila, nenhuma folga: antes valia o maior com ate 4 de diferenca, e um
+        // provedor que somasse 1 fazia a transacao assinada esperar um nonce do futuro.
+        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 13]) }
+        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 16]) }
+        // Com a fila: uma transacao deste aparelho em transito (nonce 12) explica 12 e 13.
+        #expect(try plan([12, 13], local: 13, pending: 1) == 13)
+        #expect(try plan([12, 12], local: 14, pending: 2) == 14)
+        // A fila diz 15 com uma em transito (14): uma fonte em 12 nao e explicada.
+        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 13], local: 15, pending: 1) }
+        #expect(throws: EVMPlanError.nonceSourcesDisagree) { try plan([12, 500], local: 13, pending: 1) }
+        // Fila a frente sem transacao em transito que explique: uma delas sumiu.
+        #expect(throws: EVMPlanError.localNonceQueueAhead) { try plan([12, 12], local: 14, pending: 1) }
+        #expect(throws: EVMPlanError.localNonceQueueAhead) { try plan([12, 12], local: 100, pending: 0) }
+        // As duas fontes acima da fila: outro aparelho com a mesma frase enviou; vale a rede.
+        #expect(try plan([20, 20], local: 14, pending: 0) == 20)
     }
 
     @Test("Saldo, valor zero, destino queimado e rede trocada")
@@ -193,6 +208,18 @@ struct EVMPlannerTests {
         #expect([147, 148].contains(v.uint64!))
     }
 
+    @Test("Regressao B1: BNB com teto perto do preco real; gorjeta inflada e cortada em 1 gwei, baseFee alta recusa")
+    func bnbCeiling() throws {
+        let account = try T.account(T.testKey)
+        let greedy = Self.state(.bnb, baseFee: 0, tips: EVMPriorityFees(slow: 0, normal: EVMFeeProfile.gwei(15), fast: EVMFeeProfile.gwei(20)))
+        let plan = try EVMPlanner.planNativeSend(walletID: Self.wallet, account: account, chain: .bnb, to: Self.recipient, amount: 1, state: greedy)
+        #expect(Self.only(plan).fee == .eip1559(maxPriorityFeePerGas: EVMFeeProfile.gwei(1), maxFeePerGas: EVMFeeProfile.gwei(1)))
+        #expect(throws: EVMPlanError.feeAboveCeiling) {
+            try EVMPlanner.planNativeSend(walletID: Self.wallet, account: account, chain: .bnb, to: Self.recipient, amount: 1,
+                                          state: Self.state(.bnb, baseFee: EVMFeeProfile.gwei(1)))
+        }
+    }
+
     @Test("Envio de token: calldata transfer, bloqueio no proprio contrato, saldo do token")
     func tokenSend() throws {
         let account = try T.account(T.testKey)
@@ -206,6 +233,8 @@ struct EVMPlannerTests {
         #expect(transaction.gasLimit == 54_000)
         #expect(plan.review.title == "Enviar 1,5\u{00A0}USDC")
         expectRecipient(plan)
+        // O que sai e o valor da calldata `transfer`, com o id do USDC da lista.
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "ethereum:0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", amount: 1_500_000))
         #expect(plan.review.lines.contains(PlanReview.Line("Contrato do token", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", verbatim: true)))
 
         #expect(throws: EVMPlanError.refused(.recipientIsTokenContract)) {

@@ -132,6 +132,22 @@ struct UTXOEngineTests {
         #expect(engine.usage(after: plan, current: UTXOUsage(receiveUsed: 4, changeUsed: 9)) == nil)
     }
 
+    @Test("Regressao B6: o troco so vai para endereco que dois provedores veem sem historico")
+    func changeOnTwoProviders() async throws {
+        // A varredura pergunta pelo troco 1 a um provedor so (o segundo da lista, pela
+        // rotacao) e acha livre; o primeiro ve historico nele.
+        let fake = try Self.network()
+        let change1 = try Self.account().address(change: true, index: 1).address
+        let used = try EngineFixture.data("utxo", "esplora-address-troco0.json")
+        let usedText = String(decoding: used, as: UTF8.self).replacingOccurrences(of: Self.change0, with: change1)
+        fake.on("esplora-a.test/api/address/\(change1)", data: Data(usedText.utf8))
+        let engine = try Self.engine(fake)
+        let plan = try await engine.plan(Self.request())
+        let summary = try #require(UTXOEngineSupport.summary(plan))
+        #expect(summary.changeAddress == (try Self.account().address(change: true, index: 2).address))
+        #expect(engine.usage(after: plan, current: nil)?.changeUsed == 3)
+    }
+
     @Test("A xpub nunca vai para a rede: so enderecos, um por consulta")
     func xpubNeverLeaves() async throws {
         let fake = try Self.network()
@@ -326,6 +342,11 @@ struct DogecoinEngineTests {
             return address == receive0 ? used : Data(emptyTemplate.replacingOccurrences(of: destination, with: address).utf8)
         }
         fake.on("cypher.test/v1/doge/main/txs/\(coinTxid)", data: transaction)
+        // A segunda opiniao sobre o troco: a Blockchair, montada aqui sem historico.
+        fake.onPrefix("chair.test/dogecoin/dashboards/address/") { url, _ in
+            let address = url.lastPathComponent
+            return Data(#"{"data":{"\#(address)":{"address":{"transaction_count":0},"transactions":[],"utxo":[]}}}"#.utf8)
+        }
         return fake
     }
 
