@@ -1,0 +1,53 @@
+{
+ "jsonrpc": "2.0",
+ "result": {
+  "context": {
+   "apiVersion": "4.2.2",
+   "slot": 450598849
+  },
+  "value": {
+   "accounts": [
+    null
+   ],
+   "err": {
+    "InstructionError": [
+     0,
+     {
+      "Custom": 1
+     }
+    ]
+   },
+   "fee": 5000,
+   "innerInstructions": null,
+   "loadedAccountsDataSize": 213,
+   "loadedAddresses": {
+    "readonly": [],
+    "writable": []
+   },
+   "logs": [
+    "Program 11111111111111111111111111111111 invoke [1]",
+    "Transfer: insufficient lamports 1328298963916, need 1000000000000000000",
+    "Program 11111111111111111111111111111111 failed: custom program error: 0x1"
+   ],
+   "postBalances": [
+    1328298963916,
+    2015747309873540,
+    1
+   ],
+   "postTokenBalances": [],
+   "preBalances": [
+    1328298968916,
+    2015747309873540,
+    1
+   ],
+   "preTokenBalances": [],
+   "replacementBlockhash": {
+    "blockhash": "2iZDQDPsdmtjXP4yG1waBtXEfuHz6eR2QzDCm4y7P7Si",
+    "lastValidBlockHeight": 428638784
+   },
+   "returnData": null,
+   "unitsConsumed": 150
+  }
+ },
+ "id": 1
+}

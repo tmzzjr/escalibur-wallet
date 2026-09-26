@@ -98,7 +98,7 @@ let package = Package(
             name: "EscaliburNetworkTests",
             dependencies: ["EscaliburNetwork"],
             path: "Tests/EscaliburNetworkTests",
-            resources: [.copy("FixturesB")]
+            resources: [.copy("FixturesB"), .copy("FixturesSolana")]
         ),
     ]
 )

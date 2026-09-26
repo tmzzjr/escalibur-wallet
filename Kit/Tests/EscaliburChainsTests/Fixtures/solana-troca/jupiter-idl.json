@@ -1,0 +1,186 @@
+{
+ "source": "IDL Anchor do programa JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4 lido na cadeia em 26/09/2026 (conta C88XWfp26heEmDkmfSzeXP7Fd7GQJ2j9dDTUsyiZbUTa, zlib depois de 44 bytes de cabecalho); trecho com as instrucoes de rota",
+ "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+ "metadata": {
+  "name": "jupiter",
+  "version": "0.1.0",
+  "spec": "0.1.0",
+  "description": "Jupiter aggregator program"
+ },
+ "instructions": [
+  {
+   "name": "route",
+   "discriminator": [
+    229,
+    23,
+    203,
+    151,
+    122,
+    227,
+    173,
+    42
+   ],
+   "accounts": [
+    "token_program",
+    "user_transfer_authority",
+    "user_source_token_account",
+    "user_destination_token_account",
+    "destination_token_account",
+    "destination_mint",
+    "platform_fee_account",
+    "event_authority",
+    "program"
+   ],
+   "eventAuthority": "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+   "args": [
+    "route_plan",
+    "in_amount",
+    "quoted_out_amount",
+    "slippage_bps",
+    "platform_fee_bps"
+   ]
+  },
+  {
+   "name": "shared_accounts_route",
+   "discriminator": [
+    193,
+    32,
+    155,
+    51,
+    65,
+    214,
+    156,
+    129
+   ],
+   "accounts": [
+    "token_program",
+    "program_authority",
+    "user_transfer_authority",
+    "source_token_account",
+    "program_source_token_account",
+    "program_destination_token_account",
+    "destination_token_account",
+    "source_mint",
+    "destination_mint",
+    "platform_fee_account",
+    "token_2022_program",
+    "event_authority",
+    "program"
+   ],
+   "eventAuthority": "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+   "args": [
+    "id",
+    "route_plan",
+    "in_amount",
+    "quoted_out_amount",
+    "slippage_bps",
+    "platform_fee_bps"
+   ]
+  },
+  {
+   "name": "exact_out_route_v2",
+   "discriminator": [
+    157,
+    138,
+    184,
+    82,
+    21,
+    244,
+    243,
+    36
+   ],
+   "accounts": [
+    "user_transfer_authority",
+    "user_source_token_account",
+    "user_destination_token_account",
+    "source_mint",
+    "destination_mint",
+    "source_token_program",
+    "destination_token_program",
+    "destination_token_account",
+    "event_authority",
+    "program"
+   ],
+   "eventAuthority": "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+   "args": [
+    "out_amount",
+    "quoted_in_amount",
+    "slippage_bps",
+    "platform_fee_bps",
+    "positive_slippage_bps",
+    "route_plan"
+   ]
+  },
+  {
+   "name": "route_v2",
+   "discriminator": [
+    187,
+    100,
+    250,
+    204,
+    49,
+    196,
+    175,
+    20
+   ],
+   "accounts": [
+    "user_transfer_authority",
+    "user_source_token_account",
+    "user_destination_token_account",
+    "source_mint",
+    "destination_mint",
+    "source_token_program",
+    "destination_token_program",
+    "destination_token_account",
+    "event_authority",
+    "program"
+   ],
+   "eventAuthority": "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+   "args": [
+    "in_amount",
+    "quoted_out_amount",
+    "slippage_bps",
+    "platform_fee_bps",
+    "positive_slippage_bps",
+    "route_plan"
+   ]
+  },
+  {
+   "name": "shared_accounts_route_v2",
+   "discriminator": [
+    209,
+    152,
+    83,
+    147,
+    124,
+    254,
+    216,
+    233
+   ],
+   "accounts": [
+    "program_authority",
+    "user_transfer_authority",
+    "source_token_account",
+    "program_source_token_account",
+    "program_destination_token_account",
+    "destination_token_account",
+    "source_mint",
+    "destination_mint",
+    "source_token_program",
+    "destination_token_program",
+    "event_authority",
+    "program"
+   ],
+   "eventAuthority": "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+   "args": [
+    "id",
+    "in_amount",
+    "quoted_out_amount",
+    "slippage_bps",
+    "platform_fee_bps",
+    "positive_slippage_bps",
+    "route_plan"
+   ]
+  }
+ ]
+}
