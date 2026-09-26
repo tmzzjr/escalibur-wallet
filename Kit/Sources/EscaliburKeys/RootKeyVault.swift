@@ -35,6 +35,9 @@ public final class RootKeyVault: @unchecked Sendable {
         case cancelled
         /// Apagar apos erros disparou: tudo foi destruido.
         case wiped
+        /// O iPhone reiniciou (ou a bateria acabou) desde o ultimo PIN: o Face ID so volta
+        /// a valer depois do PIN digitado, como no proprio iPhone.
+        case pinRequiredAfterRestart
         case storage
     }
 
@@ -45,6 +48,7 @@ public final class RootKeyVault: @unchecked Sendable {
         static let biometryState = "bio.estado"
         static let attempts = "pin.tentativas"
         static let wipeAfterErrors = "pin.apagar"
+        static let pinBoot = "pin.boot"
         static let pendingSuffix = ".novo"
     }
 
@@ -105,6 +109,7 @@ public final class RootKeyVault: @unchecked Sendable {
             try store.add(AttemptRecord.zero.encoded, account: Account.attempts, protection: .standard, context: nil)
             try writePINSlot(rk: rk, pin: pin, kdf: pinParameters, suffix: "")
             try confirm(pin: pin, suffix: "", matches: rk)
+            recordPINThisBoot()
         } catch {
             rk.wipe()
             try? discardOrphans()
@@ -153,16 +158,17 @@ public final class RootKeyVault: @unchecked Sendable {
         }
 
         guard let opened else {
-            if wipeAfterErrorsEnabled, next.failures >= PINPolicy.wipeThreshold {
+            if let threshold = wipeThreshold, next.failures >= threshold {
                 wipeAllLocked()
                 throw Failure.wiped
             }
-            let left = wipeAfterErrorsEnabled ? PINPolicy.wipeThreshold - next.failures : nil
+            let left = wipeThreshold.map { $0 - next.failures }
             throw Failure.wrongPIN(remainingBeforeWipe: left)
         }
 
         // Contador de volta a zero. Se falhar, o dono so espera mais na proxima vez.
         try? store.update(AttemptRecord.zero.encoded, account: Account.attempts)
+        recordPINThisBoot()
         if pending == .present {
             if opened.suffix.isEmpty {
                 deleteSlot(suffix: Account.pendingSuffix)
@@ -176,6 +182,7 @@ public final class RootKeyVault: @unchecked Sendable {
     /// Destranca pelo Face ID. Bloqueia a thread enquanto o sistema pergunta: chamar
     /// fora do MainActor. O que autoriza e o SEP liberar a chave, nunca um booleano.
     public func unlockWithBiometry(reason: String) throws -> SecureBytes {
+        guard pinEnteredThisBoot else { throw Failure.pinRequiredAfterRestart }
         let blob: Data?
         do { blob = try store.read(Account.rootByBiometry, context: nil) } catch { throw Failure.storage }
         guard let blob else { throw Failure.biometryNotEnabled }
@@ -196,13 +203,8 @@ public final class RootKeyVault: @unchecked Sendable {
             }
             throw Failure.cancelled
         }
-        // O dono provou presenca: os erros de PIN anteriores deixam de contar, como no
-        // proprio iPhone.
-        lock.lock()
-        if let record = try? readAttempts(), record.failures > 0 {
-            try? store.update(AttemptRecord.zero.encoded, account: Account.attempts)
-        }
-        lock.unlock()
+        // O contador de PIN nao zera aqui: quem apresenta o rosto do dono a forca nao
+        // ganha chutes de PIN de graca a cada Face ID (auditoria 2, B4). So o PIN certo zera.
         return rk
     }
 
@@ -224,6 +226,20 @@ public final class RootKeyVault: @unchecked Sendable {
     }
 
     // MARK: Biometria
+
+    /// O PIN foi digitado neste boot? Depois de reiniciar, o Face ID espera o PIN.
+    public var pinEnteredThisBoot: Bool {
+        let current = PINPolicy.bootSession
+        guard current != PINPolicy.unknownBoot, let saved = try? store.read(Account.pinBoot, context: nil) else { return false }
+        return [UInt8](saved) == current
+    }
+
+    private func recordPINThisBoot() {
+        let current = Data(PINPolicy.bootSession)
+        if (try? store.update(current, account: Account.pinBoot)) == nil {
+            try? store.add(current, account: Account.pinBoot, protection: .standard, context: nil)
+        }
+    }
 
     public var isBiometryEnabled: Bool { store.exists(Account.rootByBiometry) && wrapper.hasKey(.biometry) }
 
@@ -328,14 +344,25 @@ public final class RootKeyVault: @unchecked Sendable {
 
     // MARK: Apagar
 
-    public var wipeAfterErrorsEnabled: Bool {
-        (try? store.read(Account.wipeAfterErrors, context: nil)) == Data([1])
+    /// Quantos PINs errados apagam tudo; nil e nunca. O registro antigo (um byte 1)
+    /// valia 10.
+    public var wipeThreshold: UInt32? {
+        guard let data = try? store.read(Account.wipeAfterErrors, context: nil), data.count == 1 else { return nil }
+        let value = UInt32(data[data.startIndex])
+        if value == 1 { return 10 }
+        return PINPolicy.wipeOptions.contains(value) ? value : nil
     }
 
-    public func setWipeAfterErrors(_ enabled: Bool) throws {
+    public var wipeAfterErrorsEnabled: Bool { wipeThreshold != nil }
+
+    /// Liga com um dos limites de `PINPolicy.wipeOptions`, ou desliga com nil.
+    public func setWipeAfterErrors(_ threshold: UInt32?) throws {
+        if let threshold, !PINPolicy.wipeOptions.contains(threshold) { throw Failure.storage }
         do {
             try store.delete(Account.wipeAfterErrors)
-            if enabled { try store.add(Data([1]), account: Account.wipeAfterErrors, protection: .standard, context: nil) }
+            if let threshold {
+                try store.add(Data([UInt8(threshold)]), account: Account.wipeAfterErrors, protection: .standard, context: nil)
+            }
         } catch {
             throw Failure.storage
         }

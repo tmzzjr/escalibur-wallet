@@ -10,13 +10,18 @@ struct LockView: View {
     @State private var confirmErase = false
     @State private var throttleTask: Task<Void, Never>?
 
+    /// Depois de reiniciar (ou de a bateria acabar), o Face ID so vale depois do PIN.
+    private var restartNeedsPIN: Bool { session.biometryEnabled && !KeyServices.root.pinEnteredThisBoot }
+
     var body: some View {
         PINScreen(
             title: "Digite o seu PIN",
-            subtitle: nil,
+            subtitle: restartNeedsPIN
+                ? "O iPhone reiniciou. Depois de reiniciar ou de a bateria acabar, o PIN é necessário uma vez antes do Face ID voltar a valer."
+                : nil,
             entry: entry,
             showsBadge: true,
-            biometryIcon: session.biometryEnabled ? "faceid" : nil,
+            biometryIcon: session.biometryEnabled && !restartNeedsPIN ? "faceid" : nil,
             onBiometry: { Task { await tryBiometry() } },
             working: working,
             onComplete: { Task { await submit() } }
@@ -25,7 +30,7 @@ struct LockView: View {
         }
         .task {
             showThrottleIfNeeded()
-            if session.biometryEnabled { await tryBiometry() }
+            if session.biometryEnabled, !restartNeedsPIN { await tryBiometry() }
         }
         .sheet(isPresented: $forgotPIN) { forgotSheet }
     }
@@ -47,6 +52,8 @@ struct LockView: View {
         guard session.biometryEnabled, KeyServices.root.throttleRemaining() <= 0 else { return }
         do {
             try await session.unlockWithBiometry()
+        } catch RootKeyVault.Failure.pinRequiredAfterRestart {
+            entry.fail("O iPhone reiniciou. Digite o PIN uma vez para o Face ID voltar a valer.")
         } catch RootKeyVault.Failure.biometryChanged {
             entry.fail("O Face ID deste iPhone mudou desde que foi ligado aqui. Entre com o PIN; depois você pode religar.")
         } catch {

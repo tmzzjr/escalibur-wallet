@@ -273,26 +273,23 @@ struct SecuritySettingsView: View {
     @Environment(AuthCoordinator.self) private var auth
     @State private var biometryPIN = false
     @State private var changingPIN = false
-    @State private var wipeError: String?
-    @State private var wipeOn = KeyServices.root.wipeAfterErrorsEnabled
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 SettingsGroup {
                     Button { changingPIN = true } label: { SettingsRow(icon: "circle.grid.3x3", title: "Mudar o PIN") }
-                    if KeyServices.biometryAvailable {
-                        Toggle(isOn: Binding(get: { session.biometryEnabled }, set: { on in
-                            if on { biometryPIN = true } else { session.disableBiometry() }
-                        })) {
-                            HStack(spacing: Space.sm) {
-                                Image(systemName: "faceid").font(.system(size: 16, weight: .medium)).foregroundStyle(Palette.inkSoft).frame(width: 24)
-                                Text("Face ID").typeStyle(.body).foregroundStyle(Palette.ink)
-                            }
+                    Toggle(isOn: Binding(get: { session.biometryEnabled }, set: { on in
+                        if on { biometryPIN = true } else { session.disableBiometry() }
+                    })) {
+                        HStack(spacing: Space.sm) {
+                            Image(systemName: "faceid").font(.system(size: 16, weight: .medium)).foregroundStyle(Palette.inkSoft).frame(width: 24)
+                            Text("Face ID").typeStyle(.body).foregroundStyle(KeyServices.biometryAvailable ? Palette.ink : Palette.inkMuted)
                         }
-                        .tint(Palette.up)
-                        .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     }
+                    .tint(Palette.up)
+                    .disabled(!KeyServices.biometryAvailable)
+                    .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     NavigationLink { VoiceSettingsView() } label: {
                         SettingsRow(icon: "waveform", title: "Confirmação por voz", value: session.metadata.settings.voice.enabled ? "Ligada" : "Desligada")
                     }
@@ -302,18 +299,19 @@ struct SecuritySettingsView: View {
                 }
                 .padding(.top, Space.md)
 
-                SettingsGroup {
-                    Toggle(isOn: Binding(get: { wipeOn }, set: { on in Task { await setWipe(on) } })) {
-                        Text("Apagar depois de 10 PINs errados").typeStyle(.body).foregroundStyle(Palette.ink)
-                    }
-                    .tint(Palette.down)
-                    .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
-                }
-                .padding(.top, Space.lg)
-                Text(wipeError ?? "Depois de 10 PINs errados, este iPhone apaga as carteiras. Só a senha de cada carteira ou um envelope traz de volta.")
-                    .typeStyle(.note).foregroundStyle(wipeError == nil ? Palette.inkMuted : Palette.down)
+                Text(KeyServices.biometryAvailable
+                     ? "Depois de reiniciar o iPhone ou de a bateria acabar, o Face ID só volta a valer depois do PIN digitado uma vez."
+                     : "Para usar o Face ID aqui, cadastre um rosto em Ajustes do iPhone, em Face ID e código.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
+
+                SettingsGroup {
+                    NavigationLink { WipeSettingsView() } label: {
+                        SettingsRow(icon: "trash", title: "Apagar depois de PINs errados", value: WipeSettingsView.label(KeyServices.root.wipeThreshold))
+                    }
+                }
+                .padding(.top, Space.lg)
 
                 Text("Todo envio, troca e ordem pede Face ID ou PIN.")
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft)
@@ -327,21 +325,68 @@ struct SecuritySettingsView: View {
         .fullScreenCover(isPresented: $changingPIN) { ChangePINFlow { changingPIN = false } }
     }
 
-    /// Ligar ou desligar pede o PIN: ligado, e uma forma de destruir as carteiras
-    /// errando de proposito; desligado, tira a barreira contra quem tenta adivinhar.
-    private func setWipe(_ on: Bool) async {
-        if on, let missing = session.metadata.wallets.first(where: { !$0.hasBackup && !$0.isWatchOnly }) {
-            wipeError = "Confirme a cópia de \(missing.name) antes de ligar."
+}
+
+/// Quantos PINs errados apagam as carteiras deste iPhone, ou nunca.
+struct WipeSettingsView: View {
+    @Environment(AppSession.self) private var session
+    @Environment(AuthCoordinator.self) private var auth
+    @State private var current = KeyServices.root.wipeThreshold
+    @State private var error: String?
+
+    static let options: [UInt32?] = [nil] + PINPolicy.wipeOptions.map { Optional($0) }
+
+    static func label(_ threshold: UInt32?) -> String {
+        threshold.map { "Depois de \($0) erros" } ?? "Nunca"
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                SettingsGroup {
+                    ForEach(Self.options, id: \.self) { option in
+                        Button { Task { await choose(option) } } label: {
+                            HStack {
+                                Text(Self.label(option)).typeStyle(.body).foregroundStyle(Palette.ink)
+                                Spacer()
+                                if current == option {
+                                    Image(systemName: "checkmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
+                                }
+                            }
+                            .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, Space.md)
+                Text(error ?? "Contra quem pega o iPhone e tenta adivinhar o PIN. Depois do número escolhido de PINs errados seguidos, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta. Mudar pede o PIN.")
+                    .typeStyle(.note).foregroundStyle(error == nil ? Palette.inkMuted : Palette.down)
+                    .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .background(Palette.void.ignoresSafeArea())
+        .navigationTitle("Apagar depois de erros")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// Qualquer mudanca pede o PIN: ligar e uma forma de destruir as carteiras errando
+    /// de proposito; desligar ou afrouxar tira a barreira contra quem tenta adivinhar.
+    private func choose(_ option: UInt32?) async {
+        guard option != current else { return }
+        if option != nil, let missing = session.metadata.wallets.first(where: { !$0.hasBackup && !$0.isWatchOnly }) {
+            error = "Confirme a cópia de \(missing.name) antes de ligar."
             return
         }
-        wipeError = nil
-        let reason = on ? "Apagar depois de 10 PINs errados" : "Desligar o apagamento depois de 10 PINs errados"
+        error = nil
+        let reason = option.map { "Apagar depois de \($0) PINs errados" } ?? "Nunca apagar por PINs errados"
         guard (try? await auth.perform(session, reason: reason, requirePIN: true, { _ in true })) == true else { return }
         do {
-            try KeyServices.root.setWipeAfterErrors(on)
-            wipeOn = on
+            try KeyServices.root.setWipeAfterErrors(option)
+            current = option
         } catch {
-            wipeError = "Não foi possível mudar agora. Tente de novo."
+            self.error = "Não foi possível mudar agora. Tente de novo."
         }
     }
 }

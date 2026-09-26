@@ -68,8 +68,8 @@ public enum PINPolicy {
         }
     }
 
-    /// Quantos erros apagam tudo, quando o dono liga essa opcao.
-    public static let wipeThreshold: UInt32 = 10
+    /// Quantos erros podem apagar tudo, a escolha do dono (ou nunca).
+    public static let wipeOptions: [UInt32] = [5, 10, 15, 20]
 
     // MARK: Relogios
 

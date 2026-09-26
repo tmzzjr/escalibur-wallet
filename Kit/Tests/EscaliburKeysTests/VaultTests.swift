@@ -113,7 +113,7 @@ struct RootKeyVaultTests {
     func wipeAfterErrors() throws {
         let (vault, store, wrapper) = makeVault()
         _ = try vault.setUp(pin: secure("482916"))
-        try vault.setWipeAfterErrors(true)
+        try vault.setWipeAfterErrors(10)
         // Encurta o teste gravando nove erros sem espera, como se o tempo tivesse passado.
         try store.update(AttemptRecord(failures: 9, uptimeDeadline: 0, bootSession: PINPolicy.bootSession).encoded, account: "pin.tentativas")
         #expect(throws: RootKeyVault.Failure.wiped) { try vault.unlock(pin: secure("000001")) }
@@ -134,7 +134,7 @@ struct RootKeyVaultTests {
         #expect(bytes(try vault.unlock(pin: secure("482916"))) == bytes(rk))
     }
 
-    @Test("Face ID recusado nao apaga o atalho; Face ID aceito zera os erros de PIN")
+    @Test("Face ID recusado nao apaga o atalho; Face ID aceito nao zera os erros de PIN")
     func biometryFailures() throws {
         let (vault, _, wrapper) = makeVault()
         let rk = try vault.setUp(pin: secure("482916"))
@@ -148,12 +148,45 @@ struct RootKeyVaultTests {
         _ = try? vault.unlock(pin: secure("000002"))
         #expect(vault.failureCount() == 2)
         _ = try vault.unlockWithBiometry(reason: "teste")
-        #expect(vault.failureCount() == 0)
+        // Rosto apresentado a forca nao compra chutes de PIN (auditoria 2, B4).
+        #expect(vault.failureCount() == 2)
 
         // A chave do SE sumiu (cadastro de rosto novo): o slot e apagado.
         wrapper.deleteKey(.biometry)
         #expect(throws: RootKeyVault.Failure.biometryChanged) { try vault.unlockWithBiometry(reason: "teste") }
         #expect(!vault.isBiometryEnabled)
+    }
+
+    @Test("Depois de reiniciar, o Face ID espera o PIN")
+    func pinAfterRestart() throws {
+        let (vault, store, _) = makeVault()
+        let rk = try vault.setUp(pin: secure("482916"))
+        try vault.enableBiometry(rk: rk)
+        #expect(vault.pinEnteredThisBoot)
+        _ = try vault.unlockWithBiometry(reason: "teste")
+        // Simula outro boot: o registro guarda a identidade de um boot anterior.
+        try store.update(Data([UInt8](repeating: 9, count: 16)), account: "pin.boot")
+        #expect(!vault.pinEnteredThisBoot)
+        #expect(throws: RootKeyVault.Failure.pinRequiredAfterRestart) { try vault.unlockWithBiometry(reason: "teste") }
+        _ = try vault.unlock(pin: secure("482916"))
+        #expect(bytes(try vault.unlockWithBiometry(reason: "teste")) == bytes(rk))
+    }
+
+    @Test("Apagar depois de N erros: escolha do dono, e o registro antigo vale 10")
+    func wipeChoices() throws {
+        let (vault, store, _) = makeVault()
+        _ = try vault.setUp(pin: secure("482916"))
+        #expect(vault.wipeThreshold == nil)
+        try vault.setWipeAfterErrors(5)
+        #expect(vault.wipeThreshold == 5)
+        #expect(throws: RootKeyVault.Failure.storage) { try vault.setWipeAfterErrors(7) }
+        try vault.setWipeAfterErrors(nil)
+        #expect(vault.wipeThreshold == nil)
+        try store.add(Data([1]), account: "pin.apagar", protection: .standard, context: nil)
+        #expect(vault.wipeThreshold == 10)
+        try vault.setWipeAfterErrors(5)
+        try store.update(AttemptRecord(failures: 4, uptimeDeadline: 0, bootSession: PINPolicy.bootSession).encoded, account: "pin.tentativas")
+        #expect(throws: RootKeyVault.Failure.wiped) { try vault.unlock(pin: secure("000001")) }
     }
 
     @Test("Troca de PIN preserva a RK e aposenta o PIN antigo")

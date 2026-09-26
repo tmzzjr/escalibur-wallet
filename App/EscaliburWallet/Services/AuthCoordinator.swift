@@ -11,6 +11,8 @@ final class AuthCoordinator {
     struct PINRequest: Identifiable {
         let id = UUID()
         let reason: String
+        /// Aviso acima do teclado (reinicio, PIN errado, espera).
+        var notice: String? = nil
         let continuation: CheckedContinuation<Credential?, Never>
     }
 
@@ -19,11 +21,15 @@ final class AuthCoordinator {
     /// A credencial para uma operacao. `reason` aparece no Face ID e na folha do PIN
     /// ("Enviar 50 XRP"). Nil quando o dono cancela.
     func credential(reason: String, forcePIN: Bool = false) async -> Credential? {
-        if !forcePIN, KeyServices.root.isBiometryEnabled {
+        let afterRestart = KeyServices.root.isBiometryEnabled && !KeyServices.root.pinEnteredThisBoot
+        if !forcePIN, KeyServices.root.isBiometryEnabled, !afterRestart {
             return .biometry(reason: reason)
         }
+        let notice = afterRestart && !forcePIN
+            ? "O iPhone reiniciou: o PIN é necessário uma vez antes do Face ID voltar a valer."
+            : nil
         return await withCheckedContinuation { continuation in
-            let request = PINRequest(reason: reason, continuation: continuation)
+            let request = PINRequest(reason: reason, notice: notice, continuation: continuation)
             pinRequest = request
             OverlayWindow.shared.show(PINRequestSheet(request: request, coordinator: self))
         }
@@ -41,7 +47,7 @@ final class AuthCoordinator {
         guard let first = await credential(reason: reason, forcePIN: requirePIN) else { return nil }
         do {
             return try await session.withRootKey(first, body)
-        } catch RootKeyVault.Failure.cancelled, RootKeyVault.Failure.biometryChanged {
+        } catch RootKeyVault.Failure.cancelled, RootKeyVault.Failure.biometryChanged, RootKeyVault.Failure.pinRequiredAfterRestart {
             guard let pin = await credential(reason: reason, forcePIN: true) else { return nil }
             return try await session.withRootKey(pin, body)
         }
@@ -61,7 +67,7 @@ struct PINRequestSheet: View {
     @State private var entry = PINEntry()
 
     var body: some View {
-        PINScreen(title: "Confirme com o PIN", subtitle: request.reason, entry: entry, onComplete: {
+        PINScreen(title: "Confirme com o PIN", subtitle: request.notice.map { "\(request.reason)\n\n\($0)" } ?? request.reason, entry: entry, onComplete: {
             coordinator.finish(request, with: .pin(entry.take()))
         }) {
             TertiaryButton(title: "Cancelar") { coordinator.finish(request, with: nil) }
