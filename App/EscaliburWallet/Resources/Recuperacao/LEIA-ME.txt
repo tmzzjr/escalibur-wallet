@@ -1,0 +1,49 @@
+COMO ABRIR ESTE COFRE
+=====================
+
+Esta pasta tem tudo que alguém precisa para recuperar a frase guardada aqui, mesmo
+que o aplicativo Escalibur não exista mais e mesmo sem um iPhone.
+
+O que tem aqui
+--------------
+
+  cofre-XXXX.esclbr
+                  O cofre. Está cifrado. Sem a senha, é ruído. No lugar do
+                  XXXX vem a impressão do cofre, então o nome do arquivo desta
+                  pasta é um pouco diferente do que aparece escrito aqui.
+  decifrar.py     Um programa em Python que abre o cofre.
+  FORMATO.md      A descrição do formato, byte a byte, para quem quiser
+                  escrever o próprio programa daqui a dez anos.
+
+O que NÃO tem aqui, e é de propósito
+------------------------------------
+
+A senha. Ela não está nesta pasta, não está no arquivo do cofre e não está em
+nenhum servidor. Quem guardou este cofre escolheu uma senha e ela existe apenas
+onde essa pessoa a colocou.
+
+Sem a senha, nada aqui abre. Nem o autor do aplicativo consegue abrir.
+
+Como abrir
+----------
+
+Num computador com Python instalado (Mac, Windows ou Linux):
+
+    pip install argon2-cffi cryptography
+    python3 decifrar.py cofre-XXXX.esclbr
+
+Troque `cofre-XXXX.esclbr` pelo nome exato do arquivo que está nesta pasta.
+
+O programa vai pedir a senha e, se ela estiver certa, imprimir as palavras da
+frase de recuperação na tela.
+
+Um aviso
+--------
+
+Quem tiver esta pasta E a senha tem acesso ao dinheiro da carteira. Guarde as
+duas coisas separadas: a pasta num lugar, a senha em outro.
+
+Se você recebeu isto como herança e não sabe o que fazer com as palavras que o
+programa imprimir, procure alguém de confiança que entenda de carteiras de
+criptomoeda antes de digitar essas palavras em qualquer site ou aplicativo.
+Palavras de recuperação digitadas no lugar errado são dinheiro perdido na hora.

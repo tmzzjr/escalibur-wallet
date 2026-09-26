@@ -1,0 +1,454 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0BD31CF923D94F41C7BF61FE /* FORMATO.md in Resources */ = {isa = PBXBuildFile; fileRef = CF3019F2F06749CD522B32AB /* FORMATO.md */; };
+		12BD568C64CF45967323782A /* EscaliburCore in Frameworks */ = {isa = PBXBuildFile; productRef = A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */; };
+		17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */; };
+		2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E6EBFF95E21A9523382BC5 /* Format.swift */; };
+		3436AC2D44A808B71561FBA0 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E67A652A823737F6EAC7745 /* RootView.swift */; };
+		6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B2519CA657D4A05E4C4A06 /* Metrics.swift */; };
+		76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0C91AC7C8CD9C5B8D31703 /* Components.swift */; };
+		7A74109E68924D0D8E3AC608 /* decifrar.py in Resources */ = {isa = PBXBuildFile; fileRef = 878FC0383FDC934FC98F0EA0 /* decifrar.py */; };
+		90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E9C686393C93E1E34895B /* PlatformGuards.swift */; };
+		93415D653E703DD5BF6B4C78 /* EscaliburNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = C09378074DCB9273C75F8FA1 /* EscaliburNetwork */; };
+		9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAEF81421478F9FA6F85FE56 /* Palette.swift */; };
+		C9C99BCB70E1AFF3536D3968 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98E0FCFFA466C4A03F3490A /* AppSession.swift */; };
+		DA717CEE0E76AEF1F0CBCE9A /* LEIA-ME.txt in Resources */ = {isa = PBXBuildFile; fileRef = 445327A094057374455F9FD5 /* LEIA-ME.txt */; };
+		E09B8272656E909426D4987D /* Buttons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B99C8E82247CAD42E358D7 /* Buttons.swift */; };
+		E74B179E19640B5584F2F303 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38287337A415C5A48CB564C8 /* Typography.swift */; };
+		F9AA5C1E81DED2AF9F55AA8C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2D484651018FF5D48FD37087 /* Assets.xcassets */; };
+		FABE9F4C3D6EBE05D7CB48CE /* Marks.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7441E45998B7F6AA7BCE1E4 /* Marks.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1292233C35D3175EC36E4F70 /* EscaliburWallet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EscaliburWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscaliburWalletApp.swift; sourceTree = "<group>"; };
+		38287337A415C5A48CB564C8 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+		445327A094057374455F9FD5 /* LEIA-ME.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LEIA-ME.txt"; sourceTree = "<group>"; };
+		4A0E9C686393C93E1E34895B /* PlatformGuards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformGuards.swift; sourceTree = "<group>"; };
+		609FB55F39FC297CF3C80DE8 /* Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Kit; path = Kit; sourceTree = SOURCE_ROOT; };
+		7E67A652A823737F6EAC7745 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		878FC0383FDC934FC98F0EA0 /* decifrar.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = decifrar.py; sourceTree = "<group>"; };
+		98B99C8E82247CAD42E358D7 /* Buttons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buttons.swift; sourceTree = "<group>"; };
+		A98E0FCFFA466C4A03F3490A /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
+		AAEF81421478F9FA6F85FE56 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
+		BC0C91AC7C8CD9C5B8D31703 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		CF3019F2F06749CD522B32AB /* FORMATO.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FORMATO.md; sourceTree = "<group>"; };
+		D0E6EBFF95E21A9523382BC5 /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
+		E7441E45998B7F6AA7BCE1E4 /* Marks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Marks.swift; sourceTree = "<group>"; };
+		E7B2519CA657D4A05E4C4A06 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metrics.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		ACDDEAD8563055A9ADBA0B5F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				12BD568C64CF45967323782A /* EscaliburCore in Frameworks */,
+				93415D653E703DD5BF6B4C78 /* EscaliburNetwork in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		08DAAF76A054FAD4037E9F97 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1292233C35D3175EC36E4F70 /* EscaliburWallet.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0FDFBB2D55A9194577AB6FF8 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A98E0FCFFA466C4A03F3490A /* AppSession.swift */,
+				355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */,
+				4A0E9C686393C93E1E34895B /* PlatformGuards.swift */,
+				7E67A652A823737F6EAC7745 /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		1313ED36EDCBB2C065C087F8 /* EscaliburWallet */ = {
+			isa = PBXGroup;
+			children = (
+				0FDFBB2D55A9194577AB6FF8 /* App */,
+				DA1E5613893FEC7631AEFE67 /* Design */,
+				3F31E6B1F12666CB972EC866 /* Resources */,
+			);
+			path = EscaliburWallet;
+			sourceTree = "<group>";
+		};
+		3F31E6B1F12666CB972EC866 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				2D484651018FF5D48FD37087 /* Assets.xcassets */,
+				6E8E6429DDBD541C15C27864 /* Recuperacao */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		6E8E6429DDBD541C15C27864 /* Recuperacao */ = {
+			isa = PBXGroup;
+			children = (
+				878FC0383FDC934FC98F0EA0 /* decifrar.py */,
+				CF3019F2F06749CD522B32AB /* FORMATO.md */,
+				445327A094057374455F9FD5 /* LEIA-ME.txt */,
+			);
+			path = Recuperacao;
+			sourceTree = "<group>";
+		};
+		C35E30B6B67E5755EBE49E2C = {
+			isa = PBXGroup;
+			children = (
+				DA3A1AA5D7FDA42F01937BA6 /* App */,
+				F270433245B840975F2AB3B6 /* Packages */,
+				08DAAF76A054FAD4037E9F97 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		DA1E5613893FEC7631AEFE67 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				98B99C8E82247CAD42E358D7 /* Buttons.swift */,
+				BC0C91AC7C8CD9C5B8D31703 /* Components.swift */,
+				D0E6EBFF95E21A9523382BC5 /* Format.swift */,
+				E7441E45998B7F6AA7BCE1E4 /* Marks.swift */,
+				E7B2519CA657D4A05E4C4A06 /* Metrics.swift */,
+				AAEF81421478F9FA6F85FE56 /* Palette.swift */,
+				38287337A415C5A48CB564C8 /* Typography.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		DA3A1AA5D7FDA42F01937BA6 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				1313ED36EDCBB2C065C087F8 /* EscaliburWallet */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		F270433245B840975F2AB3B6 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				609FB55F39FC297CF3C80DE8 /* Kit */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		56CDD72F2FFC48B00F5FA0D8 /* EscaliburWallet */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 504EEFB4447FF609BB79B60C /* Build configuration list for PBXNativeTarget "EscaliburWallet" */;
+			buildPhases = (
+				F127B8E373B2DD858DB73D1F /* Sources */,
+				8C3B34E161C760554E17B78D /* Resources */,
+				ACDDEAD8563055A9ADBA0B5F /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = EscaliburWallet;
+			packageProductDependencies = (
+				A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */,
+				C09378074DCB9273C75F8FA1 /* EscaliburNetwork */,
+			);
+			productName = EscaliburWallet;
+			productReference = 1292233C35D3175EC36E4F70 /* EscaliburWallet.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8F06F4F27AF9A8EDF471ECC0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					56CDD72F2FFC48B00F5FA0D8 = {
+						DevelopmentTeam = 2UNWMDD93S;
+					};
+				};
+			};
+			buildConfigurationList = BE062B5B6EB116A67172CD14 /* Build configuration list for PBXProject "EscaliburWallet" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = "pt-BR";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				"pt-BR",
+			);
+			mainGroup = C35E30B6B67E5755EBE49E2C;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				EA2C339252456F90089A75A6 /* XCLocalSwiftPackageReference "Kit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				56CDD72F2FFC48B00F5FA0D8 /* EscaliburWallet */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8C3B34E161C760554E17B78D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F9AA5C1E81DED2AF9F55AA8C /* Assets.xcassets in Resources */,
+				0BD31CF923D94F41C7BF61FE /* FORMATO.md in Resources */,
+				DA717CEE0E76AEF1F0CBCE9A /* LEIA-ME.txt in Resources */,
+				7A74109E68924D0D8E3AC608 /* decifrar.py in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F127B8E373B2DD858DB73D1F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C9C99BCB70E1AFF3536D3968 /* AppSession.swift in Sources */,
+				E09B8272656E909426D4987D /* Buttons.swift in Sources */,
+				76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */,
+				17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */,
+				2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */,
+				FABE9F4C3D6EBE05D7CB48CE /* Marks.swift in Sources */,
+				6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */,
+				9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */,
+				90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */,
+				3436AC2D44A808B71561FBA0 /* RootView.swift in Sources */,
+				E74B179E19640B5584F2F303 /* Typography.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1779EE3AAF0C71004BB86DD2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		56394A61CFDC54629EA32A1D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/EscaliburWallet/Resources/EscaliburWallet.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 2UNWMDD93S;
+				INFOPLIST_FILE = App/EscaliburWallet/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet;
+				PRODUCT_NAME = EscaliburWallet;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AA8E2CED7957B9AED590AF66 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = App/EscaliburWallet/Resources/EscaliburWallet.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 2UNWMDD93S;
+				INFOPLIST_FILE = App/EscaliburWallet/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet;
+				PRODUCT_NAME = EscaliburWallet;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		B0877DFF46BA670492B72AC6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		504EEFB4447FF609BB79B60C /* Build configuration list for PBXNativeTarget "EscaliburWallet" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				56394A61CFDC54629EA32A1D /* Debug */,
+				AA8E2CED7957B9AED590AF66 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BE062B5B6EB116A67172CD14 /* Build configuration list for PBXProject "EscaliburWallet" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0877DFF46BA670492B72AC6 /* Debug */,
+				1779EE3AAF0C71004BB86DD2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		EA2C339252456F90089A75A6 /* XCLocalSwiftPackageReference "Kit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Kit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EscaliburCore;
+		};
+		C09378074DCB9273C75F8FA1 /* EscaliburNetwork */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EscaliburNetwork;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 8F06F4F27AF9A8EDF471ECC0 /* Project object */;
+}

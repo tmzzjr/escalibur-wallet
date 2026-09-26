@@ -1,0 +1,283 @@
+import SwiftUI
+
+// MARK: Banner
+
+/// Aviso que fica na pagina ate ser resolvido. Tres naturezas, e cada uma tem um
+/// fundo so: risco, falha, neutro.
+struct Banner: View {
+    enum Kind { case caution, failure, neutral }
+
+    let kind: Kind
+    let title: String
+    var message: String? = nil
+    var actionTitle: String? = nil
+    var action: (() -> Void)? = nil
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Space.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(iconColor)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: Space.xxs) {
+                Text(title).typeStyle(.row).foregroundStyle(Palette.ink)
+                if let message {
+                    Text(message).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let actionTitle, let action {
+                    Button(action: action) {
+                        Text(actionTitle).typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.ink)
+                            .frame(minHeight: 32, alignment: .leading)
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Space.md)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                .fill(background)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                        .stroke(kind == .neutral ? Palette.edge : .clear, lineWidth: 1)
+                )
+        )
+    }
+
+    private var icon: String {
+        switch kind {
+        case .caution: return "exclamationmark.triangle.fill"
+        case .failure: return "xmark.octagon.fill"
+        case .neutral: return "info.circle"
+        }
+    }
+
+    private var iconColor: Color {
+        switch kind {
+        case .caution: return Palette.caution
+        case .failure: return Palette.down
+        case .neutral: return Palette.inkSoft
+        }
+    }
+
+    private var background: Color {
+        switch kind {
+        case .caution: return Palette.cautionTint
+        case .failure: return Palette.downTint
+        case .neutral: return Palette.body
+        }
+    }
+}
+
+// MARK: Badge de status
+
+struct StatusBadge: View {
+    enum Kind { case pending, open, partial, done, closed, failed }
+
+    let kind: Kind
+    let text: String
+    @State private var pulse = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if kind == .pending {
+                Circle().fill(Palette.inkSoft).frame(width: 6, height: 6)
+                    .opacity(pulse ? 1 : 0.45)
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { pulse = true }
+                    }
+            }
+            Text(text).typeStyle(.label)
+        }
+        .foregroundStyle(foreground)
+        .padding(.horizontal, Space.xs)
+        .frame(height: Height.badge)
+        .background(RoundedRectangle(cornerRadius: Radius.badge, style: .continuous).fill(background))
+    }
+
+    private var foreground: Color {
+        switch kind {
+        case .pending: return Palette.inkSoft
+        case .open, .partial: return Palette.ink
+        case .done: return Palette.up
+        case .closed: return Palette.inkMuted
+        case .failed: return Palette.down
+        }
+    }
+
+    private var background: Color {
+        switch kind {
+        case .pending, .closed: return Palette.rail
+        case .open, .partial: return Palette.control
+        case .done: return Palette.upTint
+        case .failed: return Palette.downTint
+        }
+    }
+}
+
+// MARK: Chip
+
+struct Chip: View {
+    let title: String
+    var selected: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .typeStyle(.label)
+                .foregroundStyle(selected ? Palette.ink : Palette.inkSoft)
+                .padding(.horizontal, Space.sm)
+                .frame(height: Height.chip)
+                .background(
+                    RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                        .fill(selected ? Palette.control : Palette.body)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                                .stroke(selected ? Palette.edgeStrong : Palette.edge, lineWidth: 1)
+                        )
+                )
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: selected)
+    }
+}
+
+// MARK: Card
+
+struct Card<Content: View>: View {
+    var surface: Color = Palette.body
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) { content }
+            .padding(Space.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .fill(surface)
+                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1))
+            )
+    }
+}
+
+// MARK: Esqueleto
+
+struct SkeletonBar: View {
+    var width: CGFloat
+    var height: CGFloat = 12
+    @State private var dim = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: Radius.badge, style: .continuous)
+            .fill(Palette.body)
+            .frame(width: width, height: height)
+            .opacity(reduceMotion ? 0.7 : (dim ? 0.55 : 1))
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) { dim = true }
+            }
+    }
+}
+
+// MARK: Cabecalho de folha
+
+struct SheetHeader: View {
+    let title: String
+    var close: (() -> Void)? = nil
+
+    var body: some View {
+        HStack(alignment: .center) {
+            Text(title).typeStyle(.title).foregroundStyle(Palette.ink)
+            Spacer()
+            if let close {
+                Button(action: close) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.inkSoft)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(Palette.control))
+                        .frame(width: Height.touch, height: Height.touch)
+                }
+                .accessibilityLabel("Fechar")
+            }
+        }
+        .padding(.horizontal, Space.gutter)
+        .padding(.top, Space.lg)
+    }
+}
+
+// MARK: Toast
+
+@MainActor
+@Observable
+final class ToastCenter {
+    struct Toast: Equatable, Identifiable {
+        enum Kind { case success, failure, info }
+        let id = UUID()
+        let kind: Kind
+        let text: String
+    }
+
+    var current: Toast?
+
+    func show(_ text: String, kind: Toast.Kind = .success) {
+        let toast = Toast(kind: kind, text: text)
+        withAnimation(Motion.toastIn) { current = toast }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2.5))
+            if current?.id == toast.id {
+                withAnimation(.easeIn(duration: 0.2)) { current = nil }
+            }
+        }
+    }
+}
+
+struct ToastView: View {
+    let toast: ToastCenter.Toast
+
+    var body: some View {
+        HStack(spacing: Space.sm) {
+            Image(systemName: icon).font(.system(size: 17, weight: .semibold)).foregroundStyle(color)
+            Text(toast.text).typeStyle(.body).foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Space.md)
+        .frame(minHeight: 48)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                .fill(Palette.rail)
+                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1))
+                .shadow(color: .black.opacity(0.5), radius: 24, y: 8)
+        )
+        .padding(.horizontal, Space.gutter)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private var icon: String {
+        switch toast.kind {
+        case .success: return "checkmark.circle.fill"
+        case .failure: return "xmark.circle.fill"
+        case .info: return "info.circle"
+        }
+    }
+
+    private var color: Color {
+        switch toast.kind {
+        case .success: return Palette.up
+        case .failure: return Palette.down
+        case .info: return Palette.inkSoft
+        }
+    }
+}
+
+// MARK: Pontos de sigilo
+
+/// O que aparece no lugar de um valor quando os saldos estao ocultos.
+enum Redaction {
+    static let fiat = "R$ ••••••"
+    static let short = "••••"
+}
