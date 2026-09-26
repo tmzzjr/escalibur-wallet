@@ -138,6 +138,7 @@ struct EVMTradeEngineTests {
         let request = try F.request()
         let quote = try await engine.quote(request)
         let plan = try await engine.plan(request, quote: quote)
+        expectIntent(plan, request, quote)
         let provider = try #require(EVMTradeQuoteMapping.provider(named: quote.legs[0].provider))
 
         #expect(plan.review.kind == .swap)
@@ -182,6 +183,7 @@ struct EVMTradeEngineTests {
         let request = try F.request()
         let quote = try await engine.quote(request)
         let plan = try await engine.plan(request, quote: quote)
+        expectIntent(plan, request, quote)
         #expect(plan.transactions.count == 2)
         #expect(!plan.isExpired())
     }

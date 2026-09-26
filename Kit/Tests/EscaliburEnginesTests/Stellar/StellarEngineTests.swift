@@ -312,6 +312,7 @@ struct StellarTradeTests {
         let request = Self.request()
         let quote = try await engine.quote(request)
         let plan = try await engine.plan(request, quote: quote)
+        expectIntent(plan, request, quote)
         #expect(plan.review.kind == .swap)
         let swap = try #require(StellarTradeEngine.swap(in: plan))
         #expect(swap.destMin == quote.minimumOut && swap.sendAmount == request.amountIn)

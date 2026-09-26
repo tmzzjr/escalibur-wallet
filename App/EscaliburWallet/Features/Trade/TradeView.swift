@@ -130,6 +130,7 @@ struct TradeView: View {
             }
         }
         .task(id: quoteKey) { await refreshQuote() }
+        .task(id: session.selectedWallet?.id) { await portfolio.ensureLoaded(session.selectedWallet, session: session) }
     }
 
     /// Chegando do detalhe de uma moeda: a rede dela e ela como venda ou compra.

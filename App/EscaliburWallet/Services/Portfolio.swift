@@ -52,6 +52,8 @@ final class Portfolio {
     private(set) var bitcoinPrices: [String: Double] = [:]
 
     private var walletID: UUID?
+    /// Carteiras cujos saldos ja foram lidos da rede nesta sessao.
+    private var refreshedIDs: Set<UUID> = []
 
     /// Mostra o cache na hora e atualiza por baixo.
     func show(_ wallet: WalletMeta?, session: AppSession, force: Bool = false) {
@@ -72,6 +74,16 @@ final class Portfolio {
             lastUpdated = session.metadata.cachedAt
             recompute(wallet)
         }
+    }
+
+    /// Para as telas fora da Carteira (Trocar, Enviar): o saldo nao pode depender de a
+    /// aba Carteira ja ter aparecido. Mostra o cache e, se esta carteira ainda nao foi
+    /// lida da rede nesta sessao, le. Leitura em andamento nao e repetida.
+    func ensureLoaded(_ wallet: WalletMeta?, session: AppSession) async {
+        guard let wallet else { return }
+        show(wallet, session: session)
+        guard !refreshedIDs.contains(wallet.id) else { return }
+        await refresh(wallet, session: session)
     }
 
     func refresh(_ wallet: WalletMeta?, session: AppSession) async {
@@ -108,6 +120,7 @@ final class Portfolio {
         if prices.count > 1 || !prices.isEmpty { bitcoinPrices = prices }
 
         offline = fresh.isEmpty && newQuotes == nil && !targets.isEmpty
+        if !fresh.isEmpty { refreshedIDs.insert(wallet.id) }
         guard walletID == wallet.id else { return }
         for (id, balance) in fresh { balances[id] = balance }
         if let newQuotes, !newQuotes.isEmpty { quotes = newQuotes }

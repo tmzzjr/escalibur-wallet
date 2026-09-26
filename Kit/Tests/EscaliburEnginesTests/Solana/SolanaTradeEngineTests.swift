@@ -203,6 +203,7 @@ struct SolanaTradeEngineTests {
         let request = try solToUSDC()
         let quote = try await engine.quote(request)
         let plan = try await engine.plan(request, quote: quote)
+        expectIntent(plan, request, quote)
         #expect(await network.shownMinimums == [quote.minimumOut])
         #expect(plan.review.kind == .swap && plan.chain == .solana && plan.walletID == wallet)
         #expect(plan.review.lines.first { $0.label == "Sai" }?.value == "0,05 SOL")
@@ -223,6 +224,7 @@ struct SolanaTradeEngineTests {
         // Primeira proposta abaixo do mostrado, a segunda volta ao preco da cotacao.
         await network.queuePlanProposals([lower])
         let plan = try await engine.plan(request, quote: quote)
+        expectIntent(plan, request, quote)
         #expect(await network.shownMinimums == [quote.minimumOut, quote.minimumOut])
         #expect(plan.review.lines.first { $0.label == "Entra, no mínimo" }?.value == "6,050064 USDC")
 

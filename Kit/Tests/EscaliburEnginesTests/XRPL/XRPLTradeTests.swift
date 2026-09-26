@@ -64,6 +64,7 @@ struct XRPLTradeTests {
         let request = Self.request()
         let quote = try await engine.quote(request)
         let plan = try await engine.plan(request, quote: quote)
+        expectIntent(plan, request, quote)
         #expect(plan.review.kind == .swap && plan.review.transactionCount == 2)
         #expect(plan.review.title == "Trocar 10 XRP por RLUSD")
         #expect(plan.review.lines.first?.label == "Transações")

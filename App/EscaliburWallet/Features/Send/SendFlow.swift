@@ -165,6 +165,7 @@ struct SendAssetPicker: View {
             }
         }
         .padding(.top, Space.md)
+        .task(id: session.selectedWallet?.id) { await portfolio.ensureLoaded(session.selectedWallet, session: session) }
     }
 }
 

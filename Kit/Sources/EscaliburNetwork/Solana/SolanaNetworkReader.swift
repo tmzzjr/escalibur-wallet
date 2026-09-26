@@ -66,15 +66,23 @@ public actor SolanaNetworkReader {
             try Self.checkWindow(lastValid: latest.value.lastValidBlockHeight, current: epoch.blockHeight)
             return (latest.value, epoch.blockHeight)
         }
-        async let balance: RPCContextual<UInt64> = call("getBalance", [.string(owner.base58), .object(["commitment": .string("confirmed")])])
+        // A conta do dono com o programa dono dela, e nao so o saldo: conta entregue a
+        // um programa nao paga taxa, e a simulacao so diria "InvalidAccountForFee".
+        async let ownerAccount: RPCContextualOptional<RPCAccount> = call(
+            "getAccountInfo", [.string(owner.base58), .object(["encoding": .string("base64"), "commitment": .string("confirmed")])]
+        )
         async let rent: UInt64 = call("getMinimumBalanceForRentExemption", [.number(0)])
         let accounts = Array(Set([owner] + writableAccounts).map(\.base58).sorted().prefix(128))
         async let fees: [RPCPrioritizationFee] = call("getRecentPrioritizationFees", [.array(accounts.map { .string($0) })])
 
         let (hash, height) = try await blockhash
+        let account = try await ownerAccount.value
+        if let account, account.owner != SolanaAccountParser.systemProgram {
+            throw SolanaAccountParseError.ownerAssignedToProgram
+        }
         return SolanaNetworkState(
             recentBlockhash: try SolanaBlockhash(base58: hash.blockhash), lastValidBlockHeight: hash.lastValidBlockHeight,
-            currentBlockHeight: height, fetchedAt: fetchedAt, balance: BigUInt(try await balance.value),
+            currentBlockHeight: height, fetchedAt: fetchedAt, balance: BigUInt(account?.lamports ?? 0),
             rentExemptMinimum: BigUInt(try await rent),
             suggestedComputeUnitPrice: SolanaAccountParser.priorityFee((try await fees).map(\.prioritizationFee), percentile: feePercentile),
             simulatedComputeUnits: simulatedComputeUnits
@@ -224,7 +232,8 @@ public actor SolanaNetworkReader {
         return try await onTwo({ provider in
             guard let account = try await self.accountInfo(ata, at: provider) else { return SolanaDestinationTokenAccount.missing }
             let state = try SolanaAccountParser.tokenAccount(account, address: ata, program: program)
-            guard state.mint == mint, state.owner == owner else { throw SolanaAccountParseError.tokenAccountMismatch }
+            guard state.mint == mint else { throw SolanaAccountParseError.tokenAccountMismatch }
+            guard state.owner == owner else { throw SolanaAccountParseError.tokenAccountOwnerChanged }
             return .existing(state)
         }, merge: Self.mergeTokenAccount)
     }

@@ -112,6 +112,7 @@ struct EVMEnginesLiveTests {
         }
         if ["plasma", "sonic"].contains(chain.id) {
             let plan = try await engine.plan(request, quote: quote)
+            expectIntent(plan, request, quote)
             #expect(plan.review.kind == .swap)
             #expect(plan.review.lines.contains { $0.label.hasSuffix("Taxa da Escalibur") && $0.value == "Sem taxa da Escalibur" })
         }
@@ -128,6 +129,7 @@ struct EVMEnginesLiveTests {
         #expect(quote.minimumOut > 0 && quote.minimumOut <= quote.expectedOut)
         #expect(!quote.needsApproval)
         let plan = try await engine.plan(request, quote: quote)
+        expectIntent(plan, request, quote)
         #expect(plan.review.kind == .swap)
         #expect(plan.review.transactionCount == plan.transactions.count)
         #expect(plan.review.lines.contains { $0.label.hasSuffix("Taxa da Escalibur") && $0.value == "Sem taxa da Escalibur" })
@@ -142,6 +144,7 @@ struct EVMEnginesLiveTests {
                                         buy: try Self.usdc(.base), amountIn: BigUInt(1_000_000_000_000_000), minimumOut: 10_000_000,
                                         validFor: 86_400)
         let plan = try await engine.planLimitOrder(request)
+        expectIntent(plan, request)
         #expect(plan.review.kind == .limitOrder)
         #expect(plan.transactions.last is EIP712ValidatedMessage)
         Self.note("base: ordem limite com \(plan.review.transactionCount) etapas: \(plan.review.title)")

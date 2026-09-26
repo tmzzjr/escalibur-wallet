@@ -197,6 +197,10 @@ enum SolanaEngineMessages {
             return "O token não foi reconhecido na rede Solana."
         case .tokenAccountMismatch:
             return "A conta de token lida da rede não confere. Nada foi montado."
+        case .ownerAssignedToProgram:
+            return "A conta da Solana desta carteira foi entregue a um programa, e o saldo dela não paga taxa nem pode sair. Só quem tem a senha da carteira faz isso: se não foi você, a senha vazou e esta carteira não é mais segura."
+        case .tokenAccountOwnerChanged:
+            return "A conta deste token na Solana foi passada para outro dono: alguém mudou o dono dela. O que entrasse nela iria para esse outro dono. Nada foi montado."
         case .notALookupTable, .lookupTableDeactivated:
             return routeRefused
         case .malformed:

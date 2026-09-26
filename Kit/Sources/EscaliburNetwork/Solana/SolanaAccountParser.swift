@@ -40,6 +40,13 @@ public enum SolanaAccountParseError: Error, Equatable, Sendable {
     case notAMint(owner: String)
     case notATokenAccount
     case tokenAccountMismatch
+    /// O ATA do dono existe, do mint certo, mas com outro dono: alguem trocou o dono
+    /// da conta (SetAuthority). O que chegar nela e desse outro dono.
+    case tokenAccountOwnerChanged
+    /// A conta do dono, a que paga a taxa, pertence a um programa e nao ao System
+    /// Program: alguem com a chave assinou um `Assign`. O saldo aparece, mas nao paga
+    /// taxa nem sai. Golpe comum em carteira com a senha vazada.
+    case ownerAssignedToProgram
     case notALookupTable
     case lookupTableDeactivated
     case malformed
