@@ -22,3 +22,21 @@ Baixa
 ## Estado
 
 Ver a tabela ao fim deste arquivo, atualizada a cada correção.
+
+## Revisão dos motores (agente de blockchain, mesmo commit)
+
+Alto
+- A1 Stellar: rota e mínimo da troca de um Horizon só, path com qualquer ativo intermediário.
+- A2 Solana: a Jupiter é a única fonte de rota, preço, impacto e mínimo; simulação olha só três contas.
+- A3 Ordens limite: a revisão promete cancelar e o app não tem tela de ordens abertas; na Stellar a oferta nunca vence.
+
+Médio
+- M1 EVM sem fila local de nonce (max de duas fontes com folga de 4).
+- M2 UTXO: teto de taxa sai dos provedores que ele limita.
+- M3 UTXO: "enviar tudo" deixa moedas para trás sem dizer.
+- M4 "Venceu, pode reenviar" decidido por uma fonte (Solana) ou pelo relógio do aparelho (Tron).
+- M5 EVM: mínimo ancorado no número do próprio provedor; oráculo opcional.
+- M6 `SigningPlan.sequence` deixa o motor escrever a revisão (mesmo achado A1 da outra revisão).
+
+Baixo
+- B1 tetos de taxa EVM de uma fonte, BNB alto; B2 LastLedgerSequence de um servidor; B3 leituras de uma fonte na Solana e TON; B4 regra de uma ordem CoW por token só pela API; B5 troca EVM sem prazo na cadeia; B6 índice de troco de um provedor; B7 documentação dizendo mais do que o código faz.

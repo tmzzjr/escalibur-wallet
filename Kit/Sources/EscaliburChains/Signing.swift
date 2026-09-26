@@ -148,7 +148,8 @@ public struct SigningPlan: Sendable {
         guard !fresh.isEmpty else { return self }
         let updated = PlanReview(
             kind: review.kind, title: review.title, lines: review.lines, warnings: review.warnings + fresh,
-            transactionCount: review.transactionCount, recipient: review.recipient, recipientTag: review.recipientTag
+            transactionCount: review.transactionCount, recipient: review.recipient, recipientTag: review.recipientTag,
+            outgoing: review.outgoing, incomingMinimum: review.incomingMinimum, beneficiary: review.beneficiary
         )
         return SigningPlan(id: id, walletID: walletID, chain: chain, review: updated, transactions: transactions, createdAt: createdAt)
     }
@@ -217,6 +218,18 @@ public struct PlanReview: Sendable, Equatable {
         case activatesAccount(minimum: String)
     }
 
+    /// Quanto de qual ativo, em unidades da rede. O ativo e o `Asset.id` da lista
+    /// (`TokenRegistry`), o mesmo que a tela usa.
+    public struct Movement: Sendable, Equatable {
+        public let assetID: String
+        public let amount: BigUInt
+
+        public init(assetID: String, amount: BigUInt) {
+            self.assetID = assetID
+            self.amount = amount
+        }
+    }
+
     public let kind: Kind
     /// "Enviar 50 XRP", "Trocar 0,5 ETH por USDC".
     public let title: String
@@ -229,10 +242,19 @@ public struct PlanReview: Sendable, Equatable {
     /// mostrar a revisao e de novo antes de assinar (`Address.sameRecipient`).
     public let recipient: String?
     public let recipientTag: String?
+    /// O que sai da carteira: no envio, o valor enviado; na troca e na ordem, o valor
+    /// vendido. Preenchido so pelo planejador, das transacoes que ele montou; o app
+    /// confere contra o ativo e o valor pedidos antes de revisar e antes de assinar.
+    public let outgoing: Movement?
+    /// Na troca e na ordem: o minimo que entra, garantido pela transacao.
+    public let incomingMinimum: Movement?
+    /// Na troca e na ordem: quem recebe o que entra. Sempre a propria conta do dono.
+    public let beneficiary: String?
 
     public init(
         kind: Kind, title: String, lines: [Line], warnings: [Warning] = [], transactionCount: Int = 1,
-        recipient: String? = nil, recipientTag: String? = nil
+        recipient: String? = nil, recipientTag: String? = nil,
+        outgoing: Movement? = nil, incomingMinimum: Movement? = nil, beneficiary: String? = nil
     ) {
         self.kind = kind
         self.title = title
@@ -241,5 +263,8 @@ public struct PlanReview: Sendable, Equatable {
         self.transactionCount = transactionCount
         self.recipient = recipient
         self.recipientTag = recipientTag
+        self.outgoing = outgoing
+        self.incomingMinimum = incomingMinimum
+        self.beneficiary = beneficiary
     }
 }
