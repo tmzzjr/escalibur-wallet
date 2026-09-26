@@ -159,6 +159,61 @@ struct StellarTradeEngine: TradeEngine {
         }
     }
 
+    // MARK: Ordens abertas
+
+    /// As ofertas abertas da conta nas duas Horizons, juntas. Na Stellar a oferta nao vence.
+    func openOrders(account: DerivedAccount) async throws -> [OpenOrder] {
+        let source = try StellarEngineSupport.source(account)
+        do {
+            return try await reader.offersOnBoth(source.account).compactMap { entry in
+                Self.openOrder(entry.offer, sources: entry.sources)
+            }
+        } catch {
+            throw StellarEngineSupport.translate(error)
+        }
+    }
+
+    static func openOrder(_ offer: StellarOpenOffer, sources: Int) -> OpenOrder? {
+        guard offer.priceNumerator > 0, offer.priceDenominator > 0 else { return nil }
+        // O minimo pelo que falta: quantidade x n/d, para baixo, como a rede executa.
+        let minimum = offer.amount * BigUInt(UInt64(offer.priceNumerator)) / BigUInt(UInt64(offer.priceDenominator))
+        return OpenOrder(
+            id: String(offer.id), chain: .stellar, sellAssetID: assetID(offer.selling), buyAssetID: assetID(offer.buying),
+            remainingSell: offer.amount, minimumBuy: minimum, expiresAt: nil, sources: sources, cancellations: [.onchain]
+        )
+    }
+
+    /// O `Asset.id` de um ativo da Stellar (a Stellar sempre conta 7 casas).
+    static func assetID(_ asset: StellarAsset) -> String {
+        guard let issuer = asset.issuer else { return Asset.native(.stellar).id }
+        return "\(Chain.stellar.id):\(asset.code):\(issuer.address)"
+    }
+
+    /// `ManageSellOffer` com quantidade zero, com os ativos da oferta como as Horizons a
+    /// mostram agora, nunca como a tela mandou.
+    func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan {
+        guard via == .onchain, order.chain == .stellar, let offerID = Int64(order.id) else {
+            throw SendEngineError.message("Esta oferta não é da Stellar.")
+        }
+        let source = try StellarEngineSupport.source(account)
+        do {
+            async let offers = reader.offersOnBoth(source.account)
+            async let owner = reader.ownerAccount(source.account)
+            async let networkState = reader.networkState()
+            guard let offer = try await offers.first(where: { $0.offer.id == offerID })?.offer else {
+                throw SendEngineError.message("Esta oferta não está mais aberta: já executou ou foi cancelada.")
+            }
+            guard let state = try await owner else { throw SendEngineError.message(StellarEngineSupport.accountMissing) }
+            let context = StellarPlanContext(
+                walletID: walletID, source: source, account: state, network: try await networkState,
+                allowedAssets: StellarEngineSupport.allowedAssets
+            )
+            return try StellarPlanner.planCancelOrder(offerID: offerID, selling: offer.selling, buying: offer.buying, context: context)
+        } catch {
+            throw StellarEngineSupport.translate(error)
+        }
+    }
+
     // MARK: Transmissao
 
     func submit(_ signed: [SignedTransaction], plan: SigningPlan) async throws -> [String] {

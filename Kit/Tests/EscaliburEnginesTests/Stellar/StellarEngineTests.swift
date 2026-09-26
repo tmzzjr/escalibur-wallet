@@ -380,4 +380,55 @@ struct StellarTradeTests {
         #expect(selling.code == "USDC" && buying.isNative)
         #expect(price.n == 5 && price.d == 1)
     }
+
+    @Test("Ordem limite sem prazo pedido: a Stellar nao expira ofertas, e a revisao diz isso")
+    func limitOrderWithoutExpiry() async throws {
+        let plan = try await Self.engine(try S.network()).planLimitOrder(LimitOrderRequest(
+            walletID: UUID(), chain: .stellar, account: TestAccounts.stellar, sell: S.usdc, buy: S.xlm,
+            amountIn: 100_000_000, minimumOut: 500_000_000, validFor: nil
+        ))
+        #expect(plan.review.lines.contains(PlanReview.Line("Validade", "Até você cancelar. A Stellar não expira ofertas.")))
+    }
+
+    /// `GET /accounts/{G}/offers`, montado aqui no formato da Horizon.
+    static func offers(_ ids: [Int]) -> Data {
+        let records = ids.map { id in
+            """
+            {"id":"\(id)","seller":"\(S.owner)","selling":{"asset_type":"credit_alphanum4","asset_code":"USDC","asset_issuer":"GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"},"buying":{"asset_type":"native"},"amount":"10.0000000","price_r":{"n":5,"d":1},"price":"5.0000000"}
+            """
+        }
+        return Data((#"{"_embedded":{"records":["# + records.joined(separator: ",") + #"]}}"#).utf8)
+    }
+
+    @Test("Ofertas abertas: as duas Horizons juntas, com quantas viram cada uma; cancelar usa os ativos lidos da rede")
+    func openOffersAndCancel() async throws {
+        let fake = try S.network()
+        fake.on("horizon-a.test/accounts/\(S.owner)/offers", data: Self.offers([111, 222]))
+        // A segunda Horizon esconde a 222: ela continua na lista, vista por uma so.
+        fake.on("horizon-b.test/accounts/\(S.owner)/offers", data: Self.offers([111]))
+        let engine = Self.engine(fake)
+        let orders = try await engine.openOrders(account: TestAccounts.stellar)
+        #expect(orders.map(\.id) == ["111", "222"])
+        #expect(orders.map(\.sources) == [2, 1])
+        let open = try #require(orders.first)
+        #expect(open.sell == S.usdc && open.buy == S.xlm)
+        #expect(open.remainingSell == 100_000_000 && open.minimumBuy == 500_000_000)
+        #expect(open.expiresAt == nil && open.cancellations == [.onchain])
+
+        // A tela manda a ordem com ativos trocados: o plano usa os da rede.
+        let doctored = OpenOrder(id: "111", chain: .stellar, sellAssetID: "stellar:native", buyAssetID: "stellar:native",
+                                 remainingSell: 1, minimumBuy: 1, expiresAt: nil, sources: 2, cancellations: [.onchain])
+        let plan = try await engine.planCancel(doctored, walletID: UUID(), account: TestAccounts.stellar)
+        #expect(plan.review.kind == .cancelOrder)
+        guard case .manageSellOffer(let selling, let buying, 0, _, 111) = try S.operations(plan).first else {
+            Issue.record("esperava ManageSellOffer de cancelamento"); return
+        }
+        #expect(selling.code == "USDC" && buying.isNative)
+
+        let gone = OpenOrder(id: "999", chain: .stellar, sellAssetID: open.sellAssetID, buyAssetID: open.buyAssetID,
+                             remainingSell: 1, minimumBuy: 1, expiresAt: nil, sources: 1, cancellations: [.onchain])
+        await #expect(throws: SendEngineError.message("Esta oferta não está mais aberta: já executou ou foi cancelada.")) {
+            _ = try await engine.planCancel(gone, walletID: UUID(), account: TestAccounts.stellar)
+        }
+    }
 }

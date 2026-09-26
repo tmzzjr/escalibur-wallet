@@ -57,9 +57,57 @@ public struct XRPLTrustLine: Sendable, Equatable {
     public let limit: XRPLDecimal
 }
 
+/// Uma oferta aberta da conta (`account_offers`).
+public struct XRPLAccountOffer: Sendable, Equatable {
+    /// A Sequence da transacao que criou a oferta: e o que o OfferCancel cita.
+    public let sequence: UInt32
+    /// O que a conta ainda entrega e o que ainda quer receber por isso.
+    public let takerGets: XRPLAmount
+    public let takerPays: XRPLAmount
+    /// Segundos desde 01/01/2000 UTC. nil: a oferta nao expira.
+    public let expiration: UInt32?
+    public let flags: UInt32
+}
+
 extension XRPLReader {
     /// Teto de ofertas lidas por consulta.
     public static let maxBookOffers = 50
+    /// Teto de ofertas abertas lidas da conta (o padrao do rippled para `account_offers`).
+    public static let maxAccountOffers = 200
+
+    /// As ofertas abertas da conta, em dois servidores no mesmo ledger validado, iguais.
+    /// Para a lista de ordens abertas e para conferir que a oferta a cancelar existe.
+    public func accountOffers(account: String) async throws -> [XRPLAccountOffer] {
+        guard XRPLAddress.accountID(account) != nil else { throw ReaderError.invalidInput("endereco") }
+        let transport = self.transport
+        return try await agreeingAtValidatedLedger(field: "account_offers") { provider, ledger in
+            let result = try Self.checked(try await Self.call(transport, provider.baseURL, "account_offers", [
+                "account": .string(account), "ledger_index": .int(ledger), "limit": .int(Self.maxAccountOffers),
+            ]), "account_offers")
+            return try Self.parseAccountOffers(result, account: account, ledger: ledger)
+        }
+    }
+
+    static func parseAccountOffers(_ result: StrictJSON, account: String, ledger: UInt32) throws -> [XRPLAccountOffer] {
+        try requireLedger(result, ledger, "account_offers")
+        guard try result.field("account", "account_offers").string("account_offers.account") == account else {
+            throw ReaderError.responseMismatch(field: "account_offers.account")
+        }
+        let offers = try result.field("offers", "account_offers").array("account_offers.offers")
+        guard offers.count <= maxAccountOffers else { throw ReaderError.implausibleValue(field: "account_offers.offers") }
+        return try offers.enumerated().map { index, offer in
+            let path = "account_offers.offers[\(index)]"
+            let sequence = try offer.field("seq", path).uint32(path + ".seq")
+            guard sequence > 0 else { throw ReaderError.implausibleValue(field: path + ".seq") }
+            return XRPLAccountOffer(
+                sequence: sequence,
+                takerGets: try amount(try offer.field("taker_gets", path), path + ".taker_gets"),
+                takerPays: try amount(try offer.field("taker_pays", path), path + ".taker_pays"),
+                expiration: try offer.optionalField("expiration")?.uint32(path + ".expiration"),
+                flags: try offer.optionalField("flags")?.uint32(path + ".flags") ?? 0
+            )
+        }
+    }
 
     /// As melhores ofertas que entregam `gets` a quem paga com `pays`, em dois servidores
     /// no mesmo ledger validado, oferta por oferta iguais.

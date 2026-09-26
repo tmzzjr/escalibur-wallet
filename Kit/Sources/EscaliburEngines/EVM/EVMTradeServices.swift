@@ -18,6 +18,7 @@ protocol EVMTradeChainReading: Sendable {
     func token(chain: Chain, token: EVMAddress, owner: EVMAddress, spender: EVMAddress) async throws -> EVMTokenState
     func read(for quote: ValidatedTradeQuote, localNextNonce: UInt64?) async throws -> TradeChainState
     func readCoW(intent: CoWLimitOrderIntent, openOrdersSellTotal: BigUInt, localNextNonce: UInt64?) async throws -> CoWChainState
+    func readCancellation(chain: Chain, owner: EVMAddress, uid: [UInt8], localNextNonce: UInt64?) async throws -> EVMNetworkState
 }
 
 extension TradeStateReader: EVMTradeChainReading {}
@@ -28,6 +29,7 @@ protocol EVMCoWService: Sendable {
     func registerAppData(_ appData: CoWAppData, chain: Chain) async throws
     func submit(_ plan: CoWLimitOrderPlan, signature: SignedTransaction) async throws -> [UInt8]
     func openSellTotal(owner: EVMAddress, sellToken: EVMAddress, chain: Chain) async throws -> BigUInt
+    func openOrders(owner: EVMAddress, chain: Chain, now: Date) async throws -> [CoWOrderStatus]
     func cancel(uids: [[UInt8]], chain: Chain, owner: EVMAddress, signature: SignedTransaction) async throws
 }
 

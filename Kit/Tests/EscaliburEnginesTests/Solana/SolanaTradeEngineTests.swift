@@ -319,5 +319,10 @@ struct SolanaTradeEngineTests {
             minimumOut: BigUInt(1), validFor: 3600
         )
         #expect(await message { try await engine.planLimitOrder(order) } == SolanaEngineMessages.text(SolanaEngineProblem.limitOrdersUnavailable))
+        // Sem ordem limite, sem lista de ordens abertas nem cancelamento: o motor diz que
+        // nao existe nesta rede, e a tela nao oferece tentar de novo.
+        await #expect(throws: SendEngineError.unavailable("Ordens limite ainda não estão disponíveis nesta rede.")) {
+            _ = try await engine.openOrders(account: F.account(try F.testKey()))
+        }
     }
 }

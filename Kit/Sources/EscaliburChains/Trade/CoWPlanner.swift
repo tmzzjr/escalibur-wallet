@@ -44,7 +44,9 @@ public struct CoWLimitOrderIntent: Sendable, Equatable {
         guard CoWProtocol.supports(sell.chain), buy.chain.id == sell.chain.id else { throw CoWRefusal.unsupportedChain }
         guard sell != buy else { throw CoWRefusal.sameToken }
         guard !sellAmount.isZero else { throw TradeRefusal.zeroAmount }
-        guard validFor >= CoWProtocol.minValidity, validFor <= CoWProtocol.maxValidity else { throw CoWRefusal.validityOutOfRange }
+        guard validFor == CoWProtocol.untilCancelledValidity || (validFor >= CoWProtocol.minValidity && validFor <= CoWProtocol.maxValidity) else {
+            throw CoWRefusal.validityOutOfRange
+        }
         self.owner = owner
         self.sell = sell
         self.buy = buy
@@ -55,6 +57,9 @@ public struct CoWLimitOrderIntent: Sendable, Equatable {
     }
 
     public var chain: Chain { sell.chain }
+
+    /// O dono pediu "ate cancelar": a ordem vale o maximo pratico da CoW.
+    public var isUntilCancelled: Bool { validFor == CoWProtocol.untilCancelledValidity }
 
     /// O token que a ordem vende de fato: o embrulhado, se o dono vende o nativo.
     public var orderSellToken: EVMToken? {
@@ -202,8 +207,13 @@ public enum CoWPlanner {
     /// a ordem montada (destinatario = dono, taxa zero, venda, saldo ERC-20, appData
     /// nosso, prazo dentro da janela).
     static func orderRule(chain: Chain, order: CoWOrder, now: Date) -> EIP712Rule {
-        let earliest = now.timeIntervalSince1970 + CoWProtocol.minValidity - 60
-        let latest = now.timeIntervalSince1970 + CoWProtocol.maxValidity + 60
+        // O prazo e o que o dono escolheu (1 hora a 30 dias) ou exatamente o "ate
+        // cancelar" (o maximo pratico da CoW); nada entre um e outro.
+        let base = now.timeIntervalSince1970
+        let windows = [
+            (base + CoWProtocol.minValidity - 60)...(base + CoWProtocol.maxValidity + 60),
+            (base + CoWProtocol.untilCancelledValidity - 60)...(base + CoWProtocol.untilCancelledValidity + 60),
+        ]
         return EIP712Rule(
             chain: chain, verifyingContract: CoWProtocol.settlement, primaryType: "Order",
             encodedType: CoWProtocol.orderEncodedType, domainName: CoWProtocol.domainName, domainVersion: CoWProtocol.domainVersion
@@ -222,7 +232,7 @@ public enum CoWPlanner {
                   text("feeAmount") == "0", text("kind") == "sell",
                   text("sellTokenBalance") == "erc20", text("buyTokenBalance") == "erc20",
                   text("appData")?.lowercased() == CoWAppData.limitOrder.hashHex.lowercased(),
-                  let validTo = text("validTo").flatMap(Double.init), validTo >= earliest, validTo <= latest
+                  let validTo = text("validTo").flatMap(Double.init), windows.contains(where: { $0.contains(validTo) })
             else { throw EIP712Error.notAllowlisted }
         }
     }
@@ -352,7 +362,9 @@ public enum CoWPlanner {
             .init("Vende", TradeText.amount(intent.sellAmount, intent.sell)),
             .init("Recebe, no mínimo", TradeText.amount(order.buyAmount, intent.buy)),
             .init("Preço-alvo", TradeText.price(amountIn: order.buyAmount, out: intent.sellAmount, sell: intent.buy, buy: intent.sell)),
-            .init("Válida até", expiry),
+            .init("Válida até", intent.isUntilCancelled
+                ? "\(expiry), o prazo mais longo que a CoW aceita. Até lá, fica aberta até executar ou você cancelar"
+                : expiry),
             .init("Execução parcial", intent.partiallyFillable ? "Permitida" : "Só inteira"),
             .init("Destinatário", order.receiver.checksummed, verbatim: true),
             .init("Contrato da CoW", CoWProtocol.settlement.checksummed, verbatim: true),
@@ -381,7 +393,7 @@ public enum CoWPlanner {
             .init("Envio", feeQuotes.isEmpty
                 ? "A ordem assinada vai direto para a CoW"
                 : "A ordem assinada vai para a CoW depois que as transações acima confirmarem"),
-            .init("Cancelar", "Pelo app, grátis mas sem garantia; ou na cadeia, garantido, pagando taxa de rede"),
+            .init("Cancelar", "Nas ordens abertas da carteira: pedido à CoW, grátis mas sem garantia, ou na cadeia, garantido, pagando taxa de rede"),
         ]
         let title = "Ordem limite: vender \(TradeText.amount(order.sellAmount, intent.sell)) por \(intent.buy.symbol)"
         // Os movimentos saem da ordem assinada: vende `sellAmount` (o nativo, quando o

@@ -123,4 +123,62 @@ struct XRPLTradeTests {
         await #expect(throws: SendEngineError.self) { _ = try await Self.engine(failed).submit(signed, plan: plan) }
         #expect(failed.calls.filter { $0.method == "submit" }.count == 1)
     }
+
+    @Test("Ordem limite ate cancelar: a oferta vai sem Expiration")
+    func limitOrderWithoutExpiry() async throws {
+        let plan = try await Self.engine(try N.fake()).planLimitOrder(LimitOrderRequest(
+            walletID: UUID(), chain: .xrpl, account: TestAccounts.xrpl, sell: Self.xrp, buy: Self.rlusd,
+            amountIn: 5_000_000, minimumOut: 8_000_000, validFor: nil
+        ))
+        let (transaction, offer) = try Self.offer(plan)
+        #expect(offer.expiration == nil && transaction.unsigned[.expiration] == nil)
+        #expect(plan.review.lines.contains { $0.label == "Validade" && $0.value.contains("Não expira") })
+        #expect(plan.review.outgoing == PlanReview.Movement(assetID: "xrpl:native", amount: 5_000_000))
+        #expect(plan.review.incomingMinimum == PlanReview.Movement(assetID: Self.rlusd.id, amount: 8_000_000))
+    }
+
+    /// `account_offers` do dono, montado aqui no formato do rippled: uma oferta de 5 XRP
+    /// por 8 RLUSD sem prazo, uma com prazo e uma de token fora da lista.
+    static func accountOffers(ledger: UInt32 = N.ledger) -> Data {
+        let rlusd = #"{"currency":"524C555344000000000000000000000000000000","issuer":"rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De","value":"8"}"#
+        let other = #"{"currency":"USD","issuer":"rvYAfWj5gh67oV6fW32ZzP3Aw4Eubs59B","value":"3"}"#
+        let json = """
+        {"result":{"account":"\(N.owner)","ledger_index":\(ledger),"validated":true,"offers":[
+        {"flags":131072,"quality":"0.0000016","seq":568900,"taker_gets":"5000000","taker_pays":\(rlusd)},
+        {"flags":131072,"quality":"0.0000016","seq":568901,"taker_gets":"5000000","taker_pays":\(rlusd),"expiration":843920000},
+        {"flags":0,"quality":"1","seq":568902,"taker_gets":"1000000","taker_pays":\(other)}
+        ],"status":"success"}}
+        """
+        return Data(json.utf8)
+    }
+
+    @Test("Ofertas abertas: dois servidores no mesmo ledger; OfferCancel so da oferta que ainda esta aberta")
+    func openOffersAndCancel() async throws {
+        let fake = try N.fake()
+        fake.on("account_offers") { _, params in
+            params["account"] as? String == N.owner ? Self.accountOffers() : nil
+        }
+        let engine = try Self.engine(fake)
+        let orders = try await engine.openOrders(account: TestAccounts.xrpl)
+        // A de token fora da lista fica de fora: sem as casas dela, a tela nao mostra o valor.
+        #expect(orders.map(\.id) == ["568900", "568901"])
+        let open = try #require(orders.first)
+        #expect(open.sell == Self.xrp && open.buyAssetID == Self.rlusd.id)
+        #expect(open.remainingSell == 5_000_000 && open.minimumBuy == 8_000_000)
+        #expect(open.expiresAt == nil && open.sources == 2 && open.cancellations == [.onchain])
+        #expect(orders[1].expiresAt == Date(timeIntervalSince1970: 946_684_800 + 843_920_000))
+        #expect(fake.calls.filter { $0.method == "account_offers" }.count == 2)
+
+        let plan = try await engine.planCancel(open, walletID: UUID(), account: TestAccounts.xrpl)
+        #expect(plan.review.kind == .cancelOrder && plan.review.title == "Cancelar a oferta 568900")
+        let transaction = try #require(plan.transactions.first as? XRPLTransaction)
+        guard case .offerCancel(let cancel) = transaction.body else { Issue.record("esperava OfferCancel"); return }
+        #expect(cancel.offerSequence == 568_900)
+
+        let gone = OpenOrder(id: "568899", chain: .xrpl, sellAssetID: open.sellAssetID, buyAssetID: open.buyAssetID,
+                             remainingSell: 1, minimumBuy: 1, expiresAt: nil, sources: 2, cancellations: [.onchain])
+        await #expect(throws: SendEngineError.message("Esta oferta não está mais aberta: já executou, venceu ou foi cancelada.")) {
+            _ = try await engine.planCancel(gone, walletID: UUID(), account: TestAccounts.xrpl)
+        }
+    }
 }

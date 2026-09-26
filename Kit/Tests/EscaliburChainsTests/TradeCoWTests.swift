@@ -145,6 +145,22 @@ struct TradeCoWTests {
         #expect(try EVMAddress(publicKey: recovered) == S.owner)
     }
 
+    @Test("Ate cancelar: validTo no maximo pratico da CoW, dito na revisao; prazo entre 30 dias e isso recusa")
+    func untilCancelled() throws {
+        let account = try T.account(T.testKey)
+        let intent = try CoWLimitOrderIntent(owner: S.owner, sell: .token(S.baseUSDC), buy: .native(.base), sellAmount: 100_000_000,
+                                             price: CoWLimitPrice("0.0004")!, validFor: CoWProtocol.untilCancelledValidity)
+        #expect(intent.isUntilCancelled)
+        let plan = try CoWPlanner.planLimitOrder(walletID: Self.wallet, account: account, intent: intent, state: Self.state(.base), now: Self.now)
+        #expect(plan.order.validTo == UInt32(Self.now.timeIntervalSince1970) + 364 * 24 * 3600)
+        let line = try #require(plan.signingPlan.review.lines.first { $0.label == "Válida até" })
+        #expect(line.value.contains("o prazo mais longo que a CoW aceita"))
+        #expect(throws: CoWRefusal.validityOutOfRange) {
+            try CoWLimitOrderIntent(owner: S.owner, sell: .token(S.baseUSDC), buy: .native(.base), sellAmount: 1,
+                                    price: CoWLimitPrice("1")!, validFor: 60 * 24 * 3600)
+        }
+    }
+
     @Test("Vender ETH: embrulha para WETH, aprova o WETH exato, ordem vende WETH")
     func planNativeOrder() throws {
         let account = try T.account(T.testKey)
@@ -207,6 +223,15 @@ struct TradeCoWTests {
         #expect(throws: EIP712Error.notAllowlisted) {
             try EIP712ValidatedMessage(far.typedData(), chain: .base, account: account,
                                        allowlist: [CoWPlanner.orderRule(chain: .base, order: far, now: Self.now)])
+        }
+        // "Ate cancelar" e exatamente o maximo pratico da CoW: passa; um dia alem, recusa.
+        for (days, allowed) in [(364, true), (365, false), (200, false)] {
+            let order = CoWOrder(chain: .base, sellToken: S.baseUSDC.contract, buyToken: CoWProtocol.buyNativeToken, receiver: S.owner,
+                                 sellAmount: 1, buyAmount: 1, validTo: UInt32(Self.now.timeIntervalSince1970) + UInt32(days) * 24 * 3600,
+                                 appData: CoWAppData.limitOrder.hash, partiallyFillable: true)
+            let result = Result { try EIP712ValidatedMessage(order.typedData(), chain: .base, account: account,
+                                                             allowlist: [CoWPlanner.orderRule(chain: .base, order: order, now: Self.now)]) }
+            #expect(((try? result.get()) != nil) == allowed, "\(days) dias")
         }
         // Destinatario diferente do dono tambem.
         let elsewhere = CoWOrder(chain: .base, sellToken: S.baseUSDC.contract, buyToken: CoWProtocol.buyNativeToken, receiver: S.stranger,

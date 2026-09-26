@@ -94,9 +94,12 @@ public struct LimitOrderRequest: Sendable {
     public let amountIn: BigUInt
     /// Quanto o dono recebe, calculado localmente a partir do preco-alvo digitado.
     public let minimumOut: BigUInt
-    public let validFor: TimeInterval
+    /// Por quanto tempo a ordem vale. nil: ate o dono cancelar. Na Stellar e no XRP Ledger
+    /// a oferta vai sem prazo; na CoW, que exige um, a ordem vale o maximo pratico do
+    /// protocolo (`CoWProtocol.untilCancelledValidity`) e a revisao diz isso.
+    public let validFor: TimeInterval?
 
-    public init(walletID: UUID, chain: Chain, account: DerivedAccount, sell: Asset, buy: Asset, amountIn: BigUInt, minimumOut: BigUInt, validFor: TimeInterval) {
+    public init(walletID: UUID, chain: Chain, account: DerivedAccount, sell: Asset, buy: Asset, amountIn: BigUInt, minimumOut: BigUInt, validFor: TimeInterval?) {
         self.walletID = walletID
         self.chain = chain
         self.account = account
@@ -108,16 +111,94 @@ public struct LimitOrderRequest: Sendable {
     }
 }
 
+/// Uma ordem limite aberta da conta, lida da rede.
+public struct OpenOrder: Sendable, Equatable, Identifiable {
+    /// Como a ordem pode ser cancelada.
+    public enum Cancellation: String, Sendable, Equatable, CaseIterable {
+        /// Pedido assinado ao protocolo (CoW), sem taxa de rede. Nao e garantido: um
+        /// solver que ja estiver liquidando ainda executa a ordem.
+        case offchain
+        /// Transacao na cadeia, com taxa de rede. Garantido depois que confirmar.
+        case onchain
+    }
+
+    /// O identificador na rede: o UID da CoW (hex com `0x`), a Sequence da transacao que
+    /// criou a oferta no XRP Ledger, o id da oferta na Stellar.
+    public let id: String
+    public let chain: Chain
+    /// O `Asset.id` do que a ordem vende e do que recebe, e o `Asset` da lista quando o
+    /// ativo esta nela (ordem criada fora da carteira pode ser de ativo fora da lista).
+    public let sellAssetID: String
+    public let buyAssetID: String
+    public let sell: Asset?
+    public let buy: Asset?
+    /// O que ainda falta vender, na menor unidade.
+    public let remainingSell: BigUInt
+    /// O minimo que a ordem recebe pelo que ainda falta vender, pelo preco gravado.
+    public let minimumBuy: BigUInt
+    /// Quando a ordem vence sozinha. nil: nao vence, fica ate executar ou ser cancelada.
+    public let expiresAt: Date?
+    /// Quantas fontes independentes mostraram a ordem (1 onde o protocolo so tem uma API).
+    public let sources: Int
+    /// Os jeitos de cancelar esta ordem, do preferido para o outro.
+    public let cancellations: [Cancellation]
+
+    public init(
+        id: String, chain: Chain, sellAssetID: String, buyAssetID: String, remainingSell: BigUInt, minimumBuy: BigUInt,
+        expiresAt: Date?, sources: Int, cancellations: [Cancellation]
+    ) {
+        self.id = id
+        self.chain = chain
+        self.sellAssetID = sellAssetID
+        self.buyAssetID = buyAssetID
+        self.sell = Self.listed(sellAssetID, chain: chain)
+        self.buy = Self.listed(buyAssetID, chain: chain)
+        self.remainingSell = remainingSell
+        self.minimumBuy = minimumBuy
+        self.expiresAt = expiresAt
+        self.sources = sources
+        self.cancellations = cancellations
+    }
+
+    static func listed(_ id: String, chain: Chain) -> Asset? {
+        TokenRegistry.assets(on: chain).first { $0.id == id }
+    }
+}
+
 /// O motor de troca de uma rede: cotar entre provedores, montar o plano validado,
 /// transmitir. Ordens limite quando a rede tem protocolo nao custodial para elas.
 public protocol TradeEngine: Sendable {
     func quote(_ request: TradeRequest) async throws -> TradeQuote
     func plan(_ request: TradeRequest, quote: TradeQuote) async throws -> SigningPlan
     func planLimitOrder(_ request: LimitOrderRequest) async throws -> SigningPlan
+    /// Transmite qualquer plano deste motor: troca, ordem limite e cancelamento.
     func submit(_ signed: [SignedTransaction], plan: SigningPlan) async throws -> [String]
     var supportsLimitOrders: Bool { get }
     /// Onde fica o dinheiro enquanto a ordem espera, dito como fato.
     var limitCustodyNote: String { get }
+
+    /// As ordens limite abertas da conta, lidas da rede (das duas fontes quando o leitor
+    /// tem duas). Onde nao ha ordem limite, `SendEngineError.unavailable`.
+    func openOrders(account: DerivedAccount) async throws -> [OpenOrder]
+    /// O plano que cancela a ordem, por um dos jeitos que `order.cancellations` oferece.
+    /// O plano sai com `kind == .cancelOrder` e vai para `submit` como os outros.
+    func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan
+}
+
+extension TradeEngine {
+    public func openOrders(account: DerivedAccount) async throws -> [OpenOrder] {
+        throw SendEngineError.unavailable("Ordens limite ainda não estão disponíveis nesta rede.")
+    }
+
+    public func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan {
+        throw SendEngineError.unavailable("Ordens limite ainda não estão disponíveis nesta rede.")
+    }
+
+    /// Cancela pelo jeito preferido da ordem.
+    public func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount) async throws -> SigningPlan {
+        guard let via = order.cancellations.first else { throw SendEngineError.unavailable("Esta ordem não pode ser cancelada pela carteira.") }
+        return try await planCancel(order, walletID: walletID, account: account, via: via)
+    }
 }
 
 public enum TradeEngines {

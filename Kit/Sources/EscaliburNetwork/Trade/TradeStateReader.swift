@@ -369,6 +369,18 @@ public actor TradeStateReader {
                              openOrdersSellTotal: openOrdersSellTotal)
     }
 
+    /// O estado do cancelamento na cadeia de uma ordem da CoW: `invalidateOrder(uid)` no
+    /// GPv2Settlement, com o gas medido da chamada exata e a taxa L1 dela.
+    public func readCancellation(chain: Chain, owner: EVMAddress, uid: [UInt8], localNextNonce: UInt64? = nil) async throws -> EVMNetworkState {
+        let data = try CoWProtocol.invalidateOrderCall(uid: uid)
+        let gas = try await gasUsed(chain: chain, calls: [.init(from: owner, to: CoWProtocol.settlement, value: 0, data: data)]).first ?? 0
+        let l1Gas = try await arbitrumL1Gas(chain: chain, to: CoWProtocol.settlement, data: data)
+        return try await network(
+            chain: chain, owner: owner, localNextNonce: localNextNonce, gasEstimate: gas + l1Gas,
+            l1DataFee: try await l1DataFee(chain: chain, calldataSize: data.count), destinationHasCode: true
+        )
+    }
+
     /// Gas de cada chamada: pela simulacao (duas fontes, o maior) ou, sem ela, por
     /// `eth_estimateGas` chamada a chamada.
     func gasUsed(chain: Chain, calls: [TradeSimulationRequest.Call]) async throws -> [UInt64] {

@@ -99,7 +99,8 @@ struct XRPLTradeEngine: TradeEngine {
         try XRPLEngineSupport.owner(request.account)
         return try await offerPlan(
             walletID: request.walletID, account: request.account, sell: sell, buy: buy, give: request.amountIn, receive: request.minimumOut,
-            expiration: Date().addingTimeInterval(request.validFor), timeInForce: .goodTilExpiration
+            // Sem prazo pedido, a oferta vai sem Expiration: fica ate executar ou o dono cancelar.
+            expiration: request.validFor.map { Date().addingTimeInterval($0) }, timeInForce: .goodTilExpiration
         )
     }
 
@@ -163,6 +164,66 @@ struct XRPLTradeEngine: TradeEngine {
               case .offerCreate(let offer) = transaction.body,
               offer.takerGets == (try sell.amount(give)), offer.takerPays == (try buy.amount(receive)), offer.options == expected
         else { throw XRPLPlanError.transaction(.redundant) }
+    }
+
+    // MARK: Ordens abertas
+
+    /// As ofertas abertas da conta, lidas em dois servidores no mesmo ledger. So as de XRP
+    /// e tokens da lista: o valor de um token sai das casas que a lista da a ele, e sem
+    /// elas a tela nao teria como mostrar nem conferir a oferta.
+    func openOrders(account: DerivedAccount) async throws -> [OpenOrder] {
+        do {
+            let owner = try XRPLEngineSupport.owner(account)
+            let offers = try await reader.accountOffers(account: owner)
+            return offers.compactMap(openOrder)
+        } catch {
+            throw XRPLEngineSupport.translate(error)
+        }
+    }
+
+    func openOrder(_ offer: XRPLAccountOffer) -> OpenOrder? {
+        guard let sell = listed(offer.takerGets), let buy = listed(offer.takerPays),
+              let remaining = XRPLUnits.units(offer.takerGets, decimals: sell.decimals, roundingUp: false),
+              let minimum = XRPLUnits.units(offer.takerPays, decimals: buy.decimals, roundingUp: true)
+        else { return nil }
+        return OpenOrder(
+            id: String(offer.sequence), chain: .xrpl, sellAssetID: sell.id, buyAssetID: buy.id,
+            remainingSell: remaining, minimumBuy: minimum,
+            expiresAt: offer.expiration.map { Date(timeIntervalSince1970: XRPLPlanner.rippleEpoch + TimeInterval($0)) },
+            sources: 2, cancellations: [.onchain]
+        )
+    }
+
+    /// O `Asset` da carteira de um lado da oferta: XRP, ou token da lista pela moeda e emissor.
+    func listed(_ amount: XRPLAmount) -> Asset? {
+        switch amount {
+        case .xrp: return Asset.native(.xrpl)
+        case .issued(let issued):
+            return tokens.first { XRPLEngineSupport.curated($0).map { $0.currency == issued.currency && $0.issuer == issued.issuerAddress } ?? false }
+        }
+    }
+
+    /// `OfferCancel` da oferta, depois de conferir nos dois servidores que ela ainda esta
+    /// aberta: cancelar a que nao existe so gastaria a taxa.
+    func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan {
+        guard via == .onchain, order.chain == .xrpl, let sequence = UInt32(order.id) else {
+            throw SendEngineError.message("Esta oferta não é do XRP Ledger.")
+        }
+        do {
+            let owner = try XRPLEngineSupport.owner(account)
+            async let offers = reader.accountOffers(account: owner)
+            async let ledgerState = reader.ledgerState()
+            async let accountState = reader.accountState(address: owner)
+            guard try await offers.contains(where: { $0.sequence == sequence }) else {
+                throw SendEngineError.message("Esta oferta não está mais aberta: já executou, venceu ou foi cancelada.")
+            }
+            return try XRPLPlanner.planCancelOffer(
+                XRPLCancelOfferIntent(offerSequence: sequence), signer: try .init(path: account.path, publicKey: account.publicKey),
+                account: try await accountState, ledger: try await ledgerState, walletID: walletID
+            )
+        } catch {
+            throw XRPLEngineSupport.translate(error)
+        }
     }
 
     // MARK: Transmissao

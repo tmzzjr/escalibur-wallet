@@ -42,7 +42,7 @@ public struct EVMTradeEngine: TradeEngine {
 
     public var limitCustodyNote: String {
         guard supportsLimitOrders else { return "Ordens limite ainda não estão disponíveis na \(chain.name)." }
-        return "O valor fica na sua carteira até a ordem executar. Você pode cancelar a qualquer momento."
+        return "O valor fica na sua carteira até a ordem executar. Para cancelar, abra as ordens abertas: grátis pela CoW, sem garantia, ou na cadeia, garantido, com taxa de rede."
     }
 
     // MARK: Cotacao
@@ -301,8 +301,9 @@ public struct EVMTradeEngine: TradeEngine {
         // exatamente esse minimo, nem um wei a menos.
         let price = try Self.limitPrice(minimumOut: request.minimumOut, sellAmount: request.amountIn,
                                         sellDecimals: sell.decimals, buyDecimals: buy.decimals)
+        // Sem prazo pedido ("ate cancelar"): a CoW exige um, e vale o maximo pratico dela.
         let intent = try CoWLimitOrderIntent(owner: account.address, sell: sell, buy: buy, sellAmount: request.amountIn,
-                                             price: price, validFor: request.validFor)
+                                             price: price, validFor: request.validFor ?? CoWProtocol.untilCancelledValidity)
         guard intent.buyAmount == request.minimumOut, let sellToken = intent.orderSellToken else {
             throw EVMEngineFailure.limitPriceNotRepresentable
         }
@@ -353,6 +354,7 @@ public struct EVMTradeEngine: TradeEngine {
             switch plan.review.kind {
             case .swap: return try await submitSwap(signed, plan: plan)
             case .limitOrder: return [try await submitLimitOrder(signed, plan: plan)]
+            case .cancelOrder: return try await submitCancellation(signed, plan: plan)
             default: throw EVMEngineFailure.batchMismatch
             }
         } catch {
@@ -401,6 +403,84 @@ public struct EVMTradeEngine: TradeEngine {
             }
         }
         throw EVMEngineFailure.prerequisiteTimedOut
+    }
+
+    // MARK: Ordens abertas
+
+    /// As ordens abertas do dono na CoW, a unica fonte do livro de ordens: cada uma com o
+    /// UID conferido, o que falta vender e o minimo pelo preco gravado. Cancela pela CoW
+    /// (gratis, sem garantia) ou na cadeia (garantido, com taxa).
+    public func openOrders(account: DerivedAccount) async throws -> [OpenOrder] {
+        do {
+            guard supportsLimitOrders else { throw EVMEngineFailure.limitOrdersUnavailable }
+            let owner = try EVMEngineSupport.account(account, chain: chain)
+            let orders = try await services.cow.openOrders(owner: owner.address, chain: chain, now: Date())
+            return orders.map(Self.openOrder(chain: chain))
+        } catch {
+            throw EVMEngineMessages.userFacing(error, .cancellation, chain: chain)
+        }
+    }
+
+    static func openOrder(chain: Chain) -> (CoWOrderStatus) -> OpenOrder {
+        { status in
+            let remaining = status.remainingSellAmount
+            // O minimo pelo que falta: a mesma razao da ordem assinada, para cima.
+            let minimum = status.sellAmount.isZero ? BigUInt()
+                : (status.buyAmount * remaining + status.sellAmount - BigUInt(1)) / status.sellAmount
+            return OpenOrder(
+                id: Hex.encode(status.uid, prefix: true), chain: chain,
+                sellAssetID: assetID(status.sellToken, chain: chain), buyAssetID: assetID(status.buyToken, chain: chain),
+                remainingSell: remaining, minimumBuy: minimum,
+                expiresAt: Date(timeIntervalSince1970: TimeInterval(status.validTo)), sources: 1,
+                cancellations: [.offchain, .onchain]
+            )
+        }
+    }
+
+    /// O `Asset.id` de um token da ordem: a sentinela da CoW e o nativo; o resto, o token
+    /// da lista (ou rede e contrato, fora dela).
+    static func assetID(_ token: EVMAddress, chain: Chain) -> String {
+        if token == CoWProtocol.buyNativeToken { return Asset.native(chain).id }
+        return TokenRegistry.find(chainID: chain.id, contract: token.checksummed)?.id ?? "\(chain.id):\(token.checksummed)"
+    }
+
+    /// Fora da cadeia: o `OrderCancellations` da CoW. Na cadeia: `invalidateOrder(uid)`,
+    /// com o gas da chamada exata e o nonce de duas fontes.
+    public func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation) async throws -> SigningPlan {
+        switch via {
+        case .offchain:
+            return try planLimitOrderCancellation(walletID: walletID, account: account, orderUIDs: [order.id])
+        case .onchain:
+            do {
+                guard supportsLimitOrders, order.chain.id == chain.id else { throw EVMEngineFailure.limitOrdersUnavailable }
+                let owner = try EVMEngineSupport.account(account, chain: chain)
+                guard order.id.hasPrefix("0x"), let uid = Hex.decode(order.id), uid.count == CoWProtocol.uidLength else {
+                    throw EVMEngineFailure.invalidOrderReference
+                }
+                let state = try await services.chainState.readCancellation(chain: chain, owner: owner.address, uid: uid, localNextNonce: nil)
+                return try CoWPlanner.planOnchainCancellation(walletID: walletID, account: owner, chain: chain, uid: uid, state: state)
+            } catch {
+                throw EVMEngineMessages.userFacing(error, .cancellation, chain: chain)
+            }
+        }
+    }
+
+    /// O cancelamento assinado: o fora da cadeia vai a CoW e devolve os UIDs; o da cadeia
+    /// e transmitido pela rota publica e devolve o id da transacao.
+    func submitCancellation(_ signed: [SignedTransaction], plan: SigningPlan) async throws -> [String] {
+        if plan.transactions.first is EIP712ValidatedMessage {
+            try await submitLimitOrderCancellation(signed, plan: plan)
+            guard let message = plan.transactions.first as? EIP712ValidatedMessage,
+                  case .array(let items)? = message.typedData.message["orderUids"]
+            else { throw EVMEngineFailure.batchMismatch }
+            return items.compactMap { if case .string(let text) = $0 { return text } else { return nil } }
+        }
+        let transactions = plan.transactions.compactMap { $0 as? EVMTransaction }
+        guard transactions.count == 1, plan.transactions.count == 1, transactions[0].to == CoWProtocol.settlement else {
+            throw EVMEngineFailure.batchMismatch
+        }
+        let ordered = try EVMEngineSupport.pairs(signed, transactions)
+        return try await EVMEngineSupport.broadcast(ordered, chain: chain, route: .publicMempool, reader: services.reader)
     }
 
     // MARK: Cancelamento fora da cadeia

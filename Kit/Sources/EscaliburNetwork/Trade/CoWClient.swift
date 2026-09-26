@@ -186,17 +186,27 @@ public struct CoWClient: Sendable {
     /// Soma do que ainda falta vender nas ordens abertas do dono para um token: a regra
     /// de "uma ordem aberta por token vendido" (docs/seguranca.md 4.5).
     public func openSellTotal(owner: EVMAddress, sellToken: EVMAddress, chain: Chain) async throws -> BigUInt {
+        try await openOrders(owner: owner, chain: chain)
+            .filter { $0.sellToken == sellToken }
+            .reduce(BigUInt()) { $0 + $1.remainingSellAmount }
+    }
+
+    /// As ordens abertas do dono (`GET /account/{dono}/orders`): so as do proprio dono,
+    /// abertas, nao invalidadas na cadeia e ainda no prazo, cada uma com o UID conferido
+    /// (dono e validTo gravados nele). A CoW e a unica fonte do livro de ordens.
+    public func openOrders(owner: EVMAddress, chain: Chain, now: Date = .now) async throws -> [CoWOrderStatus] {
         let url = try TradeWire.url(try api(chain), "account/\(TradeWire.lower(owner))/orders", [("limit", "1000")])
         let data = try await client.get(url, timeout: 10)
+        return try Self.openOrders(data, owner: owner, now: now)
+    }
+
+    static func openOrders(_ data: Data, owner: EVMAddress, now: Date) throws -> [CoWOrderStatus] {
         let responses: [OrderResponse]
         do { responses = try JSONDecoder().decode([OrderResponse].self, from: data) } catch { throw CoWClientError.badResponse("ordens") }
-        var total = BigUInt()
-        for response in responses {
-            let status = try Self.status(response)
-            guard status.owner == owner, status.status == .open, !status.invalidated, status.sellToken == sellToken else { continue }
-            total = total + status.remainingSellAmount
+        let current = UInt32(clamping: Int64(now.timeIntervalSince1970))
+        return try responses.map(Self.status).filter {
+            $0.owner == owner && $0.status == .open && !$0.invalidated && $0.validTo > current && !$0.remainingSellAmount.isZero
         }
-        return total
     }
 
     // MARK: Cancelamento fora da cadeia
