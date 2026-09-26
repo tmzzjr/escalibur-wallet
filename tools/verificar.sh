@@ -139,8 +139,8 @@ achados=$(procurar '\.random\(|randomElement|shuffled\(\)|arc4random|drand48|\br
 secao "chaveiro e biometria"
 achados=$(swift_em "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET" | xargs grep -lE 'SecItemAdd|SecItemUpdate|SecKeyCreateRandomKey' 2>/dev/null | grep -vE "$KEYS/(SecretStore|Enclave)\.swift")
 [ -n "$achados" ] && { aviso "chamada ao chaveiro fora de SecretStore/Enclave"; echo "$achados"; } || ok "chaveiro so em SecretStore.swift e Enclave.swift"
-achados=$(procurar 'AfterFirstUnlock|AccessibleAlways|SynchronizableAny|\.userPresence|\.devicePasscode|\.biometryAny|kSecAttrSynchronizable as String: kCFBooleanTrue' "$APP" "$KEYS")
-[ -n "$achados" ] && { aviso "protecao fraca de chaveiro ou biometria"; echo "$achados"; } || ok "sem userPresence, devicePasscode, biometryAny, AfterFirstUnlock"
+achados=$(procurar 'AfterFirstUnlock|AccessibleAlways|kSecAttrAccessibleWhenUnlocked\b|SynchronizableAny|\.userPresence|\.devicePasscode|\.biometryAny|\.or\b|kSecAttrSynchronizable as String: kCFBooleanTrue' "$APP" "$KEYS")
+[ -n "$achados" ] && { aviso "protecao fraca de chaveiro ou biometria"; echo "$achados"; } || ok "sem userPresence, devicePasscode, biometryAny, .or, AfterFirstUnlock, WhenUnlocked sem ThisDeviceOnly"
 if ! grep -q 'kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly' "$KEYS/SecretStore.swift"; then aviso "WhenPasscodeSetThisDeviceOnly sumiu"; else ok "itens em WhenPasscodeSetThisDeviceOnly"; fi
 # A unica excecao (simulador) precisa estar atras de targetEnvironment(simulator).
 excecao=$(awk '/#if targetEnvironment\(simulator\)/{d=1} /#else|#endif/{d=0} /kSecAttrAccessibleWhenUnlockedThisDeviceOnly/{ if(!d) print FILENAME": "NR }' "$KEYS/SecretStore.swift")

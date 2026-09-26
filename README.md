@@ -8,6 +8,8 @@ As chaves ficam no iPhone do dono. Não existe conta, e-mail nem servidor que gu
 
 Bitcoin, Litecoin, Dogecoin, Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Solana, XRP Ledger, Stellar, Tron e TON. Cada carteira é uma frase BIP-39, derivada pelos caminhos padrão de cada rede. Por isso a mesma frase abre a carteira em Ledger, Trust Wallet, MetaMask, Phantom, Xaman, Lobstr e Tonkeeper.
 
+Enviar e ver o histórico funcionam em todas. Trocar funciona nas redes EVM (menos Avalanche), Solana, XRP Ledger e Stellar; ordem limite nas EVM (menos Optimism), XRP Ledger e Stellar. O que cada rede faz e onde para está em [`docs/redes/motores.md`](docs/redes/motores.md).
+
 ## O que este app promete, e o que não promete
 
 Não existe "impenetrável", e a palavra não aparece no app. O que existe é custo, e cada defesa diz quanto custa quebrá-la e onde ela para. O modelo de ameaça completo, com os riscos aceitos e os números, está em [`docs/seguranca.md`](docs/seguranca.md).
@@ -25,7 +27,7 @@ A carteira lacra e abre o mesmo arquivo `.esclbr` do app [Escalibur](../escalibu
 ## Construir e conferir
 
 ```
-cd Kit && swift test                 # 276 testes com vetores oficiais de cada rede
+cd Kit && swift test                 # mais de 830 testes: vetores oficiais de cada rede e respostas gravadas dos provedores
 ./tools/verificar.sh --testes        # as afirmações acima, conferidas por script
 xcodegen generate                    # gera EscaliburWallet.xcodeproj a partir de project.yml
 xcodebuild -project EscaliburWallet.xcodeproj -scheme EscaliburWallet -sdk iphonesimulator build
