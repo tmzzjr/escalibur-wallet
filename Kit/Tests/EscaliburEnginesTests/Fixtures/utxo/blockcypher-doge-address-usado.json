@@ -1,0 +1,39 @@
+{
+  "address": "DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC",
+  "total_received": 216397345678,
+  "total_sent": 216397345678,
+  "balance": 0,
+  "unconfirmed_balance": 0,
+  "final_balance": 0,
+  "n_tx": 13,
+  "unconfirmed_n_tx": 0,
+  "final_n_tx": 13,
+  "txrefs": [
+    {
+      "tx_hash": "8a9fad9305b739ee3353dfab8d6312478643b5089d204e4a575d6a6e3bea6cc5",
+      "block_height": 6116929,
+      "tx_input_n": 0,
+      "tx_output_n": -1,
+      "value": 214674000000,
+      "ref_balance": 0,
+      "confirmations": 273117,
+      "confirmed": "2026-03-09T19:54:16Z",
+      "double_spend": false
+    },
+    {
+      "tx_hash": "d1e3b968a736cf5289af27fe510ea3b5ba086b52dbeba9f927fd0f8658b399ca",
+      "block_height": 6116929,
+      "tx_input_n": -1,
+      "tx_output_n": 0,
+      "value": 214674000000,
+      "ref_balance": 214674000000,
+      "spent": true,
+      "spent_by": "8a9fad9305b739ee3353dfab8d6312478643b5089d204e4a575d6a6e3bea6cc5",
+      "confirmations": 273117,
+      "confirmed": "2026-03-09T19:54:16Z",
+      "double_spend": false
+    }
+  ],
+  "hasMore": true,
+  "tx_url": "https://api.blockcypher.com/v1/doge/main/txs/"
+}

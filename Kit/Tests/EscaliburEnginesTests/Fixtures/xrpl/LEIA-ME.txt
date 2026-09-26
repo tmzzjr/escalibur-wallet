@@ -1,0 +1,29 @@
+Respostas gravadas do XRP Ledger em 2026-09-26 (UTC), para os testes do motor XRPL
+(Tests/EscaliburEnginesTests/XRPL). Contas publicas; nenhum dado de usuario.
+
+Todas as leituras de conta e de livro foram feitas no mesmo ledger validado, 107244179,
+em dois servidores: xrplcluster.com (rippled, arquivos "-rippled") e s2.ripple.com
+(Clio, arquivos "-clio"), como o leitor faz.
+
+  ledger-validated.json               ledger, ledger_index "validated" (xrplcluster)
+  server_info.json, fee.json          server_info e fee (xrplcluster)
+  account_info-dono-*.json            rEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh (a conta "do dono" nos testes)
+  account_info-exchange-*.json        rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh (RequireDest e DisallowXRP)
+  account_info-comum-*.json           rJb5KsHsDHF1YS5B5DU6QCkH5NsPaKQTcy (sem flags)
+  account_info-inexistente-*.json     rrrrrrrrrrrrrrrrrrrrrhoLvTp (actNotFound)
+  account_lines-dono-*.json           account_lines do dono com peer = emissor do RLUSD (nenhuma linha)
+  book_offers-compra-rlusd-*.json     book_offers, taker_gets RLUSD (rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De,
+                                      moeda 524C555344000000000000000000000000000000), taker_pays XRP, 10 ofertas
+  book_offers-venda-rlusd-*.json      o livro contrario, 10 ofertas
+  account_tx-exchange.json            account_tx de rHb9CJAW... (30 transacoes, api_version 2),
+                                      sem meta.AffectedNodes (o leitor nao le)
+  tx-validado.json                    tx 692B5317FE8FB841C8F3F1EBA99E9F525191055F4F107F01876F8C62ECE83D0E,
+                                      sem meta.AffectedNodes
+  tx-nao-achado.json                  tx de um hash que nao existe, com min_ledger e max_ledger (searched_all)
+
+O emissor do RLUSD foi conferido por gateway_balances no mesmo dia (obrigacoes em RLUSD).
+A lista curada da carteira ainda nao tem token do XRP Ledger; os testes da troca passam o
+RLUSD ao motor como lista curada de teste.
+
+O que os testes montam, e dizem onde: a resposta de `submit` (transmissao), e o ledger
+validado mais adiante no caso de transacao vencida.

@@ -1,0 +1,32 @@
+Respostas gravadas dos provedores em 2026-09-26 (UTC), para os testes do motor UTXO
+(Tests/EscaliburEnginesTests/UTXO). Contas publicas; nenhum dado de usuario.
+
+A conta dos testes e a da frase "abandon" x11 + "about" (vetor publico do BIP-39),
+derivada pelo AccountDeriver: bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu no Bitcoin
+(m/84'/0'/0'/0/0) e DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC no Dogecoin (m/44'/3'/0'/0/0).
+
+Esplora (mempool.space, blockstream.info, mempool.emzy.de):
+  esplora-address-usado.json      GET /address/bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu
+  esplora-address-troco0.json     GET /address/bc1q8c6fshw2dlwun7ekn9qwf37cu2rn755upcp6el (troco 0 da conta)
+  esplora-address-vazio.json      GET /address/bc1q4h7w2n6jnvs4fc7rvxa78a75rkcxx4cha6sptp (endereco sem uso;
+                                  o teste troca o endereco para responder por qualquer um sem historico)
+  esplora-txs.json                GET /address/bc1qcr8te.../txs, cortada nas 8 primeiras
+  esplora-tx-hex-moeda.txt        GET /tx/3cf90b5e9f1f4af0c43117c3698636286e90153361f6868e91364b1a8cb279f5/hex
+  esplora-tip-height.txt          GET mempool.space /blocks/tip/height
+  esplora-fees-precise.json       GET mempool.space /v1/fees/precise
+  esplora-fee-estimates.json      GET blockstream.info /fee-estimates
+  emzy-fees-recommended.json      GET mempool.emzy.de /v1/fees/recommended (o emzy nao tem /precise)
+  esplora-tx-status-mempool.json, esplora-tx-status-blockstream.json
+                                  GET /tx/fd4b2c20cea81c2319f460114d2303b2dc3494524cc07cde015eebb38033cdcd/status
+Blockcypher e Blockchair (Dogecoin):
+  blockcypher-doge-chain.json     GET /v1/doge/main
+  blockcypher-doge-address-usado.json  GET /v1/doge/main/addrs/DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC?limit=1
+  blockcypher-doge-address-vazio.json  GET /v1/doge/main/addrs/DM14Px1dMV2VmdoeE5RekqL3L7cSJMg8b4?limit=1
+  blockcypher-doge-tx-moeda.json  GET /v1/doge/main/txs/d1e3b968...?includeHex=true, reduzida aos campos lidos
+                                  (hash, block_height, confirmations, hex)
+  blockchair-doge-stats.json      GET /dogecoin/stats, reduzida aos campos lidos
+
+O que os testes montam, e dizem onde: a lista de moedas nao gastas. As duas moedas usadas
+(3cf90b5e...:0 e d1e3b968...:0) sao saidas reais para a conta, mas ja foram gastas na
+rede; o teste as lista como nao gastas apontando para a transacao gravada, que o leitor
+confere pelo txid. A transmissao tambem e respondida pelo teste.
