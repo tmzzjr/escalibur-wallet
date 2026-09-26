@@ -13,6 +13,9 @@ struct RecordWordsView: View {
     @State private var group = 0
     @State private var secondsLeft = 60
     @State private var hidden = false
+    /// As tres palavras do grupo atual. Carregadas ao trocar de grupo, soltas ao
+    /// esconder e ao sair; `body` so le daqui.
+    @State private var shown: [String] = []
     @Environment(\.scenePhase) private var scenePhase
 
     private let perGroup = 3
@@ -50,10 +53,22 @@ struct RecordWordsView: View {
         .background(Palette.void.ignoresSafeArea())
         .guardedAgainstCapture()
         .task(id: group) { await countdown() }
+        .onChange(of: group, initial: true) { _, _ in load() }
+        .onChange(of: hidden) { _, isHidden in if isHidden { shown = [] } else { load() } }
+        .onDisappear { shown = [] }
         .onChange(of: scenePhase) { _, phase in
             // Em segundo plano as palavras escondem e o tempo reinicia.
             if phase != .active { hidden = true; secondsLeft = window }
         }
+    }
+
+    private func load() {
+        guard !isPassphraseGroup, !hidden else {
+            shown = []
+            return
+        }
+        let start = group * perGroup
+        shown = draft.words(start..<min(start + perGroup, draft.wordCount))
     }
 
     private var subtitle: String {
@@ -79,10 +94,9 @@ struct RecordWordsView: View {
                         plateRow(index: nil, word: passphrase ?? "")
                     } else {
                         let start = group * perGroup
-                        let words = draft.words(start..<min(start + perGroup, draft.wordCount))
-                        ForEach(Array(words.enumerated()), id: \.offset) { offset, word in
+                        ForEach(Array(shown.enumerated()), id: \.offset) { offset, word in
                             plateRow(index: start + offset + 1, word: word)
-                            if offset < words.count - 1 {
+                            if offset < shown.count - 1 {
                                 Rectangle().fill(Palette.plateRule).frame(height: 1).padding(.leading, Space.base)
                             }
                         }
@@ -170,7 +184,7 @@ struct ConfirmWordsView: View {
     @State private var typed = ""
     @State private var error: String?
     @State private var misses: [Int: Int] = [:]
-    @FocusState private var focused: Bool
+    @State private var focused = false
 
     private var suggestions: [String] {
         guard typed.count >= 2, let list = try? WordlistStore.shared.wordlist(for: .english) else { return [] }
@@ -185,16 +199,7 @@ struct ConfirmWordsView: View {
                     .typeStyle(.heading).foregroundStyle(Palette.ink).padding(.top, Space.lg)
                 Text("\(current + 1) de \(positions.count)").typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xxs)
 
-                TextField("", text: $typed, prompt: Text("palavra \(positions[current] + 1)").foregroundColor(Palette.inkDead))
-                    .font(.system(size: 20, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Palette.ink)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.asciiCapable)
-                    .textContentType(nil)
-                    .focused($focused)
-                    .submitLabel(.done)
-                    .onSubmit(check)
+                WordInputField(text: $typed, isFocused: $focused, placeholder: "palavra \(positions[current] + 1)", onSubmit: check)
                     .padding(.horizontal, Space.md)
                     .frame(height: 56)
                     .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)

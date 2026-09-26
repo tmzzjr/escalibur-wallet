@@ -79,7 +79,7 @@ struct ImportPhraseView: View {
     @State private var message: String?
     @State private var pasteNotice = false
     @State private var working = false
-    @FocusState private var focused: Bool
+    @State private var focused = false
 
     private var suggestions: [String] {
         let prefix = Mnemonic.canonicalize(typed)
@@ -210,16 +210,7 @@ struct ImportPhraseView: View {
 
     private var wordInput: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
-            TextField("", text: $typed, prompt: Text("Palavra \(entry.active + 1)").foregroundColor(Palette.inkDead))
-                .font(.system(size: 18, weight: .medium, design: .monospaced))
-                .foregroundStyle(Palette.ink)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.asciiCapable)
-                .textContentType(nil)
-                .focused($focused)
-                .submitLabel(.next)
-                .onSubmit { commit(typed) }
+            WordInputField(text: $typed, isFocused: $focused, placeholder: "Palavra \(entry.active + 1)", fontSize: 18, returnKey: .next) { commit(typed) }
                 .padding(.horizontal, Space.md)
                 .frame(height: Height.field)
                 .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
@@ -262,7 +253,10 @@ struct ImportPhraseView: View {
                 if usesPassphrase { passphrase.withUnsafeBytes { pass.append(contentsOf: $0.bindMemory(to: UInt8.self)) } }
                 let secret = try WalletSecret.from(phrase: phrase, language: language, passphrase: pass)
                 phrase.wipe()
-                guard let credential = await auth.credential(reason: "Guardar a carteira importada neste iPhone") else { return }
+                guard let credential = await auth.credential(reason: "Guardar a carteira importada neste iPhone") else {
+                    secret.wipe()
+                    return
+                }
                 let name = "Carteira \(session.metadata.wallets.count + 1)"
                 _ = try await session.addWallet(secret: secret, name: session.metadata.wallets.isEmpty ? "Carteira principal" : name,
                                                 origin: .importedPhrase, wordCount: entry.count, backupConfirmed: true, credential: credential)

@@ -198,7 +198,10 @@ struct OpenEnvelopeFlow: View {
             contents.passphrase.withUnsafeBytes { passCopy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
             let secret = try WalletSecret.from(phrase: phraseCopy, language: contents.language, passphrase: passCopy)
             phraseCopy.wipe()
-            guard let credential = await auth.credential(reason: "Guardar a carteira do envelope neste iPhone") else { return }
+            guard let credential = await auth.credential(reason: "Guardar a carteira do envelope neste iPhone") else {
+                secret.wipe()
+                return
+            }
             let name = contents.label.isEmpty ? "Carteira \(session.metadata.wallets.count + 1)" : contents.label
             _ = try await session.addWallet(secret: secret, name: name, origin: .importedEnvelope, wordCount: words, backupConfirmed: true, credential: credential)
             close()

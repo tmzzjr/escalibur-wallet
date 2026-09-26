@@ -18,13 +18,18 @@ public struct WalletSecret: Sendable {
         self.passphrase = passphrase
     }
 
-    /// A partir de uma frase ja canonica e validada.
+    /// A partir de uma frase ja canonica e validada. Fica com a 25a palavra (quem
+    /// chama passa uma copia e nao a zera depois), gravada ja em NFKD: a seed de hoje
+    /// e a de qualquer outra carteira BIP-39 sao a mesma, e derivar nunca precisa
+    /// normalizar de novo.
     public static func from(phrase: SecureBytes, language: BIP39Language, passphrase: SecureBytes? = nil) throws -> WalletSecret {
-        WalletSecret(
-            entropy: try BIP39.entropy(fromPhrase: phrase, language: language),
-            language: language,
-            passphrase: passphrase ?? SecureBytes(capacity: 1)
-        )
+        let entropy = try BIP39.entropy(fromPhrase: phrase, language: language)
+        var stored = passphrase ?? SecureBytes(capacity: 1)
+        if let passphrase, passphrase.withUnsafeBytes({ raw in raw.contains { $0 >= 0x80 } }) {
+            stored = BIP39.nfkd(passphrase)
+            passphrase.wipe()
+        }
+        return WalletSecret(entropy: entropy, language: language, passphrase: stored)
     }
 
     public func phrase() throws -> SecureBytes {

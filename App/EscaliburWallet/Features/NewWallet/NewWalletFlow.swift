@@ -20,15 +20,39 @@ final class PhraseDraft {
         self.wordCount = wordCount
     }
 
-    /// As palavras de `range` (base 0). Vida curta: so para desenhar a placa.
+    /// As palavras de `range` (base 0), tiradas direto dos bytes: so as tres da placa
+    /// viram `String`, nunca a frase inteira. Quem chama guarda em estado da tela e
+    /// solta ao trocar de grupo; nunca chamar de dentro de `body`.
     func words(_ range: Range<Int>) -> [String] {
-        let all = phrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }.split(separator: " ").map(String.init)
-        return range.compactMap { all.indices.contains($0) ? all[$0] : nil }
+        phrase.withUnsafeBytes { raw in
+            let spans = Self.spans(raw)
+            return range.compactMap { spans.indices.contains($0) ? String(decoding: raw[spans[$0]], as: UTF8.self) : nil }
+        }
     }
 
+    /// A palavra digitada confere com a da posicao? Comparacao em tempo constante
+    /// sobre os bytes canonicos.
     func matches(_ typed: String, at index: Int) -> Bool {
-        let candidate = Mnemonic.canonicalize(typed)
-        return words(index..<(index + 1)).first == candidate
+        var candidate = Array(Mnemonic.canonicalize(typed).utf8)
+        defer { candidate.resetBytes() }
+        return phrase.withUnsafeBytes { raw in
+            let spans = Self.spans(raw)
+            guard spans.indices.contains(index) else { return false }
+            var word = Array(raw[spans[index]])
+            defer { word.resetBytes() }
+            return Hash.constantTimeEqual(word, candidate)
+        }
+    }
+
+    /// Onde comeca e termina cada palavra da frase canonica (um espaco entre elas).
+    private static func spans(_ raw: UnsafeRawBufferPointer) -> [Range<Int>] {
+        var out: [Range<Int>] = []
+        var start = 0
+        for index in 0...raw.count where index == raw.count || raw[index] == 0x20 {
+            if index > start { out.append(start..<index) }
+            start = index + 1
+        }
+        return out
     }
 
     func wipe() { phrase.wipe() }
@@ -131,6 +155,7 @@ struct NewWalletFlow: View {
             let secret = try WalletSecret.from(phrase: copy, language: .english)
             copy.wipe()
             guard let credential = await auth.credential(reason: "Guardar a carteira nova neste iPhone") else {
+                secret.wipe()
                 newDraft.wipe()
                 return
             }

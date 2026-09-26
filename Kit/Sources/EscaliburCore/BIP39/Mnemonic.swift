@@ -224,6 +224,14 @@ public enum Mnemonic {
     }
 }
 
+extension Array where Element == UInt16 {
+    /// Zera indices de palavra (eles reconstroem a frase).
+    mutating func resetIndices() {
+        withUnsafeMutableBytes { if let base = $0.baseAddress { memset_s(base, $0.count, 0, $0.count) } }
+        removeAll()
+    }
+}
+
 extension Array where Element == UInt8 {
     /// Zeragem que o otimizador nao tem permissao para remover.
     ///

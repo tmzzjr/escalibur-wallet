@@ -58,19 +58,30 @@ public struct Wordlist: Sendable {
     public let language: BIP39Language?
     public let words: [String]
     private let index: [String: UInt16]
+    /// A mesma posicao, pela forma NFKD em bytes: e como a frase canonica fica no
+    /// buffer seguro, e procurar assim dispensa transformar a frase em `String`.
+    private let nfkdIndex: [[UInt8]: UInt16]
 
     fileprivate init(language: BIP39Language?, words: [String]) {
         self.language = language
         self.words = words
         var index = [String: UInt16](minimumCapacity: words.count)
+        var nfkdIndex = [[UInt8]: UInt16](minimumCapacity: words.count)
         for (position, word) in words.enumerated() {
             index[word] = UInt16(position)
+            nfkdIndex[Array(word.decomposedStringWithCompatibilityMapping.utf8)] = UInt16(position)
         }
         self.index = index
+        self.nfkdIndex = nfkdIndex
     }
 
     public func position(of word: String) -> UInt16? {
         index[word]
+    }
+
+    /// Posicao de uma palavra dada em bytes NFKD, como sai de `Mnemonic.canonicalize`.
+    public func position(nfkd bytes: [UInt8]) -> UInt16? {
+        nfkdIndex[bytes]
     }
 
     public func contains(_ word: String) -> Bool {

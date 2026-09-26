@@ -86,6 +86,13 @@ public enum Hash {
     }
 
     /// PBKDF2-HMAC-SHA512. A senha entra e o resultado sai em buffer seguro.
+    /// O mesmo, com o sal em buffer seguro (o sal do BIP-39 carrega a 25a palavra).
+    public static func pbkdf2SHA512(password: SecureBytes, salt: SecureBytes, rounds: UInt32, length: Int) throws -> SecureBytes {
+        var copy = salt.withUnsafeBytes { Array($0) }
+        defer { copy.resetBytes() }
+        return try pbkdf2SHA512(password: password, salt: copy, rounds: rounds, length: length)
+    }
+
     public static func pbkdf2SHA512(password: SecureBytes, salt: [UInt8], rounds: UInt32, length: Int) throws -> SecureBytes {
         let out = SecureBytes(capacity: length)
         var status: Int32 = 0
