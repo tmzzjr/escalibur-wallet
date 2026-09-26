@@ -217,6 +217,13 @@ else
     aviso ".xcode-version nao existe"
 fi
 
+secao "privacidade"
+faltando=""
+for host in $(sed 's|https://||' hosts.lock); do
+    grep -qF "\`$host\`" "$APP/Resources/Legal/privacidade.md" || faltando="$faltando $host"
+done
+[ -n "$faltando" ] && aviso "host fora da Politica de privacidade:$faltando" || ok "todo host do hosts.lock esta na Politica de privacidade"
+
 secao "texto"
 achados=$(swift_em "$APP" | xargs grep -nE '"[^"]*(—|–)[^"]*"' 2>/dev/null)
 [ -n "$achados" ] && { aviso "travessao em texto de interface"; echo "$achados"; } || ok "nenhum travessao em texto de interface"

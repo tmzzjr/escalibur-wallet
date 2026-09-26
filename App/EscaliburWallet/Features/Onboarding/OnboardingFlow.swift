@@ -9,6 +9,7 @@ struct OnboardingFlow: View {
     @State private var entry = PINEntry()
     @State private var firstPIN: SecureBytes?
     @State private var working = false
+    @State private var legalDocument: LegalDocument?
 
     enum Step { case welcome, choosePIN, repeatPIN }
 
@@ -34,6 +35,7 @@ struct OnboardingFlow: View {
             }
         }
         .animation(Motion.fade, value: step)
+        .sheet(item: $legalDocument) { LegalDocumentView(document: $0) }
     }
 
     private var welcome: some View {
@@ -63,10 +65,15 @@ struct OnboardingFlow: View {
                 step = .choosePIN
             }
             .padding(.top, Space.xl)
-            Text("Ao continuar, você aceita os Termos de uso e a Política de privacidade.")
+            Text("Ao continuar, você aceita os [Termos de uso](escalibur-doc:termos) e a [Política de privacidade](escalibur-doc:privacidade).")
                 .typeStyle(.note)
                 .foregroundStyle(Palette.inkMuted)
+                .tint(Palette.inkSoft)
                 .padding(.top, Space.sm)
+                .environment(\.openURL, OpenURLAction { url in
+                    legalDocument = LegalDocument(rawValue: url.absoluteString.replacingOccurrences(of: "escalibur-doc:", with: ""))
+                    return .handled
+                })
         }
         .padding(.horizontal, Space.gutter)
         .padding(.bottom, Space.xs)

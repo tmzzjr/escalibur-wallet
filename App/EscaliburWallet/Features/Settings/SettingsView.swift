@@ -588,6 +588,8 @@ struct NetworksSettingsView: View {
 }
 
 struct AboutView: View {
+    @State private var legalDocument: LegalDocument?
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.lg) {
@@ -603,11 +605,16 @@ struct AboutView: View {
                     Text("Versão \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""))")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 }
+                SettingsGroup {
+                    Button { legalDocument = .terms } label: { SettingsRow(icon: "doc.text", title: "Termos de uso") }
+                    Button { legalDocument = .privacy } label: { SettingsRow(icon: "hand.raised", title: "Política de privacidade") }
+                }
             }
             .padding(Space.gutter)
         }
         .background(Palette.void.ignoresSafeArea())
         .navigationTitle("Sobre")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $legalDocument) { LegalDocumentView(document: $0) }
     }
 }
