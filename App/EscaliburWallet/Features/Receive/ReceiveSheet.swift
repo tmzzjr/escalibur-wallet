@@ -120,7 +120,7 @@ struct ReceiveSheet: View {
                                 CoinLogo(coingeckoID: item.coingeckoID, symbol: item.symbol, size: 36, network: item.chain, ringColor: Palette.body)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(item.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
-                                    Text("\(item.name) · \(item.chain?.name ?? "")").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                                    Text(item.name == item.chain?.name ? item.name : "\(item.name) · \(item.chain?.name ?? "")").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                                 }
                                 Spacer()
                             }

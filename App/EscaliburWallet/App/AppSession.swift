@@ -54,27 +54,53 @@ final class AppSession {
     }
 
     func unlock(pin: SecureBytes) async throws {
-        let key: SymmetricKey = try await Task.detached(priority: .userInitiated) {
+        let (key, updates) = try await Task.detached(priority: .userInitiated) {
             defer { pin.wipe() }
             let rk = try KeyServices.root.unlock(pin: pin)
             defer { rk.wipe() }
-            return IndexCipher.key(from: rk)
+            return (IndexCipher.key(from: rk), Self.missingAccounts(rk: rk))
         }.value
-        try open(with: key)
+        try open(with: key, adding: updates)
     }
 
     func unlockWithBiometry() async throws {
-        let key: SymmetricKey = try await Task.detached(priority: .userInitiated) {
+        let (key, updates) = try await Task.detached(priority: .userInitiated) {
             let rk = try KeyServices.root.unlockWithBiometry(reason: "Destravar a Escalibur Wallet")
             defer { rk.wipe() }
-            return IndexCipher.key(from: rk)
+            return (IndexCipher.key(from: rk), Self.missingAccounts(rk: rk))
         }.value
-        try open(with: key)
+        try open(with: key, adding: updates)
     }
 
-    private func open(with key: SymmetricKey) throws {
+    /// Redes que entraram numa versao nova ainda nao tem endereco nas carteiras
+    /// antigas. Como a RK ja esta aberta neste desbloqueio, os enderecos que faltam
+    /// sao derivados agora, sem pedir o Face ID de novo. Cada registro e zerado ao
+    /// fim da derivacao.
+    nonisolated private static func missingAccounts(rk: SecureBytes) -> [UUID: [DerivedAccount]] {
+        guard let metadata = try? MetadataStore.load(key: IndexCipher.key(from: rk)) else { return [:] }
+        var updates: [UUID: [DerivedAccount]] = [:]
+        for wallet in metadata.wallets where !wallet.isWatchOnly {
+            let have = Set(wallet.accounts.map(\.chainID))
+            let missing = Chain.all.filter { !have.contains($0.id) }
+            guard !missing.isEmpty, let secret = try? KeyServices.wallets.open(walletID: wallet.id, rk: rk) else { continue }
+            defer { secret.wipe() }
+            if let (accounts, _) = try? AccountDeriver.derive(secret, chains: missing), !accounts.isEmpty {
+                updates[wallet.id] = accounts
+            }
+        }
+        return updates
+    }
+
+    private func open(with key: SymmetricKey, adding updates: [UUID: [DerivedAccount]] = [:]) throws {
         metadata = try MetadataStore.load(key: key)
         indexKey = key
+        if !updates.isEmpty {
+            for (id, accounts) in updates {
+                guard let index = metadata.wallets.firstIndex(where: { $0.id == id }) else { continue }
+                metadata.wallets[index].accounts += accounts
+            }
+            try? persist()
+        }
         withAnimation(Motion.fade) { phase = .unlocked }
     }
 

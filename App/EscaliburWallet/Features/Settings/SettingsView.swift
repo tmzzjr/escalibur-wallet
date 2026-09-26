@@ -22,6 +22,9 @@ struct SettingsView: View {
                         NavigationLink { SecuritySettingsView() } label: {
                             SettingsRow(icon: "lock", title: "Segurança")
                         }
+                        NavigationLink { ContactsView() } label: {
+                            SettingsRow(icon: "person.2", title: "Contatos", value: session.metadata.contacts.isEmpty ? nil : "\(session.metadata.contacts.count)")
+                        }
                         Button { openingEnvelope = true } label: {
                             SettingsRow(icon: "envelope.open", title: "Abrir um envelope")
                         }

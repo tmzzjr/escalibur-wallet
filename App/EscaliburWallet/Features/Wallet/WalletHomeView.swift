@@ -158,8 +158,13 @@ struct WalletHomeView: View {
         VStack(alignment: .leading, spacing: 0) {
         HStack {
             Text("Ativos").typeStyle(.heading).foregroundStyle(Palette.ink)
+            if portfolio.loading { ProgressView().tint(Palette.inkMuted).scaleEffect(0.7) }
             Spacer()
-            if portfolio.loading { ProgressView().tint(Palette.inkMuted).scaleEffect(0.8) }
+            if !portfolio.allRows.isEmpty {
+                NavigationLink { ManageAssetsView() } label: {
+                    Text("Gerenciar").typeStyle(.body).foregroundStyle(Palette.inkSoft).frame(minHeight: Height.touch)
+                }
+            }
         }
         .padding(.horizontal, Space.gutter)
 

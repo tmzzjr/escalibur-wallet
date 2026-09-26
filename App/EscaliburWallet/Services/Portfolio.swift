@@ -35,6 +35,8 @@ struct PortfolioRow: Identifiable, Hashable {
 @Observable
 final class Portfolio {
     private(set) var rows: [PortfolioRow] = []
+    /// Todas as linhas, inclusive as que o dono escondeu (para Gerenciar ativos).
+    private(set) var allRows: [PortfolioRow] = []
     private(set) var total: Double = 0
     private(set) var change24hFiat: Double = 0
     private(set) var loading = false
@@ -48,11 +50,15 @@ final class Portfolio {
     private var walletID: UUID?
 
     /// Mostra o cache na hora e atualiza por baixo.
-    func show(_ wallet: WalletMeta?, session: AppSession) {
+    func show(_ wallet: WalletMeta?, session: AppSession, force: Bool = false) {
         guard let wallet else {
             rows = []
             total = 0
             walletID = nil
+            return
+        }
+        if force, walletID == wallet.id {
+            recompute(wallet)
             return
         }
         if walletID != wallet.id {
@@ -134,7 +140,7 @@ final class Portfolio {
                 grouped[key, default: []].append(holding)
             }
         }
-        rows = order.compactMap { key in
+        allRows = order.compactMap { key in
             guard let holdings = grouped[key], let first = holdings.first?.asset else { return nil }
             let quote = first.coingeckoID.flatMap { quotes[$0] }
             return PortfolioRow(
@@ -142,8 +148,8 @@ final class Portfolio {
                 isStablecoin: first.isStablecoin, positions: holdings, price: quote?.price, change24h: quote?.change24h
             )
         }
-        .filter { !wallet.hiddenAssetIDs.contains($0.id) }
         .sorted { ($0.fiatValue ?? 0) > ($1.fiatValue ?? 0) }
+        rows = allRows.filter { !wallet.hiddenAssetIDs.contains($0.id) }
 
         total = rows.reduce(0) { $0 + ($1.fiatValue ?? 0) }
         change24hFiat = rows.reduce(0) { sum, row in

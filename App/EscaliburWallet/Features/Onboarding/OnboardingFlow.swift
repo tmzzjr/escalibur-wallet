@@ -47,7 +47,7 @@ struct OnboardingFlow: View {
                 .foregroundStyle(Palette.ink)
                 .padding(.top, Space.lg)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("As chaves ficam neste iPhone. Sem conta e sem e-mail: a Escalibur não tem como ver, mover nem recuperar o seu saldo.")
+            Text("As chaves ficam neste iPhone. Sem conta e sem e‑mail: a Escalibur não tem como ver, mover nem recuperar o seu saldo.")
                 .typeStyle(.body)
                 .foregroundStyle(Palette.inkSoft)
                 .padding(.top, Space.sm)

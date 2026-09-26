@@ -24,6 +24,7 @@
 		4B2656C01E316BE9F63E4445 /* SendEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7CF1B7FDD3A8587C69B1B7 /* SendEngine.swift */; };
 		57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C53992781573FB54743C00 /* SecureInputField.swift */; };
 		5848F371CF905048C9ABA616 /* RecordWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5287E825D53043F109D791D /* RecordWordsView.swift */; };
+		5932324C0521646D89823F75 /* ContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AD68422B44E0DD96545710 /* ContactsView.swift */; };
 		5E9A7A552DC87E261A506B48 /* EscaliburKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 0911AD585A30024A352B31B6 /* EscaliburKeys */; };
 		6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B2519CA657D4A05E4C4A06 /* Metrics.swift */; };
 		764A13E8CD7AFD1D2F471CDF /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */; };
@@ -87,6 +88,7 @@
 		781A92DCAC657FBE12804D78 /* PINPad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINPad.swift; sourceTree = "<group>"; };
 		782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenEnvelopeFlow.swift; sourceTree = "<group>"; };
 		7E67A652A823737F6EAC7745 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		85AD68422B44E0DD96545710 /* ContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsView.swift; sourceTree = "<group>"; };
 		878FC0383FDC934FC98F0EA0 /* decifrar.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = decifrar.py; sourceTree = "<group>"; };
 		93C77E773E63B6664F4262AD /* Metadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metadata.swift; sourceTree = "<group>"; };
 		98728880640B5B94955214E7 /* ImportPhraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPhraseView.swift; sourceTree = "<group>"; };
@@ -239,6 +241,7 @@
 		8AB2E31C7DDF2422B8F4E7ED /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				85AD68422B44E0DD96545710 /* ContactsView.swift */,
 				529FF2FD620686A71B265A06 /* RevealFlow.swift */,
 				7372B2C6D0156F65AA215FE5 /* SettingsView.swift */,
 				1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */,
@@ -439,6 +442,7 @@
 				E09B8272656E909426D4987D /* Buttons.swift in Sources */,
 				B259A28741C3A8C0F7D74759 /* CoinLogo.swift in Sources */,
 				76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */,
+				5932324C0521646D89823F75 /* ContactsView.swift in Sources */,
 				424496A6E4E34E2651C3AC55 /* DebugDemo.swift in Sources */,
 				17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */,
 				2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */,
