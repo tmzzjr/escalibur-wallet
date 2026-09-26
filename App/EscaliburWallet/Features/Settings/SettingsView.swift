@@ -360,8 +360,14 @@ struct EnableBiometrySheet: View {
                 do {
                     try await session.enableBiometry(pin: entry.take())
                     onDone()
-                } catch {
+                } catch RootKeyVault.Failure.wrongPIN {
                     entry.fail("PIN incorreto.")
+                } catch RootKeyVault.Failure.throttled(let seconds) {
+                    entry.fail("Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
+                } catch RootKeyVault.Failure.cancelled {
+                    entry.fail("O Face ID não confirmou. Ele continua desligado.")
+                } catch {
+                    entry.fail("Não foi possível ligar o Face ID agora.")
                 }
             }
         }) {

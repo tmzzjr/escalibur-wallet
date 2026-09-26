@@ -177,12 +177,23 @@ final class AppSession {
 
     var biometryEnabled: Bool { KeyServices.root.isBiometryEnabled }
 
+    /// Liga o Face ID e confere na hora: o slot novo precisa abrir com o rosto e
+    /// devolver a mesma RK. Sem essa prova, o dono descobriria que o atalho nao
+    /// funciona no dia em que precisasse dele.
     func enableBiometry(pin: SecureBytes) async throws {
         try await Task.detached(priority: .userInitiated) {
             defer { pin.wipe() }
             let rk = try KeyServices.root.unlock(pin: pin)
             defer { rk.wipe() }
             try KeyServices.root.enableBiometry(rk: rk)
+            do {
+                let check = try KeyServices.root.unlockWithBiometry(reason: "Confirme o Face ID para ligar")
+                defer { check.wipe() }
+                guard Hash.constantTimeEqual(check, rk) else { throw RootKeyVault.Failure.storage }
+            } catch {
+                KeyServices.root.disableBiometry()
+                throw error
+            }
         }.value
         metadata.settings.biometryEnabled = true
         try persist()

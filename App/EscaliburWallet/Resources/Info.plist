@@ -6,6 +6,21 @@
 	<string>pt-BR</string>
 	<key>CFBundleDisplayName</key>
 	<string>Escalibur Wallet</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Envelope Escalibur</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.thomazjr.escalibur.envelope</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -20,66 +35,56 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>UILaunchScreen</key>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<false/>
+	<key>NSAppTransportSecurity</key>
 	<dict>
-		<key>UIColorName</key>
-		<string>LaunchBackground</string>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>A câmera lê o QR de um endereço. Nenhuma imagem é guardada.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>O Face ID destrava o app e confirma envios. O PIN continua valendo quando ele falhar.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>O microfone ouve a frase de confirmação por voz, só quando você liga essa camada.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>A frase de confirmação por voz é reconhecida neste iPhone, sem enviar o áudio para servidor nenhum.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
+	<key>UIFileSharingEnabled</key>
+	<false/>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleLightContent</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
-	<key>UIStatusBarStyle</key>
-	<string>UIStatusBarStyleLightContent</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>O Face ID destrava o app e confirma envios. O PIN continua valendo quando ele falhar.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>A câmera lê o QR de um endereço. Nenhuma imagem é guardada.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>O microfone ouve a frase de confirmação por voz, só quando você liga essa camada.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>A frase de confirmação por voz é reconhecida neste iPhone, sem enviar o áudio para servidor nenhum.</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<false/>
-	<key>UIFileSharingEnabled</key>
-	<false/>
-	<key>CFBundleDocumentTypes</key>
+	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>
-			<key>CFBundleTypeName</key>
-			<string>Envelope Escalibur</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>com.thomazjr.escalibur.envelope</string>
-			</array>
-		</dict>
-	</array>
-	<key>UTExportedTypeDeclarations</key>
-	<array>
-		<dict>
-			<key>UTTypeIdentifier</key>
-			<string>com.thomazjr.escalibur.envelope</string>
-			<key>UTTypeDescription</key>
-			<string>Envelope Escalibur</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
 			</array>
+			<key>UTTypeDescription</key>
+			<string>Envelope Escalibur</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.thomazjr.escalibur.envelope</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
@@ -89,10 +94,5 @@
 			</dict>
 		</dict>
 	</array>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<false/>
-	</dict>
 </dict>
 </plist>

@@ -156,6 +156,8 @@ struct BiometryOfferView: View {
             onDone()
         } catch RootKeyVault.Failure.wrongPIN {
             entry.fail("PIN incorreto.")
+        } catch RootKeyVault.Failure.cancelled {
+            entry.fail("O Face ID não confirmou. Ele continua desligado; você pode ligar depois nos Ajustes.")
         } catch {
             entry.fail("Não foi possível ligar o Face ID agora.")
         }
