@@ -92,10 +92,13 @@ public enum SigningError: Error, Equatable, Sendable {
 
 /// Um lote de transacoes que passou pela validacao e pode ser assinado.
 ///
-/// **O inicializador e `package`.** Fora deste pacote (no app) nao existe maneira
-/// de construir um plano: ele so nasce das funcoes de validacao das redes, que
-/// conferem a intencao do dono contra o que vai ser assinado. O assinador de
-/// EscaliburKeys so aceita este tipo, entao "assinar sem validar" nao compila.
+/// **O inicializador e interno a EscaliburChains.** Nenhum outro modulo, nem os motores
+/// de EscaliburEngines nem o app, constroi um plano: ele so nasce dos planejadores das
+/// redes, que conferem a intencao do dono contra o que vai ser assinado. De fora, so
+/// duas composicoes existem, as duas sobre planos ja validados aqui: somar avisos
+/// (`addingWarnings`) e encadear planos para assinar de uma vez (`sequence`). O
+/// assinador de EscaliburKeys so aceita este tipo, entao "assinar sem validar" nao
+/// compila.
 public struct SigningPlan: Sendable {
     public let id: UUID
     public let walletID: UUID
@@ -109,8 +112,12 @@ public struct SigningPlan: Sendable {
     /// cotacao ficam velhos, e uma assinatura sobre dado velho nao sai.
     public static let lifetime: TimeInterval = 60
 
-    package init(walletID: UUID, chain: Chain, review: PlanReview, transactions: [any SignableTransaction], createdAt: Date = .now) {
-        self.id = UUID()
+    init(walletID: UUID, chain: Chain, review: PlanReview, transactions: [any SignableTransaction], createdAt: Date = .now) {
+        self.init(id: UUID(), walletID: walletID, chain: chain, review: review, transactions: transactions, createdAt: createdAt)
+    }
+
+    private init(id: UUID, walletID: UUID, chain: Chain, review: PlanReview, transactions: [any SignableTransaction], createdAt: Date) {
+        self.id = id
         self.walletID = walletID
         self.chain = chain
         self.review = review
@@ -120,6 +127,61 @@ public struct SigningPlan: Sendable {
 
     public func isExpired(now: Date = .now) -> Bool {
         now.timeIntervalSince(createdAt) > Self.lifetime
+    }
+
+    // MARK: Composicao
+
+    public enum CompositionError: Error, Equatable, Sendable {
+        /// Nenhum plano para encadear.
+        case empty
+        /// Planos de carteiras ou de redes diferentes nao se assinam juntos.
+        case mixedPlans
+    }
+
+    /// O mesmo plano com avisos a mais, os que so o motor sabe (endereco parecido com
+    /// um ja usado, primeiro envio). Transacoes, destino, titulo, linhas, identidade e
+    /// prazo nao mudam; aviso repetido nao entra.
+    public func addingWarnings(_ warnings: [PlanReview.Warning]) -> SigningPlan {
+        let fresh = warnings.reduce(into: [PlanReview.Warning]()) { out, warning in
+            if !review.warnings.contains(warning), !out.contains(warning) { out.append(warning) }
+        }
+        guard !fresh.isEmpty else { return self }
+        let updated = PlanReview(
+            kind: review.kind, title: review.title, lines: review.lines, warnings: review.warnings + fresh,
+            transactionCount: review.transactionCount, recipient: review.recipient, recipientTag: review.recipientTag
+        )
+        return SigningPlan(id: id, walletID: walletID, chain: chain, review: updated, transactions: transactions, createdAt: createdAt)
+    }
+
+    /// Planos ja validados, assinados de uma vez e transmitidos na ordem dada (a
+    /// autorizacao antes da troca, as pernas de uma divisao, as ofertas encadeadas).
+    ///
+    /// A revisao e a soma das revisoes: as linhas de abertura (`lead`), depois as de
+    /// cada plano, com "Etapa n ·" na frente quando `stepPrefix`, sem as de rotulo em
+    /// `omitting` (o que a abertura ja resume). Os avisos de todos entram, sem
+    /// repeticao. O prazo conta do plano mais antigo.
+    public static func sequence(
+        _ plans: [SigningPlan], kind: PlanReview.Kind, title: String, lead: [PlanReview.Line],
+        stepPrefix: Bool = false, omitting labels: Set<String> = []
+    ) throws -> SigningPlan {
+        guard let first = plans.first else { throw CompositionError.empty }
+        guard plans.allSatisfy({ $0.walletID == first.walletID && $0.chain.id == first.chain.id }) else {
+            throw CompositionError.mixedPlans
+        }
+        var lines = lead
+        for (index, plan) in plans.enumerated() {
+            for line in plan.review.lines where !labels.contains(line.label) {
+                lines.append(PlanReview.Line(stepPrefix ? "Etapa \(index + 1) · \(line.label)" : line.label, line.value, verbatim: line.verbatim))
+            }
+        }
+        var warnings: [PlanReview.Warning] = []
+        for warning in plans.flatMap(\.review.warnings) where !warnings.contains(warning) { warnings.append(warning) }
+        let transactions = plans.flatMap(\.transactions)
+        let review = PlanReview(kind: kind, title: title, lines: lines, warnings: warnings, transactionCount: transactions.count)
+        return SigningPlan(
+            walletID: first.walletID, chain: first.chain, review: review, transactions: transactions,
+            createdAt: plans.map(\.createdAt).min() ?? first.createdAt
+        )
     }
 }
 

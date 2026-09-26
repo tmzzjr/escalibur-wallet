@@ -150,13 +150,6 @@ enum XRPLPlanComposer {
               ledger.allSatisfy({ $0.signer == signer }),
               zip(ledger, ledger.dropFirst()).allSatisfy({ $0.sequence + 1 == $1.sequence })
         else { throw XRPLPlanError.transaction(.invalidSequence) }
-        let review = PlanReview(
-            kind: kind, title: title, lines: lead + plans.flatMap(\.review.lines),
-            warnings: plans.flatMap(\.review.warnings), transactionCount: transactions.count
-        )
-        return SigningPlan(
-            walletID: first.walletID, chain: .xrpl, review: review, transactions: transactions,
-            createdAt: plans.map(\.createdAt).min() ?? first.createdAt
-        )
+        return try SigningPlan.sequence(plans, kind: kind, title: title, lead: lead)
     }
 }

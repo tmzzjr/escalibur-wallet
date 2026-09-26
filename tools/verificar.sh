@@ -55,6 +55,9 @@ achados=$(procurar 'SecureBytes|WalletSecret|RootKeyVault|WalletVault|KeychainSt
 achados=$(procurar 'import (Network|WebKit|SafariServices|CFNetwork)\b|URLRequest|NWConnection|WKWebView' "$ENG")
 [ -n "$achados" ] && { aviso "os motores falam com a rede sem passar pelo modulo de rede"; echo "$achados"; } || ok "os motores so falam com a rede pelo modulo de rede"
 
+achados=$(procurar 'SigningPlan\(' "$APP" "$KEYS" "$NET" "$ENG" "$CORE")
+[ -n "$achados" ] && { aviso "plano de assinatura construido fora das redes"; echo "$achados"; } || ok "plano de assinatura so nasce em EscaliburChains"
+
 achados=$(procurar 'Secp256k1\.sign|Ed25519\.sign' "$CHAINS" "$NET" "$APP" "$ENG")
 [ -n "$achados" ] && { aviso "assinatura fora do modulo de chaves"; echo "$achados"; } || ok "so o modulo de chaves assina"
 

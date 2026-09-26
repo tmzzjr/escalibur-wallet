@@ -279,12 +279,7 @@ struct TronSendEngine: SendEngine {
         if !known.contains(where: { Address.sameRecipient($0, request.destination, chain: .tron) }) {
             warnings.append(.firstSendToAddress)
         }
-        guard warnings != review.warnings else { return plan }
-        let updated = PlanReview(
-            kind: review.kind, title: review.title, lines: review.lines, warnings: warnings,
-            transactionCount: review.transactionCount, recipient: review.recipient, recipientTag: review.recipientTag
-        )
-        return SigningPlan(walletID: plan.walletID, chain: plan.chain, review: updated, transactions: plan.transactions, createdAt: plan.createdAt)
+        return plan.addingWarnings(warnings)
     }
 }
 

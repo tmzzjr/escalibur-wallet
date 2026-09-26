@@ -146,14 +146,7 @@ enum EVMEngineSupport {
     /// A mesma revisao com avisos a mais. O plano e remontado com as mesmas transacoes e
     /// o mesmo instante de criacao, para o prazo de 60 s continuar contando do mesmo ponto.
     static func adding(_ warnings: [PlanReview.Warning], to plan: SigningPlan) -> SigningPlan {
-        let fresh = warnings.filter { !plan.review.warnings.contains($0) }
-        guard !fresh.isEmpty else { return plan }
-        let review = plan.review
-        let updated = PlanReview(
-            kind: review.kind, title: review.title, lines: review.lines, warnings: review.warnings + fresh,
-            transactionCount: review.transactionCount, recipient: review.recipient, recipientTag: review.recipientTag
-        )
-        return SigningPlan(walletID: plan.walletID, chain: plan.chain, review: updated, transactions: plan.transactions, createdAt: plan.createdAt)
+        plan.addingWarnings(warnings)
     }
 
     // MARK: Lote assinado
