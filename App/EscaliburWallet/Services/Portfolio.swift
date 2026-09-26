@@ -47,6 +47,9 @@ final class Portfolio {
     private(set) var offline = false
     private(set) var balances: [String: ChainBalance] = [:]
     private(set) var quotes: [String: Quote] = [:]
+    /// Preco do bitcoin em cada moeda ("brl", "usd", "eur"): converte o total para as
+    /// outras unidades com a mesma cotacao de referencia.
+    private(set) var bitcoinPrices: [String: Double] = [:]
 
     private var walletID: UUID?
 
@@ -96,7 +99,13 @@ final class Portfolio {
         }
 
         let ids = Set(Chain.all.map(\.coingeckoID) + TokenRegistry.tokens.compactMap(\.coingeckoID))
-        let newQuotes = try? await MarketService.shared.quotes(ids: Array(ids), currency: session.metadata.settings.currency)
+        let base = session.metadata.settings.currency
+        async let quoted = try? MarketService.shared.quotes(ids: Array(ids), currency: base)
+        async let referencePrices = Self.bitcoinPrices(excluding: base)
+        let newQuotes = await quoted
+        var prices = await referencePrices
+        if let btc = newQuotes?["bitcoin"]?.price { prices[base] = btc }
+        if prices.count > 1 || !prices.isEmpty { bitcoinPrices = prices }
 
         offline = fresh.isEmpty && newQuotes == nil && !targets.isEmpty
         guard walletID == wallet.id else { return }
@@ -110,6 +119,31 @@ final class Portfolio {
         session.metadata.quoteCache = quotes
         session.metadata.cachedAt = lastUpdated
         try? session.persist()
+    }
+
+    /// O preco do bitcoin nas moedas que nao sao a do app, para as outras unidades do
+    /// total. Falha de uma moeda so tira essa unidade da tela.
+    nonisolated private static func bitcoinPrices(excluding base: String) async -> [String: Double] {
+        var out: [String: Double] = [:]
+        for currency in ["brl", "usd", "eur"] where currency != base {
+            if let price = try? await MarketService.shared.quotes(ids: ["bitcoin"], currency: currency)["bitcoin"]?.price {
+                out[currency] = price
+            }
+        }
+        return out
+    }
+
+    /// Um valor na moeda do app levado para outra unidade, pela cotacao do bitcoin.
+    func convert(_ value: Double, to unit: Fmt.DisplayUnit, base: Fmt.Currency) -> Double? {
+        guard let btcInBase = bitcoinPrices[base.coingeckoID], btcInBase > 0 else {
+            return unit == Fmt.DisplayUnit(base) ? value : nil
+        }
+        switch unit {
+        case .btc: return value / btcInBase
+        default:
+            guard let btcInUnit = bitcoinPrices[unit.rawValue] else { return nil }
+            return value * btcInUnit / btcInBase
+        }
     }
 
     /// Enderecos a consultar: um por rede, e nas UTXO os de recebimento e troco ja

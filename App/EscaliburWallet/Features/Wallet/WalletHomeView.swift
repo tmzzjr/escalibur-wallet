@@ -36,6 +36,14 @@ struct WalletHomeView: View {
                                message: "Apps de fora da App Store podem ler o que este app guarda. Para valor alto, prefira uma carteira de hardware.")
                             .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                     }
+                    if portfolio.rows.count >= 2 {
+                        VStack(alignment: .leading, spacing: Space.md) {
+                            Text("Distribuição").typeStyle(.heading).foregroundStyle(Palette.ink)
+                            AllocationDonut(rows: portfolio.rows, hidden: hide)
+                        }
+                        .padding(.horizontal, Space.gutter)
+                        .padding(.top, Space.xl)
+                    }
                     assets.padding(.top, Space.xl)
                 }
                 .padding(.bottom, Space.xl)
@@ -64,6 +72,33 @@ struct WalletHomeView: View {
         .fullScreenCover(isPresented: $backingUp) {
             if let wallet { RevealFlow(wallet: wallet, purpose: .backup) { backingUp = false } }
         }
+    }
+
+    // MARK: Unidade do total
+
+    /// A escolhida, se ha cotacao para ela agora; senao a moeda do app.
+    private var unit: Fmt.DisplayUnit {
+        let saved = session.metadata.settings.totalUnit.flatMap(Fmt.DisplayUnit.init(rawValue:)) ?? Fmt.DisplayUnit(session.currency)
+        return availableUnits.contains(saved) ? saved : Fmt.DisplayUnit(session.currency)
+    }
+
+    private var availableUnits: [Fmt.DisplayUnit] {
+        Fmt.DisplayUnit.allCases.filter { portfolio.convert(1, to: $0, base: session.currency) != nil }
+    }
+
+    private var unitBinding: Binding<Fmt.DisplayUnit> {
+        Binding(get: { unit }, set: { newValue in
+            session.metadata.settings.totalUnit = newValue.rawValue
+            try? session.persist()
+        })
+    }
+
+    private var shownTotal: Double { portfolio.convert(portfolio.total, to: unit, base: session.currency) ?? portfolio.total }
+    private var shownChange: Double { portfolio.convert(portfolio.change24hFiat, to: unit, base: session.currency) ?? portfolio.change24hFiat }
+
+    static func signed(_ value: Double, _ unit: Fmt.DisplayUnit) -> String {
+        let sign = value < 0 ? Fmt.minus : (value > 0 ? "+" : "")
+        return "\(sign)\(unit.symbol)\u{00A0}\(Fmt.grouped(abs(value), fractionDigits: unit.fractionDigits))"
     }
 
     private func wordCount(_ wallet: WalletMeta) -> Int {
@@ -103,10 +138,14 @@ struct WalletHomeView: View {
             }
             .padding(.horizontal, Space.gutter)
 
-            Text("Saldo total").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+            HStack(alignment: .center) {
+                Text("Saldo total").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                Spacer()
+                UnitPicker(selection: unitBinding, available: availableUnits)
+            }
+            .padding(.horizontal, Space.gutter).padding(.top, Space.md)
 
-            BalanceFigure(value: portfolio.total, currency: session.currency, hidden: hide)
+            BalanceFigure(value: shownTotal, symbol: unit.symbol, fractionDigits: unit.fractionDigits, hidden: hide)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.xxs)
 
             changeLine
@@ -121,7 +160,7 @@ struct WalletHomeView: View {
         } else {
             let color = portfolio.change24hFiat > 0 ? Palette.up : (portfolio.change24hFiat < 0 ? Palette.down : Palette.inkSoft)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(Fmt.fiat(portfolio.change24hFiat, session.currency, signed: true)) (\(Fmt.percent(portfolio.change24hPercent)))")
+                Text("\(Self.signed(shownChange, unit)) (\(Fmt.percent(portfolio.change24hPercent)))")
                     .typeStyle(.row).foregroundStyle(color)
                 Text(portfolio.failedChains.isEmpty ? "24h" : "24h, sem \(portfolio.failedChains.map(\.name).joined(separator: ", "))")
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted)
@@ -246,30 +285,70 @@ struct WalletHomeView: View {
 /// O saldo grande: "R$" menor e mais claro, o numero em peso, digitos tabulares.
 struct BalanceFigure: View {
     let value: Double
-    let currency: Fmt.Currency
+    let symbol: String
+    var fractionDigits: Int = 2
     var hidden: Bool = false
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(currency.symbol)
+            Text(symbol)
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(Palette.inkSoft)
+                .contentTransition(.opacity)
             if hidden {
                 Text("••••••").typeStyle(.display).foregroundStyle(Palette.ink)
             } else {
-                // O inteiro sozinho no tamanho grande; os centavos menores e mais claros,
-                // como o "R$", na mesma linha de base.
-                let text = Fmt.grouped(value, fractionDigits: 2)
+                // O inteiro sozinho no tamanho grande; as casas menores e mais claras,
+                // como o simbolo, na mesma linha de base.
+                let text = Fmt.grouped(value, fractionDigits: fractionDigits)
                 let parts = text.split(separator: ",", maxSplits: 1).map(String.init)
                 (Text(parts[0]).style(.display).foregroundColor(Palette.ink)
-                 + Text("," + (parts.count > 1 ? parts[1] : "00")).font(.system(size: 28, weight: .bold).monospacedDigit()).foregroundColor(Palette.inkSoft))
+                 + Text("," + (parts.count > 1 ? parts[1] : String(repeating: "0", count: fractionDigits)))
+                    .font(.system(size: fractionDigits > 2 ? 22 : 28, weight: .bold).monospacedDigit()).foregroundColor(Palette.inkSoft))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.6)
+                    .minimumScaleFactor(0.5)
                     .contentTransition(.numericText(value: value))
                     .animation(Motion.number, value: value)
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// R$, US$, €, ₿: em que unidade o total aparece. Capsulas pequenas, a escolhida
+/// preenchida; a troca anima o numero.
+struct UnitPicker: View {
+    @Binding var selection: Fmt.DisplayUnit
+    let available: [Fmt.DisplayUnit]
+    @Namespace private var namespace
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(available, id: \.self) { unit in
+                Button {
+                    withAnimation(Motion.select) { selection = unit }
+                } label: {
+                    Text(unit.symbol)
+                        .typeStyle(.label)
+                        .foregroundStyle(selection == unit ? Palette.ink : Palette.inkMuted)
+                        .padding(.horizontal, 10)
+                        .frame(minHeight: 28)
+                        .background {
+                            if selection == unit {
+                                Capsule(style: .continuous).fill(Palette.control)
+                                    .matchedGeometryEffect(id: "unidade", in: namespace)
+                            }
+                        }
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(unit.name)
+                .accessibilityAddTraits(selection == unit ? .isSelected : [])
+            }
+        }
+        .padding(2)
+        .background(Capsule(style: .continuous).fill(Palette.body))
+        .sensoryFeedback(.selection, trigger: selection)
     }
 }
 
@@ -358,6 +437,8 @@ struct WalletSwitcherSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     let onAdd: () -> Void
+    @State private var renaming: WalletMeta?
+    @State private var newName = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -380,6 +461,17 @@ struct WalletSwitcherSheet: View {
                                 if wallet.id == session.selectedWallet?.id {
                                     Image(systemName: "checkmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
                                 }
+                                Button {
+                                    newName = wallet.name
+                                    renaming = wallet
+                                } label: {
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundStyle(Palette.inkSoft)
+                                        .frame(width: Height.touch, height: Height.touch)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Editar o nome de \(wallet.name)")
                             }
                             .padding(.horizontal, Space.gutter)
                             .frame(minHeight: Height.row)
@@ -397,6 +489,24 @@ struct WalletSwitcherSheet: View {
         .presentationBackground(Palette.body)
         .presentationCornerRadius(Radius.sheet)
         .sensoryFeedback(.selection, trigger: session.selectedWallet?.id)
+        .alert("Nome da carteira", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("Nome", text: $newName)
+            Button("Cancelar", role: .cancel) { renaming = nil }
+            Button("Salvar") { saveName() }
+        } message: {
+            Text("Só aparece neste iPhone.")
+        }
+    }
+
+    /// O nome passa pelo mesmo saneamento dos nomes vindos de envelope: sem controle,
+    /// sem caractere invisivel, ate 40 caracteres.
+    private func saveName() {
+        guard var wallet = renaming else { return }
+        let clean = Envelope.sanitize(newName, limit: 40)
+        renaming = nil
+        guard !clean.isEmpty else { return }
+        wallet.name = clean
+        session.update(wallet)
     }
 
     private func subtitle(_ wallet: WalletMeta) -> String {

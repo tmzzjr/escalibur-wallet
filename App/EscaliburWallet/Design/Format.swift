@@ -11,6 +11,34 @@ enum Fmt {
     static let minus = "\u{2212}"
     static let nbsp = "\u{00A0}"
 
+    /// Em que unidade o saldo total aparece: as duas moedas do app, o euro e o bitcoin.
+    /// A conversao usa o preco do bitcoin em cada moeda, a mesma cotacao para todas.
+    enum DisplayUnit: String, CaseIterable, Codable, Sendable {
+        case brl, usd, eur, btc
+
+        var symbol: String {
+            switch self {
+            case .brl: return "R$"
+            case .usd: return "US$"
+            case .eur: return "€"
+            case .btc: return "₿"
+            }
+        }
+
+        var fractionDigits: Int { self == .btc ? 8 : 2 }
+
+        var name: String {
+            switch self {
+            case .brl: return "Real"
+            case .usd: return "Dólar"
+            case .eur: return "Euro"
+            case .btc: return "Bitcoin"
+            }
+        }
+
+        init(_ currency: Currency) { self = currency == .brl ? .brl : .usd }
+    }
+
     enum Currency: String, CaseIterable, Codable, Sendable {
         case brl = "BRL"
         case usd = "USD"

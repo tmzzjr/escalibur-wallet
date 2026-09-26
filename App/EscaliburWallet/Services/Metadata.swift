@@ -73,6 +73,8 @@ struct Contact: Codable, Equatable, Identifiable, Hashable {
 
 struct Settings: Codable, Equatable {
     var currency: String = "brl"
+    /// Unidade do saldo total na tela da carteira (`Fmt.DisplayUnit`). Nil: a moeda do app.
+    var totalUnit: String?
     var hideBalances = false
     var biometryEnabled = false
     var autoLockSeconds: Int = 60

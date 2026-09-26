@@ -31,6 +31,7 @@
 		478026866DF85E9EF5D50A76 /* ImportPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839F9C92169FD1A8C5C69A3B /* ImportPreview.swift */; };
 		4DA261DD7012A533E034CF1C /* termos.md in Resources */ = {isa = PBXBuildFile; fileRef = 7C28ED1879662A04236281C1 /* termos.md */; };
 		534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD4DB38ABFB63662F684831D /* LegalTests.swift */; };
+		53F96070D034447AEEA27845 /* AllocationDonut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A71DEB35D1AAC25A23037D /* AllocationDonut.swift */; };
 		57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C53992781573FB54743C00 /* SecureInputField.swift */; };
 		5848F371CF905048C9ABA616 /* RecordWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5287E825D53043F109D791D /* RecordWordsView.swift */; };
 		5932324C0521646D89823F75 /* ContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AD68422B44E0DD96545710 /* ContactsView.swift */; };
@@ -47,6 +48,7 @@
 		90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E9C686393C93E1E34895B /* PlatformGuards.swift */; };
 		91F8E34E141C393E6B6C5CE6 /* AddWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634FB486C1AC19A1DC738122 /* AddWalletView.swift */; };
 		93415D653E703DD5BF6B4C78 /* EscaliburChains in Frameworks */ = {isa = PBXBuildFile; productRef = 10B4A1AD96C0179B1C450517 /* EscaliburChains */; };
+		93B9E6DE2F90C83B21A8B2B1 /* LogoColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C49639FCBF7D664F63210A /* LogoColor.swift */; };
 		94C21BC26784B1AD6AE63CB8 /* NewWalletFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15276BF5A254093B41A55B40 /* NewWalletFlow.swift */; };
 		94DBFEF727803296C21B8924 /* VoiceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */; };
 		9A8477455F2ABEB9D91113AF /* Portfolio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4027F05D922AF46864DCED58 /* Portfolio.swift */; };
@@ -95,6 +97,7 @@
 		15276BF5A254093B41A55B40 /* NewWalletFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewWalletFlow.swift; sourceTree = "<group>"; };
 		1722E329135DB398B784E8C8 /* KeyServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyServices.swift; sourceTree = "<group>"; };
 		178D0EBBB2AA6CB89DC6772B /* PlanReviewViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanReviewViews.swift; sourceTree = "<group>"; };
+		17A71DEB35D1AAC25A23037D /* AllocationDonut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllocationDonut.swift; sourceTree = "<group>"; };
 		268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		290C3A2CEF411E071AA05800 /* WordInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordInputField.swift; sourceTree = "<group>"; };
 		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -130,6 +133,7 @@
 		A98E0FCFFA466C4A03F3490A /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		AAEF81421478F9FA6F85FE56 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
 		AD4DB38ABFB63662F684831D /* LegalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalTests.swift; sourceTree = "<group>"; };
+		B2C49639FCBF7D664F63210A /* LogoColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoColor.swift; sourceTree = "<group>"; };
 		B2CB54D5FE5615D8A3F582F8 /* ReceiveSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveSheet.swift; sourceTree = "<group>"; };
 		B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		BC0C91AC7C8CD9C5B8D31703 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
@@ -213,6 +217,7 @@
 		28A2FEB50BF1ACA8C6963772 /* Wallet */ = {
 			isa = PBXGroup;
 			children = (
+				17A71DEB35D1AAC25A23037D /* AllocationDonut.swift */,
 				0AB2C6C888DAF848A575AD7A /* AssetDetailView.swift */,
 				BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */,
 				0E3E554F1FF4F3B1B0A077A6 /* WalletHomeView.swift */,
@@ -364,6 +369,7 @@
 				C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */,
 				BC0C91AC7C8CD9C5B8D31703 /* Components.swift */,
 				D0E6EBFF95E21A9523382BC5 /* Format.swift */,
+				B2C49639FCBF7D664F63210A /* LogoColor.swift */,
 				E7441E45998B7F6AA7BCE1E4 /* Marks.swift */,
 				E7B2519CA657D4A05E4C4A06 /* Metrics.swift */,
 				AAEF81421478F9FA6F85FE56 /* Palette.swift */,
@@ -539,6 +545,7 @@
 			files = (
 				764A13E8CD7AFD1D2F471CDF /* ActivityView.swift in Sources */,
 				91F8E34E141C393E6B6C5CE6 /* AddWalletView.swift in Sources */,
+				53F96070D034447AEEA27845 /* AllocationDonut.swift in Sources */,
 				C9C99BCB70E1AFF3536D3968 /* AppSession.swift in Sources */,
 				F2B74E9DFA78D4082923023D /* AssetDetailView.swift in Sources */,
 				2468359EF9FB1503F19395D5 /* AuthCoordinator.swift in Sources */,
@@ -555,6 +562,7 @@
 				D9BE60229797504784BC6F97 /* KeyServices.swift in Sources */,
 				21A2E4CF04770FD56E788AF9 /* LegalDocumentView.swift in Sources */,
 				F6959527BC4CC168A38CFA35 /* LockView.swift in Sources */,
+				93B9E6DE2F90C83B21A8B2B1 /* LogoColor.swift in Sources */,
 				0B7E83EED78DFCB68FCE521B /* MarketView.swift in Sources */,
 				FABE9F4C3D6EBE05D7CB48CE /* Marks.swift in Sources */,
 				A2EB350AFF4C3B63897F97DA /* Metadata.swift in Sources */,
