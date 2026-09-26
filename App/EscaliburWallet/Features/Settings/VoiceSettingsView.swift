@@ -88,7 +88,7 @@ struct VoiceSettingsView: View {
                 })) {
                     Text("Pedir em envios acima de \(Fmt.fiat(5000, session.currency))").typeStyle(.body).foregroundStyle(Palette.ink)
                 }
-                .tint(Palette.up).padding(.horizontal, Space.md).frame(height: Height.rowCompact)
+                .tint(Palette.up).padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
             }
             .padding(.top, Space.lg)
             if let message {
@@ -111,7 +111,7 @@ struct VoiceSettingsView: View {
         })) {
             Text(title).typeStyle(.body).foregroundStyle(Palette.ink)
         }
-        .tint(Palette.up).padding(.horizontal, Space.md).frame(height: Height.rowCompact)
+        .tint(Palette.up).padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
     }
 
     private func record() async {

@@ -137,7 +137,7 @@ struct ReceiveSheet: View {
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
             }
-            .padding(.horizontal, Space.gutter).frame(height: Height.row)
+            .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
         }
         .buttonStyle(RowStyle(surface: .body))
     }

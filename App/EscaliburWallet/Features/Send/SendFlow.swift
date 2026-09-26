@@ -141,7 +141,7 @@ struct SendAssetPicker: View {
                                             .typeStyle(.row).foregroundStyle(Palette.ink)
                                     }
                                 }
-                                .padding(.horizontal, Space.gutter).frame(height: Height.row)
+                                .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
                             }
                             .buttonStyle(RowStyle())
                         }
@@ -294,7 +294,7 @@ struct SendStages: View {
                         Spacer()
                         Text(verbatim: Fmt.address(contact.address)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
                     }
-                    .frame(height: Height.rowCompact)
+                    .frame(minHeight: Height.rowCompact)
                 }
             }
         }

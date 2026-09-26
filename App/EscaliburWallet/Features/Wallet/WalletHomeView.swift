@@ -214,7 +214,7 @@ struct WalletHomeView: View {
                     VStack(alignment: .trailing, spacing: 8) { SkeletonBar(width: 72); SkeletonBar(width: 48) }
                 }
                 .padding(.horizontal, Space.gutter)
-                .frame(height: Height.row)
+                .frame(minHeight: Height.row)
             }
         }
     }
@@ -273,42 +273,83 @@ struct BalanceFigure: View {
     }
 }
 
-/// Uma linha de ativo, 64pt, sem filete.
+/// Uma linha de ativo, 64pt, sem filete. Nos tamanhos de texto de acessibilidade, os
+/// valores descem para linhas proprias: numero nunca quebra no meio.
 struct AssetRowView: View {
     let row: PortfolioRow
     let currency: Fmt.Currency
     var hidden: Bool = false
+    @Environment(\.dynamicTypeSize) private var dynamicType
 
     var body: some View {
+        Group {
+            if dynamicType.isAccessibilitySize { stacked } else { inline }
+        }
+        .padding(.horizontal, Space.gutter)
+        .padding(.vertical, dynamicType.isAccessibilitySize ? Space.sm : 0)
+        .frame(minHeight: Height.row)
+        .contentShape(Rectangle())
+    }
+
+    private var inline: some View {
         HStack(spacing: Space.sm) {
-            CoinLogo(
-                coingeckoID: row.coingeckoID, symbol: row.symbol, size: 40,
-                network: row.positions.count == 1 ? row.positions.first?.asset.chain : nil,
-                networkCount: row.positions.count
-            )
+            logo
             VStack(alignment: .leading, spacing: 2) {
-                Text(row.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
-                HStack(spacing: 6) {
-                    if let price = row.price {
-                        Text(Fmt.price(price, currency)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                    }
-                    if let change = row.change24h {
-                        Text(Fmt.percent(change)).typeStyle(.note)
-                            .foregroundStyle(change > 0.004 ? Palette.up : (change < -0.004 ? Palette.down : Palette.inkSoft))
-                    }
-                }
+                Text(row.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                HStack(spacing: 6) { priceAndChange }
             }
             Spacer(minLength: Space.sm)
             VStack(alignment: .trailing, spacing: 2) {
-                Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.fiat($0, currency) } ?? "sem preço"))
-                    .typeStyle(.row).foregroundStyle(Palette.ink)
-                Text(hidden ? Redaction.short : Fmt.crypto(row.totalAmount, decimals: row.decimals, symbol: row.symbol, style: row.isStablecoin ? .stable : .list))
-                    .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                fiatValue
+                amount
             }
         }
-        .padding(.horizontal, Space.gutter)
-        .frame(height: Height.row)
-        .contentShape(Rectangle())
+    }
+
+    private var stacked: some View {
+        VStack(alignment: .leading, spacing: Space.xxs) {
+            HStack(spacing: Space.sm) {
+                logo
+                Text(row.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+            }
+            fiatValue
+            amount
+            HStack(spacing: 6) { priceAndChange }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var logo: some View {
+        CoinLogo(
+            coingeckoID: row.coingeckoID, symbol: row.symbol, size: 40,
+            network: row.positions.count == 1 ? row.positions.first?.asset.chain : nil,
+            networkCount: row.positions.count
+        )
+    }
+
+    @ViewBuilder
+    private var priceAndChange: some View {
+        if let price = row.price {
+            Text(Fmt.price(price, currency)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .lineLimit(1).minimumScaleFactor(0.7)
+        }
+        if let change = row.change24h {
+            Text(Fmt.percent(change)).typeStyle(.note)
+                .foregroundStyle(change > 0.004 ? Palette.up : (change < -0.004 ? Palette.down : Palette.inkSoft))
+                .lineLimit(1).fixedSize()
+        }
+    }
+
+    private var fiatValue: some View {
+        Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.fiat($0, currency) } ?? "sem preço"))
+            .typeStyle(.row).foregroundStyle(Palette.ink)
+            .lineLimit(1).minimumScaleFactor(0.6)
+    }
+
+    private var amount: some View {
+        Text(hidden ? Redaction.short : Fmt.crypto(row.totalAmount, decimals: row.decimals, symbol: row.symbol, style: row.isStablecoin ? .stable : .list))
+            .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            .lineLimit(1).minimumScaleFactor(0.6)
     }
 }
 
@@ -341,7 +382,7 @@ struct WalletSwitcherSheet: View {
                                 }
                             }
                             .padding(.horizontal, Space.gutter)
-                            .frame(height: Height.row)
+                            .frame(minHeight: Height.row)
                             .background(wallet.id == session.selectedWallet?.id ? Palette.rail : Color.clear)
                         }
                         .buttonStyle(RowStyle(surface: .body))

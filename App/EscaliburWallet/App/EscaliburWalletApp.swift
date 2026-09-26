@@ -17,6 +17,10 @@ struct EscaliburWalletApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                // O texto acompanha o tamanho escolhido no iPhone ate os tres primeiros
+                // tamanhos de acessibilidade; acima disso, endereco e valor deixam de
+                // caber sem quebrar no meio.
+                .dynamicTypeSize(...DynamicTypeSize.accessibility3)
                 .environment(session)
                 .environment(toasts)
                 .environment(auth)

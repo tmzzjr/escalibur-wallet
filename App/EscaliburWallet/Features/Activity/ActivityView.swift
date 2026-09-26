@@ -232,7 +232,7 @@ struct ActivityRow: View {
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(Palette.rail))
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).typeStyle(.row).foregroundStyle(Palette.ink)
+                Text(title).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1).minimumScaleFactor(0.7)
                 Text(subtitle).typeStyle(.note).foregroundStyle(isFailed ? Palette.down : Palette.inkSoft).lineLimit(1)
             }
             Spacer(minLength: Space.sm)
@@ -246,7 +246,7 @@ struct ActivityRow: View {
             }
         }
         .padding(.horizontal, Space.gutter)
-        .frame(height: Height.row)
+        .frame(minHeight: Height.row)
         .contentShape(Rectangle())
     }
 

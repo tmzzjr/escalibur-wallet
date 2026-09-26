@@ -600,7 +600,7 @@ struct TokenPickerSheet: View {
                                     Text(Fmt.crypto(amount, decimals: asset.decimals)).typeStyle(.note).foregroundStyle(Palette.ink)
                                 }
                             }
-                            .padding(.horizontal, Space.gutter).frame(height: Height.row)
+                            .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
                         }
                         .buttonStyle(RowStyle(surface: .body))
                     }

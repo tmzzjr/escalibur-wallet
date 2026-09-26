@@ -101,7 +101,7 @@ struct SettingsRow: View {
             if chevron { Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted) }
         }
         .padding(.horizontal, Space.md)
-        .frame(height: Height.rowCompact)
+        .frame(minHeight: Height.rowCompact)
         .contentShape(Rectangle())
     }
 }
@@ -128,7 +128,7 @@ struct WalletsListView: View {
                                 Spacer()
                                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
                             }
-                            .padding(.horizontal, Space.md).frame(height: Height.row)
+                            .padding(.horizontal, Space.md).frame(minHeight: Height.row)
                         }
                     }
                 }
@@ -212,7 +212,7 @@ struct WalletSettingsView: View {
                                         Spacer()
                                         Image(systemName: "doc.on.doc").font(.system(size: 13)).foregroundStyle(Palette.inkMuted)
                                     }
-                                    .padding(.horizontal, Space.md).frame(height: Height.row)
+                                    .padding(.horizontal, Space.md).frame(minHeight: Height.row)
                                 }
                             }
                         }
@@ -291,7 +291,7 @@ struct SecuritySettingsView: View {
                             }
                         }
                         .tint(Palette.up)
-                        .padding(.horizontal, Space.md).frame(height: Height.rowCompact)
+                        .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     }
                     NavigationLink { VoiceSettingsView() } label: {
                         SettingsRow(icon: "waveform", title: "Confirmação por voz", value: session.metadata.settings.voice.enabled ? "Ligada" : "Desligada")
@@ -307,7 +307,7 @@ struct SecuritySettingsView: View {
                         Text("Apagar depois de 10 PINs errados").typeStyle(.body).foregroundStyle(Palette.ink)
                     }
                     .tint(Palette.down)
-                    .padding(.horizontal, Space.md).frame(height: Height.rowCompact)
+                    .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                 }
                 .padding(.top, Space.lg)
                 Text(wipeError ?? "Depois de 10 PINs errados, este iPhone apaga as carteiras. Só a senha de cada carteira ou um envelope traz de volta.")
@@ -482,7 +482,7 @@ struct AutoLockView: View {
                                 Image(systemName: "checkmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
                             }
                         }
-                        .padding(.horizontal, Space.md).frame(height: Height.rowCompact)
+                        .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     }
                 }
             }
@@ -536,7 +536,7 @@ struct CurrencySettingsView: View {
                                 Image(systemName: "checkmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
                             }
                         }
-                        .padding(.horizontal, Space.md).frame(height: Height.rowCompact)
+                        .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     }
                 }
             }
@@ -575,7 +575,7 @@ struct NetworksSettingsView: View {
                             }
                         }
                         .tint(Palette.up)
-                        .padding(.horizontal, Space.md).frame(height: Height.rowCompact)
+                        .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     }
                 }
                 .padding(.top, Space.md)

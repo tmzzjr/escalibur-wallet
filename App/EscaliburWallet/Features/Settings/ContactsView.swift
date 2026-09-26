@@ -35,7 +35,7 @@ struct ContactsView: View {
                                 }
                                 .accessibilityLabel("Apagar contato")
                             }
-                            .padding(.horizontal, Space.md).frame(height: Height.row)
+                            .padding(.horizontal, Space.md).frame(minHeight: Height.row)
                         }
                     }
                     .padding(.top, Space.md)
@@ -152,7 +152,7 @@ struct ManageAssetsView: View {
                                 }
                             }
                             .tint(Palette.up)
-                            .padding(.horizontal, Space.md).frame(height: Height.rowCompact)
+                            .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                         }
                     }
                     .padding(.top, Space.md)

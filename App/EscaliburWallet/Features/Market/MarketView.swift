@@ -36,7 +36,7 @@ struct MarketView: View {
                                 SkeletonBar(width: 72, height: 16)
                                 SkeletonBar(width: 72, height: 28)
                             }
-                            .padding(.horizontal, Space.gutter).frame(height: Height.row)
+                            .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
                         }
                         .padding(.top, Space.sm)
                     } else if coins.isEmpty && failed {
@@ -87,24 +87,44 @@ struct MarketView: View {
 struct MarketRow: View {
     let coin: MarketCoin
     let currency: Fmt.Currency
+    @Environment(\.dynamicTypeSize) private var dynamicType
 
     var body: some View {
-        HStack(spacing: Space.sm) {
-            CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 40, remoteURL: coin.imageURL)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
-                Text(verbatim: coin.name).typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
+        Group {
+            if dynamicType.isAccessibilitySize {
+                // Texto grande: nome em cima, preco e variacao embaixo, cada um inteiro.
+                VStack(alignment: .leading, spacing: Space.xxs) {
+                    HStack(spacing: Space.sm) {
+                        CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 40, remoteURL: coin.imageURL)
+                        Text(coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                    }
+                    price
+                    ChangePill(change: coin.change24h)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, Space.sm)
+            } else {
+                HStack(spacing: Space.sm) {
+                    CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 40, remoteURL: coin.imageURL)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                        Text(verbatim: coin.name).typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
+                    }
+                    Spacer(minLength: Space.xs)
+                    price.frame(width: 120, alignment: .trailing)
+                    ChangePill(change: coin.change24h)
+                }
             }
-            Spacer(minLength: Space.xs)
-            Text(Fmt.price(coin.price, currency)).typeStyle(.row).foregroundStyle(Palette.ink)
-                .lineLimit(1)
-                .frame(width: 120, alignment: .trailing)
-                .contentTransition(.numericText(value: coin.price))
-            ChangePill(change: coin.change24h)
         }
         .padding(.horizontal, Space.gutter)
-        .frame(height: Height.row)
+        .frame(minHeight: Height.row)
         .contentShape(Rectangle())
+    }
+
+    private var price: some View {
+        Text(Fmt.price(coin.price, currency)).typeStyle(.row).foregroundStyle(Palette.ink)
+            .lineLimit(1).minimumScaleFactor(0.6)
+            .contentTransition(.numericText(value: coin.price))
     }
 }
 
@@ -118,9 +138,11 @@ struct ChangePill: View {
         let up = value > 0.004
         let down = value < -0.004
         Text(Fmt.percent(value))
-            .font(.system(size: 12, weight: .semibold).monospacedDigit())
+            .typeStyle(.label).monospacedDigit()
             .foregroundStyle(up ? Palette.up : (down ? Palette.down : Palette.inkSoft))
-            .frame(width: 72, height: 24)
+            .lineLimit(1)
+            .padding(.horizontal, Space.xs)
+            .frame(minWidth: 72, minHeight: 24)
             .background(RoundedRectangle(cornerRadius: Radius.badge, style: .continuous).fill(up ? Palette.upTint : (down ? Palette.downTint : Palette.rail)))
     }
 }
