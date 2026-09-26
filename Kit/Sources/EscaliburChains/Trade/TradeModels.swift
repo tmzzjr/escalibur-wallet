@@ -160,6 +160,9 @@ public enum TradeRefusal: Error, Equatable, Sendable {
     case providerFeeTooHigh(bps: UInt32)
     // Mercado
     case priceFarFromOracle(deviationBps: Int)
+    /// Sem preco de referencia e com uma cotacao so: o minimo sairia do numero do proprio
+    /// provedor, sem nada para comparar (auditoria 2, M5).
+    case noPriceAnchor
     case priceImpactTooHigh(bps: Int)
     // Plano
     case quoteExpired

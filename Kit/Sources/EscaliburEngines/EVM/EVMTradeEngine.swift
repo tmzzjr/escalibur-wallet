@@ -60,13 +60,17 @@ public struct EVMTradeEngine: TradeEngine {
         let market = try await EVMTradeMarket.read(context, services: services)
         let set = await services.aggregator.quote(context.intent, market: market.reference, costs: market.costs)
         guard !set.ranked.isEmpty else { throw Self.emptyRound(set.failures) }
+        // O minimo ancorado fora do provedor: preco de referencia, ou duas cotacoes e a maior
+        // estimativa entre elas. Todas aparecem como alternativa; so as ancoradas podem ser
+        // a escolhida.
+        let eligible = Set(try TradeValidator.anchored(set.ranked.map(\.quote), market: market.reference).map(\.provider))
 
         // A autorizacao que ja existe barateia a troca: le a allowance dos spenders que
         // disputam o topo e ranqueia de novo com ela.
         let allowances = await allowances(for: Array(set.ranked.prefix(TradeSplitOptimizer.maxProviders)), context: context)
         let costs = market.costs.with(allowances: allowances)
         let ranked = TradeRanking.rank(set.ranked.map(\.quote), costs: costs)
-        guard let best = ranked.first else { throw EVMEngineFailure.noQuote }
+        guard let best = ranked.first(where: { eligible.contains($0.quote.provider) }) else { throw EVMEngineFailure.noQuote }
 
         var legs = [EVMTradeLeg(quote: best.quote, shareBps: 10_000)]
         if let gain = market.minimumSplitGain, TradeSplitOptimizer.shouldConsider(best),
@@ -175,9 +179,12 @@ public struct EVMTradeEngine: TradeEngine {
         let requoted = try await requote(legs, intent: intent, market: market)
 
         // O garantido novo nao pode ter caido abaixo do que a tela mostrou por mais que a
-        // tolerancia do dono: isso seria outra troca, nao a que ele revisou.
+        // tolerancia do dono: isso seria outra troca, nao a que ele revisou. Sem preco de
+        // referencia agora, a recotacao de um provedor so nao tem ancora de fora: o
+        // garantido tem de ser pelo menos o minimo que a tela mostrou, ancorado na rodada.
         let guaranteed = requoted.reduce(BigUInt()) { $0 + $1.quote.guaranteedOut }
-        guard guaranteed >= intent.minimumOut(forExpected: quote.minimumOut) else { throw EVMEngineFailure.priceMoved }
+        let floor = market.reference.oracleOut == nil ? quote.minimumOut : intent.minimumOut(forExpected: quote.minimumOut)
+        guard guaranteed >= floor else { throw EVMEngineFailure.priceMoved }
 
         // Uma perna depois da outra: nonce, saldo nativo e saldo do token vendido seguem de
         // uma para a proxima, porque todas vao ser assinadas agora e executadas em sequencia.

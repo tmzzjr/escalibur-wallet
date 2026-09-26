@@ -278,6 +278,25 @@ public enum TradeValidator {
         )
     }
 
+    /// O minimo ancorado fora do proprio provedor (auditoria 2, M5).
+    ///
+    /// Cada cotacao ja exige `minOut >= esperado x (1 - tolerancia)`, mas o esperado e o
+    /// numero que o proprio provedor anuncia: um provedor que cota baixo rebaixa o proprio
+    /// minimo. Por isso a troca so segue com uma ancora de fora:
+    /// - com preco de referencia, cada cotacao ja passou pela sanidade (5% pior bloqueia);
+    /// - sem referencia, pelo menos duas cotacoes validas, e so ficam as que garantem o
+    ///   minimo calculado da maior estimativa entre elas.
+    public static func anchored(_ quotes: [ValidatedTradeQuote], market: TradeMarketReference) throws -> [ValidatedTradeQuote] {
+        guard !quotes.isEmpty, market.oracleOut == nil else { return quotes }
+        guard quotes.count >= 2, let anchor = quotes.map(\.expectedOut).max() else { throw TradeRefusal.noPriceAnchor }
+        let kept = quotes.filter { $0.guaranteedOut + roundingSlack >= $0.intent.minimumOut(forExpected: anchor) }
+        guard !kept.isEmpty else {
+            let best = quotes.map(\.guaranteedOut).max() ?? BigUInt()
+            throw TradeRefusal.minimumOutTooLow(found: best, required: quotes[0].intent.minimumOut(forExpected: anchor))
+        }
+        return kept
+    }
+
     /// Prazo ate 20 minutos a frente; vencido ou mais longe, recusa.
     static func checkDeadline(_ deadline: UInt64?, now: Date) throws {
         guard let deadline else { return }

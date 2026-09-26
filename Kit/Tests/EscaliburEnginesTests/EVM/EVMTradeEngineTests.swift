@@ -77,6 +77,26 @@ struct EVMTradeEngineTests {
         }
     }
 
+    @Test("Regressao M5: sem preco de referencia, uma cotacao so nao troca; com a referencia, troca")
+    func anchorRequired() async throws {
+        let proposals = try F.proposals()
+        let single = try H.sources(EVMCallCounter(), proposals: [try #require(proposals.first)])
+        let blind = H.engine(sources: single, transport: try H.baseTransport())
+        await #expect(throws: SendEngineError.message(
+            "Sem preço de referência do mercado agora, a troca precisa de pelo menos duas cotações para comparar, e só uma respondeu. Tente de novo em instantes."
+        )) { _ = try await blind.quote(F.request()) }
+
+        // Com o preco de referencia, a mesma cotacao unica passa pela sanidade e troca.
+        let best = try TradeValidator.validate(try #require(proposals.first), intent: F.intent())
+        let ethMicros = BigUInt(100) * BigUInt.power(of: 10, 24) / best.expectedOut
+        let text = ethMicros.decimalString
+        let price = String(text.dropLast(6)) + "." + String(text.suffix(6))
+        let seeing = H.engine(prices: ["usd-coin": "1", "ethereum": price], sources: try H.sources(EVMCallCounter(), proposals: [proposals[0]]),
+                              transport: try H.baseTransport())
+        let quote = try await seeing.quote(F.request())
+        #expect(quote.providersCompared == 1)
+    }
+
     @Test("Preco do oraculo vira texto decimal sem expoente; preco nulo ou invalido fica de fora")
     func oracleDecimalText() {
         for price in [3_998.12, 1, 0.000_001_23, 1e-12, 64_123_456.5] {

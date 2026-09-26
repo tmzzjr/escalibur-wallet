@@ -176,6 +176,8 @@ enum EVMEngineMessages {
              .simulationUnexpectedApproval:
             return simulationMismatch
         case .priceFarFromOracle: return "O preço desta cotação está longe demais do preço médio de mercado. Troca bloqueada."
+        case .noPriceAnchor:
+            return "Sem preço de referência do mercado agora, a troca precisa de pelo menos duas cotações para comparar, e só uma respondeu. Tente de novo em instantes."
         case .priceImpactTooHigh: return "Esta troca perderia demais para o impacto no preço. Tente um valor menor ou uma ordem limite."
         case .missingTokenState, .missingApprovalGas: return nil
         case .providerNotOnChain, .chainIDMismatch, .senderMismatch, .routerNotAllowed, .spenderNotAllowed, .selectorNotAllowed,
