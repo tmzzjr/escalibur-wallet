@@ -24,13 +24,18 @@ final class TradeQuoteTests: XCTestCase {
         app.launchArguments = ["-reset", "-demo", "-tela", "trocar"]
         app.launch()
 
-        let base = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Base'")).firstMatch
-        XCTAssertTrue(base.waitForExistence(timeout: 30))
+        let menu = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Rede:'")).firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 30))
+        shot("t0-trocar", app)
+        menu.tap()
+        let base = app.buttons["Base"].firstMatch
+        XCTAssertTrue(base.waitForExistence(timeout: 5))
         base.tap()
         let field = app.textFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         field.tap()
         field.typeText("0,01")
+        shot("t0b-carregando", app)
         let next = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Nova cotação'")).firstMatch
         XCTAssertTrue(next.waitForExistence(timeout: 40), "a cotacao nao chegou")
         shot("t1-cotacao-base", app)

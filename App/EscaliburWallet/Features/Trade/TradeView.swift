@@ -49,7 +49,6 @@ struct TradeView: View {
     @Environment(Router.self) private var router
     @State private var model = TradeModel()
     @State private var picking: Side?
-    @State private var slippageSheet = false
     @State private var routeSheet = false
     @State private var reviewing: TradeReviewFlow.Item?
     @State private var receivingAsset: Asset?
@@ -66,11 +65,9 @@ struct TradeView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     TabTitle(title: "Trocar") {
                         if !tradeChains.isEmpty {
-                            Button { slippageSheet = true } label: {
-                                Image(systemName: "slider.horizontal.3").font(.system(size: 17, weight: .medium)).foregroundStyle(Palette.inkSoft)
-                                    .frame(width: Height.touch, height: Height.touch, alignment: .trailing)
+                            NetworkMenu(chains: tradeChains, selected: model.chain) { chain in
+                                withAnimation(Motion.fade) { model.reset(to: chain) }
                             }
-                            .accessibilityLabel("Tolerância de preço")
                         }
                     }
                     if tradeChains.isEmpty {
@@ -84,7 +81,6 @@ struct TradeView: View {
                         VStack(alignment: .leading, spacing: 0) {
                             Segmented(options: [(Router.TradeMode.now, "Imediata"), (.limit, "Limite")], selection: Bindable(router).tradeMode)
                                 .padding(.top, Space.sm)
-                            chainChips.padding(.top, Space.md)
                             if session.selectedWallet?.isWatchOnly == true {
                                 Banner(kind: .neutral, title: "Esta carteira só observa. Escolha outra carteira para trocar.").padding(.top, Space.md)
                             }
@@ -108,7 +104,6 @@ struct TradeView: View {
                 picking = nil
             }
         }
-        .sheet(isPresented: $slippageSheet) { SlippageSheet(model: model) }
         .sheet(item: $receivingAsset) { asset in ReceiveSheet(preselected: asset) }
         .sheet(isPresented: $routeSheet) { if let quote = model.quote { RouteSheet(quote: quote) } }
         .fullScreenCover(item: $reviewing) { item in
@@ -130,28 +125,6 @@ struct TradeView: View {
 
     // MARK: Cabecalho
 
-    private var chainChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Space.xs) {
-                ForEach(tradeChains) { chain in
-                    Button { model.reset(to: chain) } label: {
-                        HStack(spacing: 6) {
-                            NetworkBadge(chain: chain, size: 18, ring: .clear)
-                            Text(chain.name).typeStyle(.label)
-                        }
-                        .foregroundStyle(model.chain == chain ? Palette.ink : Palette.inkSoft)
-                        .padding(.horizontal, Space.sm).frame(height: Height.chip)
-                        .background(Capsule(style: .continuous)
-                            .fill(model.chain == chain ? Palette.control : Palette.body)
-                            .overlay(Capsule(style: .continuous).stroke(model.chain == chain ? Palette.edgeStrong : Palette.edge, lineWidth: 1)))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-        .scrollClipDisabled()
-    }
-
     // MARK: Agora
 
     private var fractionAction: ((Double) -> Void)? {
@@ -167,6 +140,7 @@ struct TradeView: View {
                           onPick: { picking = .sell }, onFraction: fractionAction)
                 AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(receiveText), balance: balance(model.buy),
                           fiat: fiat(model.quote?.expectedOut, model.buy), editable: false, over: false,
+                          loading: model.quoting && model.quote == nil && model.amountIn != nil,
                           onPick: { picking = .buy }, onFraction: nil)
                     .overlay(alignment: .top) {
                         Button(action: flip) {
@@ -182,7 +156,9 @@ struct TradeView: View {
                     }
             }
 
-            quoteLines.padding(.top, Space.md)
+            SlippageSlider(basisPoints: $model.slippageBps)
+                .padding(.top, Space.lg)
+            quoteLines.padding(.top, Space.lg)
         }
     }
 
@@ -200,11 +176,18 @@ struct TradeView: View {
                 }
                 .buttonStyle(.plain)
                 Button { routeSheet = true } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 6) {
+                        HStack(spacing: -6) {
+                            ForEach(Array(quote.legs.prefix(3).enumerated()), id: \.offset) { _, leg in
+                                ProviderLogo(name: leg.provider, size: 20)
+                                    .overlay(Circle().stroke(Palette.void, lineWidth: 2))
+                            }
+                        }
                         Text(quote.legs.count > 1
                              ? "Dividida entre \(quote.legs.count) provedores para você receber mais"
-                             : "Melhor preço entre \(quote.providersCompared) provedores: \(quote.legs.first?.provider ?? "")")
-                            .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                             : "\(quote.legs.first?.provider ?? ""), o melhor entre \(quote.providersCompared)")
+                            .typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
+                        Spacer(minLength: 4)
                         Text("Ver rota").typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.ink)
                     }
                 }
@@ -221,15 +204,12 @@ struct TradeView: View {
                 .buttonStyle(.plain)
                 if model.showDetails {
                     detail("Você recebe no mínimo", Fmt.crypto(quote.minimumOut, decimals: buy.decimals, symbol: buy.symbol, style: .full))
-                    detail("Tolerância de preço", "\(Fmt.grouped(Double(model.slippageBps) / 100, fractionDigits: 2, trimZeros: true))%")
                     if let impact = quote.priceImpactPercent { detail("Impacto no preço", "\(Fmt.grouped(impact, fractionDigits: 2))%") }
                     if model.chain == .ethereum, session.metadata.settings.mevProtection { detail("Proteção contra robôs", "ligada") }
                 }
             }
-            .padding(Space.md)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+            .transition(.opacity)
         } else if let error = model.error {
             Banner(kind: .neutral, title: error)
         }
@@ -383,7 +363,7 @@ struct TradeView: View {
                 Text("Nova cotação em \(model.nextRefresh) s").typeStyle(.note).foregroundStyle(Palette.inkMuted)
             }
             if !hasBalance(model.sell), let sell = model.sell {
-                SecondaryButton(title: "Receber \(sell.symbol)", height: Height.primary) { receivingAsset = sell }
+                AccentButton(title: "Receber \(sell.symbol)", systemImage: "arrow.down") { receivingAsset = sell }
             } else {
                 PrimaryButton(title: primaryTitle, enabled: primaryEnabled, loading: model.quoting && model.quote == nil && model.amountIn != nil) {
                     startReview()
@@ -493,6 +473,7 @@ struct AmountBox: View {
     let fiat: String?
     let editable: Bool
     let over: Bool
+    var loading: Bool = false
     let onPick: () -> Void
     let onFraction: ((Double) -> Void)?
     @FocusState private var focused: Bool
@@ -520,11 +501,16 @@ struct AmountBox: View {
                                 Button("Pronto") { focused = false }.fontWeight(.semibold)
                             }
                         }
+                } else if loading {
+                    ShimmerBar(width: 150, height: 30)
+                    Spacer(minLength: 0)
                 } else {
                     Text(amount.isEmpty ? "0" : amount)
                         .font(.system(size: 32, weight: .bold).monospacedDigit())
                         .foregroundStyle(amount.isEmpty ? Palette.inkDead : Palette.ink)
                         .lineLimit(1).minimumScaleFactor(0.5)
+                        .contentTransition(.numericText())
+                        .animation(Motion.number, value: amount)
                     Spacer(minLength: 0)
                 }
                 Button(action: onPick) {
@@ -615,39 +601,6 @@ struct TokenPickerSheet: View {
 }
 
 /// T4: tolerancia de preco.
-struct SlippageSheet: View {
-    @Bindable var model: TradeModel
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Tolerância de preço") { dismiss() }
-            Text("Se o preço piorar mais que isso antes de a troca executar, ela é cancelada e só a taxa da rede é cobrada.")
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: Space.xs) {
-                ForEach([10, 50, 100, 300], id: \.self) { bps in
-                    Chip(title: "\(Fmt.grouped(Double(bps) / 100, fractionDigits: 1, trimZeros: true))%", selected: model.slippageBps == bps) {
-                        model.slippageBps = bps
-                    }
-                }
-            }
-            .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
-            if model.slippageBps >= 300 {
-                Text("Tolerância alta atrai robôs que exploram essa diferença.")
-                    .typeStyle(.note).foregroundStyle(Palette.caution).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
-            } else if model.slippageBps <= 10 {
-                Text("Com tolerância tão baixa, a troca tende a falhar, e a taxa da rede é cobrada mesmo assim.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
-            }
-            Spacer()
-        }
-        .presentationDetents([.medium])
-        .presentationBackground(Palette.body)
-        .presentationCornerRadius(Radius.sheet)
-    }
-}
-
 /// T3: a rota, com a divisao entre provedores como ganho medido.
 struct RouteSheet: View {
     let quote: TradeQuote

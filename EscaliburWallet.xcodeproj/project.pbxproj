@@ -64,6 +64,7 @@
 		DAC0E966C277EFDAF466D0EB /* DeviceIntegrity.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5ECD2EB5627AA912E7957E4 /* DeviceIntegrity.swift */; };
 		E09B8272656E909426D4987D /* Buttons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B99C8E82247CAD42E358D7 /* Buttons.swift */; };
 		E345A5856750B23E38B8A35E /* SealEnvelopeFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */; };
+		E6F4BCF5A1C5733FBA004E5D /* TradeComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED594CB5884DB17FE81B8D4 /* TradeComponents.swift */; };
 		E74B179E19640B5584F2F303 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38287337A415C5A48CB564C8 /* Typography.swift */; };
 		E9B262D8C5C872AC0A1391B7 /* TradeReviewFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD76B5A4D8E49D97000A77E /* TradeReviewFlow.swift */; };
 		EAD6592758D7814329227F15 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7372B2C6D0156F65AA215FE5 /* SettingsView.swift */; };
@@ -143,6 +144,7 @@
 		C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinLogo.swift; sourceTree = "<group>"; };
 		CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowTests.swift; sourceTree = "<group>"; };
 		CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		CED594CB5884DB17FE81B8D4 /* TradeComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeComponents.swift; sourceTree = "<group>"; };
 		CF3019F2F06749CD522B32AB /* FORMATO.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FORMATO.md; sourceTree = "<group>"; };
 		D0E6EBFF95E21A9523382BC5 /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
 		D423B66DA20C4DA018418902 /* AuthCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCoordinator.swift; sourceTree = "<group>"; };
@@ -241,6 +243,7 @@
 		3CB515FF159E32BF5AB17040 /* Trade */ = {
 			isa = PBXGroup;
 			children = (
+				CED594CB5884DB17FE81B8D4 /* TradeComponents.swift */,
 				9DD76B5A4D8E49D97000A77E /* TradeReviewFlow.swift */,
 				E34BAC1217309C0064F23CE7 /* TradeView.swift */,
 			);
@@ -588,6 +591,7 @@
 				57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */,
 				7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */,
 				EAD6592758D7814329227F15 /* SettingsView.swift in Sources */,
+				E6F4BCF5A1C5733FBA004E5D /* TradeComponents.swift in Sources */,
 				E9B262D8C5C872AC0A1391B7 /* TradeReviewFlow.swift in Sources */,
 				A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */,
 				E74B179E19640B5584F2F303 /* Typography.swift in Sources */,

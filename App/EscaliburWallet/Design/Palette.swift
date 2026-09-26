@@ -32,6 +32,12 @@ enum Palette {
     static let downTint = Color(hex: 0x2D1413)
     static let downPress = Color(hex: 0x3C1816)
     static let caution = Color(hex: 0xF5A524)
+    // Acentos pedidos pelo dono: roxo no controle de tolerancia, lima na acao de
+    // receber. Chapados, sem brilho: cor com funcao, nao enfeite.
+    static let purple = Color(hex: 0x8B5CF6)
+    static let purpleDeep = Color(hex: 0x4C1D95)
+    static let lime = Color(hex: 0xC4F135)
+    static let onLime = Color(hex: 0x0B0D05)
     static let cautionTint = Color(hex: 0x2C210F)
 
     // A placa clara: so onde se confere caractere por caractere.

@@ -182,3 +182,33 @@ private struct QuickActionStyle: ButtonStyle {
             .animation(Motion.press, value: configuration.isPressed)
     }
 }
+
+/// A acao de receber quando falta saldo: lima chapado, texto escuro, em capsula. O
+/// unico botao lima do app, para "o que fazer agora" nao se perder na tela.
+struct AccentButton: View {
+    let title: String
+    var systemImage: String? = nil
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Space.xs) {
+                if let systemImage { Image(systemName: systemImage).font(.system(size: 16, weight: .bold)) }
+                Text(title).typeStyle(.action)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: Height.primary)
+        }
+        .buttonStyle(AccentStyle())
+    }
+}
+
+struct AccentStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(Palette.onLime)
+            .background(Capsule(style: .continuous).fill(Palette.lime.opacity(configuration.isPressed ? 0.8 : 1)))
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .animation(Motion.press, value: configuration.isPressed)
+    }
+}

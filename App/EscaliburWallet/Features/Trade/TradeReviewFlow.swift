@@ -38,6 +38,13 @@ struct TradeReviewFlow: View {
     private var engine: (any TradeEngine)? { TradeEngines.engine(for: item.chain) }
     private var isLimit: Bool { if case .limit = item.kind { return true }; return false }
 
+    private var assets: (sell: Asset, buy: Asset) {
+        switch item.kind {
+        case .swap(let request, _): return (request.sell, request.buy)
+        case .limit(let request): return (request.sell, request.buy)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -79,9 +86,11 @@ struct TradeReviewFlow: View {
                     .padding(.bottom, Space.xs)
             } else {
                 Spacer()
-                ProgressView().tint(Palette.ink)
+                SwapProcessingIndicator(sell: assets.sell, buy: assets.buy).frame(maxWidth: .infinity)
                 Text(isLimit ? "Montando a ordem e conferindo os dados da rede." : "Recotando e simulando a troca antes de mostrar.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                    .frame(maxWidth: .infinity).multilineTextAlignment(.center)
+                    .padding(.top, Space.lg)
                 Spacer()
             }
         }
@@ -123,9 +132,11 @@ struct TradeReviewFlow: View {
     private var sending: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             Spacer()
-            ProgressView().tint(Palette.ink)
+            SwapProcessingIndicator(sell: assets.sell, buy: assets.buy).frame(maxWidth: .infinity)
             Text(isLimit ? "Enviando a ordem" : "Enviando a troca").typeStyle(.title).foregroundStyle(Palette.ink)
+                .frame(maxWidth: .infinity).padding(.top, Space.lg)
             Text("Não feche o app até terminar.").typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                .frame(maxWidth: .infinity)
             Spacer()
         }
     }
