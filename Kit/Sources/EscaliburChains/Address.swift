@@ -184,7 +184,10 @@ public struct UTXOParams: Sendable {
     public static func `for`(_ chain: Chain) -> UTXOParams {
         switch chain.id {
         case "litecoin":
-            return UTXOParams(bech32HRP: "ltc", p2pkhVersion: 0x30, p2shVersion: 0x32, extraP2SHVersions: [0x05], dustP2WPKH: 294, dustP2PKH: 546)
+            // O P2SH antigo do Litecoin (0x05, "3...") e identico ao do Bitcoin: um
+            // endereco de Bitcoin colado na tela de LTC passaria sem aviso. So o
+            // formato atual (0x32, "M...") e aceito.
+            return UTXOParams(bech32HRP: "ltc", p2pkhVersion: 0x30, p2shVersion: 0x32, extraP2SHVersions: [], dustP2WPKH: 294, dustP2PKH: 546)
         case "dogecoin":
             return UTXOParams(bech32HRP: nil, p2pkhVersion: 0x1E, p2shVersion: 0x16, extraP2SHVersions: [], dustP2WPKH: 1_000_000, dustP2PKH: 1_000_000)
         default:

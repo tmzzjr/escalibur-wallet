@@ -98,14 +98,15 @@ struct UTXOAddressScriptTests {
         #expect(UTXOScript.classify(doge)?.type == .p2pkh)
         #expect(UTXOScript.address(for: doge, chain: .dogecoin) == "DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC")
 
-        // Litecoin P2SH: a forma nova (M, 0x32) e a antiga (3, 0x05) pagam o mesmo
-        // script, e a carteira sempre escreve a nova.
+        // Litecoin P2SH: so a forma nova (M, 0x32) e aceita. A antiga (3, 0x05) e
+        // identica ao P2SH do Bitcoin, e aceitar faria um endereco de Bitcoin colado
+        // na tela de LTC passar sem aviso; ela e recusada como endereco de Bitcoin.
         let hash = [UInt8](repeating: 0x42, count: 20)
         let modern = Base58.bitcoin.encodeCheck([0x32] + hash)
         let legacy = Base58.bitcoin.encodeCheck([0x05] + hash)
         #expect(modern.hasPrefix("M"))
         #expect(try UTXOScript.scriptPubKey(for: modern, chain: .litecoin) == UTXOScript.p2sh(hash))
-        #expect(try UTXOScript.scriptPubKey(for: legacy, chain: .litecoin) == UTXOScript.p2sh(hash))
+        #expect(throws: Address.Problem.otherNetwork(.bitcoin)) { try UTXOScript.scriptPubKey(for: legacy, chain: .litecoin) }
         #expect(UTXOScript.address(for: UTXOScript.p2sh(hash), chain: .litecoin) == modern)
 
         // Dogecoin P2SH (0x16) e sem segwit.
