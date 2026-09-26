@@ -1,0 +1,1675 @@
+{
+ "LEIA": "Gerado por gerar-oraculo-curva.py (criterio de Euler em inteiros do Python, semantica do curve25519-dalek). Os casos com 'note' sao de borda; os demais sao aleatorios com semente fixa.",
+ "cases": [
+  {
+   "note": "y = 0 (o System Program): x^2 = -1, que e quadrado",
+   "hex": "0000000000000000000000000000000000000000000000000000000000000000",
+   "onCurve": true
+  },
+  {
+   "note": "y = 1: x = 0",
+   "hex": "0100000000000000000000000000000000000000000000000000000000000000",
+   "onCurve": true
+  },
+  {
+   "note": "y = 1 com bit de sinal: x = 0 e sinal 1, aceito pelo dalek, recusado pela RFC 8032",
+   "hex": "0100000000000000000000000000000000000000000000000000000000000080",
+   "onCurve": true
+  },
+  {
+   "note": "y = p - 1 (-1): x = 0",
+   "hex": "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+   "onCurve": true
+  },
+  {
+   "note": "y = p: nao canonico, reduz a 0; aceito pelo dalek, recusado pela RFC 8032",
+   "hex": "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+   "onCurve": true
+  },
+  {
+   "note": "y = p + 1: nao canonico, reduz a 1",
+   "hex": "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+   "onCurve": true
+  },
+  {
+   "note": "y = 2^255 - 1: nao canonico, reduz a 18",
+   "hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+   "onCurve": true
+  },
+  {
+   "note": "todos os bytes 0xff: bit 255 ignorado, igual ao anterior",
+   "hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+   "onCurve": true
+  },
+  {
+   "note": "y = 2",
+   "hex": "0200000000000000000000000000000000000000000000000000000000000000",
+   "onCurve": false
+  },
+  {
+   "note": "y = 3",
+   "hex": "0300000000000000000000000000000000000000000000000000000000000000",
+   "onCurve": true
+  },
+  {
+   "note": "y = 4",
+   "hex": "0400000000000000000000000000000000000000000000000000000000000000",
+   "onCurve": true
+  },
+  {
+   "note": "y = 5",
+   "hex": "0500000000000000000000000000000000000000000000000000000000000000",
+   "onCurve": true
+  },
+  {
+   "note": "y do ponto base, 4/5 mod p",
+   "hex": "5866666666666666666666666666666666666666666666666666666666666666",
+   "onCurve": true
+  },
+  {
+   "note": "y do ponto base com sinal",
+   "hex": "58666666666666666666666666666666666666666666666666666666666666e6",
+   "onCurve": true
+  },
+  {
+   "hex": "3a920b39a1127570dd627b630ae4232af216cd1c09da1d71dafdb1e410f704c6",
+   "onCurve": false
+  },
+  {
+   "hex": "715bb39be858aaccf64a489e9b239a01eb562fc4c21b525ba69c0ff0ed919ec6",
+   "onCurve": true
+  },
+  {
+   "hex": "d9be3957a948be202250812a2ab0e68c0077600d156e5ddbd9258385b94ddf44",
+   "onCurve": false
+  },
+  {
+   "hex": "fde432aeec30a86eb8890305b657b528cc6c58684638ab5257debf37d6a05314",
+   "onCurve": true
+  },
+  {
+   "hex": "e32e3dceb6b8bd32f4e001f90dabba4eee68758d9c053910fe4376f9afd33ba3",
+   "onCurve": true
+  },
+  {
+   "hex": "2b24bca6d6ea36e7dfc41c37e49e927f325389c3d931b1dafeb24625c1f0482e",
+   "onCurve": false
+  },
+  {
+   "hex": "f2080456ec772fa0a5d5a60ec2408dccf6d57ed5d161ac9174dc4d3b8a506be3",
+   "onCurve": false
+  },
+  {
+   "hex": "66f79582dc3e298c40575f54b3ba2cd1e3d1328f0097fa6b9b48161327f3f834",
+   "onCurve": true
+  },
+  {
+   "hex": "466a028b9199ebd7f52a4d58c37a9a0637e17a4e04d741d504fa4fd3591cac13",
+   "onCurve": true
+  },
+  {
+   "hex": "4ec993dcaa7cdce73956c9856cef24c2235d9f6f5524077d62d8a090b321620f",
+   "onCurve": false
+  },
+  {
+   "hex": "df7cf8e0991a0f8e512711547762ed602d4b30d41a3ec61a9eb0457b7158513b",
+   "onCurve": true
+  },
+  {
+   "hex": "f2a013412a48846a859f823c28b3a81a333f0345320026f9ee6dc28a0a4c98e7",
+   "onCurve": true
+  },
+  {
+   "hex": "3118f9a987f935078533d7ecd42d0ac491f7643f3c86d57dfb99738e7451f5c8",
+   "onCurve": false
+  },
+  {
+   "hex": "c4b3b24e3e1c3a1c3a1120c43fb63bba8409776a7399cfd07c7abac35ccc1930",
+   "onCurve": true
+  },
+  {
+   "hex": "e445efa6d092d2b9fbae85b2bf6e4a2e3d7b57bfc2a1080df03d919442148d35",
+   "onCurve": false
+  },
+  {
+   "hex": "d8f297c08deda519db559099d5e8198c6d4faab463f4d318c482d17f56bd48ff",
+   "onCurve": false
+  },
+  {
+   "hex": "8856f2eef8f48c9da2d7612f20ca7601ac6353fa535cec17b5e882da95461133",
+   "onCurve": true
+  },
+  {
+   "hex": "b7bb3965f3103b2df40e219d49b76e0dcf2ab512efd9521486f2cadf23cf9b6e",
+   "onCurve": true
+  },
+  {
+   "hex": "5ddf5081d000fea9e77b3f81448aa6274e6f1df9a061a59546045db989842dff",
+   "onCurve": false
+  },
+  {
+   "hex": "db600927c4c6ac275ff31658965e51e954aa19375be9c3b16d0974a45575f2b9",
+   "onCurve": true
+  },
+  {
+   "hex": "0c8cd423dcf6b24e0fa0d28776c5251116265be2458b2b57358adc107cb955bf",
+   "onCurve": false
+  },
+  {
+   "hex": "58a4140c4b6646d802e99f0147d7be9650b84250971343fcf48d9e860a0537e0",
+   "onCurve": true
+  },
+  {
+   "hex": "2327fa59a740003c5d65bfa5dfecd3ed38ad6e252cbec162f6edf3db2b473caa",
+   "onCurve": false
+  },
+  {
+   "hex": "753103bc8005a42113f6eb98ea08299d3f77d93128302df13bdc9643e2d748c0",
+   "onCurve": false
+  },
+  {
+   "hex": "061d4be78dd221572bb261b94dfb9f66187f65455604c2af9e2d2e04a21e5e12",
+   "onCurve": false
+  },
+  {
+   "hex": "66221556b09ecda496e1edb741f28bf9d85350bd2972072ca0249f297977d5aa",
+   "onCurve": true
+  },
+  {
+   "hex": "7750d28c48976f97359c59bcb471fb1f0fe11f140b4fb24ee992722ae807f448",
+   "onCurve": false
+  },
+  {
+   "hex": "11a6437311b242acaffb89a27bdcd87d5f83ec11bdd655bb3f1246c8907d83d0",
+   "onCurve": true
+  },
+  {
+   "hex": "cd24073aac19bc24c2d17685c2ea129b4103cd512f1b16dc2eb5affaad14aa5f",
+   "onCurve": true
+  },
+  {
+   "hex": "8cf6240b4b9d387488ea13944c9dc5807b16a0dce614b5d40f7457d2312e87f2",
+   "onCurve": true
+  },
+  {
+   "hex": "69ea2801f9f2d5cc2b12705a8204c70574967af07160be4601d1a796e01c02bd",
+   "onCurve": false
+  },
+  {
+   "hex": "a6850c9408ae69aba85ff92aee2df56882efb498574004b3e06ec512a6029611",
+   "onCurve": true
+  },
+  {
+   "hex": "f03656432ccd7b9096c20d3c590a074c0c4a2430700a1305a5a4c4a8a67f8232",
+   "onCurve": false
+  },
+  {
+   "hex": "4976cd8cd5c47b6c3a1f4ffd4076dcb04f5a6d7f84516aeaef27a4000ef3cdd5",
+   "onCurve": true
+  },
+  {
+   "hex": "273b5211bf85914d823a34523e1a11f9b88a67e8e75f5c1f888ef948997a5397",
+   "onCurve": false
+  },
+  {
+   "hex": "b51fe612c08611b1e7982671b9639662fb9322d578c96d46411814e574d975df",
+   "onCurve": false
+  },
+  {
+   "hex": "a0e070fd16d1f21ebd4dc6a1efccd76e00f4ae87bdcafc43824d7e43fb836156",
+   "onCurve": false
+  },
+  {
+   "hex": "aaa8db295bce66d8b743c6927bc55ce074c9d268911002fb89d2167161d96b0a",
+   "onCurve": true
+  },
+  {
+   "hex": "e57725f99f807b32e99d523e1363f7fb16c70e08e063e393679b74f1e576b57f",
+   "onCurve": false
+  },
+  {
+   "hex": "cf6797328806ef806d91abb5d4a1b6d11ecdb6436d785ea0d31972bca8592710",
+   "onCurve": false
+  },
+  {
+   "hex": "6e8d8b8c01c88b0273b2afd231ab05293a550191a952835e5684849a85ed51ce",
+   "onCurve": false
+  },
+  {
+   "hex": "c985ac6f3d75cd6a63004fdcb4f786d91ae2d19e43117da7fe1ffa6f8dbf3d47",
+   "onCurve": true
+  },
+  {
+   "hex": "565288dea9424ab5d75441fa3b18cf0f8f8f722f55b3140bd0a834c16f7ee701",
+   "onCurve": false
+  },
+  {
+   "hex": "bdbdd2118cbef30aba69b7b437759e6d377d2d64afa571344df36ec1d7befd21",
+   "onCurve": true
+  },
+  {
+   "hex": "04221b22fc2bd6a373ce8353d54f913c3664dd0280ce30a1b524fc5d4eef1f95",
+   "onCurve": false
+  },
+  {
+   "hex": "cc74c3779bfde6889823ce87dd227a36c99898e4a6143c18c75a458ad36cd86b",
+   "onCurve": false
+  },
+  {
+   "hex": "1b34a6cabd8989d3de97ebfb2f3a3b265dee38a3928f8e7b0eab974e0e281264",
+   "onCurve": false
+  },
+  {
+   "hex": "6659fe4c1a132af68a2bf9b13d9c720c895778e81ad2878f894691a57692cedc",
+   "onCurve": true
+  },
+  {
+   "hex": "e431f99cee5d71f513fa01f8dbfa6b15baa8ced687b2fab9a685ef37c2b9a59f",
+   "onCurve": false
+  },
+  {
+   "hex": "bd3f32d4d5df081f50b24c4b84956b70bfc979d515136e4058715874ee33f616",
+   "onCurve": true
+  },
+  {
+   "hex": "bfb33ad6d28f90d7b2eead31723be314ba6e869a866cf5a5de246422595362a8",
+   "onCurve": false
+  },
+  {
+   "hex": "3a1ddfdd300f51ba4eda7158985d48a7bc7deb773f302f83b475f2fcc64e0c13",
+   "onCurve": false
+  },
+  {
+   "hex": "7ceface5bbde716e06e9b777dd3b7ea13133be5a080f5a234fa71f611f88abbd",
+   "onCurve": true
+  },
+  {
+   "hex": "4c2a767a9f78bac0f7b081ab813745eb9f9294aacd7ac68709acccebad52b2a3",
+   "onCurve": false
+  },
+  {
+   "hex": "e644eb56b92d78906b40e6a61a4276f9b2366f2f7961aac2b20751c3270a55cf",
+   "onCurve": false
+  },
+  {
+   "hex": "157fff748b75e1bdf868b099769226b5717272cd18b37d2e0e3bf5d6dcdab58f",
+   "onCurve": true
+  },
+  {
+   "hex": "78d00bc446569f9d13496746d9165e390103dfed22e8e22306e11d14fbed3587",
+   "onCurve": false
+  },
+  {
+   "hex": "d52aead7c70ccef70b70066cf7bd09bc805e30c09c75ffa60174bf9970b514c4",
+   "onCurve": false
+  },
+  {
+   "hex": "59425fc13fed488dca734d0b5be4c17bc0b8d18c1f95b07b70bc298b12b3ba5c",
+   "onCurve": true
+  },
+  {
+   "hex": "3b2dace0cf9fb946b11e63e990db33450f39085f81db2832b21d5f766065a6b4",
+   "onCurve": false
+  },
+  {
+   "hex": "c383b9d72b89af77143db66535ecbda91bf6abce926207df3c2244282b554eb4",
+   "onCurve": true
+  },
+  {
+   "hex": "d94de83244a1d777a957e860f433b4931ce47cdd71f3f2341fdebce8c041fdae",
+   "onCurve": false
+  },
+  {
+   "hex": "f8fbb604ee26d8f8459173ff74f580ec40ace4b78d7f57f139584b28f6dca0da",
+   "onCurve": true
+  },
+  {
+   "hex": "c34ea77729f732d8b790dda76d052f6221736ba4d8e92a313ea7e8492eac65d8",
+   "onCurve": true
+  },
+  {
+   "hex": "41e0efebd7aeda7dcaef47215795de6b96b2d2fc4c94590903706b45a08597ac",
+   "onCurve": false
+  },
+  {
+   "hex": "75642689d2210d58863a33068e358bc20d90414fe79b87a4ed3f5c24a6ababce",
+   "onCurve": true
+  },
+  {
+   "hex": "3e4376fb47e69646b175c061fde78a86d9cda4d991a8355b8d3940d57d3995d9",
+   "onCurve": false
+  },
+  {
+   "hex": "b7a2cea3c36da326c73de20f51ac5ae676a0783fa420a55a34fed563037ca125",
+   "onCurve": false
+  },
+  {
+   "hex": "2af19269c8ea74f90948e675af9047d45e6bf41e7cc4d67d8208fdd4595899d7",
+   "onCurve": true
+  },
+  {
+   "hex": "ac82e7d2c07e30270b53a9664235a9b362031db4a6b94f0707ee04579ed074ca",
+   "onCurve": true
+  },
+  {
+   "hex": "1f660a54729d4c884bf42901a31e8a7831da69ff608aa84fffe75e9865b5b8df",
+   "onCurve": false
+  },
+  {
+   "hex": "86a226f78af90e62bc38560c6e8e8b9aa9e7dd1545e46855890b35efa6da0f79",
+   "onCurve": true
+  },
+  {
+   "hex": "a22bf957b59979bc4fd9e189229697d133c4ab81954ca7c13a30bc461a8a258c",
+   "onCurve": true
+  },
+  {
+   "hex": "5a256ff40c09b59c733fc66a24ce48a43e65f5c07e08d62ab778a6c2dcfa6560",
+   "onCurve": true
+  },
+  {
+   "hex": "8d52b64f52bc41722c73d1fe58f5497c41c1bb00570a20d5369b857e149df431",
+   "onCurve": false
+  },
+  {
+   "hex": "ab4016f9f8e86f885a3e3bff546d0eb1413a845edfcee813c5606adfd9b382f9",
+   "onCurve": false
+  },
+  {
+   "hex": "89f6fbfb7496c6adb5bac3ec5976c38631068e8ef1962a74d9ff3b8aa154f205",
+   "onCurve": true
+  },
+  {
+   "hex": "6c72d57fc5ae876c24bea1ee22cf5c5f722624904ba21e88c56647d60a4410b6",
+   "onCurve": true
+  },
+  {
+   "hex": "cdbdee2d124e8d5098839076828a4730381521e78bef0dfc9907631241fb22a9",
+   "onCurve": false
+  },
+  {
+   "hex": "f970f75f19de882f491a8073852755a304e0880afe961c7f5fca4d57fb1da03d",
+   "onCurve": true
+  },
+  {
+   "hex": "4c7877856b87e50f739e48ec64c044652bb30e32a68c3e0f8229896fc50872bf",
+   "onCurve": true
+  },
+  {
+   "hex": "cac0b990b575dfbaf094a6fd2c63463b1354bf1cf7c869cb0b6e5a569d3b2b07",
+   "onCurve": true
+  },
+  {
+   "hex": "fa9946830638be609af815f4ca46db22d1d5a3d380e7360dcb29a592334ba7ea",
+   "onCurve": true
+  },
+  {
+   "hex": "69a5c639d1327d086e070cf3ec5ae15c509419807df4d73ee273ce717460163b",
+   "onCurve": false
+  },
+  {
+   "hex": "20ae60e27a03b0d004ced9293bc11f7c06675c5accee6000185eb48c32c6b449",
+   "onCurve": false
+  },
+  {
+   "hex": "fcf9f198cc938156df8aef4d6d63a88d95059130ad2c13291881a3bd1d07a7b0",
+   "onCurve": false
+  },
+  {
+   "hex": "2ac87024fb6d44befae482f76e372b975038e18739b8040a44e3a104c2e17037",
+   "onCurve": false
+  },
+  {
+   "hex": "c0019774af02ed031e83100d0a12cdbd37e60b1a7a9bc09197ed02ddaa7d7e85",
+   "onCurve": true
+  },
+  {
+   "hex": "b89b423fe6015e0a4529c0c782e3cc56d1d8de8d564de88162a2f68c7ce154cb",
+   "onCurve": true
+  },
+  {
+   "hex": "5d9dc075a5029ec063fa8436c782dd948873f6415de264b7139a7da2cb7d2103",
+   "onCurve": true
+  },
+  {
+   "hex": "eafa9fb030560790404e3e3bd84682b15498bfc75f54d63d9594941089bca4a4",
+   "onCurve": false
+  },
+  {
+   "hex": "a70c0d6f02cc7e58bc72bba15338c4c184be35382f0704b8d1ebf73a91c46e28",
+   "onCurve": true
+  },
+  {
+   "hex": "24519d6cc32f50511c313d28f67b84ced17513098a812638d9dc5bfcb8ab6d8a",
+   "onCurve": false
+  },
+  {
+   "hex": "363c421c63507214c511dca3c1e8a7a49a78ee1d3c209a16adf2ad972b40a966",
+   "onCurve": false
+  },
+  {
+   "hex": "82a5806a440e2b55d6a316adaca1f4456f6da0390dda111b5e4d48a0a0facd03",
+   "onCurve": true
+  },
+  {
+   "hex": "31fb2aa5677a758f32e19e159e13f550217657e9c2b11d9df3208aecd3ae9a57",
+   "onCurve": true
+  },
+  {
+   "hex": "b9d4d0b730db71ffdc1e6eebf3269c848712faaf96abc7a606d734a397009736",
+   "onCurve": true
+  },
+  {
+   "hex": "0633f3586a216ce485b70ce837a933628807ab53144a1c6b50f33459450d370d",
+   "onCurve": true
+  },
+  {
+   "hex": "f014c17158229e9cc5ffd94ad9f0c13c1b8e146588be44ef851bb3c95b631f15",
+   "onCurve": true
+  },
+  {
+   "hex": "9a4c8b0653482dd658fe8a49987b5063a532b317215452bf81776ed41496a991",
+   "onCurve": true
+  },
+  {
+   "hex": "4855662cb65388ca520c4732792dd85429ab1f34981d00f63acc3bd7d53660ee",
+   "onCurve": false
+  },
+  {
+   "hex": "9e1be819541b2b49bdcbebd98437ca53a4ab457e182a67c0c78170b4e657b873",
+   "onCurve": false
+  },
+  {
+   "hex": "c4972add03fbe85590b22ab4b9d7d31dabbd338b4ea45827a0ce8c4176082e45",
+   "onCurve": false
+  },
+  {
+   "hex": "b40647af1a42c221dda855cbdef809657fcdb663922d8c31b6076416f4f77e3d",
+   "onCurve": true
+  },
+  {
+   "hex": "3561a94cf11e2c18ff278e55d5208271823fcb294884bf0e2202ebdd37d70411",
+   "onCurve": true
+  },
+  {
+   "hex": "a1c141622adbd9931ef626a3dca5f3f8af31571f6117b3b8ed69600a39a6cc7f",
+   "onCurve": true
+  },
+  {
+   "hex": "f1be44c658a49de280714ee1f8252b62c5534f65af072374c79bb1c006d9f4bd",
+   "onCurve": true
+  },
+  {
+   "hex": "3efa0bd83f8b8e241a1b78c7fd58b3d4c41b30c5b44e66a680b4b7a57eb2d948",
+   "onCurve": false
+  },
+  {
+   "hex": "7fe83c23a34f7b8ca69a0eb9a3557578f405c785eefdbb47826862299041080f",
+   "onCurve": true
+  },
+  {
+   "hex": "1fbb8184c7d8936c600e7160d5955a5567caa8077400d2ee051bee7dae781aaa",
+   "onCurve": true
+  },
+  {
+   "hex": "39ce70e31c368ac23a06a73ed07e1aafe13074d007743bd3d4570ecd1b178574",
+   "onCurve": false
+  },
+  {
+   "hex": "0546f9172cd34465f411582957bbdb9d2f9fd9e8c4eca12fcbf35ae4b772c7a9",
+   "onCurve": false
+  },
+  {
+   "hex": "c21c713b9a9d4f2a90f733b95d948dea5dfdef26a06fd874fb02416dcee8f50e",
+   "onCurve": false
+  },
+  {
+   "hex": "2866aa4d0e868eb2d43347f16c4774b3758092064dad712617c17c2215dd5fc4",
+   "onCurve": false
+  },
+  {
+   "hex": "04413f2a1d5701dd0341acb85c4325b88fe31ed0893540ce9ccaebfa932267da",
+   "onCurve": true
+  },
+  {
+   "hex": "1082e72e63e614ba9eba481e164e92247fd2374f054aa9f8cb951c81d1266541",
+   "onCurve": true
+  },
+  {
+   "hex": "2bdeee603aede43a8f78f82e5515d724d4a1c2ca08b57457199054cbd24a52dc",
+   "onCurve": true
+  },
+  {
+   "hex": "d0b366176c587dab4642d5dba8ff7fb7c285191299aff207cc59e95305ced22d",
+   "onCurve": true
+  },
+  {
+   "hex": "045f9fbd9056c3f26c9d7cd479afb6ab1a3274bf81615004af6ecbf3ae29cb04",
+   "onCurve": false
+  },
+  {
+   "hex": "8cb407e15b8002860fc58cedca6286211d3f8d65222d0dc9dfb435ab8c67a75a",
+   "onCurve": true
+  },
+  {
+   "hex": "bf37258ff7f9d5ac13054ba28ceb22228c41196761607e28db14d033290fdcd0",
+   "onCurve": false
+  },
+  {
+   "hex": "4ef0cced7d215b6f86377ef914df5dd3aa01d9517e48007fc5efdc124894c850",
+   "onCurve": true
+  },
+  {
+   "hex": "06d422c48e2e6a447002417d03a7f12b74dd241b9da8928246ad77ec098fadda",
+   "onCurve": true
+  },
+  {
+   "hex": "596c10915cd1659f1aaaef10e1b24d6dcd7fa070587f656213046da9c62b1933",
+   "onCurve": true
+  },
+  {
+   "hex": "9e898ce6b6f8688c96d1993253439cc4fa0e93320de7f257c03bf0f1b079044e",
+   "onCurve": true
+  },
+  {
+   "hex": "99e3cbb31dd4afe64fc36b96fc4029c11fcae8194d88684f7d3dda3cab0983ef",
+   "onCurve": false
+  },
+  {
+   "hex": "b93ef3a1f471889dc5f91ab54425e9b77a8881473a1fc4262b1354c7d5103c1e",
+   "onCurve": true
+  },
+  {
+   "hex": "41e9992530565bfd2dca41e30ffd90c892cda942b764325950a0a975a22317b3",
+   "onCurve": false
+  },
+  {
+   "hex": "e9761aacc72e7bf5823c6207db6b923576037b2351e1eec28e95ad018184f283",
+   "onCurve": true
+  },
+  {
+   "hex": "a2043dd798c9249be09a7f5de46567d66869bb630a3d564fb641da32c16ef8a4",
+   "onCurve": false
+  },
+  {
+   "hex": "d86a9a59b890332962c1fe2c9efdffe9bb8fdffd43a84a2647474d746b35238f",
+   "onCurve": true
+  },
+  {
+   "hex": "73ee5a388e3e42b5891afe0f6c33270935abc0f0773ed5d47d4b6b354f8aa7ca",
+   "onCurve": false
+  },
+  {
+   "hex": "21e3023a428f1bd8dcbba6e821963fe382d2534d343eb971d2458fd1f44a6638",
+   "onCurve": false
+  },
+  {
+   "hex": "b76f21bfaef52ffd7c0fb83c8cc2812b09867e4f949057ea61c644305758bb99",
+   "onCurve": true
+  },
+  {
+   "hex": "f9fc2ea805a59574baa30896a93193b13737b0b3233f1bbf20d05b4c7be3e703",
+   "onCurve": false
+  },
+  {
+   "hex": "d8ec6ced09e36e6478208b5cdbf86bbf3de8209acd4c9a335f24770b54ff5018",
+   "onCurve": true
+  },
+  {
+   "hex": "58270df0e42d3409d4547cb8d2eddf31912fefc45c12f0bee1ef6c2e853d2040",
+   "onCurve": false
+  },
+  {
+   "hex": "0b288bcbb98cfac33a7b6e6ea64c0076d15129200b6b88fc05ee7d75022592bc",
+   "onCurve": false
+  },
+  {
+   "hex": "420ec5768c82ac5d9cc4330cf5606de479bb89aa7ee81c1d11f1b66efdd612c2",
+   "onCurve": false
+  },
+  {
+   "hex": "06757b8c0f7d069b4d1893ae5b06f11e3144cac40fc79031bfc5a9ecf36c288e",
+   "onCurve": false
+  },
+  {
+   "hex": "dfb66eae019e964de94994ff1e827d061e3070bae7e5834506fbf7a7a25bcc30",
+   "onCurve": true
+  },
+  {
+   "hex": "16b77c43a6cba1d033eebd0bdcf28ad678710841cebcb8087471261cbf753d67",
+   "onCurve": false
+  },
+  {
+   "hex": "ee09e2eab8b0c8a08dcbf85df017be57c426ff8da227cfd46ec3a7616499745d",
+   "onCurve": false
+  },
+  {
+   "hex": "2deef1179afe79faaf4819050a03b2545945569c0eb61b6b45ecebc2d8f94b63",
+   "onCurve": false
+  },
+  {
+   "hex": "de54cac990567183606af59c2cf628fa960f21cc0e32889f81ae173de8c7a5ed",
+   "onCurve": true
+  },
+  {
+   "hex": "a8559d8f0cfb8307396ac090ae812498a398a2cd0afe4fa7bf8a971b7b4e43ab",
+   "onCurve": true
+  },
+  {
+   "hex": "7623e9a07e0056241fd23bab39bb94f8553ab320d53fc019d2970ce7f8c55815",
+   "onCurve": false
+  },
+  {
+   "hex": "6d936b84f4936fcb092eaae541a2c5fa93053a761396238da55eac5f1b9621b1",
+   "onCurve": true
+  },
+  {
+   "hex": "d8996db89beb1fd999dd8f8f986ab61670d7ca6a78b28fe4fd9933bd62bcd4de",
+   "onCurve": true
+  },
+  {
+   "hex": "8417ed22c2eca7d0052429c65388cae4fb14b3a02ebf3c10f1c9d4b0f46da003",
+   "onCurve": false
+  },
+  {
+   "hex": "a40cfbc3d8fcf93b932daaf76ac243ad5e1ca57ddc8ae1bb7bb382bf849a75bd",
+   "onCurve": true
+  },
+  {
+   "hex": "e1dec0911735f0f45a9938518d003f1342d6b4fcfb34187e23da76ec41dac4cb",
+   "onCurve": false
+  },
+  {
+   "hex": "5c431a7948ab332bfa63044b3ca605e5a00bdc9bd36091969a7a2d4fd42906b5",
+   "onCurve": true
+  },
+  {
+   "hex": "12977607c148c41209ee15b8c3cc2c15c9c404cddff16a2017f55a2fdb9e4109",
+   "onCurve": true
+  },
+  {
+   "hex": "dc17336b284cf150544979ccf4a0147037ffdf35f5f7597133da654a7fa31fa6",
+   "onCurve": false
+  },
+  {
+   "hex": "4b1fb54fe1cc96ddd4e875f044e14029376ce9a99c485850221b0d78161e0c34",
+   "onCurve": false
+  },
+  {
+   "hex": "6b29255a3e83042f2312022d3c1282bacdfceb86d84d7d1bea08c75a97315a72",
+   "onCurve": true
+  },
+  {
+   "hex": "8d04e06a94e678f6404dd53f3ef3861850893658d2d455dae76f48110a01c445",
+   "onCurve": false
+  },
+  {
+   "hex": "c2c29b883a16acf5e6204de8c4e3c61f42e66d30dc257ad682edaa5c056a29ef",
+   "onCurve": false
+  },
+  {
+   "hex": "b5678a6a2d56948c50201f46e7e20d8b332521e9aae3b35fc0caf698a3f2d61f",
+   "onCurve": true
+  },
+  {
+   "hex": "b65995e6360d786a02c795df119cfc9244ef3b4ed8d3b0283e50a5557ecaea87",
+   "onCurve": true
+  },
+  {
+   "hex": "22a0bb5bb499d61fc85e98cdfd10bbe733b1acc1846c29b132fd8d4401c2d1d4",
+   "onCurve": true
+  },
+  {
+   "hex": "b07b25024932d689b0107ac4fccfc224789a86311cea765983ea00f9efc6945d",
+   "onCurve": false
+  },
+  {
+   "hex": "6dcc435eee804d53563800a8e02b9778bbf0974406959054eee785b8b76690c1",
+   "onCurve": false
+  },
+  {
+   "hex": "b3050542e79f0c6997790fa1b08d8d1b5b8b0ef00cd52542dac81305d06748df",
+   "onCurve": true
+  },
+  {
+   "hex": "72b0fb3883290f3a47331aa2b0e750baf1502d513342e4e9c1edc3bf825fd70c",
+   "onCurve": false
+  },
+  {
+   "hex": "7dcf48c43b406d6f5cd140179967c91d91f40b91b84303868a0cbe0e08340d8f",
+   "onCurve": false
+  },
+  {
+   "hex": "b2ea0846d6c08f065a56b56ed10b4b8c456dfd7f294e5caf3413ddfab1c1ec3c",
+   "onCurve": true
+  },
+  {
+   "hex": "4dd242190d8cf06bfe05eecc6f9ce16e683a2c5b07e0ba3aa779e5ff26253ec4",
+   "onCurve": false
+  },
+  {
+   "hex": "8fe047286264f42102b491dff5f2532e5e1f7071f838efb4c5ef390dc79d8de8",
+   "onCurve": true
+  },
+  {
+   "hex": "712be81395d9b70a8580127094d9deaec57667d4009622c245296a4147300275",
+   "onCurve": true
+  },
+  {
+   "hex": "19625a90d1ed5bc60008ca1e2200114ae26ba4eb746ac34079079cc1f2395abf",
+   "onCurve": true
+  },
+  {
+   "hex": "36966af5d29cd7ad10362262de1c65b023d39027da7c0f41a588ba6a77c6d8f0",
+   "onCurve": true
+  },
+  {
+   "hex": "31b2c66a8f0f3af81157416a0ca654f1cdc52a3aace0814d1be83c117ea59db4",
+   "onCurve": false
+  },
+  {
+   "hex": "919e861a360210110340400ab338b88bd1f0f2cb1b7825f726a0e27b8efcba5b",
+   "onCurve": true
+  },
+  {
+   "hex": "c4832247082fc22a11102e48794bc827b3764f1c59b7621f75769c052c567120",
+   "onCurve": false
+  },
+  {
+   "hex": "3faf25c77215bccab0e23f3f67dcfc995da9121bc74fb16620d29ffccac6b904",
+   "onCurve": false
+  },
+  {
+   "hex": "4d96e4bcc01fab031623cf9c3a9e04a29e42e623db79ce6227dee26af0b34b10",
+   "onCurve": true
+  },
+  {
+   "hex": "e5c1a3358d8db294defc9f4e5e466169904db6083e3f7d72f12456e7fa9b3ba5",
+   "onCurve": false
+  },
+  {
+   "hex": "aa8d819a4af94b551ea4fa385bf9a5a828fe54406dfcf2f1873a7e696d74b3a6",
+   "onCurve": false
+  },
+  {
+   "hex": "782914f5215e2d0323126d59b8cce513e748289293c139f21568202e9a4a56a1",
+   "onCurve": false
+  },
+  {
+   "hex": "8e6e6b8a271339388548b4ac17bb75e493fe35d77ccff067458b8f1ffe2ebf90",
+   "onCurve": false
+  },
+  {
+   "hex": "b9d5c62ad7fbfb9fe4702672634eb7dfba8621f5ff2ab43ef4134d9770d5eb2d",
+   "onCurve": true
+  },
+  {
+   "hex": "59d7b427caa2d79808169d78aac6ae8787933d56e963e9fd420019537c80330b",
+   "onCurve": true
+  },
+  {
+   "hex": "05d0fc0641ef277e3b4bae86df3d4a8272cfc0559b41344eac6049cb45052ca1",
+   "onCurve": true
+  },
+  {
+   "hex": "d445775045ce337b0909691e41a56f03ada4416c0f235c2f85049f85f9f2fe4f",
+   "onCurve": true
+  },
+  {
+   "hex": "b9b5e79cccee8091a0d6f64c8ef595c8b98f90152dedfefa351e7b95ed4b3d43",
+   "onCurve": true
+  },
+  {
+   "hex": "048e638e58a05ed5d2f2cc61fa0901b659090a4b8de7938694eab4667ffecdba",
+   "onCurve": false
+  },
+  {
+   "hex": "153f3d2a5e400be5ef0ac3fa5534a024d6a86c72fef4f31740f789ffa171f18b",
+   "onCurve": true
+  },
+  {
+   "hex": "5366e30bce93cf71d9a3c8fc538da730a08d973b33bfb82c805e7f2ceff2f4a8",
+   "onCurve": false
+  },
+  {
+   "hex": "ff1d503dd601a5cf42c3c64d7ebe105b3ba1cd41b66702a82d408118c8d4a530",
+   "onCurve": false
+  },
+  {
+   "hex": "f97e47bbc9606bc0a35f3c3309ad1fba49f5b93dce6e198bbec59baf5050bcfc",
+   "onCurve": true
+  },
+  {
+   "hex": "af362b0bc4ebc02ed734828091fdfb18ac2f31657aeac4b57ee3a6f96bdc55f5",
+   "onCurve": false
+  },
+  {
+   "hex": "84b3415c81e116a340526fea906f6c00d1aa4749238451e41d69185227f07314",
+   "onCurve": false
+  },
+  {
+   "hex": "97b7005fbc70105a8e97a999e63a4762f258a3896d909d865d7390d843572a5f",
+   "onCurve": false
+  },
+  {
+   "hex": "c855b31b63d8a417c3473bc29092041d3a66889156e55e879f36bc5c49b39412",
+   "onCurve": false
+  },
+  {
+   "hex": "e5262cb7bb6c5b8d0c1d1d259e30ccc02db98a73461853197da9da7b64e4bf41",
+   "onCurve": true
+  },
+  {
+   "hex": "749f37df7e534a3eab6a0f962c6a42ebfb64d14ba742f1e63e90e8e96ea7cff8",
+   "onCurve": true
+  },
+  {
+   "hex": "d4b2a67463b981cbe286b8851f468f90ad7c00fcd43aac74e87bb14caa9000e3",
+   "onCurve": false
+  },
+  {
+   "hex": "6680ef44a2f7eb81bb031c7620c8d8bf438aa2da4f6d7746eb518cee99a3ce1e",
+   "onCurve": true
+  },
+  {
+   "hex": "7fde104d170116e78d88b9211c22f45e256923da27bd44aed57c0535fd0acb04",
+   "onCurve": false
+  },
+  {
+   "hex": "dd41c71d872b6a26114c88d2251d091033d0082403f7bf6e739664d087022da3",
+   "onCurve": false
+  },
+  {
+   "hex": "0f97e072e079204a5512710e68f15ff49472b5bedef3cebc3d6d291cdffa2a86",
+   "onCurve": true
+  },
+  {
+   "hex": "626585924f281acca6745f6df6d2de70b4cd694fbb1408a3eac550eba14a6ce4",
+   "onCurve": true
+  },
+  {
+   "hex": "1cfebd976f96f0d8bb501a42f21c82af61a74d57718d70d1ff056e26ee3ca4d3",
+   "onCurve": false
+  },
+  {
+   "hex": "55d17b662e2c7bba7528a65fe7d717eb3ce853bb019e0d0021db93a102bde22f",
+   "onCurve": false
+  },
+  {
+   "hex": "3247b3a6c00affeb258a61bd747cd1b24f350ffb249b7e3c135dff9f8a4a8358",
+   "onCurve": false
+  },
+  {
+   "hex": "dd43b4d3cd6664ae8cc35188a936b28a5339f28d8f4f7208ff81a1aacd73e98b",
+   "onCurve": true
+  },
+  {
+   "hex": "2bd486a2bbf0fa1b91b47478c4c851df49bc986f3fdf6fe074753a735aa960e9",
+   "onCurve": false
+  },
+  {
+   "hex": "1b9b0bf33bab7fc1e44858d550a3979cecde722c64ca415db3ca493ceb3abf07",
+   "onCurve": false
+  },
+  {
+   "hex": "824b279bcd4b063edcc01eb69456b879a1dfb7987b6fe4d5ed74b35409ea10c9",
+   "onCurve": true
+  },
+  {
+   "hex": "63fd22424069e1df203c5f0fc619f58bfe5f100b8ae3839ea2a995041f913f68",
+   "onCurve": false
+  },
+  {
+   "hex": "718202c5da85ba627a40243703fbc4bb5b77fc07b798e39608fb793b947212d7",
+   "onCurve": false
+  },
+  {
+   "hex": "59affb7b81571af9e80f8d592f81e08287f89a9004c6eaae380c9f6303f984b9",
+   "onCurve": false
+  },
+  {
+   "hex": "5dfb452a68ff4607954c367c888045b072efc416ab019b0d7ef27a12167011fa",
+   "onCurve": false
+  },
+  {
+   "hex": "045cf2bf4a63f29d180807942401d72762e7101c640f602ede8332d372d4725b",
+   "onCurve": true
+  },
+  {
+   "hex": "a822f0264942b6b4fffaa2d42ea5e45e78b2a0ae04fb5630b71dadc9a0857766",
+   "onCurve": false
+  },
+  {
+   "hex": "419ec8cf266fbdd04d9592dfb88950e402ad70d6f759809d8f0794e3a2a48e6a",
+   "onCurve": false
+  },
+  {
+   "hex": "b771ef685ba3e7da1589e46639dd56b4124d9616afa02fc6a060c831e1338d20",
+   "onCurve": false
+  },
+  {
+   "hex": "e4f1121372e5d624d639201614dadbea9da731adf9df02a263073b5aeb6e2117",
+   "onCurve": false
+  },
+  {
+   "hex": "73480e93fbf4409bb1c59f5c3633e20f125e7935c984d8694cdb4924c0e77814",
+   "onCurve": false
+  },
+  {
+   "hex": "862916ed9f139adabce24771131f474277f44fa24dd7227d911a4e58a6f4c14d",
+   "onCurve": true
+  },
+  {
+   "hex": "f9897f60ca20face70e954b5fb4da0b14803bcff0e01598c11cfcb4ba488565e",
+   "onCurve": false
+  },
+  {
+   "hex": "d22fce863c108c2133a98473a1c1deea0b0aa98d0e31a3a43433a38ad541fc0b",
+   "onCurve": false
+  },
+  {
+   "hex": "fdbfebd8d181562fc6b88bb35ec346a8eb73eddcc0c4f6723a053afa6c429aa0",
+   "onCurve": false
+  },
+  {
+   "hex": "7bd0c732d6a1a923acf144330505d9fa06d0dd58062a912503433ed8d321b213",
+   "onCurve": true
+  },
+  {
+   "hex": "2c6c8773561cb452eafa19a4a4c8f73801d5b92a67c3141a9326eeabbbba32a3",
+   "onCurve": false
+  },
+  {
+   "hex": "4a14d526a7f79eedb1da80174073cb15ccfaf10b16fe2a06f8b0f710fad747ff",
+   "onCurve": false
+  },
+  {
+   "hex": "0c9d13220bd85312be347811e6eab6df3601b63614417c33c3c12ba98e59f7d6",
+   "onCurve": true
+  },
+  {
+   "hex": "e42186c7d974d041efdd9dc5db65f958503a65dd84bec4a7f18deddcf25973be",
+   "onCurve": false
+  },
+  {
+   "hex": "5488a29921a14a0ba54ae1fd76e12adf97c77f20f797c2caa9ab255abddfa2fb",
+   "onCurve": true
+  },
+  {
+   "hex": "110e7c422c76abe9d818d80cd46b24bb1c42964dbfa3764bbe3f566ccdba0725",
+   "onCurve": false
+  },
+  {
+   "hex": "41fa8de886b89cad158c3c8c8791b86fbeb517083012d2c7d7ed5059f3244945",
+   "onCurve": true
+  },
+  {
+   "hex": "4983e5b1b2f01797c50e60f925063f2c4c89a6dd5bee365dc0db286f6b33210b",
+   "onCurve": true
+  },
+  {
+   "hex": "347cc5242d9d22f1942c821477f5914ddc3651b84f47f07ac65201c9bfcacb97",
+   "onCurve": true
+  },
+  {
+   "hex": "57c1d950b2cae679033aac27d049658d6a50d0b13f2d76fbc61300cb781f0cfd",
+   "onCurve": false
+  },
+  {
+   "hex": "72be3bc79c1d501d3c73402da918983e5182e2b76c148338e7db6f25623538ca",
+   "onCurve": true
+  },
+  {
+   "hex": "1c60d49377e8d409d67cab6e58fa643364bccebac4caf3c0e94f16a74fd81079",
+   "onCurve": true
+  },
+  {
+   "hex": "cf01ba9ff2d9ae8614147982ef8b783fd7a9f82dd31eef06342ff7e9f6cef058",
+   "onCurve": true
+  },
+  {
+   "hex": "886ae3f4f8da716bc9cfa7a393e5f8b02fb0c26e51a4fca294b0237ad820e192",
+   "onCurve": false
+  },
+  {
+   "hex": "85649b71a3cccd2b8970b6b99676013e5cd28df3b360f37715b453369e707fa8",
+   "onCurve": true
+  },
+  {
+   "hex": "4cacdb19b39ddbb3df2822990e5273efbaad4974b13ad29e6e9c1d65922afe58",
+   "onCurve": false
+  },
+  {
+   "hex": "12c29f2aab0b326f7b28d07043486117c085e1ec2d66ed03a16274a2e197f48a",
+   "onCurve": false
+  },
+  {
+   "hex": "f49d07836fb213f6f011b0b579bf0b0ed5fcbc0bb28607e2933ddaaceb843a02",
+   "onCurve": true
+  },
+  {
+   "hex": "83f5e248759eb973e7cd6ade933743461ffddf0d0de96952809092184f3201e5",
+   "onCurve": false
+  },
+  {
+   "hex": "552bc5d3db63b1d8c1b0114c7e00873d2884438da07308864bbdcf3c3ce01909",
+   "onCurve": false
+  },
+  {
+   "hex": "a7bc2ecd5b839abc6e79911dd1f22aced3e169f0deb6e6bd665ba25c6da3e391",
+   "onCurve": false
+  },
+  {
+   "hex": "5f8815714a33f0b9e655b3fc9533815a6fc0e2764b10853bdc2e1207dd52322b",
+   "onCurve": false
+  },
+  {
+   "hex": "525b755179a9cba9285a75ac677fd091e25bb457eae5c4b415c8bbb88e6bd21d",
+   "onCurve": true
+  },
+  {
+   "hex": "b941dc212555d533c3c0fa3cf65abf6e643b3b1529d777c1b7214f50b74ff0c0",
+   "onCurve": false
+  },
+  {
+   "hex": "8ecffc8f50e74dc3eaabe5ac0d084dd3aa946b8a0d5e352e55d44913615fd330",
+   "onCurve": false
+  },
+  {
+   "hex": "a7d88b37db32cbcd44be8cf181cf5db102e48172db243dd5dd5757028a5066ca",
+   "onCurve": true
+  },
+  {
+   "hex": "381513914c688bf13d121a3af00dc44f22ab2810954490a3ab54a90ee0dec4bb",
+   "onCurve": true
+  },
+  {
+   "hex": "05c891f84843bd53e335228372ba6ccfebfc5cf7848e9a578b94a4aebb20a8b6",
+   "onCurve": false
+  },
+  {
+   "hex": "0665028d3006e539b46418878362485dbbab7106a076cf98d9b072c8b74d7a3b",
+   "onCurve": false
+  },
+  {
+   "hex": "264df933f9e858c81c52fcbdd6a5ce7b6e87412d1daf0d55941605726075846c",
+   "onCurve": true
+  },
+  {
+   "hex": "3637f5e1bd55e47c5112f318924112a4116e46e0066b9f912ff0c7428d3b14c0",
+   "onCurve": true
+  },
+  {
+   "hex": "b33801247c946ce264a8fa81d44a1e5b78d74270607a55c9b308c2def14c91d4",
+   "onCurve": true
+  },
+  {
+   "hex": "8e50a3b5195d9cc5e8676b10ac54cdd0f0b4b6793d8577a04947ee8afee3c960",
+   "onCurve": false
+  },
+  {
+   "hex": "cd056ce23aaa084f8ba54b3399da649639833c52f1eab4fb204d55ee39c80046",
+   "onCurve": true
+  },
+  {
+   "hex": "66b28ce8c00d15412e83584b125200f602aa8992d50a99fd3351f56a626b2413",
+   "onCurve": false
+  },
+  {
+   "hex": "19b90f3280b912512f4be15a62a0ecb6b74b433a4da578b50a839b439542c0df",
+   "onCurve": false
+  },
+  {
+   "hex": "cba3d114dd287dacc7e29aa171e289e2da3a741334d18d01a9d1f8043f2e8f96",
+   "onCurve": true
+  },
+  {
+   "hex": "dd8e2a0e7dd1a4fffb272d7ad9abb2c415a74eec06f008875752a439fe91cbf8",
+   "onCurve": true
+  },
+  {
+   "hex": "f3af803f6391f4b1332abb0afc3191e7a22502409ac2b4a4035efa916e1251df",
+   "onCurve": false
+  },
+  {
+   "hex": "cd3e22fbe3fb3fe0a2db416bfc5c0f57381e48cc97e04a627c9c36d16768fe0d",
+   "onCurve": false
+  },
+  {
+   "hex": "30a79ba6b115a37b51c44494cd40b54155cd2c1ba28c3c2ca3a50a5891b209a2",
+   "onCurve": false
+  },
+  {
+   "hex": "cfe60c02b18d53b1db2c0d42f63bd6ee1eb3b4d023baa3bbd4aca5f8b5ca27c2",
+   "onCurve": false
+  },
+  {
+   "hex": "035a626a35a51e21cd4a3c6c9d31b4d8873f2483acaa316b2ba39e62ddd283eb",
+   "onCurve": true
+  },
+  {
+   "hex": "6f3bee1baa27575cb1e670bc06cde0e38d039eaad0d8588841c096628f9e7feb",
+   "onCurve": false
+  },
+  {
+   "hex": "f5941b5787d27a9257d68bfe63050e3c9654f0820d46f6e4751db38afc5b3ba4",
+   "onCurve": false
+  },
+  {
+   "hex": "b6a397fa6fe989a1fbef01b2edb0c95494a98fd22d4c7bb9d6e96844c8575f32",
+   "onCurve": false
+  },
+  {
+   "hex": "e2c3c3a2dbbd9c0cb08d334951cf4bad725c175fdc9d704088d4c8ef5541026f",
+   "onCurve": true
+  },
+  {
+   "hex": "11ff19a20f8cc6dc7d3b7ff665163ef693228dad87ac5d1c2395ff141da21bf5",
+   "onCurve": true
+  },
+  {
+   "hex": "dbe3ca2502ae8d836b0bf1c4132ab473eb519809b9c4db8c11a6c603343456e0",
+   "onCurve": true
+  },
+  {
+   "hex": "464de8c8c2dbfbc46156bb0210ccbe2fd74af6dafc73c2f99dbb3273726a58c7",
+   "onCurve": true
+  },
+  {
+   "hex": "ed67dec53f5c2f4199de0f8b0663fb72acb6fd72375ff887a6f8e6a0f7d89cfb",
+   "onCurve": true
+  },
+  {
+   "hex": "d079556eb004da6256467f0d99ebcd73f1189f2f463f3d67d05ca76e976d4afc",
+   "onCurve": false
+  },
+  {
+   "hex": "42cf88cdc6157263424024cda29b43fd0587fa7485278e2ac4bc467cbddfc544",
+   "onCurve": false
+  },
+  {
+   "hex": "54b1bc509373df2f7890a501f0431b95339ea404c1e7e8adb0aea1d9861a0f41",
+   "onCurve": true
+  },
+  {
+   "hex": "31b9ed64102afb357ef95cebd02a5ad130475fb6c2aad37795fb49173dc8fd09",
+   "onCurve": false
+  },
+  {
+   "hex": "a496317681190fc8bca20f9dde20a74e58643c2aa92a2ff726791e804dded1be",
+   "onCurve": true
+  },
+  {
+   "hex": "c72a59095b180a6de3ed044bfb4cf6ef15b0bf088024ed43f86d6f5ea27ef486",
+   "onCurve": false
+  },
+  {
+   "hex": "785f3a2e3bacfa4579eb69ce8459ecb6e3a5eba97cae5582a91b9ad7a46c25fe",
+   "onCurve": true
+  },
+  {
+   "hex": "e98b77829784973e2b9f0a70825d2860a042cf9698fa52268b907b074e30c340",
+   "onCurve": true
+  },
+  {
+   "hex": "c952ebf2de11836a7e8374c1a73683e87b94d125ea37262ec7d2333370ef4a8d",
+   "onCurve": false
+  },
+  {
+   "hex": "8c56df954fdee56acc0169f9d5779b411a7aaf3294341fc2cffd2fd74c9f46d1",
+   "onCurve": false
+  },
+  {
+   "hex": "30cae8945c622ea722144d6580737eeadcdaf87024bb7fa59d214b20ff4b8d6a",
+   "onCurve": false
+  },
+  {
+   "hex": "e85e2368285e145b23ba643ebb1259b0d8926112696883c3a1a6d620b5ac971b",
+   "onCurve": true
+  },
+  {
+   "hex": "9a7ef93c5b8f1f0726ae5f291c3a70dfc019beb6797ddd9da3d265c4268ce32f",
+   "onCurve": true
+  },
+  {
+   "hex": "14dad75eceee5df79ce5552d7a81eb2aeb4a0418b3727dea8ce63a615de15be8",
+   "onCurve": false
+  },
+  {
+   "hex": "80a28538f7f2281012a2058eff189be2989f9982d3c2c1fe838284c87de1bb52",
+   "onCurve": true
+  },
+  {
+   "hex": "49c3a627628095e3c06897182da93bd633187cdff6a47bbd1aae681ed6614ad2",
+   "onCurve": false
+  },
+  {
+   "hex": "14479195afc51a51862d14d3f22584a30b78033b8aaa6e370aac5bde0806bbf3",
+   "onCurve": false
+  },
+  {
+   "hex": "2e24234417958d7529ce61d1e27537f3ef96ec93a37b379def047d874dfee76c",
+   "onCurve": true
+  },
+  {
+   "hex": "96637959d4056a2fb439de35fe201244b366f65ab87af9da7e87981b5c1340fd",
+   "onCurve": true
+  },
+  {
+   "hex": "f8e9f7e656c2619c57f1985f119731f150f253053da529bf9c297260010fc2da",
+   "onCurve": false
+  },
+  {
+   "hex": "18bd388c7ebbec5cbc9543797b0190e407c2c44766ce2bf696a12a292f26ed87",
+   "onCurve": true
+  },
+  {
+   "hex": "04b2a17345adb34042ec42abf70a0091e7c0626e7647b54ac0b148567e2416fa",
+   "onCurve": true
+  },
+  {
+   "hex": "f0eef6e2218b991b3dd11da1d7ace702107941b36e09d7c6050736ee4e2d71df",
+   "onCurve": false
+  },
+  {
+   "hex": "b4b3381725f7fe4f86b96479da09da7d80f3e48375606985b9db51d034072a56",
+   "onCurve": false
+  },
+  {
+   "hex": "4627b355dbc5d5e3549711ac4ae15db725aa00fb1d1842dc868662a39e3b7ae1",
+   "onCurve": true
+  },
+  {
+   "hex": "a8aefe467de7825d6c51024115f132d291b9430998d9d020b0cbeeb6a458cfd3",
+   "onCurve": true
+  },
+  {
+   "hex": "956e5f554a29528e846457a3a6b560de9e815625d07bdb139437b060d75b038c",
+   "onCurve": true
+  },
+  {
+   "hex": "47fd62a0c7d36f1ed4d753eb8e32441fd8755265921af8a142d309ba1ee212ec",
+   "onCurve": false
+  },
+  {
+   "hex": "255681ee4336d4ff990b525526c0a13d6853e89b0c4126ffd006ea9130aa50ce",
+   "onCurve": false
+  },
+  {
+   "hex": "d91afee31dee93e628c37e2b109439084d7f8c04be2341e1c4dd90cb9c730631",
+   "onCurve": false
+  },
+  {
+   "hex": "a038131311dae67f1a3a49a68e5857569c30916aa6cb67e78b46f4112c5afb0a",
+   "onCurve": true
+  },
+  {
+   "hex": "f826717954c46da8952142ddb248301f4f38fe1dca6ab41b72c244dc1b3bcafa",
+   "onCurve": true
+  },
+  {
+   "hex": "3fe1ee395785b69e89f999c61f04d078843eb40855ce633dc194870564a79af1",
+   "onCurve": false
+  },
+  {
+   "hex": "6f2c61837e3f1721963bb31331e0ba1be58c20d5519383e379fb78a879b7fe8a",
+   "onCurve": false
+  },
+  {
+   "hex": "5d5d9793a92aee56536d5e31e41ad824dfc03707adce83222be2d7d18523e964",
+   "onCurve": false
+  },
+  {
+   "hex": "3f837a3f0f26a8b774e1c35475e6fd38a6e10c0461697093e6af04c6799f5d63",
+   "onCurve": false
+  },
+  {
+   "hex": "19aff6b411cbf3aab90a70c016e16902a5be7c71b266a3c3afae7813e1805cdd",
+   "onCurve": false
+  },
+  {
+   "hex": "c3ffe4744477de0bac843f3f2e3ec46128dd0b22a2c30a072cbe4e33555464df",
+   "onCurve": false
+  },
+  {
+   "hex": "b8a9064edd3c31063b55a196a8293cc513d48cd551c8832071315a67f1eca748",
+   "onCurve": true
+  },
+  {
+   "hex": "c7d70db8a8c0aa5195448e2ae3bdf55642ac07f583a7882cb6bfb69050d52142",
+   "onCurve": true
+  },
+  {
+   "hex": "7bdff0911e5b7ace7dc7ea92f87dd980cf77e5973b785dccf86d33f084b0c354",
+   "onCurve": true
+  },
+  {
+   "hex": "c982098ed67066e47359e1d34b20fb5148b5d7e17d34942f4c06cf4aa4840eba",
+   "onCurve": false
+  },
+  {
+   "hex": "630b99cbd298987b506dca7c793530e7de393d33181a1840bed2c7e4d9c41dd1",
+   "onCurve": false
+  },
+  {
+   "hex": "cad8aba9f98914ee9bfdcf0a902e9bddb1f514c5992d5e1e05ff58d98db9d76d",
+   "onCurve": true
+  },
+  {
+   "hex": "1a7293124abe853f03b7d372f0129c68ea66eb0252cdf70cc0a1cac69833b726",
+   "onCurve": false
+  },
+  {
+   "hex": "903bb09fcca7b80841336f38888cdd49f25469a83ef8ca4484084ff7f3743e35",
+   "onCurve": true
+  },
+  {
+   "hex": "9c4ca928f4f56a31bddf9c24dc3437ccb7d833f5361ecf6dfe2bdfc5873608c9",
+   "onCurve": true
+  },
+  {
+   "hex": "c8a9dc91162cdbf8d49e1ab36aa6d0cf16ae648d7fc68f85c2cf61d4a8f01f5b",
+   "onCurve": false
+  },
+  {
+   "hex": "792f735a9ee02e58af262562c002679504dacc99bbe8328493b9db63dbc46219",
+   "onCurve": false
+  },
+  {
+   "hex": "09b756afe581597080334ddf4e8426746e79f956c6889f049060a8833ad12a76",
+   "onCurve": false
+  },
+  {
+   "hex": "d3eda0911341aa6415e1e72be2025cd50eadbbe6d7edb36650c53bc4bd6ac252",
+   "onCurve": true
+  },
+  {
+   "hex": "9d649c853f261ec60cfd3074448c123eed0eb34d52f753da39177c1cc2ceff64",
+   "onCurve": false
+  },
+  {
+   "hex": "cfa70708ead708bbc1b0b6a4836b879561d4c2a0881af16782ebba91bc968da4",
+   "onCurve": false
+  },
+  {
+   "hex": "b7c08579380e4eb62ab26d35a6534bc0f0abdeb6c7ab708f61bae87d5d50211e",
+   "onCurve": true
+  },
+  {
+   "hex": "319c1ba8ea7e462e18e2536156a98aade77e62e7715be286dd2008ad042ef501",
+   "onCurve": true
+  },
+  {
+   "hex": "17a119d1a8c50c9e2a497d6f327223a88b1c8716a9c1ce30ddbac905bb713acf",
+   "onCurve": true
+  },
+  {
+   "hex": "53d3e26fa79d83c7db62393c37aa8ec615df02be0c6a48fb9003dae1061a2af9",
+   "onCurve": true
+  },
+  {
+   "hex": "8e1d196debd421c2349e66b8703e5e9356ebed6ff3da75324386a9e390d97bb2",
+   "onCurve": false
+  },
+  {
+   "hex": "2b48b9f88936f6cc65cdac1dcfa1ce1889ad495b1c9cbe7f4bf6ddb4d5c58360",
+   "onCurve": true
+  },
+  {
+   "hex": "343df52c083d95dbb045c357381567a0aea52cce5e517c476566e0aee2e68869",
+   "onCurve": false
+  },
+  {
+   "hex": "89fdf34a30df2a360af66d2464f84a2b427dcbbee91c4e9ebddfb5f27608364b",
+   "onCurve": false
+  },
+  {
+   "hex": "88787a95cea1d1e5e282ced49d1e2fed8e6f40cb35072b720e1a529799235bc4",
+   "onCurve": false
+  },
+  {
+   "hex": "ce83794ed279fa329de58116dbc3f564145b55cb0a968b77f52de7e49fb5f1ce",
+   "onCurve": true
+  },
+  {
+   "hex": "abc17adba1fe9954b1b30cc5c9d7f0748b2e0060f6fe1542160357f02ee570bf",
+   "onCurve": false
+  },
+  {
+   "hex": "546310d4a8d9899b523e35729ce86477d3d79731b81469ccf0423b6612a4cc91",
+   "onCurve": true
+  },
+  {
+   "hex": "d0da8c1466408bf57afad383228c7f891fc99009c5b166af8755abc7bff05913",
+   "onCurve": true
+  },
+  {
+   "hex": "734949fdf202b6c933331c728f857e48dc001b404cf6538cdead148327c62103",
+   "onCurve": true
+  },
+  {
+   "hex": "f7ad6f294b30902544484bf7c319c4d62eaff0a5397e362891981c73a81233a8",
+   "onCurve": false
+  },
+  {
+   "hex": "e142a9c3723b9b536e8bd715ba3c68aa569b2478376c8f1f31757953cbacd76a",
+   "onCurve": true
+  },
+  {
+   "hex": "e1e2a6e50da0fecbdcb8ebd25d24210d867849f3af91334488643e3bed393824",
+   "onCurve": true
+  },
+  {
+   "hex": "634f8874df8cabff429680ca0a8c7492282f31aa878d76b8d7bfe0cea42999f5",
+   "onCurve": false
+  },
+  {
+   "hex": "2e355d454cf6449b9fee9d3f26de36c1313cdd0c84d7806abd3cd1eab8fc667d",
+   "onCurve": true
+  },
+  {
+   "hex": "35356083129763b847a1a4035ad5f47e69d2695f852c6d1fc94a524c1a60926e",
+   "onCurve": true
+  },
+  {
+   "hex": "d98d3549944f54ab5d7ab47eb5b95fcd1566dc37cd382d06a3927b0f150d14f3",
+   "onCurve": true
+  },
+  {
+   "hex": "6569813fd7b1aba2d2cf20eb01d0ba9016f53a1819e53c0e40a6a57a10bb951e",
+   "onCurve": false
+  },
+  {
+   "hex": "c0bb4f4dc222c6ac7d8c1b0cd9d523ec25bb22d7efd092b2df9123390e39b084",
+   "onCurve": true
+  },
+  {
+   "hex": "7589fdaeeb2500c74eca77d5712f126d2be2db6df33e23ff2889e102858f8d78",
+   "onCurve": false
+  },
+  {
+   "hex": "43508775899f6e714a6834fa42f4d16c66c95f432519a5080438e3068a063bf7",
+   "onCurve": true
+  },
+  {
+   "hex": "b775fd0bd34ed698bc0460c53a474464c4653dc851f93b62b5decb7e6f69e6e8",
+   "onCurve": true
+  },
+  {
+   "hex": "444f25847146aa1c05c12dea23a56e5c7e8e2709542aa79019f5b6fc14ba6acf",
+   "onCurve": false
+  },
+  {
+   "hex": "a41681b9bfd95e7d3f7718ea87e18b676d0c9f642914e307729a07bc02b0c604",
+   "onCurve": false
+  },
+  {
+   "hex": "a8c3d09c8400f30facea902383bddab345ca857482519fb80e3f7154638922e6",
+   "onCurve": false
+  },
+  {
+   "hex": "9085119b4ed781179a9914a67123cce270f5b3e65fe7abf93887f3e407feca79",
+   "onCurve": false
+  },
+  {
+   "hex": "abda871c391e2dd4e7d399c193fec1398d6ae38f85c2fe14241d439eb11e40c5",
+   "onCurve": false
+  },
+  {
+   "hex": "6af1f168b2aa0ec514d0961a8e92c9bb8b7d979a99abbfad71055b29dedb96e8",
+   "onCurve": true
+  },
+  {
+   "hex": "74782774f395370790989eb579f7f1bed50eef1e2bc6d2a47596a3fcb7823216",
+   "onCurve": true
+  },
+  {
+   "hex": "11097cd7f9f1650fe1190bd1be8a2254463471a3cb470ed0a34e54dfe3157198",
+   "onCurve": false
+  },
+  {
+   "hex": "32bf94ba01f3328d1ca3472e71392c177a2a82a9987ee8f334458d750097f38d",
+   "onCurve": false
+  },
+  {
+   "hex": "bb3cb22780c13667709484bf1d4399009ba538a7e59ad380880705f4d7ea0932",
+   "onCurve": false
+  },
+  {
+   "hex": "59f8a26a0a2f0774a2cae4358b9e2851c3768d3fe1222e0dd1dcf2f2dfee8390",
+   "onCurve": false
+  },
+  {
+   "hex": "ba591e46376b83789217953313a95ca01da21368180d698bb2152fcc559eb56b",
+   "onCurve": true
+  },
+  {
+   "hex": "34f6402794de032866c2f27bf251ee13a98393d22ac7f7152f5bf12ec32195d2",
+   "onCurve": false
+  },
+  {
+   "hex": "ad4edc7175a02b906a07575e39f83ef96a0d6b79c3de62e4cab38c39408a9ed6",
+   "onCurve": false
+  },
+  {
+   "hex": "67426b3ab8341a668dda80f9b2ecf0ac3adc3daa45301911dd25d395717015dd",
+   "onCurve": true
+  },
+  {
+   "hex": "e18e437eb05270b370a7a58251714e37b4e730d4bda5669ae441f9a0ef61e1d9",
+   "onCurve": false
+  },
+  {
+   "hex": "3b1e5113935a9927eea1c7e9ea1525812b893ed2fc04f4b128d9190f75a76342",
+   "onCurve": true
+  },
+  {
+   "hex": "11fd60f7c591b995a22829e04b4d3d33ff1b29c15c2d6c66e17db268bfd3f683",
+   "onCurve": true
+  },
+  {
+   "hex": "e1d3fc4bb384383aef38c5b7ae2e7bc8deae06eea9a1b4b8f7f7f36b8e5e7a9c",
+   "onCurve": false
+  },
+  {
+   "hex": "99491e99f6813cfeacd5ba20dbb2dc0aab2d6e6288be86f948073053893b602c",
+   "onCurve": true
+  },
+  {
+   "hex": "0c4177b5c89b240ea260ea1f9e25a79d125fdbebfe7765607f26126cab9185c9",
+   "onCurve": true
+  },
+  {
+   "hex": "651cbda92acef6ebf9b2a2b0bf60822593e518415f86c57506f14b11bacc7f6e",
+   "onCurve": true
+  },
+  {
+   "hex": "c87895c4ccf246a0272bdfd7da8972864983eb81b44bba53624a4862f91356e1",
+   "onCurve": true
+  },
+  {
+   "hex": "5a9872bb3278566c04fa895544258fadc652a0baf74c8e82a756b7c98a2d19c1",
+   "onCurve": false
+  },
+  {
+   "hex": "e325212e2f6a9ae8b716649a46a4f294c719d6d140d9f3c2578db4474b967a36",
+   "onCurve": true
+  },
+  {
+   "hex": "f4bda54a7bd4448b1b26e1d6b4553dc914049325c23f866742a72c84c2355ef5",
+   "onCurve": true
+  },
+  {
+   "hex": "848b4ccb7f9fe875e878d4dd9283e112ffe2f441fa86a399467f4dfcf685280f",
+   "onCurve": false
+  },
+  {
+   "hex": "c4c48d0df0db41da785f94379ae015e7681ffa3b1c957a890d3be92149f44194",
+   "onCurve": true
+  },
+  {
+   "hex": "dcf6958c4c7bc73bb2c56232d3d49307ee6d1113c48263f70255178594cbe14f",
+   "onCurve": false
+  },
+  {
+   "hex": "56026443ee9056834ef448103d76ee753d3c4cce01336151e30545a99ad20256",
+   "onCurve": false
+  },
+  {
+   "hex": "45809d208c2fe0e15bba2ada764dcf3a992177e18c9f2867a2cd5b6dc2c48ef5",
+   "onCurve": true
+  },
+  {
+   "hex": "6284e9aeb2573649fae3f81e5d349c7c5af8b0d439535005023711586ff46fea",
+   "onCurve": true
+  },
+  {
+   "hex": "65eaced9466a45193f053e53485947f93e4d89ba3017f676c1d23372eb892ceb",
+   "onCurve": true
+  },
+  {
+   "hex": "6a665cd1bfb255d89ee7835074a48b058d043476a06c9bc023063a206a40a43b",
+   "onCurve": false
+  },
+  {
+   "hex": "7d25b6b2ea6d8e547fadfd829c0492f8b273b7b7175b7d6fa08caef2a0fc5c30",
+   "onCurve": true
+  },
+  {
+   "hex": "a7e96a4a27db56eafd3cdd1b2d192853123169e52acbe4b2d6b7d2edb3b004ef",
+   "onCurve": true
+  },
+  {
+   "hex": "57cb869245c51cf91b5788b7c4086a9300d06a886e9232b1b0662ce4bdbfba62",
+   "onCurve": true
+  },
+  {
+   "hex": "fb9c867f9a17a81fa503a4785874031d1f5635a1414115abf84a14552242b4e8",
+   "onCurve": false
+  },
+  {
+   "hex": "a27b04aeb860afd39104354a5574295421ffb831b40feeb1e533ea89c9dc42fe",
+   "onCurve": false
+  },
+  {
+   "hex": "d71fbfdee87753b57d429be16bb4f27ab8b16a218279b25f1ff1b2d771565780",
+   "onCurve": true
+  },
+  {
+   "hex": "42b67a66e074c076359b58159bcc9674a9ddafb77fab2803f87a44eb927cc84f",
+   "onCurve": true
+  },
+  {
+   "hex": "263b4b21303e69e7c524ade93e206fb18c57eae033e2d7062308ba09ad3a0475",
+   "onCurve": false
+  },
+  {
+   "hex": "a3bcde91c3f0089ef819fc80c2b9a674d752f748318846db7ff069908ade00e9",
+   "onCurve": false
+  },
+  {
+   "hex": "44e3acd4e1d05ea069dd3fc7e6be340aea057c6b8ae264b6656d2c1f105657d2",
+   "onCurve": false
+  }
+ ]
+}

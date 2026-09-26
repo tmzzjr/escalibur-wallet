@@ -1,0 +1,341 @@
+{
+ "LEIA": "Transacoes reais da rede principal da Solana, baixadas por getTransaction (encoding base64, maxSupportedTransactionVersion 0) de api.mainnet.solana.com em 25/09/2026. loadedAddresses e o que o proprio no resolveu das ALTs (meta.loadedAddresses). lookupTables traz, de cada ALT citada, o comprimento atual e so as entradas usadas, lidas por getAccountInfo (dados a partir do byte 56, 32 bytes por endereco); os demais indices nao sao necessarios para os testes.",
+ "transactions": [
+  {
+   "name": "usdc-send-create-ata",
+   "note": "Envio de 0,0001 USDC para toly.sol no formato de carteira: SetComputeUnitLimit, SetComputeUnitPrice, CreateIdempotent do ATA, TransferChecked. Legado.",
+   "signature": "BtzxX2yNrkBTTCbU4jpFAHW5VyrqSM1gHaQmrFwBegLiJhYZSqNqHwBPJphpFD5Xux9zUcTW2sVcWZNuJQNL67G",
+   "slot": 442118775,
+   "version": "legacy",
+   "base64": "AQllkitQoeW9KgFrhlv5QbuVUjhsQp4MerWzTFJhQqtQYh2NItc+Pyur3QsP6fcRLPgCQVS280NUT+pKnPQsRQcBAAYJdETV26gyKmwL3I4LtKqNGMJgTozmcE7BT9Xx9MJB0+5bSRblSEavoT3tm86AO/PCrVm1oDvua6D227CALpa4WH1XkGbdUoYVf/+4BeljUTxgoddOK+t/uZfhNirERilnAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABpiCGEh0llPHXQQQqVjDAJohMPnDHj34n/YcLXUqQCX4yXJY9OJInxuz0QKRSODYMLWhOZ2v8QhASOe9jb6fhZAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAADG+nrzvtutOj1l82qryXQxsbvkwtL24OR8pgIDRS9dYQbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpUFVJRCF9EPFUto5Re6xm3AGQSRmSoGrxsyZdbxMPX4cEBgAFAqCGAQAGAAkD9AEAAAAAAAAFBgACBAcDCAEBCAQBBwIACgxkAAAAAAAAAAY=",
+   "loadedAddresses": {
+    "readonly": [],
+    "writable": []
+   }
+  },
+  {
+   "name": "jupiter-swap-unwrap",
+   "note": "Troca pela Jupiter v6 com duas ALTs: Compute Budget, CreateIdempotent, rota da Jupiter, CloseAccount do wSOL para o dono. So programas da lista.",
+   "signature": "3JjmLdyj493r617eUyRLpbH17siccYtsSJ4z2ZDAUqsc27FciBW3Bk8V3D5DbeE5KB91GrmPuPWBQUKgLaXPM3k6",
+   "slot": 450537445,
+   "version": 0,
+   "base64": "AXNUegKzy/80p6joG8iWfnIhHVd/MIDMpJTPWW7+5TN4bVTnZQA5gBeoi9Ya5v3Tw2EYmbLnyA2YuYn7l/wLrAuAAQAGCUs9WXMJyQZQDEGNy8MK1dYWE7Ybi50l1NKNaelcBfEJfE98A2aHf0YOXAe4lKc01NxA1NLv73gIO0IUxLg/J+bNG6yOhpzBl7ReW3BWrz5tJr3ubdvFnIAkNzNhdLDJsDWbY4i4JFGCbLuDu5Qhevllhghin4FjTwokSd5rUJx2jJclj04kifG7PRApFI4NgwtaE5na/xCEBI572Nvp+FmXAICKVdI0alzvd9u9jUTYTQzmgMUHZrHFPyN9KxhRSgMGRm/lIRcy/+ytunLDm+e8jOW7xfcSayxDmzpAAAAABHnVW/IxwG7udMVuzmgVB/2xst6j9I5RArHNola8E48G3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8AqfDz3dZbrw9ZADgnGG3rhQj2iW7Ho668YBkmDQHgiKUDBQYABQKKwgEABgAJA4bdAAAAAAAABAYAAQARDQgBAQcbAAIBDxEICAcOBwkUEgwACgsBAhEPCAgTBQMQKLtk+swxxK8UgOe9AgAAAACPKnAWAAAAACUAAgAAAAEAAACyABAnAAEIAwEAAAEJAim/lQcqT78E33F1k+c4vMwhJygVwkcagNn59VWw1IQlASAFEwAoARd5QE4t+Dvx0UlyGT++v3V9s/1gQI0crEMfwbwNXZBmFgPfF9sDFuHc",
+   "loadedAddresses": {
+    "readonly": [
+     "11111111111111111111111111111111",
+     "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+     "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+     "jitodontfront11111111111JustUseJupiterU1tra",
+     "So11111111111111111111111111111111111111112",
+     "8ekCy2jHHUbW2yeNGFWYJT9Hm9FW7SvZcZK66dSZCDiF",
+     "Sysvar1nstructions1111111111111111111111111",
+     "TessVdML9pBGgG9yGks7o4HewRaXVAMuoVj4x83GLQH"
+    ],
+    "writable": [
+     "2p29nqD7DN1PczBMmgrFdtYKTfv6rJ7H3yMut4eu7nYT",
+     "5pVN5XZB8cYBjNLFrsBCPWkCQBan5K5Mq2dWGzwPgGJV",
+     "9t4P5wMwfFkyn92Z7hf463qYKEZf8ERVZsGBEPNp8uJx",
+     "FLckHLGMJy5gEoXWwcE68Nprde1D4araK4TGLw4pQq2n"
+    ]
+   }
+  },
+  {
+   "name": "jupiter-swap-wrap-sol",
+   "note": "Troca pela Jupiter v6 que embrulha SOL: Transfer de SOL para o ATA de wSOL do dono e SyncNative antes da rota.",
+   "signature": "4Vc7KdLRQvjv4pqf8QWQjAYRJKXBhVDw9V9E2jynuW76kTiXM1iHb4kB9bbafnUMRhehudvqGb18igzYAY8CW6Vk",
+   "slot": 450537446,
+   "version": 0,
+   "base64": "Aa64GcvGVdzaftbVlIPfMZMxDvUN5H6mogXAqWDZhP7ZQ5ByIIp0jPjPSs0jHDwYU97ox8KL7ub08BJiqDUeow+AAQAGDmoTCRkQkPP/XqLEcTKuk3L2HuGk1zwny4EzLMYMqECXIPiJfCjOaQnzHcwNEQtaAr1R9IJkT5fhRnD1c+ps5AgvSkKRs7KliWNVYjQakaKlXUdljRkDEdRm5eHmqJRxmGWnsv/ztkGZW2QQzpHS8q3utE8YeqFoOILg2S0MF6Qqzh4rMGJbBjbymqNJ/KOXdEejp+xWw7XPZvwkQpnZJxvgtXC66I4Yqpo08z+ydNnelsXu+sbuUFwukv+M6+EMbfCZwvm0G5J6nsG9sHPKNY6CFkkVx+N5sCYfN1mIKF13/m4gcZ+bD3rtWa/r+tZcyoiTtVJqzNePM6pUh7pOXggAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIyXJY9OJInxuz0QKRSODYMLWhOZ2v8QhASOe9jb6fhZAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAEedVb8jHAbu50xW7OaBUH/bGy3qP0jlECsc2iVrwTjwbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpCvHDQyGIyjpjUTWhOhiVGs69KeasLa6mC/Jch1xAC/NlDJzCdFxJTQbmvcP+rP8edQzLyOddLkQMX8y1qPKz5gcKAAUC8VwDAAoACQOCdgAAAAAAAAkGAAEAJAgMAQEIAgABDAIAAAAA8gUqAQAAAAwBAQERC0ghAAETBgYkKgwlIgsTEhwSHh8TBiokHRIhJQwoIBIaGwcLEhESDg8TAikkEBIhDAwgEgMEBQsnISYVAgYYGRcMJSgpKhQWCyM20ZhTk3z+2OkNAPIFKgEAAADl0TMWEe8EANAHCgAAAAMAAABLAAAAALIJAAMmXh0AAigQJwIDDAMBAAABCQQRw0FDiNpToYc7vOmSqEhB74OkdORbEanJ3iBtuKIRAgUoHSEgJQEiKb+VBypPvwTfcXWT5zi8zCEnKBXCRxqA2fn1VbDUhCUBJQUQAAIXFVWgraFlXUD3JtbtK+i6viRWjg26uqK5eTseoc4VsVe4BtHQ2dfS1QWkp66jzoNZgn0RPt0zxqzpc1nMFn/ghZMrDx4Or4b/iFO7ENOYBqXFwMHGxAA=",
+   "loadedAddresses": {
+    "readonly": [
+     "D1ZN9Wj1fRSUQfCjhvnu1hqDMT7hzjzBBpi12nVniYD6",
+     "3CgvbiM3op4vjrrjH2zcrQUwsqh5veNVRjFCB9N6sRoD",
+     "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+     "jitodontfront1111111111111111JustUseJupiter",
+     "So11111111111111111111111111111111111111112",
+     "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "A1BBtTYJd4i3xU8D6Tc2FzU6ZN4oXZWXKZnCxwbHXr8x",
+     "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+     "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+     "SV151D5pjygAKA8aJJcKzm4wFnRX5G92Fye94jQJk7g",
+     "vAddewUHuYgRDrL6n3kXtBXMT635evJz8K93j6Wm1Ba"
+    ],
+    "writable": [
+     "84M9uoDvWkC8uzVsDLagcwz1uThL5ohrHyD9GeRBKa1e",
+     "9f4mWwLeYCDD45yZi8LL2tN89SNcREz3hUganug4LQs9",
+     "HwQf4rQ5XgeUv5pyRvSXq2BTwhTeqCxCAReSDYvHS13j",
+     "HyHV3L5c2ewAhRWyYdVgNvuEUKPsU79MwCaqWzKbzeWr",
+     "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+     "39FWQJxqTmUkFqHKjEs3CawQ1b1rqLcKmHfJ1FWMAWdu",
+     "5epVwvQG9F5GPYLjVj5wQug7Fc4zjU6Wm7fz8VB5UsUh",
+     "9h1Yf7uTzK5vf5JEn7vznsAKBDmkQxXS4v53jviDm4pk",
+     "DHMBZpkmv96rv3tHoxoSqeZSrUTxZa9kh4wLuVcrbkMC",
+     "HFXtJ8fE2A8cLWs1JFNdQVo2z416DXfR5DR1F8N4CLtb",
+     "J7f9BHM8GrmfgA2rV6CXy3DMDX4fBNuZr5DmdH7MnJJA",
+     "xsauX9R7hQv8H7L6dzWQWJHUgPKo9afz5mLd9o4nyYa",
+     "5gGLX8PkbSWi4yJPxMbg2QjZdvP7KyKGKqLUfEMfqRSY",
+     "79cTRkY9N4v5W3kbCUTWwxGVTUNjzbRZUFQxhbN7SDzm",
+     "ATdyYqv8XNMpq2cuYQYgPQcLWFbPZfciKsJh1YpB1KEP",
+     "DwFjea2fX2Do5NTr9qr2C1PckCm7ZRMsL9kzLt5DUeju",
+     "HijyBML2VFfSbVckqY78m1XAgCBgfsoJt4d4Bt34Rq93",
+     "SjAx9qAErKCWYv1bWDQ5ya5SonzjfKJrfjbVU6GpBrg"
+    ]
+   }
+  },
+  {
+   "name": "jupiter-swap-memo",
+   "note": "Troca pela Jupiter v6 seguida de uma instrucao do programa Memo, que esta fora da lista.",
+   "signature": "dhrRhqxCwEnGF3UCbDTagHsq4HsRJg8Yxend84eWYerT3zfqMpkpD1wKyCVLVsKAuGWyEuEcssVmyVbfxFeFvMH",
+   "slot": 450537445,
+   "version": 0,
+   "base64": "AR+nBhA35YyeV+O4mV7epYH4/Nbndx4pa1whsrOs9DXvhs8YtQZ7I6r5Pnm/TTsepu9ZAirqSBkttjIC5hCbXgyAAQAHDlq2goe2JjfuYh5rn1YzFcabylSeCEzpF/3suQur1N/teZZVqMdZOLjQi35UOfs4UN90DMb7h6PC43b6NPgEcYmQsJnPLypi8gPnRIj0LEP7IbHDA9MTvQO2f1s1UgJlVLpe9F0iyvPTDOMm/GhhmVLE+eakXny3DhvWLJGcaHBHwUI69X5Bo8zdNPF53L4f5s/wlpSA+KJ7BgqulJZJN2fI/n5fawLoDzrm9Yp6hF0zanyeOYZMRdzdtceWrN0CjPMShWsqZK6F+sckoIPBLaC9ui6NfA5Vn8jcMV58A6c/AwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAAEedVb8jHAbu50xW7OaBUH/bGy3qP0jlECsc2iVrwTjwVKU1qZKSEGTSTocWDaOHx8NbXdvJK7geQfqEBBBUSNBqfVFxjHdMkoVmOYaR1etoteuKObS21cc1VbIQAAAAAG3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8AqXr9dCsn91npxnBwPNOdgXqgkwrOO1LSbVSgVN0jh7vTjVK5s5RlGCfM9OYJufTImRH6tjduFkvXJm9VlJ+70cNFnuGtnWfN2oc2UCRbo0qb2XzkqxVFcT/1Pt3YX7ODOAYHAAUCAmkCAAcACQPxLwAAAAAAAAcABQQg4LIBCC0LAA4FCBoIGAgMAAIEBgEOCgsLFBcaDRwVCBMZAAEFEQ8XGgsLCRYbEBIDFBVA5RfLl3rjrSoCAAAAdoYbWfu1iqfKAGQAAXrQ5afaAgAAAAAAAAAAAAAAZAECmHELEwAAAADPsDwTAAAAAGQAAAsDBQ4ACQOYcQsTAAAAAAkAAjBzAVKHPMsYL6HwUP2vPxRwbURPZznFdCcOXfAcPA3jVPMfBeAIDiuLCtfb5+o4go6Swsw=",
+   "loadedAddresses": {
+    "readonly": [
+     "SCoRcH8c2dpjvcJD6FiPbCSQyQgu3PcUAWj2Xxx3mqn",
+     "Sysvar1nstructions1111111111111111111111111",
+     "jitodontfront1111111111111111JustUseJupiter",
+     "ojh19ojaKduoJZuaJADhcVGp4xt1TcdAvZmpVsCorch",
+     "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
+     "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+     "EHcege7dok1iYs7SxL2XzDPvhg6XzMVcx2V5SkMUurJP",
+     "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+     "HLixVmXdBqzP1sXT9au4BHcvUjDgx5ev16cEJdd9tUSM",
+     "J1to1yufRnoWn81KYg1XkTWzmKjnYSnmE2VY8DGUJ9Qv"
+    ],
+    "writable": [
+     "WnMhmqDqhsVDBVy4uFMMfS2K46LHoUwCgo5qAfP5u1K",
+     "34WpFzQ1WE2nDLLEKJuvCXxapL7ak6CigJS8Ks5NDo5K",
+     "3WDa4Ktb9D4aoXkBSKgSzHnCMEhkLWQA5aqZhNYbJNnh",
+     "5fLuiiK4GWQ1oGmqHirfk9KDRW2ZiWAwe3vyuEtQkfN4",
+     "DmocjvFXp75asezCDKVNH2qaXbjrV7VeQk4aLZaPF88E"
+    ]
+   }
+  },
+  {
+   "name": "jupiter-two-signers",
+   "note": "Transacao com dois signatarios.",
+   "signature": "2utMiMZbwYSXP3qxDw4ZSyeiDW6WURCVBfyTWScuo1g9ZiQZAzG8YMiRpBriUKVQA2wQ7oHMLr5Y9iw7mMeH5y2p",
+   "slot": 450537446,
+   "version": 0,
+   "base64": "Al+fmFVEnpc71FG0hg4oK7rz70/Emiu8Kjk7Xhked/DRuusM3lLaeQAowQTuPiHPaTHrB4jorrs5rxb12Oz72wk5H2qad62CwY1QkKrazxBjWVur2Ohd0OTDACpZQeyblAFkScNo43ffMW3F6MENuqYD3mMmSIwbEpyIGfCo1xcKgAIBBBCKDIu1PN02Ax4u39XXYhixarkTUcLdRNU03FMl4JFZHwz+LFftdgEzD46YEwc9/q4nshWTIeMUTxUFBq3fkK5yKv84AMaZttilhzvHCduTLAYUdShgHeCkqZOdbLupfCs355CJ5+AN6bOxwhWqh5XgwVZLcAsAp9tiDKHllNpxXlPqn8WUMMIxDaSJg4azHs2yYB33uyZsrn+OqKUbbQrohdbmLgaq1E2hlElUhMx7R7Ic5SwsW1kWSQbGyjeIU2WIsW7VxFj8IQHyz+Ni5QLucGpGY8j4EJ5PFvxZAhmhrrejIVRVEHUxkI5f1vaFMBJUcL8FcVjibJeIm0RW6ZCkA7hwArJDtZaaDEaqDvrOsRH8dnmpRyMJ2s6TRQzcMV3YPM+qbtCa0BZRluHpegwDXS+ebWDRNkO3Z3PwIOvki/fZQKzlfQPUAj4uJCNw04Wv3F7EdJW94AMwtsrRePNu8qRjKIaT5WhVkLqyOrodlploKaPcutirLpI+XTFlv+2MlyWPTiSJ8bs9ECkUjg2DC1oTmdr/EIQEjnvY2+n4WQMGRm/lIRcy/+ytunLDm+e8jOW7xfcSayxDmzpAAAAABHnVW/IxwG7udMVuzmgVB/2xst6j9I5RArHNola8E48G3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8AqQ7EQBb5nTmbcdH9kje3KhzWUnbnQkykSA2pi6PXViXnBQ0ABQLAXBUADQAJA81TAAAAAAAADAYABQAsKA8BAQ5dAAoCKi8PDw4pDhAxGgYbGAoCLyoZMQAPDzAxBwQJDi0ALhIKAhMUFQ8IFgMXDjMRNCUnIyQKBQAPLA8qMjMmNCUnIyQKBQAPLA8qMi0ALhwFAiIgHg8LHR8hDgErRrtk+swxxK8UAGXNHQAAAABY9FZfAgAAAGQACgAAAAQAAAAmTQkABBoXGgAEkgIAAAALrAMAAAsAAAAAHgSsAwADGhAnAwQPAwUAAAEJBim/lQcqT78E33F1k+c4vMwhJygVwkcagNn59VWw1IQlATEFEwAoAReptpPUZ4/xgIN7WaLUXOHB03DwSNVlvKy3wi8fPGAtFAE3AL2ESR42Eg0DdSCEE0aGKUuX+ptXjWO2uV+GKXBsaATcBiAWGx8YGQIXFbpV9JKbW0VZIgKOTnj033dWHrbGuJImcYh6QE1S6aJdBNjR1tcDz9XN25mOC/Eja/QoQSlZJnI69cuCIBEtnZ5gWAB+aXTodlIHf4GHfoaChQDn9kFU8UNzoyeqVmV05yUNI/aMsQJfP0+n+8I+oMx7DwW6s7S3uAOytbY=",
+   "loadedAddresses": {
+    "readonly": [
+     "11111111111111111111111111111111",
+     "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+     "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+     "jitodontfront11111111111JustUseJupiterU1tra",
+     "So11111111111111111111111111111111111111112",
+     "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+     "DrdecJVzkaRsf1TQu1g7iFncaokikVTHqpzPjenjRySY",
+     "Ce2gx9KGXJ6C9Mp5b5x1sn9Mg87JwEbrQby4Zqo3pump",
+     "D1ZN9Wj1fRSUQfCjhvnu1hqDMT7hzjzBBpi12nVniYD6",
+     "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+     "Sysvar1nstructions1111111111111111111111111",
+     "ZERor4xhbUycZ6gb9ntrhqscUcZmAbQDjEAtCf4hbZY",
+     "ziVBjUsjvWLdaeNcFT5DuuWxFgUUEExs2jb4qgTqYSy"
+    ],
+    "writable": [
+     "5SPztfEn1VAaWDBAXjQKwVrGbr6e8g3F6JJnUc9eCuSe",
+     "7DyH4hFA9KY2Uf3ZC2fUGP9ATsLqAEq3pUpyJPA2Mjft",
+     "4AnR1SU1eF2YMadkdkXoQqdf5Hc368nforDGbCiDTVw7",
+     "4D5HHwq9Ykwr7UWmqo2UmjqCstFA13qMjnNmb131ywD9",
+     "4dsAT2qoQ8TggGmsTdzGoChEa1rsvdPX2FzHUs9eDjqH",
+     "6fJzkej4K3rLwntcPGzeg2re16XGJwc8LqTqtTbz2oem",
+     "ASmGAEwMM8zt1Bmpsa7hCbSFs4uqmL6J23ga9nUmPChU",
+     "DbnUaceZjsVHWrbb8kFUXCYEZ6wu6QVyXHGVMmgpLxEv",
+     "29beMGoBwbzeX9ust3xtLuPSshJcm4XTuqtPqJzkBQvS",
+     "8WcTBhoSjjNAnB6NeHGykcvRVeGHRJeHv1udvMJbTWbh",
+     "EZZzpovnjzgcodUjCToMkqp4QXfBAzpwvDMB8BPo36b5",
+     "FStKdyRPFnLBLwKyLjP1eBmsyDLwV2KH9gYzwcApXUsn",
+     "3Sht4Amox5REC1YLYGuR1Qdfh7fa8d2ucGu4rawjs6tN",
+     "4FNhS8Ru6cbQNxZCiP5JfaRD4MrXmgyxUxNt9KfUHtJv",
+     "4rtC7K1m34NiG9cjrh2re5p4TN16b4meGiYXe2ChcSy3",
+     "73pSnfXnU4YVTiUk2xJuzPNpm7DfsnwkovrH1wU5NeVp",
+     "Bms2Rwp2dSsyfYY87neddNT3754BzPNYdEMkcx4qo99X",
+     "DcFKkRseoiGx5NZZgSeZviwPb31qrbfcKQ7CX4ZmJcNh",
+     "HoAiKLm63QuGqE6pXVFsuF2rKXTKPrcsSgX3HCpuKNQb",
+     "3QrF4jzbFn8EWWZi55wonziCoC3ZK2eLmwT2v3EBEsYq",
+     "6wWVbLeHDVHvCCsLprB85jkbU1JhS9VezABT2ZZFJ5BB",
+     "7bFrELm2JUsKfjghdHRXo75ZzQwKWATMLreP5QSnKLcE",
+     "BwNJma5cJzn9jobrsc4d7UuWHekjai1B7oUdRzRnVqAM",
+     "D5trkFE3C7QeyFATEWjEHyKXXXSGpggbP7V9SMWwVBkz"
+    ]
+   }
+  },
+  {
+   "name": "jupiter-swap-tip",
+   "note": "Troca pela Jupiter v6 terminando com Transfer de SOL para terceiro (gorjeta).",
+   "signature": "3PUXDCh5mNZjMUxTQHwUskhYJCqmTZgLuv5DLdg2sRAAQ8sE9Fux5naZEKCaQ6pBUs3YTh4h9HmdBPsYPd2eDTef",
+   "slot": 450537445,
+   "version": 0,
+   "base64": "AXdqR02wErluQ2NcMy/LxL1nShWCqorEEUV9KL9DSpIEiMA00SqeJRy/WSQJXgGLF6HV+0bOFLxExUKSfDpeFACAAQAIF72sTrczAI5qdrsP8C9joeBWXvwoTbhFsDP4lGnHO0h1J5BLVWEfTR9TPuRXlIej/elWibXWSdNef0kNXeuKfn0iCPiOw+W1PV0wi1brWOqX9a843BoMXFzcj6pPfilIxnh82H1oQhnDJ9iQ66S0nvwmPW9Sc4lSi6E3qll/pmFxaMP1DT0ZS2pD9/+BVJ05DteDV4g20jkWh+b+tmCZXtcnbQmmo2OeebGt71O0zFTwIpc5tLwWeti/1cNQ1uHEiP1XjFtGMWEl9l+LniiZSV7Ey5wejqNfQaunhpgNeLobXYYVWhhmVC2jWVj7K9O5+A+pGFe8FFtDPnylTJw5Qtw7CD7iPcdpLUcTuLwNY170hF94E2BOW902J1LXRVTUn3+0FJkKlrOQPYpblq1Hd88wupqsLdCwqOf6QPcs1VPLk4HBcIkeriMovq2w7otAlnGvu98gdLhHhB4GBGm6oufQ4G38inU+8NcHULeKcEqfNF1tH799E4XKtOvAN8pfukYkVuvkJIjsID4wVCSJTelOf26oScYd7VdAX7ST/MSz40/FpUovbh3bs09rnZh/GXjgGKd8GG8/UfRqTrc5aEq/lxtZEItbhaBPsJPx4htOP9TEyPSH3Qm5V1J2nw3YwwMGRm/lIRcy/+ytunLDm+e8jOW7xfcSayxDmzpAAAAABHnVW/IxwG7udMVuzmgVB/2xst6j9I5RArHNola8E4/Cc6QQ85odeIjFHKOlRlJyeSXVJmL8vb1UgOzsbJPVPwU8Zh9vrK6iz+ZC7a3weuxeLKxZ1KDU4N5dG6bXBkD7CEHExu43bxfKSwMalPi4KmqyrpGuGeCMdDZqeXWRCJfZ1MNCH2e6aQN6+QMoa6aUsQWo6Y+FMEVIB3JxuZ68vwan1RcYe9FmNdrUBFX9wsDBJMaPIVZ1pdu6y18IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABHbrV4kVtns+QZIGXmflM9mEHqgVd2xYgWCH8M6yGldAQPAAUCOyMCAA8ABQTxsG8AECoXAAEBEBgQGRAaABECAQMEBQYXGxwYEgcIEBMJFAoLDA0DAQAbEhcYFR0n5RfLl3rjrSoCAAAAKGQAAZpkAQCA8PoCAAAAAFzz+gIAAAAAAAAAFgIADgwCAAAA6AMAAAAAAAAB4XH8vXLha+PfeIfh47/gRu8tEu0nbqcI89it8OSV/WcABwAEBQ0iLgk=",
+   "loadedAddresses": {
+    "readonly": [
+     "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+     "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+     "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+     "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+     "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+     "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+     "jitodontfront1111111111111111JustUseJupiter"
+    ],
+    "writable": []
+   }
+  }
+ ],
+ "lookupTables": {
+  "3oy9ojnsDzqmMNi87Gs7Hn5v3MPVqnWjG9k8BmzKR7yW": {
+   "length": 169,
+   "entries": {
+    "32": "2p29nqD7DN1PczBMmgrFdtYKTfv6rJ7H3yMut4eu7nYT",
+    "19": "11111111111111111111111111111111",
+    "0": "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+    "40": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "1": "jitodontfront11111111111JustUseJupiterU1tra",
+    "23": "So11111111111111111111111111111111111111112",
+    "37": "39FWQJxqTmUkFqHKjEs3CawQ1b1rqLcKmHfJ1FWMAWdu",
+    "16": "3CgvbiM3op4vjrrjH2zcrQUwsqh5veNVRjFCB9N6sRoD",
+    "2": "jitodontfront1111111111111111JustUseJupiter",
+    "21": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "49": "5SPztfEn1VAaWDBAXjQKwVrGbr6e8g3F6JJnUc9eCuSe"
+   }
+  },
+  "9AKCoNoAGYLW71TwTHY9e7KrZUWWL3c7VtHKb66NT3EV": {
+   "length": 248,
+   "entries": {
+    "223": "5pVN5XZB8cYBjNLFrsBCPWkCQBan5K5Mq2dWGzwPgGJV",
+    "23": "9t4P5wMwfFkyn92Z7hf463qYKEZf8ERVZsGBEPNp8uJx",
+    "219": "FLckHLGMJy5gEoXWwcE68Nprde1D4araK4TGLw4pQq2n",
+    "22": "8ekCy2jHHUbW2yeNGFWYJT9Hm9FW7SvZcZK66dSZCDiF",
+    "225": "Sysvar1nstructions1111111111111111111111111",
+    "220": "TessVdML9pBGgG9yGks7o4HewRaXVAMuoVj4x83GLQH"
+   }
+  },
+  "2CLcgvtf8i8Q7iexrujBKFvvgjpTGdsqU3ayMoPohyDB": {
+   "length": 247,
+   "entries": {
+    "40": "84M9uoDvWkC8uzVsDLagcwz1uThL5ohrHyD9GeRBKa1e",
+    "29": "9f4mWwLeYCDD45yZi8LL2tN89SNcREz3hUganug4LQs9",
+    "33": "HwQf4rQ5XgeUv5pyRvSXq2BTwhTeqCxCAReSDYvHS13j",
+    "32": "HyHV3L5c2ewAhRWyYdVgNvuEUKPsU79MwCaqWzKbzeWr",
+    "37": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
+    "34": "D1ZN9Wj1fRSUQfCjhvnu1hqDMT7hzjzBBpi12nVniYD6"
+   }
+  },
+  "6mFm29q2MeUZWLySztq8WpG8KxMjVteaNm38ee226DSf": {
+   "length": 244,
+   "entries": {
+    "209": "5epVwvQG9F5GPYLjVj5wQug7Fc4zjU6Wm7fz8VB5UsUh",
+    "208": "9h1Yf7uTzK5vf5JEn7vznsAKBDmkQxXS4v53jviDm4pk",
+    "217": "DHMBZpkmv96rv3tHoxoSqeZSrUTxZa9kh4wLuVcrbkMC",
+    "215": "HFXtJ8fE2A8cLWs1JFNdQVo2z416DXfR5DR1F8N4CLtb",
+    "210": "J7f9BHM8GrmfgA2rV6CXy3DMDX4fBNuZr5DmdH7MnJJA",
+    "213": "xsauX9R7hQv8H7L6dzWQWJHUgPKo9afz5mLd9o4nyYa",
+    "164": "A1BBtTYJd4i3xU8D6Tc2FzU6ZN4oXZWXKZnCxwbHXr8x",
+    "167": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+    "174": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+    "163": "SV151D5pjygAKA8aJJcKzm4wFnRX5G92Fye94jQJk7g",
+    "206": "vAddewUHuYgRDrL6n3kXtBXMT635evJz8K93j6Wm1Ba"
+   }
+  },
+  "9qja8iDdnBA1ubmpooMQ3NKhDgkADoaXAi8hKdbyMG3h": {
+   "length": 236,
+   "entries": {
+    "165": "5gGLX8PkbSWi4yJPxMbg2QjZdvP7KyKGKqLUfEMfqRSY",
+    "197": "79cTRkY9N4v5W3kbCUTWwxGVTUNjzbRZUFQxhbN7SDzm",
+    "192": "ATdyYqv8XNMpq2cuYQYgPQcLWFbPZfciKsJh1YpB1KEP",
+    "193": "DwFjea2fX2Do5NTr9qr2C1PckCm7ZRMsL9kzLt5DUeju",
+    "198": "HijyBML2VFfSbVckqY78m1XAgCBgfsoJt4d4Bt34Rq93",
+    "196": "SjAx9qAErKCWYv1bWDQ5ya5SonzjfKJrfjbVU6GpBrg"
+   }
+  },
+  "6ZA35rCYDdaeQ54oTCGfw9U3XvBx9i7WFqRq4wGvZRgz": {
+   "length": 241,
+   "entries": {
+    "224": "WnMhmqDqhsVDBVy4uFMMfS2K46LHoUwCgo5qAfP5u1K",
+    "8": "34WpFzQ1WE2nDLLEKJuvCXxapL7ak6CigJS8Ks5NDo5K",
+    "14": "3WDa4Ktb9D4aoXkBSKgSzHnCMEhkLWQA5aqZhNYbJNnh",
+    "43": "5fLuiiK4GWQ1oGmqHirfk9KDRW2ZiWAwe3vyuEtQkfN4",
+    "139": "DmocjvFXp75asezCDKVNH2qaXbjrV7VeQk4aLZaPF88E",
+    "215": "SCoRcH8c2dpjvcJD6FiPbCSQyQgu3PcUAWj2Xxx3mqn",
+    "219": "Sysvar1nstructions1111111111111111111111111",
+    "231": "jitodontfront1111111111111111JustUseJupiter",
+    "234": "ojh19ojaKduoJZuaJADhcVGp4xt1TcdAvZmpVsCorch",
+    "56": "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
+    "130": "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+    "142": "EHcege7dok1iYs7SxL2XzDPvhg6XzMVcx2V5SkMUurJP",
+    "146": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "194": "HLixVmXdBqzP1sXT9au4BHcvUjDgx5ev16cEJdd9tUSM",
+    "204": "J1to1yufRnoWn81KYg1XkTWzmKjnYSnmE2VY8DGUJ9Qv"
+   }
+  },
+  "CRVNexafHPcu3zgNMQ2dnFKHff3iGT4n9CtjDb19kfTZ": {
+   "length": 249,
+   "entries": {
+    "55": "7DyH4hFA9KY2Uf3ZC2fUGP9ATsLqAEq3pUpyJPA2Mjft"
+   }
+  },
+  "Dko3qfDfv1KKcjsEJm1r3r5WTp1zaKWF2ZRZLWauN5Qo": {
+   "length": 250,
+   "entries": {
+    "32": "4AnR1SU1eF2YMadkdkXoQqdf5Hc368nforDGbCiDTVw7",
+    "22": "4D5HHwq9Ykwr7UWmqo2UmjqCstFA13qMjnNmb131ywD9",
+    "27": "4dsAT2qoQ8TggGmsTdzGoChEa1rsvdPX2FzHUs9eDjqH",
+    "31": "6fJzkej4K3rLwntcPGzeg2re16XGJwc8LqTqtTbz2oem",
+    "24": "ASmGAEwMM8zt1Bmpsa7hCbSFs4uqmL6J23ga9nUmPChU",
+    "25": "DbnUaceZjsVHWrbb8kFUXCYEZ6wu6QVyXHGVMmgpLxEv",
+    "23": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+    "21": "DrdecJVzkaRsf1TQu1g7iFncaokikVTHqpzPjenjRySY"
+   }
+  },
+  "DYNrNEveVxUCzbWvE3t7bwCWYGccCWygzmwUF9bhoLbE": {
+   "length": 226,
+   "entries": {
+    "216": "29beMGoBwbzeX9ust3xtLuPSshJcm4XTuqtPqJzkBQvS",
+    "209": "8WcTBhoSjjNAnB6NeHGykcvRVeGHRJeHv1udvMJbTWbh",
+    "214": "EZZzpovnjzgcodUjCToMkqp4QXfBAzpwvDMB8BPo36b5",
+    "215": "FStKdyRPFnLBLwKyLjP1eBmsyDLwV2KH9gYzwcApXUsn",
+    "207": "Ce2gx9KGXJ6C9Mp5b5x1sn9Mg87JwEbrQby4Zqo3pump",
+    "213": "D1ZN9Wj1fRSUQfCjhvnu1hqDMT7hzjzBBpi12nVniYD6",
+    "205": "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo"
+   }
+  },
+  "FnE6FVYkFqoYQGMJ5nHb9D1vRWUuPKrb7xVvhC2bXXbw": {
+   "length": 254,
+   "entries": {
+    "127": "3Sht4Amox5REC1YLYGuR1Qdfh7fa8d2ucGu4rawjs6tN",
+    "129": "4FNhS8Ru6cbQNxZCiP5JfaRD4MrXmgyxUxNt9KfUHtJv",
+    "135": "4rtC7K1m34NiG9cjrh2re5p4TN16b4meGiYXe2ChcSy3",
+    "126": "73pSnfXnU4YVTiUk2xJuzPNpm7DfsnwkovrH1wU5NeVp",
+    "134": "Bms2Rwp2dSsyfYY87neddNT3754BzPNYdEMkcx4qo99X",
+    "130": "DcFKkRseoiGx5NZZgSeZviwPb31qrbfcKQ7CX4ZmJcNh",
+    "133": "HoAiKLm63QuGqE6pXVFsuF2rKXTKPrcsSgX3HCpuKNQb"
+   }
+  },
+  "GcUy7n96V4CLEupSJGAd2KbkR2bpmEfrBxpCzqy4Sfcr": {
+   "length": 195,
+   "entries": {
+    "186": "3QrF4jzbFn8EWWZi55wonziCoC3ZK2eLmwT2v3EBEsYq",
+    "179": "6wWVbLeHDVHvCCsLprB85jkbU1JhS9VezABT2ZZFJ5BB",
+    "180": "7bFrELm2JUsKfjghdHRXo75ZzQwKWATMLreP5QSnKLcE",
+    "183": "BwNJma5cJzn9jobrsc4d7UuWHekjai1B7oUdRzRnVqAM",
+    "184": "D5trkFE3C7QeyFATEWjEHyKXXXSGpggbP7V9SMWwVBkz",
+    "178": "Sysvar1nstructions1111111111111111111111111",
+    "181": "ZERor4xhbUycZ6gb9ntrhqscUcZmAbQDjEAtCf4hbZY",
+    "182": "ziVBjUsjvWLdaeNcFT5DuuWxFgUUEExs2jb4qgTqYSy"
+   }
+  },
+  "GB3YVMe3zTpSAZ64EPPXWgj2oCdrfX5hL7fLVpE15n7x": {
+   "length": 56,
+   "entries": {
+    "0": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "4": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "5": "D8cy77BBepLMngZx6ZukaTff5hCt1HrWyKk3Hnd9oitf",
+    "13": "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+    "34": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "46": "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+    "9": "jitodontfront1111111111111111JustUseJupiter"
+   }
+  }
+ }
+}
