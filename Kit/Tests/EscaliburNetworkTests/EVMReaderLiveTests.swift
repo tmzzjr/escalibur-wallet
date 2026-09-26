@@ -104,8 +104,13 @@ struct EVMReaderLiveTests {
             guard case .object(let outer) = override, case .object(let inner)? = outer[token.contract.checksummed],
                   case .object(let diff)? = inner["stateDiff"], let key = diff.keys.first
             else { Issue.record("override sem formato"); return }
-            let stored = try await JSONRPC.call(url, method: "eth_getStorageAt", params: [.string(usdt), .string(key), .string("latest")], as: String.self)
-            #expect(BigUInt(hex: stored) == allowance)
+            // Slot e allowance() lidos no mesmo bloco: a allowance de um spender ativo muda
+            // entre blocos, e o que se confere aqui e so o calculo do slot.
+            let block = try await JSONRPC.call(url, method: "eth_blockNumber", params: [], as: String.self)
+            let stored = try await JSONRPC.call(url, method: "eth_getStorageAt", params: [.string(usdt), .string(key), .string(block)], as: String.self)
+            let calldata = "0xdd62ed3e" + Hex.encode([UInt8](repeating: 0, count: 12) + owner.bytes) + Hex.encode([UInt8](repeating: 0, count: 12) + spender.bytes)
+            let atBlock = try await JSONRPC.call(url, method: "eth_call", params: [.object(["to": .string(usdt), "data": .string(calldata)]), .string(block)], as: String.self)
+            #expect(BigUInt(hex: stored) == BigUInt(hex: atBlock))
             let state = try await reader.networkState(chain: .ethereum, account: owner, intent: .approve(token, spender: spender, amount: .exact(allowance + 1)))
             #expect(state.gasEstimate > 21_000)
             Live.note("USDT approve com override: gas \(state.gasEstimate)")
