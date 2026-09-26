@@ -56,6 +56,20 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
         return try await perform(request)
     }
 
+    /// PUT e DELETE com corpo JSON, pelas mesmas regras de `get`/`post`. A CoW so aceita
+    /// cancelamento em `DELETE /api/v1/orders` e registro de appData em `PUT`.
+    public func send(_ method: String, _ url: URL, json body: Data?, headers: [String: String] = [:], timeout: TimeInterval = 10) async throws -> Data {
+        guard ["PUT", "DELETE"].contains(method) else { throw Failure.invalidResponse }
+        var request = URLRequest(url: url, timeoutInterval: timeout)
+        request.httpMethod = method
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        return try await perform(request)
+    }
+
     public func getJSON<T: Decodable>(_ type: T.Type, from url: URL, headers: [String: String] = [:]) async throws -> T {
         let data = try await get(url, headers: headers)
         do {

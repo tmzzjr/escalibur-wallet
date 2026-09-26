@@ -1,0 +1,45 @@
+Respostas reais dos provedores de troca, gravadas ao vivo em 26/09/2026 (UTC), byte a
+byte como vieram (sem reformatar). O dono e o destinatario de todas e o endereco da
+chave de teste da EIP-155 (0x46...46): 0x9d8A62f656a8d1615C1294fd71e9CFb3E4855A4F. A
+calldata real e validada e assinada nos testes; os testes adulteram campo a campo para
+conferir cada recusa.
+
+Aviso: esse endereco tem delegacao EIP-7702 para um sweeper na Base, Arbitrum e
+Ethereum (eth_getCode = 0xef0100 8a67b502...408a). Os testes ao vivo usam outra conta;
+TradeLiveTests.sweeper mostra a simulacao recusando o plano por causa dele.
+
+Base, 100 USDC -> ETH, tolerancia 0,5%:
+  velora-base-usdc-eth.json          GET api.velora.xyz/swap (version=6.2,
+                                     includeContractMethods=swapExactAmountIn, partner=escalibur)
+                                     sha256 b619588e40c78692ec78cacb35394aa1e865c7fe5c93dd893d7515c4040624a2
+  kyber-base-usdc-eth-routes.json    GET aggregator-api.kyberswap.com/base/api/v1/routes
+                                     sha256 f561f50a3ddd08b591559b5461a75e1993b468ed1c1b8861fcb236948f60c60e
+  kyber-base-usdc-eth-build.json     POST .../base/api/v1/route/build (slippageTolerance=50)
+                                     sha256 dd7984e3bc499531591f1bcda21697034e6fd8cceb196697643a2bf02e33e79d
+  lifi-base-usdc-eth.json            GET li.quest/v1/quote (allowBridges=none, slippage=0.005)
+                                     sha256 f756eaec6f549ba69929c310968096076f779b66a3f754025b9439b7ee374ea4
+  de1-base-usdc-eth.json             GET open-api.de1.exchange/v4/8453/swap (slippage=0.4)
+                                     sha256 aefe754661cbfc62ac08cf20f6d90e05942e01dcd009d7028bf34d59a3165898
+  de1-base-usdc-eth-folga-extra.json o mesmo com slippage=0.5: a De¹ poe o minimo 0,1 ponto
+                                     abaixo do pedido (99,4%), e a validacao recusa
+                                     sha256 2efd2ecf8c1648db3162c103fb4da040079d03ebce76fe6396d712c38bebb114
+
+Arbitrum, 0,04 ETH -> USDC (venda de nativo), tolerancia 0,5%:
+  velora-arbitrum-eth-usdc.json      sha256 e4cf801d9ab47254b8c46ca03fba078d5c31708d0d3a1c3f54fab7b9c76905d2
+  kyber-arbitrum-eth-usdc-routes.json sha256 2feb0b3442ebaa3c99cfe88e3b30d21bc7bcdf8c921c3e23489b402b41becb77
+  kyber-arbitrum-eth-usdc-build.json sha256 9322e7d5eda697d07bc19cbd07339a22e1b4294d836f7152ef8c20a7eebd1997
+  lifi-arbitrum-eth-usdc.json        sha256 9c454e3a8381890b0435003183e8b366c0fa511be40b03531aac6735a89ce555
+  de1-arbitrum-eth-usdc.json         sha256 6fb62dc74e53ac75b63b3dc51aaa5ba3a3a3898e35e0c521818d2f9da0bf908f
+
+Arbitrum, 100 USDC -> USDT (ERC-20 para ERC-20):
+  lifi-arbitrum-usdc-usdt.json       sha256 5aa1c9c8c919d6af578a5cb12b85aee15356580606d13fc6fdfaa30355c3f239
+
+CoW Protocol, duas ordens reais liquidadas na Base (GET api.cow.fi/base/api/v1/orders/{uid}).
+O UID vem do evento Trade do GPv2Settlement, calculado pelo contrato: os 32 primeiros
+bytes sao o digesto EIP-712 da ordem, o vetor oficial do hash.
+  cow-base-order-limit.json          ordem limite, parcial, assinatura com v = 28
+                                     liquidada em 0xd3fbe076148f2e5c248456dae92d1f0c66e5a4696e72a66e0c9a9b40c25da4c2
+                                     sha256 824aa1655d09cbb3b2e21706af8b7d7e3dfc4c9b100f1285c48f8f69e3db1f24
+  cow-base-order-market.json         ordem a mercado, assinatura com v = 27
+                                     liquidada em 0xc254f149a30bb8329c45e69c3c2219311b8ca5489febeede052731d2f14b72a7
+                                     sha256 774377dd9befdeb22f81b1c6b43d800a7f606e3d0afe845db73be0152065b56c
