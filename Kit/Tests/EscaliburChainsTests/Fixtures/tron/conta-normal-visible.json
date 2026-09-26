@@ -1,0 +1,78 @@
+{
+ "_nota": "A mesma conta com {\"visible\": true}: enderecos em base58.",
+ "address": "TU6UKxqHCG743kdKURsXK37ZhvND9SBgTv",
+ "balance": 980,
+ "create_time": 1788036009000,
+ "latest_opration_time": 1790387640000,
+ "free_net_usage": 328,
+ "latest_consume_free_time": 1790387640000,
+ "net_window_size": 28800000,
+ "net_window_optimized": true,
+ "account_resource": {
+  "energy_window_size": 28800000,
+  "energy_window_optimized": true
+ },
+ "owner_permission": {
+  "permission_name": "owner",
+  "threshold": 1,
+  "keys": [
+   {
+    "address": "TU6UKxqHCG743kdKURsXK37ZhvND9SBgTv",
+    "weight": 1
+   }
+  ]
+ },
+ "active_permission": [
+  {
+   "type": "Active",
+   "id": 2,
+   "permission_name": "active",
+   "threshold": 1,
+   "operations": "7fff1fc0033ec30f000000000000000000000000000000000000000000000000",
+   "keys": [
+    {
+     "address": "TU6UKxqHCG743kdKURsXK37ZhvND9SBgTv",
+     "weight": 1
+    }
+   ]
+  }
+ ],
+ "frozenV2": [
+  {},
+  {
+   "type": "ENERGY"
+  },
+  {
+   "type": "TRON_POWER"
+  }
+ ],
+ "assetV2": [
+  {
+   "key": "1005114",
+   "value": 8888
+  },
+  {
+   "key": "1005157",
+   "value": 8888888
+  },
+  {
+   "key": "1005074",
+   "value": 444444
+  }
+ ],
+ "free_asset_net_usageV2": [
+  {
+   "key": "1005157",
+   "value": 0
+  },
+  {
+   "key": "1005074",
+   "value": 0
+  },
+  {
+   "key": "1005114",
+   "value": 0
+  }
+ ],
+ "asset_optimized": true
+}
