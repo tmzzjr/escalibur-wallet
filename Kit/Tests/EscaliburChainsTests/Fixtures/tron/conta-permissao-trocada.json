@@ -1,0 +1,152 @@
+{
+ "_nota": "POST /wallet/getaccount {\"address\": \"41a63b9d...\"} em 25/09/2026. A conta TR8Ab9eQ... assinou AccountPermissionUpdateContract (tx b6b8a2e4a1bd683b471220ea86d423a34b7c9e86134910dd645856990b716303, bloco 86571671) passando owner e active para TShbAfd9...: a chave derivada do endereco nao controla mais a conta.",
+ "address": "41a63b9de5c9a77026af57e3156f106782a8b1ebe0",
+ "balance": 1445226,
+ "create_time": 1761604395000,
+ "latest_opration_time": 1790387403000,
+ "free_net_usage": 367,
+ "latest_consume_time": 1790031093000,
+ "latest_consume_free_time": 1790387403000,
+ "net_window_size": 28800000,
+ "net_window_optimized": true,
+ "account_resource": {
+  "latest_consume_time_for_energy": 1790031096000,
+  "energy_window_size": 28800000,
+  "energy_window_optimized": true
+ },
+ "owner_permission": {
+  "permission_name": "owner",
+  "threshold": 1,
+  "keys": [
+   {
+    "address": "41b785fc63372bced2b345e8edc1913260465c6e0b",
+    "weight": 1
+   }
+  ]
+ },
+ "active_permission": [
+  {
+   "type": "Active",
+   "id": 2,
+   "permission_name": "active",
+   "threshold": 1,
+   "operations": "7fff1fc0033e0000000000000000000000000000000000000000000000000000",
+   "keys": [
+    {
+     "address": "41b785fc63372bced2b345e8edc1913260465c6e0b",
+     "weight": 1
+    }
+   ]
+  }
+ ],
+ "frozenV2": [
+  {},
+  {
+   "type": "ENERGY"
+  },
+  {
+   "type": "TRON_POWER"
+  }
+ ],
+ "assetV2": [
+  {
+   "key": "1005193",
+   "value": 4444444444
+  },
+  {
+   "key": "1004989",
+   "value": 1111111
+  },
+  {
+   "key": "1005119",
+   "value": 17776
+  },
+  {
+   "key": "1005190",
+   "value": 1150000002
+  },
+  {
+   "key": "1005149",
+   "value": 10000000
+  },
+  {
+   "key": "1005114",
+   "value": 8888
+  },
+  {
+   "key": "1005157",
+   "value": 8888888
+  },
+  {
+   "key": "1005002",
+   "value": 10000000
+  },
+  {
+   "key": "1005145",
+   "value": 1250000
+  },
+  {
+   "key": "1005178",
+   "value": 2000
+  },
+  {
+   "key": "1005121",
+   "value": 1000000
+  },
+  {
+   "key": "1005074",
+   "value": 33555555
+  }
+ ],
+ "free_asset_net_usageV2": [
+  {
+   "key": "1004989",
+   "value": 0
+  },
+  {
+   "key": "1005119",
+   "value": 0
+  },
+  {
+   "key": "1005149",
+   "value": 0
+  },
+  {
+   "key": "1005114",
+   "value": 0
+  },
+  {
+   "key": "1005193",
+   "value": 0
+  },
+  {
+   "key": "1005190",
+   "value": 0
+  },
+  {
+   "key": "1005157",
+   "value": 0
+  },
+  {
+   "key": "1005002",
+   "value": 0
+  },
+  {
+   "key": "1005145",
+   "value": 0
+  },
+  {
+   "key": "1005178",
+   "value": 0
+  },
+  {
+   "key": "1005121",
+   "value": 0
+  },
+  {
+   "key": "1005074",
+   "value": 0
+  }
+ ],
+ "asset_optimized": true
+}

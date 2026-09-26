@@ -1,0 +1,242 @@
+{
+ "_fonte": "Mainnet Tron, lidas em 25/09/2026 via POST https://api.trongrid.io/wallet/gettransactionbyid {\"value\": txID} (transacoes) e /wallet/getblockbynum {\"num\": n} (blocos citados pelo TaPoS). Respostas cruas, sem edicao, mais o campo _nota.",
+ "transacoes": [
+  {
+   "raw_data": {
+    "ref_block_bytes": "fad2",
+    "ref_block_hash": "e9b6a485a6b8a01a",
+    "expiration": 1790387697000,
+    "contract": [
+     {
+      "parameter": {
+       "value": {
+        "owner_address": "41c6d1f82361a9cdd04366501432fdfece5236a8d2",
+        "to_address": "418e20beaf7215c5765905774979297ae1e582d3dc",
+        "amount": 1
+       },
+       "type_url": "type.googleapis.com/protocol.TransferContract"
+      },
+      "type": "TransferContract"
+     }
+    ],
+    "timestamp": 1790387640370
+   },
+   "signature": [
+    "f7582a31b206bb8372608d0809017c0f5b1c95c2e148159729cea0dc1591cb9c4f58f748868a39899b8d9f986a3fc119ee87ac77438b4351d52a7cf6c36c22e71b"
+   ],
+   "ret": [
+    {
+     "contractRet": "SUCCESS"
+    }
+   ],
+   "raw_data_hex": "0a02fad22208e9b6a485a6b8a01a40e8eab0db8d345a65080112610a2d747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e5472616e73666572436f6e747261637412300a1541c6d1f82361a9cdd04366501432fdfece5236a8d21215418e20beaf7215c5765905774979297ae1e582d3dc180170b2b0addb8d34",
+   "txID": "40faad322c6ac8b6a8211ec45bf49b7dc63841108fcf9cfc8135dab2cd131938",
+   "_nota": "TRX, assinatura com v = 0x1b (recid + 27, forma do TronWeb)"
+  },
+  {
+   "raw_data": {
+    "ref_block_bytes": "fad2",
+    "ref_block_hash": "e9b6a485a6b8a01a",
+    "expiration": 1790387697000,
+    "contract": [
+     {
+      "parameter": {
+       "value": {
+        "owner_address": "415fef048f444a63ef081ddb64b30cd67f7c295fc6",
+        "to_address": "41cd37d744d334ad3263c354df7fd66ae888c85003",
+        "amount": 5
+       },
+       "type_url": "type.googleapis.com/protocol.TransferContract"
+      },
+      "type": "TransferContract"
+     }
+    ],
+    "timestamp": 1790387639479
+   },
+   "signature": [
+    "746c23ffc2174c76a5d8e798aebfcf087d4568892487206d90f1b8e3ef7401412c8c43a5097b3f18350ca2d76ffc0a0e3c54a1046b073f94a48d01e58a670f3100"
+   ],
+   "ret": [
+    {
+     "contractRet": "SUCCESS"
+    }
+   ],
+   "raw_data_hex": "0a02fad22208e9b6a485a6b8a01a40e8eab0db8d345a65080112610a2d747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e5472616e73666572436f6e747261637412300a15415fef048f444a63ef081ddb64b30cd67f7c295fc6121541cd37d744d334ad3263c354df7fd66ae888c85003180570b7a9addb8d34",
+   "txID": "f9d62436710d5b6ece6b431713eca193997820a591acc8db5fa0b876e4158bfa",
+   "_nota": "TRX, assinatura com v = 0x00 (recid cru, forma do java-tron)"
+  },
+  {
+   "raw_data": {
+    "ref_block_bytes": "fad2",
+    "ref_block_hash": "e9b6a485a6b8a01a",
+    "expiration": 1790387937000,
+    "contract": [
+     {
+      "parameter": {
+       "value": {
+        "owner_address": "41b1bbcf8b71778f1b03c09059269267fc8763f91e",
+        "contract_address": "41a614f803b6fd780986a42c78ec9c7f77e6ded13c",
+        "data": "a9059cbb00000000000000000000000020fadcfcb213f434c519f912a00b0192bbc61fdc0000000000000000000000000000000000000000000000000000000011cabfa0"
+       },
+       "type_url": "type.googleapis.com/protocol.TriggerSmartContract"
+      },
+      "type": "TriggerSmartContract"
+     }
+    ],
+    "timestamp": 1790387640176,
+    "fee_limit": 50000000
+   },
+   "signature": [
+    "258ac4b8898aee4cf741d6f43e72e0664f58720f0e7cf61212bd6f2caa007c6f4487ffe4aa2705520872b56c16463ce17cafe6c30190b8728ef1164685c63e201c"
+   ],
+   "ret": [
+    {
+     "contractRet": "SUCCESS"
+    }
+   ],
+   "raw_data_hex": "0a02fad22208e9b6a485a6b8a01a40e8bdbfdb8d345aae01081f12a9010a31747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e54726967676572536d617274436f6e747261637412740a1541b1bbcf8b71778f1b03c09059269267fc8763f91e121541a614f803b6fd780986a42c78ec9c7f77e6ded13c2244a9059cbb00000000000000000000000020fadcfcb213f434c519f912a00b0192bbc61fdc0000000000000000000000000000000000000000000000000000000011cabfa070f0aeaddb8d34900180e1eb17",
+   "txID": "197d2038ce513b2bff4be9ef6d6a5998d742149b0f1557a75d12b21aa846f49c",
+   "_nota": "USDT transfer, v = 0x1c"
+  },
+  {
+   "raw_data": {
+    "ref_block_bytes": "fae2",
+    "ref_block_hash": "4243cce895cda63d",
+    "expiration": 1790423631000,
+    "contract": [
+     {
+      "parameter": {
+       "value": {
+        "owner_address": "410123cf173a7cd9822fa7ca7956bd0003910fc05d",
+        "contract_address": "41a614f803b6fd780986a42c78ec9c7f77e6ded13c",
+        "data": "a9059cbb0000000000000000000000410041fa8906deb6786cdd1bca5e563736862dd16d0000000000000000000000000000000000000000000000000000000014dc9380"
+       },
+       "type_url": "type.googleapis.com/protocol.TriggerSmartContract"
+      },
+      "type": "TriggerSmartContract"
+     }
+    ],
+    "timestamp": 1790387631000,
+    "fee_limit": 13046000
+   },
+   "signature": [
+    "98f01a67a15a111b7b918c050b677222caa92170eb2db86371b1a8656a489c6a4c4f5785b1ec7d51aaaafad1ba60c8d3fc768857c3243c413666f751c9809f6800"
+   ],
+   "ret": [
+    {
+     "contractRet": "SUCCESS"
+    }
+   ],
+   "raw_data_hex": "0a02fae222084243cce895cda63d409889c2ec8d345aae01081f12a9010a31747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e54726967676572536d617274436f6e747261637412740a15410123cf173a7cd9822fa7ca7956bd0003910fc05d121541a614f803b6fd780986a42c78ec9c7f77e6ded13c2244a9059cbb0000000000000000000000410041fa8906deb6786cdd1bca5e563736862dd16d0000000000000000000000000000000000000000000000000000000014dc93807098e7acdb8d349001f0a19c06",
+   "txID": "94bd6f1fa44e47b0795ec701ef52077a261e8083b8dfca4f70840d8a74c42612",
+   "_nota": "USDT transfer, v = 0x00, expiracao de 10 h"
+  },
+  {
+   "raw_data": {
+    "ref_block_bytes": "fac5",
+    "ref_block_hash": "322285f2e2bfa4a1",
+    "expiration": 1790387658000,
+    "data": "323032363039323630393339343434393933",
+    "contract": [
+     {
+      "parameter": {
+       "value": {
+        "owner_address": "4153ad776f3721be2a5ea016618f4537e1b956e472",
+        "contract_address": "41a614f803b6fd780986a42c78ec9c7f77e6ded13c",
+        "data": "a9059cbb000000000000000000000000d31229da2fb8542cdde300ecbda15ea81857645c000000000000000000000000000000000000000000000000000000003d920620"
+       },
+       "type_url": "type.googleapis.com/protocol.TriggerSmartContract"
+      },
+      "type": "TriggerSmartContract"
+     }
+    ],
+    "timestamp": 1790387599278,
+    "fee_limit": 20000000
+   },
+   "signature": [
+    "dc2aee3628932d0ee85ec53501824217d323082c258d04338af8a0851305c6255552f179cad1a1a8df6b78bae1d66903d9e61ae1b5df6257b0c2b1d696aa22c200"
+   ],
+   "ret": [
+    {
+     "contractRet": "SUCCESS"
+    }
+   ],
+   "raw_data_hex": "0a02fac52208322285f2e2bfa4a14090baaedb8d3452123230323630393236303933393434343939335aae01081f12a9010a31747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e54726967676572536d617274436f6e747261637412740a154153ad776f3721be2a5ea016618f4537e1b956e472121541a614f803b6fd780986a42c78ec9c7f77e6ded13c2244a9059cbb000000000000000000000000d31229da2fb8542cdde300ecbda15ea81857645c000000000000000000000000000000000000000000000000000000003d92062070aeefaadb8d34900180dac409",
+   "txID": "8f0df00f2adad2260b914df32e5a4f2a777b49b7cea75fd59cce098af38812fe",
+   "_nota": "USDT transfer com memo (raw.data, campo 10)"
+  }
+ ],
+ "blocos": [
+  {
+   "number": 86571717,
+   "blockID": "000000000528fac5322285f2e2bfa4a1aceb9f47efdd4ef88bc85dde0d9c336b",
+   "timestamp": 1790387544000
+  },
+  {
+   "number": 86571730,
+   "blockID": "000000000528fad2e9b6a485a6b8a01abd75af5e15ec7563fa7e3f0843e16918",
+   "timestamp": 1790387583000
+  },
+  {
+   "number": 86571746,
+   "blockID": "000000000528fae24243cce895cda63da5325f0c07a646f939af56fd201cac99",
+   "timestamp": 1790387631000
+  }
+ ],
+ "infos": [
+  {
+   "id": "40faad322c6ac8b6a8211ec45bf49b7dc63841108fcf9cfc8135dab2cd131938",
+   "fee": 0,
+   "receipt": {
+    "net_usage": 265
+   },
+   "blockNumber": 86571750
+  },
+  {
+   "id": "f9d62436710d5b6ece6b431713eca193997820a591acc8db5fa0b876e4158bfa",
+   "fee": 0,
+   "receipt": {
+    "net_usage": 265
+   },
+   "blockNumber": 86571750
+  },
+  {
+   "id": "197d2038ce513b2bff4be9ef6d6a5998d742149b0f1557a75d12b21aa846f49c",
+   "fee": 0,
+   "receipt": {
+    "energy_usage": 130285,
+    "energy_usage_total": 130285,
+    "net_usage": 345,
+    "result": "SUCCESS",
+    "energy_penalty_total": 100635
+   },
+   "blockNumber": 86571750
+  },
+  {
+   "id": "94bd6f1fa44e47b0795ec701ef52077a261e8083b8dfca4f70840d8a74c42612",
+   "fee": 345000,
+   "receipt": {
+    "energy_usage": 130284,
+    "origin_energy_usage": 1,
+    "energy_usage_total": 130285,
+    "net_fee": 345000,
+    "result": "SUCCESS",
+    "energy_penalty_total": 100635
+   },
+   "blockNumber": 86571750
+  },
+  {
+   "id": "8f0df00f2adad2260b914df32e5a4f2a777b49b7cea75fd59cce098af38812fe",
+   "fee": 14028500,
+   "receipt": {
+    "energy_fee": 13028500,
+    "energy_usage_total": 130285,
+    "net_usage": 365,
+    "result": "SUCCESS",
+    "energy_penalty_total": 100635
+   },
+   "blockNumber": 86571736
+  }
+ ],
+ "_fonte_infos": "POST https://api.trongrid.io/wallet/gettransactioninfobyid {\"value\": txID}, recibo (receipt) de cada transacao, lido em 25/09/2026."
+}
