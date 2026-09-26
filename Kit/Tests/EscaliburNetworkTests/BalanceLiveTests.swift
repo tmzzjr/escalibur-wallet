@@ -65,4 +65,46 @@ struct TokenRegistryLiveTests {
             }
         }
     }
+
+    @Test("Mints da Solana existem, pertencem ao programa de token e tem as casas da lista")
+    func solanaMints() async throws {
+        for token in TokenRegistry.tokens where token.chainID == "solana" {
+            guard case .token(let mint) = token.kind else { continue }
+            let result = try await JSONRPC.call(
+                Endpoints.solana[0].baseURL, method: "getAccountInfo",
+                params: [.string(mint), .object(["encoding": .string("jsonParsed")])], as: JSONValue.self
+            )
+            let value = result["value"]
+            #expect(value != nil && value != .null, "\(token.symbol) \(mint): mint nao existe")
+            let owner = value?["owner"]?.stringValue ?? ""
+            #expect(owner == "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" || owner == "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb", "\(token.symbol): dono \(owner)")
+            let decimals = value?["data"]?["parsed"]?["info"]?["decimals"]?.doubleValue
+            #expect(decimals.map(Int.init) == token.decimals, "\(token.symbol): casas \(String(describing: decimals))")
+        }
+    }
+
+    @Test("Contrato do USDT na Tron, emissor do USDC na Stellar e master do USDT na TON existem")
+    func otherRegistries() async throws {
+        let client = HTTPClient.shared
+        for token in TokenRegistry.tokens {
+            switch (token.chainID, token.kind) {
+            case ("tron", .token(let contract)):
+                let body: JSONValue = .object(["value": .string(contract), "visible": .bool(true)])
+                let data = try await client.post(Endpoints.tron[0].baseURL.appendingPathComponent("wallet/getcontract"), json: try JSONEncoder().encode(body))
+                let json = try JSONDecoder().decode(JSONValue.self, from: data)
+                #expect(json["contract_address"] != nil, "\(token.symbol) \(contract): contrato nao existe")
+            case ("stellar", .issued(let code, let issuer)):
+                var components = URLComponents(url: Endpoints.stellar[0].baseURL.appendingPathComponent("assets"), resolvingAgainstBaseURL: false)!
+                components.queryItems = [URLQueryItem(name: "asset_code", value: code), URLQueryItem(name: "asset_issuer", value: issuer)]
+                let json = try await client.getJSON(JSONValue.self, from: components.url!)
+                #expect((json["_embedded"]?["records"]?.arrayValue ?? []).count == 1, "\(code) \(issuer): ativo nao existe")
+            case ("ton", .token(let master)):
+                let json = try await client.getJSON(JSONValue.self, from: Endpoints.ton[0].baseURL.appendingPathComponent("jettons/\(master)"))
+                let decimals = json["metadata"]?["decimals"]?.stringValue.flatMap(Int.init)
+                #expect(decimals == token.decimals, "\(token.symbol) \(master): casas \(String(describing: decimals))")
+            default:
+                continue
+            }
+        }
+    }
 }

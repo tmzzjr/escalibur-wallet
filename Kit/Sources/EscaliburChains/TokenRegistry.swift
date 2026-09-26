@@ -79,7 +79,7 @@ public enum TokenRegistry {
         erc20("avalanche", "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", "USDC", "USD Coin", 6, "usd-coin", stable: true),
         erc20("avalanche", "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7", "USDT", "Tether", 6, "tether", stable: true),
         // Solana (mints)
-        spl("EPjFWJ5aTtV7dfbjbXf3aKstYEqLrDpBDQRbCnxjW3u", "USDC", "USD Coin", 6, "usd-coin", stable: true),
+        spl("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "USDC", "USD Coin", 6, "usd-coin", stable: true),
         spl("Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", "USDT", "Tether", 6, "tether", stable: true),
         spl("JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN", "JUP", "Jupiter", 6, "jupiter-exchange-solana"),
         // Tron
