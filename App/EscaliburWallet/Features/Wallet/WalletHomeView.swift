@@ -68,6 +68,9 @@ struct WalletHomeView: View {
             WalletSwitcherSheet(onAdd: { switching = false; addingWallet = true })
         }
         .sheet(isPresented: $receiving) { ReceiveSheet(preselected: nil) }
+        #if DEBUG
+        .modifier(DemoEnvelopes())
+        #endif
         .fullScreenCover(isPresented: $addingWallet) { AddWalletView(isFirst: false) { addingWallet = false } }
         .fullScreenCover(isPresented: $backingUp) {
             if let wallet { RevealFlow(wallet: wallet, purpose: .backup) { backingUp = false } }

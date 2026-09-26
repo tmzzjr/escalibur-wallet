@@ -69,8 +69,8 @@ struct OpenEnvelopeFlow: View {
                                     passphrase: opened.passphrase.count > 0 ? opened.passphrase : nil) {
                         close()
                     }
-                } else if let opened {
-                    openedView(opened)
+                } else if opening || opened != nil {
+                    openStage
                 } else if data != nil {
                     passwordView
                 } else {
@@ -101,6 +101,7 @@ struct OpenEnvelopeFlow: View {
 
     private var chooseView: some View {
         VStack(alignment: .leading, spacing: 0) {
+            EnvelopeChain(mode: .idle, direction: .outward).padding(.top, Space.sm).padding(.bottom, Space.xl)
             Text("Abrir um envelope").typeStyle(.title).foregroundStyle(Palette.ink)
             Text("Escolha o arquivo .esclbr no app Arquivos. O original continua onde está.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
@@ -123,28 +124,38 @@ struct OpenEnvelopeFlow: View {
             if let error {
                 Text(error).typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
             }
-            if opening {
-                Text("Abrindo. Leva cerca de \(estimate) segundos, e cada tentativa custa o mesmo para quem tentar adivinhar.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
-            }
             Spacer()
             PrimaryButton(title: "Abrir envelope", enabled: passwordLength > 0, loading: opening) { Task { await open() } }
         }
     }
 
-    private func openedView(_ contents: Envelope.Contents) -> some View {
-        let words = contents.phrase.withUnsafeBytes { raw in raw.filter { $0 == 0x20 }.count + 1 }
-        return VStack(alignment: .leading, spacing: 0) {
-            Image(systemName: "envelope.open").font(.system(size: 34, weight: .regular)).foregroundStyle(Palette.ink)
-            Text(verbatim: contents.label.isEmpty ? "Envelope aberto" : contents.label)
-                .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
-            Text("\(words) palavras, lista em \(contents.language.displayName.lowercased())" + (contents.passphrase.count > 0 ? " · com 25ª palavra" : ""))
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
-            if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }
-            Spacer()
-            PrimaryButton(title: "Importar esta carteira", loading: importing) { Task { await importWallet(contents, words: words) } }
-            SecondaryButton(title: "Só ver as palavras") { reveal(contents, words: words) }.padding(.top, Space.sm)
+    /// Abrindo e aberto dividem a ilustracao: o bloco que sobe e o que fica de fora.
+    private var openStage: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            EnvelopeChain(mode: opened == nil ? .working : .opened, direction: .outward)
+                .padding(.top, Space.sm).padding(.bottom, Space.xl)
+            if let opened {
+                openedContent(opened)
+            } else {
+                Text("Abrindo o envelope").typeStyle(.title).foregroundStyle(Palette.ink)
+                Text("Leva \(Fmt.aboutSeconds(Double(estimate))), e cada tentativa custa o mesmo para quem tentar adivinhar.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
+                Spacer()
+            }
         }
+    }
+
+    @ViewBuilder
+    private func openedContent(_ contents: Envelope.Contents) -> some View {
+        let words = contents.phrase.withUnsafeBytes { raw in raw.filter { $0 == 0x20 }.count + 1 }
+        Text(verbatim: contents.label.isEmpty ? "Envelope aberto" : contents.label)
+            .typeStyle(.title).foregroundStyle(Palette.ink)
+        Text("\(words) palavras, lista em \(contents.language.displayName.lowercased())" + (contents.passphrase.count > 0 ? " · com 25ª palavra" : ""))
+            .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
+        if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }
+        Spacer()
+        PrimaryButton(title: "Importar esta carteira", loading: importing) { Task { await importWallet(contents, words: words) } }
+        SecondaryButton(title: "Só ver as palavras") { reveal(contents, words: words) }.padding(.top, Space.sm)
     }
 
     // MARK: Acoes

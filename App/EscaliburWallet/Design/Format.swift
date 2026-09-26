@@ -11,6 +11,12 @@ enum Fmt {
     static let minus = "\u{2212}"
     static let nbsp = "\u{00A0}"
 
+    /// "cerca de 1 segundo", "cerca de 4 segundos": estimativa de espera.
+    static func aboutSeconds(_ seconds: Double) -> String {
+        let n = max(1, Int(seconds.rounded()))
+        return n == 1 ? "cerca de 1 segundo" : "cerca de \(n) segundos"
+    }
+
     /// Em que unidade o saldo total aparece: as duas moedas do app, o euro e o bitcoin.
     /// A conversao usa o preco do bitcoin em cada moeda, a mesma cotacao para todas.
     enum DisplayUnit: String, CaseIterable, Codable, Sendable {

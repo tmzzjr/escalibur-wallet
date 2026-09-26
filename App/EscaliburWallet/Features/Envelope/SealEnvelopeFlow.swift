@@ -68,8 +68,7 @@ struct SealEnvelopeFlow: View {
         case .intro: intro
         case .create: create
         case .repeatIt: repeatStep
-        case .sealing: sealingStep
-        case .done: done
+        case .sealing, .done: sealStage
         }
     }
 
@@ -77,6 +76,7 @@ struct SealEnvelopeFlow: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: 0) {
+            EnvelopeChain(mode: .idle).padding(.top, Space.sm).padding(.bottom, Space.xl)
             Text("Guardar num envelope Escalibur").typeStyle(.title).foregroundStyle(Palette.ink)
             Text("O envelope é um arquivo cifrado com a senha da carteira dentro. Ele abre no app Escalibur, aqui, ou no decifrador aberto num computador, com uma senha só dele.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
@@ -180,32 +180,31 @@ struct SealEnvelopeFlow: View {
         }
     }
 
-    private var sealingStep: some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            Spacer()
-            ProgressView().tint(Palette.ink)
-            Text("Lacrando. Leva cerca de \(max(1, Int(KDFCalibration.estimatedSeconds(for: kdf).rounded()))) segundos neste iPhone.")
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft)
-            Spacer()
-        }
-    }
-
-    private var done: some View {
+    /// Lacrando e lacrado dividem a ilustracao, para a aba fechar na mesma cena em
+    /// que os blocos estavam caindo.
+    private var sealStage: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 40)).foregroundStyle(Palette.up)
-            Text("Envelope lacrado").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
-            Text("O arquivo se chama \(sealed?.name ?? "") e não diz de quem é nem o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira.")
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
-            Spacer()
-            if let sealed {
-                ShareLink(item: sealed.url) {
-                    Text("Salvar ou enviar o arquivo").typeStyle(.action)
-                        .frame(maxWidth: .infinity).frame(height: Height.primary)
+            EnvelopeChain(mode: step == .done ? .sealed : .working).padding(.top, Space.sm).padding(.bottom, Space.xl)
+            if step == .done {
+                Text("Envelope lacrado").typeStyle(.title).foregroundStyle(Palette.ink)
+                Text("O arquivo se chama \(sealed?.name ?? "") e não diz de quem é nem o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
+                Spacer()
+                if let sealed {
+                    ShareLink(item: sealed.url) {
+                        Text("Salvar ou enviar o arquivo").typeStyle(.action)
+                            .frame(maxWidth: .infinity).frame(height: Height.primary)
+                    }
+                    .buttonStyle(PrimaryStyle())
                 }
-                .buttonStyle(PrimaryStyle())
+                Text("Abre no app Escalibur, aqui, ou no decifrador aberto num computador.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
+            } else {
+                Text("Lacrando o envelope").typeStyle(.title).foregroundStyle(Palette.ink)
+                Text("Leva \(Fmt.aboutSeconds(KDFCalibration.estimatedSeconds(for: kdf))), só neste iPhone. A senha do envelope não sai dele.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
+                Spacer()
             }
-            Text("Abre no app Escalibur, aqui, ou no decifrador aberto num computador.")
-                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
         }
         .sensoryFeedback(.success, trigger: sealed?.id)
     }

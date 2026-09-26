@@ -21,6 +21,12 @@ enum DebugDemo {
         return arguments[index + 1]
     }
 
+    /// `-envelope <caminho>`: arquivo que `-tela abrir` ja carrega.
+    static var envelopeURL: URL? {
+        guard let index = arguments.firstIndex(of: "-envelope"), arguments.indices.contains(index + 1) else { return nil }
+        return URL(fileURLWithPath: arguments[index + 1])
+    }
+
     static func securePIN() -> SecureBytes {
         let bytes = SecureBytes(capacity: 6)
         bytes.replaceAll(with: Array(pin.utf8))
@@ -54,6 +60,26 @@ enum DebugDemo {
         } catch {
             assertionFailure("demo: \(error)")
         }
+    }
+}
+
+/// `-tela lacrar` e `-tela abrir` abrem as telas de envelope por cima da carteira.
+struct DemoEnvelopes: ViewModifier {
+    @Environment(AppSession.self) private var session
+    @State private var sealing: WalletMeta?
+    @State private var opening = false
+    @State private var shown = false
+
+    func body(content: Content) -> some View {
+        content
+            .fullScreenCover(item: $sealing) { wallet in SealEnvelopeFlow(wallet: wallet) { sealing = nil } }
+            .fullScreenCover(isPresented: $opening) { OpenEnvelopeFlow(initialURL: DebugDemo.envelopeURL) { opening = false } }
+            .task(id: session.metadata.wallets.first?.id) {
+                guard !shown, let first = session.metadata.wallets.first else { return }
+                shown = true
+                if DebugDemo.screen == "lacrar" { sealing = first }
+                if DebugDemo.screen == "abrir" { opening = true }
+            }
     }
 }
 #endif

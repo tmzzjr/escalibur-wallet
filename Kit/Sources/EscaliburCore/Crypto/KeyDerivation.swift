@@ -188,13 +188,20 @@ public enum KDFCalibration {
         availableMemoryBytes() >= UInt64(sealFloorKiB) * 1024 + 150 * 1024 * 1024
     }
 
-    /// Memoria disponivel ao processo agora, em bytes. No iOS e o teto do jetsam.
+    /// Memoria disponivel ao processo agora, em bytes. No iPhone e o teto do jetsam.
+    ///
+    /// Sem teto do jetsam (Mac, simulador, app de iPad rodando num Mac),
+    /// `os_proc_available_memory` devolve zero, e zero lido como "sem memoria" recusava
+    /// todo lacre e toda abertura de envelope ali. Nesses ambientes vale a regra do
+    /// Mac. No iPhone o zero continua recusando: la ele tambem quer dizer "no limite".
     public static func availableMemoryBytes() -> UInt64 {
-        #if os(iOS)
-        return UInt64((0..<3).map { _ in os_proc_available_memory() }.max() ?? 0)
-        #else
-        return ProcessInfo.processInfo.physicalMemory / 2
+        #if os(iOS) && !targetEnvironment(simulator)
+        if !ProcessInfo.processInfo.isiOSAppOnMac {
+            // Tres medidas, vale a maior: uma so pode cair num vale transitorio.
+            return UInt64((0..<3).map { _ in os_proc_available_memory() }.max() ?? 0)
+        }
         #endif
+        return ProcessInfo.processInfo.physicalMemory / 2
     }
 
     /// Custo medido deste aparelho, em segundos por KiB por passe. Medido uma vez,
@@ -222,17 +229,11 @@ public enum KDFCalibration {
 
     public static func memoryCeilingKiB() -> UInt32 {
         let physical = ProcessInfo.processInfo.physicalMemory
-        // Tres medidas, vale a maior: uma so pode cair num vale transitorio.
-        #if os(iOS)
-        let available = (0..<3).map { _ in os_proc_available_memory() }.max() ?? 0
-        #else
-        // No Mac (so os testes rodam aqui) nao existe o teto do jetsam.
-        let available = Int(physical / 2)
-        #endif
+        let available = availableMemoryBytes()
 
         let byPhysical = physical / 8
         // Deixa folga para a interface e para o resto do processo.
-        let byAvailable = available > 400 * 1024 * 1024 ? UInt64(available) - 400 * 1024 * 1024 : 0
+        let byAvailable = available > 400 * 1024 * 1024 ? available - 400 * 1024 * 1024 : 0
         let reference = UInt64(KDFParameters.reference.memoryKiB) * 1024
 
         let bytes = min(reference, min(byPhysical, byAvailable))
