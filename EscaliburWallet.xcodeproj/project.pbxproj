@@ -11,6 +11,7 @@
 		0BD31CF923D94F41C7BF61FE /* FORMATO.md in Resources */ = {isa = PBXBuildFile; fileRef = CF3019F2F06749CD522B32AB /* FORMATO.md */; };
 		12BD568C64CF45967323782A /* EscaliburCore in Frameworks */ = {isa = PBXBuildFile; productRef = A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */; };
 		17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */; };
+		19E1559AA99AE5A16A3BD1AC /* QRScannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7543B278315E1446160A8DAF /* QRScannerSheet.swift */; };
 		2468359EF9FB1503F19395D5 /* AuthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D423B66DA20C4DA018418902 /* AuthCoordinator.swift */; };
 		26ABABDDB73200E71CD0D50F /* WalletHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E3E554F1FF4F3B1B0A077A6 /* WalletHomeView.swift */; };
 		271A5135782331B746AC5833 /* VoiceGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C114911EA7725CA6C7171D11 /* VoiceGate.swift */; };
@@ -20,6 +21,7 @@
 		3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09712057581F9378B87996C5 /* PasswordCost.swift */; };
 		39A4945DC4DAEFEDE0DBEB1F /* PINPad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 781A92DCAC657FBE12804D78 /* PINPad.swift */; };
 		424496A6E4E34E2651C3AC55 /* DebugDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71977F38FE1026DDFD0C189A /* DebugDemo.swift */; };
+		4B2656C01E316BE9F63E4445 /* SendEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A7CF1B7FDD3A8587C69B1B7 /* SendEngine.swift */; };
 		57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C53992781573FB54743C00 /* SecureInputField.swift */; };
 		5848F371CF905048C9ABA616 /* RecordWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5287E825D53043F109D791D /* RecordWordsView.swift */; };
 		5E9A7A552DC87E261A506B48 /* EscaliburKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 0911AD585A30024A352B31B6 /* EscaliburKeys */; };
@@ -67,6 +69,7 @@
 		1292233C35D3175EC36E4F70 /* EscaliburWallet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EscaliburWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		15276BF5A254093B41A55B40 /* NewWalletFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewWalletFlow.swift; sourceTree = "<group>"; };
 		1722E329135DB398B784E8C8 /* KeyServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyServices.swift; sourceTree = "<group>"; };
+		2A7CF1B7FDD3A8587C69B1B7 /* SendEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendEngine.swift; sourceTree = "<group>"; };
 		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealEnvelopeFlow.swift; sourceTree = "<group>"; };
 		355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EscaliburWalletApp.swift; sourceTree = "<group>"; };
@@ -79,6 +82,7 @@
 		634FB486C1AC19A1DC738122 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
 		71977F38FE1026DDFD0C189A /* DebugDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDemo.swift; sourceTree = "<group>"; };
 		7372B2C6D0156F65AA215FE5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7543B278315E1446160A8DAF /* QRScannerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerSheet.swift; sourceTree = "<group>"; };
 		77C53992781573FB54743C00 /* SecureInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureInputField.swift; sourceTree = "<group>"; };
 		781A92DCAC657FBE12804D78 /* PINPad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINPad.swift; sourceTree = "<group>"; };
 		782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenEnvelopeFlow.swift; sourceTree = "<group>"; };
@@ -207,6 +211,8 @@
 		6D35E79B4E7BBC60645EDBAB /* Send */ = {
 			isa = PBXGroup;
 			children = (
+				7543B278315E1446160A8DAF /* QRScannerSheet.swift */,
+				2A7CF1B7FDD3A8587C69B1B7 /* SendEngine.swift */,
 				09754506E0869351661279D1 /* SendFlow.swift */,
 			);
 			path = Send;
@@ -452,6 +458,7 @@
 				90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */,
 				9A8477455F2ABEB9D91113AF /* Portfolio.swift in Sources */,
 				D9993FE2FD6DDDCA4F84E8C6 /* PriceChart.swift in Sources */,
+				19E1559AA99AE5A16A3BD1AC /* QRScannerSheet.swift in Sources */,
 				F60A5B68C1C271353B804B0B /* ReceiveSheet.swift in Sources */,
 				5848F371CF905048C9ABA616 /* RecordWordsView.swift in Sources */,
 				CE83B0D99CF75C35C220FAB4 /* RevealFlow.swift in Sources */,
@@ -459,6 +466,7 @@
 				8AD9BAAFA95723925CCB3A6D /* Router.swift in Sources */,
 				E345A5856750B23E38B8A35E /* SealEnvelopeFlow.swift in Sources */,
 				57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */,
+				4B2656C01E316BE9F63E4445 /* SendEngine.swift in Sources */,
 				7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */,
 				EAD6592758D7814329227F15 /* SettingsView.swift in Sources */,
 				A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */,
