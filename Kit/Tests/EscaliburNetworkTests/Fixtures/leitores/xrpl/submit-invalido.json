@@ -1,0 +1,1 @@
+{"result":{"error":"invalidTransaction","error_exception":"Transaction length invalid","request":{"command":"submit","tx_blob":"1200"},"status":"error","type":"response"},"forwarded":true,"warnings":[{"id":2001,"message":"This is a clio server. clio only serves validated data. If you want to talk to rippled, include 'ledger_index':'current' in your request"}]}

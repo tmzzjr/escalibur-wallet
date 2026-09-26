@@ -1,0 +1,28 @@
+{
+  "transaction": {
+    "ret": [
+      {}
+    ],
+    "txID": "39404c1c8bf411f842aa0c81a6610cb5dc85747f31101db2b0adf4951b08a610",
+    "visible": true
+  },
+  "constant_result": [
+    "0000000000000000000000000000000000000000000000000000000000000000"
+  ],
+  "result": {
+    "result": true
+  },
+  "energy_used": 64285,
+  "logs": [
+    {
+      "address": "G9AHnMvAgqKJ2eWErupYfdzu6hgWVUZqu",
+      "topics": [
+        "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        "00000000000000000000000089cbcb2372e1c2fbc00f24895a406a0c722c89f3",
+        "000000000000000000000000e28b3cfd4e0e909077821478e9fcb86b84be786e"
+      ],
+      "data": "00000000000000000000000000000000000000000000000000000000000f4240"
+    }
+  ],
+  "energy_penalty": 49635
+}

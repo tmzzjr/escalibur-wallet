@@ -97,7 +97,8 @@ let package = Package(
         .testTarget(
             name: "EscaliburNetworkTests",
             dependencies: ["EscaliburNetwork"],
-            path: "Tests/EscaliburNetworkTests"
+            path: "Tests/EscaliburNetworkTests",
+            resources: [.copy("Fixtures")]
         ),
     ]
 )

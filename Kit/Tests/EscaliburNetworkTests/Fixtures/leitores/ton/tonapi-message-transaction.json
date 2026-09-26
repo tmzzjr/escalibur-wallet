@@ -1,0 +1,29 @@
+{
+  "hash": "a185998a3b67a6a2492ff72d5fa81c88789dbf58ddc7392045b66b30f7f8070a",
+  "lt": 105929011000007,
+  "success": true,
+  "aborted": false,
+  "utime": 1790389222,
+  "total_fees": 406498,
+  "compute_phase": {
+    "skipped": false,
+    "success": true,
+    "gas_fees": 220534,
+    "gas_used": 3308,
+    "vm_steps": 68,
+    "exit_code": 0,
+    "exit_code_description": "Ok"
+  },
+  "action_phase": {
+    "success": true,
+    "result_code": 0,
+    "total_actions": 1,
+    "skipped_actions": 0,
+    "fwd_fees": 77068,
+    "total_fees": 25688
+  },
+  "in_msg": {
+    "msg_type": "ext_in_msg",
+    "hash": "732af3f9e362d8b32896464d6589f770a458a52a56eb45454a5f7cff92da407f"
+  }
+}

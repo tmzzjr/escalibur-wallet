@@ -1,0 +1,1 @@
+{"ok":true,"result":{"@type":"query.fees","source_fees":{"@type":"fees","in_fwd_fee":66667,"storage_fee":60,"gas_fee":0,"fwd_fee":0},"destination_fees":[]},"@extra":"1790406108:3:19.698"}
