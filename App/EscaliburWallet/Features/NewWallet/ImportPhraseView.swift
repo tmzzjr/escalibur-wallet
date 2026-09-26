@@ -127,7 +127,7 @@ struct ImportPhraseView: View {
                             pasteNotice = true
                         }
                     }
-                    .buttonBorderShape(.roundedRectangle(radius: Radius.chip))
+                    .buttonBorderShape(.capsule)
                     .labelStyle(.titleOnly)
                     .tint(Palette.rail)
                 }
@@ -342,7 +342,7 @@ struct WatchAddressView: View {
             PasteButton(payloadType: String.self) { strings in
                 Task { @MainActor in address = strings.first ?? "" }
             }
-            .labelStyle(.titleOnly).tint(Palette.rail).padding(.top, Space.xs)
+            .labelStyle(.titleOnly).tint(Palette.rail).buttonBorderShape(.capsule).padding(.top, Space.xs)
             if let detected {
                 Text(detected.family == .evm
                      ? "Endereço EVM: vale em Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain e Avalanche."

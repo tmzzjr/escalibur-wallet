@@ -57,6 +57,18 @@ struct ReceiveSheet: View {
             }
             .background(Palette.body.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: ReceiveCoin.self) { coin in
+                Group {
+                    if coin.assets.count == 1, let only = coin.assets.first, let chain = only.chain {
+                        addressView(asset: only, chain: chain)
+                    } else {
+                        networkPicker(coin)
+                    }
+                }
+                .background(Palette.body.ignoresSafeArea())
+                .toolbar(.visible, for: .navigationBar)
+                .navigationBarTitleDisplayMode(.inline)
+            }
             .navigationDestination(for: Asset.self) { item in
                 if let chain = item.chain {
                     addressView(asset: item, chain: chain)
@@ -95,25 +107,28 @@ struct ReceiveSheet: View {
         .accessibilityLabel("Fechar")
     }
 
+    /// R1: so as moedas. A mesma moeda em redes diferentes (USDT na Tron, na Ethereum,
+    /// na Solana) e uma linha so; a rede vem depois, quando a moeda estiver escolhida.
     private var chooser: some View {
         let accounts = Set(wallet?.accounts.map(\.chainID) ?? [])
         let all = Chain.all.filter { accounts.contains($0.id) }.flatMap { TokenRegistry.assets(on: $0) }
-        let filtered = query.isEmpty ? all : all.filter { $0.symbol.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query) }
+        let coins = ReceiveCoin.group(all)
+        let filtered = query.isEmpty ? coins : coins.filter { $0.symbol.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query) }
         let held = Set(Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings).filter { !$0.amount.isZero }.map(\.asset.id))
-        let inWallet = filtered.filter { held.contains($0.id) }
-        let others = filtered.filter { !held.contains($0.id) }
+        let inWallet = filtered.filter { coin in coin.assets.contains { held.contains($0.id) } }
+        let others = filtered.filter { coin in !coin.assets.contains { held.contains($0.id) } }
         return VStack(alignment: .leading, spacing: 0) {
             SheetHeader(title: "Receber") { dismiss() }
-            SearchField(prompt: "Buscar", text: $query, surface: Palette.rail)
+            SearchField(prompt: "Buscar moeda", text: $query, surface: Palette.rail)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.md)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     if !inWallet.isEmpty {
                         sectionTitle("Na carteira")
-                        ForEach(inWallet) { assetRow($0) }
-                        sectionTitle("Todos")
+                        ForEach(inWallet) { coinRow($0) }
+                        sectionTitle("Todas")
                     }
-                    ForEach(others) { assetRow($0) }
+                    ForEach(others) { coinRow($0) }
                 }
                 .padding(.top, Space.xs)
             }
@@ -125,21 +140,63 @@ struct ReceiveSheet: View {
             .padding(.horizontal, Space.gutter).padding(.top, Space.md).padding(.bottom, Space.xxs)
     }
 
-    private func assetRow(_ item: Asset) -> some View {
-        NavigationLink(value: item) {
+    private func coinRow(_ coin: ReceiveCoin) -> some View {
+        NavigationLink(value: coin) {
             HStack(spacing: Space.sm) {
-                CoinLogo(coingeckoID: item.coingeckoID, symbol: item.symbol, size: 36, network: item.chain, ringColor: Palette.body)
+                CoinLogo(coingeckoID: coin.coingeckoID, symbol: coin.symbol, size: 36, network: nil, ringColor: Palette.body)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(item.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
-                    Text(item.kind == .native ? (item.chain?.name ?? "") : "\(item.name) · \(item.chain?.name ?? "")")
-                        .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    Text(coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
+                    Text(coin.name).typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
                 }
                 Spacer()
+                if coin.assets.count > 1 {
+                    Text("\(coin.assets.count) redes").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                }
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
             }
             .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
         }
         .buttonStyle(RowStyle(surface: .body))
+    }
+
+    /// R1b: a rede. Quem envia escolhe a rede do lado de la; as duas tem de ser a mesma.
+    private func networkPicker(_ coin: ReceiveCoin) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: Space.sm) {
+                    CoinLogo(coingeckoID: coin.coingeckoID, symbol: coin.symbol, size: 32, network: nil, ringColor: Palette.body)
+                    Text("Receber \(coin.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
+                }
+                Text("Escolha a rede. Tem de ser a mesma que quem envia escolher: \(coin.symbol) enviado por outra rede não chega a este endereço.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
+                    .fixedSize(horizontal: false, vertical: true)
+                VStack(spacing: 0) {
+                    ForEach(coin.assets) { asset in
+                        if let chain = asset.chain {
+                            NavigationLink(value: asset) {
+                                HStack(spacing: Space.sm) {
+                                    NetworkBadge(chain: chain, size: 32, ring: Palette.body)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(chain.name).typeStyle(.row).foregroundStyle(Palette.ink)
+                                        if asset.kind != .native {
+                                            Text(ReceiveCoin.standard(chain)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                                        }
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                                }
+                                .frame(minHeight: Height.row)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.top, Space.md)
+            }
+            .padding(.horizontal, Space.gutter)
+            .padding(.top, Space.xs)
+        }
     }
 
     // MARK: R2
@@ -259,5 +316,44 @@ struct FlowText: View {
             text = text + content(index, block) + Text(verbatim: index < blocks.count - 1 ? "  " : "").font(.system(size: 8))
         }
         return text.lineSpacing(6).fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// Uma moeda na lista de receber, com as redes em que a carteira recebe essa moeda.
+struct ReceiveCoin: Identifiable, Hashable {
+    let id: String
+    let symbol: String
+    let name: String
+    let coingeckoID: String?
+    let assets: [Asset]
+
+    /// Agrupa pelo identificador de preco (USDT e USDT em outra rede sao a mesma moeda),
+    /// na ordem em que as redes e os tokens aparecem.
+    static func group(_ assets: [Asset]) -> [ReceiveCoin] {
+        var order: [String] = []
+        var byKey: [String: [Asset]] = [:]
+        for asset in assets {
+            let key = asset.coingeckoID ?? "\(asset.symbol):\(asset.chainID)"
+            if byKey[key] == nil { order.append(key) }
+            byKey[key, default: []].append(asset)
+        }
+        return order.compactMap { key in
+            guard let items = byKey[key], let first = items.first else { return nil }
+            let native = items.first { $0.kind == .native }
+            let name = native.map { $0.chain?.nativeName ?? $0.name } ?? first.name
+            return ReceiveCoin(id: key, symbol: first.symbol, name: name, coingeckoID: first.coingeckoID, assets: items)
+        }
+    }
+
+    /// O padrao do token na rede, para quem envia de uma corretora achar a opcao certa.
+    static func standard(_ chain: Chain) -> String {
+        switch chain.family {
+        case .evm: return chain.id == "bnb" ? "BEP-20" : "ERC-20"
+        case .tron: return "TRC-20"
+        case .solana: return "SPL"
+        case .ton: return "Jetton"
+        case .stellar, .xrpl: return "Ativo emitido"
+        case .utxo: return ""
+        }
     }
 }

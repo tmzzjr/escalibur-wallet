@@ -131,10 +131,10 @@ struct Chip: View {
                 .padding(.horizontal, Space.sm)
                 .frame(height: Height.chip)
                 .background(
-                    RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                    Capsule(style: .continuous)
                         .fill(selected ? Palette.control : Color.clear)
                         .overlay(
-                            RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                            Capsule(style: .continuous)
                                 .stroke(selected ? Color.clear : Palette.edge, lineWidth: 1)
                         )
                 )
@@ -166,7 +166,7 @@ struct Segmented<Value: Hashable>: View {
                         .frame(height: 36)
                         .background {
                             if selection == value {
-                                RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                                Capsule(style: .continuous)
                                     .fill(Palette.control)
                                     .matchedGeometryEffect(id: "segmento", in: namespace)
                             }
@@ -177,7 +177,7 @@ struct Segmented<Value: Hashable>: View {
             }
         }
         .padding(2)
-        .background(RoundedRectangle(cornerRadius: Radius.track, style: .continuous).fill(Palette.body))
+        .background(Capsule(style: .continuous).fill(Palette.body))
         .sensoryFeedback(.selection, trigger: selection)
     }
 }

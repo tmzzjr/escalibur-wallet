@@ -223,11 +223,11 @@ struct SendStages: View {
                         validate()
                     }
                 }
-                .labelStyle(.titleOnly).tint(Palette.rail)
+                .labelStyle(.titleOnly).tint(Palette.rail).buttonBorderShape(.capsule)
                 Button { scanning = true } label: {
                     Label("Ler QR", systemImage: "qrcode.viewfinder").typeStyle(.label)
                         .padding(.horizontal, Space.sm).frame(height: 34)
-                        .background(RoundedRectangle(cornerRadius: Radius.chip).fill(Palette.rail))
+                        .background(Capsule(style: .continuous).fill(Palette.rail))
                 }
                 .foregroundStyle(Palette.ink)
             }
@@ -446,7 +446,7 @@ struct SendStages: View {
                 Button { model.sendAll = true } label: {
                     Text("Máx").typeStyle(.label).foregroundStyle(Palette.ink)
                         .padding(.horizontal, Space.sm).frame(height: 28)
-                        .background(RoundedRectangle(cornerRadius: Radius.chip).fill(Palette.rail))
+                        .background(Capsule(style: .continuous).fill(Palette.rail))
                 }
             }
             .padding(.top, Space.lg)

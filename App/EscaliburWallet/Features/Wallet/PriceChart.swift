@@ -189,7 +189,7 @@ struct PeriodPicker: View {
                         .frame(height: Height.chip)
                         .background {
                             if range == option {
-                                RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                                Capsule(style: .continuous)
                                     .fill(Palette.control)
                                     .matchedGeometryEffect(id: "period", in: namespace)
                             }

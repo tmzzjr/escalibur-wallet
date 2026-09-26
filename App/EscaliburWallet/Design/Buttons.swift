@@ -34,7 +34,7 @@ struct PrimaryStyle: ButtonStyle {
             // Desligado continua legivel (4,8:1): o texto diz o que falta.
             .foregroundStyle(enabled ? Palette.onLive : Palette.inkMuted)
             .background(
-                RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
+                Capsule(style: .continuous)
                     .fill(enabled ? (configuration.isPressed ? Palette.livePress : Palette.live) : Palette.rail)
             )
             .scaleEffect(configuration.isPressed && enabled ? 0.985 : 1)
@@ -68,10 +68,10 @@ struct SecondaryStyle: ButtonStyle {
         configuration.label
             .foregroundStyle(Palette.ink)
             .background(
-                RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
+                Capsule(style: .continuous)
                     .fill(configuration.isPressed ? Palette.rail : Palette.body)
                     .overlay(
-                        RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
+                        Capsule(style: .continuous)
                             .stroke(Palette.edge, lineWidth: 1)
                     )
             )
@@ -121,7 +121,7 @@ struct DestructiveStyle: ButtonStyle {
         configuration.label
             .foregroundStyle(Palette.down)
             .background(
-                RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
+                Capsule(style: .continuous)
                     .fill(configuration.isPressed ? Palette.downPress : Palette.downTint)
             )
     }

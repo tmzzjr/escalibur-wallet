@@ -141,9 +141,9 @@ struct TradeView: View {
                         }
                         .foregroundStyle(model.chain == chain ? Palette.ink : Palette.inkSoft)
                         .padding(.horizontal, Space.sm).frame(height: Height.chip)
-                        .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                        .background(Capsule(style: .continuous)
                             .fill(model.chain == chain ? Palette.control : Palette.body)
-                            .overlay(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).stroke(model.chain == chain ? Palette.edgeStrong : Palette.edge, lineWidth: 1)))
+                            .overlay(Capsule(style: .continuous).stroke(model.chain == chain ? Palette.edgeStrong : Palette.edge, lineWidth: 1)))
                     }
                     .buttonStyle(.plain)
                 }
@@ -551,7 +551,7 @@ struct AmountBox: View {
                         Button { onFraction(fraction) } label: {
                             Text(label).typeStyle(.label).foregroundStyle(Palette.inkSoft)
                                 .padding(.horizontal, Space.xs).frame(height: 28)
-                                .background(RoundedRectangle(cornerRadius: Radius.chip).fill(Palette.rail))
+                                .background(Capsule(style: .continuous).fill(Palette.rail))
                         }
                         .buttonStyle(.plain)
                     }
