@@ -98,8 +98,8 @@ public actor EVMReader {
     /// - nonce `pending` de dois provedores (o plano exige que concordem, ou que a fila
     ///   local do app explique a diferenca); `localNextNonce` vem dessa fila.
     /// - baseFee do proximo bloco e gorjetas p25/p50/p75 de `eth_feeHistory(10)`, a
-    ///   maior baseFee entre dois provedores.
-    /// - `eth_estimateGas` da chamada exata; `eth_getCode` do destino certo e saldo
+    ///   mediana de dois provedores.
+    /// - `eth_estimateGas` da chamada exata, a menor de dois provedores; `eth_getCode` do destino certo e saldo
     ///   nativo, com dois provedores concordando no mesmo bloco.
     /// - OP e Base: `getL1FeeUpperBound` no GasPriceOracle, o maior de dois provedores.
     public func networkState(
@@ -462,15 +462,30 @@ public actor EVMReader {
             )
             return try Self.parseFeeHistory(result)
         }
-        guard !answers.isEmpty else { throw lastError ?? ReaderError.notEnoughProviders(needed: 1, got: 0) }
+        // Duas fontes, e a mediana de cada numero (com duas, a media): um provedor que
+        // infla a baseFee ou a gorjeta leva no maximo metade do exagero para o plano, e os
+        // tetos do perfil da rede limitam o resto (auditoria 2, B1).
+        guard answers.count >= 2 else {
+            if answers.isEmpty, let lastError { throw lastError }
+            throw ReaderError.notEnoughProviders(needed: 2, got: answers.count)
+        }
         let values = answers.map(\.value)
-        let baseFee = values.map(\.baseFee).max() ?? 0
+        let baseFee = Self.median(values.map(\.baseFee))
         let tips = EVMPriorityFees(
-            slow: values.map(\.tips.slow).max() ?? 0,
-            normal: values.map(\.tips.normal).max() ?? 0,
-            fast: values.map(\.tips.fast).max() ?? 0
+            slow: Self.median(values.map(\.tips.slow)),
+            normal: Self.median(values.map(\.tips.normal)),
+            fast: Self.median(values.map(\.tips.fast))
         )
         return (baseFee, tips)
+    }
+
+    /// A mediana; com numero par de valores, a media dos dois do meio, para cima.
+    static func median(_ values: [BigUInt]) -> BigUInt {
+        let sorted = values.sorted()
+        guard !sorted.isEmpty else { return 0 }
+        let middle = sorted.count / 2
+        if sorted.count % 2 == 1 { return sorted[middle] }
+        return (sorted[middle - 1] + sorted[middle] + 1) / 2
     }
 
     private func estimateGas(_ chain: Chain, from: EVMAddress, call: PlannedCall, pool: ProviderPool, providers: [Provider]) async throws -> UInt64 {
@@ -483,14 +498,17 @@ public actor EVMReader {
         var params: [StrictJSON] = [.object(object)]
         if let override = call.stateOverride { params += [.string("latest"), override] }
         let frozen = params
-        return try await Quorum.first(providers, pool: pool) { provider in
+        // Duas estimativas e a menor: um provedor que infla o gas nao sobe a taxa maxima
+        // nem o saldo exigido; o plano ainda soma 20% de folga (auditoria 2, B1).
+        let estimates = try await Quorum.collect(providers, pool: pool, count: 2) { provider in
             try await self.verify(provider, chain: chain)
             let result = try await Self.call(transport, provider.baseURL, "eth_estimateGas", frozen)
             guard let gas = try result.quantity("eth_estimateGas").uint64, gas >= 21_000, gas <= EVMTransaction.maxGasLimit else {
                 throw ReaderError.implausibleValue(field: "eth_estimateGas")
             }
             return gas
-        }
+        }.map(\.value)
+        return estimates.min() ?? 0
     }
 
     private func hasCode(_ chain: Chain, _ address: EVMAddress, block: String, pool: ProviderPool, providers: [Provider]) async throws -> Bool {

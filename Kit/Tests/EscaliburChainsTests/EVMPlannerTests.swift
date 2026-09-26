@@ -208,6 +208,18 @@ struct EVMPlannerTests {
         #expect([147, 148].contains(v.uint64!))
     }
 
+    @Test("Regressao B1: BNB com teto perto do preco real; gorjeta inflada e cortada em 1 gwei, baseFee alta recusa")
+    func bnbCeiling() throws {
+        let account = try T.account(T.testKey)
+        let greedy = Self.state(.bnb, baseFee: 0, tips: EVMPriorityFees(slow: 0, normal: EVMFeeProfile.gwei(15), fast: EVMFeeProfile.gwei(20)))
+        let plan = try EVMPlanner.planNativeSend(walletID: Self.wallet, account: account, chain: .bnb, to: Self.recipient, amount: 1, state: greedy)
+        #expect(Self.only(plan).fee == .eip1559(maxPriorityFeePerGas: EVMFeeProfile.gwei(1), maxFeePerGas: EVMFeeProfile.gwei(1)))
+        #expect(throws: EVMPlanError.feeAboveCeiling) {
+            try EVMPlanner.planNativeSend(walletID: Self.wallet, account: account, chain: .bnb, to: Self.recipient, amount: 1,
+                                          state: Self.state(.bnb, baseFee: EVMFeeProfile.gwei(1)))
+        }
+    }
+
     @Test("Envio de token: calldata transfer, bloqueio no proprio contrato, saldo do token")
     func tokenSend() throws {
         let account = try T.account(T.testKey)

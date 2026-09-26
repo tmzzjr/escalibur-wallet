@@ -25,16 +25,20 @@ import Foundation
 public struct EVMSendEngine: SendEngine {
     public let chain: Chain
     let reader: EVMReader
+    /// O preco dos ativos, so para o aviso de taxa alta no envio de token (a taxa e paga
+    /// no nativo, e o valor esta no token). Sem ele, sem aviso.
+    let prices: (any TradePriceOracle)?
 
     /// `nil` fora das sete redes EVM compiladas.
     public init?(chain: Chain) {
-        self.init(chain: chain, reader: .shared)
+        self.init(chain: chain, reader: .shared, prices: MarketPriceOracle.shared)
     }
 
-    init?(chain: Chain, reader: EVMReader) {
+    init?(chain: Chain, reader: EVMReader, prices: (any TradePriceOracle)? = nil) {
         guard EVMEngineSupport.isSupported(chain) else { return nil }
         self.chain = chain
         self.reader = reader
+        self.prices = prices
     }
 
     // MARK: Destino
@@ -149,7 +153,8 @@ public struct EVMSendEngine: SendEngine {
                 .applying(request.nonceQueue)
             plan = try EVMPlanner.planTokenSend(
                 walletID: request.walletID, account: context.account, token: token, to: context.recipient, amount: amount,
-                state: state, tokenState: tokenState, speed: speed, policy: policy
+                state: state, tokenState: tokenState, valueInNativeUnits: await nativeValue(of: amount, asset: request.asset),
+                speed: speed, policy: policy
             )
             simulate = true
             isTokenTransfer = true
@@ -168,6 +173,19 @@ public struct EVMSendEngine: SendEngine {
             throw EVMEngineFailure.recipientMismatch
         }
         return EVMEngineSupport.adding(Self.warnings(recipient: context.recipient, known: request.knownAddresses, chain: chain), to: plan)
+    }
+
+    /// O valor do envio de token em wei do nativo, pelo preco de mercado: e o que o aviso
+    /// de taxa alta compara com a taxa (auditoria 2, B1). Sem preco, nil e sem aviso.
+    func nativeValue(of amount: BigUInt, asset: Asset) async -> BigUInt? {
+        guard let prices, let tokenID = asset.coingeckoID else { return nil }
+        let nativeID = chain.coingeckoID
+        guard let quotes = try? await prices.usdPrices(Array(Set([tokenID, nativeID]))),
+              let tokenPrice = quotes[tokenID], let nativePrice = quotes[nativeID]
+        else { return nil }
+        return TradeMarketReference(
+            amountIn: amount, sellDecimals: asset.decimals, buyDecimals: chain.nativeDecimals, sellPriceUSD: tokenPrice, buyPriceUSD: nativePrice
+        ).oracleOut
     }
 
     /// `transfer` sem retorno (USDT e outros tokens antigos) ou com `true` ABI. Qualquer

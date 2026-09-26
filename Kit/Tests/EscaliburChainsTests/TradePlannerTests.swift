@@ -106,6 +106,21 @@ struct TradePlannerTests {
         #expect(throws: SigningPlan.CompositionError.sendInsideTrade) { try TradePlanner.combineSplit([first, send], quotes: [velora, kyber]) }
     }
 
+    @Test("Regressao B1: o gas vem da menor das duas simulacoes; uma fonte que infla nao sobe a taxa maxima")
+    func lowerSimulatedGas() throws {
+        let account = try T.account(T.testKey)
+        let quote = try Self.quote(.kyberSwap, "kyber-base-usdc-eth-build", S.baseIntent())
+        let honest = S.simulation(quote, source: "publicnode", allowance: 0)
+        let inflated = TradeSimulation(source: "drpc", calls: honest.calls.map {
+            TradeSimulatedCall(success: $0.success, gasUsed: $0.gasUsed * 5, logs: $0.logs)
+        })
+        let plan = try TradePlanner.planSwap(walletID: Self.wallet, account: account, quote: quote,
+                                             state: S.chainState(quote, allowance: 0, simulations: [inflated, honest]), now: S.recordedAt)
+        // 310.000 e 46.000 da simulacao honesta, x 1,2.
+        #expect((plan.transactions[1] as! EVMTransaction).gasLimit == 372_000)
+        #expect((plan.transactions[0] as! EVMTransaction).gasLimit == 55_200)
+    }
+
     @Test("Venda de nativo: so a troca, com msg.value, e a autorizacao dita 'nao precisa'")
     func nativeSell() throws {
         let account = try T.account(T.testKey)

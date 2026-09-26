@@ -8,6 +8,7 @@ import Foundation
 //
 //   maxFeePerGas <= 2 * baseFee + tip, e nunca acima do teto compilado da rede
 //   gasLimit     =  estimativa * 1,2 (nunca acima de estimativa * 1,3 nem de 2^24)
+//   baseFee e gorjetas: mediana de duas fontes; estimativa: a menor de duas
 //
 // Gas e preco sugeridos por provedor de swap sao ignorados: a carteira estima.
 
@@ -50,10 +51,10 @@ public struct EVMNetworkState: Sendable, Equatable {
     /// Quantas transacoes da fila local ainda nao foram vistas confirmadas (as de nonce
     /// `localNextNonce - localPendingCount` ate `localNextNonce - 1`).
     public let localPendingCount: UInt64
-    /// baseFee do proximo bloco. Com mais de um provedor, o maior.
+    /// baseFee do proximo bloco: a mediana de duas fontes.
     public let baseFeePerGas: BigUInt
     public let priorityFees: EVMPriorityFees
-    /// `eth_estimateGas` da chamada exata que vai ser assinada.
+    /// `eth_estimateGas` da chamada exata que vai ser assinada: a menor de duas fontes.
     public let gasEstimate: UInt64
     /// OP e Base: taxa de dados da L1, cobrada a parte (GasPriceOracle
     /// `0x420000000000000000000000000000000000000F`, `getL1FeeUpperBound`). Nas
@@ -154,8 +155,11 @@ public struct EVMFeeProfile: Sendable, Equatable {
             return EVMFeeProfile(maxFeeCeiling: gwei(10_000), minPriorityFee: gwei(25), maxPriorityFee: gwei(2_000),
                                  chargesL1DataFee: false, priorityEqualsMaxFee: false, allowsLegacy: false)
         case 56:
-            // BNB: baseFee zero, gorjeta minima de 0,05 gwei (conferido ao vivo).
-            return EVMFeeProfile(maxFeeCeiling: gwei(20), minPriorityFee: BigUInt(50_000_000), maxPriorityFee: gwei(10),
+            // BNB: baseFee zero, gorjeta minima de 0,05 gwei (conferido ao vivo). Teto perto
+            // do que a rede cobra: 1 gwei, vinte vezes o minimo e o que a rede cobrava antes
+            // da reducao de 2025. O teto antigo de 20 gwei deixava um provedor cobrar 400x
+            // o preco real (auditoria 2, B1).
+            return EVMFeeProfile(maxFeeCeiling: gwei(1), minPriorityFee: BigUInt(50_000_000), maxPriorityFee: gwei(1),
                                  chargesL1DataFee: false, priorityEqualsMaxFee: true, allowsLegacy: true)
         case 43114:
             // Avalanche C: ~0,04 gwei hoje; picos de centenas de gwei em 2023/2024.

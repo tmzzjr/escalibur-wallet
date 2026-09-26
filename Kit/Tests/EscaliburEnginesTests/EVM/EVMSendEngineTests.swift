@@ -55,6 +55,23 @@ struct EVMSendEngineTests {
         #expect(Set(transport.calls("eth_chainId").map(\.host)) == ["a.test", "b.test"])
     }
 
+    @Test("Regressao B1: envio de token avisa taxa alta pelo preco de mercado; sem preco, sem aviso")
+    func tokenHighFee() async throws {
+        func isHighFee(_ warning: PlanReview.Warning) -> Bool { if case .highFee = warning { return true } else { return false } }
+        let request = Self.request(asset: Self.usdcAsset, amount: 10_000)  // 0,01 USDC
+        let priced = EVMSendEngine(chain: .ethereum, reader: F.reader(try F.transport(), providers: testProviders("a", "b")),
+                                   prices: FakeOracle(prices: ["usd-coin": "1", "ethereum": "4000"]))!
+        let plan = try await priced.plan(request)
+        #expect(plan.review.warnings.contains(where: isHighFee))
+        // Um envio grande nao avisa.
+        let big = try await priced.plan(Self.request(asset: Self.usdcAsset, amount: 5_000_000))
+        #expect(!big.review.warnings.contains(where: isHighFee))
+        // Oraculo fora do ar: o plano sai, sem aviso inventado.
+        let blind = EVMSendEngine(chain: .ethereum, reader: F.reader(try F.transport(), providers: testProviders("a", "b")),
+                                  prices: FakeOracle(prices: nil))!
+        #expect(!(try await blind.plan(request)).review.warnings.contains(where: isHighFee))
+    }
+
     @Test("Regressao M1: nonce divergente entre os provedores so passa com a fila local que explica a diferenca")
     func nonceQueue() async throws {
         // O segundo provedor ja viu uma transacao deste aparelho (0x5095) que o primeiro nao viu.
