@@ -1,0 +1,59 @@
+#if DEBUG
+import EscaliburCore
+import EscaliburKeys
+import SwiftUI
+
+/// Conferencia visual no simulador, so em compilacao de depuracao.
+///
+/// `-demo` cadastra um PIN de teste e importa a carteira publica de teste do BIP-39
+/// ("abandon ... about", que qualquer pessoa conhece e que ninguem deve usar), pelos
+/// mesmos caminhos do app. `-tela <nome>` abre uma tela direto. verificar.sh confere
+/// que nada disto existe num build de distribuicao.
+enum DebugDemo {
+    static let pin = "482916"
+    static let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+
+    static var arguments: [String] { ProcessInfo.processInfo.arguments }
+    static var enabled: Bool { arguments.contains("-demo") }
+
+    static var screen: String? {
+        guard let index = arguments.firstIndex(of: "-tela"), arguments.indices.contains(index + 1) else { return nil }
+        return arguments[index + 1]
+    }
+
+    static func securePIN() -> SecureBytes {
+        let bytes = SecureBytes(capacity: 6)
+        bytes.replaceAll(with: Array(pin.utf8))
+        return bytes
+    }
+
+    @MainActor
+    static func prepare(session: AppSession, router: Router) async {
+        guard enabled else { return }
+        do {
+            if session.phase == .onboarding {
+                try await session.setUpPIN(securePIN())
+            } else if session.phase == .locked {
+                try await session.unlock(pin: securePIN())
+            }
+            if session.metadata.wallets.isEmpty {
+                let secret = try WalletSecret.from(phrase: BIP39.canonical(phrase), language: .english)
+                _ = try await session.addWallet(
+                    secret: secret, name: "Carteira principal", origin: .importedPhrase, wordCount: 12,
+                    backupConfirmed: true, credential: .pin(securePIN())
+                )
+            }
+            switch screen {
+            case "mercado": router.tab = .market
+            case "trocar": router.tab = .trade
+            case "atividade": router.tab = .activity
+            case "ajustes": router.tab = .settings
+            case "enviar": router.present(.send(nil))
+            default: break
+            }
+        } catch {
+            assertionFailure("demo: \(error)")
+        }
+    }
+}
+#endif

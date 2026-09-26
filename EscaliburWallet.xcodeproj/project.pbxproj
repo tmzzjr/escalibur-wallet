@@ -19,6 +19,7 @@
 		3436AC2D44A808B71561FBA0 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E67A652A823737F6EAC7745 /* RootView.swift */; };
 		3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09712057581F9378B87996C5 /* PasswordCost.swift */; };
 		39A4945DC4DAEFEDE0DBEB1F /* PINPad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 781A92DCAC657FBE12804D78 /* PINPad.swift */; };
+		424496A6E4E34E2651C3AC55 /* DebugDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71977F38FE1026DDFD0C189A /* DebugDemo.swift */; };
 		57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C53992781573FB54743C00 /* SecureInputField.swift */; };
 		5848F371CF905048C9ABA616 /* RecordWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5287E825D53043F109D791D /* RecordWordsView.swift */; };
 		5E9A7A552DC87E261A506B48 /* EscaliburKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 0911AD585A30024A352B31B6 /* EscaliburKeys */; };
@@ -76,6 +77,7 @@
 		529FF2FD620686A71B265A06 /* RevealFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealFlow.swift; sourceTree = "<group>"; };
 		609FB55F39FC297CF3C80DE8 /* Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Kit; path = Kit; sourceTree = SOURCE_ROOT; };
 		634FB486C1AC19A1DC738122 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
+		71977F38FE1026DDFD0C189A /* DebugDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDemo.swift; sourceTree = "<group>"; };
 		7372B2C6D0156F65AA215FE5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		77C53992781573FB54743C00 /* SecureInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureInputField.swift; sourceTree = "<group>"; };
 		781A92DCAC657FBE12804D78 /* PINPad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINPad.swift; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 			isa = PBXGroup;
 			children = (
 				A98E0FCFFA466C4A03F3490A /* AppSession.swift */,
+				71977F38FE1026DDFD0C189A /* DebugDemo.swift */,
 				355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */,
 				4A0E9C686393C93E1E34895B /* PlatformGuards.swift */,
 				7E67A652A823737F6EAC7745 /* RootView.swift */,
@@ -430,6 +433,7 @@
 				E09B8272656E909426D4987D /* Buttons.swift in Sources */,
 				B259A28741C3A8C0F7D74759 /* CoinLogo.swift in Sources */,
 				76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */,
+				424496A6E4E34E2651C3AC55 /* DebugDemo.swift in Sources */,
 				17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */,
 				2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */,
 				F8EA2B1B268220A255B30FAB /* ImportPhraseView.swift in Sources */,

@@ -30,6 +30,9 @@ struct RootView: View {
             VoiceChallengeSheet(challenge: challenge)
         }
         .onAppear { EnvelopeFile.sweepInbox() }
+        #if DEBUG
+        .task { await DebugDemo.prepare(session: session, router: router) }
+        #endif
     }
 
     @ViewBuilder

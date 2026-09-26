@@ -44,6 +44,10 @@ struct WalletHomeView: View {
         .task(id: wallet?.id) {
             portfolio.show(wallet, session: session)
             await portfolio.refresh(wallet, session: session)
+            #if DEBUG
+            if DebugDemo.screen == "detalhe", let first = portfolio.rows.first { router.walletPath.append(first) }
+            if DebugDemo.screen == "receber" { receiving = true }
+            #endif
         }
         .sheet(isPresented: $switching) {
             WalletSwitcherSheet(onAdd: { switching = false; addingWallet = true })
@@ -150,8 +154,8 @@ struct WalletHomeView: View {
 
     // MARK: Ativos
 
-    @ViewBuilder
     private var assets: some View {
+        VStack(alignment: .leading, spacing: 0) {
         HStack {
             Text("Ativos").typeStyle(.heading).foregroundStyle(Palette.ink)
             Spacer()
@@ -180,6 +184,7 @@ struct WalletHomeView: View {
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.md)
             }
+        }
         }
     }
 
