@@ -21,8 +21,13 @@ final class SendModel {
     var linkProblem: (text: String, message: String)?
     var destinationInfo: DestinationInfo?
     var lookalike: String?
-    /// Com endereco parecido, os 6 ultimos caracteres digitados pelo dono.
+    /// Com endereco parecido, os 6 caracteres do meio onde os dois diferem, digitados
+    /// pelo dono (auditoria 2, M2: as pontas o atacante copia).
     var lookalikeCheck = ""
+    var lookalikeSegment: AddressPoisoning.Segment?
+    /// Para quem esta carteira ja pagou, lido do historico da rede: o endereco
+    /// envenenado chega como recebido, entao so os enviados contam.
+    var historyRecipients: [String] = []
     var isFirstSend = false
     var tagText = ""
     var skippedTag = false
@@ -50,12 +55,14 @@ final class SendModel {
         return Fmt.parseAmount(amountText, decimals: holding.asset.decimals)
     }
 
-    /// Sem endereco parecido, nada a conferir. Com ele, so segue quem digitou o fim
-    /// do endereco de verdade, lendo-o em vez de reconhecer as pontas.
+    /// Sem endereco parecido, nada a conferir. Com ele, so segue quem digitou o trecho
+    /// do meio onde o destino difere do conhecido, lendo-o em vez de reconhecer as
+    /// pontas.
     var lookalikeCleared: Bool {
         guard lookalike != nil, let address = destination?.address else { return true }
+        guard let segment = lookalikeSegment else { return false }
         let typed = lookalikeCheck.trimmingCharacters(in: .whitespaces).lowercased()
-        return typed.count == 6 && typed == address.suffix(6).lowercased()
+        return typed.count == segment.length && typed == segment.text(in: address).lowercased()
     }
 
     var needsTagStep: Bool {
@@ -96,9 +103,14 @@ struct SendFlow: View {
         .interactiveDismissDisabled(model?.stage == .sending)
         .onAppear {
             guard model == nil, let wallet = session.selectedWallet else { return }
-            let holding = initialAsset.flatMap { asset in
+            var holding = initialAsset.flatMap { asset in
                 asset.chain.flatMap { portfolio.balance($0) }?.holdings.first { $0.asset.id == asset.id }
             }
+            #if DEBUG
+            // A carteira de teste nao tem saldo em rede EVM, onde um endereco parecido
+            // sem checksum se escreve a mao: o teste de envenenamento entra com zero.
+            if holding == nil, DebugDemo.screen == "enviar-eth" { holding = Holding(asset: .native(.ethereum), amount: 0) }
+            #endif
             model = SendModel(wallet: wallet, holding: holding)
         }
     }
@@ -170,7 +182,7 @@ struct SendStages: View {
     var body: some View {
         Group {
             switch model.stage {
-            case .destination: destinationStage
+            case .destination: destinationStage.task(id: model.chain?.id) { await loadHistoryRecipients() }
             case .tag: tagStage
             case .amount: amountStage
             case .review: reviewStage
@@ -205,56 +217,69 @@ struct SendStages: View {
     // MARK: E2 Para
 
     private var destinationStage: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            Text("Para").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
-            TextField("", text: $model.destinationText, prompt: Text("Endereço").foregroundColor(Palette.inkDead), axis: .vertical)
-                .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
-                .textInputAutocapitalization(.never).autocorrectionDisabled()
-                .lineLimit(1...3)
-                .onChange(of: model.destinationText) { _, _ in validate() }
-                .padding(Space.md)
-                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
-                .padding(.top, Space.xs)
-            HStack(spacing: Space.xs) {
-                PasteButton(payloadType: String.self) { strings in
-                    Task { @MainActor in apply(PaymentURI.read(strings.first ?? "")) }
-                }
-                .labelStyle(.titleOnly).tint(Palette.rail).buttonBorderShape(.capsule)
-                Button { scanning = true } label: {
-                    Label("Ler QR", systemImage: "qrcode.viewfinder").typeStyle(.label)
-                        .padding(.horizontal, Space.sm).frame(height: 34)
-                        .background(Capsule(style: .continuous).fill(Palette.rail))
-                }
-                .foregroundStyle(Palette.ink)
-            }
-            .padding(.top, Space.xs)
-
-            validationLine.padding(.top, Space.sm)
-
-            if let lookalike = model.lookalike {
-                Banner(kind: .caution, title: "Endereço parecido com um que você já usou",
-                       message: "Começa e termina igual a \(Fmt.address(lookalike)), mas o meio é diferente. Golpistas mandam centavos de um endereço assim para ele aparecer no seu histórico.")
-                    .padding(.top, Space.md)
-                Text("Para seguir, digite os 6 últimos caracteres do endereço de destino, lendo no endereço inteiro acima.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
-                    .fixedSize(horizontal: false, vertical: true)
-                TextField("", text: $model.lookalikeCheck, prompt: Text("6 últimos").foregroundColor(Palette.inkDead))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                Text("Para").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
+                TextField("", text: $model.destinationText, prompt: Text("Endereço").foregroundColor(Palette.inkDead), axis: .vertical)
                     .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .padding(Space.sm)
-                    .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(Palette.body))
-                    .frame(maxWidth: 180, alignment: .leading)
+                    .lineLimit(1...3)
+                    .onChange(of: model.destinationText) { _, _ in validate() }
+                    .padding(Space.md)
+                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
                     .padding(.top, Space.xs)
-                    .accessibilityIdentifier("conferir-fim-endereco")
-            }
+                HStack(spacing: Space.xs) {
+                    PasteButton(payloadType: String.self) { strings in
+                        Task { @MainActor in apply(PaymentURI.read(strings.first ?? "")) }
+                    }
+                    .labelStyle(.titleOnly).tint(Palette.rail).buttonBorderShape(.capsule)
+                    Button { scanning = true } label: {
+                        Label("Ler QR", systemImage: "qrcode.viewfinder").typeStyle(.label)
+                            .padding(.horizontal, Space.sm).frame(height: 34)
+                            .background(Capsule(style: .continuous).fill(Palette.rail))
+                    }
+                    .foregroundStyle(Palette.ink)
+                }
+                .padding(.top, Space.xs)
 
-            contacts.padding(.top, Space.lg)
-            Spacer()
+                validationLine.padding(.top, Space.sm)
+
+                if let lookalike = model.lookalike, let destination = model.destination, let chain = model.chain {
+                    Banner(kind: .caution, title: "Endereço parecido com um que você já usou",
+                           message: "As pontas são iguais, o meio é diferente. Golpistas mandam centavos de um endereço assim para ele aparecer no seu histórico.")
+                        .padding(.top, Space.md)
+                    VStack(alignment: .leading, spacing: Space.sm) {
+                        comparedAddress("Você colou", destination.address, model.lookalikeSegment)
+                        comparedAddress("Você já usou", lookalike,
+                                        AddressPoisoning.differingSegment(lookalike, from: destination.address, chain: chain))
+                    }
+                    .padding(.top, Space.sm)
+                    Text("Para seguir, digite os 6 caracteres marcados do endereço que você colou.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
+                        .fixedSize(horizontal: false, vertical: true)
+                    TextField("", text: $model.lookalikeCheck, prompt: Text("6 marcados").foregroundColor(Palette.inkDead))
+                        .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .padding(Space.sm)
+                        .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(Palette.body))
+                        .frame(maxWidth: 180, alignment: .leading)
+                        .padding(.top, Space.xs)
+                        .accessibilityIdentifier("conferir-trecho-endereco")
+                }
+
+                contacts.padding(.top, Space.lg)
+            }
+            .padding(.bottom, Space.lg)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
             PrimaryButton(title: "Continuar", enabled: model.destination != nil && model.lookalikeCleared, loading: model.working) {
                 Task { await continueFromDestination() }
             }
+            .padding(.top, Space.xs)
+            .background(Palette.void)
         }
     }
 
@@ -300,6 +325,37 @@ struct SendStages: View {
 
     static func of(_ chain: Chain) -> String { chain.id == "xrpl" ? "do" : "da" }
 
+    /// Um endereco inteiro com o trecho que difere marcado.
+    private func comparedAddress(_ label: String, _ address: String, _ segment: AddressPoisoning.Segment?) -> some View {
+        var text = AttributedString(address)
+        if let segment,
+           let lower = text.characters.index(text.startIndex, offsetBy: segment.start, limitedBy: text.endIndex),
+           let upper = text.characters.index(lower, offsetBy: segment.length, limitedBy: text.endIndex) {
+            text[lower..<upper].foregroundColor = Palette.caution
+            text[lower..<upper].underlineStyle = .single
+        }
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(label).typeStyle(.note).foregroundStyle(Palette.inkMuted)
+            Text(text).font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.disabled)
+        }
+    }
+
+    /// Para quem esta carteira ja pagou nesta rede, do historico da propria rede.
+    /// Melhor esforco: sem historico, a lista fica com o que o app guardou.
+    private func loadHistoryRecipients() async {
+        guard let chain = model.chain, let account = model.wallet.account(chain),
+              let source = ActivitySources.source(for: chain) else { return }
+        guard let entries = try? await source.history(chain: chain, account: account, usage: model.wallet.utxoUsage[chain.id]) else { return }
+        let paid = entries.compactMap { entry -> String? in
+            guard entry.direction == .sent, entry.status == .confirmed, !entry.suspicious else { return nil }
+            return entry.counterparty
+        }
+        model.historyRecipients = Array(Set(paid))
+        if model.destination != nil { validate() }
+    }
+
     /// O que veio do QR ou do colar. O problema do link fica preso ao texto que ele
     /// deixou no campo: a validacao que roda a cada mudanca do campo nao o apaga, e
     /// qualquer edicao do dono o solta.
@@ -319,6 +375,7 @@ struct SendStages: View {
         model.destination = nil
         model.destinationProblem = nil
         model.lookalike = nil
+        model.lookalikeSegment = nil
         model.lookalikeCheck = ""
         if let link = model.linkProblem {
             if link.text == model.destinationText {
@@ -343,7 +400,8 @@ struct SendStages: View {
             // contatos e os enderecos de todas as carteiras deste iPhone.
             let contacts = session.metadata.contacts.filter { $0.chainID == chain.id }.map(\.address)
             let wallets = session.metadata.wallets.compactMap { $0.account(chain)?.address }
-            model.lookalike = AddressPoisoning.lookalike(destination.address, among: sent + contacts + wallets, chain: chain)
+            model.lookalike = AddressPoisoning.lookalike(destination.address, among: sent + contacts + wallets + model.historyRecipients, chain: chain)
+            model.lookalikeSegment = model.lookalike.flatMap { AddressPoisoning.differingSegment(destination.address, from: $0, chain: chain) }
         case .failure(let problem):
             model.destinationProblem = Self.message(problem, chain: chain)
         }

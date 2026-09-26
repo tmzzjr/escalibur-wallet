@@ -32,6 +32,31 @@ public enum AddressPoisoning {
         }
     }
 
+    /// Um trecho do endereco, em posicoes de caractere do texto como ele e mostrado.
+    public struct Segment: Equatable, Sendable {
+        public let start: Int
+        public let length: Int
+
+        /// O trecho dentro de `address`.
+        public func text(in address: String) -> String {
+            String(address.dropFirst(start).prefix(length))
+        }
+    }
+
+    /// Onde `address` comeca a diferir de `other`: os `length` caracteres a partir da
+    /// primeira diferenca depois do prefixo da rede. E o trecho que o desafio pede:
+    /// as pontas o atacante copia, o meio ele nao consegue (auditoria 2, M2).
+    public static func differingSegment(_ address: String, from other: String, chain: Chain, length: Int = 6) -> Segment? {
+        let shown = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        let target = body(shown, chain: chain)
+        let candidate = body(other, chain: chain)
+        guard target.count >= length, target != candidate else { return nil }
+        let fixed = shown.count - target.count
+        let first = fixed + commonPrefix(target, candidate)
+        let start = min(first, shown.count - length)
+        return Segment(start: max(start, fixed), length: length)
+    }
+
     /// O endereco sem o prefixo que a rede impoe, em minusculas.
     static func body(_ address: String, chain: Chain) -> String {
         var text = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

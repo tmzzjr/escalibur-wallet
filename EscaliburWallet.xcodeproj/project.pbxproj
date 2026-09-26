@@ -29,6 +29,7 @@
 		424496A6E4E34E2651C3AC55 /* DebugDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71977F38FE1026DDFD0C189A /* DebugDemo.swift */; };
 		4311115E36CE8A987E173E93 /* WordInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 290C3A2CEF411E071AA05800 /* WordInputField.swift */; };
 		478026866DF85E9EF5D50A76 /* ImportPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839F9C92169FD1A8C5C69A3B /* ImportPreview.swift */; };
+		4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */; };
 		4DA261DD7012A533E034CF1C /* termos.md in Resources */ = {isa = PBXBuildFile; fileRef = 7C28ED1879662A04236281C1 /* termos.md */; };
 		534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD4DB38ABFB63662F684831D /* LegalTests.swift */; };
 		53F96070D034447AEEA27845 /* AllocationDonut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A71DEB35D1AAC25A23037D /* AllocationDonut.swift */; };
@@ -137,6 +138,7 @@
 		9533E741733252A8A22C3477 /* EnvelopeChain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeChain.swift; sourceTree = "<group>"; };
 		98728880640B5B94955214E7 /* ImportPhraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPhraseView.swift; sourceTree = "<group>"; };
 		98B99C8E82247CAD42E358D7 /* Buttons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buttons.swift; sourceTree = "<group>"; };
+		98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLookalikeTests.swift; sourceTree = "<group>"; };
 		9DD76B5A4D8E49D97000A77E /* TradeReviewFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeReviewFlow.swift; sourceTree = "<group>"; };
 		A1BADB432EFAFD601991FB0A /* MarketView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketView.swift; sourceTree = "<group>"; };
 		A98E0FCFFA466C4A03F3490A /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
@@ -296,6 +298,7 @@
 				AD4DB38ABFB63662F684831D /* LegalTests.swift */,
 				CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */,
 				8E73AD40F44D72D64B0F550B /* ReceiveFlowTests.swift */,
+				98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */,
 				1020538B4146BC659BF384E8 /* TradeQuoteTests.swift */,
 			);
 			path = EscaliburWalletUITests;
@@ -552,6 +555,7 @@
 				534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */,
 				20F684E79E7161139654F6DE /* OnboardingFlowTests.swift in Sources */,
 				2A90FB479DFA2C8FA3B4A582 /* ReceiveFlowTests.swift in Sources */,
+				4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */,
 				046D4A66EDC4E578C0246247 /* TradeQuoteTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

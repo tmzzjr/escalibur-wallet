@@ -21,6 +21,7 @@ struct Banner: View {
                 .frame(width: 20)
             VStack(alignment: .leading, spacing: Space.xxs) {
                 Text(title).typeStyle(.row).foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let message {
                     Text(message).typeStyle(.note).foregroundStyle(Palette.inkSoft)
                         .fixedSize(horizontal: false, vertical: true)

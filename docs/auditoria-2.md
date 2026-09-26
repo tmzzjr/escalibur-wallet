@@ -50,7 +50,7 @@ Atualizada a cada correção. "motores" = ramo `seguranca-2`, em andamento, aind
 | Seg A1 / Mot M6: `sequence` público | motores | `SigningPlan.sequence` interno, compositores nomeados por rede |
 | Seg A2: verificador, fronteiras, hosts | feito | `tools/verificar.sh`, `Package.swift`, `AllowedHosts` no `HTTPClient` |
 | Seg M1: ativo e valor amarrados ao plano | parte | planejadores preenchem `outgoing`/`incomingMinimum` (motores); a tela comparar vem depois do merge |
-| Seg M2: desafio do endereço parecido | aberto | |
+| Seg M2: desafio do endereço parecido | feito | o desafio pede os 6 caracteres do meio onde o destino difere do conhecido (`AddressPoisoning.differingSegment`), com os dois endereços lado a lado e o trecho marcado; conhecidos incluem para quem a carteira já pagou no histórico da rede; teste de interface em `SendLookalikeTests` |
 | Seg M3: transmissão ambígua | aberto | |
 | Seg M4: PIN errado dentro de envio ou troca | feito | `AuthCoordinator.perform` volta ao teclado com o aviso da tela de bloqueio; teste de interface em `EnvelopeFlowTests` |
 | Seg M5: memo opcional, `.noDestinationTag` | aberto | |

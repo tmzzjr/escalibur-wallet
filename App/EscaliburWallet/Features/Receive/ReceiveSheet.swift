@@ -219,7 +219,7 @@ struct ReceiveSheet: View {
 
                 PrimaryButton(title: "Copiar endereço") {
                     Pasteboard.copyAddress(address)
-                    toasts.show("Endereço copiado. Depois de colar, confira os 6 primeiros e os 6 últimos caracteres.")
+                    toasts.show("Endereço copiado. Depois de colar, confira o endereço inteiro, inclusive o meio.")
                 }
                 .padding(.top, Space.lg)
                 ShareLink(item: address) {

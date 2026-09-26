@@ -55,6 +55,7 @@ enum DebugDemo {
             case "atividade": router.tab = .activity
             case "ajustes": router.tab = .settings
             case "enviar": router.present(.send(nil))
+            case "enviar-eth": router.present(.send(.native(.ethereum)))
             default: break
             }
         } catch {
