@@ -154,6 +154,11 @@ public enum XRPLPlanner {
             )
         }
 
+        // O que sai e o Amount gravado no Payment montado.
+        guard case .payment(let payment) = transaction.body, case .xrp(let sent) = payment.amount else {
+            throw XRPLPlanError.transaction(.redundant)
+        }
+
         var lines = [PlanReview.Line("Para", resolved.address, verbatim: true)]
         if let tag { lines.append(PlanReview.Line("Tag de destino", String(tag), verbatim: true)) }
         lines.append(PlanReview.Line("Valor", XRPLFormat.xrp(intent.drops)))
@@ -163,7 +168,8 @@ public enum XRPLPlanner {
 
         let review = PlanReview(
             kind: .send, title: "Enviar \(XRPLFormat.xrp(intent.drops))", lines: lines, warnings: warnings,
-            recipient: resolved.address, recipientTag: tag.map { String($0) }
+            recipient: resolved.address, recipientTag: tag.map { String($0) },
+            outgoing: .native(.xrpl, sent)
         )
         return SigningPlan(walletID: walletID, chain: .xrpl, review: review, transactions: [transaction], createdAt: now)
     }
@@ -216,12 +222,20 @@ public enum XRPLPlanner {
         guard !(gets.amount.isXRP && pays.amount.isXRP) else { throw XRPLPlanError.xrpBothSides }
         guard !XRPLPayment.sameAsset(gets.amount, pays.amount) else { throw XRPLPlanError.sameAssetBothSides }
 
-        let lifetime = intent.expiration.timeIntervalSince(now)
-        guard lifetime >= minOfferLifetime else { throw XRPLPlanError.expirationInPast }
-        guard lifetime <= maxOfferLifetime else {
-            throw XRPLPlanError.expirationTooFar(maxDays: Int(maxOfferLifetime / 86_400))
+        // Sem prazo so a oferta que fica no livro: a troca tudo ou nada leva sempre um,
+        // e o LastLedgerSequence vence antes dele.
+        var expiration: UInt32?
+        if let date = intent.expiration {
+            let lifetime = date.timeIntervalSince(now)
+            guard lifetime >= minOfferLifetime else { throw XRPLPlanError.expirationInPast }
+            guard lifetime <= maxOfferLifetime else {
+                throw XRPLPlanError.expirationTooFar(maxDays: Int(maxOfferLifetime / 86_400))
+            }
+            guard let time = rippleTime(date) else { throw XRPLPlanError.expirationTooFar(maxDays: 30) }
+            expiration = time
+        } else {
+            guard intent.timeInForce == .goodTilExpiration else { throw XRPLPlanError.expirationInPast }
         }
-        guard let expiration = rippleTime(intent.expiration) else { throw XRPLPlanError.expirationTooFar(maxDays: 30) }
 
         var options: XRPLOfferOptions = []
         if intent.sell { options.insert(.sell) }
@@ -257,12 +271,52 @@ public enum XRPLPlanner {
             lines.append(PlanReview.Line("Endereço do emissor de \(code)", asset.issuer, verbatim: true))
         }
         lines.append(PlanReview.Line("Execução", executionText(intent)))
-        lines.append(PlanReview.Line("Expira em", XRPLFormat.date(intent.expiration)))
+        if let date = intent.expiration {
+            lines.append(PlanReview.Line("Expira em", XRPLFormat.date(date)))
+        } else {
+            lines.append(PlanReview.Line("Validade", "Não expira: fica no livro até executar ou você cancelar"))
+        }
         lines.append(PlanReview.Line("Reserva", "\(XRPLFormat.xrp(ledger.reserveIncrement)) ficam presos enquanto a oferta estiver no livro"))
         lines.append(PlanReview.Line("Taxa da rede", XRPLFormat.xrp(base.fee)))
 
-        let review = PlanReview(kind: .limitOrder, title: "Ordem limite: \(gets.label) por \(pays.label)", lines: lines)
+        // Tudo ou nada na hora e troca; a que fica no livro e ordem limite. Os movimentos
+        // saem dos valores gravados na oferta: entrega TakerGets, recebe pelo menos
+        // TakerPays, e quem recebe e a propria conta que assina.
+        let isSwap = intent.timeInForce != .goodTilExpiration
+        let title = isSwap ? "Trocar \(gets.label) por \(pays.code)" : "Ordem limite: \(gets.label) por \(pays.label)"
+        let review = PlanReview(
+            kind: isSwap ? .swap : .limitOrder, title: title, lines: lines,
+            outgoing: try movement(gets, roundingUp: true), incomingMinimum: try movement(pays, roundingUp: false),
+            beneficiary: signer.address
+        )
         return SigningPlan(walletID: walletID, chain: .xrpl, review: review, transactions: [transaction], createdAt: now)
+    }
+
+    // MARK: Linha de confianca e oferta juntas
+
+    /// A linha de confianca (Sequence n) e a oferta que compra o mesmo token (Sequence
+    /// n + 1), num plano so, para a conta que ainda nao aceita o token comprado.
+    ///
+    /// Os dois planos saem de `planTrustline` e `planOffer`; aqui nenhum campo deles
+    /// muda. Confere que sao da mesma conta e carteira, em Sequences seguidas, e que a
+    /// linha e exatamente do token que a oferta compra. Tipo, titulo e movimentos sao os
+    /// da oferta; a revisao abre com as duas etapas e mostra as linhas das duas.
+    public static func combineTrustlineAndOffer(trust: SigningPlan, offer: SigningPlan) throws -> SigningPlan {
+        guard trust.review.kind == .trustline, offer.review.kind == .swap || offer.review.kind == .limitOrder,
+              trust.walletID == offer.walletID, trust.chain == .xrpl, offer.chain == .xrpl,
+              trust.transactions.count == 1, offer.transactions.count == 1,
+              let line = trust.transactions.first as? XRPLTransaction, let order = offer.transactions.first as? XRPLTransaction,
+              case .trustSet(let trustSet) = line.body, case .offerCreate(let created) = order.body,
+              case .issued(let bought) = created.takerPays,
+              line.signer == order.signer, line.sequence < UInt32.max, line.sequence + 1 == order.sequence,
+              trustSet.limit.currency == bought.currency, trustSet.limit.issuerAddress == bought.issuerAddress
+        else { throw SigningPlan.CompositionError.partsDoNotMatch }
+        let what = offer.review.kind == .swap ? "a troca" : "a ordem"
+        let lead = [PlanReview.Line("Transações", "2: primeiro aceitar \(bought.currency.displayCode), depois \(what)")]
+        return try SigningPlan.sequence(
+            [trust, offer], kind: offer.review.kind, title: offer.review.title, lead: lead,
+            outgoing: offer.review.outgoing, incomingMinimum: offer.review.incomingMinimum, beneficiary: offer.review.beneficiary
+        )
     }
 
     // MARK: Cancelar oferta
@@ -356,6 +410,24 @@ public enum XRPLPlanner {
         let amount: XRPLAmount
         let label: String
         let asset: XRPLCuratedAsset?
+
+        /// XRP ou o codigo do token, para o titulo.
+        var code: String { asset?.currency.displayCode ?? "XRP" }
+    }
+
+    /// O lado da oferta como movimento, na menor unidade do `Asset` da carteira: drops no
+    /// XRP; no token, o valor gravado vezes 10^casas da lista. Token sem casas conhecidas
+    /// nao vira plano: a tela nao teria como conferir o valor.
+    static func movement(_ side: ResolvedSide, roundingUp: Bool) throws -> PlanReview.Movement {
+        switch side.amount {
+        case .xrp(let drops):
+            return .native(.xrpl, drops)
+        case .issued(let issued):
+            guard let asset = side.asset, let decimals = asset.decimals,
+                  let units = issued.value.units(decimals: decimals, roundingUp: roundingUp)
+            else { throw XRPLPlanError.assetNotCurated(currency: issued.currency.code, issuer: issued.issuerAddress) }
+            return .issued(.xrpl, code: asset.currency.code, issuer: asset.issuer, units)
+        }
     }
 
     static func resolve(_ side: XRPLOfferAsset, curated: [XRPLCuratedAsset]) throws -> ResolvedSide {

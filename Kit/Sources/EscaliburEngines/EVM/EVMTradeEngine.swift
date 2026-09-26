@@ -203,7 +203,9 @@ public struct EVMTradeEngine: TradeEngine {
             plans.append(plan)
         }
         guard plans.count > 1 else { return plans[0] }
-        return try Self.combined(plans, legs: requoted, intent: intent, walletID: request.walletID)
+        // A revisao da divisao e escrita pelo compositor de EscaliburChains, a partir das
+        // pernas e das cotacoes validadas; o motor nao escreve titulo nem linha.
+        return try TradePlanner.combineSplit(plans, quotes: requoted.map(\.quote))
     }
 
     /// As pernas da cotacao mostrada: provedor conhecido, sem repeticao, valores que
@@ -274,30 +276,6 @@ public struct EVMTradeEngine: TradeEngine {
             total = total + transaction.maxExecutionCost + transaction.value + (l1 ?? 0)
         }
         return total
-    }
-
-    /// Uma troca dividida vira um plano so, assinado de uma vez: as transacoes de todas as
-    /// pernas em sequencia de nonce, e a revisao com a visao geral seguida das linhas de
-    /// cada etapa. O prazo do plano conta da primeira perna, a mais antiga.
-    static func combined(_ plans: [SigningPlan], legs: [EVMTradeLeg], intent: TradeIntent, walletID: UUID) throws -> SigningPlan {
-        let count = plans.reduce(0) { $0 + $1.review.transactionCount }
-        let guaranteed = legs.reduce(BigUInt()) { $0 + $1.quote.guaranteedOut }
-        let expected = legs.reduce(BigUInt()) { $0 + $1.quote.expectedOut }
-        let division = legs.map { "\(EVMEngineText.percent(bps: $0.shareBps)) pela \($0.quote.provider.displayName)" }
-        let lines: [PlanReview.Line] = [
-            .init("Rede", intent.chain.name),
-            .init("Sai", EVMEngineText.amount(intent.amountIn, intent.sell)),
-            .init("Entra, no mínimo", EVMEngineText.amount(guaranteed, intent.buy)),
-            .init("Estimativa", EVMEngineText.amount(expected, intent.buy)),
-            .init("Divisão", division.joined(separator: ", ")),
-            .init("Transações", "\(count) transações independentes, em sequência, assinadas de uma vez"),
-            .init("Se uma etapa falhar", "As outras continuam valendo: você fica com parte em \(intent.buy.symbol) e parte em \(intent.sell.symbol). Não existe desfazer, e a etapa que falhou custa só a taxa de rede."),
-            .init("Taxa da Escalibur", "Sem taxa da Escalibur"),
-        ]
-        let title = "Trocar \(EVMEngineText.amount(intent.amountIn, intent.sell)) por \(intent.buy.symbol) em \(plans.count) etapas"
-        return try SigningPlan.sequence(
-            plans, kind: .swap, title: title, lead: lines, stepPrefix: true, omitting: ["Rede", "Divisão", "Taxa da Escalibur"]
-        )
     }
 
     // MARK: Ordem limite

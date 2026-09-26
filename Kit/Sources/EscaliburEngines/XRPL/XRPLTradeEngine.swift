@@ -86,11 +86,9 @@ struct XRPLTradeEngine: TradeEngine {
         try TradeMath.requireSlippage(request.slippageBasisPoints)
         try TradeMath.requireCurrent(quote, for: request)
         try XRPLEngineSupport.owner(request.account)
-        let give = EngineFormat.amount(request.amountIn, decimals: request.sell.decimals, symbol: request.sell.symbol)
         return try await offerPlan(
             walletID: request.walletID, account: request.account, sell: sell, buy: buy, give: request.amountIn, receive: quote.minimumOut,
-            expiration: Date().addingTimeInterval(Self.swapExpiration), timeInForce: .fillOrKill,
-            kind: .swap, title: "Trocar \(give) por \(request.buy.symbol)"
+            expiration: Date().addingTimeInterval(Self.swapExpiration), timeInForce: .fillOrKill
         )
     }
 
@@ -101,8 +99,7 @@ struct XRPLTradeEngine: TradeEngine {
         try XRPLEngineSupport.owner(request.account)
         return try await offerPlan(
             walletID: request.walletID, account: request.account, sell: sell, buy: buy, give: request.amountIn, receive: request.minimumOut,
-            expiration: Date().addingTimeInterval(request.validFor), timeInForce: .goodTilExpiration,
-            kind: .limitOrder, title: nil
+            expiration: Date().addingTimeInterval(request.validFor), timeInForce: .goodTilExpiration
         )
     }
 
@@ -110,7 +107,7 @@ struct XRPLTradeEngine: TradeEngine {
     /// com o `TrustSet` antes quando a conta ainda nao aceita o token comprado.
     private func offerPlan(
         walletID: UUID, account owner: DerivedAccount, sell: XRPLTradeSide, buy: XRPLTradeSide, give: BigUInt, receive: BigUInt,
-        expiration: Date, timeInForce: XRPLTimeInForce, kind: PlanReview.Kind, title: String?
+        expiration: Date?, timeInForce: XRPLTimeInForce
     ) async throws -> SigningPlan {
         do {
             async let ledgerState = reader.ledgerState()
@@ -128,15 +125,15 @@ struct XRPLTradeEngine: TradeEngine {
             let boughtLine = try await buyLine
             let needsTrustline = !buy.isXRP && boughtLine == nil
 
-            var plans: [SigningPlan] = []
+            var trust: SigningPlan?
             if needsTrustline, let token = buy.curated {
-                let trust = try XRPLPlanner.planTrustline(
+                let line = try XRPLPlanner.planTrustline(
                     XRPLTrustlineIntent(currency: token.currency, issuer: token.issuer, limit: Self.trustLimit),
                     signer: try .init(path: owner.path, publicKey: owner.publicKey), account: account, ledger: ledger,
                     curated: curated, walletID: walletID
                 )
-                account = try XRPLPlanComposer.stateAfter(trust, account: account)
-                plans.append(trust)
+                account = try XRPLPlanComposer.stateAfter(line, account: account)
+                trust = line
             }
             let offer = try XRPLPlanner.planOffer(
                 XRPLOfferIntent(
@@ -147,13 +144,10 @@ struct XRPLTradeEngine: TradeEngine {
                 curated: curated, walletID: walletID
             )
             try Self.verify(offer, sell: sell, buy: buy, give: give, receive: receive, timeInForce: timeInForce)
-            plans.append(offer)
-
-            if plans.count == 1, title == nil { return offer }
-            let lead = needsTrustline
-                ? [PlanReview.Line("Transações", "2: primeiro aceitar \(buy.asset.symbol), depois a \(kind == .swap ? "troca" : "ordem")")]
-                : []
-            return try XRPLPlanComposer.sequence(plans, kind: kind, title: title ?? offer.review.title, lead: lead)
+            // Tipo, titulo, linhas e movimentos sao do planejador; com a linha de
+            // confianca antes, quem junta e o compositor de EscaliburChains.
+            guard let trust else { return offer }
+            return try XRPLPlanner.combineTrustlineAndOffer(trust: trust, offer: offer)
         } catch {
             throw XRPLEngineSupport.translate(error)
         }

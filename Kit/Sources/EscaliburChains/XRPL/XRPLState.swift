@@ -85,13 +85,24 @@ public struct XRPLCuratedAsset: Sendable, Equatable {
     public let currency: XRPLCurrency
     public let issuer: String
     public let issuerName: String
+    /// As casas que a carteira da ao token (`Asset.decimals` da lista). Com elas o plano
+    /// diz o que sai e o que entra na menor unidade do `Asset`, como a tela confere; sem
+    /// elas, o plano de oferta nao sai.
+    public let decimals: Int?
 
-    public init(currency: XRPLCurrency, issuer: String, issuerName: String) throws {
+    public init(currency: XRPLCurrency, issuer: String, issuerName: String, decimals: Int? = nil) throws {
         guard XRPLAddress.accountID(issuer) != nil else { throw XRPLCodecError.invalidAccount(issuer) }
+        if let decimals { guard (0...XRPLUnitsLimit.maxDecimals).contains(decimals) else { throw XRPLCodecError.invalidAmount("casas") } }
         self.currency = currency
         self.issuer = issuer
         self.issuerName = issuerName
+        self.decimals = decimals
     }
+}
+
+enum XRPLUnitsLimit {
+    /// Mais casas que isto nao e de token nenhum: o XRPLDecimal guarda 16 algarismos.
+    static let maxDecimals = 30
 }
 
 // MARK: Intencoes do dono
@@ -153,7 +164,9 @@ public struct XRPLOfferIntent: Sendable, Equatable {
     public var give: XRPLOfferAsset
     /// O minimo que o dono recebe por isso (TakerPays).
     public var receiveAtLeast: XRPLOfferAsset
-    public var expiration: Date
+    /// Quando a oferta sai do livro sozinha. nil: nao expira, fica ate executar ou o dono
+    /// cancelar (so para a oferta que fica no livro).
+    public var expiration: Date?
     /// tfSell: entrega todo o X mesmo que receba mais que Y.
     public var sell: Bool
     /// tfPassive: nao consome ofertas que empatam o preco.
@@ -161,7 +174,7 @@ public struct XRPLOfferIntent: Sendable, Equatable {
     public var timeInForce: XRPLTimeInForce
 
     public init(
-        give: XRPLOfferAsset, receiveAtLeast: XRPLOfferAsset, expiration: Date,
+        give: XRPLOfferAsset, receiveAtLeast: XRPLOfferAsset, expiration: Date?,
         sell: Bool = true, passive: Bool = false, timeInForce: XRPLTimeInForce = .goodTilExpiration
     ) {
         self.give = give

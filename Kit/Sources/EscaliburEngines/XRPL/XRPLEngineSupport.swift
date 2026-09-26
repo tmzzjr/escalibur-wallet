@@ -87,7 +87,7 @@ enum XRPLEngineSupport {
         guard asset.chainID == Chain.xrpl.id, case .issued(let code, let issuer) = asset.kind,
               let currency = try? XRPLCurrency(code: code)
         else { return nil }
-        return try? XRPLCuratedAsset(currency: currency, issuer: issuer, issuerName: asset.name)
+        return try? XRPLCuratedAsset(currency: currency, issuer: issuer, issuerName: asset.name, decimals: asset.decimals)
     }
 
     // MARK: Erros
