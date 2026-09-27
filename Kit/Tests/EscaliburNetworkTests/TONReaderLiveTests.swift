@@ -66,6 +66,14 @@ struct TONReaderLiveTests {
         Live.note("ton: usdt \(jetton.balance), taxa \(state.estimatedFee)")
     }
 
+    @Test("Destino que e a carteira de USDT do dono: toncenter e tonapi concordam no status e no codigo")
+    func jettonWalletDestination() async throws {
+        let wallet = try wallet()
+        let state = try await reader.destinationState(try TONJetton.usdtWallet(owner: wallet.address))
+        #expect(state.status == .active)
+        #expect(TONJetton.isUSDTJettonWallet(codeHash: state.codeHash))
+    }
+
     @Test("Mensagem externa conhecida: transacao achada nas duas APIs")
     func knownMessage() async throws {
         let status = try await reader.status(of: "732af3f9e362d8b32896464d6589f770a458a52a56eb45454a5f7cff92da407f")

@@ -186,6 +186,72 @@ struct TONSendEngineTests {
         #expect(spendable.feeNote?.contains("0,05 TON") == true)
     }
 
+    // MARK: Duas fontes (auditoria 2, B3)
+
+    /// O codigo da carteira jetton de USDT (celula de biblioteca) como cada API manda.
+    static let jettonCode = "b5ee9c72010101010023000842028f452d7a4dfd74066b682365177259ed05734435be76b5fd4bd5d8af2b7c3d68"
+    static let jettonCodeWithCRC = "b5ee9c72410101010023000842028f452d7a4dfd74066b682365177259ed05734435be76b5fd4bd5d8af2b7c3d68206bbf76"
+
+    /// Resposta montada no teste: o destino ativo como carteira jetton de USDT, na tonapi.
+    static func tonapiJettonAccount(_ address: TONAddress) -> Data {
+        Data(#"{"address":"\#(address.raw)","balance":5000000,"status":"active","code":"\#(jettonCode)"}"#.utf8)
+    }
+
+    /// O mesmo na toncenter.
+    static func toncenterJettonAccount() throws -> Data {
+        let code = Data(try #require(Hex.decode(jettonCodeWithCRC))).base64EncodedString()
+        return Data(#"{"ok":true,"result":{"@type":"raw.fullAccountState","balance":"5000000","code":"\#(code)","data":"","frozen_hash":"","state":"active"}}"#.utf8)
+    }
+
+    @Test("Destino que so uma fonte diz ser carteira de USDT: nem a tela do destino nem o plano seguem")
+    func destinationDisagreement() async throws {
+        let target = R.activeDestination
+        let hidden = try R.Transport { host, path, _, _ in
+            host == "tonapi.test" && path == "/blockchain/accounts/" + target.raw ? Self.tonapiJettonAccount(target) : nil
+        }
+        let engine = R.engine(hidden)
+        let disagree = SendEngineError.message(TONEngineText.reader(.providersDisagree(field: "account.code")))
+        await #expect(throws: disagree) { _ = try await engine.destination(target.friendly(bounceable: false), chain: .ton) }
+        await #expect(throws: disagree) { _ = try await engine.plan(R.request(asset: R.ton, amount: 1_000)) }
+        await #expect(throws: disagree) { _ = try await engine.plan(R.request(asset: R.usdt, amount: 1_000)) }
+
+        // As duas fontes dizendo a verdade: contrato de token, e o plano recusa.
+        let agreed = try R.Transport { host, path, method, params in
+            if host == "tonapi.test", path == "/blockchain/accounts/" + target.raw { return Self.tonapiJettonAccount(target) }
+            if method == "getAddressInformation", params["address"] as? String == target.raw { return try Self.toncenterJettonAccount() }
+            return nil
+        }
+        let honest = R.engine(agreed)
+        let info = try await honest.destination(target.friendly(bounceable: false), chain: .ton)
+        #expect(info.isContract && info.note == TONEngineText.tokenContract)
+        await #expect(throws: SendEngineError.message(TONEngineText.tokenContract)) {
+            _ = try await honest.plan(R.request(asset: R.ton, amount: 1_000))
+        }
+    }
+
+    @Test("Saldo do dono e de USDT: vale o menor das duas fontes, no maximo e no plano")
+    func smallerOfTwoSources() async throws {
+        let jettonPath = "/blockchain/accounts/" + R.ownerJettonWallet + "/methods/get_wallet_data"
+        let recorded = String(decoding: try R.data("tonapi-get_wallet_data"), as: UTF8.self)
+        // A tonapi com 1.000 USDT a menos que a toncenter.
+        let lower = Data(recorded.replacingOccurrences(of: "0x2774a4866a", with: "0x273909bc6a").utf8)
+        let transport = try R.Transport { host, path, _, _ in host == "tonapi.test" && path == jettonPath ? lower : nil }
+        let engine = R.engine(transport)
+        let spendable = try await engine.spendable(R.request(asset: R.usdt, amount: 0, sendAll: true))
+        #expect(spendable.amount == R.jettonBalance - 1_000_000_000)
+        await #expect(throws: SendEngineError.message(TONEngineText.planner(.insufficientTokenBalance(needed: 1, available: 0), coin: .usdt))) {
+            _ = try await engine.plan(R.request(asset: R.usdt, amount: R.jettonBalance))
+        }
+
+        // A tonapi com a conta do dono mais pobre: o maximo de TON sai dela.
+        let ownerPath = "/blockchain/accounts/" + R.wallet.address.raw
+        let account = String(decoding: try R.data("tonapi-account-dono"), as: UTF8.self)
+        let poorer = Data(account.replacingOccurrences(of: "96633095889328", with: "1000000000").utf8)
+        let poor = R.engine(try R.Transport { host, path, _, _ in host == "tonapi.test" && path == ownerPath ? poorer : nil })
+        let maximum = try await poor.spendable(R.request(asset: R.ton, amount: R.ownerBalance, sendAll: true))
+        #expect(maximum.amount == BigUInt(1_000_000_000) - R.estimatedFee - R.estimatedFee)
+    }
+
     // MARK: Frases
 
     @Test("Nenhuma frase de erro traz numero, endereco ou travessao")

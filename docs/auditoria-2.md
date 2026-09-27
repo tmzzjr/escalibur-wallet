@@ -79,7 +79,7 @@ Atualizada a cada correção.
 | M6 `sequence` | Corrigido: interno; compositores nomeados | `Signing.swift`, `TradePlanner.combineSplit`, `XRPLPlanner.combineTrustlineAndOffer` |
 | B1 | Corrigido: mediana de duas fontes, gas pela menor, BNB 1 gwei, aviso de taxa no envio de token | `EVMReader`, `TradeStateReader`, `EVMFeeProfile`, `EVMSendEngine` |
 | B2 | Corrigido: LastLedgerSequence do ledger pinado | `XRPLPlanner.common` |
-| B3 | Corrigido na Solana (destino, conta de token e mint em dois RPCs); a TON segue com leituras de uma fonte além do `seqno` | `SolanaNetworkReader` |
+| B3 | Corrigido. Solana: destino, conta de token e mint em dois RPCs. TON: `seqno`, status, saldo e código das contas do dono e do destino, e saldo, dono e mestre da carteira jetton de USDT na toncenter e na tonapi, concordando (saldo, o menor; uma releitura; sem contingência de uma fonte). Ficam de uma fonte na TON, com o motivo no código: a taxa estimada (teto compilado, fora da mensagem), o `get_wallet_address` (só confere o endereço calculado localmente, que é o usado) e o histórico | `SolanaNetworkReader`, `TONReader.agreedAccount`, `TONReader.jettonBalance` |
 | B4, B5 | Fora desta rodada | |
 | B6 | Corrigido: troco conferido em dois provedores | `UTXOReader.isUnused`, `UTXOSendEngine` |
 | B7 | Corrigido: `docs/redes/motores.md` e `docs/blockchain.md` dizem o que o código faz; a DEX do XRP Ledger está desligada (a lista curada não tem token do XRP Ledger) | |

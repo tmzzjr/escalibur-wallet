@@ -16,11 +16,21 @@ public struct TONDestinationState: Sendable, Equatable {
 
 /// Leitura de estado, transmissao e historico da TON.
 ///
-/// Provedores: a API JSON-RPC v2 da toncenter e a principal, porque aceita o endereco
-/// no corpo do POST (estado, get-methods, estimativa, transmissao). A tonapi da a
-/// segunda leitura do `seqno` (consenso) e e a contingencia; ela so tem GET com o
-/// endereco no caminho, e isso fica aceito e documentado (docs/seguranca.md §5.3). O
-/// historico e o acompanhamento usam a tonapi e a v3 da toncenter, pelo mesmo motivo.
+/// Provedores: a API JSON-RPC v2 da toncenter aceita o endereco no corpo do POST
+/// (estado, get-methods, estimativa, transmissao). A tonapi e a segunda fonte, de outro
+/// operador; ela so tem GET com o endereco no caminho, e isso fica aceito e documentado
+/// (docs/seguranca.md §5.3). O historico e o acompanhamento usam a tonapi e a v3 da
+/// toncenter, pelo mesmo motivo.
+///
+/// O que decide para onde vai o dinheiro ou quanto sai vem das duas, e as duas tem de
+/// concordar (auditoria 2, B3): o `seqno`; status, saldo e codigo da conta do dono e do
+/// destino; o saldo, o dono e o mestre da carteira jetton. Uma fonte so, com o motivo:
+/// - a taxa estimada (`estimateFee`, so a toncenter emula): nao entra na mensagem (a
+///   rede cobra o custo real) e fica sob o teto compilado `TONPlanner.feeCeiling`; uma
+///   fonte mentindo so encolhe o "enviar tudo" ou faz o plano recusar;
+/// - o endereco da carteira jetton (`get_wallet_address`): a carteira usa o endereco
+///   calculado aqui, e a leitura so confere; uma fonte mentindo so faz recusar;
+/// - o historico (so a tonapi agrupa eventos): informativo, nada dali entra num plano.
 ///
 /// O hash do codigo das contas e calculado aqui, do BOC do codigo que o provedor manda:
 /// ninguem diz "isto e uma V4R2", o hash diz.
@@ -52,8 +62,8 @@ public actor TONReader {
         rpc: [ProviderPool.Provider] = Endpoints.tonJSONRPC,
         api: [ProviderPool.Provider] = Endpoints.ton
     ) {
-        // toncenter sem chave: 1 requisicao por segundo por IP.
-        self.transport = PacedTransport(base: transport, intervals: ["toncenter.com": 1.05])
+        // toncenter e tonapi sem chave: 1 requisicao por segundo por IP em cada uma.
+        self.transport = PacedTransport(base: transport, intervals: ["toncenter.com": 1.05, "tonapi.io": 1.05])
         self.rpcPool = ProviderPool(rpc)
         self.apiPool = ProviderPool(api)
         self.apiProviders = api
@@ -61,17 +71,17 @@ public actor TONReader {
 
     // MARK: Estado para o plano
 
-    /// Estado da carteira do dono (status, `seqno` em dois provedores, saldo, hash do
-    /// codigo), do destino (status, hash do codigo) e a taxa estimada da mensagem que o
-    /// plano vai montar, com assinatura desligada na emulacao. Taxa zero ou acima de
-    /// `TONPlanner.feeCeiling` e recusada aqui.
+    /// Estado da carteira do dono (status, saldo e hash do codigo, e o `seqno`), do
+    /// destino (status, hash do codigo), tudo em dois provedores concordando, e a taxa
+    /// estimada da mensagem que o plano vai montar, com assinatura desligada na emulacao.
+    /// Taxa zero ou acima de `TONPlanner.feeCeiling` e recusada aqui.
     public func chainState(wallet: TONWallet, intent: Intent, now: Date = .now) async throws -> TONChainState {
         guard case .success(let resolved) = Address.validate(intent.destination, for: .ton),
               case .success(let destination) = TONAddress.parse(resolved.address)
         else { throw ReaderError.invalidInput("destino") }
-        let owner = try await account(wallet.address)
+        let owner = try await agreedAccount(wallet.address)
         let seqno = owner.status == .uninitialized ? 0 : try await agreedSeqno(wallet.address)
-        let target = try await account(destination.address)
+        let target = try await agreedAccount(destination.address)
 
         let message: TONOutgoingMessage
         switch intent {
@@ -93,16 +103,18 @@ public actor TONReader {
         )
     }
 
-    /// Status e hash do codigo de uma conta qualquer, a mesma leitura que `chainState`
-    /// faz do destino. So para a tela do destino: o plano le de novo em `chainState`.
+    /// Status e hash do codigo de uma conta qualquer, a mesma leitura em dois provedores
+    /// que `chainState` faz do destino. Para a tela do destino; o plano le de novo em
+    /// `chainState`.
     public func destinationState(_ address: TONAddress) async throws -> TONDestinationState {
-        let reading = try await account(address)
+        let reading = try await agreedAccount(address)
         return TONDestinationState(status: reading.status, codeHash: reading.codeHash)
     }
 
     /// A carteira jetton de USDT do dono (`get_wallet_address` no mestre compilado,
-    /// conferida contra o calculo local) e o saldo dela (`get_wallet_data`, conferindo
-    /// dono e mestre). Carteira jetton ainda nao criada tem saldo zero.
+    /// conferida contra o calculo local, que e o endereco usado) e o saldo dela
+    /// (`get_wallet_data` na toncenter e na tonapi, conferindo dono e mestre nas duas).
+    /// Carteira jetton ainda nao criada, nas duas, tem saldo zero.
     public func jettonState(owner: TONAddress) async throws -> TONJettonState {
         let expected = try TONJetton.usdtWallet(owner: owner)
         let reported = try await jettonWalletAddress(owner: owner)
@@ -192,44 +204,70 @@ public actor TONReader {
         let codeHash: [UInt8]?
     }
 
-    /// `getAddressInformation` na toncenter (POST); na falha, `blockchain/accounts` na tonapi.
-    private func account(_ address: TONAddress) async throws -> AccountReading {
+    /// So o provedor da tonapi, a segunda fonte de cada leitura em par.
+    private var tonapiProviders: [Provider] { apiProviders.filter { $0.name == "tonapi" } }
+
+    /// As duas APIs leem em momentos um pouco diferentes, e uma carteira que acabou de
+    /// enviar (ou de ser ativada) muda entre as leituras: diferenca na primeira vez rele
+    /// as duas uma vez, e so a segunda diferenca vira erro.
+    private func agreedTwice<T: Sendable>(_ read: @Sendable () async throws -> T) async throws -> T {
         do {
-            return try await Quorum.first(await rpcPool.available(), pool: rpcPool) { provider in
-                try Self.parseAddressInformation(try await self.rpc(provider, "getAddressInformation", ["address": .string(address.raw)]))
-            }
-        } catch {
-            guard let tonapi = apiProviders.first(where: { $0.name == "tonapi" }) else { throw error }
-            let url = tonapi.baseURL.adding(path: "blockchain/accounts/" + address.raw)
-            do {
-                return try Self.parseTonapiAccount(StrictJSON.parse(try await transport.send(.get(url))), address: address)
-            } catch HTTPClient.Failure.status(404) {
-                return AccountReading(status: .uninitialized, balance: 0, codeHash: nil)
-            }
+            return try await read()
+        } catch ReaderError.providersDisagree {
+            try await Task.sleep(nanoseconds: 1_500_000_000)
+            return try await read()
         }
     }
 
-    /// `seqno` na toncenter (POST) e na tonapi; os dois tem de ser iguais. As duas APIs
-    /// leem em momentos um pouco diferentes, e uma carteira que acabou de enviar muda de
-    /// seqno entre as leituras: diferenca na primeira vez rele as duas uma vez, e so a
-    /// segunda diferenca vira erro.
-    private func agreedSeqno(_ address: TONAddress) async throws -> UInt32 {
-        do {
-            return try await seqnoPair(address)
-        } catch ReaderError.providersDisagree {
-            try await Task.sleep(nanoseconds: 1_500_000_000)
-            return try await seqnoPair(address)
+    /// Status, saldo e hash do codigo de uma conta: `getAddressInformation` na toncenter
+    /// (POST) e `blockchain/accounts` na tonapi, as duas respondendo e concordando
+    /// (`mergeAccounts`). Sem contingencia de uma fonte so: a conta do destino decide o
+    /// bounce e se o destino e contrato de token, e a do dono decide o maximo.
+    private func agreedAccount(_ address: TONAddress) async throws -> AccountReading {
+        try await agreedTwice { try await self.accountPair(address) }
+    }
+
+    private func accountPair(_ address: TONAddress) async throws -> AccountReading {
+        let transport = self.transport
+        let tonapi = tonapiProviders
+        async let center: AccountReading = Quorum.first(await rpcPool.available(), pool: rpcPool) { provider in
+            try Self.parseAddressInformation(try await self.rpc(provider, "getAddressInformation", ["address": .string(address.raw)]))
         }
+        async let api: AccountReading = Quorum.first(tonapi, pool: apiPool) { provider in
+            let url = provider.baseURL.adding(path: "blockchain/accounts/" + address.raw)
+            do {
+                return try Self.parseTonapiAccount(StrictJSON.parse(try await transport.send(.get(url))), address: address)
+            } catch HTTPClient.Failure.status(404) {
+                // A tonapi responde 404 para conta que nunca existiu; a toncenter, estado
+                // "uninitialized" com saldo zero.
+                return AccountReading(status: .uninitialized, balance: 0, codeHash: nil)
+            }
+        }
+        return try Self.mergeAccounts(try await center, try await api)
+    }
+
+    /// Duas leituras da mesma conta: o mesmo status e o mesmo codigo. O saldo muda de um
+    /// bloco para outro e vale o menor, que so pode fazer o plano pedir menos ou recusar.
+    static func mergeAccounts(_ a: AccountReading, _ b: AccountReading) throws -> AccountReading {
+        guard a.status == b.status else { throw ReaderError.providersDisagree(field: "account.status") }
+        guard a.codeHash == b.codeHash else { throw ReaderError.providersDisagree(field: "account.code") }
+        return AccountReading(status: a.status, balance: min(a.balance, b.balance), codeHash: a.codeHash)
+    }
+
+    /// `seqno` na toncenter (POST) e na tonapi; os dois tem de ser iguais.
+    private func agreedSeqno(_ address: TONAddress) async throws -> UInt32 {
+        try await agreedTwice { try await self.seqnoPair(address) }
     }
 
     private func seqnoPair(_ address: TONAddress) async throws -> UInt32 {
         let transport = self.transport
+        let tonapi = tonapiProviders
         async let center: UInt32 = Quorum.first(await rpcPool.available(), pool: rpcPool) { provider in
             try Self.parseSeqno(toncenter: try await self.rpc(provider, "runGetMethod", [
                 "address": .string(address.raw), "method": .string("seqno"), "stack": .array([]),
             ]))
         }
-        async let api: UInt32 = Quorum.first(apiProviders.filter { $0.name == "tonapi" }, pool: apiPool) { provider in
+        async let api: UInt32 = Quorum.first(tonapi, pool: apiPool) { provider in
             let url = provider.baseURL.adding(path: "blockchain/accounts/" + address.raw + "/methods/seqno")
             return try Self.parseSeqno(tonapi: StrictJSON.parse(try await transport.send(.get(url))))
         }
@@ -241,6 +279,9 @@ public actor TONReader {
     /// Emulacao com a assinatura desligada (`ignore_chksig`) do corpo que o plano vai
     /// assinar, com 64 bytes zerados no lugar da assinatura. Soma as taxas da origem:
     /// encaminhamento de entrada, armazenamento, gas e encaminhamento da saida.
+    ///
+    /// Uma fonte so (a tonapi nao tem este metodo com o endereco no corpo): a taxa nao
+    /// entra na mensagem, a rede cobra o custo real, e o valor passa pelo teto compilado.
     private func estimateFee(wallet: TONWallet, seqno: UInt32, validUntil: UInt32, message: TONOutgoingMessage, deploy: Bool) async throws -> BigUInt {
         let body = try Self.emulationBody(wallet: wallet, seqno: seqno, validUntil: validUntil, messages: [message])
         var params: [String: StrictJSON] = [
@@ -258,6 +299,10 @@ public actor TONReader {
         return fee
     }
 
+    /// `get_wallet_address` no mestre, na toncenter; na falha, na tonapi. Uma fonte so
+    /// basta: o endereco que o plano usa e o calculado aqui (`TONJetton.usdtWallet`), e
+    /// esta leitura so confere que o mestre ainda calcula o mesmo. Uma fonte mentindo so
+    /// consegue fazer a carteira recusar.
     private func jettonWalletAddress(owner: TONAddress) async throws -> TONAddress {
         var builder = TONCellBuilder()
         try builder.storeAddress(owner)
@@ -282,24 +327,50 @@ public actor TONReader {
         }
     }
 
+    /// O saldo da carteira jetton em `get_wallet_data` na toncenter e na tonapi. As duas
+    /// tem de dizer o mesmo dono e o mestre compilado; o saldo e o menor das duas.
+    /// Carteira que nao responde ao get-method nas duas e nao esta ativa (ainda nao
+    /// criada) tem saldo zero; uma responde e a outra nao, as fontes discordam.
     private func jettonBalance(wallet: TONAddress, owner: TONAddress) async throws -> BigUInt {
-        let reading: JettonWalletData? = try await Quorum.first(await rpcPool.available(), pool: rpcPool) { provider in
-            let result = try await self.rpc(provider, "runGetMethod", [
+        try await agreedTwice { try await self.jettonBalancePair(wallet: wallet, owner: owner) }
+    }
+
+    private func jettonBalancePair(wallet: TONAddress, owner: TONAddress) async throws -> BigUInt {
+        let transport = self.transport
+        let tonapi = tonapiProviders
+        async let center: JettonWalletData? = Quorum.first(await rpcPool.available(), pool: rpcPool) { provider in
+            try Self.parseJettonWalletData(toncenter: try await self.rpc(provider, "runGetMethod", [
                 "address": .string(wallet.raw), "method": .string("get_wallet_data"), "stack": .array([]),
-            ])
-            return try Self.parseJettonWalletData(toncenter: result)
+            ]))
         }
-        guard let reading else {
-            // Get-method falhou: carteira jetton ainda nao criada tem saldo zero; ativa e
-            // sem resposta e defeito do provedor.
-            let state = try await account(wallet)
-            guard state.status != .active else { throw ReaderError.malformed(field: "get_wallet_data") }
-            return 0
+        async let api: JettonWalletData? = Quorum.first(tonapi, pool: apiPool) { provider in
+            let url = provider.baseURL.adding(path: "blockchain/accounts/" + wallet.raw + "/methods/get_wallet_data")
+            do {
+                return try Self.parseJettonWalletData(tonapi: StrictJSON.parse(try await transport.send(.get(url))))
+            } catch HTTPClient.Failure.status(404) {
+                return nil
+            }
         }
-        guard reading.owner == owner, reading.master == TONJetton.usdtMaster else {
+        let (a, b) = try await (center, api)
+        if let balance = try Self.mergeJettonData(a, b, owner: owner) { return balance }
+        // Get-method falhou nas duas: carteira jetton ainda nao criada tem saldo zero;
+        // ativa e sem resposta e defeito do provedor.
+        let state = try await agreedAccount(wallet)
+        guard state.status != .active else { throw ReaderError.malformed(field: "get_wallet_data") }
+        return 0
+    }
+
+    /// As duas leituras de `get_wallet_data`: cada uma com o dono pedido e o mestre
+    /// compilado; o saldo e o menor. `nil` quando nenhuma respondeu.
+    static func mergeJettonData(_ a: JettonWalletData?, _ b: JettonWalletData?, owner: TONAddress) throws -> BigUInt? {
+        for reading in [a, b].compactMap({ $0 }) where reading.owner != owner || reading.master != TONJetton.usdtMaster {
             throw ReaderError.responseMismatch(field: "get_wallet_data")
         }
-        return reading.balance
+        switch (a, b) {
+        case (let x?, let y?): return min(x.balance, y.balance)
+        case (nil, nil): return nil
+        default: throw ReaderError.providersDisagree(field: "get_wallet_data")
+        }
     }
 
     // MARK: HTTP
@@ -522,6 +593,22 @@ public actor TONReader {
             balance: try stackNumber(stack[0], "get_wallet_data.balance"),
             owner: try address(fromCell: try toncenterCell(stack[1], "get_wallet_data.owner"), "get_wallet_data.owner"),
             master: try address(fromCell: try toncenterCell(stack[2], "get_wallet_data.master"), "get_wallet_data.master")
+        )
+    }
+
+    /// tonapi `blockchain/accounts/{a}/methods/get_wallet_data`: a mesma pilha, com
+    /// `success` falso ou codigo de saida diferente de zero devolvendo `nil`.
+    static func parseJettonWalletData(tonapi json: StrictJSON) throws -> JettonWalletData? {
+        let path = "get_wallet_data"
+        guard try json.field("success", path).bool(path + ".success"),
+              try json.field("exit_code", path).int64(path + ".exit_code") == 0
+        else { return nil }
+        let stack = try json.field("stack", path).array(path + ".stack")
+        guard stack.count >= 3 else { throw ReaderError.malformed(field: path + ".stack") }
+        return JettonWalletData(
+            balance: try stackNumber(stack[0], path + ".balance"),
+            owner: try address(fromCell: try tonapiCell(stack[1], path + ".owner"), path + ".owner"),
+            master: try address(fromCell: try tonapiCell(stack[2], path + ".master"), path + ".master")
         )
     }
 
