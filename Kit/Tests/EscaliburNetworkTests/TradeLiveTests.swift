@@ -209,6 +209,12 @@ struct TradeLiveTests {
         #expect(plan.order.buyAmount == BigUInt(decimal: "100000000000000000")!)
         #expect(plan.uid.count == 56)
         #expect(plan.signingPlan.review.kind == .limitOrder)
+
+        // O estado real da ordem: a allowance ao VaultRelayer igual nas duas fontes
+        // (auditoria 2, B4), e o approve simulado sempre que ela nao e exatamente o total.
+        let state = try await reader.readCoW(intent: intent)
+        #expect(state.sellToken.allowance == real.allowance)
+        Live.note("cow: allowance ao VaultRelayer \(state.sellToken.allowance ?? 0)")
     }
 
     @Test("Segunda camada: a conta da chave da EIP-155 tem sweeper 7702, e a simulacao recusa o plano")
