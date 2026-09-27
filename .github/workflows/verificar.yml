@@ -45,7 +45,9 @@ jobs:
           xcodebuild -project EscaliburWallet.xcodeproj -scheme EscaliburWallet -configuration Release \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ci \
             CODE_SIGNING_ALLOWED=NO build -quiet
-          binario=build/ci/Build/Products/Release-iphonesimulator/EscaliburWallet.app/EscaliburWallet
+          app=build/ci/Build/Products/Release-iphonesimulator/EscaliburWallet.app
+          binario="$app/EscaliburWallet"
+          test -f "$app/PrivacyInfo.xcprivacy" || { echo "manifesto de privacidade fora do app"; exit 1; }
           if strings "$binario" | grep -E "abandon abandon abandon|DebugDemo|envio-incerto|enviar-eth"; then
             echo "o binario de distribuicao carrega codigo do modo demo"
             exit 1

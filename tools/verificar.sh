@@ -220,6 +220,18 @@ grep -q 'sceneCaptureState' "$APP/App/PlatformGuards.swift" && grep -q 'isCaptur
     && ok "tela sensivel some com gravacao, espelhamento ou captura da cena" || aviso "defesa contra captura de tela incompleta"
 achados=$(swift_em "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET" "$ENG" | xargs grep -nE 'UserDefaults|@AppStorage' 2>/dev/null | grep -v "^$APP/App/Preferences.swift:")
 [ -n "$achados" ] && { aviso "UserDefaults fora de Preferences.swift"; echo "$achados"; } || ok "UserDefaults so em Preferences.swift"
+# Manifesto de privacidade: sem ele a App Store recusa o envio (API de motivo
+# obrigatorio). Sem rastreamento, sem dado coletado, e o motivo do UserDefaults.
+manifesto="$APP/Resources/PrivacyInfo.xcprivacy"
+if plutil -lint "$manifesto" >/dev/null 2>&1 \
+    && [ "$(/usr/libexec/PlistBuddy -c 'Print :NSPrivacyTracking' "$manifesto" 2>/dev/null)" = "false" ] \
+    && [ "$(/usr/libexec/PlistBuddy -c 'Print :NSPrivacyCollectedDataTypes' "$manifesto" 2>/dev/null | grep -c Dict)" = "0" ] \
+    && grep -q 'NSPrivacyAccessedAPICategoryUserDefaults' "$manifesto" && grep -q 'CA92.1' "$manifesto" \
+    && grep -q 'PrivacyInfo.xcprivacy' EscaliburWallet.xcodeproj/project.pbxproj; then
+    ok "manifesto de privacidade: sem rastreamento, sem coleta, motivo do UserDefaults, no projeto"
+else
+    aviso "manifesto de privacidade ausente, invalido ou fora do projeto"
+fi
 chaves=$(/usr/libexec/PlistBuddy -c "Print" "$APP/Resources/EscaliburWallet.entitlements" | grep -E '^\s+[a-z]' | awk '{print $1}' | sort | tr '\n' ' ')
 [ "$chaves" = "com.apple.developer.default-data-protection " ] && ok "entitlements: so a protecao de dados" || aviso "entitlements inesperados: $chaves"
 achados=$(grep -oE 'NS[A-Za-z]+UsageDescription' "$APP/Resources/Info.plist" | sort -u | grep -vE 'NSFaceIDUsageDescription|NSCameraUsageDescription|NSMicrophoneUsageDescription|NSSpeechRecognitionUsageDescription')
