@@ -39,17 +39,10 @@ struct NetworkMenu: View {
     let chains: [Chain]
     let selected: Chain
     let onSelect: (Chain) -> Void
+    @State private var open = false
 
     var body: some View {
-        Menu {
-            ForEach(chains) { chain in
-                Button {
-                    onSelect(chain)
-                } label: {
-                    if chain == selected { Label(chain.name, systemImage: "checkmark") } else { Text(chain.name) }
-                }
-            }
-        } label: {
+        Button { open = true } label: {
             HStack(spacing: 6) {
                 NetworkBadge(chain: selected, size: 20, ring: .clear)
                 Text(selected.name).typeStyle(.label).foregroundStyle(Palette.ink).lineLimit(1)
@@ -60,7 +53,42 @@ struct NetworkMenu: View {
             .background(Capsule(style: .continuous).fill(Palette.body)
                 .overlay(Capsule(style: .continuous).strokeBorder(Palette.edge, lineWidth: 1)))
         }
+        .buttonStyle(.plain)
         .accessibilityLabel("Rede: \(selected.name)")
+        // Lista propria no lugar do Menu do sistema: o Menu nao mostra o logo redondo de
+        // cada rede, e escolher rede e justamente reconhecer o logo.
+        .popover(isPresented: $open, arrowEdge: .top) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(chains) { chain in
+                        Button {
+                            open = false
+                            onSelect(chain)
+                        } label: {
+                            HStack(spacing: Space.sm) {
+                                NetworkBadge(chain: chain, size: 28, ring: .clear)
+                                Text(chain.name).typeStyle(.row).foregroundStyle(Palette.ink)
+                                Spacer(minLength: Space.sm)
+                                if chain == selected {
+                                    Image(systemName: "checkmark").font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
+                                }
+                            }
+                            .padding(.horizontal, Space.md)
+                            .frame(minHeight: 48)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(RowStyle())
+                        .accessibilityLabel(chain.name)
+                        .accessibilityAddTraits(chain == selected ? .isSelected : [])
+                    }
+                }
+                .padding(.vertical, Space.xs)
+            }
+            .frame(width: 250)
+            .frame(maxHeight: 440)
+            .presentationCompactAdaptation(.popover)
+            .presentationBackground(Palette.body)
+        }
     }
 }
 

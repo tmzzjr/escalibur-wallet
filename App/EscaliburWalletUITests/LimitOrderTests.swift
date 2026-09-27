@@ -40,4 +40,19 @@ final class LimitOrderTests: XCTestCase {
         shot("l2-ordens-abertas", app)
         XCTAssertTrue(empty.exists || retry.exists || row.exists, "a folha nao terminou de ler")
     }
+
+    /// A lista de redes da troca mostra o logo de cada uma, e escolher troca a rede.
+    func testNetworkPickerLists() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "trocar"]
+        app.launch()
+        let menu = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Rede:'")).firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 30))
+        menu.tap()
+        let solana = app.buttons["Solana"].firstMatch
+        XCTAssertTrue(solana.waitForExistence(timeout: 5))
+        shot("l3-redes", app)
+        solana.tap()
+        XCTAssertTrue(app.buttons["Rede: Solana"].waitForExistence(timeout: 5))
+    }
 }
