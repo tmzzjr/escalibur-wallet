@@ -49,6 +49,7 @@
 		8AD9BAAFA95723925CCB3A6D /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10914896D99BB58942178E3 /* Router.swift */; };
 		8C41E86F595FADDBED53F5FB /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */; };
 		90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E9C686393C93E1E34895B /* PlatformGuards.swift */; };
+		9199129964B9661C2FF62FDF /* MetadataCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */; };
 		91F8E34E141C393E6B6C5CE6 /* AddWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634FB486C1AC19A1DC738122 /* AddWalletView.swift */; };
 		93415D653E703DD5BF6B4C78 /* EscaliburChains in Frameworks */ = {isa = PBXBuildFile; productRef = 10B4A1AD96C0179B1C450517 /* EscaliburChains */; };
 		93B9E6DE2F90C83B21A8B2B1 /* LogoColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C49639FCBF7D664F63210A /* LogoColor.swift */; };
@@ -94,6 +95,13 @@
 			remoteGlobalIDString = 56CDD72F2FFC48B00F5FA0D8;
 			remoteInfo = EscaliburWallet;
 		};
+		71770EC318D1D40BE5F91886 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8F06F4F27AF9A8EDF471ECC0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 56CDD72F2FFC48B00F5FA0D8;
+			remoteInfo = EscaliburWallet;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -120,6 +128,7 @@
 		445327A094057374455F9FD5 /* LEIA-ME.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LEIA-ME.txt"; sourceTree = "<group>"; };
 		464E41DA23598ED80A750BD4 /* EscaliburWalletUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EscaliburWalletUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A0E9C686393C93E1E34895B /* PlatformGuards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformGuards.swift; sourceTree = "<group>"; };
+		4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataCompatibilityTests.swift; sourceTree = "<group>"; };
 		529FF2FD620686A71B265A06 /* RevealFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealFlow.swift; sourceTree = "<group>"; };
 		5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenOrdersView.swift; sourceTree = "<group>"; };
 		609FB55F39FC297CF3C80DE8 /* Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Kit; path = Kit; sourceTree = SOURCE_ROOT; };
@@ -170,6 +179,7 @@
 		E34BAC1217309C0064F23CE7 /* TradeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeView.swift; sourceTree = "<group>"; };
 		E7441E45998B7F6AA7BCE1E4 /* Marks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Marks.swift; sourceTree = "<group>"; };
 		E7B2519CA657D4A05E4C4A06 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metrics.swift; sourceTree = "<group>"; };
+		E92DA0C0AAD564FC730F1CFF /* EscaliburWalletTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EscaliburWalletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5287E825D53043F109D791D /* RecordWordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWordsView.swift; sourceTree = "<group>"; };
 		F5ECD2EB5627AA912E7957E4 /* DeviceIntegrity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIntegrity.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -194,6 +204,7 @@
 			isa = PBXGroup;
 			children = (
 				1292233C35D3175EC36E4F70 /* EscaliburWallet.app */,
+				E92DA0C0AAD564FC730F1CFF /* EscaliburWalletTests.xctest */,
 				464E41DA23598ED80A750BD4 /* EscaliburWalletUITests.xctest */,
 			);
 			name = Products;
@@ -415,6 +426,7 @@
 			isa = PBXGroup;
 			children = (
 				1313ED36EDCBB2C065C087F8 /* EscaliburWallet */,
+				E2F45D4F18929752144D2A39 /* EscaliburWalletTests */,
 				7719C44BCFB732B2DA3A73BE /* EscaliburWalletUITests */,
 			);
 			path = App;
@@ -427,6 +439,14 @@
 				7C28ED1879662A04236281C1 /* termos.md */,
 			);
 			path = Legal;
+			sourceTree = "<group>";
+		};
+		E2F45D4F18929752144D2A39 /* EscaliburWalletTests */ = {
+			isa = PBXGroup;
+			children = (
+				4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */,
+			);
+			path = EscaliburWalletTests;
 			sourceTree = "<group>";
 		};
 		F270433245B840975F2AB3B6 /* Packages */ = {
@@ -476,6 +496,24 @@
 			productReference = 464E41DA23598ED80A750BD4 /* EscaliburWalletUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		1BFFA8D0EDBE24B32A9D78DC /* EscaliburWalletTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1FBB7D657681C6050BF943B3 /* Build configuration list for PBXNativeTarget "EscaliburWalletTests" */;
+			buildPhases = (
+				CD29700735807A1634F26C96 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1533305E281C93E29A484D28 /* PBXTargetDependency */,
+			);
+			name = EscaliburWalletTests;
+			packageProductDependencies = (
+			);
+			productName = EscaliburWalletTests;
+			productReference = E92DA0C0AAD564FC730F1CFF /* EscaliburWalletTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		56CDD72F2FFC48B00F5FA0D8 /* EscaliburWallet */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 504EEFB4447FF609BB79B60C /* Build configuration list for PBXNativeTarget "EscaliburWallet" */;
@@ -513,6 +551,9 @@
 						DevelopmentTeam = 2UNWMDD93S;
 						TestTargetID = 56CDD72F2FFC48B00F5FA0D8;
 					};
+					1BFFA8D0EDBE24B32A9D78DC = {
+						DevelopmentTeam = 2UNWMDD93S;
+					};
 					56CDD72F2FFC48B00F5FA0D8 = {
 						DevelopmentTeam = 2UNWMDD93S;
 					};
@@ -536,6 +577,7 @@
 			projectRoot = "";
 			targets = (
 				56CDD72F2FFC48B00F5FA0D8 /* EscaliburWallet */,
+				1BFFA8D0EDBE24B32A9D78DC /* EscaliburWalletTests */,
 				1BB9E87C01E98FCD7D8CD165 /* EscaliburWalletUITests */,
 			);
 		};
@@ -571,6 +613,14 @@
 				2A90FB479DFA2C8FA3B4A582 /* ReceiveFlowTests.swift in Sources */,
 				4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */,
 				046D4A66EDC4E578C0246247 /* TradeQuoteTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD29700735807A1634F26C96 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9199129964B9661C2FF62FDF /* MetadataCompatibilityTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -641,6 +691,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		1533305E281C93E29A484D28 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 56CDD72F2FFC48B00F5FA0D8 /* EscaliburWallet */;
+			targetProxy = 71770EC318D1D40BE5F91886 /* PBXContainerItemProxy */;
+		};
 		37D7739BA2AEDFA234EDC04C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 56CDD72F2FFC48B00F5FA0D8 /* EscaliburWallet */;
@@ -706,6 +761,25 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		38109A1C74C0646C854831D8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 2UNWMDD93S;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet.tests;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EscaliburWallet.app/EscaliburWallet";
 			};
 			name = Release;
 		};
@@ -835,6 +909,25 @@
 			};
 			name = Debug;
 		};
+		E4088E5D7BC76B9B3E19260A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = 2UNWMDD93S;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet.tests;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/EscaliburWallet.app/EscaliburWallet";
+			};
+			name = Debug;
+		};
 		E5EBA13D246287B62772E6C3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -857,6 +950,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1FBB7D657681C6050BF943B3 /* Build configuration list for PBXNativeTarget "EscaliburWalletTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E4088E5D7BC76B9B3E19260A /* Debug */,
+				38109A1C74C0646C854831D8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		504EEFB4447FF609BB79B60C /* Build configuration list for PBXNativeTarget "EscaliburWallet" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

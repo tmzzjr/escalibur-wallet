@@ -646,7 +646,15 @@ struct AboutView: View {
                     Text("Versão \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""))")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 }
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    Text("Preços").typeStyle(.heading).foregroundStyle(Palette.ink)
+                    Text("Preços e dados de mercado: CoinGecko. Os saldos e as transações vêm direto das redes.")
+                        .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                }
                 SettingsGroup {
+                    ShareLink(items: RecoveryKit.files) {
+                        SettingsRow(icon: "laptopcomputer", title: "Decifrador de envelopes para computador")
+                    }
                     Button { legalDocument = .terms } label: { SettingsRow(icon: "doc.text", title: "Termos de uso") }
                     Button { legalDocument = .privacy } label: { SettingsRow(icon: "hand.raised", title: "Política de privacidade") }
                 }

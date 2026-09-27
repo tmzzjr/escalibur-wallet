@@ -22,7 +22,7 @@ enum NonceQueue {
     /// Pendente ha mais que isto sem confirmar: a rede provavelmente descartou.
     static let staleAfter: TimeInterval = 30 * 60
 
-    static func key(wallet: UUID, chain: Chain, address: String) -> String {
+    nonisolated static func key(wallet: UUID, chain: Chain, address: String) -> String {
         "\(wallet.uuidString)|\(chain.id)|\(address.lowercased())"
     }
 

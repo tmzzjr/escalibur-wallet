@@ -44,6 +44,17 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "1BFFA8D0EDBE24B32A9D78DC"
+               BuildableName = "EscaliburWalletTests.xctest"
+               BlueprintName = "EscaliburWalletTests"
+               ReferencedContainer = "container:EscaliburWallet.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "1BB9E87C01E98FCD7D8CD165"
                BuildableName = "EscaliburWalletUITests.xctest"
                BlueprintName = "EscaliburWalletUITests"

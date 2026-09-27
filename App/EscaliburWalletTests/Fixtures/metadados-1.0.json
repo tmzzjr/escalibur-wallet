@@ -1,0 +1,196 @@
+{
+  "balanceCache" : [
+    "11111111-1111-1111-1111-111111111111",
+    {
+      "ethereum" : {
+        "accountExists" : true,
+        "chainID" : "ethereum",
+        "fetchedAt" : 780000000,
+        "holdings" : [
+
+        ],
+        "unknownTokenCount" : 2
+      }
+    }
+  ],
+  "cachedAt" : 811693200,
+  "contacts" : [
+    {
+      "address" : "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+      "chainID" : "xrpl",
+      "id" : "33333333-3333-3333-3333-333333333333",
+      "name" : "Exchange",
+      "tag" : "123"
+    }
+  ],
+  "pendingEVM" : {
+    "11111111-1111-1111-1111-111111111111|ethereum|0x9858effd232b4033e47d90003d41ec34ecaeda94" : [
+      {
+        "hash" : "0xabc",
+        "nonce" : 7,
+        "sentAt" : 811693300
+      }
+    ]
+  },
+  "quoteCache" : {
+    "bitcoin" : {
+      "change24h" : 1.5,
+      "price" : 100000
+    }
+  },
+  "selectedWalletID" : "11111111-1111-1111-1111-111111111111",
+  "sentTo" : {
+    "ethereum" : [
+      "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+    ]
+  },
+  "settings" : {
+    "autoLockSeconds" : 30,
+    "biometryEnabled" : false,
+    "currency" : "usd",
+    "disabledChainIDs" : [
+      "celo"
+    ],
+    "favoriteCoins" : [
+      "solana"
+    ],
+    "hideBalances" : true,
+    "mevProtection" : true,
+    "totalUnit" : "btc",
+    "voice" : {
+      "enabled" : true,
+      "onEnvelope" : true,
+      "onReveal" : true,
+      "onSendAboveFiat" : 1000
+    }
+  },
+  "version" : 1,
+  "wallets" : [
+    {
+      "accounts" : [
+        {
+          "address" : "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+          "chainID" : "ethereum",
+          "path" : "m\/44'\/60'\/0'\/0\/0",
+          "publicKey" : [
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
+          ]
+        }
+      ],
+      "backupConfirmedAt" : 811692900,
+      "createdAt" : 811692800,
+      "envelopeSealedAt" : 811693000,
+      "fingerprint" : "73c5da0a",
+      "hasPassphrase" : false,
+      "hiddenAssetIDs" : [
+        "ethereum:0xdead"
+      ],
+      "id" : "11111111-1111-1111-1111-111111111111",
+      "kind" : {
+        "phrase" : {
+          "wordCount" : 12
+        }
+      },
+      "name" : "Carteira principal",
+      "origin" : "created",
+      "utxoUsage" : {
+        "bitcoin" : {
+          "changeUsed" : 1,
+          "receiveUsed" : 3
+        }
+      }
+    },
+    {
+      "accounts" : [
+        {
+          "address" : "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+          "chainID" : "ethereum",
+          "path" : "m\/44'\/60'\/0'\/0\/0",
+          "publicKey" : [
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
+          ]
+        }
+      ],
+      "createdAt" : 811693100,
+      "hasPassphrase" : false,
+      "hiddenAssetIDs" : [
+
+      ],
+      "id" : "22222222-2222-2222-2222-222222222222",
+      "kind" : {
+        "watch" : {
+          "chainID" : "ethereum"
+        }
+      },
+      "name" : "Acompanhar",
+      "origin" : "watch",
+      "utxoUsage" : {
+
+      }
+    }
+  ]
+}

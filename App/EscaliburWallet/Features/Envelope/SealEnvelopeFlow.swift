@@ -3,6 +3,16 @@ import EscaliburKeys
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// O decifrador de envelopes para computador: o `decifrar.py`, a descricao do formato
+/// e o LEIA-ME, embarcados no app e travados por `recuperacao.lock`. Sem ele, o
+/// envelope so abriria num app Escalibur; com ele, abre em qualquer computador com
+/// Python, mesmo que o app deixe de existir.
+enum RecoveryKit {
+    static var files: [URL] {
+        [("LEIA-ME", "txt"), ("decifrar", "py"), ("FORMATO", "md")].compactMap { Bundle.main.url(forResource: $0.0, withExtension: $0.1) }
+    }
+}
+
 /// V1: lacrar a senha de uma carteira num envelope Escalibur.
 ///
 /// O envelope sai no formato `.esclbr` v1 do Escalibur, byte a byte: abre no app
@@ -197,8 +207,15 @@ struct SealEnvelopeFlow: View {
                     }
                     .buttonStyle(PrimaryStyle())
                 }
-                Text("Abre no app Escalibur, aqui, ou no decifrador aberto num computador.")
+                ShareLink(items: RecoveryKit.files) {
+                    Text("Salvar o decifrador para computador").typeStyle(.action)
+                        .frame(maxWidth: .infinity).frame(height: Height.secondary)
+                }
+                .buttonStyle(SecondaryStyle())
+                .padding(.top, Space.sm)
+                Text("Abre no app Escalibur, aqui, ou num computador com o decifrador, que também fica em Ajustes, Sobre.")
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Lacrando o envelope").typeStyle(.title).foregroundStyle(Palette.ink)
                 Text("Leva \(Fmt.aboutSeconds(KDFCalibration.estimatedSeconds(for: kdf))), só neste iPhone. A senha do envelope não sai dele.")

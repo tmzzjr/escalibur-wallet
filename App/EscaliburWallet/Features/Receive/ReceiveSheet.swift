@@ -7,16 +7,17 @@ import UniformTypeIdentifiers
 
 /// QR com correcao de erro nivel H, modulos quadrados, sem suavizacao.
 enum QRCode {
-    static func image(_ text: String, size: CGFloat) -> UIImage? {
+    /// `scale`: a escala da tela onde o QR aparece (`displayScale` do SwiftUI).
+    static func image(_ text: String, size: CGFloat, scale screenScale: CGFloat) -> UIImage? {
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(text.utf8)
         filter.correctionLevel = "H"
         guard let output = filter.outputImage else { return nil }
-        let scale = max(1, floor(size * UIScreen.main.scale / output.extent.width))
+        let scale = max(1, floor(size * screenScale / output.extent.width))
         let scaled = output.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
         let context = CIContext()
         guard let cg = context.createCGImage(scaled, from: scaled.extent) else { return nil }
-        return UIImage(cgImage: cg, scale: UIScreen.main.scale, orientation: .up)
+        return UIImage(cgImage: cg, scale: screenScale, orientation: .up)
     }
 }
 
@@ -37,6 +38,7 @@ struct ReceiveSheet: View {
     @Environment(ToastCenter.self) private var toasts
     @Environment(Portfolio.self) private var portfolio
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.displayScale) private var displayScale
     let preselected: Asset?
 
     @State private var query = ""
@@ -244,7 +246,7 @@ struct ReceiveSheet: View {
 
     private func qrPlate(address: String, chain: Chain) -> some View {
         ZStack {
-            if let image = QRCode.image(address, size: 232) {
+            if let image = QRCode.image(address, size: 232, scale: displayScale) {
                 Image(uiImage: image).interpolation(.none).resizable().frame(width: 232, height: 232)
             }
             NetworkBadge(chain: chain, size: 48, ring: Palette.live)

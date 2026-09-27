@@ -77,6 +77,8 @@ struct MarketView: View {
                     }
                     .padding(.top, Space.sm)
                     .animation(Motion.fade, value: favoriteIDs)
+                    Text("Dados de mercado: CoinGecko").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                        .frame(maxWidth: .infinity).padding(.top, Space.lg)
                 }
                 .padding(.bottom, Space.xl)
             }

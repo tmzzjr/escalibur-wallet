@@ -1,28 +1,29 @@
-COMO ABRIR ESTE COFRE
-=====================
+COMO ABRIR ESTE ENVELOPE
+========================
 
-Esta pasta tem tudo que alguém precisa para recuperar a frase guardada aqui, mesmo
-que o aplicativo Escalibur não exista mais e mesmo sem um iPhone.
+Estes arquivos servem para recuperar as palavras de recuperação de uma carteira
+guardadas num envelope Escalibur, mesmo que a Escalibur Wallet não exista mais e
+mesmo sem um iPhone.
 
 O que tem aqui
 --------------
 
-  cofre-XXXX.esclbr
-                  O cofre. Está cifrado. Sem a senha, é ruído. No lugar do
-                  XXXX vem a impressão do cofre, então o nome do arquivo desta
-                  pasta é um pouco diferente do que aparece escrito aqui.
-  decifrar.py     Um programa em Python que abre o cofre.
+  envelope-XXXX.esclbr
+                  O envelope, se foi salvo junto. Está cifrado: sem a senha do
+                  envelope, é ruído. No lugar do XXXX vêm quatro letras e
+                  números sorteados, que não dizem de quem é o envelope.
+  decifrar.py     Um programa em Python que abre o envelope.
   FORMATO.md      A descrição do formato, byte a byte, para quem quiser
                   escrever o próprio programa daqui a dez anos.
 
 O que NÃO tem aqui, e é de propósito
 ------------------------------------
 
-A senha. Ela não está nesta pasta, não está no arquivo do cofre e não está em
-nenhum servidor. Quem guardou este cofre escolheu uma senha e ela existe apenas
-onde essa pessoa a colocou.
+A senha do envelope. Ela não está nestes arquivos, não está no envelope e não
+está em nenhum servidor. Quem lacrou o envelope escolheu ou sorteou essa senha,
+e ela existe apenas onde essa pessoa a anotou.
 
-Sem a senha, nada aqui abre. Nem o autor do aplicativo consegue abrir.
+Sem a senha, nada aqui abre. Nem quem fez o aplicativo consegue abrir.
 
 Como abrir
 ----------
@@ -30,20 +31,21 @@ Como abrir
 Num computador com Python instalado (Mac, Windows ou Linux):
 
     pip install argon2-cffi cryptography
-    python3 decifrar.py cofre-XXXX.esclbr
+    python3 decifrar.py envelope-XXXX.esclbr
 
-Troque `cofre-XXXX.esclbr` pelo nome exato do arquivo que está nesta pasta.
+Troque envelope-XXXX.esclbr pelo nome exato do arquivo do envelope.
 
-O programa vai pedir a senha e, se ela estiver certa, imprimir as palavras da
-frase de recuperação na tela.
+O programa pede a senha (ele a chama de "senha do cofre", porque o envelope usa
+o mesmo formato do cofre do app Escalibur) e, se ela estiver certa, mostra as
+palavras de recuperação na tela.
 
 Um aviso
 --------
 
-Quem tiver esta pasta E a senha tem acesso ao dinheiro da carteira. Guarde as
-duas coisas separadas: a pasta num lugar, a senha em outro.
+Quem tiver o envelope E a senha dele tem acesso ao dinheiro da carteira. Guarde
+as duas coisas separadas: o arquivo num lugar, a senha em outro.
 
 Se você recebeu isto como herança e não sabe o que fazer com as palavras que o
-programa imprimir, procure alguém de confiança que entenda de carteiras de
+programa mostrar, procure alguém de confiança que entenda de carteiras de
 criptomoeda antes de digitar essas palavras em qualquer site ou aplicativo.
 Palavras de recuperação digitadas no lugar errado são dinheiro perdido na hora.

@@ -88,7 +88,7 @@ CONTEÚDO, depois de decifrado (3936 bytes, o resto zerado):
           12  ...  os quatro campos, nessa ordem, em UTF-8
 
 A frase é gravada já na forma canônica do BIP-39: **NFKD, minúsculas, palavras
-separadas por um único espaço comum (U+0020)** — inclusive em japonês, que no
+separadas por um único espaço comum (U+0020)**, inclusive em japonês, que no
 papel usa o espaço ideográfico (U+3000). Os bytes lidos daqui são exatamente a
 entrada do PBKDF2 do BIP-39; quem reimplementar não deve normalizar de novo nem
 "consertar" os espaços. Uma parte SLIP-39 segue a mesma forma.

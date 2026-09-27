@@ -53,6 +53,15 @@ jobs:
             exit 1
           fi
 
+      # Testes de unidade do app no simulador (hoje: os metadados gravados pela 1.0
+      # tem de abrir em toda versao seguinte). O primeiro iPhone disponivel no runner.
+      - name: Testes de unidade do app
+        run: |
+          destino=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next(x['udid'] for k,v in d.items() if 'iOS' in k for x in v if x['name'].startswith('iPhone')))")
+          xcodebuild -project EscaliburWallet.xcodeproj -scheme EscaliburWallet -sdk iphonesimulator \
+            -destination "id=$destino" -derivedDataPath build/ci-testes -only-testing:EscaliburWalletTests \
+            CODE_SIGNING_ALLOWED=NO test -quiet
+
       # Dependencias fixadas por versao e por hash: um pacote trocado no PyPI nao entra.
       - name: Envelope da carteira aberto pelo decifrar.py embarcado
         run: |
