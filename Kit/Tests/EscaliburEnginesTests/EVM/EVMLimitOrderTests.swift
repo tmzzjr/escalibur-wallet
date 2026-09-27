@@ -83,6 +83,22 @@ struct EVMLimitOrderTests {
         }
     }
 
+    @Test("Auditoria 2, B4: sobra de autorizacao ao VaultRelayer e reduzida ao valor da ordem; exata, nada a autorizar")
+    func approvalCap() async throws {
+        let leftover = H.engine(state: FakeTradeChain(allowance: BigUInt(1_000_000_000)), cow: FakeCoW(), sources: [], transport: try H.baseTransport())
+        let reduced = try await leftover.planLimitOrder(Self.request())
+        #expect(reduced.review.transactionCount == 2)
+        let approve = try #require(reduced.transactions.first as? EVMTransaction)
+        #expect(approve.data == ERC20.approve(spender: CoWProtocol.vaultRelayer, amount: F.amount))
+        #expect(reduced.review.lines.contains { $0.label == "Autorização atual" })
+        #expect(reduced.review.lines.contains { $0.label == "Outras ordens" && $0.value.contains("vem só da CoW") })
+
+        let exact = H.engine(state: FakeTradeChain(allowance: F.amount), cow: FakeCoW(), sources: [], transport: try H.baseTransport())
+        let plan = try await exact.planLimitOrder(Self.request())
+        #expect(plan.transactions.count == 1 && plan.transactions.first is EIP712ValidatedMessage)
+        #expect(plan.review.lines.contains { $0.label == "Autorização" && $0.value == "Já existe e é exatamente o valor da ordem" })
+    }
+
     @Test("Autorizacao revertida na cadeia: a ordem nao vai para a CoW")
     func prerequisiteFailed() async throws {
         let cow = FakeCoW()

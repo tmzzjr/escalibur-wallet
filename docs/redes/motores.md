@@ -42,6 +42,13 @@ Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
   cotações válidas e só escolhe a que garante o mínimo calculado da maior estimativa
   entre elas; no plano, a recotação tem de garantir pelo menos o mínimo que a tela
   mostrou.
+- **Ordem limite na CoW**: uma ordem aberta por token vendido. A lista de ordens abertas
+  vem só da API da CoW, porque o livro de ordens não está na cadeia. O teto é da cadeia:
+  toda ordem de venda com saldo ERC-20 puxa o token pelo VaultRelayer, dentro da
+  autorização do dono, e o plano deixa essa autorização exatamente no valor da ordem,
+  aprovando quando falta e reduzindo quando sobra (no USDT da Ethereum, zera antes). A
+  autorização lida tem de ser a mesma nas duas fontes. Uma ordem antiga que a API não
+  mostre só executa dentro desse teto, e a revisão diz as duas coisas (auditoria 2, B4).
 - **Troca na Solana**: a Jupiter propõe a rota; o preço de referência vem do oráculo do
   app, com os mesmos degraus (5% bloqueia, 2% avisa). Par que não é de dois stablecoins
   da lista, sem referência, é recusado. A simulação lê também as contas de token do dono
