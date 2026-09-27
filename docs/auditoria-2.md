@@ -51,7 +51,7 @@ Atualizada a cada correção.
 | Seg A2: verificador, fronteiras, hosts | feito | `tools/verificar.sh`, `Package.swift`, `AllowedHosts` no `HTTPClient` |
 | Seg M1: ativo e valor amarrados ao plano | feito | planejadores preenchem `outgoing`, `incomingMinimum` e `beneficiary` a partir da transação; `PlanIntentCheck` confere no envio e na troca antes de revisar e antes de assinar; voz e "cerca de" usam o valor do plano; os testes dos motores conferem que o plano real passa |
 | Seg M2: desafio do endereço parecido | feito | o desafio pede os 6 caracteres do meio onde o destino difere do conhecido (`AddressPoisoning.differingSegment`), com os dois endereços lado a lado e o trecho marcado; conhecidos incluem para quem a carteira já pagou no histórico da rede; teste de interface em `SendLookalikeTests` |
-| Seg M3: transmissão ambígua | aberto | |
+| Seg M3: transmissão ambígua | feito | erro na transmissão depois de assinar vira "Não deu para confirmar": a tela só oferece transmitir de novo os mesmos bytes (mesmo id, não paga duas vezes), acompanha o id conhecido e manda conferir na Atividade; nonce EVM e índice de troco UTXO ficam anotados antes da transmissão |
 | Seg M4: PIN errado dentro de envio ou troca | feito | `AuthCoordinator.perform` volta ao teclado com o aviso da tela de bloqueio; teste de interface em `EnvelopeFlowTests` |
 | Seg M5: memo opcional, `.noDestinationTag` | aberto | |
 | Seg M6: preço limite sem conferência | feito | `TradeView.limitSanity`: abaixo de 2% do mercado pede confirmação presa ao preço digitado, abaixo de 50% bloqueia, sem preço de mercado pede confirmação |

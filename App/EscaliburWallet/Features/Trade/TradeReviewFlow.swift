@@ -31,11 +31,15 @@ struct TradeReviewFlow: View {
     let item: Item
     let onClose: (_ completed: Bool) -> Void
 
-    enum Stage { case planning, review, sending, done }
+    /// `unsure`: assinado e enviado sem resposta certa (auditoria 2, M3).
+    enum Stage { case planning, review, sending, done, unsure }
     @State private var stage: Stage = .planning
     @State private var plan: SigningPlan?
     @State private var error: String?
     @State private var ids: [String] = []
+    /// O que foi assinado e enviado sem resposta certa: so isto pode ir de novo.
+    @State private var unsureSigned: [SignedTransaction]?
+    @State private var unsureDetail: String?
 
     private var engine: (any TradeEngine)? { TradeEngines.engine(for: item.chain) }
     private var isLimit: Bool { if case .limit = item.kind { return true }; return false }
@@ -66,6 +70,7 @@ struct TradeReviewFlow: View {
                 case .review: review
                 case .sending: sending
                 case .done: done
+                case .unsure: unsure
                 }
             }
             .padding(.horizontal, Space.gutter)
@@ -283,22 +288,72 @@ struct TradeReviewFlow: View {
         if !isCancel {
             guard await VoiceGate.shared.confirm(.send(fiat: fiat), session: session) else { return }
         }
+        let signed: [SignedTransaction]
         do {
-            guard let signed = try await auth.perform(session, reason: plan.review.title, { rk in
+            guard let result = try await auth.perform(session, reason: plan.review.title, { rk in
                 try Signer.sign(plan, rootKey: rk, vault: KeyServices.wallets)
             }) else { return }
-            stage = .sending
-            ids = try await engine.submit(signed, plan: plan)
-            if let wallet = session.selectedWallet, let account = wallet.account(item.chain) {
-                NonceQueue.record(session, wallet: wallet.id, chain: item.chain, address: account.address, plan: plan, signed: signed)
-            }
-            stage = .done
-            portfolio.show(session.selectedWallet, session: session, force: true)
+            signed = result
         } catch {
             self.error = (error as? LocalizedError)?.errorDescription
                 ?? text(swap: "A troca não saiu. Nada foi debitado.", limit: "A ordem não saiu. Nada foi debitado.",
                         cancel: "O cancelamento não saiu. A ordem continua aberta.")
             stage = .review
+            return
+        }
+        await transmit(signed, plan: plan, engine: engine)
+    }
+
+    /// Envia o que foi assinado. Erro aqui nao quer dizer que nada saiu: a resposta pode
+    /// ter se perdido depois de a rede (ou a CoW) receber. A tela diz isso e so oferece
+    /// enviar de novo os mesmos bytes, que tem o mesmo id e nao pagam duas vezes.
+    private func transmit(_ signed: [SignedTransaction], plan: SigningPlan, engine: any TradeEngine) async {
+        if let wallet = session.selectedWallet, let account = wallet.account(item.chain) {
+            NonceQueue.record(session, wallet: wallet.id, chain: item.chain, address: account.address, plan: plan, signed: signed)
+        }
+        stage = .sending
+        do {
+            ids = try await engine.submit(signed, plan: plan)
+            unsureSigned = nil
+            stage = .done
+            portfolio.show(session.selectedWallet, session: session, force: true)
+        } catch {
+            ids = signed.map(\.id)
+            unsureSigned = signed
+            unsureDetail = (error as? LocalizedError)?.errorDescription
+            stage = .unsure
+        }
+    }
+
+    private var unsure: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer()
+            Image(systemName: "questionmark.circle").font(.system(size: 44)).foregroundStyle(Palette.caution)
+            Text(text(swap: "Não deu para confirmar a troca", limit: "Não deu para confirmar a ordem",
+                      cancel: "Não deu para confirmar o cancelamento"))
+                .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+            Text("A resposta não veio com certeza, e o que foi assinado pode já estar a caminho. Não monte de novo: enviar de novo usa os mesmos dados e não paga duas vezes. Confira na Atividade antes de qualquer outra operação.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                .fixedSize(horizontal: false, vertical: true)
+            if let unsureDetail {
+                Text(unsureDetail).typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            if !isLimit, !isOffchainCancel, let last = ids.last, let url = item.chain.explorerURL(tx: last) {
+                Link(destination: url) {
+                    Text("Procurar no \(item.chain.explorerName)").typeStyle(.action)
+                        .frame(maxWidth: .infinity).frame(height: Height.secondary)
+                }
+                .buttonStyle(SecondaryStyle())
+            }
+            PrimaryButton(title: "Enviar de novo") {
+                guard let signed = unsureSigned, let plan, let engine else { return }
+                Task { await transmit(signed, plan: plan, engine: engine) }
+            }
+            .padding(.top, Space.sm)
+            TertiaryButton(title: "Fechar e acompanhar na Atividade") { onClose(true) }.frame(maxWidth: .infinity)
+                .padding(.bottom, Space.xs)
         }
     }
 }

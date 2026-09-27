@@ -54,3 +54,20 @@ extension XCUIElement {
         typeText(text)
     }
 }
+
+/// Transmissao sem resposta certa: a tela so oferece enviar os mesmos bytes de novo.
+final class SendUnsureTests: XCTestCase {
+    var shots: String? { ProcessInfo.processInfo.environment["ESCALIBUR_FOTOS"] }
+
+    func testUnsureScreen() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "envio-incerto"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Não deu para confirmar o envio"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.buttons["Transmitir de novo"].exists)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        if let shots { try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/s3-incerto.png")) }
+    }
+}

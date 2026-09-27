@@ -9,7 +9,8 @@ import SwiftUI
 @MainActor
 @Observable
 final class SendModel {
-    enum Stage: Hashable { case destination, tag, amount, review, sending, done }
+    /// `unsure`: assinado e transmitido sem resposta certa da rede (auditoria 2, M3).
+    enum Stage: Hashable { case destination, tag, amount, review, sending, done, unsure }
 
     let wallet: WalletMeta
     var holding: Holding?
@@ -40,6 +41,10 @@ final class SendModel {
     var error: String?
     var resultID: String?
     var status: TransferStatus = .pending
+    /// A transacao assinada cuja transmissao nao teve resposta certa. So ela pode ser
+    /// transmitida de novo (os mesmos bytes, o mesmo id): remontar pagaria duas vezes.
+    var unsureSigned: [SignedTransaction]?
+    var unsureDetail: String?
 
     init(wallet: WalletMeta, holding: Holding?) {
         self.wallet = wallet
@@ -109,9 +114,17 @@ struct SendFlow: View {
             #if DEBUG
             // A carteira de teste nao tem saldo em rede EVM, onde um endereco parecido
             // sem checksum se escreve a mao: o teste de envenenamento entra com zero.
-            if holding == nil, DebugDemo.screen == "enviar-eth" { holding = Holding(asset: .native(.ethereum), amount: 0) }
+            if holding == nil, ["enviar-eth", "envio-incerto"].contains(DebugDemo.screen) { holding = Holding(asset: .native(.ethereum), amount: 0) }
             #endif
             model = SendModel(wallet: wallet, holding: holding)
+            #if DEBUG
+            // A tela de transmissao sem resposta certa, para conferir o desenho.
+            if DebugDemo.screen == "envio-incerto" {
+                model?.resultID = "0x" + String(repeating: "ab", count: 32)
+                model?.unsureDetail = "Não foi possível falar com a rede Ethereum agora."
+                model?.stage = .unsure
+            }
+            #endif
         }
     }
 }
@@ -188,6 +201,7 @@ struct SendStages: View {
             case .amount: amountStage
             case .review: reviewStage
             case .sending, .done: statusStage
+            case .unsure: unsureStage
             }
         }
         .padding(.horizontal, Space.gutter)
@@ -687,34 +701,108 @@ struct SendStages: View {
         guard await VoiceGate.shared.confirm(.send(fiat: fiat), session: session) else { return }
         model.working = true
         defer { model.working = false }
+        let signed: [SignedTransaction]
         do {
-            guard let signed = try await auth.perform(session, reason: plan.review.title, { rk in
+            guard let result = try await auth.perform(session, reason: plan.review.title, { rk in
                 try Signer.sign(plan, rootKey: rk, vault: KeyServices.wallets)
             }) else { return }
-            model.stage = .sending
-            let id = try await engine.broadcast(signed, chain: chain)
-            model.resultID = id
-            if let account = model.account {
-                NonceQueue.record(session, wallet: model.wallet.id, chain: chain, address: account.address, plan: plan, signed: signed)
-            }
-            // Troco num endereco novo: o indice avanca para o proximo envio nao repetir.
-            if let usage = engine.usage(after: plan, current: model.wallet.utxoUsage[chain.id]),
-               var wallet = session.metadata.wallets.first(where: { $0.id == model.wallet.id }) {
-                wallet.utxoUsage[chain.id] = usage
-                session.update(wallet)
-            }
-            if let address = model.destination?.address {
-                var sent = session.metadata.sentTo[chain.id] ?? []
-                if !sent.contains(address) { sent.append(address) }
-                session.metadata.sentTo[chain.id] = sent
-                try? session.persist()
-            }
-            model.stage = .done
-            await track(engine: engine, id: id, chain: chain)
+            signed = result
         } catch {
             model.error = (error as? LocalizedError)?.errorDescription ?? "O envio não saiu. Nada foi debitado."
             model.stage = .review
+            return
         }
+        model.stage = .sending
+        await transmit(signed, plan: plan, engine: engine, chain: chain)
+    }
+
+    /// Transmite os bytes assinados. Erro aqui nao quer dizer que nada saiu: a rede pode
+    /// ter recebido e a resposta se perdido. A tela diz isso, acompanha o id que ja se
+    /// conhece e so oferece transmitir de novo os mesmos bytes, nunca montar outro envio.
+    private func transmit(_ signed: [SignedTransaction], plan: SigningPlan, engine: any SendEngine, chain: Chain) async {
+        // O que o plano consome (nonce EVM, indice de troco UTXO) fica anotado antes da
+        // transmissao: se ela sair sem resposta, o proximo envio nao repete nenhum dos
+        // dois. Anotar de novo numa retransmissao nao muda nada.
+        if let address = model.account?.address {
+            NonceQueue.record(session, wallet: model.wallet.id, chain: chain, address: address, plan: plan, signed: signed)
+        }
+        if let usage = engine.usage(after: plan, current: model.wallet.utxoUsage[chain.id]),
+           var wallet = session.metadata.wallets.first(where: { $0.id == model.wallet.id }) {
+            wallet.utxoUsage[chain.id] = usage
+            session.update(wallet)
+        }
+        do {
+            let id = try await engine.broadcast(signed, chain: chain)
+            model.unsureSigned = nil
+            model.unsureDetail = nil
+            await finish(id: id, plan: plan, engine: engine, chain: chain)
+        } catch {
+            model.resultID = signed.last?.id
+            model.unsureSigned = signed
+            model.unsureDetail = (error as? LocalizedError)?.errorDescription
+            model.stage = .unsure
+        }
+    }
+
+    private func finish(id: String, plan: SigningPlan, engine: any SendEngine, chain: Chain) async {
+        model.resultID = id
+        if let address = model.destination?.address {
+            var sent = session.metadata.sentTo[chain.id] ?? []
+            if !sent.contains(address) { sent.append(address) }
+            session.metadata.sentTo[chain.id] = sent
+            try? session.persist()
+        }
+        model.stage = .done
+        await track(engine: engine, id: id, chain: chain)
+    }
+
+    /// Enquanto a resposta e incerta, pergunta a rede pelo id ja conhecido: se ela
+    /// conhece a transacao, o envio saiu.
+    private func watchUnsure() async {
+        guard let engine, let chain = model.chain, let plan = model.plan, let id = model.resultID else { return }
+        for _ in 0..<40 where model.stage == .unsure {
+            try? await Task.sleep(for: .seconds(chain.typicalConfirmationSeconds > 60 ? 15 : 4))
+            guard model.stage == .unsure else { return }
+            if case .confirmed = await engine.status(id, chain: chain) {
+                model.unsureSigned = nil
+                await finish(id: id, plan: plan, engine: engine, chain: chain)
+                return
+            }
+        }
+    }
+
+    private func retransmit() async {
+        guard let signed = model.unsureSigned, let engine, let chain = model.chain, let plan = model.plan else { return }
+        model.working = true
+        defer { model.working = false }
+        model.stage = .sending
+        await transmit(signed, plan: plan, engine: engine, chain: chain)
+    }
+
+    private var unsureStage: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer()
+            Image(systemName: "questionmark.circle").font(.system(size: 44)).foregroundStyle(Palette.caution)
+            Text("Não deu para confirmar o envio").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+            Text("A rede não respondeu com certeza, e a transação assinada pode já estar a caminho. Não monte outro envio: transmitir de novo usa os mesmos dados e não paga duas vezes. O app continua perguntando à rede por esta transação.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                .fixedSize(horizontal: false, vertical: true)
+            if let detail = model.unsureDetail {
+                Text(detail).typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            if let id = model.resultID, let url = model.chain?.explorerURL(tx: id) {
+                Link(destination: url) {
+                    Text("Procurar no \(model.chain?.explorerName ?? "explorador")").typeStyle(.action)
+                        .frame(maxWidth: .infinity).frame(height: Height.secondary)
+                }
+                .buttonStyle(SecondaryStyle())
+            }
+            PrimaryButton(title: "Transmitir de novo", loading: model.working) { Task { await retransmit() } }.padding(.top, Space.sm)
+            TertiaryButton(title: "Fechar e acompanhar na Atividade", action: close).frame(maxWidth: .infinity)
+        }
+        .task(id: model.resultID) { await watchUnsure() }
     }
 
     private func track(engine: any SendEngine, id: String, chain: Chain) async {
