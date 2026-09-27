@@ -62,7 +62,8 @@ struct TradeView: View {
     @State private var routeSheet = false
     @State private var reviewing: TradeReviewFlow.Item?
     @State private var receivingAsset: Asset?
-    @State private var showingOrders = false
+    /// Sobe quando uma ordem foi criada: as ordens abertas releem.
+    @State private var ordersRefresh = 0
 
     /// Os prazos da ordem limite; nil e "ate cancelar" (na Stellar e no XRP Ledger a
     /// oferta vai sem prazo; na CoW, com o maximo do protocolo).
@@ -128,10 +129,10 @@ struct TradeView: View {
         }
         .sheet(item: $receivingAsset) { asset in ReceiveSheet(preselected: asset) }
         .sheet(isPresented: $routeSheet) { if let quote = model.quote { RouteSheet(quote: quote) } }
-        .sheet(isPresented: $showingOrders) { OpenOrdersView(chain: model.chain) }
         .fullScreenCover(item: $reviewing) { item in
             TradeReviewFlow(item: item) { completed in
                 reviewing = nil
+                if completed { ordersRefresh += 1 }
                 if completed {
                     model.amountText = ""
                     model.targetPriceText = ""
@@ -345,17 +346,7 @@ struct TradeView: View {
                 Text(engine.limitCustodyNote).typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
                 if engine.supportsLimitOrders {
-                    Button { showingOrders = true } label: {
-                        HStack {
-                            Text("Ordens abertas").typeStyle(.row).foregroundStyle(Palette.ink)
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
-                        }
-                        .frame(minHeight: Height.touch)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, Space.sm)
+                    OpenOrdersSection(chain: model.chain, refresh: ordersRefresh).padding(.top, Space.lg)
                 }
             }
         }

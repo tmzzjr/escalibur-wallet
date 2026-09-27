@@ -29,10 +29,9 @@ final class LimitOrderTests: XCTestCase {
         untilCancelled.tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Na CoW toda ordem tem prazo'")).firstMatch.waitForExistence(timeout: 5))
         shot("l1-ate-cancelar", app)
-        let orders = app.buttons["Ordens abertas"]
-        XCTAssertTrue(orders.exists)
-        orders.tap()
-        let empty = app.staticTexts["Nenhuma ordem aberta nesta carteira."]
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["Ordens abertas"].waitForExistence(timeout: 5))
+        let empty = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Nenhuma ordem aberta'")).firstMatch
         let retry = app.buttons["Tentar de novo"]
         let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Vende'")).firstMatch
         let deadline = Date().addingTimeInterval(40)

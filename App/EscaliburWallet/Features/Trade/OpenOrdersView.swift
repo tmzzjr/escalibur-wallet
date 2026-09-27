@@ -3,13 +3,14 @@ import EscaliburCore
 import EscaliburEngines
 import SwiftUI
 
-/// As ordens limite abertas desta carteira numa rede, lidas da rede, e o cancelamento
-/// (auditoria 2, A3): a revisao da ordem diz que da para cancelar, e e aqui que cancela.
-/// O cancelamento passa pela mesma revisao, PIN e assinatura de qualquer plano.
-struct OpenOrdersView: View {
+/// As ordens limite abertas desta carteira numa rede, lidas da rede, ali mesmo na tela
+/// da ordem limite, e o cancelamento (auditoria 2, A3). O cancelamento passa pela mesma
+/// revisao, PIN e assinatura de qualquer plano.
+struct OpenOrdersSection: View {
     @Environment(AppSession.self) private var session
-    @Environment(\.dismiss) private var dismiss
     let chain: Chain
+    /// Muda quando uma ordem foi criada ou cancelada fora daqui: a lista rele.
+    var refresh: Int = 0
 
     enum Load { case loading, loaded([OpenOrder]), failed(String) }
     @State private var load: Load = .loading
@@ -20,18 +21,11 @@ struct OpenOrdersView: View {
     private var canSign: Bool { session.selectedWallet?.isWatchOnly == false }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Ordens abertas") { dismiss() }
-            Text("\(chain.id == "xrpl" ? "No" : "Na") \(chain.name). Cada ordem fica aberta até executar, vencer ou você cancelar.")
-                .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
-            content.padding(.top, Space.md)
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text("Ordens abertas").typeStyle(.heading).foregroundStyle(Palette.ink)
+            content
         }
-        .frame(maxHeight: .infinity, alignment: .top)
-        .presentationDetents([.medium, .large])
-        .presentationBackground(Palette.body)
-        .presentationCornerRadius(Radius.sheet)
-        .task { await reload() }
+        .task(id: "\(chain.id)-\(refresh)") { await reload() }
         .confirmationDialog("Cancelar esta ordem?", isPresented: Binding(get: { choosing != nil }, set: { if !$0 { choosing = nil } }),
                             titleVisibility: .visible, presenting: choosing) { order in
             ForEach(order.cancellations, id: \.self) { via in
@@ -57,26 +51,24 @@ struct OpenOrdersView: View {
                 ProgressView().tint(Palette.inkSoft)
                 Text("Lendo as ordens na rede.").typeStyle(.note).foregroundStyle(Palette.inkSoft)
             }
-            .padding(.horizontal, Space.gutter)
+            .frame(minHeight: 44)
         case .failed(let message):
-            VStack(alignment: .leading, spacing: Space.md) {
-                Banner(kind: .failure, title: message)
-                SecondaryButton(title: "Tentar de novo") { Task { await reload() } }
+            VStack(alignment: .leading, spacing: Space.xxs) {
+                Text(message).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                TertiaryButton(title: "Tentar de novo") { Task { await reload() } }
             }
-            .padding(.horizontal, Space.gutter)
         case .loaded(let orders) where orders.isEmpty:
-            Text("Nenhuma ordem aberta nesta carteira.").typeStyle(.body).foregroundStyle(Palette.inkSoft)
-                .padding(.horizontal, Space.gutter)
+            Text("Nenhuma ordem aberta \(chain.id == "xrpl" ? "no" : "na") \(chain.name). A que você criar aparece aqui até executar, vencer ou você cancelar.")
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
         case .loaded(let orders):
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(orders) { order in row(order) }
-                }
-                if !canSign {
-                    Text("Esta carteira só acompanha: para cancelar, abra a carteira que assina.")
-                        .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, Space.gutter).padding(.top, Space.md)
-                }
+            VStack(spacing: 0) {
+                ForEach(orders) { order in row(order) }
+            }
+            if !canSign {
+                Text("Esta carteira só acompanha: para cancelar, abra a carteira que assina.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Toque numa ordem para cancelar.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
             }
         }
     }
@@ -84,7 +76,7 @@ struct OpenOrdersView: View {
     private func row(_ order: OpenOrder) -> some View {
         Button { choosing = order } label: {
             HStack(spacing: Space.sm) {
-                CoinLogo(coingeckoID: order.sell?.coingeckoID, symbol: order.sell?.symbol ?? "?", size: 40, network: chain)
+                CoinLogo(coingeckoID: order.sell?.coingeckoID, symbol: order.sell?.symbol ?? "?", size: 36, network: chain)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Vende \(Self.amount(order.remainingSell, order.sell))").typeStyle(.row).foregroundStyle(Palette.ink)
                     Text("por no mínimo \(Self.amount(order.minimumBuy, order.buy))").typeStyle(.note).foregroundStyle(Palette.inkSoft)
@@ -92,10 +84,10 @@ struct OpenOrdersView: View {
                 Spacer(minLength: Space.sm)
                 Text(Self.expiry(order.expiresAt)).typeStyle(.note).foregroundStyle(Palette.inkSoft).multilineTextAlignment(.trailing)
             }
-            .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
+            .frame(minHeight: Height.row)
             .contentShape(Rectangle())
         }
-        .buttonStyle(RowStyle())
+        .buttonStyle(.plain)
         .disabled(!canSign || order.cancellations.isEmpty)
         .accessibilityHint(canSign ? "Cancelar a ordem" : "")
     }

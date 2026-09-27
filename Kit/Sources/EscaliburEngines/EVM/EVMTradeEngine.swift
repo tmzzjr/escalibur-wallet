@@ -46,7 +46,7 @@ public struct EVMTradeEngine: TradeEngine {
 
     public var limitCustodyNote: String {
         guard supportsLimitOrders else { return "Ordens limite ainda não estão disponíveis na \(chain.name)." }
-        return "O valor fica na sua carteira até a ordem executar. Para cancelar, abra as ordens abertas: grátis pela CoW, sem garantia, ou na cadeia, garantido, com taxa de rede."
+        return "O valor fica na sua carteira até a ordem executar. Para cancelar, toque nela em Ordens abertas, logo abaixo: grátis pela CoW, sem garantia, ou na cadeia, garantido, com taxa de rede."
     }
 
     // MARK: Cotacao

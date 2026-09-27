@@ -134,7 +134,7 @@ struct EVMActivityTests {
         for chain in [Chain.ethereum, .base, .arbitrum, .polygon, .bnb] {
             let engine = try #require(TradeEngines.engine(for: chain), "\(chain.id)")
             #expect(engine.supportsLimitOrders, "\(chain.id)")
-            #expect(engine.limitCustodyNote == "O valor fica na sua carteira até a ordem executar. Para cancelar, abra as ordens abertas: grátis pela CoW, sem garantia, ou na cadeia, garantido, com taxa de rede.")
+            #expect(engine.limitCustodyNote == "O valor fica na sua carteira até a ordem executar. Para cancelar, toque nela em Ordens abertas, logo abaixo: grátis pela CoW, sem garantia, ou na cadeia, garantido, com taxa de rede.")
         }
         // So as EVM: outras familias registram troca nos proprios arquivos.
         #expect(TradeEngines.chains.filter { $0.family == .evm }.map(\.id)
