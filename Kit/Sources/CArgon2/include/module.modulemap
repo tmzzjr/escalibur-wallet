@@ -1,4 +1,5 @@
 module CArgon2 {
     header "argon2.h"
+    header "escalibur_blake2b.h"
     export *
 }

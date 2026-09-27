@@ -56,7 +56,8 @@ let package = Package(
             name: "CArgon2",
             path: "Sources/CArgon2",
             exclude: ["LICENSE.txt"],
-            sources: ["argon2.c", "core.c", "encoding.c", "ref.c", "thread.c", "blake2/blake2b.c"],
+            // escalibur_blake2b.c nao e do Argon2: so expoe o BLAKE2b de referencia ao Swift.
+            sources: ["argon2.c", "core.c", "encoding.c", "ref.c", "thread.c", "blake2/blake2b.c", "escalibur_blake2b.c"],
             publicHeadersPath: "include",
             cSettings: [.headerSearchPath(".")]
         ),
