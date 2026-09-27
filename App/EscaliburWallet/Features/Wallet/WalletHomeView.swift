@@ -36,6 +36,9 @@ struct WalletHomeView: View {
                                message: "Apps de fora da App Store podem ler o que este app guarda. Para valor alto, prefira uma carteira de hardware.")
                             .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                     }
+                    assets.padding(.top, Space.xl)
+                    // A distribuicao vem depois da lista: primeiro o que a carteira tem,
+                    // depois como isso se divide.
                     if portfolio.rows.count >= 2 {
                         VStack(alignment: .leading, spacing: Space.md) {
                             Text("Distribuição").typeStyle(.heading).foregroundStyle(Palette.ink)
@@ -44,7 +47,6 @@ struct WalletHomeView: View {
                         .padding(.horizontal, Space.gutter)
                         .padding(.top, Space.xl)
                     }
-                    assets.padding(.top, Space.xl)
                 }
                 .padding(.bottom, Space.xl)
             }

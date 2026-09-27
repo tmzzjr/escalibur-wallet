@@ -67,7 +67,7 @@ struct TradeView: View {
     /// Os prazos da ordem limite; nil e "ate cancelar" (na Stellar e no XRP Ledger a
     /// oferta vai sem prazo; na CoW, com o maximo do protocolo).
     static let validities: [(seconds: TimeInterval?, title: String)] = [
-        (3600, "1 hora"), (86_400, "1 dia"), (604_800, "7 dias"), (2_592_000, "30 dias"), (nil, "Até cancelar"),
+        (86_400, "1 dia"), (604_800, "7 dias"), (2_592_000, "30 dias"), (nil, "Até cancelar"),
     ]
 
     enum Side: Identifiable { case sell, buy; var id: Self { self } }

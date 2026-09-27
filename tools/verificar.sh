@@ -280,7 +280,14 @@ achados=$(swift_em "$APP" | xargs grep -nE '"[^"]*(—|–)[^"]*"' 2>/dev/null)
 # simbolos aparecem, e a checagem que nao os achasse ali estaria cega.
 if [ "${1:-}" = "--testes" ]; then
     secao "testes"
-    if (cd Kit && swift test 2>&1 | tail -1 | grep -q "passed"); then ok "testes do nucleo passam"; else aviso "testes do nucleo falharam"; fi
+    saida=$(cd Kit && swift test 2>&1); codigo=$?
+    if [ "$codigo" = "0" ]; then
+        ok "testes do nucleo passam ($(echo "$saida" | grep -oE 'Test run with [0-9]+ tests' | tail -1))"
+    else
+        aviso "testes do nucleo falharam (saida $codigo)"
+        echo "$saida" | grep -E "✘|error:|fatal error|Fatal error" | head -40
+        echo "$saida" | tail -15
+    fi
     proibidos='URLSession|_nw_|CFSocket|CFStream|^_socket$|^_connect$|^_getaddrinfo$'
     achados=""
     for modulo in EscaliburKeys EscaliburChains EscaliburCore; do
