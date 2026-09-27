@@ -31,12 +31,9 @@ jobs:
           sudo xcode-select -s "/Applications/Xcode_${versao}.app"
           xcodebuild -version
 
-      - name: Verificador
-        run: ./tools/verificar.sh
-
-      - name: Testes do nucleo
-        working-directory: Kit
-        run: swift test
+      # Com --testes: os testes do nucleo e a fronteira conferida no binario (nm).
+      - name: Verificador e testes do nucleo
+        run: ./tools/verificar.sh --testes
 
       # O app no build que o usuario recebe. So compila em Release o que nao depende do
       # modo demo, e o binario nao pode carregar nada dele (frase publica, telas diretas).

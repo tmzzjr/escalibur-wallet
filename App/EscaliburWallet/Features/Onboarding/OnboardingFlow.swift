@@ -21,7 +21,7 @@ struct OnboardingFlow: View {
             case .choosePIN:
                 PINScreen(
                     title: "Escolha um PIN",
-                    subtitle: "Seis dígitos para destravar o app e confirmar envios quando o Face ID falhar.",
+                    subtitle: "Seis dígitos para destravar o app e confirmar envios quando o \(KeyServices.biometryName) falhar.",
                     entry: entry, onComplete: choose
                 ) { pinFooter }
                 .transition(.opacity)
@@ -126,21 +126,21 @@ struct BiometryOfferView: View {
 
     var body: some View {
         if askPIN {
-            PINScreen(title: "Confirme com o PIN", subtitle: "Para ligar o Face ID nesta carteira.", entry: entry, working: working,
+            PINScreen(title: "Confirme com o PIN", subtitle: "Para ligar o \(KeyServices.biometryName) nesta carteira.", entry: entry, working: working,
                       onComplete: { Task { await enable() } }) { EmptyView() }
         } else {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer()
-                Image(systemName: "faceid")
+                Image(systemName: KeyServices.biometryIcon)
                     .font(.system(size: 44, weight: .regular))
                     .foregroundStyle(Palette.ink)
-                Text("Destravar com o Face ID")
+                Text("Destravar com o \(KeyServices.biometryName)")
                     .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
-                Text("Destrava o app e confirma envios em 1 segundo. Se o Face ID falhar, o PIN vale.")
+                Text("Destrava o app e confirma envios em 1 segundo. Se o \(KeyServices.biometryName) falhar, o PIN vale.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
-                PrimaryButton(title: "Usar o Face ID") { askPIN = true }
+                PrimaryButton(title: "Usar o \(KeyServices.biometryName)") { askPIN = true }
                 SecondaryButton(title: "Agora não") { onDone() }.padding(.top, Space.sm)
             }
             .padding(.horizontal, Space.gutter)
@@ -158,9 +158,9 @@ struct BiometryOfferView: View {
         } catch RootKeyVault.Failure.wrongPIN {
             entry.fail("PIN incorreto.")
         } catch RootKeyVault.Failure.cancelled {
-            entry.fail("O Face ID não confirmou. Ele continua desligado; você pode ligar depois nos Ajustes.")
+            entry.fail("O \(KeyServices.biometryName) não confirmou. Ele continua desligado; você pode ligar depois nos Ajustes.")
         } catch {
-            entry.fail("Não foi possível ligar o Face ID agora.")
+            entry.fail("Não foi possível ligar o \(KeyServices.biometryName) agora.")
         }
     }
 }

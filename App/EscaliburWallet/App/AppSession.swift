@@ -198,7 +198,7 @@ final class AppSession {
             defer { rk.wipe() }
             try KeyServices.root.enableBiometry(rk: rk)
             do {
-                let check = try KeyServices.root.unlockWithBiometry(reason: "Confirme o Face ID para ligar")
+                let check = try KeyServices.root.unlockWithBiometry(reason: "Confirme o \(KeyServices.biometryName) para ligar")
                 defer { check.wipe() }
                 guard Hash.constantTimeEqual(check, rk) else { throw RootKeyVault.Failure.storage }
             } catch {

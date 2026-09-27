@@ -239,7 +239,7 @@ struct VoiceChallengeSheet: View {
                     .typeStyle(.body).foregroundStyle(Palette.down).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("A frase que só você sabe. Depois dela vem o Face ID ou o PIN. O iPhone reconhece a frase, não a sua voz.")
+            Text("A frase que só você sabe. Depois dela vem o \(KeyServices.biometryName) ou o PIN. O iPhone reconhece a frase, não a sua voz.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 4) {

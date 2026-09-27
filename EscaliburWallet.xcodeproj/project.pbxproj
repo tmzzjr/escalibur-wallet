@@ -59,6 +59,7 @@
 		9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAEF81421478F9FA6F85FE56 /* Palette.swift */; };
 		A0E20FEC7CF495BB4B8AE0E1 /* EnvelopeFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3FC7ED2F0ACB292691CA0A /* EnvelopeFlowTests.swift */; };
 		A2EB350AFF4C3B63897F97DA /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C77E773E63B6664F4262AD /* Metadata.swift */; };
+		A735272844639F9878C01046 /* BiometryNameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */; };
 		A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34BAC1217309C0064F23CE7 /* TradeView.swift */; };
 		A86F60C8E0ACDA0DB1C3F8B4 /* OpenOrdersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */; };
 		AB7B23776FBF7C6424A8874C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8C9605AF6B0175CB6F7E648C /* PrivacyInfo.xcprivacy */; };
@@ -129,6 +130,7 @@
 		464E41DA23598ED80A750BD4 /* EscaliburWalletUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EscaliburWalletUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A0E9C686393C93E1E34895B /* PlatformGuards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformGuards.swift; sourceTree = "<group>"; };
 		4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataCompatibilityTests.swift; sourceTree = "<group>"; };
+		4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometryNameTests.swift; sourceTree = "<group>"; };
 		529FF2FD620686A71B265A06 /* RevealFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealFlow.swift; sourceTree = "<group>"; };
 		5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenOrdersView.swift; sourceTree = "<group>"; };
 		609FB55F39FC297CF3C80DE8 /* Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Kit; path = Kit; sourceTree = SOURCE_ROOT; };
@@ -315,6 +317,7 @@
 		7719C44BCFB732B2DA3A73BE /* EscaliburWalletUITests */ = {
 			isa = PBXGroup;
 			children = (
+				4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */,
 				3D40F7F537F7FF07C6720903 /* CoinDetailTests.swift */,
 				0F3FC7ED2F0ACB292691CA0A /* EnvelopeFlowTests.swift */,
 				AD4DB38ABFB63662F684831D /* LegalTests.swift */,
@@ -605,6 +608,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A735272844639F9878C01046 /* BiometryNameTests.swift in Sources */,
 				F442789E52824CD5BF6184A6 /* CoinDetailTests.swift in Sources */,
 				A0E20FEC7CF495BB4B8AE0E1 /* EnvelopeFlowTests.swift in Sources */,
 				534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */,

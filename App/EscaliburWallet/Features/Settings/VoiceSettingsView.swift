@@ -20,7 +20,7 @@ struct VoiceSettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Confirmação por voz").typeStyle(.title).foregroundStyle(Palette.ink)
-                Text("Uma confirmação a mais nas operações que você escolher: você fala uma frase que só você sabe, e depois confirma com o Face ID ou o PIN, como sempre.")
+                Text("Uma confirmação a mais nas operações que você escolher: você fala uma frase que só você sabe, e depois confirma com o \(KeyServices.biometryName) ou o PIN, como sempre.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
                 Banner(kind: .neutral, title: "O iPhone reconhece a frase, não a sua voz",

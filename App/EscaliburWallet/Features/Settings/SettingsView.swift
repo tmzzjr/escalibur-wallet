@@ -284,8 +284,8 @@ struct SecuritySettingsView: View {
                         if on { biometryPIN = true } else { session.disableBiometry() }
                     })) {
                         HStack(spacing: Space.sm) {
-                            Image(systemName: "faceid").font(.system(size: 16, weight: .medium)).foregroundStyle(Palette.inkSoft).frame(width: 24)
-                            Text("Face ID").typeStyle(.body).foregroundStyle(KeyServices.biometryAvailable ? Palette.ink : Palette.inkMuted)
+                            Image(systemName: KeyServices.biometryIcon).font(.system(size: 16, weight: .medium)).foregroundStyle(Palette.inkSoft).frame(width: 24)
+                            Text("\(KeyServices.biometryName)").typeStyle(.body).foregroundStyle(KeyServices.biometryAvailable ? Palette.ink : Palette.inkMuted)
                         }
                     }
                     .tint(Palette.up)
@@ -301,8 +301,8 @@ struct SecuritySettingsView: View {
                 .padding(.top, Space.md)
 
                 Text(KeyServices.biometryAvailable
-                     ? "Depois de reiniciar o iPhone ou de a bateria acabar, o Face ID só volta a valer depois do PIN digitado uma vez."
-                     : "Para usar o Face ID aqui, cadastre um rosto em Ajustes do iPhone, em Face ID e código.")
+                     ? "Depois de reiniciar o iPhone ou de a bateria acabar, o \(KeyServices.biometryName) só volta a valer depois do PIN digitado uma vez."
+                     : (KeyServices.biometryName == "Touch ID" ? "Para usar o Touch ID aqui, cadastre uma digital em Ajustes do iPhone, em Touch ID e código." : "Para usar o \(KeyServices.biometryName) aqui, cadastre um rosto em Ajustes do iPhone, em \(KeyServices.biometryName) e código."))
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
@@ -314,7 +314,7 @@ struct SecuritySettingsView: View {
                 }
                 .padding(.top, Space.lg)
 
-                Text("Todo envio, troca e ordem pede Face ID ou PIN.")
+                Text("Todo envio, troca e ordem pede \(KeyServices.biometryName) ou PIN.")
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
             }
@@ -399,7 +399,7 @@ struct EnableBiometrySheet: View {
     @State private var working = false
 
     var body: some View {
-        PINScreen(title: "Confirme com o PIN", subtitle: "Para ligar o Face ID.", entry: entry, working: working, onComplete: {
+        PINScreen(title: "Confirme com o PIN", subtitle: "Para ligar o \(KeyServices.biometryName).", entry: entry, working: working, onComplete: {
             Task {
                 working = true
                 defer { working = false }
@@ -411,9 +411,9 @@ struct EnableBiometrySheet: View {
                 } catch RootKeyVault.Failure.throttled(let seconds) {
                     entry.fail("Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
                 } catch RootKeyVault.Failure.cancelled {
-                    entry.fail("O Face ID não confirmou. Ele continua desligado.")
+                    entry.fail("O \(KeyServices.biometryName) não confirmou. Ele continua desligado.")
                 } catch {
-                    entry.fail("Não foi possível ligar o Face ID agora.")
+                    entry.fail("Não foi possível ligar o \(KeyServices.biometryName) agora.")
                 }
             }
         }) {

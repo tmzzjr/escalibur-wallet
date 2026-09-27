@@ -729,6 +729,15 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
 
 A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção precisa de uma linha justificando num arquivo de allowlist, revisado.
 
+**Estado em 27/09/2026** (o que o `tools/verificar.sh` e o CI conferem de fato):
+- Regra 3: feita. `./tools/verificar.sh --testes` roda `nm -u` nos objetos compilados de Chaves, Cadeias e Núcleo; o módulo de rede é o controle, e a checagem que não achasse símbolo de rede nele se declara cega. O CI roda com `--testes`.
+- Regra 7: ATS padrão, sem exceção, conferido. `NSPinnedDomains` não é usado: o app fala direto com provedores públicos (82 hosts em `hosts.lock`), cujos certificados trocam sem aviso; fixar a chave derrubaria redes inteiras na troca. A defesa é a lista fechada de hosts em tempo de execução (`AllowedHosts`) e o consenso de duas fontes no que decide dinheiro.
+- Regra 9: travados por digesto o argon2, a secp256k1, as listas de palavras, os hosts e o kit de recuperação (`*.lock` na raiz). As listas de contratos, programas, emissores e tokens são código Swift compilado (`TradeAllowlist`, `TokenRegistry`) e passam pela revisão do repositório, não por um `allowlists.lock` à parte.
+- Regra 18: o conjunto de chaves do entitlement é conferido; `get-task-allow` no build arquivado fica para o pipeline de lançamento, que ainda não existe.
+- Regra 23: a exclusão do backup nos metadados é conferida no código; o autoteste em tempo de execução não existe.
+- §8.5 (build reproduzível): Xcode fixado e conferido; `ZERO_AR_DATE`, mapeamento de caminhos e build duplo com atestação ainda não estão no `project.yml` nem no CI.
+- CODEOWNERS existe; proteção de branch, tags assinadas e o primeiro run do CI dependem de o repositório ser publicado.
+
 **CODEOWNERS** com 2 revisores obrigatórios para `Chaves/`, `Cadeias/`, `Nucleo/`, `*.lock`, `allowlists/`, `Info.plist` e `*.entitlements`. Proteção de branch, commits e tags assinados.
 
 ### 8.4 SECURITY.md
@@ -754,7 +763,7 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
 **MUST (bloqueia o lançamento)**
 1. Hierarquia K_dev, `rk.pin` com applicationPassword, K_bio com biometryCurrentSet, RK, DEK por carteira, tudo `WhenPasscodeSetThisDeviceOnly` e não sincronizável. **O spike do applicationPassword aprovado em iOS 17, 18 e 26 físicos; se reprovar, plano B.**
 2. Nenhum verificador de PIN gravado. Proibidos `.userPresence`, `.devicePasscode`, `.biometryAny`.
-3. Contador de tentativas com `SecItemUpdate`, falhando fechado, com o conserto de boot (A2, A3). Lista de bloqueio de PIN.
+3. Contador de tentativas com `SecItemUpdate`, falhando fechado, com o conserto de boot (A2, A3). A lista de bloqueio de PIN foi retirada por decisão do dono em 26/09/2026: qualquer PIN de 6 dígitos vale (ver §2.7).
 4. Autenticação nova por lote de assinatura; nada de RK ou seed em memória fora da assinatura; caminho síncrono; `verify` depois de assinar; HMAC e PBKDF2 em `SecureBytes`.
 5. Intenções tipadas, sem assinatura às cegas. As recusas da 4.1, EIP-7702 incluída. Sem WalletConnect nem navegador de dapps.
 6. Validação de swap (4.3) com allowlist compilada, ranking por `minOut`, approve exato, sem Permit2 nem EIP-2612 na v1.
@@ -762,7 +771,7 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
 8. BTC confere a transação anterior. XRPL mostra `delivered_amount`, respeita `RequireDest` e reserva lida do servidor. Stellar respeita a SEP-29.
 9. Detecção de envenenamento de endereço, filtro de valor zero e pó, e cópia de endereço só a partir de fontes confiáveis.
 10. Módulos separados com a fronteira conferida por grep **e** por `nm`. `URLSession` efêmera sem `shared` e sem `AsyncImage`; sem redirecionamento; limites de tamanho; ATS padrão.
-11. Relay com upstreams fixos e sem SSRF, sem log, endereço só no corpo, retirando cabeçalhos. O app não aceita nada da lista 5.4.
+11. Relay com upstreams fixos e sem SSRF, sem log, endereço só no corpo, retirando cabeçalhos. O app não aceita nada da lista 5.4. **Na v1 não há relay:** o app fala direto com os provedores públicos, e o IP do dono chega a eles, o que a Política de privacidade e a tela de redes dizem.
 12. Envelope: `OpeningContents` em `SecureBytes`, recusa de `slip39Share`, passphrase honrada, idioma validado, checksum, tamanho conferido antes de ler, limpeza de Inbox e tmp, mensagem única de erro, reabertura depois de exportar, fixtures nos dois sentidos com `decifrar.py`.
 13. Plataforma: cobertura do snapshot, `sceneCaptureState`, teclados de terceiros bloqueados, traços dos campos, frase nunca na área de transferência, endereços com `localOnly` e expiração, nenhum SDK de terceiro, regras de log, sem WebView, sem push, exclusões de backup, limpeza do chaveiro na primeira execução.
 14. Cadeia de suprimentos: libsecp256k1 v0.8.0, Keccak, RIPEMD-160 e bech32 vendorizados com locks e vetores; `verificar.sh` completo no CI; SECURITY.md; CODEOWNERS; tags assinadas; conta da ASC com chave de segurança de hardware.

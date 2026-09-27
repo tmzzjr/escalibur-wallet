@@ -125,7 +125,7 @@ struct PINPad: View {
             .accessibilityIdentifier("tecla-\(digit)")
         case .none:
             if let biometryIcon, let onBiometry {
-                functionKey(systemImage: biometryIcon, label: "Usar Face ID", action: onBiometry)
+                functionKey(systemImage: biometryIcon, label: "Usar \(KeyServices.biometryName)", action: onBiometry)
             } else {
                 Color.clear.frame(width: Height.pinKey, height: Height.pinKey)
             }

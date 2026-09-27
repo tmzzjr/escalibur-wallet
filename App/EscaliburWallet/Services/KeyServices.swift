@@ -36,6 +36,29 @@ enum KeyServices {
         #endif
     }
 
+    /// O nome da biometria deste aparelho, para os textos: iPhone SE usa Touch ID, e
+    /// dizer "Face ID" nele seria errado. Sem biometria, "Face ID" (a tela que usa o
+    /// nome nem aparece).
+    static let biometryName: String = {
+        let context = LAContext()
+        var error: NSError?
+        _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+        switch context.biometryType {
+        case .touchID: return "Touch ID"
+        case .opticID: return "Optic ID"
+        default: return "Face ID"
+        }
+    }()
+
+    /// O simbolo da biometria deste aparelho.
+    static var biometryIcon: String {
+        switch biometryName {
+        case "Touch ID": return "touchid"
+        case "Optic ID": return "opticid"
+        default: return "faceid"
+        }
+    }
+
     static var biometryAvailable: Bool {
         var error: NSError?
         return LAContext().canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)

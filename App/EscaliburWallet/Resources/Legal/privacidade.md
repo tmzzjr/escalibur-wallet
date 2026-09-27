@@ -43,7 +43,7 @@ Endereço copiado fica só neste aparelho e expira sozinho. As palavras da carte
 
 ## Seus direitos
 
-Como a Escalibur não recebe nem guarda dado nenhum seu, não há o que consultar, corrigir ou apagar do nosso lado. Apagar o app apaga tudo o que ele guardou neste iPhone.
+Como a Escalibur não recebe nem guarda dado nenhum seu, não há o que consultar, corrigir ou apagar do nosso lado. Apagar o app apaga os arquivos dele neste iPhone. As chaves cifradas que o iOS guarda no chaveiro ficam no aparelho depois da remoção e são apagadas na primeira abertura, se o app for instalado de novo. Para apagar uma carteira na hora, use Ajustes, a carteira, Remover deste iPhone.
 
 ## Mudanças
 

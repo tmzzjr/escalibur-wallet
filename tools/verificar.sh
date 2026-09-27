@@ -218,6 +218,7 @@ grep -q 'willResignActiveNotification' "$APP/App/PlatformGuards.swift" && ok "co
 grep -q 'NSFileProtectionComplete' "$APP/Resources/EscaliburWallet.entitlements" && ok "NSFileProtectionComplete em todo o conteiner" || aviso "protecao de arquivo sumiu"
 grep -q 'sceneCaptureState' "$APP/App/PlatformGuards.swift" && grep -q 'isCaptured' "$APP/App/PlatformGuards.swift" \
     && ok "tela sensivel some com gravacao, espelhamento ou captura da cena" || aviso "defesa contra captura de tela incompleta"
+grep -q 'isExcludedFromBackup = true' "$APP/Services/Metadata.swift" && ok "metadados fora do backup do iCloud" || aviso "metadados podem ir para o backup"
 achados=$(swift_em "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET" "$ENG" | xargs grep -nE 'UserDefaults|@AppStorage' 2>/dev/null | grep -v "^$APP/App/Preferences.swift:")
 [ -n "$achados" ] && { aviso "UserDefaults fora de Preferences.swift"; echo "$achados"; } || ok "UserDefaults so em Preferences.swift"
 # Manifesto de privacidade: sem ele a App Store recusa o envio (API de motivo
@@ -273,10 +274,27 @@ secao "texto"
 achados=$(swift_em "$APP" | xargs grep -nE '"[^"]*(—|–)[^"]*"' 2>/dev/null)
 [ -n "$achados" ] && { aviso "travessao em texto de interface"; echo "$achados"; } || ok "nenhum travessao em texto de interface"
 
-# 10. Testes com vetores oficiais.
+# 10. Testes com vetores oficiais, e a fronteira conferida tambem no binario (regra 3
+# de docs/seguranca.md §8.3): os objetos compilados de Chaves, Cadeias e Nucleo nao
+# podem referenciar nenhum simbolo de rede. O modulo de rede e o controle: nele os
+# simbolos aparecem, e a checagem que nao os achasse ali estaria cega.
 if [ "${1:-}" = "--testes" ]; then
     secao "testes"
     if (cd Kit && swift test 2>&1 | tail -1 | grep -q "passed"); then ok "testes do nucleo passam"; else aviso "testes do nucleo falharam"; fi
+    proibidos='URLSession|_nw_|CFSocket|CFStream|^_socket$|^_connect$|^_getaddrinfo$'
+    achados=""
+    for modulo in EscaliburKeys EscaliburChains EscaliburCore; do
+        n=$(nm -u Kit/.build/debug/$modulo.build/*.o 2>/dev/null | grep -cE "$proibidos")
+        [ "$n" != "0" ] && achados="$achados $modulo($n)"
+    done
+    controle=$(nm -u Kit/.build/debug/EscaliburNetwork.build/*.o 2>/dev/null | grep -cE "$proibidos")
+    if [ -n "$achados" ]; then
+        aviso "simbolo de rede no binario:$achados"
+    elif [ "$controle" = "0" ]; then
+        aviso "checagem do binario cega: nem o modulo de rede mostrou simbolo de rede"
+    else
+        ok "binario de Chaves, Cadeias e Nucleo sem simbolo de rede (controle: $controle no de rede)"
+    fi
 fi
 
 echo

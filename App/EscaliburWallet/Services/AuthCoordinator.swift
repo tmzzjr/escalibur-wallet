@@ -28,7 +28,7 @@ final class AuthCoordinator {
             return .biometry(reason: reason)
         }
         let notice = notice ?? (afterRestart && !forcePIN
-            ? "O iPhone reiniciou: o PIN é necessário uma vez antes do Face ID voltar a valer."
+            ? "O iPhone reiniciou: o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer."
             : nil)
         return await withCheckedContinuation { continuation in
             let request = PINRequest(reason: reason, notice: notice, error: error, continuation: continuation)
@@ -58,9 +58,9 @@ final class AuthCoordinator {
             } catch RootKeyVault.Failure.cancelled {
                 notice = nil
             } catch RootKeyVault.Failure.biometryChanged {
-                notice = "O Face ID deste iPhone mudou desde que foi ligado aqui. Confirme com o PIN; depois você pode religar."
+                notice = "O \(KeyServices.biometryName) deste iPhone mudou desde que foi ligado aqui. Confirme com o PIN; depois você pode religar."
             } catch RootKeyVault.Failure.pinRequiredAfterRestart {
-                notice = "O iPhone reiniciou: o PIN é necessário uma vez antes do Face ID voltar a valer."
+                notice = "O iPhone reiniciou: o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer."
             } catch RootKeyVault.Failure.wrongPIN(let remaining) {
                 error = Self.wrongPINMessage(remaining)
             } catch RootKeyVault.Failure.throttled(let seconds) {

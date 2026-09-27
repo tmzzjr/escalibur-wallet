@@ -768,7 +768,7 @@ struct RouteSheet: View {
                     }
                 }
                 Text(quote.legs.count > 1
-                     ? "São \(quote.legs.count) transações, uma por provedor, confirmadas com um único Face ID. Cada parte é independente: se uma não passar, você fica com o que foi trocado, e o saldo daquela parte continua na sua carteira."
+                     ? "São \(quote.legs.count) transações, uma por provedor, confirmadas com um único \(KeyServices.biometryName). Cada parte é independente: se uma não passar, você fica com o que foi trocado, e o saldo daquela parte continua na sua carteira."
                      : "Tudo acontece numa transação só. Ou executa inteira, ou nada sai da sua carteira.")
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true).padding(.top, Space.xs)
                 if !quote.alternatives.isEmpty {

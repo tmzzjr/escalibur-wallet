@@ -191,6 +191,14 @@ struct WalletHomeView: View {
         if portfolio.offline, let updated = portfolio.lastUpdated {
             Banner(kind: .neutral, title: "Sem internet. Valores de \(Fmt.relative(updated).lowercased()).")
                 .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+        } else if portfolio.offline {
+            // Sem cache nenhum (primeira abertura, carteira recem importada): sem este
+            // aviso a tela mostraria saldo zero, e zero parece frase errada.
+            Banner(kind: .neutral, title: "Sem internet. Os saldos aparecem quando a conexão voltar.",
+                   actionTitle: "Tentar de novo") {
+                Task { await portfolio.refresh(wallet, session: session) }
+            }
+            .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
         } else if let failed = portfolio.failedChains.first, !portfolio.offline {
             Banner(kind: .neutral, title: "Não foi possível ler o saldo \(failed.id == "xrpl" ? "no" : "na") \(failed.name). Os outros estão em dia.",
                    actionTitle: "Tentar de novo") {
@@ -219,6 +227,8 @@ struct WalletHomeView: View {
         if portfolio.rows.isEmpty {
             if portfolio.loading && portfolio.lastUpdated == nil {
                 skeleton.padding(.top, Space.xs)
+            } else if portfolio.lastUpdated == nil, portfolio.offline || !portfolio.failedChains.isEmpty {
+                unreadState.padding(.top, Space.md)
             } else {
                 emptyState.padding(.top, Space.md)
             }
@@ -260,6 +270,22 @@ struct WalletHomeView: View {
                 .frame(minHeight: Height.row)
             }
         }
+    }
+
+    /// Nenhum saldo lido ainda: nao e carteira vazia, e leitura que nao aconteceu.
+    private var unreadState: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Os saldos ainda não foram lidos").typeStyle(.row).foregroundStyle(Palette.ink)
+            Text("As redes não responderam agora. Isso não quer dizer que a carteira está vazia: os valores aparecem quando a leitura der certo.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
+                .fixedSize(horizontal: false, vertical: true)
+            SecondaryButton(title: "Tentar de novo") { Task { await portfolio.refresh(wallet, session: session) } }
+                .padding(.top, Space.md)
+        }
+        .padding(Space.md)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+        .padding(.horizontal, Space.gutter)
     }
 
     private var emptyState: some View {

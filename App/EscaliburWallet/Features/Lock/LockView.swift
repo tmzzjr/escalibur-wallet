@@ -17,11 +17,11 @@ struct LockView: View {
         PINScreen(
             title: "Digite o seu PIN",
             subtitle: restartNeedsPIN
-                ? "O iPhone reiniciou. Depois de reiniciar ou de a bateria acabar, o PIN é necessário uma vez antes do Face ID voltar a valer."
+                ? "O iPhone reiniciou. Depois de reiniciar ou de a bateria acabar, o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer."
                 : nil,
             entry: entry,
             showsBadge: true,
-            biometryIcon: session.biometryEnabled && !restartNeedsPIN ? "faceid" : nil,
+            biometryIcon: session.biometryEnabled && !restartNeedsPIN ? KeyServices.biometryIcon : nil,
             onBiometry: { Task { await tryBiometry() } },
             working: working,
             onComplete: { Task { await submit() } }
@@ -53,9 +53,9 @@ struct LockView: View {
         do {
             try await session.unlockWithBiometry()
         } catch RootKeyVault.Failure.pinRequiredAfterRestart {
-            entry.fail("O iPhone reiniciou. Digite o PIN uma vez para o Face ID voltar a valer.")
+            entry.fail("O iPhone reiniciou. Digite o PIN uma vez para o \(KeyServices.biometryName) voltar a valer.")
         } catch RootKeyVault.Failure.biometryChanged {
-            entry.fail("O Face ID deste iPhone mudou desde que foi ligado aqui. Entre com o PIN; depois você pode religar.")
+            entry.fail("O \(KeyServices.biometryName) deste iPhone mudou desde que foi ligado aqui. Entre com o PIN; depois você pode religar.")
         } catch {
             // Cancelado: o teclado continua ali.
         }
