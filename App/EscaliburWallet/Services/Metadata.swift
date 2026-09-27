@@ -24,6 +24,9 @@ struct Metadata: Codable, Equatable {
     var balanceCache: [UUID: [String: ChainBalance]] = [:]
     var quoteCache: [String: Quote] = [:]
     var cachedAt: Date?
+    /// Transacoes EVM transmitidas e ainda em transito, por carteira, rede e conta
+    /// (`NonceQueue`). Opcional para os metadados gravados antes deste campo abrirem.
+    var pendingEVM: [String: [PendingEVMTransaction]]?
 
     var selectedWallet: WalletMeta? {
         wallets.first { $0.id == selectedWalletID } ?? wallets.first

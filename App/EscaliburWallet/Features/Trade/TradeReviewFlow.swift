@@ -201,17 +201,27 @@ struct TradeReviewFlow: View {
         }
         error = nil
         stage = .planning
+        guard let wallet = session.selectedWallet, let account = wallet.account(item.chain) else {
+            error = "Esta carteira não tem conta nesta rede."
+            return
+        }
+        // A fila de nonces EVM desta conta, sem o que a rede ja confirmou, entra no
+        // pedido: o planejador sabe o que este aparelho ja transmitiu.
+        await NonceQueue.prune(session, wallet: wallet.id, chain: item.chain, address: account.address)
+        let queue = NonceQueue.queue(session, wallet: wallet.id, chain: item.chain, address: account.address)
         do {
             let built: SigningPlan
             switch item.kind {
-            case .swap(let request, let quote): built = try await engine.plan(request, quote: quote)
-            case .limit(let request): built = try await engine.planLimitOrder(request)
+            case .swap(let r, let quote):
+                let request = TradeRequest(walletID: r.walletID, chain: r.chain, account: r.account, sell: r.sell, buy: r.buy,
+                                           amountIn: r.amountIn, slippageBasisPoints: r.slippageBasisPoints, nonceQueue: queue)
+                built = try await engine.plan(request, quote: quote)
+            case .limit(let r):
+                let request = LimitOrderRequest(walletID: r.walletID, chain: r.chain, account: r.account, sell: r.sell, buy: r.buy,
+                                                amountIn: r.amountIn, minimumOut: r.minimumOut, validFor: r.validFor, nonceQueue: queue)
+                built = try await engine.planLimitOrder(request)
             case .cancel(let order, let via):
-                guard let wallet = session.selectedWallet, let account = wallet.account(item.chain) else {
-                    error = "Esta carteira não tem conta nesta rede."
-                    return
-                }
-                built = try await engine.planCancel(order, walletID: wallet.id, account: account, via: via)
+                built = try await engine.planCancel(order, walletID: wallet.id, account: account, via: via, nonceQueue: queue)
             }
             guard planMatches(built) else {
                 error = "O plano montado não confere com a troca pedida. Nada foi assinado."
@@ -220,6 +230,9 @@ struct TradeReviewFlow: View {
             plan = built
             stage = .review
         } catch {
+            if (error as? SendEngineError)?.isLocalNonceQueueAhead == true {
+                NonceQueue.clear(session, wallet: wallet.id, chain: item.chain, address: account.address)
+            }
             self.error = (error as? LocalizedError)?.errorDescription ?? "Não foi possível montar agora. Tente de novo."
         }
     }
@@ -276,6 +289,9 @@ struct TradeReviewFlow: View {
             }) else { return }
             stage = .sending
             ids = try await engine.submit(signed, plan: plan)
+            if let wallet = session.selectedWallet, let account = wallet.account(item.chain) {
+                NonceQueue.record(session, wallet: wallet.id, chain: item.chain, address: account.address, plan: plan, signed: signed)
+            }
             stage = .done
             portfolio.show(session.selectedWallet, session: session, force: true)
         } catch {

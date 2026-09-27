@@ -555,7 +555,8 @@ struct SendStages: View {
             walletID: model.wallet.id, chain: chain, asset: holding.asset, account: account,
             destination: destination.address, tag: model.tagText.isEmpty ? nil : model.tagText,
             amount: amount, sendAll: sendAll, feeLevel: model.feeLevel, utxoUsage: model.wallet.utxoUsage[chain.id],
-            knownAddresses: session.metadata.sentTo[chain.id] ?? []
+            knownAddresses: session.metadata.sentTo[chain.id] ?? [],
+            nonceQueue: NonceQueue.queue(session, wallet: model.wallet.id, chain: chain, address: account.address)
         )
     }
 
@@ -565,10 +566,13 @@ struct SendStages: View {
     }
 
     private func review() async {
-        guard let engine, let amount = model.amount, let request = request(amount: amount, sendAll: model.sendAll) else { return }
+        guard let engine, let amount = model.amount, let chain = model.chain, let account = model.account else { return }
         model.working = true
         model.error = nil
         defer { model.working = false }
+        // A fila de nonces sem o que a rede ja confirmou, antes de entrar no pedido.
+        await NonceQueue.prune(session, wallet: model.wallet.id, chain: chain, address: account.address)
+        guard let request = request(amount: amount, sendAll: model.sendAll) else { return }
         do {
             let plan = try await engine.plan(request)
             guard planMatches(plan) else {
@@ -579,6 +583,11 @@ struct SendStages: View {
             model.plan = plan
             model.stage = .review
         } catch {
+            // A fila estava a frente da rede (transacao descartada): esquecida, o proximo
+            // plano parte do que a rede conhece.
+            if (error as? SendEngineError)?.isLocalNonceQueueAhead == true {
+                NonceQueue.clear(session, wallet: model.wallet.id, chain: chain, address: account.address)
+            }
             model.error = (error as? LocalizedError)?.errorDescription ?? "Não foi possível preparar o envio."
         }
     }
@@ -685,6 +694,9 @@ struct SendStages: View {
             model.stage = .sending
             let id = try await engine.broadcast(signed, chain: chain)
             model.resultID = id
+            if let account = model.account {
+                NonceQueue.record(session, wallet: model.wallet.id, chain: chain, address: account.address, plan: plan, signed: signed)
+            }
             // Troco num endereco novo: o indice avanca para o proximo envio nao repetir.
             if let usage = engine.usage(after: plan, current: model.wallet.utxoUsage[chain.id]),
                var wallet = session.metadata.wallets.first(where: { $0.id == model.wallet.id }) {

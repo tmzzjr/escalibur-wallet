@@ -85,6 +85,23 @@ public struct PendingNonceQueue: Sendable, Equatable {
     }
 }
 
+extension PendingNonceQueue {
+    /// A fila a partir das transacoes que o app anotou: so a sequencia consecutiva que
+    /// termina no maior nonce, porque o contrato le os nonces como `nextNonce - count`
+    /// ate `nextNonce - 1`. Um buraco quer dizer que algo antes dele ja saiu da conta de
+    /// quem esta em transito. Sem entradas, nil.
+    public static func trailingRun(_ entries: [(nonce: UInt64, hash: String)]) -> PendingNonceQueue? {
+        let sorted = entries.sorted { $0.nonce < $1.nonce }
+        guard let last = sorted.last else { return nil }
+        var run = [last]
+        for entry in sorted.dropLast().reversed() {
+            guard entry.nonce + 1 == run[0].nonce else { break }
+            run.insert(entry, at: 0)
+        }
+        return PendingNonceQueue(nextNonce: last.nonce + 1, pendingHashes: run.map(\.hash))
+    }
+}
+
 extension EVMNetworkState {
     /// O estado lido da rede com a fila local do app e, numa troca em varias pernas, as
     /// transacoes das pernas anteriores deste mesmo plano (`plannedAhead`, que ainda nem

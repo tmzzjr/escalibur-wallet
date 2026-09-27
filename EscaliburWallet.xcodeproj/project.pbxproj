@@ -10,6 +10,7 @@
 		046D4A66EDC4E578C0246247 /* TradeQuoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1020538B4146BC659BF384E8 /* TradeQuoteTests.swift */; };
 		0B7E83EED78DFCB68FCE521B /* MarketView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BADB432EFAFD601991FB0A /* MarketView.swift */; };
 		0BD31CF923D94F41C7BF61FE /* FORMATO.md in Resources */ = {isa = PBXBuildFile; fileRef = CF3019F2F06749CD522B32AB /* FORMATO.md */; };
+		0C69486F69E82B02C7F393AE /* NonceQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */; };
 		12BD568C64CF45967323782A /* EscaliburCore in Frameworks */ = {isa = PBXBuildFile; productRef = A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */; };
 		17A65BEC30C064A2F585BA4E /* PlanReviewViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178D0EBBB2AA6CB89DC6772B /* PlanReviewViews.swift */; };
 		17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */; };
@@ -137,6 +138,7 @@
 		85AD68422B44E0DD96545710 /* ContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsView.swift; sourceTree = "<group>"; };
 		86B74EDB87479FBC14EC1F7E /* privacidade.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = privacidade.md; sourceTree = "<group>"; };
 		878FC0383FDC934FC98F0EA0 /* decifrar.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = decifrar.py; sourceTree = "<group>"; };
+		8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonceQueue.swift; sourceTree = "<group>"; };
 		8E73AD40F44D72D64B0F550B /* ReceiveFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveFlowTests.swift; sourceTree = "<group>"; };
 		93C77E773E63B6664F4262AD /* Metadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metadata.swift; sourceTree = "<group>"; };
 		9533E741733252A8A22C3477 /* EnvelopeChain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeChain.swift; sourceTree = "<group>"; };
@@ -248,6 +250,7 @@
 				D423B66DA20C4DA018418902 /* AuthCoordinator.swift */,
 				1722E329135DB398B784E8C8 /* KeyServices.swift */,
 				93C77E773E63B6664F4262AD /* Metadata.swift */,
+				8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */,
 				09712057581F9378B87996C5 /* PasswordCost.swift */,
 				4027F05D922AF46864DCED58 /* Portfolio.swift */,
 				C114911EA7725CA6C7171D11 /* VoiceGate.swift */,
@@ -598,6 +601,7 @@
 				A2EB350AFF4C3B63897F97DA /* Metadata.swift in Sources */,
 				6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */,
 				94C21BC26784B1AD6AE63CB8 /* NewWalletFlow.swift in Sources */,
+				0C69486F69E82B02C7F393AE /* NonceQueue.swift in Sources */,
 				8C41E86F595FADDBED53F5FB /* OnboardingFlow.swift in Sources */,
 				32C85CC66E71ADDE142F2B2C /* OpenEnvelopeFlow.swift in Sources */,
 				A86F60C8E0ACDA0DB1C3F8B4 /* OpenOrdersView.swift in Sources */,

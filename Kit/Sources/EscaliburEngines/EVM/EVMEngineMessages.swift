@@ -16,6 +16,9 @@ enum EVMEngineOperation: Sendable {
 }
 
 enum EVMEngineMessages {
+    static let localNonceQueueAhead =
+        "Uma transação enviada deste aparelho não aparece mais na rede. Confira a Atividade antes de enviar outra. Nada foi assinado."
+
     static func userFacing(_ error: Error, _ operation: EVMEngineOperation, chain: Chain) -> SendEngineError {
         if let ready = error as? SendEngineError { return ready }
         return .message(specific(error, chain: chain) ?? fallback(operation, chain: chain))
@@ -91,7 +94,7 @@ enum EVMEngineMessages {
         case .nonceNeedsTwoSources, .nonceSourcesDisagree:
             return "Os provedores da rede não concordaram sobre a sua conta. Nada foi assinado. Tente de novo em instantes."
         case .localNonceQueueAhead:
-            return "Uma transação enviada deste aparelho não aparece mais na rede. Confira a Atividade antes de enviar outra. Nada foi assinado."
+            return localNonceQueueAhead
         case .invalidGasEstimate, .gasLimitAboveCap: return "A rede estimou um custo fora do normal para esta transação. Nada foi assinado."
         case .feeAboveCeiling: return "A taxa da rede está acima do limite de segurança agora. Tente de novo mais tarde."
         case .missingL1DataFee: return "Não foi possível ler a parte da taxa paga à L1. Tente de novo em instantes."
@@ -239,5 +242,14 @@ enum EVMEngineMessages {
             return "Uma letra deste endereço não confere. Ele pode ter sido copiado pela metade ou alterado. Copie de novo, inteiro."
         default: return "Este endereço não é da \(chain.name). Confira se copiou inteiro."
         }
+    }
+}
+
+extension SendEngineError {
+    /// A fila local do app estava a frente do que a rede conhece (transacao descartada
+    /// pela rede). O app limpa a fila da conta: o proximo plano parte da rede.
+    public var isLocalNonceQueueAhead: Bool {
+        if case .message(let text) = self { return text == EVMEngineMessages.localNonceQueueAhead }
+        return false
     }
 }

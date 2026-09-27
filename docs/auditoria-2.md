@@ -71,7 +71,7 @@ Atualizada a cada correção.
 | A1 Stellar | Corrigido: cotação nas duas Horizons e `destMin` da maior; rota só por XLM e ativos da lista; preço de referência (5% bloqueia, 2% avisa) | `StellarTradeEngine`, `StellarReader.quoteStrictSendOnBoth`, `StellarPlanner.planSwap` |
 | A2 Solana | Corrigido: preço de referência fora da Jupiter, par não estável sem referência recusado; simulação lê as contas de token do dono nos mints da lista | `SolanaSwapPlanner`, `SolanaTradeEngine`, `SolanaNetworkReader.swapAccounts` |
 | A3 Ordens limite | Corrigido no Kit: `openOrders` e `planCancel` no `TradeEngine` (CoW, XRP Ledger, Stellar); "até cancelar" com `validFor: nil`. A tela de ordens abertas é do app | `Trade.swift` |
-| M1 nonce EVM | Corrigido no Kit: `PendingNonceQueue` no pedido; sem a fila, fontes iguais. O app guarda a fila | `EVMFeeCalculator.nonce` |
+| M1 nonce EVM | Corrigido: `PendingNonceQueue` no pedido; sem a fila, fontes iguais. O app guarda a fila por carteira, rede e conta (`NonceQueue`), poda antes de cada plano (confirmada, recusada ou pendente há mais de 30 minutos) e a esquece quando o motor diz que ela está à frente da rede | `EVMFeeCalculator.nonce`, `NonceQueue` |
 | M2 teto UTXO | Corrigido: teto compilado, duas fontes no máximo 3x distantes, o menor de duas, aviso acima de 1% | `UTXORules`, `UTXOFeeConsensus` |
 | M3 moedas deixadas | Corrigido: `skipped` na revisão, "enviar tudo" só com poeira de fora | `UTXOPlanner` |
 | M4 vencimento | Corrigido: Solana com duas fontes e altura finalizada com folga; Tron pelo bloco solidificado em dois provedores e relógio conferido no plano | `SolanaTransfers`, `TronReader.status`, `TronPlanner` |
