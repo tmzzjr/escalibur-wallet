@@ -42,6 +42,16 @@ Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
   cotações válidas e só escolhe a que garante o mínimo calculado da maior estimativa
   entre elas; no plano, a recotação tem de garantir pelo menos o mínimo que a tela
   mostrou.
+- **Prazo da troca EVM**: nenhum dos quatro routers confere prazo na função que a
+  carteira aceita (fonte verificado conferido em 26/09/2026): a Augustus V6 da Velora, o
+  MetaAggregationRouterV2 da KyberSwap fora do modo simples (que a carteira recusa), a
+  GenericSwapFacetV3 da LI.FI e o OpenOceanExchange da De¹ conferem só o mínimo. A
+  KyberSwap põe um prazo de 20 minutos nos dados do executor, mas o executor é opaco e
+  sem código verificado, e a carteira não conta com ele. O mínimo protege o preço; a
+  revisão diz "Prazo na cadeia: nenhum que a carteira consiga conferir" e que uma
+  transação presa pode executar bem mais tarde, valendo só o mínimo (auditoria 2, B5).
+  Um router que confira prazo teria o decodificador preenchendo `deadline`, e o
+  validador só aceita de agora até 20 minutos.
 - **Ordem limite na CoW**: uma ordem aberta por token vendido. A lista de ordens abertas
   vem só da API da CoW, porque o livro de ordens não está na cadeia. O teto é da cadeia:
   toda ordem de venda com saldo ERC-20 puxa o token pelo VaultRelayer, dentro da

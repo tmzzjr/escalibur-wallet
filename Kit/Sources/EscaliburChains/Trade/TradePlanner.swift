@@ -297,7 +297,7 @@ public enum TradePlanner {
                 ? "Se uma etapa seguinte falhar, esta continua valendo: você fica com parte em \(intent.buy.symbol) e parte em \(intent.sell.symbol). Não existe desfazer."
                 : "As etapas anteriores já valeram. Se esta falhar, o restante fica em \(intent.sell.symbol) e você perde só a taxa de rede."))
         }
-        lines.append(.init("Sem prazo na cadeia", "Se não confirmar logo, cancele com o mesmo nonce em vez de esperar"))
+        lines.append(deadlineLine(quote))
         lines.append(.init("Nonce", count == 1 ? "\(firstNonce)" : "\(firstNonce) a \(firstNonce + UInt64(count - 1))"))
 
         // O que sai, o minimo que entra e quem recebe saem da calldata decodificada da
@@ -309,6 +309,23 @@ public enum TradePlanner {
             outgoing: intent.sell.movement(decoded.amountIn), incomingMinimum: intent.buy.movement(decoded.guaranteedOut),
             beneficiary: decoded.recipient.checksummed
         )
+    }
+
+    /// O prazo na cadeia, dito como o router confere (auditoria 2, B5). Nenhum dos quatro
+    /// routers da v1 confere prazo na funcao aceita (`TradeValidator` diz por que, router
+    /// a router): a revisao diz isso sem prometer o que o app nao faz. So o decodificador
+    /// de um router que confira prazo no proprio codigo preenche `deadline`, e o
+    /// validador ja exige que ele esteja entre agora e 20 minutos.
+    static func deadlineLine(_ quote: ValidatedTradeQuote) -> PlanReview.Line {
+        guard let deadline = quote.decoded.deadline else {
+            return .init("Prazo na cadeia", "Nenhum que a carteira consiga conferir: o contrato da \(quote.provider.displayName) não tem prazo. Se a transação ficar presa na rede, ela pode executar bem mais tarde, e então vale só o mínimo acima, mesmo que o preço tenha melhorado")
+        }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.dateFormat = "dd/MM/yyyy HH:mm 'UTC'"
+        let date = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(deadline)))
+        return .init("Prazo na cadeia", "Até \(date). Depois disso, o contrato da \(quote.provider.displayName) recusa a troca")
     }
 
     static func providerFeeText(_ quote: ValidatedTradeQuote) -> String {

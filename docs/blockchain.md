@@ -555,7 +555,7 @@ Os agregadores já dividem entre DEXes internamente.
    - destinatário = dono;
    - tokens e valores = os da tela;
    - `minOut` ≥ o mínimo que o **app** calculou;
-   - deadline ≤ 10 min (na v1, 20 min quando o router tem prazo; nenhum dos quatro routers da v1 tem, e a revisão diz para cancelar com o mesmo nonce);
+   - deadline ≤ 10 min (na v1, 20 min quando o router confere prazo; nenhum dos quatro routers da v1 confere na função aceita, e a revisão diz que uma troca presa pode executar bem mais tarde, valendo só o mínimo; ver docs/redes/motores.md);
    - recebedor da taxa = endereço da empresa **e** bps = configurado.
 5. `value` = 0 para venda de token, = amountIn para venda do nativo. Taxa nativa de bridge só se estiver declarada e aparecer na tela.
 6. Ignorar gas e gasPrice sugeridos pelo provedor; estimar por conta própria.

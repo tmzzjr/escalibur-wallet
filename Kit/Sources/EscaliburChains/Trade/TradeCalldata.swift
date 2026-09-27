@@ -33,7 +33,9 @@ public struct DecodedSwap: Sendable, Equatable {
     /// O maximo que o router entrega, se ele corta a sobra (Velora sem parceiro: a
     /// sobra acima de `quotedAmount` fica com a Velora).
     public let outputCap: BigUInt?
-    /// Prazo na calldata, em segundos Unix, quando o router tem um.
+    /// Prazo que o proprio router confere, em segundos Unix. Prazo dentro de dados
+    /// opacos de executor nao conta: quem confere nao e codigo que a carteira fixou. Nos
+    /// quatro routers da v1, `nil` (auditoria 2, B5; `TradeValidator` diz por que).
     public let deadline: UInt64?
 }
 
