@@ -166,8 +166,15 @@ extension XRPLReader {
         try requireLedger(result, ledger, "book_offers")
         let offers = try result.field("offers", "book_offers").array("book_offers.offers")
         guard offers.count <= maxBookOffers else { throw ReaderError.implausibleValue(field: "book_offers.offers") }
-        return try offers.enumerated().map { index, offer in
+        return try offers.enumerated().compactMap { index, offer in
             let path = "book_offers.offers[\(index)]"
+            // Oferta sem fundos: o dono nao tem mais o que vender, e o servidor a devolve
+            // com `taker_gets_funded` zero. Ela fica fora da cotacao; antes ela derrubava o
+            // livro inteiro como resposta implausivel. Zero nos campos da propria oferta
+            // continua recusado.
+            for key in ["taker_gets_funded", "taker_pays_funded"] {
+                if let funded = offer.optionalField(key), try amount(funded, path + "." + key, allowZero: true).isZero { return nil }
+            }
             let getsField = try offer.optionalField("taker_gets_funded") ?? offer.field("TakerGets", path)
             let paysField = try offer.optionalField("taker_pays_funded") ?? offer.field("TakerPays", path)
             let takerGets = try amount(getsField, path + ".TakerGets")
@@ -214,7 +221,7 @@ extension XRPLReader {
 
     /// Amount do JSON do rippled pelo leitor da propria rede (`XRPLAmount.fromJSON`):
     /// texto de drops, ou `{currency, issuer, value}`.
-    private static func amount(_ value: StrictJSON, _ path: String) throws -> XRPLAmount {
+    private static func amount(_ value: StrictJSON, _ path: String, allowZero: Bool = false) throws -> XRPLAmount {
         let object: Any
         switch value {
         case .string(let text):
@@ -231,7 +238,7 @@ extension XRPLReader {
         }
         do {
             let amount = try XRPLAmount.fromJSON(object)
-            guard !amount.isZero else { throw ReaderError.implausibleValue(field: path) }
+            guard allowZero || !amount.isZero else { throw ReaderError.implausibleValue(field: path) }
             if case .issued(let issued) = amount, issued.value.isNegative { throw ReaderError.implausibleValue(field: path) }
             return amount
         } catch let error as ReaderError {
