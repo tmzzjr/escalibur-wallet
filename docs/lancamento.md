@@ -10,10 +10,14 @@ e o build Release estão prontos; o que falta é embalagem, publicação e decis
    - um e-mail de suporte;
    - uma página pública com a política de privacidade (pode ser a do repositório
      publicado, `App/EscaliburWallet/Resources/Legal/privacidade.md`);
-   - razão social, CNPJ e contato nos Termos e na Política (LGPD, art. 9), junto da
-     revisão do advogado;
+   - CNPJ e contato nos Termos e na Política (LGPD, art. 9), junto da revisão do
+     advogado. A razão social já está nos dois textos: X tech a.i fund holding e
+     participacoes LTDA (a do time de assinatura; conferir a grafia oficial);
    - uma linha "Suporte" em Ajustes, Sobre, com o e-mail.
-2. **Publicar o repositório.** O app diz que o código é aberto e o `SECURITY.md` manda
+2. **Publicar o repositório.** Criado privado em 27/09/2026
+   (github.com/tmzzjr/escalibur-wallet), para o CI rodar desde já; vira público no dia
+   do lançamento. Proteção de branch e relato privado de vulnerabilidade só ligam com
+   o repositório público (no plano gratuito do GitHub). O app diz que o código é aberto e o `SECURITY.md` manda
    relatar pelo GitHub. Publicar liga o CI (`.github/workflows/verificar.yml`), a
    proteção de branch e as tags assinadas (MUST 14). O decifrador já sai do app
    (Ajustes, Sobre, e a tela de envelope lacrado), então o envelope abre num computador

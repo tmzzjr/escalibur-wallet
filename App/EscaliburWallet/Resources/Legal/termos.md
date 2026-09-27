@@ -2,6 +2,8 @@
 
 Ao usar a Escalibur Wallet, você concorda com estes termos.
 
+A Escalibur Wallet é oferecida por X tech a.i fund holding e participacoes LTDA, chamada aqui de Escalibur.
+
 ## O que o app é
 
 A Escalibur Wallet é um programa de computador que roda no seu iPhone e ajuda você a guardar e usar as suas próprias chaves de criptoativos. Ela não é banco, corretora, custodiante nem instituição de pagamento. A Escalibur nunca tem acesso às suas chaves, aos seus fundos ou às suas transações, e não consegue mover, bloquear, estornar ou recuperar nada.

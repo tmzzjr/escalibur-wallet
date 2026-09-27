@@ -2,6 +2,8 @@
 
 A Escalibur Wallet é uma carteira que roda inteira no seu iPhone. Não existe conta, cadastro, e-mail nem servidor da Escalibur. Este texto diz o que o app guarda, onde guarda, e com quem ele fala.
 
+A Escalibur Wallet é oferecida por X tech a.i fund holding e participacoes LTDA, chamada aqui de Escalibur.
+
 ## O que fica no seu iPhone
 
 - **As chaves das carteiras.** Ficam no chaveiro do iOS, presas a este aparelho, cifradas por chaves do Secure Enclave e pelo seu PIN. Não entram no backup do iCloud e não passam para outro iPhone.
