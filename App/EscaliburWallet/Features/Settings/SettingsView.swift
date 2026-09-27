@@ -50,6 +50,7 @@ struct SettingsView: View {
             }
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .statusBarBackdrop()
         }
         .fullScreenCover(isPresented: $openingEnvelope) {
             OpenEnvelopeFlow(initialURL: nil) { openingEnvelope = false }

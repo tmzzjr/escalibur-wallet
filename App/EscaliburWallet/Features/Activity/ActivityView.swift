@@ -137,6 +137,7 @@ struct ActivityView: View {
             .refreshable { await reload() }
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .statusBarBackdrop()
             .navigationDestination(for: ActivityEntry.self) { entry in ActivityDetailView(entry: entry) }
         }
         .task(id: session.selectedWallet?.id) { await reload() }

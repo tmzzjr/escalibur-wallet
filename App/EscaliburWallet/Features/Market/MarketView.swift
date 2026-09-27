@@ -83,6 +83,7 @@ struct MarketView: View {
             .refreshable { await load() }
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .statusBarBackdrop()
             .navigationDestination(for: MarketCoin.self) { coin in
                 MarketCoinDetail(coin: coin)
             }

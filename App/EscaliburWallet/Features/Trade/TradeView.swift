@@ -112,6 +112,7 @@ struct TradeView: View {
             .safeAreaInset(edge: .bottom) { footer }
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .statusBarBackdrop()
         }
         .onAppear {
             if model.sell == nil, let first = tradeChains.first { model.reset(to: first) }

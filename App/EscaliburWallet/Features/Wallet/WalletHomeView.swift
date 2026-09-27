@@ -51,6 +51,7 @@ struct WalletHomeView: View {
             .refreshable { await portfolio.refresh(wallet, session: session) }
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .statusBarBackdrop()
             .navigationDestination(for: PortfolioRow.self) { row in
                 AssetDetailView(row: row)
             }

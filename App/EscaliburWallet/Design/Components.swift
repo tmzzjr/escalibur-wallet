@@ -365,3 +365,16 @@ enum Redaction {
     static let fiat = "R$ ••••••"
     static let short = "••••"
 }
+
+// MARK: Faixa da barra de status
+
+extension View {
+    /// Nas abas sem barra de navegacao, o conteudo rolado passaria por baixo do
+    /// relogio e da bateria. A faixa da barra de status leva o fundo da tela, chapado,
+    /// e o conteudo some por baixo dela como numa barra de verdade.
+    func statusBarBackdrop() -> some View {
+        safeAreaInset(edge: .top, spacing: 0) {
+            Color.clear.frame(height: 0).background(Palette.void.ignoresSafeArea(edges: .top))
+        }
+    }
+}
