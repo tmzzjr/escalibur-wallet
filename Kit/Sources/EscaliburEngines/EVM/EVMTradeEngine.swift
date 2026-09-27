@@ -326,7 +326,9 @@ public struct EVMTradeEngine: TradeEngine {
 
         // Uma ordem aberta por token vendido (docs/seguranca.md 4.5): uma ordem antiga e
         // esquecida executaria quando o saldo voltasse. Somar ordens exigiria o "sim" do
-        // dono, que o contrato do motor ainda nao traz.
+        // dono, que o contrato do motor ainda nao traz. A lista vem so da API da CoW (o
+        // livro nao esta na cadeia); o teto na cadeia e a autorizacao ao VaultRelayer,
+        // que o plano deixa exatamente no valor desta ordem (auditoria 2, B4).
         let open = try await services.cow.openSellTotal(owner: account.address, sellToken: sellToken.contract, chain: chain)
         guard open.isZero else { throw EVMEngineFailure.openOrderExists }
 

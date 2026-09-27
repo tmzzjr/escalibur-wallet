@@ -523,7 +523,7 @@ Os agregadores já dividem entre DEXes internamente.
 | BTC / cross | THORChain `=<` (limite em fila, com TTL) [W]; Chainflip `min_price` + `retry_duration` [W] | memo / parâmetros de refund | expira sozinho | TTL | afiliado / broker |
 
 - **Na v1 (código):**
-  - CoW: validade de 1 hora a 30 dias, ou "até cancelar" = 364 dias (o livro da CoW recusa acima de um ano: `default_max_order_validity_period` em cowprotocol/services), com a data na revisão. Cancelamento pela CoW (sem garantia) ou `invalidateOrder` (garantido). Uma ordem aberta por token vendido.
+  - CoW: validade de 1 hora a 30 dias, ou "até cancelar" = 364 dias (o livro da CoW recusa acima de um ano: `default_max_order_validity_period` em cowprotocol/services), com a data na revisão. Cancelamento pela CoW (sem garantia) ou `invalidateOrder` (garantido). Uma ordem aberta por token vendido: a lista vem só da API da CoW (o livro não está na cadeia), e o teto é da cadeia, com a autorização ao VaultRelayer deixada exatamente no valor da ordem (aprova quando falta, reduz quando sobra).
   - 1inch LOP e Solana: fora.
   - XRP Ledger: `OfferCreate` com `Expiration` opcional (sem ela, até cancelar), `OfferCancel`. **Desligado enquanto a lista curada não tiver token do XRP Ledger**, porque a DEX só troca com token da lista.
   - Stellar: só `ManageSellOffer`, sem prazo. A carteira não precisa lembrar das ofertas: o motor lista as abertas lendo as duas Horizons e cancela com os ativos lidos da rede.
@@ -555,7 +555,7 @@ Os agregadores já dividem entre DEXes internamente.
    - destinatário = dono;
    - tokens e valores = os da tela;
    - `minOut` ≥ o mínimo que o **app** calculou;
-   - deadline ≤ 10 min (na v1, 20 min quando o router tem prazo; nenhum dos quatro routers da v1 tem, e a revisão diz para cancelar com o mesmo nonce);
+   - deadline ≤ 10 min (na v1, 20 min quando o router confere prazo; nenhum dos quatro routers da v1 confere na função aceita, e a revisão diz que uma troca presa pode executar bem mais tarde, valendo só o mínimo; ver docs/redes/motores.md);
    - recebedor da taxa = endereço da empresa **e** bps = configurado.
 5. `value` = 0 para venda de token, = amountIn para venda do nativo. Taxa nativa de bridge só se estiver declarada e aparecer na tela.
 6. Ignorar gas e gasPrice sugeridos pelo provedor; estimar por conta própria.

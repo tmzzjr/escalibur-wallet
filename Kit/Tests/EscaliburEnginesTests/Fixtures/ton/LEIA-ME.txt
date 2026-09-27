@@ -19,6 +19,13 @@ Enderecos publicos; nenhum dado de usuario do app.
    (UQCL18Ztmkd-...OWLWeT0D e os sosias ...eT0D; UQAqQ7m_...fhYIegZ5 e os sosias ...gZ5).
    Parte desses a tonapi marca como golpe (`is_scam`), parte nao.
 
+3. Copiadas de Kit/Tests/EscaliburNetworkTests/Fixtures/leitores/ton, a segunda fonte
+   das leituras (auditoria 2, B3): tonapi-account-dono (25/09/2026),
+   tonapi-account-nao-inicializada e tonapi-get_wallet_data (26/09/2026, com o saldo
+   igualado ao da gravacao da toncenter; ver o LEIA-ME de la). O transporte dos testes
+   responde pela tonapi as mesmas contas que responde pela toncenter, trocando so o
+   campo `address` (a tonapi confere o endereco; a toncenter nao o devolve).
+
 Quando um teste precisa de um caso que as gravacoes nao tem (destino ativo, carteira
 nao inicializada, recusa da transmissao), ele altera ou monta a resposta dentro do
 proprio teste e diz o que fez.

@@ -12,6 +12,18 @@ Alteracoes feitas na gravacao, com jq, so para reduzir tamanho (nada que o leito
   `log` do gettransactioninfobyid removido; listas da TronGrid com 6 itens.
 - ton/tonapi-events e ton/tonapi-message-transaction: so os campos que o leitor le.
 
+Gravadas depois, em 26/09/2026 na tonapi (sem chave), para a segunda fonte das leituras
+da TON (auditoria 2, B3):
+- ton/tonapi-account-nao-inicializada: /v2/blockchain/accounts/0:1111...1111, sem
+  alteracao (conta "uninit" com saldo, a mesma da gravacao da toncenter).
+- ton/tonapi-get_wallet_data: /v2/blockchain/accounts/0:16e07181...3948/methods/
+  get_wallet_data, a carteira jetton de USDT do dono das gravacoes. Alterado: o saldo
+  (`stack[0].num` e `decoded.balance`) foi trocado pelo da gravacao da toncenter de
+  25/09/2026 (0x2774a4866a), para as duas fontes descreverem o mesmo momento. Dono,
+  mestre e codigo sao os da resposta.
+A tonapi responde 404 ("entity not found") para conta que nunca existiu e para
+get-method em conta sem contrato; os testes simulam isso sem arquivo.
+
 Quando um teste precisa de um caso que a rede nao ofereceu na hora (pagamento parcial,
 DepositAuth, Sequence divergente, taxa absurda), ele altera a resposta gravada dentro do
 proprio teste e diz o que alterou.

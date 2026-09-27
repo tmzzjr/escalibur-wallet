@@ -172,6 +172,14 @@ public actor TradeStateReader {
 
     /// Saldo e allowance do token: o menor de duas fontes.
     public func token(chain: Chain, token: EVMAddress, owner: EVMAddress, spender: EVMAddress) async throws -> EVMTokenState {
+        let readings = try await tokenReadings(chain: chain, token: token, owner: owner, spender: spender)
+        return EVMTokenState(contractHasCode: readings.hasCode, balance: readings.balances.min() ?? 0, allowance: readings.allowances.min() ?? 0)
+    }
+
+    /// `balanceOf` e `allowance` em duas fontes, cada uma com o seu par, e o codigo do
+    /// contrato em duas fontes concordando.
+    func tokenReadings(chain: Chain, token: EVMAddress, owner: EVMAddress, spender: EVMAddress) async throws
+        -> (hasCode: Bool, balances: [BigUInt], allowances: [BigUInt]) {
         async let code = hasCode(chain: chain, token)
         let answers = try await collect(readProviders(chain), count: 2, what: "token") { provider in
             let call = { (data: [UInt8]) async throws -> BigUInt in
@@ -184,9 +192,18 @@ public actor TradeStateReader {
             let allowance = try await call(ERC20.allowance(owner: owner, spender: spender))
             return [balance, allowance]
         }
-        let balance = answers.map { $0.1[0] }.min() ?? 0
-        let allowance = answers.map { $0.1[1] }.min() ?? 0
-        return EVMTokenState(contractHasCode: try await code, balance: balance, allowance: allowance)
+        return (try await code, answers.map { $0.1[0] }, answers.map { $0.1[1] })
+    }
+
+    /// A allowance ao VaultRelayer da CoW, igual nas fontes (auditoria 2, B4). Ela e o
+    /// teto que a cadeia impoe a todas as ordens do dono que vendem o token: a ordem so e
+    /// montada se a autorizacao terminar exatamente no valor dela, e decidir "ja esta
+    /// exata" com o numero de uma fonte so deixaria a outra esconder uma sobra.
+    static func agreedAllowance(_ allowances: [BigUInt]) throws -> BigUInt {
+        guard let first = allowances.first, allowances.count >= 2, allowances.allSatisfy({ $0 == first }) else {
+            throw TradeStateError.sourcesDisagree("allowance")
+        }
+        return first
     }
 
     // MARK: Pin do router
@@ -331,22 +348,28 @@ public actor TradeStateReader {
 
     // MARK: Ordem limite
 
-    /// O estado de `CoWPlanner.planLimitOrder`. `openOrdersSellTotal` vem do registro
-    /// local e de `CoWClient.openOrders`.
+    /// O estado de `CoWPlanner.planLimitOrder`. `openOrdersSellTotal` vem de
+    /// `CoWClient.openSellTotal`, a API da CoW (a unica que conhece o livro de ordens).
+    /// O saldo e o menor de duas fontes; a allowance ao VaultRelayer tem de ser a mesma
+    /// nas duas (`agreedAllowance`).
     public func readCoW(intent: CoWLimitOrderIntent, openOrdersSellTotal: BigUInt = 0, localNextNonce: UInt64? = nil) async throws -> CoWChainState {
         let chain = intent.chain
         guard let sellToken = intent.orderSellToken else { throw TradeStateError.badResponse("rede sem CoW") }
         async let relayerCode = hasCode(chain: chain, CoWProtocol.vaultRelayer)
-        let tokenState = try await token(chain: chain, token: sellToken.contract, owner: intent.owner, spender: CoWProtocol.vaultRelayer)
+        let readings = try await tokenReadings(chain: chain, token: sellToken.contract, owner: intent.owner, spender: CoWProtocol.vaultRelayer)
+        let tokenState = EVMTokenState(contractHasCode: readings.hasCode, balance: readings.balances.min() ?? 0,
+                                       allowance: try Self.agreedAllowance(readings.allowances))
         let total = openOrdersSellTotal + intent.sellAmount
         let approveData = ERC20.approve(spender: CoWProtocol.vaultRelayer, amount: total)
         let wrapValue = intent.sell.isNative ? intent.sellAmount : 0
 
         // Gas: simulacao quando a rede tem (approve a partir da allowance atual, com
-        // approve(0) antes no USDT, e o deposit); sem simulacao, eth_estimateGas.
+        // approve(0) antes no USDT, e o deposit); sem simulacao, eth_estimateGas. O
+        // approve entra sempre que a allowance nao e exatamente o total: abaixo, para
+        // cobrir; acima, para reduzir (CoWPlanner).
         var calls = [TradeSimulationRequest.Call]()
         let current = tokenState.allowance ?? 0
-        if current < total {
+        if current != total {
             if EVMPlanner.requiresZeroFirstApproval(sellToken), !current.isZero {
                 calls.append(.init(from: intent.owner, to: sellToken.contract, value: 0, data: ERC20.approve(spender: CoWProtocol.vaultRelayer, amount: 0)))
             }

@@ -69,6 +69,47 @@ struct TradePlannerTests {
         }
     }
 
+    @Test("Regressao B5: nenhum dos quatro routers confere prazo; a revisao diz isso sem prometer cancelamento")
+    func noOnchainDeadline() throws {
+        let account = try T.account(T.testKey)
+        let recorded: [(TradeProvider, String)] = [
+            (.velora, "velora-base-usdc-eth"), (.kyberSwap, "kyber-base-usdc-eth-build"),
+            (.lifi, "lifi-base-usdc-eth"), (.de1, "de1-base-usdc-eth"),
+        ]
+        for (provider, name) in recorded {
+            let quote = try Self.quote(provider, name, S.baseIntent())
+            #expect(quote.decoded.deadline == nil, "\(provider)")
+            let plan = try TradePlanner.planSwap(walletID: Self.wallet, account: account, quote: quote,
+                                                 state: S.chainState(quote, allowance: 0), now: S.recordedAt.addingTimeInterval(10))
+            let line = try #require(Self.line(plan, "Prazo na cadeia"), "\(provider)")
+            #expect(line.hasPrefix("Nenhum que a carteira consiga conferir"))
+            #expect(line.contains("o contrato da \(provider.displayName) não tem prazo"))
+            #expect(line.contains("pode executar bem mais tarde") && line.contains("vale só o mínimo acima"))
+            // O app nao tem cancelamento por nonce: a revisao nao manda fazer.
+            #expect(!plan.review.lines.contains { $0.value.contains("nonce") && $0.label != "Nonce" })
+            #expect(!line.contains("—") && !line.contains("–"))
+        }
+
+        // Um router que conferisse prazo: a revisao diz ate quando, e o validador so aceita
+        // de agora ate 20 minutos.
+        let base = try Self.quote(.kyberSwap, "kyber-base-usdc-eth-build", S.baseIntent())
+        let d = base.decoded
+        let dated = DecodedSwap(
+            provider: d.provider, function: d.function, sellToken: d.sellToken, buyToken: d.buyToken, amountIn: d.amountIn,
+            minOutField: d.minOutField, guaranteedOut: d.guaranteedOut, recipient: d.recipient, integratorFee: d.integratorFee,
+            providerFeeAmount: d.providerFeeAmount, outputCap: d.outputCap, deadline: 1_790_391_600
+        )
+        let quote = ValidatedTradeQuote(
+            intent: base.intent, router: base.router, to: base.to, value: base.value, data: base.data, decoded: dated,
+            expectedOut: base.expectedOut, requiredMinimum: base.requiredMinimum, assessment: base.assessment,
+            gasEstimate: base.gasEstimate, routeSources: base.routeSources, validatedAt: base.validatedAt
+        )
+        #expect(TradePlanner.deadlineLine(quote).value == "Até 26/09/2026 03:00 UTC. Depois disso, o contrato da KyberSwap recusa a troca")
+        try TradeValidator.checkDeadline(1_790_392_200, now: S.recordedAt)
+        #expect(throws: TradeRefusal.deadlineExpired) { try TradeValidator.checkDeadline(1_790_391_000, now: S.recordedAt) }
+        #expect(throws: TradeRefusal.deadlineTooFar(seconds: 1_201)) { try TradeValidator.checkDeadline(1_790_392_201, now: S.recordedAt) }
+    }
+
     @Test("Regressao A1: a divisao e escrita pelo compositor, das pernas validadas; envio, perna trocada ou nonce solto recusa")
     func combineSplit() throws {
         let account = try T.account(T.testKey)

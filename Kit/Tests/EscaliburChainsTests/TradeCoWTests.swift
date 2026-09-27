@@ -148,6 +148,59 @@ struct TradeCoWTests {
         #expect(try EVMAddress(publicKey: recovered) == S.owner)
     }
 
+    @Test("Uma ordem por token com teto na cadeia (auditoria 2, B4): a autorizacao termina exatamente no valor da ordem")
+    func approvalCapIsExact() throws {
+        let account = try T.account(T.testKey)
+        let intent = try CoWLimitOrderIntent(owner: S.owner, sell: .token(S.baseUSDC), buy: .native(.base), sellAmount: 100_000_000,
+                                             price: CoWLimitPrice("0.0004")!)
+        func lines(_ plan: CoWLimitOrderPlan) -> [String: String] {
+            Dictionary(uniqueKeysWithValues: plan.signingPlan.review.lines.map { ($0.label, $0.value) })
+        }
+
+        // Sobra de uma autorizacao antiga (500 USDC): o plano reduz para os 100 da ordem,
+        // e a revisao diz por que.
+        let reduced = try CoWPlanner.planLimitOrder(walletID: Self.wallet, account: account, intent: intent,
+                                                    state: Self.state(.base, allowance: 500_000_000), now: Self.now)
+        #expect(reduced.signingPlan.transactions.count == 2)
+        let approve = try #require(reduced.signingPlan.transactions.first as? EVMTransaction)
+        #expect(approve.to == S.baseUSDC.contract)
+        #expect(approve.data == ERC20.approve(spender: CoWProtocol.vaultRelayer, amount: 100_000_000))
+        #expect(lines(reduced)["Autorização atual"]?.contains("reduzida para o valor exato") == true)
+        #expect(lines(reduced)["Outras ordens"]?.contains("vem só da CoW") == true)
+        #expect(lines(reduced)["Outras ordens"]?.contains("não tiram mais que isso") == true)
+
+        // Autorizacao ilimitada de outro app: tambem reduzida.
+        let unlimited = try CoWPlanner.planLimitOrder(walletID: Self.wallet, account: account, intent: intent,
+                                                      state: Self.state(.base, allowance: .uint256Max), now: Self.now)
+        #expect((unlimited.signingPlan.transactions.first as? EVMTransaction)?.data == ERC20.approve(spender: CoWProtocol.vaultRelayer, amount: 100_000_000))
+
+        // Ja exatamente no valor: so a ordem, sem transacao.
+        let exact = try CoWPlanner.planLimitOrder(walletID: Self.wallet, account: account, intent: intent,
+                                                  state: Self.state(.base, allowance: 100_000_000), now: Self.now)
+        #expect(exact.signingPlan.transactions.count == 1)
+        #expect(exact.signingPlan.transactions.first is EIP712ValidatedMessage)
+        #expect(exact.prerequisiteCount == 0)
+        #expect(lines(exact)["Autorização"] == "Já existe e é exatamente o valor da ordem")
+        #expect(lines(exact)["Autorização atual"] == nil)
+
+        // Com a soma confirmada, o teto e a soma: 50 abertos + 100 desta, com 900 de sobra.
+        let stacked = try CoWPlanner.planLimitOrder(walletID: Self.wallet, account: account, intent: intent,
+                                                    state: Self.state(.base, allowance: 900_000_000, open: 50_000_000),
+                                                    stackingConfirmed: true, now: Self.now)
+        #expect((stacked.signingPlan.transactions.first as? EVMTransaction)?.data == ERC20.approve(spender: CoWProtocol.vaultRelayer, amount: 150_000_000))
+
+        // USDT da Ethereum com sobra: zera antes e aprova o valor exato, duas transacoes.
+        let usdt = EVMToken(chain: .ethereum, contract: T.address("0xdAC17F958D2ee523a2206206994597C13D831ec7"), symbol: "USDT", decimals: 6)
+        let usdtIntent = try CoWLimitOrderIntent(owner: S.owner, sell: .token(usdt), buy: .native(.ethereum), sellAmount: 100_000_000,
+                                                 price: CoWLimitPrice("0.0004")!)
+        let reset = try CoWPlanner.planLimitOrder(walletID: Self.wallet, account: account, intent: usdtIntent,
+                                                  state: Self.state(.ethereum, allowance: 500_000_000), now: Self.now)
+        let approvals = reset.signingPlan.transactions.compactMap { $0 as? EVMTransaction }
+        #expect(approvals.map(\.data) == [
+            ERC20.approve(spender: CoWProtocol.vaultRelayer, amount: 0), ERC20.approve(spender: CoWProtocol.vaultRelayer, amount: 100_000_000),
+        ])
+    }
+
     @Test("Ate cancelar: validTo no maximo pratico da CoW, dito na revisao; prazo entre 30 dias e isso recusa")
     func untilCancelled() throws {
         let account = try T.account(T.testKey)

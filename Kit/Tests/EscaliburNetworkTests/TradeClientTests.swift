@@ -110,6 +110,19 @@ struct TradeClientTests {
 // MARK: Meta-agregador
 
 /// Provedor de mentira: devolve uma proposta gravada depois de um atraso, ou falha.
+@Suite("Troca: estado da ordem limite")
+struct TradeStateCoWTests {
+    @Test("Auditoria 2, B4: a allowance ao VaultRelayer tem de ser a mesma nas duas fontes")
+    func agreedAllowance() throws {
+        #expect(try TradeStateReader.agreedAllowance([100, 100]) == 100)
+        #expect(try TradeStateReader.agreedAllowance([0, 0]) == 0)
+        // Uma fonte dizendo "exata" e a outra mostrando sobra: nada e montado.
+        #expect(throws: TradeStateError.sourcesDisagree("allowance")) { try TradeStateReader.agreedAllowance([100, 500]) }
+        #expect(throws: TradeStateError.sourcesDisagree("allowance")) { try TradeStateReader.agreedAllowance([100]) }
+        #expect(throws: TradeStateError.sourcesDisagree("allowance")) { try TradeStateReader.agreedAllowance([]) }
+    }
+}
+
 struct StubSource: TradeQuoteSource {
     let provider: TradeProvider
     let delay: Duration

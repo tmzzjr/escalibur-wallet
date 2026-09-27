@@ -252,11 +252,22 @@ public enum TradeValidator {
             guard bps <= ceiling else { throw TradeRefusal.providerFeeTooHigh(bps: bps) }
         }
 
-        // Prazo, quando o router tem um. Nenhum dos quatro routers da v1 tem prazo na
-        // funcao aceita (Augustus, MetaAggregationRouterV2, GenericSwapFacetV3 e
-        // OpenOceanExchange conferem so o minimo); a regra fica para o router que tiver.
-        // Sem prazo na cadeia, a protecao contra execucao tardia e o nonce: a revisao diz
-        // para cancelar com o mesmo nonce se nao confirmar logo.
+        // Prazo, quando o router confere um (auditoria 2, B5). Nenhum dos quatro routers
+        // da v1 confere prazo na funcao aceita; conferido no fonte verificado (Sourcify,
+        // Ethereum) em 26/09/2026:
+        // - Velora, AugustusV6 `swapExactAmountIn`: `GenericData` nao tem prazo, e nada
+        //   no contrato le `block.timestamp` fora do permit;
+        // - KyberSwap, MetaAggregationRouterV2 `swap`: `SwapDescriptionV2` nao tem prazo;
+        //   o router so confere prazo no modo simples (`SimpleSwapData.deadline`), que a
+        //   carteira recusa. A API poe um prazo nos dados do executor (20 minutos por
+        //   padrao, pela especificacao da API; o valor aparece nas gravacoes), mas o
+        //   executor e opaco e sem codigo verificado, e a carteira nao conta com ele;
+        // - LI.FI, GenericSwapFacetV3: nenhum argumento de prazo; `block.timestamp` so
+        //   entra nos eventos. Prazos de DEX dentro das `callData` sao opacos;
+        // - De¹, OpenOceanExchange `swap`/`simpleSwap`: sem prazo, so no permit.
+        // O minimo protege o preco; a execucao tardia so e dita na revisao
+        // (`TradePlanner.deadlineLine`). Um router que confira prazo tem o decodificador
+        // preenchendo `deadline`, e aqui ele tem de estar entre agora e 20 minutos.
         try checkDeadline(decoded.deadline, now: now)
 
         // O minimo: calculado pelo app, com a tolerancia do dono, a partir do estimado.

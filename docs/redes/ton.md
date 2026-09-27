@@ -9,3 +9,5 @@ Rede preenche `TONChainState`: accountStatus (.uninitialized/.active/.frozen), s
 
 Decisões: bounce pela regra do Tonkeeper (UQ nunca volta; EQ/raw só se destino ativo); valid_until = plano + 120 s; comentário ≤ 1024 bytes, sem controle/invisível/espaço nas pontas.
 Fora: frase nativa TON (algoritmo descrito no relatório: HMAC-SHA512 + PBKDF2 "TON default seed" 100000), V3R1/V3R2, outros jettons, enviar tudo (modo 128).
+
+Leitura (auditoria 2, B3): `TONReader` lê `seqno`, contas do dono e do destino e o saldo da carteira jetton na toncenter e na tonapi, e as duas têm de concordar (saldo, o menor). Uma fonte só: `estimateFee` (sob o teto), `get_wallet_address` (só confere o cálculo local) e o histórico.

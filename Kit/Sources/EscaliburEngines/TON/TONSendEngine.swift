@@ -5,8 +5,9 @@ import Foundation
 
 /// O motor de envio da TON: TON e USDT (jetton do mestre compilado em `TONJetton`).
 ///
-/// Junta o `TONReader`, que le o estado com o consenso dele (o `seqno` em dois
-/// provedores), e o `TONPlanner`, que valida e monta. Nada aqui assina, nenhum valor
+/// Junta o `TONReader`, que le o estado com o consenso dele (`seqno`, as contas do dono
+/// e do destino e o saldo de USDT em dois provedores concordando), e o `TONPlanner`, que
+/// valida e monta. Nada aqui assina, nenhum valor
 /// que entra na mensagem e lido fora do leitor, e o destino segue para o planejador
 /// exatamente como o dono digitou: a grafia (UQ, EQ ou raw) decide o bounce, pela regra
 /// do planejador.

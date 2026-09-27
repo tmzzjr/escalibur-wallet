@@ -75,7 +75,10 @@ enum TONRecorded {
     }
 
     /// toncenter v2 pelo `method` (e pela conta, no `getAddressInformation`); tonapi e
-    /// toncenter v3 pelo caminho. `override` responde antes das gravacoes e pode lancar.
+    /// toncenter v3 pelo caminho. A tonapi responde as mesmas contas que a toncenter (o
+    /// dono e o destino ativo com a gravacao do dono, o resto nao inicializado), com o
+    /// campo `address` trocado pelo pedido. `override` responde antes das gravacoes e
+    /// pode lancar.
     final class Transport: ReaderTransport, @unchecked Sendable {
         typealias Override = @Sendable (_ host: String, _ path: String, _ method: String?, _ params: [String: Any]) throws -> Data?
 
@@ -86,6 +89,8 @@ enum TONRecorded {
         private let uninitialized: Data
         private let rpc: [String: Data]
         private let tonapi: [String: Data]
+        private let tonapiActive: String
+        private let tonapiUninitialized: String
         private let messageTransactions: Data
 
         init(override: Override? = nil) throws {
@@ -102,7 +107,10 @@ enum TONRecorded {
                 "/methods/seqno": try TONRecorded.data("tonapi-seqno"),
                 "/transaction": try TONRecorded.data("tonapi-message-transaction"),
                 "/events": try TONRecorded.data("tonapi-events-envenenada"),
+                "\(TONRecorded.ownerJettonWallet)/methods/get_wallet_data": try TONRecorded.data("tonapi-get_wallet_data"),
             ]
+            tonapiActive = String(decoding: try TONRecorded.data("tonapi-account-dono"), as: UTF8.self)
+            tonapiUninitialized = String(decoding: try TONRecorded.data("tonapi-account-nao-inicializada"), as: UTF8.self)
             messageTransactions = try TONRecorded.data("toncenter-transactionsByMessage")
         }
 
@@ -127,12 +135,29 @@ enum TONRecorded {
                 if let method, let data = rpc[method] { return data }
             case "tonapi.test":
                 if let data = tonapi.first(where: { path.hasSuffix($0.key) })?.value { return data }
+                if let account = Self.tonapiAccount(path) {
+                    let known = [TONRecorded.wallet.address.raw, TONRecorded.activeDestination.raw]
+                    return Self.readdressed(known.contains(account) ? tonapiActive : tonapiUninitialized, to: account)
+                }
             case "toncenter.test":
                 if path.hasSuffix("/transactionsByMessage") { return messageTransactions }
             default:
                 break
             }
             throw HTTPClient.Failure.status(404)
+        }
+
+        /// A conta de `/blockchain/accounts/{conta}`, sem nada depois.
+        static func tonapiAccount(_ path: String) -> String? {
+            let parts = path.split(separator: "/")
+            guard parts.count == 3, parts[0] == "blockchain", parts[1] == "accounts" else { return nil }
+            return String(parts[2])
+        }
+
+        /// A resposta gravada da tonapi com o campo `address` trocado.
+        static func readdressed(_ json: String, to address: String) -> Data {
+            guard let range = json.range(of: #""address":\s*"[^"]*""#, options: .regularExpression) else { return Data(json.utf8) }
+            return Data(json.replacingCharacters(in: range, with: #""address":""# + address + #"""#).utf8)
         }
     }
 }

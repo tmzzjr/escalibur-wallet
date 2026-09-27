@@ -20,7 +20,7 @@ gravados na transação, com o `Asset.id` da lista curada. O app confere contra 
 | XRP Ledger | Com tag; RequireDest lido; reserva de ativação | Sim | **Desligada**: a DEX nativa só troca com token da lista curada, e a lista ainda não tem token do XRP Ledger. O código (livro em dois servidores no mesmo ledger, OfferCreate tudo ou nada) é testado com um token de teste | Desligada pelo mesmo motivo |
 | Stellar | XLM e ativos da lista com memo; SEP-29 lido; cria conta | Sim | Path payment cotado nas duas Horizons, rota só por XLM e ativos da lista | ManageSellOffer, sem prazo |
 | Tron | TRX e USDT; conta com controle dividido recusada | Sim, com o envenenamento de zero USDT marcado | Não na v1 | Não |
-| TON | TON e USDT; bounce conforme a conta | Sim | Não na v1 | Não |
+| TON | TON e USDT; bounce conforme a conta, lida na toncenter e na tonapi | Sim | Não na v1 | Não |
 
 Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
 
@@ -42,6 +42,23 @@ Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
   cotações válidas e só escolhe a que garante o mínimo calculado da maior estimativa
   entre elas; no plano, a recotação tem de garantir pelo menos o mínimo que a tela
   mostrou.
+- **Prazo da troca EVM**: nenhum dos quatro routers confere prazo na função que a
+  carteira aceita (fonte verificado conferido em 26/09/2026): a Augustus V6 da Velora, o
+  MetaAggregationRouterV2 da KyberSwap fora do modo simples (que a carteira recusa), a
+  GenericSwapFacetV3 da LI.FI e o OpenOceanExchange da De¹ conferem só o mínimo. A
+  KyberSwap põe um prazo de 20 minutos nos dados do executor, mas o executor é opaco e
+  sem código verificado, e a carteira não conta com ele. O mínimo protege o preço; a
+  revisão diz "Prazo na cadeia: nenhum que a carteira consiga conferir" e que uma
+  transação presa pode executar bem mais tarde, valendo só o mínimo (auditoria 2, B5).
+  Um router que confira prazo teria o decodificador preenchendo `deadline`, e o
+  validador só aceita de agora até 20 minutos.
+- **Ordem limite na CoW**: uma ordem aberta por token vendido. A lista de ordens abertas
+  vem só da API da CoW, porque o livro de ordens não está na cadeia. O teto é da cadeia:
+  toda ordem de venda com saldo ERC-20 puxa o token pelo VaultRelayer, dentro da
+  autorização do dono, e o plano deixa essa autorização exatamente no valor da ordem,
+  aprovando quando falta e reduzindo quando sobra (no USDT da Ethereum, zera antes). A
+  autorização lida tem de ser a mesma nas duas fontes. Uma ordem antiga que a API não
+  mostre só executa dentro desse teto, e a revisão diz as duas coisas (auditoria 2, B4).
 - **Troca na Solana**: a Jupiter propõe a rota; o preço de referência vem do oráculo do
   app, com os mesmos degraus (5% bloqueia, 2% avisa). Par que não é de dois stablecoins
   da lista, sem referência, é recusado. A simulação lê também as contas de token do dono
@@ -60,6 +77,12 @@ Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
 - **XRP Ledger**: Sequence, saldo e flags em dois servidores no mesmo ledger validado; o
   `LastLedgerSequence` parte desse ledger, e o `server_info` a mais de 10 ledgers dele é
   recusado.
+- **TON**: o `seqno`, o status, o saldo e o código da conta do dono e da conta de
+  destino, e o saldo, o dono e o mestre da carteira jetton de USDT vêm da toncenter e da
+  tonapi, as duas respondendo e concordando (auditoria 2, B3). Status e código têm de
+  ser iguais; o saldo é o menor dos dois; uma diferença rele as duas uma vez, 1,5 s
+  depois, e a segunda vira "os provedores responderam diferente". Sem contingência de
+  uma fonte só: com uma das duas fora do ar, nem a tela do destino nem o plano seguem.
 - **Vencimento**: na Solana, "venceu, pode enviar de novo" só com a altura finalizada de
   dois provedores 150 blocos além do `lastValidBlockHeight` e o histórico dos dois sem a
   transação. Na Tron, pela hora do último bloco solidificado em dois provedores (a
@@ -69,8 +92,11 @@ Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
 Leituras que ainda vêm de uma fonte só, sob teto ou faixa compilados: a taxa e a reserva
 da Stellar e do XRP Ledger (`server_info`, `fee_stats`); o blockhash, o saldo e o preço de
 prioridade da Solana; o bloco de referência, os recursos, os parâmetros, "destino é
-contrato" e a energia estimada da Tron; as leituras da TON além do `seqno` (auditoria 2,
-B3, ainda aberta para a TON).
+contrato" e a energia estimada da Tron. Na TON, três, cada uma com o motivo em
+`TONReader`: a taxa estimada (só a toncenter emula a mensagem; a taxa não entra na
+mensagem e passa pelo teto `TONPlanner.feeCeiling`), o `get_wallet_address` (o plano usa o
+endereço da carteira jetton calculado localmente, e a leitura só confere) e o histórico
+(informativo).
 
 ## Ordens limite abertas e cancelamento
 

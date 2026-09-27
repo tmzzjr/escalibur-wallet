@@ -7,6 +7,14 @@ import Foundation
 // ordem. As transacoes sao montadas aqui (nao ha calldata de provedor), e a ordem so vai
 // para a API depois que elas confirmarem: a CoW recusa ordem sem saldo e allowance.
 //
+// Uma ordem aberta por token vendido (docs/seguranca.md 4.5; auditoria 2, B4). As ordens
+// assinadas vivem so no livro da CoW, fora da cadeia: nada na cadeia lista as ordens de
+// um dono, e a lista vem so da API. O que a cadeia garante e o teto: toda ordem de venda
+// com saldo ERC-20 puxa o token pelo VaultRelayer, dentro de `allowance(dono,
+// VaultRelayer)`. O plano deixa essa autorizacao exatamente no total das ordens que o
+// dono ve (so esta, sem confirmacao de somar): aprova quando falta e reduz quando sobra.
+// Uma ordem antiga que a API nao mostrou so executa dentro desse teto.
+//
 // Cancelar, dito com honestidade na tela (docs/seguranca.md 4.5):
 // - fora da cadeia: `OrderCancellations` assinado e enviado a API. Gratis, mas nao
 //   garantido (um solver pode estar liquidando naquele instante);
@@ -86,8 +94,8 @@ public struct CoWChainState: Sendable {
     /// Vende nativo: gas do `deposit()` do token embrulhado.
     public let wrapGasEstimate: UInt64?
     public let wrapL1DataFee: BigUInt?
-    /// Soma do `sellAmount` das ordens abertas deste dono vendendo o mesmo token (do
-    /// registro local e de `GET /api/v1/account/{dono}/orders`).
+    /// Soma do que falta vender nas ordens abertas deste dono vendendo o mesmo token,
+    /// pela API da CoW (`GET /api/v1/account/{dono}/orders`), a unica que conhece o livro.
     public let openOrdersSellTotal: BigUInt
 
     public init(network: EVMNetworkState, sellToken: EVMTokenState, wrapGasEstimate: UInt64? = nil,
@@ -130,7 +138,8 @@ public enum CoWPlanner {
         guard !buyAmount.isZero else { throw CoWRefusal.zeroBuyAmount }
 
         // Uma ordem aberta por token vendido, salvo confirmacao; com confirmacao, a
-        // aprovacao cobre exatamente a soma, e a soma tem de caber no saldo.
+        // aprovacao cobre exatamente a soma, e a soma tem de caber no saldo. A lista e da
+        // API; o teto na cadeia e a autorizacao exata, abaixo.
         let open = state.openOrdersSellTotal
         guard open.isZero || stackingConfirmed else { throw CoWRefusal.openOrderExists }
         let approvalTotal = open + intent.sellAmount
@@ -149,9 +158,12 @@ public enum CoWPlanner {
         var transactions = [any SignableTransaction]()
         var feeQuotes = [EVMFeeQuote]()
         do {
-            // 1. Approve exato ao VaultRelayer, se a allowance nao cobre.
+            // 1. Approve ao VaultRelayer sempre que a allowance nao e exatamente o total:
+            //    abaixo, para cobrir; acima, para reduzir. A sobra de uma autorizacao
+            //    antiga deixaria uma ordem esquecida (ou que a API nao mostrou) vender alem
+            //    desta.
             let allowance = state.sellToken.allowance ?? 0
-            if allowance < approvalTotal {
+            if allowance != approvalTotal {
                 let approve = try EVMPlanner.planApprove(
                     walletID: walletID, account: account, token: sellToken, spender: CoWProtocol.vaultRelayer,
                     amount: .exact(approvalTotal), state: state.network, tokenState: state.sellToken,
@@ -196,9 +208,10 @@ public enum CoWPlanner {
         transactions.append(message)
         let uid = message.digest + account.address.bytes + withUnsafeBytes(of: validTo.bigEndian) { Array($0) }
 
+        let current = state.sellToken.allowance ?? 0
         let review = orderReview(intent: intent, order: order, sellToken: sellToken, feeQuotes: feeQuotes,
-                                 approvalTotal: approvalTotal, needsApproval: (state.sellToken.allowance ?? 0) < approvalTotal,
-                                 wrapping: wrapping, stacked: !open.isZero)
+                                 approvalTotal: approvalTotal, needsApproval: current != approvalTotal,
+                                 reducing: current > approvalTotal, wrapping: wrapping, stacked: !open.isZero)
         let plan = SigningPlan(walletID: walletID, chain: chain, review: review, transactions: transactions, createdAt: now)
         return CoWLimitOrderPlan(signingPlan: plan, order: order, owner: account.address, uid: uid, appData: appData)
     }
@@ -347,7 +360,7 @@ public enum CoWPlanner {
 
     static func orderReview(
         intent: CoWLimitOrderIntent, order: CoWOrder, sellToken: EVMToken, feeQuotes: [EVMFeeQuote],
-        approvalTotal: BigUInt, needsApproval: Bool, wrapping: Bool, stacked: Bool
+        approvalTotal: BigUInt, needsApproval: Bool, reducing: Bool = false, wrapping: Bool, stacked: Bool
     ) -> PlanReview {
         let chain = intent.chain
         let native = TradeAsset.native(chain)
@@ -375,11 +388,16 @@ public enum CoWPlanner {
         if needsApproval {
             lines.append(.init("Autorização", "Exata: \(EVMText.amount(approvalTotal, decimals: Int(sellToken.decimals), symbol: sellToken.symbol)), nunca ilimitada"))
             lines.append(.init("Autorizado a gastar", CoWProtocol.vaultRelayer.checksummed, verbatim: true))
+            if reducing {
+                lines.append(.init("Autorização atual", "Maior que esta ordem. Ela é reduzida para o valor exato, e nenhuma ordem assinada antes consegue usar a diferença"))
+            }
         } else {
-            lines.append(.init("Autorização", "Já existe e cobre o valor"))
+            lines.append(.init("Autorização", "Já existe e é exatamente o valor da ordem"))
         }
         if stacked {
             lines.append(.init("Outras ordens", "Há outra ordem aberta vendendo \(sellToken.symbol); a autorização cobre só a soma das duas"))
+        } else {
+            lines.append(.init("Outras ordens", "A lista de ordens abertas vem só da CoW. Na cadeia, a autorização ao contrato da CoW fica exatamente no valor desta ordem: juntas, as ordens que vendem \(sellToken.symbol) não tiram mais que isso da carteira"))
         }
         if !feeQuotes.isEmpty {
             let expected = feeQuotes.reduce(BigUInt()) { $0 + $1.expectedCost }
