@@ -8,7 +8,7 @@ As chaves ficam no iPhone do dono. Não existe conta, e-mail nem servidor que gu
 
 Bitcoin, Litecoin, Dogecoin, Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Plasma, X Layer, Linea, Unichain, Sonic, Celo, Solana, XRP Ledger, Stellar, Tron e TON. Cada carteira é uma frase BIP-39, derivada pelos caminhos padrão de cada rede. Por isso a mesma frase abre a carteira em Ledger, Trust Wallet, MetaMask, Phantom, Xaman, Lobstr e Tonkeeper.
 
-Enviar funciona em todas, e ver o histórico em todas menos BNB Chain, X Layer e Sonic (sem indexador público sem chave). Trocar funciona nas redes EVM (menos Avalanche, X Layer e Celo), Solana e Stellar; ordem limite pela CoW na Ethereum, Arbitrum, Base, Polygon, BNB Chain, Plasma e Linea, e nativa na Stellar, com prazo ou até cancelar, e tela de ordens abertas para cancelar. A troca e a ordem no XRP Ledger ficam desligadas até a lista curada ter um token do XRP Ledger conferido. O que cada rede faz e onde para está em [`docs/redes/motores.md`](docs/redes/motores.md).
+Enviar funciona em todas, e ver o histórico em todas menos BNB Chain, X Layer e Sonic (sem indexador público sem chave). Trocar funciona nas redes EVM (menos Avalanche, X Layer e Celo), Solana, XRP Ledger (XRP e RLUSD, pelo livro da própria rede) e Stellar; ordem limite pela CoW na Ethereum, Arbitrum, Base, Polygon, BNB Chain, Plasma e Linea, e nativa no XRP Ledger e na Stellar, com prazo ou até cancelar, e tela de ordens abertas para cancelar. O que cada rede faz e onde para está em [`docs/redes/motores.md`](docs/redes/motores.md).
 
 ## O que este app promete, e o que não promete
 

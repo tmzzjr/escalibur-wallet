@@ -30,4 +30,25 @@ final class ReceiveFlowTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Receber USDT"].waitForExistence(timeout: 10))
         shot("r3-endereco", app)
     }
+
+    /// Token emitido (RLUSD no XRP Ledger): a tela avisa da linha de confianca.
+    func testIssuedTokenTrustLineNote() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo"]
+        app.launch()
+        let receive = app.buttons["Receber"].firstMatch
+        XCTAssertTrue(receive.waitForExistence(timeout: 30))
+        receive.tap()
+        let rlusd = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'RLUSD'")).firstMatch
+        if !rlusd.waitForExistence(timeout: 5) { app.swipeUp() }
+        XCTAssertTrue(rlusd.waitForExistence(timeout: 10))
+        rlusd.tap()
+        let xrpl = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'XRP Ledger'")).firstMatch
+        if xrpl.waitForExistence(timeout: 5) { xrpl.tap() }
+        XCTAssertTrue(app.staticTexts["Receber RLUSD"].waitForExistence(timeout: 10))
+        app.swipeUp()
+        let note = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Para receber RLUSD, esta conta precisa antes de uma linha de confiança'")).firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout: 5))
+        shot("r4-rlusd-linha", app)
+    }
 }

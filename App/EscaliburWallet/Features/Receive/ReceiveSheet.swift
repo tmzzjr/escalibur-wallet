@@ -216,6 +216,13 @@ struct ReceiveSheet: View {
 
                 warning(chain: chain, asset: asset, exists: balance?.accountExists ?? true)
                     .padding(.top, Space.md)
+                if case .issued = asset.kind, balance?.holdings.contains(where: { $0.asset.id == asset.id }) != true {
+                    // Token emitido (XRP Ledger, Stellar): sem linha de confianca, o envio
+                    // de quem manda nao passa e volta; nada se perde, mas nao chega.
+                    Text("Para receber \(asset.symbol), esta conta precisa antes de uma linha de confiança com o emissor do \(asset.symbol). Sem ela, o envio de quem manda não passa e o valor fica com quem enviou. A linha é criada na primeira troca por \(asset.symbol) aqui na carteira.")
+                        .typeStyle(.note).foregroundStyle(Palette.caution).fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, Space.sm)
+                }
 
                 PrimaryButton(title: "Copiar endereço") {
                     Pasteboard.copyAddress(address)

@@ -113,6 +113,13 @@ public enum TokenRegistry {
         // Stellar (Circle)
         Asset(chainID: "stellar", kind: .issued(code: "USDC", issuer: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"),
               symbol: "USDC", name: "USD Coin", decimals: 7, coingeckoID: "usd-coin", isStablecoin: true),
+        // XRP Ledger (Ripple). Emissor conferido em 27/09/2026 em quatro fontes: a pagina de
+        // enderecos do token em docs.ripple.com, o Domain da conta na rede (https://ripple.com/,
+        // igual em dois servidores no mesmo ledger), o xrp-ledger.toml de ripple.com e o
+        // CoinGecko. O emissor pode congelar e recuperar saldo (clawback), como stablecoin
+        // regulada; sem taxa de transferencia e sem autorizacao previa.
+        Asset(chainID: "xrpl", kind: .issued(code: "524C555344000000000000000000000000000000", issuer: "rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De"),
+              symbol: "RLUSD", name: "Ripple USD", decimals: 6, coingeckoID: "ripple-usd", isStablecoin: true),
         // TON (jetton master)
         Asset(chainID: "ton", kind: .token(contract: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"), symbol: "USDT", name: "Tether",
               decimals: 6, coingeckoID: "tether", isStablecoin: true),
