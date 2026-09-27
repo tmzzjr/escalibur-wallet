@@ -13,6 +13,8 @@ struct TradeReviewFlow: View {
     enum Kind: Sendable {
         case swap(TradeRequest, TradeQuote)
         case limit(LimitOrderRequest)
+        /// Cancelar uma ordem aberta, pelo jeito escolhido.
+        case cancel(OpenOrder, OpenOrder.Cancellation)
     }
 
     struct Item: Identifiable {
@@ -37,11 +39,22 @@ struct TradeReviewFlow: View {
 
     private var engine: (any TradeEngine)? { TradeEngines.engine(for: item.chain) }
     private var isLimit: Bool { if case .limit = item.kind { return true }; return false }
+    private var isCancel: Bool { if case .cancel = item.kind { return true }; return false }
 
-    private var assets: (sell: Asset, buy: Asset) {
+    /// Os textos de cada etapa, por tipo: troca, ordem limite ou cancelamento.
+    private func text(swap: String, limit: String, cancel: String) -> String {
+        switch item.kind {
+        case .swap: return swap
+        case .limit: return limit
+        case .cancel: return cancel
+        }
+    }
+
+    private var assets: (sell: Asset?, buy: Asset?) {
         switch item.kind {
         case .swap(let request, _): return (request.sell, request.buy)
         case .limit(let request): return (request.sell, request.buy)
+        case .cancel(let order, _): return (order.sell, order.buy)
         }
     }
 
@@ -79,7 +92,8 @@ struct TradeReviewFlow: View {
     private var planning: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             if let error {
-                Text(isLimit ? "A ordem não foi montada" : "A troca não foi montada").typeStyle(.title).foregroundStyle(Palette.ink)
+                Text(text(swap: "A troca não foi montada", limit: "A ordem não foi montada", cancel: "O cancelamento não foi montado"))
+                    .typeStyle(.title).foregroundStyle(Palette.ink)
                 Banner(kind: .failure, title: error)
                 Spacer()
                 PrimaryButton(title: "Tentar de novo") { Task { await makePlan() } }
@@ -87,7 +101,8 @@ struct TradeReviewFlow: View {
             } else {
                 Spacer()
                 SwapProcessingIndicator(sell: assets.sell, buy: assets.buy).frame(maxWidth: .infinity)
-                Text(isLimit ? "Montando a ordem e conferindo os dados da rede." : "Recotando e simulando a troca antes de mostrar.")
+                Text(text(swap: "Recotando e simulando a troca antes de mostrar.", limit: "Montando a ordem e conferindo os dados da rede.",
+                          cancel: "Montando o cancelamento e conferindo a ordem na rede."))
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                     .frame(maxWidth: .infinity).multilineTextAlignment(.center)
                     .padding(.top, Space.lg)
@@ -133,7 +148,7 @@ struct TradeReviewFlow: View {
         VStack(alignment: .leading, spacing: Space.md) {
             Spacer()
             SwapProcessingIndicator(sell: assets.sell, buy: assets.buy).frame(maxWidth: .infinity)
-            Text(isLimit ? "Enviando a ordem" : "Enviando a troca").typeStyle(.title).foregroundStyle(Palette.ink)
+            Text(text(swap: "Enviando a troca", limit: "Enviando a ordem", cancel: "Enviando o cancelamento")).typeStyle(.title).foregroundStyle(Palette.ink)
                 .frame(maxWidth: .infinity).padding(.top, Space.lg)
             Text("Não feche o app até terminar.").typeStyle(.body).foregroundStyle(Palette.inkSoft)
                 .frame(maxWidth: .infinity)
@@ -145,14 +160,13 @@ struct TradeReviewFlow: View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer()
             Image(systemName: "checkmark.circle.fill").font(.system(size: 44)).foregroundStyle(Palette.up)
-            Text(isLimit ? "Ordem limite criada" : "Troca enviada").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
-            Text(isLimit
-                 ? "A ordem fica aberta até executar, vencer ou você cancelar."
-                 : "O saldo novo aparece quando a rede confirmar.")
+            Text(text(swap: "Troca enviada", limit: "Ordem limite criada", cancel: "Cancelamento enviado"))
+                .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+            Text(doneMessage)
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
-            if !isLimit, let last = ids.last, let url = item.chain.explorerURL(tx: last) {
+            if !isLimit, !isOffchainCancel, let last = ids.last, let url = item.chain.explorerURL(tx: last) {
                 Link(destination: url) {
                     Text("Ver no \(item.chain.explorerName)").typeStyle(.action)
                         .frame(maxWidth: .infinity).frame(height: Height.secondary)
@@ -166,6 +180,20 @@ struct TradeReviewFlow: View {
 
     // MARK: Acoes
 
+    private var isOffchainCancel: Bool {
+        if case .cancel(_, .offchain) = item.kind { return true }
+        return false
+    }
+
+    private var doneMessage: String {
+        switch item.kind {
+        case .swap: return "O saldo novo aparece quando a rede confirmar."
+        case .limit: return "A ordem fica aberta até executar, vencer ou você cancelar."
+        case .cancel(_, .offchain): return "A CoW recebeu o pedido. Se um solver já estava executando a ordem, ela ainda pode sair."
+        case .cancel(_, .onchain): return "A ordem deixa de valer quando a rede confirmar a transação."
+        }
+    }
+
     private func makePlan() async {
         guard let engine else {
             error = "Troca nesta rede ainda não está disponível."
@@ -178,6 +206,12 @@ struct TradeReviewFlow: View {
             switch item.kind {
             case .swap(let request, let quote): built = try await engine.plan(request, quote: quote)
             case .limit(let request): built = try await engine.planLimitOrder(request)
+            case .cancel(let order, let via):
+                guard let wallet = session.selectedWallet, let account = wallet.account(item.chain) else {
+                    error = "Esta carteira não tem conta nesta rede."
+                    return
+                }
+                built = try await engine.planCancel(order, walletID: wallet.id, account: account, via: via)
             }
             guard planMatches(built) else {
                 error = "O plano montado não confere com a troca pedida. Nada foi assinado."
@@ -206,6 +240,9 @@ struct TradeReviewFlow: View {
                 guard plan.review.kind == .limitOrder else { return false }
                 try PlanIntentCheck.trade(plan.review, sell: request.sell, amountIn: request.amountIn, buy: request.buy,
                                           minimumOut: request.minimumOut, owner: request.account.address, chain: item.chain)
+            case .cancel:
+                // Cancelar nao move valor: o plano tem de ser so um cancelamento.
+                guard plan.review.kind == .cancelOrder, plan.review.outgoing == nil || plan.review.outgoing?.amount == 0 else { return false }
             }
             return true
         } catch {
@@ -217,8 +254,8 @@ struct TradeReviewFlow: View {
     /// "cerca de" usam. Sem plano, a estimativa da tela anterior.
     private var fiat: Double? {
         guard let outgoing = plan?.review.outgoing else { return item.fiat }
-        guard let price = assets.sell.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) else { return nil }
-        return Fmt.double(outgoing.amount, decimals: assets.sell.decimals) * price
+        guard let sell = assets.sell, let price = sell.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) else { return nil }
+        return Fmt.double(outgoing.amount, decimals: sell.decimals) * price
     }
 
     private func confirm() async {
@@ -229,7 +266,10 @@ struct TradeReviewFlow: View {
             return
         }
         guard planMatches(plan) else { return }
-        guard await VoiceGate.shared.confirm(.send(fiat: fiat), session: session) else { return }
+        // Cancelar nao tira valor da carteira: a voz fica para o que tira.
+        if !isCancel {
+            guard await VoiceGate.shared.confirm(.send(fiat: fiat), session: session) else { return }
+        }
         do {
             guard let signed = try await auth.perform(session, reason: plan.review.title, { rk in
                 try Signer.sign(plan, rootKey: rk, vault: KeyServices.wallets)
@@ -239,7 +279,9 @@ struct TradeReviewFlow: View {
             stage = .done
             portfolio.show(session.selectedWallet, session: session, force: true)
         } catch {
-            self.error = (error as? LocalizedError)?.errorDescription ?? (isLimit ? "A ordem não saiu. Nada foi debitado." : "A troca não saiu. Nada foi debitado.")
+            self.error = (error as? LocalizedError)?.errorDescription
+                ?? text(swap: "A troca não saiu. Nada foi debitado.", limit: "A ordem não saiu. Nada foi debitado.",
+                        cancel: "O cancelamento não saiu. A ordem continua aberta.")
             stage = .review
         }
     }

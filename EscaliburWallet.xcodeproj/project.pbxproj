@@ -26,6 +26,7 @@
 		3436AC2D44A808B71561FBA0 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E67A652A823737F6EAC7745 /* RootView.swift */; };
 		3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09712057581F9378B87996C5 /* PasswordCost.swift */; };
 		39A4945DC4DAEFEDE0DBEB1F /* PINPad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 781A92DCAC657FBE12804D78 /* PINPad.swift */; };
+		3E9B59FEC10974F0AF152882 /* LimitOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811D8AF3EF3BDDB831240B3A /* LimitOrderTests.swift */; };
 		424496A6E4E34E2651C3AC55 /* DebugDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71977F38FE1026DDFD0C189A /* DebugDemo.swift */; };
 		4311115E36CE8A987E173E93 /* WordInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 290C3A2CEF411E071AA05800 /* WordInputField.swift */; };
 		478026866DF85E9EF5D50A76 /* ImportPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839F9C92169FD1A8C5C69A3B /* ImportPreview.swift */; };
@@ -57,6 +58,7 @@
 		A0E20FEC7CF495BB4B8AE0E1 /* EnvelopeFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3FC7ED2F0ACB292691CA0A /* EnvelopeFlowTests.swift */; };
 		A2EB350AFF4C3B63897F97DA /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C77E773E63B6664F4262AD /* Metadata.swift */; };
 		A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34BAC1217309C0064F23CE7 /* TradeView.swift */; };
+		A86F60C8E0ACDA0DB1C3F8B4 /* OpenOrdersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */; };
 		AF3BC69E48877AAA3F75D755 /* EnvelopeChain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9533E741733252A8A22C3477 /* EnvelopeChain.swift */; };
 		B259A28741C3A8C0F7D74759 /* CoinLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */; };
 		C9C99BCB70E1AFF3536D3968 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98E0FCFFA466C4A03F3490A /* AppSession.swift */; };
@@ -117,6 +119,7 @@
 		464E41DA23598ED80A750BD4 /* EscaliburWalletUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EscaliburWalletUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A0E9C686393C93E1E34895B /* PlatformGuards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformGuards.swift; sourceTree = "<group>"; };
 		529FF2FD620686A71B265A06 /* RevealFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealFlow.swift; sourceTree = "<group>"; };
+		5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenOrdersView.swift; sourceTree = "<group>"; };
 		609FB55F39FC297CF3C80DE8 /* Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Kit; path = Kit; sourceTree = SOURCE_ROOT; };
 		634FB486C1AC19A1DC738122 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
 		6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalDocumentView.swift; sourceTree = "<group>"; };
@@ -129,6 +132,7 @@
 		782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenEnvelopeFlow.swift; sourceTree = "<group>"; };
 		7C28ED1879662A04236281C1 /* termos.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = termos.md; sourceTree = "<group>"; };
 		7E67A652A823737F6EAC7745 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		811D8AF3EF3BDDB831240B3A /* LimitOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitOrderTests.swift; sourceTree = "<group>"; };
 		839F9C92169FD1A8C5C69A3B /* ImportPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPreview.swift; sourceTree = "<group>"; };
 		85AD68422B44E0DD96545710 /* ContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsView.swift; sourceTree = "<group>"; };
 		86B74EDB87479FBC14EC1F7E /* privacidade.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = privacidade.md; sourceTree = "<group>"; };
@@ -254,6 +258,7 @@
 		3CB515FF159E32BF5AB17040 /* Trade */ = {
 			isa = PBXGroup;
 			children = (
+				5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */,
 				CED594CB5884DB17FE81B8D4 /* TradeComponents.swift */,
 				9DD76B5A4D8E49D97000A77E /* TradeReviewFlow.swift */,
 				E34BAC1217309C0064F23CE7 /* TradeView.swift */,
@@ -296,6 +301,7 @@
 				3D40F7F537F7FF07C6720903 /* CoinDetailTests.swift */,
 				0F3FC7ED2F0ACB292691CA0A /* EnvelopeFlowTests.swift */,
 				AD4DB38ABFB63662F684831D /* LegalTests.swift */,
+				811D8AF3EF3BDDB831240B3A /* LimitOrderTests.swift */,
 				CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */,
 				8E73AD40F44D72D64B0F550B /* ReceiveFlowTests.swift */,
 				98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */,
@@ -553,6 +559,7 @@
 				F442789E52824CD5BF6184A6 /* CoinDetailTests.swift in Sources */,
 				A0E20FEC7CF495BB4B8AE0E1 /* EnvelopeFlowTests.swift in Sources */,
 				534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */,
+				3E9B59FEC10974F0AF152882 /* LimitOrderTests.swift in Sources */,
 				20F684E79E7161139654F6DE /* OnboardingFlowTests.swift in Sources */,
 				2A90FB479DFA2C8FA3B4A582 /* ReceiveFlowTests.swift in Sources */,
 				4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */,
@@ -593,6 +600,7 @@
 				94C21BC26784B1AD6AE63CB8 /* NewWalletFlow.swift in Sources */,
 				8C41E86F595FADDBED53F5FB /* OnboardingFlow.swift in Sources */,
 				32C85CC66E71ADDE142F2B2C /* OpenEnvelopeFlow.swift in Sources */,
+				A86F60C8E0ACDA0DB1C3F8B4 /* OpenOrdersView.swift in Sources */,
 				39A4945DC4DAEFEDE0DBEB1F /* PINPad.swift in Sources */,
 				9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */,
 				3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */,

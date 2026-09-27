@@ -34,7 +34,8 @@ final class TradeModel {
 
     // Ordem limite
     var targetPriceText = ""
-    var validFor: TimeInterval = 7 * 86_400
+    /// Por quanto tempo a ordem limite vale; nil e "ate cancelar".
+    var validFor: TimeInterval? = 7 * 86_400
 
     var amountIn: BigUInt? {
         guard let sell else { return nil }
@@ -61,6 +62,13 @@ struct TradeView: View {
     @State private var routeSheet = false
     @State private var reviewing: TradeReviewFlow.Item?
     @State private var receivingAsset: Asset?
+    @State private var showingOrders = false
+
+    /// Os prazos da ordem limite; nil e "ate cancelar" (na Stellar e no XRP Ledger a
+    /// oferta vai sem prazo; na CoW, com o maximo do protocolo).
+    static let validities: [(seconds: TimeInterval?, title: String)] = [
+        (3600, "1 hora"), (86_400, "1 dia"), (604_800, "7 dias"), (2_592_000, "30 dias"), (nil, "Até cancelar"),
+    ]
 
     enum Side: Identifiable { case sell, buy; var id: Self { self } }
 
@@ -119,6 +127,7 @@ struct TradeView: View {
         }
         .sheet(item: $receivingAsset) { asset in ReceiveSheet(preselected: asset) }
         .sheet(isPresented: $routeSheet) { if let quote = model.quote { RouteSheet(quote: quote) } }
+        .sheet(isPresented: $showingOrders) { OpenOrdersView(chain: model.chain) }
         .fullScreenCover(item: $reviewing) { item in
             TradeReviewFlow(item: item) { completed in
                 reviewing = nil
@@ -316,17 +325,37 @@ struct TradeView: View {
             limitSanityLine
             AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(limitReceiveText), balance: balance(model.buy),
                       fiat: nil, editable: false, over: false, onPick: { picking = .buy }, onFraction: nil)
-            HStack {
+            VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Vale por").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                Spacer()
-                ForEach([(3600.0, "1 hora"), (86_400.0, "1 dia"), (604_800.0, "7 dias"), (2_592_000.0, "30 dias")], id: \.0) { seconds, title in
-                    Chip(title: title, selected: model.validFor == seconds) { model.validFor = seconds }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Space.xs) {
+                        ForEach(Self.validities, id: \.title) { option in
+                            Chip(title: option.title, selected: model.validFor == option.seconds) { model.validFor = option.seconds }
+                        }
+                    }
+                }
+                if model.validFor == nil, model.chain.family == .evm {
+                    Text("Na CoW toda ordem tem prazo: sem prazo escolhido, ela vale o máximo que o protocolo aceita, e a revisão mostra a data.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(.top, Space.sm)
             if let engine {
                 Text(engine.limitCustodyNote).typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
+                if engine.supportsLimitOrders {
+                    Button { showingOrders = true } label: {
+                        HStack {
+                            Text("Ordens abertas").typeStyle(.row).foregroundStyle(Palette.ink)
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                        }
+                        .frame(minHeight: Height.touch)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, Space.sm)
+                }
             }
         }
     }
