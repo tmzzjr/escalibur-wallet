@@ -100,3 +100,44 @@ final class SendOptionalTagTests: XCTestCase {
         if let shots { try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/s4-tag-opcional.png")) }
     }
 }
+
+/// Envio EVM: o endereco nao diz a rede, e no primeiro envio o dono confirma que quem
+/// recebe aceita a rede escolhida; o endereco aparece com comeco e fim marcados.
+final class SendNetworkConfirmationTests: XCTestCase {
+    var shots: String? { ProcessInfo.processInfo.environment["ESCALIBUR_FOTOS"] }
+
+    func testEVMFirstSendAsksForNetwork() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "enviar-eth"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Para"].waitForExistence(timeout: 30))
+        let field = app.textFields.firstMatch
+        field.tap()
+        field.typeText("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed")
+        XCTAssertTrue(app.staticTexts["Envio pela rede Ethereum"].waitForExistence(timeout: 10))
+        let next = app.buttons["Continuar"]
+        next.tap()
+        sleep(1)
+        XCTAssertTrue(app.staticTexts["Envio pela rede Ethereum"].exists, "seguiu sem confirmar a rede")
+        if let shots { try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/s5-rede.png")) }
+        app.switches["confirmar-rede"].firstMatch.tap()
+        sleep(1)
+        if let shots { try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/s6-rede-confirmada.png")) }
+    }
+
+    func testTronUSDTWithEVMAddressSaysWrongNetwork() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "enviar"]
+        app.launch()
+        let usdt = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'USDT, na Tron'")).firstMatch
+        XCTAssertTrue(usdt.waitForExistence(timeout: 40))
+        usdt.tap()
+        let field = app.textFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        field.tap()
+        field.typeText("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed")
+        let message = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Este é um endereço EVM'")).firstMatch
+        XCTAssertTrue(message.waitForExistence(timeout: 10))
+        if let shots { try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/s7-rede-errada.png")) }
+    }
+}

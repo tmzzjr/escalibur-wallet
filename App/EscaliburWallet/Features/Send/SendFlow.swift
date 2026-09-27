@@ -34,6 +34,16 @@ final class SendModel {
     var skippedTag = false
     /// O dono abriu o campo opcional de tag, memo ou comentario (auditoria 2, M5).
     var showOptionalTag = false
+    /// Endereco de outra rede onde a carteira tem a mesma moeda: um toque troca a rede.
+    var networkSuggestion: Holding?
+    /// Primeiro envio EVM para este endereco: o dono confirmou que quem recebe aceita a
+    /// rede escolhida. O endereco EVM e o mesmo em todas as redes EVM e nao diz qual.
+    var networkConfirmed = false
+
+    var needsNetworkConfirmation: Bool {
+        guard let chain, chain.family == .evm, destination != nil else { return false }
+        return isFirstSend
+    }
     var amountText = ""
     var sendAll = false
     var spendable: Spendable?
@@ -287,13 +297,15 @@ struct SendStages: View {
                         .accessibilityIdentifier("conferir-trecho-endereco")
                 }
 
+                networkConfirmation
                 contacts.padding(.top, Space.lg)
             }
             .padding(.bottom, Space.lg)
         }
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: "Continuar", enabled: model.destination != nil && model.lookalikeCleared && tagProblem == nil, loading: model.working) {
+            PrimaryButton(title: "Continuar", enabled: model.destination != nil && model.lookalikeCleared && tagProblem == nil
+                          && (!model.needsNetworkConfirmation || model.networkConfirmed), loading: model.working) {
                 Task { await continueFromDestination() }
             }
             .padding(.top, Space.xs)
@@ -304,9 +316,17 @@ struct SendStages: View {
     @ViewBuilder
     private var validationLine: some View {
         if let problem = model.destinationProblem {
-            Text(problem).typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: Space.sm) {
+                Text(problem).typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
+                if let suggestion = model.networkSuggestion, let other = suggestion.asset.chain {
+                    SecondaryButton(title: "Enviar \(suggestion.asset.symbol) pela \(other.name)") { switchNetwork(to: suggestion) }
+                }
+            }
         } else if let destination = model.destination, let chain = model.chain {
             VStack(alignment: .leading, spacing: 2) {
+                // O endereco como ele vai para a transacao, com o comeco e o fim marcados
+                // para conferir contra a origem.
+                AddressBlocks(address: destination.address).padding(.bottom, Space.xxs)
                 Text(KnownExchanges.name(for: destination.address).map { "\($0), endereço de depósito" } ?? "Endereço \(Self.of(chain)) \(chain.name)")
                     .typeStyle(.note).foregroundStyle(Palette.up)
                 if let tag = destination.tag {
@@ -342,6 +362,55 @@ struct SendStages: View {
     }
 
     static func of(_ chain: Chain) -> String { chain.id == "xrpl" ? "do" : "da" }
+
+    /// A mesma moeda na rede do endereco colado, se a carteira tem saldo dela la. Na EVM
+    /// o endereco nao diz a rede: com o token em varias, a Ethereum primeiro, e a etapa
+    /// seguinte pede a confirmacao da rede.
+    private func networkSuggestion(for other: Chain) -> Holding? {
+        guard let current = model.holding?.asset else { return nil }
+        let holdings = Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings).filter { !$0.amount.isZero }
+        let candidates = holdings.filter { holding in
+            guard let chain = holding.asset.chain else { return false }
+            let sameNetwork = other.family == .evm ? chain.family == .evm : chain.id == other.id
+            let sameCoin = current.coingeckoID.map { $0 == holding.asset.coingeckoID } ?? (holding.asset.symbol == current.symbol)
+            return sameNetwork && sameCoin
+        }
+        return candidates.first { $0.asset.chainID == other.id } ?? candidates.first
+    }
+
+    private func switchNetwork(to holding: Holding) {
+        model.holding = holding
+        model.networkSuggestion = nil
+        model.amountText = ""
+        model.sendAll = false
+        validate()
+    }
+
+    /// Primeiro envio EVM para este endereco: a rede em destaque, e a confirmacao de que
+    /// quem recebe aceita esta rede. Exchange costuma aceitar um token so em algumas.
+    @ViewBuilder
+    private var networkConfirmation: some View {
+        if model.needsNetworkConfirmation, let chain = model.chain, let holding = model.holding {
+            VStack(alignment: .leading, spacing: Space.sm) {
+                HStack(spacing: Space.sm) {
+                    NetworkBadge(chain: chain, size: 28, ring: .clear)
+                    Text("Envio pela rede \(chain.name)").typeStyle(.row).foregroundStyle(Palette.ink)
+                }
+                Text("Endereços EVM são iguais em todas as redes EVM, então o endereço não diz a rede. Se quem vai receber só aceita \(holding.asset.symbol) por outra rede (uma exchange que recebe só pela Ethereum, por exemplo), o valor não chega.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                Toggle(isOn: $model.networkConfirmed) {
+                    Text("Quem vai receber aceita \(holding.asset.symbol) pela \(chain.name)").typeStyle(.note).foregroundStyle(Palette.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .tint(Palette.lime)
+                .accessibilityIdentifier("confirmar-rede")
+            }
+            .padding(Space.md)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+            .padding(.top, Space.md)
+        }
+    }
 
     /// Um endereco inteiro com o trecho que difere marcado.
     private func comparedAddress(_ label: String, _ address: String, _ segment: AddressPoisoning.Segment?) -> some View {
@@ -395,6 +464,8 @@ struct SendStages: View {
         model.lookalike = nil
         model.lookalikeSegment = nil
         model.lookalikeCheck = ""
+        model.networkSuggestion = nil
+        model.networkConfirmed = false
         if let link = model.linkProblem {
             if link.text == model.destinationText {
                 model.destinationProblem = link.message
@@ -422,6 +493,7 @@ struct SendStages: View {
             model.lookalikeSegment = model.lookalike.flatMap { AddressPoisoning.differingSegment(destination.address, from: $0, chain: chain) }
         case .failure(let problem):
             model.destinationProblem = Self.message(problem, chain: chain)
+            if case .otherNetwork(let other) = problem { model.networkSuggestion = networkSuggestion(for: other) }
         }
     }
 

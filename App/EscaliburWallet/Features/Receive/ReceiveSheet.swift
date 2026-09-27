@@ -295,18 +295,43 @@ struct AddressBlocks: View {
     let address: String
     var onPlate: Bool = false
 
-    var body: some View {
+    /// Os primeiros caracteres destacados: 4, mais o prefixo fixo da rede quando ele
+    /// existe ("0x" na EVM, "bc1q" no bech32), que sozinho nao diferencia endereco.
+    static func headLength(_ address: String) -> Int {
+        if address.hasPrefix("0x") || address.hasPrefix("0X") { return 6 }
+        if let separator = address.firstIndex(of: "1") {
+            let hrp = address[..<separator]
+            if (2...4).contains(hrp.count), hrp.allSatisfy({ $0.isLowercase }) { return hrp.count + 2 + 4 }
+        }
+        return 4
+    }
+
+    /// Primeiro bloco com o comeco destacado, o meio em blocos de 4, e o ultimo bloco com
+    /// os 4 finais destacados: e o que se confere contra a origem num relance.
+    static func blocks(_ address: String) -> (blocks: [String], highlighted: Set<Int>) {
         let chars = Array(address)
-        let blocks = stride(from: 0, to: chars.count, by: 4).map { String(chars[$0..<min($0 + 4, chars.count)]) }
-        let strong = onPlate ? Palette.plateInk : Palette.ink
+        let head = min(headLength(address), chars.count)
+        let tail = min(4, max(chars.count - head, 0))
+        guard chars.count > head + tail else { return ([address], [0]) }
+        let middle = Array(chars[head..<(chars.count - tail)])
+        var blocks = [String(chars[0..<head])]
+        blocks += stride(from: 0, to: middle.count, by: 4).map { String(middle[$0..<min($0 + 4, middle.count)]) }
+        blocks.append(String(chars[(chars.count - tail)...]))
+        return (blocks, [0, blocks.count - 1])
+    }
+
+    var body: some View {
+        let (blocks, highlighted) = Self.blocks(address)
         let soft = onPlate ? Palette.plateMuted : Palette.inkSoft
         return FlowText(blocks: blocks) { index, block in
-            let start = index * 4
-            let end = start + block.count
-            return Text(verbatim: block)
-                .font(TypeStyle.mono.font)
-                .fontWeight(start < 6 || end > chars.count - 6 ? .bold : .regular)
-                .foregroundColor(start < 6 || end > chars.count - 6 ? strong : soft)
+            if highlighted.contains(index) {
+                // Marca-texto: letra escura em lima, na placa clara e no fundo escuro.
+                var text = AttributedString(block)
+                text.backgroundColor = Palette.lime
+                text.foregroundColor = Palette.onLime
+                return Text(text).font(TypeStyle.mono.font).fontWeight(.bold)
+            }
+            return Text(verbatim: block).font(TypeStyle.mono.font).foregroundColor(soft)
         }
         .textSelection(.disabled)
         .accessibilityLabel(address)
