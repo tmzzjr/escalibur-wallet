@@ -26,17 +26,19 @@ enum Palette {
     static let onLive = Color(hex: 0x070708)
 
     // Mercado e estado.
-    static let up = Color(hex: 0x25C28A)
-    static let upTint = Color(hex: 0x0F251E)
+    // Alta em lima, a cor da marca junto do roxo (decisao do dono, 27/09/2026).
+    static let up = Color(hex: 0xC4F135)
+    static let upTint = Color(hex: 0x1F260B)
     static let down = Color(hex: 0xFF4D3D)
     static let downTint = Color(hex: 0x2D1413)
     static let downPress = Color(hex: 0x3C1816)
     static let caution = Color(hex: 0xF5A524)
-    // Acentos pedidos pelo dono: roxo no controle de tolerancia, lima na acao de
-    // receber. Chapados, sem brilho: cor com funcao, nao enfeite.
+    // As cores da marca (decisao do dono, 27/09/2026): lima na acao principal, na aba
+    // escolhida e na alta; roxo na selecao. Chapadas.
     static let purple = Color(hex: 0x8B5CF6)
     static let purpleDeep = Color(hex: 0x4C1D95)
     static let lime = Color(hex: 0xC4F135)
+    static let limePress = Color(hex: 0xA8D21F)
     static let onLime = Color(hex: 0x0B0D05)
     static let cautionTint = Color(hex: 0x2C210F)
 

@@ -151,7 +151,7 @@ struct ImportPhraseView: View {
                 Toggle(isOn: $usesPassphrase) {
                     Text("Esta carteira usa 25ª palavra").typeStyle(.body).foregroundStyle(Palette.ink)
                 }
-                .tint(Palette.up)
+                .tint(Palette.lime)
                 .padding(.top, Space.lg)
                 if usesPassphrase {
                     Text("Com a 25ª palavra errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes.")

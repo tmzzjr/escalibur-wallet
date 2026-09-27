@@ -128,12 +128,12 @@ struct Chip: View {
         Button(action: action) {
             Text(title)
                 .typeStyle(.label)
-                .foregroundStyle(selected ? Palette.ink : Palette.inkSoft)
+                .foregroundStyle(selected ? Color.white : Palette.inkSoft)
                 .padding(.horizontal, Space.sm)
                 .frame(height: Height.chip)
                 .background(
                     Capsule(style: .continuous)
-                        .fill(selected ? Palette.control : Color.clear)
+                        .fill(selected ? Palette.purple : Color.clear)
                         .overlay(
                             Capsule(style: .continuous)
                                 .stroke(selected ? Color.clear : Palette.edge, lineWidth: 1)
@@ -162,13 +162,13 @@ struct Segmented<Value: Hashable>: View {
                 } label: {
                     Text(title)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(selection == value ? Palette.ink : Palette.inkMuted)
+                        .foregroundStyle(selection == value ? Color.white : Palette.inkMuted)
                         .frame(maxWidth: .infinity)
                         .frame(height: 36)
                         .background {
                             if selection == value {
                                 Capsule(style: .continuous)
-                                    .fill(Palette.control)
+                                    .fill(Palette.purple)
                                     .matchedGeometryEffect(id: "segmento", in: namespace)
                             }
                         }

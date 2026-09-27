@@ -105,7 +105,7 @@ struct MainTabs: View {
                 .tabItem { Label("Ajustes", systemImage: "gearshape") }
                 .tag(Router.Tab.settings)
         }
-        .tint(Palette.ink)
+        .tint(Palette.lime)
         .fullScreenCover(item: Bindable(router).flow) { flow in
             switch flow {
             case .send(let asset): SendFlow(initialAsset: asset)
