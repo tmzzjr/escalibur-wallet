@@ -1,10 +1,10 @@
-import Charts
 import EscaliburNetwork
 import SwiftUI
 
-/// O grafico de preco no estilo de corretora: linha fina, area que some, sem grade e
-/// sem eixo, so maxima e minima, e a referencia do preco de abertura do periodo.
-/// Toque longo ou arrasto horizontal mostra o preco de um ponto.
+/// O grafico de preco: linha grossa com brilho, a area embaixo em pontinhos, sem grade
+/// e sem eixo, so a maxima em cima do pico e a minima embaixo do vale. Lima quando o
+/// periodo sobe, vermelho quando desce. Toque longo ou arrasto horizontal mostra o
+/// preco de um ponto.
 struct PriceChart: View {
     let points: [PricePoint]
     var loading: Bool = false
@@ -16,24 +16,27 @@ struct PriceChart: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// No maximo 120 pontos, pela media de cada balde: o dado cru de 24h tem 288,
-    /// mais do que 248pt de largura mostram, e o excesso so desenha ruido.
+    /// Espaco acima e abaixo da linha para os rotulos de maxima e minima.
+    private static let labelRoom: CGFloat = 26
+
+    /// No maximo 160 pontos, pela media de cada balde: o dado cru de 24h tem 288, mais
+    /// do que a largura mostra, e o excesso so desenha ruido.
     private var shown: [PricePoint] {
-        guard points.count > 120 else { return points }
-        let size = Double(points.count) / 120
-        return (0..<120).compactMap { bucket in
+        guard points.count > 160 else { return points }
+        let size = Double(points.count) / 160
+        return (0..<160).compactMap { bucket in
             let start = Int(Double(bucket) * size)
             let end = min(points.count, Int(Double(bucket + 1) * size))
             guard start < end else { return nil }
             let slice = points[start..<end]
             let average = slice.reduce(0) { $0 + $1.price } / Double(slice.count)
-            return PricePoint(time: slice.last!.time, price: bucket == 119 ? points.last!.price : average)
+            return PricePoint(time: slice.last!.time, price: bucket == 159 ? points.last!.price : average)
         }
     }
 
     private var trend: Color {
         guard let first = points.first?.price, let last = points.last?.price else { return Palette.inkSoft }
-        if last > first { return Palette.up }
+        if last > first { return Palette.lime }
         if last < first { return Palette.down }
         return Palette.inkSoft
     }
@@ -41,7 +44,7 @@ struct PriceChart: View {
     var body: some View {
         ZStack {
             if loading && points.isEmpty {
-                RoundedRectangle(cornerRadius: Radius.badge).fill(Palette.body).padding(.vertical, 18)
+                RoundedRectangle(cornerRadius: Radius.badge).fill(Palette.body).padding(.vertical, Self.labelRoom)
                     .opacity(reduceMotion ? 0.7 : 1)
             } else if points.count < 2 {
                 Text("Sem histórico de preço neste período").typeStyle(.note).foregroundStyle(Palette.inkMuted)
@@ -61,103 +64,109 @@ struct PriceChart: View {
             low = min(low, mean * 0.99)
             high = max(high, mean * 1.01)
         }
-        let pad = (high - low) * 0.08
-        return (low - pad)...(high + pad)
+        if high <= low { high = low + max(abs(low) * 0.01, .ulpOfOne) }
+        return low...high
     }
 
     private var chart: some View {
         let data = shown
         let color = trend
         let range = domain
-        return Chart {
-            ForEach(data, id: \.time) { point in
-                AreaMark(x: .value("t", point.time), yStart: .value("base", range.lowerBound), yEnd: .value("p", point.price))
-                    .foregroundStyle(LinearGradient(colors: [color.opacity(0.18), color.opacity(0)], startPoint: .top, endPoint: .bottom))
-                    .interpolationMethod(.linear)
-                LineMark(x: .value("t", point.time), y: .value("p", point.price))
-                    .foregroundStyle(color)
-                    .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-                    .interpolationMethod(.linear)
-            }
-            if let first = data.first {
-                RuleMark(y: .value("abertura", first.price))
-                    .foregroundStyle(Palette.edgeStrong)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [2, 3]))
-            }
-            if let selection {
-                RuleMark(x: .value("t", selection.time))
-                    .foregroundStyle(Palette.inkMuted)
-                    .lineStyle(StrokeStyle(lineWidth: 1))
-                PointMark(x: .value("t", selection.time), y: .value("p", selection.price))
-                    .symbol { Circle().fill(color).frame(width: 10, height: 10).overlay(Circle().stroke(Palette.void, lineWidth: 2)) }
-            } else if let last = data.last {
-                PointMark(x: .value("t", last.time), y: .value("p", last.price))
-                    .symbol { PulseDot(color: color, animated: !reduceMotion) }
-            }
-        }
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .chartYScale(domain: range)
-        .chartXScale(range: .plotDimension(endPadding: 8))
-        .chartLegend(.hidden)
-        .chartOverlay { proxy in
-            GeometryReader { geometry in
-                Rectangle().fill(.clear).contentShape(Rectangle())
-                    .gesture(
-                        LongPressGesture(minimumDuration: 0.15)
-                            .sequenced(before: DragGesture(minimumDistance: 0))
-                            .onChanged { value in
-                                guard case .second(true, let drag?) = value, let frame = proxy.plotFrame else { return }
-                                let x = drag.location.x - geometry[frame].origin.x
-                                guard let date: Date = proxy.value(atX: x) else { return }
-                                selection = data.min { abs($0.time.timeIntervalSince(date)) < abs($1.time.timeIntervalSince(date)) }
-                            }
-                            .onEnded { _ in withAnimation(Motion.fade) { selection = nil } }
-                    )
-            }
-        }
-        .overlay(alignment: .topLeading) { extreme(data.map(\.price).max() ?? 0, top: true, data: data) }
-        .overlay(alignment: .bottomLeading) { extreme(data.map(\.price).min() ?? 0, top: false, data: data) }
-        .padding(.vertical, 18)
-        .sensoryFeedback(.selection, trigger: selection?.time)
-        .animation(Motion.crossfade, value: data.count)
-    }
-
-    private func extreme(_ value: Double, top: Bool, data: [PricePoint]) -> some View {
-        let prices = data.map(\.price)
-        let amplitude = ((prices.max() ?? 0) - (prices.min() ?? 0)) / max(prices.max() ?? 1, .ulpOfOne)
         return GeometryReader { geometry in
-            let index = data.firstIndex { $0.price == value } ?? 0
-            let x = data.count > 1 ? geometry.size.width * CGFloat(index) / CGFloat(data.count - 1) : 0
-            Text(amplitude < 0.01 ? "\(currency.symbol)\(Fmt.nbsp)\(Fmt.grouped(value, fractionDigits: 4))" : Fmt.price(value, currency))
-                .typeStyle(.axis)
-                .foregroundStyle(Palette.inkMuted)
-                .fixedSize()
-                .position(x: min(max(x, 44), geometry.size.width - 44), y: top ? -10 : geometry.size.height + 10)
-        }
-    }
-}
-
-/// O ultimo ponto, com um anel que respira devagar. Desliga com reduzir movimento.
-private struct PulseDot: View {
-    let color: Color
-    let animated: Bool
-    @State private var expanded = false
-
-    var body: some View {
-        ZStack {
-            if animated {
-                Circle().stroke(color, lineWidth: 1.5)
-                    .frame(width: expanded ? 16 : 6, height: expanded ? 16 : 6)
-                    .opacity(expanded ? 0 : 0.35)
+            // Margem dos lados: a linha e o brilho nao encostam na borda da tela.
+            let plot = CGRect(x: Space.gutter, y: Self.labelRoom, width: geometry.size.width - Space.gutter * 2,
+                              height: geometry.size.height - Self.labelRoom * 2)
+            let place: (Int) -> CGPoint = { index in
+                let x = data.count > 1 ? plot.minX + plot.width * CGFloat(index) / CGFloat(data.count - 1) : plot.midX
+                let fraction = (data[index].price - range.lowerBound) / (range.upperBound - range.lowerBound)
+                return CGPoint(x: x, y: plot.maxY - plot.height * CGFloat(fraction))
             }
-            Circle().fill(color).frame(width: 6, height: 6)
+            ZStack(alignment: .topLeading) {
+                Canvas { context, _ in
+                    var line = Path()
+                    for index in data.indices {
+                        index == 0 ? line.move(to: place(index)) : line.addLine(to: place(index))
+                    }
+                    // A area embaixo da linha, em pontinhos da mesma cor.
+                    var area = line
+                    area.addLine(to: CGPoint(x: plot.maxX, y: plot.maxY))
+                    area.addLine(to: CGPoint(x: plot.minX, y: plot.maxY))
+                    area.closeSubpath()
+                    context.drawLayer { dots in
+                        dots.clip(to: area)
+                        let step: CGFloat = 6.5
+                        var grid = Path()
+                        var y = plot.maxY
+                        while y >= plot.minY - step {
+                            var x = plot.minX + step / 2
+                            while x <= plot.maxX {
+                                grid.addEllipse(in: CGRect(x: x - 0.85, y: y - 0.85, width: 1.7, height: 1.7))
+                                x += step
+                            }
+                            y -= step
+                        }
+                        dots.fill(grid, with: .color(color.opacity(0.7)))
+                    }
+                    // O brilho: a linha larga e desfocada por baixo da linha nitida.
+                    context.drawLayer { glow in
+                        glow.addFilter(.blur(radius: 14))
+                        glow.stroke(line, with: .color(color.opacity(0.55)), style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
+                    }
+                    context.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+
+                    if let selection, let index = data.firstIndex(where: { $0.time == selection.time }) {
+                        let point = place(index)
+                        var rule = Path()
+                        rule.move(to: CGPoint(x: point.x, y: plot.minY))
+                        rule.addLine(to: CGPoint(x: point.x, y: plot.maxY))
+                        context.stroke(rule, with: .color(Palette.inkMuted), lineWidth: 1)
+                        context.fill(Path(ellipseIn: CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12)), with: .color(Palette.void))
+                        context.fill(Path(ellipseIn: CGRect(x: point.x - 4.5, y: point.y - 4.5, width: 9, height: 9)), with: .color(color))
+                    }
+                }
+                extremeLabel(data: data, top: true, place: place, width: geometry.size.width)
+                extremeLabel(data: data, top: false, place: place, width: geometry.size.width)
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                LongPressGesture(minimumDuration: 0.15)
+                    .sequenced(before: DragGesture(minimumDistance: 0))
+                    .onChanged { value in
+                        guard case .second(true, let drag?) = value, data.count > 1 else { return }
+                        let fraction = min(max((drag.location.x - plot.minX) / max(plot.width, 1), 0), 1)
+                        selection = data[Int((fraction * CGFloat(data.count - 1)).rounded())]
+                    }
+                    .onEnded { _ in withAnimation(Motion.fade) { selection = nil } }
+            )
         }
-        .frame(width: 16, height: 16)
-        .onAppear {
-            guard animated else { return }
-            withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { expanded = true }
-        }
+        .sensoryFeedback(.selection, trigger: selection?.time)
+        .accessibilityElement()
+        .accessibilityLabel("Gráfico de preço")
+        .accessibilityValue(accessibilitySummary(data))
+    }
+
+    /// A maxima em cima do pico, a minima embaixo do vale, sem sair da tela.
+    private func extremeLabel(data: [PricePoint], top: Bool, place: (Int) -> CGPoint, width: CGFloat) -> some View {
+        let prices = data.map(\.price)
+        let target = top ? (prices.max() ?? 0) : (prices.min() ?? 0)
+        let index = data.firstIndex { $0.price == target } ?? 0
+        let point = place(index)
+        return Text(priceText(target, prices: prices))
+            .typeStyle(.axis)
+            .foregroundStyle(Palette.inkSoft)
+            .fixedSize()
+            .position(x: min(max(point.x, 48), width - 48), y: top ? point.y - 16 : point.y + 16)
+    }
+
+    private func priceText(_ value: Double, prices: [Double]) -> String {
+        let amplitude = ((prices.max() ?? 0) - (prices.min() ?? 0)) / max(prices.max() ?? 1, .ulpOfOne)
+        return amplitude < 0.01 ? "\(currency.symbol)\(Fmt.nbsp)\(Fmt.grouped(value, fractionDigits: 4))" : Fmt.price(value, currency)
+    }
+
+    private func accessibilitySummary(_ data: [PricePoint]) -> String {
+        let prices = data.map(\.price)
+        guard let low = prices.min(), let high = prices.max() else { return "" }
+        return "Mínima \(priceText(low, prices: prices)), máxima \(priceText(high, prices: prices))"
     }
 }
 
@@ -184,15 +193,14 @@ struct PeriodPicker: View {
                 } label: {
                     Text(title(option))
                         .typeStyle(.label)
+                        .fontWeight(range == option ? .semibold : .regular)
                         .foregroundStyle(range == option ? Palette.ink : Palette.inkMuted)
                         .frame(maxWidth: .infinity)
-                        .frame(minHeight: 34)
+                        .frame(minHeight: 38)
                         .background {
                             if range == option {
                                 Capsule(style: .continuous)
                                     .fill(Palette.control)
-                                    .overlay(Capsule(style: .continuous).strokeBorder(Palette.edgeStrong, lineWidth: 1))
-                                    .shadow(color: .black.opacity(0.35), radius: 4, y: 2)
                                     .matchedGeometryEffect(id: "period", in: namespace)
                             }
                         }
@@ -202,8 +210,6 @@ struct PeriodPicker: View {
                 .accessibilityAddTraits(range == option ? .isSelected : [])
             }
         }
-        .padding(3)
-        .background(Capsule(style: .continuous).fill(Palette.body))
         .sensoryFeedback(.selection, trigger: range)
     }
 }
