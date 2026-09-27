@@ -57,4 +57,19 @@ struct PlanIntentCheckTests {
             }
         }
     }
+
+    @Test("Tag: numero no XRP Ledger, texto exato na Stellar, TON e Tron (B7)")
+    func tags() throws {
+        let xrpl = try #require(Chain.find("xrpl"))
+        let stellar = try #require(Chain.find("stellar"))
+        #expect(PlanIntentCheck.sameTag("123", "0123", chain: xrpl))
+        #expect(!PlanIntentCheck.sameTag("123", "124", chain: xrpl))
+        #expect(!PlanIntentCheck.sameTag("abc", "abc", chain: xrpl))
+        // Stellar: "0123" de texto nao e o ID 123.
+        #expect(!PlanIntentCheck.sameTag("123", "0123", chain: stellar))
+        #expect(PlanIntentCheck.sameTag("0123", "0123", chain: stellar))
+        #expect(PlanIntentCheck.sameTag(nil, "", chain: stellar))
+        #expect(!PlanIntentCheck.sameTag(nil, "5", chain: stellar))
+        #expect(!PlanIntentCheck.sameTag("5", nil, chain: xrpl))
+    }
 }

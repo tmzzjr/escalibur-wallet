@@ -32,6 +32,8 @@ final class SendModel {
     var isFirstSend = false
     var tagText = ""
     var skippedTag = false
+    /// O dono abriu o campo opcional de tag, memo ou comentario (auditoria 2, M5).
+    var showOptionalTag = false
     var amountText = ""
     var sendAll = false
     var spendable: Spendable?
@@ -260,6 +262,7 @@ struct SendStages: View {
                 .padding(.top, Space.xs)
 
                 validationLine.padding(.top, Space.sm)
+                optionalTag
 
                 if let lookalike = model.lookalike, let destination = model.destination, let chain = model.chain {
                     Banner(kind: .caution, title: "Endereço parecido com um que você já usou",
@@ -290,7 +293,7 @@ struct SendStages: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: "Continuar", enabled: model.destination != nil && model.lookalikeCleared, loading: model.working) {
+            PrimaryButton(title: "Continuar", enabled: model.destination != nil && model.lookalikeCleared && tagProblem == nil, loading: model.working) {
                 Task { await continueFromDestination() }
             }
             .padding(.top, Space.xs)
@@ -451,6 +454,37 @@ struct SendStages: View {
     }
 
     // MARK: E3 Tag
+
+    /// Tag, memo ou comentario quando a rede tem e o destino nao exige: um campo que o
+    /// dono abre se quem pediu o envio deu um (auditoria 2, M5). Quando o destino exige,
+    /// a etapa propria cuida.
+    @ViewBuilder
+    private var optionalTag: some View {
+        if let chain = model.chain, chain.destinationTag != .none, model.destination != nil, !model.needsTagStep {
+            if model.showOptionalTag || !model.tagText.isEmpty {
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    // "tag" e feminino; "memo" e "comentario", masculinos.
+                    Text("\(tagNoun.prefix(1).uppercased() + tagNoun.dropFirst()), se quem pediu deu \(chain.destinationTag == .xrplTag ? "uma" : "um")")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    TextField("", text: $model.tagText, prompt: Text("Opcional").foregroundColor(Palette.inkDead))
+                        .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                        .keyboardType(chain.destinationTag == .xrplTag ? .numberPad : .asciiCapable)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .padding(.horizontal, Space.md).frame(height: Height.field)
+                        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+                        .accessibilityIdentifier("tag-opcional")
+                    if let problem = tagProblem {
+                        Text(problem).typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.top, Space.md)
+            } else {
+                TertiaryButton(title: "Adicionar \(tagNoun)") { model.showOptionalTag = true }
+                    .padding(.top, Space.xs)
+            }
+        }
+    }
 
     private var tagNoun: String {
         switch model.chain?.destinationTag {
@@ -615,20 +649,13 @@ struct SendStages: View {
         guard let chain = model.chain, let destination = model.destination else { return false }
         guard plan.review.kind == .send, plan.chain.id == chain.id, plan.walletID == model.wallet.id else { return false }
         guard Address.sameRecipient(plan.review.recipient, destination.address, chain: chain) else { return false }
-        guard Self.sameTag(plan.review.recipientTag, model.tagText) else { return false }
+        guard PlanIntentCheck.sameTag(plan.review.recipientTag, model.tagText, chain: chain) else { return false }
         // O ativo e o valor que saem, lidos da transacao pelo planejador: o pedido
         // exato, ou no enviar tudo no maximo o saldo que a tela mostrou (a taxa pode
         // ter caido entre a estimativa e o plano) (auditoria 2, M1).
         guard let holding = model.holding, let requested = model.amount else { return false }
         return (try? PlanIntentCheck.send(plan.review, asset: holding.asset, amount: model.sendAll ? nil : requested,
                                           ceiling: holding.amount, chain: chain)) != nil
-    }
-
-    static func sameTag(_ planned: String?, _ typed: String?) -> Bool {
-        let a = planned.flatMap { $0.isEmpty ? nil : $0 }
-        let b = typed.flatMap { $0.isEmpty ? nil : $0 }
-        if let a, let b, let x = UInt64(a), let y = UInt64(b) { return x == y }
-        return a == b
     }
 
     private var reviewStage: some View {
@@ -674,7 +701,13 @@ struct SendStages: View {
     private func warnings(_ plan: SigningPlan) -> [String] {
         var out: [String] = []
         if let lookalike = model.lookalike { out.append("Endereço parecido com \(Fmt.address(lookalike)). Confira o endereço inteiro.") }
-        if model.skippedTag { out.append("Envio sem \(tagNoun), por sua escolha.") }
+        if model.skippedTag {
+            out.append("Envio sem \(tagNoun), por sua escolha.")
+        } else if let chain = model.chain, chain.destinationTag != .none, model.tagText.isEmpty, model.isFirstSend {
+            // Primeiro envio para este destino, sem tag, numa rede que tem: se for uma
+            // exchange que nao liga a flag da rede, o valor se perde la dentro.
+            out.append(PlanWarningText.text(.noDestinationTag, tagNoun: tagNoun))
+        }
         for warning in plan.review.warnings {
             // O aviso de primeiro envio ja aparece embaixo do botao.
             if warning == .firstSendToAddress, model.isFirstSend { continue }

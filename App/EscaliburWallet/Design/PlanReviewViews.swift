@@ -59,7 +59,7 @@ enum PlanWarningText {
         switch warning {
         case .firstSendToAddress: return "Primeira vez que você envia para este endereço."
         case .lookalikeAddress(let known): return "Endereço parecido com \(Fmt.address(known))."
-        case .noDestinationTag: return "Sem \(tagNoun)."
+        case .noDestinationTag: return "Sem \(tagNoun). Se o destino for uma exchange, confira na tela de depósito se ela pede: sem isso o valor não chega na sua conta de lá."
         case .destinationIsContract: return "O destino é um contrato, não uma carteira comum."
         case .highFee(let percent): return "A taxa é \(Fmt.grouped(percent, fractionDigits: 1))% do valor."
         case .activatesAccount(let minimum): return "Este envio ativa a conta de destino (mínimo \(minimum))."

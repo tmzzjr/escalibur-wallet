@@ -71,3 +71,32 @@ final class SendUnsureTests: XCTestCase {
         if let shots { try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/s3-incerto.png")) }
     }
 }
+
+/// Tag opcional: quando a rede tem e o destino nao exige, o campo abre a pedido.
+final class SendOptionalTagTests: XCTestCase {
+    var shots: String? { ProcessInfo.processInfo.environment["ESCALIBUR_FOTOS"] }
+
+    func testOptionalTagField() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "enviar"]
+        app.launch()
+        let xrp = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'XRP,'")).firstMatch
+        XCTAssertTrue(xrp.waitForExistence(timeout: 40))
+        xrp.tap()
+        let field = app.textFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        field.tap()
+        field.typeText("rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh")
+        let addTag = app.buttons["Adicionar tag de destino"]
+        XCTAssertTrue(addTag.waitForExistence(timeout: 10))
+        addTag.tap()
+        let tag = app.textFields["tag-opcional"]
+        XCTAssertTrue(tag.waitForExistence(timeout: 5))
+        tag.tap()
+        tag.typeText("0123")
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        if let shots { try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/s4-tag-opcional.png")) }
+    }
+}

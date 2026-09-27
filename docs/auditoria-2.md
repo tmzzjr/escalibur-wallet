@@ -53,7 +53,7 @@ Atualizada a cada correção.
 | Seg M2: desafio do endereço parecido | feito | o desafio pede os 6 caracteres do meio onde o destino difere do conhecido (`AddressPoisoning.differingSegment`), com os dois endereços lado a lado e o trecho marcado; conhecidos incluem para quem a carteira já pagou no histórico da rede; teste de interface em `SendLookalikeTests` |
 | Seg M3: transmissão ambígua | feito | erro na transmissão depois de assinar vira "Não deu para confirmar": a tela só oferece transmitir de novo os mesmos bytes (mesmo id, não paga duas vezes), acompanha o id conhecido e manda conferir na Atividade; nonce EVM e índice de troco UTXO ficam anotados antes da transmissão |
 | Seg M4: PIN errado dentro de envio ou troca | feito | `AuthCoordinator.perform` volta ao teclado com o aviso da tela de bloqueio; teste de interface em `EnvelopeFlowTests` |
-| Seg M5: memo opcional, `.noDestinationTag` | aberto | |
+| Seg M5: memo opcional, `.noDestinationTag` | feito | campo opcional de tag, memo ou comentário no destino quando a rede tem e o destino não exige; a revisão avisa `.noDestinationTag` no primeiro envio sem tag numa rede que tem |
 | Seg M6: preço limite sem conferência | feito | `TradeView.limitSanity`: abaixo de 2% do mercado pede confirmação presa ao preço digitado, abaixo de 50% bloqueia, sem preço de mercado pede confirmação |
 | Seg B1: aceite de impacto alto | feito | vale só para o impacto aceito ou menor; par, valor, rede ou tolerância novos zeram |
 | Seg B2: "nenhuma sai sozinha" | feito | texto diz que são transações separadas e que a autorização exata fica valendo se a troca falhar |
@@ -61,7 +61,7 @@ Atualizada a cada correção.
 | Seg B4: Face ID zerava o contador | feito | `RootKeyVault` |
 | Seg B5: QR EIP-681 de token | feito | `PaymentLink` no Kit, destino é o `address=`; rede diferente da do envio é recusada; testes em `PaymentLinkTests` |
 | Seg B6: palavras da importação em String | aceito | o campo UIKit guarda a palavra em digitação (uma por vez, limpo a cada palavra, sem correção, sem sugestão, sem ferramentas de escrita, área de transferência limpa depois de colar); a frase inteira só existe em `SecureBytes`. `String` do Swift não se apaga |
-| Seg B7: memo "0123" igual a 123 | aberto | |
+| Seg B7: memo "0123" igual a 123 | feito | `PlanIntentCheck.sameTag`: número só na tag do XRP Ledger; memo da Stellar, comentário da TON e memo da Tron comparados exatamente; testes |
 | Seg B8: CI sem hash no pip e sem compilar o app | aberto | |
 
 ## Estado da revisão dos motores (Kit, branch seguranca-2)
