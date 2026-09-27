@@ -102,11 +102,9 @@ struct ActivityView: View {
 
                     if feed.entries.isEmpty {
                         if feed.loading || !feed.loadedOnce {
-                            HStack(spacing: Space.sm) {
-                                ProgressView().tint(Palette.inkSoft)
-                                Text("Lendo o histórico de cada rede").typeStyle(.body).foregroundStyle(Palette.inkSoft)
-                            }
-                            .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+                            ActivityLoading(chains: session.selectedWallet?.accounts.compactMap { Chain.find($0.chainID) } ?? [])
+                                .frame(maxWidth: .infinity)
+                                .containerRelativeFrame(.vertical, alignment: .center) { length, _ in length * 0.72 }
                         } else {
                             empty.padding(.top, Space.lg)
                         }
@@ -190,17 +188,6 @@ struct ActivityRow: View {
     let currency: Fmt.Currency
     var hidden = false
 
-    private var icon: String {
-        switch entry.direction {
-        case .sent: return "arrow.up"
-        case .received: return "arrow.down"
-        case .swap: return "arrow.left.arrow.right"
-        case .approval: return "signature"
-        case .order: return "scope"
-        case .other: return "circle"
-        }
-    }
-
     private var title: String {
         let symbol = entry.asset?.symbol ?? entry.chain?.nativeSymbol ?? ""
         switch entry.direction {
@@ -227,11 +214,9 @@ struct ActivityRow: View {
 
     var body: some View {
         HStack(spacing: Space.sm) {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Palette.ink)
-                .frame(width: 36, height: 36)
-                .background(Circle().fill(Palette.rail))
+            // O logo da moeda com a bolinha da rede; a direcao esta no titulo e no sinal.
+            CoinLogo(coingeckoID: entry.asset?.coingeckoID ?? entry.chain?.coingeckoID,
+                     symbol: entry.asset?.symbol ?? entry.chain?.nativeSymbol ?? "", size: 40, network: entry.chain)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1).minimumScaleFactor(0.7)
                 Text(subtitle).typeStyle(.note).foregroundStyle(isFailed ? Palette.down : Palette.inkSoft).lineLimit(1)
@@ -326,5 +311,38 @@ struct ActivityDetailView: View {
             Spacer()
             Text(value).typeStyle(.note).foregroundStyle(Palette.ink)
         }
+    }
+}
+
+/// Enquanto o historico chega: as redes da carteira acendendo uma de cada vez, no meio
+/// da tela. Com Reduzir Movimento, parado.
+struct ActivityLoading: View {
+    let chains: [Chain]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var shown: [Chain] { Array(chains.prefix(7)) }
+
+    var body: some View {
+        VStack(spacing: Space.md) {
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+                let phase = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate / 1.6
+                HStack(spacing: -8) {
+                    ForEach(Array(shown.enumerated()), id: \.element.id) { index, chain in
+                        let wave = (sin((phase - Double(index) / Double(max(shown.count, 1))) * 2 * .pi) + 1) / 2
+                        NetworkBadge(chain: chain, size: 36, ring: Palette.void)
+                            .scaleEffect(reduceMotion ? 1 : 0.9 + 0.12 * wave)
+                            .opacity(reduceMotion ? 1 : 0.45 + 0.55 * wave)
+                            .zIndex(wave)
+                    }
+                }
+            }
+            VStack(spacing: Space.xxs) {
+                Text("Lendo o histórico").typeStyle(.row).foregroundStyle(Palette.ink)
+                Text(chains.count > 1 ? "\(chains.count) redes, cada uma direto dos provedores públicos." : "Direto dos provedores públicos da rede.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).multilineTextAlignment(.center)
+            }
+        }
+        .padding(.horizontal, Space.gutter)
+        .accessibilityElement(children: .combine)
     }
 }

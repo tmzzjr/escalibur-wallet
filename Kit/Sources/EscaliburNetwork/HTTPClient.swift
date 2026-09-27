@@ -138,7 +138,7 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
     }
 }
 
-extension HTTPClient: URLSessionTaskDelegate, URLSessionDataDelegate {
+extension HTTPClient: URLSessionTaskDelegate {
     /// Redirecionamento nunca e seguido: um provedor comprometido nao manda o app
     /// buscar dado em outro host.
     public func urlSession(
@@ -148,12 +148,10 @@ extension HTTPClient: URLSessionTaskDelegate, URLSessionDataDelegate {
         nil
     }
 
-    /// Resposta que anuncia mais que o limite e cortada antes de baixar.
-    public func urlSession(
-        _ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse
-    ) async -> URLSession.ResponseDisposition {
-        response.expectedContentLength > Int64(Self.maxResponseBytes) ? .cancel : .allow
-    }
+    // Sem `dataTask:didReceive:` aqui: a leitura e por `bytes(for:)`, que tem o proprio
+    // delegado da tarefa, e responder a resposta nos dois lugares travava o fluxo do
+    // corpo em algumas versoes do sistema (visto no CI, macOS do runner). A resposta que
+    // anuncia mais que o limite e recusada em `perform`, logo depois dos cabecalhos.
 }
 
 /// Um conjunto de provedores equivalentes para o mesmo servico, com contingencia.
