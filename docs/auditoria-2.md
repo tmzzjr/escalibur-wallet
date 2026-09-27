@@ -62,7 +62,7 @@ Atualizada a cada correção.
 | Seg B5: QR EIP-681 de token | feito | `PaymentLink` no Kit, destino é o `address=`; rede diferente da do envio é recusada; testes em `PaymentLinkTests` |
 | Seg B6: palavras da importação em String | aceito | o campo UIKit guarda a palavra em digitação (uma por vez, limpo a cada palavra, sem correção, sem sugestão, sem ferramentas de escrita, área de transferência limpa depois de colar); a frase inteira só existe em `SecureBytes`. `String` do Swift não se apaga |
 | Seg B7: memo "0123" igual a 123 | feito | `PlanIntentCheck.sameTag`: número só na tag do XRP Ledger; memo da Stellar, comentário da TON e memo da Tron comparados exatamente; testes |
-| Seg B8: CI sem hash no pip e sem compilar o app | aberto | |
+| Seg B8: CI sem hash no pip e sem compilar o app | feito | `tools/requisitos-ci.txt` com versão e hash de cada pacote (dependências incluídas), instalado com `--require-hashes`; o CI compila o app em Release para o simulador e recusa o binário que carregar algo do modo demo |
 
 ## Estado da revisão dos motores (Kit, branch seguranca-2)
 

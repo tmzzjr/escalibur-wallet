@@ -1,5 +1,6 @@
 # Toda mudanca passa por aqui antes de entrar na main: o verificador inteiro, todos
-# os testes do nucleo e a interoperabilidade do envelope com o decifrador aberto.
+# os testes do nucleo, o app compilado em Release e a interoperabilidade do envelope
+# com o decifrador aberto.
 name: verificar
 
 on:
@@ -37,7 +38,21 @@ jobs:
         working-directory: Kit
         run: swift test
 
+      # O app no build que o usuario recebe. So compila em Release o que nao depende do
+      # modo demo, e o binario nao pode carregar nada dele (frase publica, telas diretas).
+      - name: App em Release para o simulador, sem nada do modo demo no binario
+        run: |
+          xcodebuild -project EscaliburWallet.xcodeproj -scheme EscaliburWallet -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build/ci \
+            CODE_SIGNING_ALLOWED=NO build -quiet
+          binario=build/ci/Build/Products/Release-iphonesimulator/EscaliburWallet.app/EscaliburWallet
+          if strings "$binario" | grep -E "abandon abandon abandon|DebugDemo|envio-incerto|enviar-eth"; then
+            echo "o binario de distribuicao carrega codigo do modo demo"
+            exit 1
+          fi
+
+      # Dependencias fixadas por versao e por hash: um pacote trocado no PyPI nao entra.
       - name: Envelope da carteira aberto pelo decifrar.py embarcado
         run: |
-          python3 -m pip install --user --disable-pip-version-check argon2-cffi==25.1.0 cryptography==50.0.1
+          python3 -m pip install --user --disable-pip-version-check --require-hashes -r tools/requisitos-ci.txt
           ./tools/conferir-envelope.sh
