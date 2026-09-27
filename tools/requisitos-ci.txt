@@ -1,7 +1,7 @@
 # Dependencias do decifrar.py no CI, fixadas por versao e por hash (auditoria 2, B8).
-# O python3 do runner e o do sistema (3.9): as versoes abaixo sao as mais novas que
-# ainda aceitam 3.9. Instalar com:
-#   python3 -m pip install --user --require-hashes -r tools/requisitos-ci.txt
+# As versoes abaixo aceitam do python3 3.9 (o do macOS) ao do Homebrew no runner. O CI
+# instala num ambiente virtual proprio:
+#   python3 -m venv venv && venv/bin/python -m pip install --require-hashes -r tools/requisitos-ci.txt
 # Hashes de todos os arquivos publicados de cada versao no PyPI; para atualizar,
 # trocar a versao e regerar a lista inteira, nunca so acrescentar um hash.
 argon2-cffi==25.1.0 \

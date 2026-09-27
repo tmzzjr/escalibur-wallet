@@ -62,5 +62,6 @@ jobs:
       # Dependencias fixadas por versao e por hash: um pacote trocado no PyPI nao entra.
       - name: Envelope da carteira aberto pelo decifrar.py embarcado
         run: |
-          python3 -m pip install --user --disable-pip-version-check --require-hashes -r tools/requisitos-ci.txt
-          ./tools/conferir-envelope.sh
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/python" -m pip install --disable-pip-version-check --require-hashes -r tools/requisitos-ci.txt
+          PATH="$RUNNER_TEMP/venv/bin:$PATH" ./tools/conferir-envelope.sh
