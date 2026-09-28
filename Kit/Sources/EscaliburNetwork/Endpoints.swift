@@ -151,6 +151,27 @@ public enum Endpoints {
         .init(name: "toncenter", baseURL: url("https://toncenter.com/api/v3")),
     ]
 
+    /// Sui pelo gRPC-Web (`sui.rpc.v2`), sem chave, tres operadores com no proprio:
+    /// Sui Foundation (no publico, "limites estritos", docs.sui.io "RPC and Data
+    /// Providers"), Suiscan (Blockberry, atras da Cloudflare) e NodeInfra (Caddy numa
+    /// maquina propria). Conferido em 27/09/2026 nos tres: `GetServiceInfo` com o
+    /// `chain_id` da rede principal e versoes de build e checkpoint mais antigo
+    /// diferentes, `GetBalance`, `ListOwnedObjects`, `GetEpoch`, `SimulateTransaction`,
+    /// `BatchGetTransactions` e `ListTransactions`, tambem em HTTP/1.1. O JSON-RPC ficou
+    /// de fora: desligado nos nos da Sui Foundation desde 27/07/2026, com o codigo removido
+    /// em meados de outubro de 2026. PublicNode e BlockPI so atendem gRPC nativo ou pedem
+    /// chave; os outros da lista oficial pedem chave.
+    public static let sui: [ProviderPool.Provider] = [
+        .init(name: "suifoundation", baseURL: url("https://fullnode.mainnet.sui.io")),
+        .init(name: "suiscan", baseURL: url("https://rpc-mainnet.suiscan.xyz")),
+        .init(name: "nodeinfra", baseURL: url("https://sui-mainnet.nodeinfra.com")),
+    ]
+
+    /// GraphQL da Sui Foundation, so para o historico: o unico indexador sem chave com o
+    /// historico inteiro (os nos gRPC guardam cerca de duas semanas). Conferido em
+    /// 27/09/2026; o endereco vai nas variaveis do corpo, nunca na URL.
+    public static let suiGraphQL = url("https://graphql.mainnet.sui.io/graphql")
+
     // MARK: Leitores de estado, transmissao e historico
 
     /// Transmissao com protecao de MEV na Ethereum, so quando o chamador pede (troca).

@@ -10,11 +10,13 @@ public enum ChainFamily: String, Codable, Sendable, CaseIterable {
     case stellar
     case tron
     case ton
+    case sui
 
     public var curve: Curve {
         switch self {
         case .utxo, .evm, .xrpl, .tron: return .secp256k1
         case .solana, .stellar, .ton: return .ed25519
+        case .sui: return .ed25519
         }
     }
 }
@@ -170,6 +172,15 @@ public extension Chain {
         explorerTx: "https://tonviewer.com/transaction/{tx}", explorerAddress: "https://tonviewer.com/{address}",
         explorerName: "Tonviewer", typicalConfirmationSeconds: 5, destinationTag: .tonComment
     )
+    /// Sui: SLIP-44 784, 9 casas (MIST), explorador Suiscan (o mesmo do wallet-core da
+    /// Trust Wallet). Finalidade em menos de um segundo.
+    static let sui = Chain(
+        id: "sui", name: "Sui", family: .sui, coinType: 784,
+        nativeSymbol: "SUI", nativeName: "Sui", nativeDecimals: 9, coingeckoID: "sui",
+        evmChainID: nil,
+        explorerTx: "https://suiscan.xyz/mainnet/tx/{tx}", explorerAddress: "https://suiscan.xyz/mainnet/account/{address}",
+        explorerName: "Suiscan", typicalConfirmationSeconds: 1, destinationTag: .none
+    )
 
     /// Todas as redes, na ordem em que aparecem na interface.
     static let all: [Chain] = [
@@ -177,6 +188,7 @@ public extension Chain {
         .base, .arbitrum, .optimism, .polygon, .bnb, .avalanche,
         .plasma, .xlayer, .linea, .unichain, .sonic, .celo,
         .litecoin, .dogecoin,
+        .sui,
     ]
 
     static func find(_ id: String) -> Chain? { all.first { $0.id == id } }

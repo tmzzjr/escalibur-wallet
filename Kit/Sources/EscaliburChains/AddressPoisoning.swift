@@ -75,6 +75,8 @@ public enum AddressPoisoning {
             if text.hasPrefix("0:") { text.removeFirst(2) } else if text.count > 2 { text.removeFirst(2) }
         case .solana:
             break
+        case .sui:
+            if text.hasPrefix("0x") { text.removeFirst(2) }
         }
         return text
     }
