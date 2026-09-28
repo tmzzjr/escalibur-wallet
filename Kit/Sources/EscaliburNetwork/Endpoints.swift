@@ -185,6 +185,32 @@ public enum Endpoints {
     public static let cardanoYoroi = url("https://api.yoroiwallet.com/api")
     public static let cardanoYoroiZero = url("https://zero.yoroiwallet.com")
 
+    /// Polkadot Asset Hub, onde o DOT mora desde a migracao de 4/11/2025. JSON-RPC por
+    /// POST, sem chave, quatro operadores independentes com no proprio: Parity (o RPC
+    /// oficial), LuckyFriday, Dwellir e OnFinality (camada publica). Conferido em
+    /// 28/09/2026 nos quatro, no mesmo bloco finalizado: genese da Asset Hub, runtime
+    /// `statemint` 2005000 com `transactionVersion` 15, `System.Account` e a taxa
+    /// (`TransactionPaymentApi_query_info`) iguais. Rotko e Stakeworld tambem respondem,
+    /// e ficam de fora para a lista nao crescer sem necessidade.
+    public static let polkadot: [ProviderPool.Provider] = [
+        .init(name: "parity", baseURL: url("https://polkadot-asset-hub-rpc.polkadot.io")),
+        .init(name: "luckyfriday", baseURL: url("https://rpc-asset-hub-polkadot.luckyfriday.io")),
+        .init(name: "dwellir", baseURL: url("https://asset-hub-polkadot-rpc.n.dwellir.com")),
+        .init(name: "onfinality", baseURL: url("https://statemint.api.onfinality.io/public")),
+    ]
+
+    /// Sidecar publico da Parity para a Asset Hub, so para o acompanhamento: diz se a
+    /// extrinsic que o leitor achou num bloco finalizado deu certo (`success`), o que o
+    /// JSON-RPC so diria decodificando os eventos com os metadados inteiros. A URL leva
+    /// so o numero do bloco. Conferido em 28/09/2026.
+    public static let polkadotSidecar = url("https://polkadot-asset-hub-public-sidecar.parity-chains.parity.io")
+
+    /// Historico da Polkadot Asset Hub: o indexador SubQuery da Nova Wallet, o que o app
+    /// dela usa, GraphQL sem chave com o endereco nas variaveis do corpo. O Subscan passou
+    /// a exigir chave (403 sem ela, 28/09/2026); nenhum outro indexador sem chave foi
+    /// achado.
+    public static let polkadotHistory = url("https://subquery-history-polkadot-ah-prod.novasama-tech.org")
+
     // MARK: Leitores de estado, transmissao e historico
 
     /// Transmissao com protecao de MEV na Ethereum, so quando o chamador pede (troca).

@@ -1,0 +1,14 @@
+Vetores da Polkadot Asset Hub (DOT), conferidos em 28/09/2026.
+
+transferencias-reais.json  duas transferencias reais da rede principal, assinadas com
+                           Ed25519, no runtime 2005000 (transaction_version 15), tiradas
+                           do bloco 21.172.670 (extrair-reais.mjs). A Escalibur remonta a
+                           extrinsic byte a byte a partir dos campos e verifica a
+                           assinatura original sobre o payload que ela monta.
+polkadotjs-vetores.json    tres transferencias montadas e assinadas pelo polkadot-js
+                           (@polkadot/api 17.0.1) com os metadados ao vivo
+                           (gerar-vetores.mjs). O Ed25519 do polkadot-js e deterministico,
+                           entao a extrinsic inteira e comparada.
+
+Os vetores de derivacao (frase para endereco) e de SS58 estao no proprio teste, com a
+fonte: wallet-core da Trust Wallet e os enderecos da conta //Alice do Substrate.

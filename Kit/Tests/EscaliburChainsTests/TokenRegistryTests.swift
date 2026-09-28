@@ -76,6 +76,9 @@ struct TokenRegistryTests {
             // Tokens nativos da Cardano: `decimals` do registro CIP-26/CIP-68, ate 255; a lista
             // nao tem nenhum na v1.
             case .cardano: range = 0...18
+            // Ativos da Polkadot Asset Hub: `decimals` e u8 nos metadados; a lista nao tem
+            // nenhum na v1.
+            case .polkadot: range = 0...18
             }
             #expect(range.contains(token.decimals), "\(token.id): \(token.decimals) casas")
         }

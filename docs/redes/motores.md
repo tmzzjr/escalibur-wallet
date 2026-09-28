@@ -23,6 +23,7 @@ gravados na transação, com o `Asset.id` da lista curada. O app confere contra 
 | TON | TON e USDT; bounce conforme a conta, lida na toncenter e na tonapi | Sim | Não na v1 | Não |
 | Sui | SUI, separado da moeda de gas; a transação exata simulada em dois provedores | Sim, pelo GraphQL da Sui Foundation | Não na v1 | Não |
 | Cardano | ADA, das moedas só de ADA que a Koios e a Yoroi listam iguais; troco abaixo do mínimo recusado | Sim, pela Koios | Não na v1 | Não |
+| Polkadot | DOT na Asset Hub por `transfer_keep_alive`; depósito existencial dos dois lados conferido | Sim, pelo indexador da Nova | Não na v1 | Não |
 
 Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
 
@@ -98,6 +99,12 @@ Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
   parâmetros diferentes, é recusa. A taxa é a mínima do tamanho exato da transação assinada,
   sob teto de 2 ADA, e o TTL é a ponta mais 900 slots (15 minutos), com a ponta a no máximo
   10 minutos do relógio pela contagem de slots da rede principal.
+- **Polkadot**: o bloco de referência (o finalizado mais baixo de dois provedores, com o
+  hash igual em dois), o runtime dele, as contas do dono e do destino (`System.Account`) e
+  a taxa da transação exata vêm de dois dos quatro nós sem chave, concordando, no mesmo
+  bloco. A era nasce nesse bloco e vale 256 blocos. `transaction_version` diferente da
+  compilada, ou nó que não avalia a transação, param o envio. Resultado do envio pelo
+  sidecar da Parity, depois de um nó achar a transação num bloco finalizado.
 - **Vencimento**: na Solana, "venceu, pode enviar de novo" só com a altura finalizada de
   dois provedores 150 blocos além do `lastValidBlockHeight` e o histórico dos dois sem a
   transação. Na Tron, pela hora do último bloco solidificado em dois provedores (a

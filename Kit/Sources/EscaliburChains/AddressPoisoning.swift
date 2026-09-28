@@ -81,6 +81,9 @@ public enum AddressPoisoning {
             // "addr1" e o caractere do cabecalho (tipo de endereco), que o atacante copia
             // de graca, como o hrp e a versao do bech32 no Bitcoin.
             if text.hasPrefix("addr1"), text.count > 6 { text.removeFirst(6) }
+        case .polkadot:
+            // O prefixo de rede 0 faz todo endereco da Polkadot comecar com 1.
+            if !text.isEmpty { text.removeFirst() }
         }
         return text
     }
