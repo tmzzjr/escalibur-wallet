@@ -61,7 +61,7 @@ struct PINDots: View {
                 ZStack {
                     Circle().stroke(failed ? Palette.down : Palette.inkMuted, lineWidth: 1.5)
                     Circle()
-                        .fill(failed ? Palette.down : Palette.ink)
+                        .fill(failed ? Palette.down : Palette.purple)
                         .scaleEffect(index < filled || failed ? 1 : 0.6)
                         .opacity(index < filled || failed ? 1 : 0)
                         .animation(.easeOut(duration: 0.12), value: filled)

@@ -34,10 +34,22 @@ public actor BalanceService {
     public static let shared = BalanceService()
 
     private let client: HTTPClient
+    /// EVM e XRP Ledger: o mesmo cliente, pelo protocolo dos leitores (os testes trocam
+    /// por respostas gravadas).
+    private let transport: ReaderTransport
+    private let evmProviders: [String: [ProviderPool.Provider]]
+    private let xrplProviders: [ProviderPool.Provider]
     private var pools: [String: ProviderPool] = [:]
 
     public init(client: HTTPClient = .shared) {
+        self.init(client: client, transport: client, evm: Endpoints.evm, xrpl: Endpoints.xrpl)
+    }
+
+    init(client: HTTPClient, transport: ReaderTransport, evm: [String: [ProviderPool.Provider]], xrpl: [ProviderPool.Provider]) {
         self.client = client
+        self.transport = transport
+        self.evmProviders = evm
+        self.xrplProviders = xrpl
     }
 
     private func pool(_ key: String, _ providers: [ProviderPool.Provider]) -> ProviderPool {
@@ -64,28 +76,70 @@ public actor BalanceService {
 
     // MARK: EVM
 
+    /// Duas chamadas por rede, quantos tokens a lista tiver: `eth_getBalance` e um
+    /// `eth_call` ao Multicall3 com o `balanceOf` de todos os tokens da rede (um por lote
+    /// de ate `Multicall3.maxCallsPerBatch`). Um token por `eth_call` multiplicaria as
+    /// chamadas pelo tamanho da lista e esgotaria a cota dos RPCs gratuitos. So exibicao,
+    /// com um provedor, como antes; o saldo de um envio vem do leitor de estado, em dois.
     private func evm(_ chain: Chain, address: String) async throws -> ChainBalance {
-        let pool = pool(chain.id, Endpoints.evm[chain.id] ?? [])
+        let pool = pool(chain.id, evmProviders[chain.id] ?? [])
+        let transport = self.transport
         let native: BigUInt = try await pool.first { provider in
-            let hex = try await JSONRPC.call(provider.baseURL, method: "eth_getBalance", params: [.string(address), .string("latest")], as: String.self)
-            guard let value = BigUInt(hex: hex) else { throw HTTPClient.Failure.invalidResponse }
-            return value
+            try await EVMReader.call(transport, provider.baseURL, "eth_getBalance", [.string(address), .string("latest")]).quantity("eth_getBalance")
         }
         var holdings = [Holding(asset: .native(chain), amount: native)]
-        let account = String(address.dropFirst(2)).lowercased()
-        for token in TokenRegistry.assets(on: chain) {
-            guard case .token(let contract) = token.kind else { continue }
-            // balanceOf(address): 0x70a08231 + endereco em 32 bytes.
-            let data = "0x70a08231" + String(repeating: "0", count: 24) + account
-            let amount: BigUInt? = try? await pool.first { provider in
-                let call: JSONValue = .object(["to": .string(contract), "data": .string(data)])
-                let hex = try await JSONRPC.call(provider.baseURL, method: "eth_call", params: [call, .string("latest")], as: String.self)
-                guard hex.count == 66, let value = BigUInt(hex: hex) else { throw HTTPClient.Failure.invalidResponse }
-                return value
+        let listed: [(asset: Asset, contract: EVMAddress)] = TokenRegistry.assets(on: chain).compactMap { asset in
+            guard case .token(let contract) = asset.kind, let address = try? EVMAddress(contract) else { return nil }
+            return (asset, address)
+        }
+        if !listed.isEmpty, let owner = try? EVMAddress(address) {
+            let amounts = await Self.tokenBalances(
+                chain: chain, owner: owner, tokens: listed.map(\.contract), pool: pool, transport: transport
+            )
+            for (entry, amount) in zip(listed, amounts) {
+                if let amount, !amount.isZero { holdings.append(Holding(asset: entry.asset, amount: amount)) }
             }
-            if let amount, !amount.isZero { holdings.append(Holding(asset: token, amount: amount)) }
         }
         return ChainBalance(chainID: chain.id, holdings: holdings, accountExists: true, unknownTokenCount: 0, fetchedAt: .now)
+    }
+
+    /// O saldo de cada token, na ordem pedida; `nil` onde a leitura falhou. Lote que
+    /// falha em todos os provedores deixa os seus tokens de fora, como o token que nao
+    /// respondia deixava antes: a moeda nativa e os outros lotes continuam na tela.
+    static func tokenBalances(
+        chain: Chain, owner: EVMAddress, tokens: [EVMAddress], pool: ProviderPool, transport: ReaderTransport
+    ) async -> [BigUInt?] {
+        guard Multicall3.isDeployed(on: chain) else {
+            // Rede sem Multicall3 conferido: um `eth_call` por token.
+            var out: [BigUInt?] = []
+            for token in tokens {
+                out.append(try? await pool.first { provider in
+                    try await Self.balanceOf(transport, provider.baseURL, token: token, owner: owner)
+                })
+            }
+            return out
+        }
+        var out: [BigUInt?] = []
+        for batch in Multicall3.balanceBatches(owner: owner, tokens: tokens) {
+            let amounts: [BigUInt?]? = try? await pool.first { provider in
+                let data = try Multicall3.aggregate3(batch)
+                let request: StrictJSON = .object([
+                    "to": .string(Multicall3.address.checksummed), "data": .string(Hex.encode(data, prefix: true)),
+                ])
+                let returned = try await EVMReader.call(transport, provider.baseURL, "eth_call", [request, .string("latest")]).hexData("aggregate3")
+                do { return try Multicall3.decodeBalances(returned, expected: batch.count) } catch { throw ReaderError.malformed(field: "aggregate3") }
+            }
+            out += amounts ?? Array(repeating: nil, count: batch.count)
+        }
+        return out
+    }
+
+    private static func balanceOf(_ transport: ReaderTransport, _ url: URL, token: EVMAddress, owner: EVMAddress) async throws -> BigUInt {
+        let request: StrictJSON = .object([
+            "to": .string(token.checksummed), "data": .string(Hex.encode(ERC20.balanceOf(owner: owner), prefix: true)),
+        ])
+        let returned = try await EVMReader.call(transport, url, "eth_call", [request, .string("latest")]).hexData("balanceOf")
+        do { return try ERC20.decodeUInt256(returned) } catch { throw ReaderError.malformed(field: "balanceOf") }
     }
 
     // MARK: UTXO
@@ -173,23 +227,61 @@ public actor BalanceService {
 
     // MARK: XRP Ledger
 
+    /// `account_info` e, com a conta existindo, `account_lines` no mesmo servidor: duas
+    /// chamadas, quantos tokens emitidos a lista tiver. Linha de confianca so nasce por
+    /// `TrustSet` do dono; a que nao esta na lista conta como token desconhecido.
     private func xrpl(_ address: String) async throws -> ChainBalance {
-        let pool = pool("xrpl", Endpoints.xrpl)
-        let (drops, exists): (BigUInt, Bool) = try await pool.first { provider in
-            let body: JSONValue = .object([
-                "method": .string("account_info"),
-                "params": .array([.object(["account": .string(address), "ledger_index": .string("validated")])]),
+        let pool = pool("xrpl", xrplProviders)
+        let transport = self.transport
+        return try await pool.first { provider in
+            let info = try await XRPLReader.call(transport, provider.baseURL, "account_info", [
+                "account": .string(address), "ledger_index": .string("validated"),
             ])
-            let data = try await self.client.post(provider.baseURL, json: try JSONEncoder().encode(body))
-            let json = try JSONDecoder().decode(JSONValue.self, from: data)
-            let result = json["result"]
-            if result?["error"]?.stringValue == "actNotFound" { return (BigUInt(), false) }
-            guard let balance = result?["account_data"]?["Balance"]?.stringValue, let value = BigUInt(decimal: balance) else {
-                throw HTTPClient.Failure.invalidResponse
+            if let error = info.optionalField("error") {
+                guard (try? error.string("account_info.error")) == "actNotFound" else { throw HTTPClient.Failure.invalidResponse }
+                return ChainBalance(chainID: "xrpl", holdings: [Holding(asset: .native(.xrpl), amount: BigUInt())], accountExists: false, unknownTokenCount: 0, fetchedAt: .now)
             }
-            return (value, true)
+            let drops = try info.field("account_data", "account_info").field("Balance", "account_info.account_data")
+                .decimalString("account_info.account_data.Balance")
+            var holdings = [Holding(asset: .native(.xrpl), amount: drops)]
+            var unknown = 0
+            if let lines = try? await XRPLReader.call(transport, provider.baseURL, "account_lines", [
+                "account": .string(address), "ledger_index": .string("validated"), "limit": .int(400),
+            ]) {
+                let (listed, others) = Self.trustLineHoldings(lines)
+                holdings += listed
+                unknown = others
+            }
+            return ChainBalance(chainID: "xrpl", holdings: holdings, accountExists: true, unknownTokenCount: unknown, fetchedAt: .now)
         }
-        return ChainBalance(chainID: "xrpl", holdings: [Holding(asset: .native(.xrpl), amount: drops)], accountExists: exists, unknownTokenCount: 0, fetchedAt: .now)
+    }
+
+    /// Os saldos positivos das linhas de confianca que estao na lista curada (codigo e
+    /// emissor iguais), e quantas linhas com saldo ficaram de fora dela. Saldo negativo
+    /// e o lado de quem emite, e nao entra.
+    static func trustLineHoldings(_ result: StrictJSON) -> (holdings: [Holding], unknown: Int) {
+        guard result.optionalField("error") == nil, let lines = try? result.field("lines", "account_lines").array("account_lines.lines") else {
+            return ([], 0)
+        }
+        let curated = TokenRegistry.assets(on: .xrpl)
+        var holdings: [Holding] = []
+        var unknown = 0
+        for line in lines {
+            guard let issuer = try? line.field("account", "line").string("line.account"),
+                  let code = try? line.field("currency", "line").string("line.currency"),
+                  let text = try? line.field("balance", "line").string("line.balance"),
+                  let value = try? XRPLDecimal(text), !value.isNegative, !value.isZero
+            else { continue }
+            let asset = curated.first { asset in
+                guard case .issued(let listedCode, let listedIssuer) = asset.kind else { return false }
+                return listedIssuer == issuer && listedCode.uppercased() == code.uppercased()
+            }
+            guard let asset else { unknown += 1; continue }
+            if let amount = value.units(decimals: asset.decimals, roundingUp: false), !amount.isZero {
+                holdings.append(Holding(asset: asset, amount: amount))
+            }
+        }
+        return (holdings, unknown)
     }
 
     // MARK: Stellar

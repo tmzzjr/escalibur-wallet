@@ -360,18 +360,40 @@ public actor SolanaHistoryReader {
         self.reader = reader
     }
 
+    /// O ATA do dono em cada mint da lista (programa Token classico: todos os mints da
+    /// lista sao dele, e o teste da lista confere).
+    static func listedTokenAccounts(owner: SolanaPublicKey) -> [SolanaPublicKey] {
+        TokenRegistry.assets(on: .solana).compactMap { token in
+            guard case .token(let contract) = token.kind, let mint = try? SolanaPublicKey(base58: contract) else { return nil }
+            return try? SolanaAssociatedToken.address(owner: owner, mint: mint, tokenProgram: .token)
+        }
+    }
+
+    /// Das contas pedidas, as que existem, em lotes de 100 (o teto da
+    /// `getMultipleAccounts`). Lote que falha nao entra: o historico da carteira sai do
+    /// mesmo jeito, sem os recebimentos daqueles tokens.
+    static func existingAccounts(_ accounts: [SolanaPublicKey], reader: SolanaNetworkReader) async -> [SolanaPublicKey] {
+        var existing = [SolanaPublicKey]()
+        for start in stride(from: 0, to: accounts.count, by: 100) {
+            let chunk = Array(accounts[start..<min(start + 100, accounts.count)])
+            guard let snapshots = try? await reader.snapshots(chunk) else { continue }
+            existing += snapshots.filter(\.exists).map(\.address)
+        }
+        return existing
+    }
+
     /// As ultimas `limit` transacoes do dono. Recebimento de token da lista nao cita
     /// a carteira, so o ATA dela: por isso as assinaturas vem da carteira e dos ATAs
     /// dos tokens da lista, juntas por slot. `knownAddresses` (contatos, as proprias
     /// contas) tira a marca de poeira de quem o dono conhece.
+    ///
+    /// So os ATAs que existem entram: uma `getMultipleAccounts` diz quais, e a lista
+    /// curada pode crescer sem que cada token some uma `getSignaturesForAddress` a cada
+    /// abertura do historico. ATA fechado sai da busca; o fechamento e os envios foram
+    /// assinados pelo dono e aparecem pelas assinaturas da propria carteira.
     public func recentActivity(owner: SolanaPublicKey, limit: Int = 30, before: String? = nil, knownAddresses: Set<String> = []) async throws -> [SolanaActivity] {
         var addresses = [owner]
-        for token in TokenRegistry.assets(on: .solana) {
-            guard case .token(let contract) = token.kind, let mint = try? SolanaPublicKey(base58: contract),
-                  let ata = try? SolanaAssociatedToken.address(owner: owner, mint: mint, tokenProgram: .token)
-            else { continue }
-            addresses.append(ata)
-        }
+        addresses += await Self.existingAccounts(Self.listedTokenAccounts(owner: owner), reader: reader)
         var config: [String: JSONValue] = ["limit": .number(Double(limit)), "commitment": .string("confirmed")]
         if let before { config["before"] = .string(before) }
         var infos = [String: RPCSignatureInfo]()

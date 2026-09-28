@@ -194,13 +194,13 @@ struct PeriodPicker: View {
                     Text(title(option))
                         .typeStyle(.label)
                         .fontWeight(range == option ? .semibold : .regular)
-                        .foregroundStyle(range == option ? Palette.ink : Palette.inkMuted)
+                        .foregroundStyle(range == option ? Color.white : Palette.inkMuted)
                         .frame(maxWidth: .infinity)
                         .frame(minHeight: 38)
                         .background {
                             if range == option {
                                 Capsule(style: .continuous)
-                                    .fill(Palette.control)
+                                    .fill(Palette.purple)
                                     .matchedGeometryEffect(id: "period", in: namespace)
                             }
                         }

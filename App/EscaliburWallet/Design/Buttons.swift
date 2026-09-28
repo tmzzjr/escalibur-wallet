@@ -13,7 +13,7 @@ struct PrimaryButton: View {
         Button(action: { if enabled && !loading { action() } }) {
             ZStack {
                 if loading {
-                    ProgressView().tint(Palette.onLive)
+                    ProgressView().tint(Palette.onLime)
                 } else {
                     Text(title).typeStyle(.action)
                 }
@@ -32,10 +32,10 @@ struct PrimaryStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             // Desligado continua legivel (4,8:1): o texto diz o que falta.
-            .foregroundStyle(enabled ? Palette.onLive : Palette.inkMuted)
+            .foregroundStyle(enabled ? Palette.onLime : Palette.inkMuted)
             .background(
                 Capsule(style: .continuous)
-                    .fill(enabled ? (configuration.isPressed ? Palette.livePress : Palette.live) : Palette.rail)
+                    .fill(enabled ? (configuration.isPressed ? Palette.limePress : Palette.lime) : Palette.rail)
             )
             .scaleEffect(configuration.isPressed && enabled ? 0.985 : 1)
             .animation(Motion.press, value: configuration.isPressed)

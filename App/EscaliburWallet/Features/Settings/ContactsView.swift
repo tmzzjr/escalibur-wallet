@@ -151,7 +151,7 @@ struct ManageAssetsView: View {
                                     Text(row.symbol).typeStyle(.body).foregroundStyle(Palette.ink)
                                 }
                             }
-                            .tint(Palette.up)
+                            .tint(Palette.lime)
                             .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                         }
                     }

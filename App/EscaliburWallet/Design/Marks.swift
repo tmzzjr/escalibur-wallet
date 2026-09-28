@@ -22,18 +22,29 @@ struct EscaliburMark: Shape {
     }
 }
 
-/// O selo da carteira: a inversao do icone do Escalibur (laca com espada preta).
+/// O selo da carteira: o icone do app em miniatura. Roxo vivo, espada branca com o
+/// punho cinza e a lamina em dois tons (o lado do fio mais escuro).
 struct WalletBadge: View {
     var size: CGFloat = 44
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: size * 0.2237, style: .continuous)
-        shape
-            .fill(Palette.live)
-            .frame(width: size, height: size)
-            .overlay { EscaliburMark().fill(Palette.onLive) }
-            .clipShape(shape)
-            .accessibilityHidden(true)
+        Canvas { context, canvas in
+            let w = canvas.width
+            let h = canvas.height
+            let rect = { (x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) in
+                Path(CGRect(x: x * w, y: y * h, width: width * w, height: height * h))
+            }
+            context.fill(Path(CGRect(origin: .zero, size: canvas)), with: .color(Palette.brand))
+            context.fill(rect(0.4297, 0.2900, 0.1396, 0.0616), with: .color(.white))               // pomo
+            context.fill(rect(0.4639, 0.3516, 0.0713, 0.1435), with: .color(Color(hex: 0xB0B0BA)))  // punho
+            context.fill(rect(0.2041, 0.4951, 0.5908, 0.0488), with: .color(.white))               // travessao
+            context.fill(rect(0.4375, 0.5439, 0.0620, 0.4561), with: .color(.white))               // lamina, lado claro
+            context.fill(rect(0.4995, 0.5439, 0.0620, 0.4561), with: .color(Color(hex: 0xCECED6)))  // lamina, lado do fio
+        }
+        .frame(width: size, height: size)
+        .clipShape(shape)
+        .accessibilityHidden(true)
     }
 }
 

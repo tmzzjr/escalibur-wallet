@@ -58,6 +58,19 @@ struct HTTPClientTests {
         }
     }
 
+    @Test("Muitas leituras ao mesmo tempo num cliente novo: todas voltam, cada uma com a sua")
+    func concurrentFreshClient() async throws {
+        let fresh = HTTPClient(protocolClasses: [StubProtocol.self], allowedHosts: ["stub.example"])
+        let answers = try await withThrowingTaskGroup(of: Data.self) { group in
+            for _ in 0..<64 {
+                group.addTask { try await fresh.get(URL(string: "https://stub.example/pequeno")!) }
+            }
+            return try await group.reduce(into: [Data]()) { $0.append($1) }
+        }
+        #expect(answers.count == 64)
+        #expect(answers.allSatisfy { $0 == Data("{\"ok\":true}".utf8) })
+    }
+
     @Test("Status de erro e so HTTPS")
     func statusAndScheme() async {
         await #expect(throws: HTTPClient.Failure.status(503)) {
