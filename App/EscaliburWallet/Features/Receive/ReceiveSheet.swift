@@ -291,6 +291,10 @@ struct ReceiveSheet: View {
                 return exists
                     ? "Na exchange, escolha a rede Polkadot Asset Hub e envie só DOT. DOT enviado pela relay chain antiga não aparece aqui."
                     : "Na exchange, escolha a rede Polkadot Asset Hub. O primeiro recebimento precisa ser de 0,01 DOT ou mais, o mínimo da rede para a conta existir."
+            case .near:
+                return exists
+                    ? "Na exchange, escolha a rede NEAR e envie só NEAR. Esta é a conta implícita da carteira, com 64 caracteres, e não precisa de memo."
+                    : "Na exchange, escolha a rede NEAR. Esta é a conta implícita da carteira: ela passa a existir no primeiro recebimento, de qualquer valor, e não precisa de memo."
             }
         }()
         Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
@@ -411,6 +415,8 @@ struct ReceiveCoin: Identifiable, Hashable {
         case .cardano: return ""
         // A carteira ainda nao lista ativo da Polkadot Asset Hub alem do DOT.
         case .polkadot: return ""
+        // A carteira ainda nao lista token NEP-141 da NEAR.
+        case .near: return ""
         }
     }
 }

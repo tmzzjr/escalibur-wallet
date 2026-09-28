@@ -1,0 +1,1 @@
+{"id":1,"jsonrpc":"2.0","error":{"name":"HANDLER_ERROR","cause":{"info":{"requested_transaction_hash":"11111111111111111111111111111111"},"name":"UNKNOWN_TRANSACTION"},"code":-32000,"message":"Server error","data":"Transaction 11111111111111111111111111111111 doesn't exist"}}

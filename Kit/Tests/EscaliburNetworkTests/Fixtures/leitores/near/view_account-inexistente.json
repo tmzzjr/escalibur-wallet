@@ -1,0 +1,1 @@
+{"id":1,"jsonrpc":"2.0","error":{"name":"HANDLER_ERROR","cause":{"info":{"block_hash":"B8bnYvsCzJmnrQdEMWuMAN1m6VRtVChFie1fTAxm2b8S","block_height":217581805,"requested_account_id":"conta-que-nao-existe-escalibur.near"},"name":"UNKNOWN_ACCOUNT"},"code":-32000,"message":"Server error","data":"account conta-que-nao-existe-escalibur.near does not exist while viewing"}}

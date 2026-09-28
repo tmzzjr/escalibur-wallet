@@ -211,6 +211,27 @@ public enum Endpoints {
     /// achado.
     public static let polkadotHistory = url("https://subquery-history-polkadot-ah-prod.novasama-tech.org")
 
+    /// NEAR: JSON-RPC por POST, sem chave, quatro operadores com no proprio (a chave de
+    /// no do `status` e diferente em cada um): FastNEAR (camada gratuita), dRPC, Shitzu e
+    /// Intear (sem chave cada resposta espera 1 s). Conferido em 28/09/2026 nos quatro:
+    /// `chain_id` mainnet, a mesma genese, `view_account`, `view_access_key`, `gas_price`,
+    /// `EXPERIMENTAL_protocol_config` e `block` por altura iguais no mesmo bloco, e o
+    /// `send_tx` recusando assinatura invalida. O RPC oficial (`rpc.mainnet.near.org`) foi
+    /// descontinuado e demorou de 3 a 26 s; o da Tatum sem chave aceita 5 chamadas por
+    /// minuto; Lava, BlockPI, Ankr e 1RPC pedem chave, cairam ou nao tem os metodos.
+    public static let near: [ProviderPool.Provider] = [
+        .init(name: "fastnear", baseURL: url("https://free.rpc.fastnear.com")),
+        .init(name: "drpc", baseURL: url("https://near.drpc.org")),
+        .init(name: "shitzu", baseURL: url("https://rpc.shitzuapes.xyz")),
+        .init(name: "intear", baseURL: url("https://rpc.intea.rs")),
+    ]
+
+    /// Historico da NEAR: a API de transacoes da FastNEAR, sem chave, com a conta no corpo
+    /// do POST (`/v0/account`, as ultimas 200 transacoes da conta; `/v0/transactions`, ate
+    /// 20 por vez com recibos e resultados). O RPC nao lista transacoes por conta, e o
+    /// NearBlocks devolve valores como numero de ponto flutuante. Conferido em 28/09/2026.
+    public static let nearHistory = url("https://tx.main.fastnear.com")
+
     // MARK: Leitores de estado, transmissao e historico
 
     /// Transmissao com protecao de MEV na Ethereum, so quando o chamador pede (troca).

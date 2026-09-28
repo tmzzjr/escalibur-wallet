@@ -13,6 +13,7 @@ public enum ChainFamily: String, Codable, Sendable, CaseIterable {
     case sui
     case cardano
     case polkadot
+    case near
 
     public var curve: Curve {
         switch self {
@@ -24,6 +25,8 @@ public enum ChainFamily: String, Codable, Sendable, CaseIterable {
         // Polkadot: Ed25519 por SLIP-10, como a Trust Wallet. O sr25519 padrao das
         // carteiras do ecossistema nao tem implementacao auditada vendorizada aqui.
         case .polkadot: return .ed25519
+        // NEAR: Ed25519 por SLIP-10, como a MyNearWallet e a Trust Wallet.
+        case .near: return .ed25519
         }
     }
 }
@@ -212,6 +215,18 @@ public extension Chain {
         explorerName: "Subscan", typicalConfirmationSeconds: 30, destinationTag: .none
     )
 
+    /// NEAR: SLIP-44 397, 24 casas (yoctoNEAR). Explorador NearBlocks, o mesmo do
+    /// registro do wallet-core da Trust Wallet. Blocos de cerca de 0,6 s e finalidade em
+    /// dois blocos (medido em 28/09/2026).
+    static let near = Chain(
+        id: "near", name: "NEAR", family: .near, coinType: 397,
+        nativeSymbol: "NEAR", nativeName: "NEAR", nativeDecimals: 24, coingeckoID: "near",
+        evmChainID: nil,
+        explorerTx: "https://nearblocks.io/txns/{tx}",
+        explorerAddress: "https://nearblocks.io/address/{address}",
+        explorerName: "NearBlocks", typicalConfirmationSeconds: 2, destinationTag: .none
+    )
+
     /// Todas as redes, na ordem em que aparecem na interface.
     static let all: [Chain] = [
         .bitcoin, .ethereum, .solana, .xrpl, .stellar, .tron, .ton,
@@ -221,6 +236,7 @@ public extension Chain {
         .sui,
         .cardano,
         .polkadot,
+        .near,
     ]
 
     static func find(_ id: String) -> Chain? { all.first { $0.id == id } }

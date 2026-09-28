@@ -84,6 +84,9 @@ public enum AddressPoisoning {
         case .polkadot:
             // O prefixo de rede 0 faz todo endereco da Polkadot comecar com 1.
             if !text.isEmpty { text.removeFirst() }
+        case .near:
+            // Conta implicita sem prefixo; nome inteiro, que o dono escolhe letra a letra.
+            break
         }
         return text
     }
