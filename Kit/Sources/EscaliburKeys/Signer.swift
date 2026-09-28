@@ -33,6 +33,9 @@ public enum Signer {
         let secret = try vault.open(walletID: plan.walletID, rk: rk)
         rk.wipe()
         defer { secret.wipe() }
+        // Cardano: a mestra Icarus sai da entropia (CIP-3), antes de o segredo ser zerado.
+        let cardano = try CardanoSigning.master(for: plan, secret: secret)
+        defer { cardano?.wipe() }
         let seed = try secret.seed()
         secret.wipe()
         defer { seed.wipe() }
@@ -44,6 +47,10 @@ public enum Signer {
         for transaction in plan.transactions {
             var signatures: [ProducedSignature] = []
             for request in transaction.signingRequests {
+                if request.scheme == .ed25519Cardano {
+                    signatures.append(try CardanoSigning.sign(request, master: cardano))
+                    continue
+                }
                 let master: HDKey
                 if let cached = masters[request.curve] {
                     master = cached
@@ -84,6 +91,9 @@ public enum Signer {
             return ProducedSignature(bytes: signature)
         case .schnorrBIP340:
             throw Failure.unsupportedScheme(.schnorrBIP340)
+        case .ed25519Cardano:
+            // Chave BIP32-Ed25519, que o HDKey nao deriva: so pelo CardanoSigning.
+            throw Failure.unsupportedScheme(.ed25519Cardano)
         }
     }
 }
@@ -99,6 +109,10 @@ public enum AccountDeriver {
 
         var accounts: [DerivedAccount] = []
         for chain in chains {
+            if chain.family == .cardano {
+                if let account = try? CardanoKey.derivedAccount(secret, chain: chain) { accounts.append(account) }
+                continue
+            }
             let path = DefaultPaths.path(for: chain)
             let master = chain.family.curve == .secp256k1 ? secp : ed
             let key = try master.derive(path)

@@ -63,6 +63,8 @@ public enum Address {
             return try TONAddress.walletAddress(publicKey: publicKey)
         case .sui:
             return try SuiAddress(ed25519PublicKey: publicKey).hex
+        case .cardano:
+            return try CardanoAddress.base(publicKeys: publicKey)
         }
     }
 
@@ -101,6 +103,7 @@ public enum Address {
         case .stellar: result = StellarKey.validateDestination(text)
         case .ton: result = TONAddress.validate(text)
         case .sui: result = SuiAddress.validateDestination(text)
+        case .cardano: result = CardanoAddress.validateDestination(text)
         }
         if case .failure(let problem) = result, problem == .malformed || problem == .badChecksum,
            let other = guessChain(text), other.id != chain.id, !(other.family == .evm && chain.family == .evm) {
@@ -126,6 +129,7 @@ public enum Address {
         case .stellar: return destination.address.uppercased()
         case .tron, .solana, .xrpl: return destination.address
         case .sui: return destination.address
+        case .cardano: return destination.address
         }
     }
 
@@ -152,6 +156,7 @@ public enum Address {
             if case .success = validateUTXO(text, chain: chain) { return chain }
         }
         if case .success = TONAddress.validate(text) { return .ton }
+        if CardanoAddress.isCardano(text) { return .cardano }
         if case .success = validateSolana(text) { return .solana }
         return nil
     }
@@ -337,6 +342,10 @@ public enum DefaultPaths {
         // Sui: SLIP-10 Ed25519, tudo endurecido, a conta no terceiro nivel. E o caminho da
         // Slush (antiga Sui Wallet), do SDK oficial e do wallet-core da Trust Wallet.
         case "sui": return DerivationPath(components: [h(44), h(784), h(account), h(0), h(0)])
+        // Cardano: CIP-1852, endereco externo 0 da conta; a chave de stake e a do papel 2
+        // (m/1852'/1815'/i'/2/0) e entra no endereco base. E o que Eternl, Yoroi, Lace e
+        // Trust Wallet abrem com a mesma frase (chave mestra Icarus, CIP-3).
+        case "cardano": return DerivationPath(components: [h(1852), h(1815), h(account), 0, 0])
         default:
             // EVM: todas as redes compartilham a mesma conta, m/44'/60'/0'/0/i.
             return DerivationPath(components: [h(44), h(60), h(0), 0, account])
