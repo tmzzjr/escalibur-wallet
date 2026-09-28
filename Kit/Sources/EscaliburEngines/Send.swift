@@ -193,6 +193,7 @@ public enum SendEngines {
         case .stellar: return EngineRegistry.stellarSend(chain)
         case .tron: return EngineRegistry.tronSend(chain)
         case .ton: return EngineRegistry.tonSend(chain)
+        case .sui: return EngineRegistry.suiSend(chain)
         }
     }
 }

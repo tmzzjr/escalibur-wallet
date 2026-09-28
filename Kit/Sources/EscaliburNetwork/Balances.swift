@@ -70,6 +70,7 @@ public actor BalanceService {
         case .stellar: return try await stellar(addresses[0])
         case .tron: return try await tron(addresses[0])
         case .ton: return try await ton(addresses[0])
+        case .sui: return try await SuiReader.shared.displayBalance(owner: addresses[0])
         }
     }
 

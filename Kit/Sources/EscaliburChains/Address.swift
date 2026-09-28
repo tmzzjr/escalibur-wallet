@@ -61,6 +61,8 @@ public enum Address {
             return try StellarKey.accountID(publicKey)
         case .ton:
             return try TONAddress.walletAddress(publicKey: publicKey)
+        case .sui:
+            return try SuiAddress(ed25519PublicKey: publicKey).hex
         }
     }
 
@@ -98,6 +100,7 @@ public enum Address {
         case .xrpl: result = XRPLAddress.validate(text)
         case .stellar: result = StellarKey.validateDestination(text)
         case .ton: result = TONAddress.validate(text)
+        case .sui: result = SuiAddress.validateDestination(text)
         }
         if case .failure(let problem) = result, problem == .malformed || problem == .badChecksum,
            let other = guessChain(text), other.id != chain.id, !(other.family == .evm && chain.family == .evm) {
@@ -122,6 +125,7 @@ public enum Address {
             return parsed.address.raw.lowercased()
         case .stellar: return destination.address.uppercased()
         case .tron, .solana, .xrpl: return destination.address
+        case .sui: return destination.address
         }
     }
 
@@ -136,6 +140,9 @@ public enum Address {
     /// Adivinha a rede de um texto que parece endereco. So para a mensagem de erro
     /// e para detectar a rede ao observar um endereco: nunca decide sozinho para
     /// onde o dinheiro vai.
+    ///
+    /// Sui fica de fora de proposito: "0x" + 64 hex e tambem o formato da Aptos, e nada
+    /// no texto diz de qual das duas ele e. Dizer "este endereco e da Sui" seria chute.
     public static func guessChain(_ text: String) -> Chain? {
         if case .success = validateEVM(text) { return .ethereum }
         if case .success = validateTron(text) { return .tron }
@@ -327,6 +334,9 @@ public enum DefaultPaths {
         case "stellar": return DerivationPath(components: [h(44), h(148), h(account)])
         case "tron": return DerivationPath(components: [h(44), h(195), h(account), 0, 0])
         case "ton": return DerivationPath(components: [h(44), h(607), h(account)])
+        // Sui: SLIP-10 Ed25519, tudo endurecido, a conta no terceiro nivel. E o caminho da
+        // Slush (antiga Sui Wallet), do SDK oficial e do wallet-core da Trust Wallet.
+        case "sui": return DerivationPath(components: [h(44), h(784), h(account), h(0), h(0)])
         default:
             // EVM: todas as redes compartilham a mesma conta, m/44'/60'/0'/0/i.
             return DerivationPath(components: [h(44), h(60), h(0), 0, account])

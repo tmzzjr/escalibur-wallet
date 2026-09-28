@@ -71,6 +71,8 @@ struct TokenRegistryTests {
             case .stellar: range = 7...7
             case .xrpl: range = 0...15
             case .utxo: range = 0...0
+            // Coin<T> da Sui: `decimals` e u8 no CoinMetadata.
+            case .sui: range = 0...18
             }
             #expect(range.contains(token.decimals), "\(token.id): \(token.decimals) casas")
         }

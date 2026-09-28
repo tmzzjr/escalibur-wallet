@@ -21,6 +21,7 @@ gravados na transação, com o `Asset.id` da lista curada. O app confere contra 
 | Stellar | XLM e ativos da lista com memo; SEP-29 lido; cria conta | Sim | Path payment cotado nas duas Horizons, rota só por XLM e ativos da lista | ManageSellOffer, sem prazo |
 | Tron | TRX e USDT; conta com controle dividido recusada | Sim, com o envenenamento de zero USDT marcado | Não na v1 | Não |
 | TON | TON e USDT; bounce conforme a conta, lida na toncenter e na tonapi | Sim | Não na v1 | Não |
+| Sui | SUI, separado da moeda de gas; a transação exata simulada em dois provedores | Sim, pelo GraphQL da Sui Foundation | Não na v1 | Não |
 
 Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
 
@@ -83,6 +84,12 @@ Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
   ser iguais; o saldo é o menor dos dois; uma diferença rele as duas uma vez, 1,5 s
   depois, e a segunda vira "os provedores responderam diferente". Sem contingência de
   uma fonte só: com uma das duas fora do ar, nem a tela do destino nem o plano seguem.
+- **Sui**: as moedas de SUI do dono (id, versão, digesto e saldo), o preço de referência
+  do gas e a época vêm de dois dos três nós gRPC sem chave (Sui Foundation, Suiscan,
+  NodeInfra), concordando; diferença relê uma vez. O orçamento sai da simulação de um envio
+  de 1 MIST em dois provedores (o maior custo, mais 20%, teto de 0,05 SUI), e a transação
+  exata é simulada de novo nos dois: o destino recebe o valor e o dono paga o valor e o gas,
+  nada mais. Vale até o fim da época seguinte (`TransactionExpiration::Epoch`).
 - **Vencimento**: na Solana, "venceu, pode enviar de novo" só com a altura finalizada de
   dois provedores 150 blocos além do `lastValidBlockHeight` e o histórico dos dois sem a
   transação. Na Tron, pela hora do último bloco solidificado em dois provedores (a

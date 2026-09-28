@@ -236,6 +236,7 @@ public enum TradeEngines {
         case .stellar: return EngineRegistry.stellarTrade(chain)
         case .tron: return EngineRegistry.tronTrade(chain)
         case .ton: return EngineRegistry.tonTrade(chain)
+        case .sui: return EngineRegistry.suiTrade(chain)
         }
     }
 }

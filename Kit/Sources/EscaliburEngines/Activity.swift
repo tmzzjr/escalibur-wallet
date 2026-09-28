@@ -57,6 +57,7 @@ public enum ActivitySources {
         case .stellar: return EngineRegistry.stellarActivity(chain)
         case .tron: return EngineRegistry.tronActivity(chain)
         case .ton: return EngineRegistry.tonActivity(chain)
+        case .sui: return EngineRegistry.suiActivity(chain)
         }
     }
 }

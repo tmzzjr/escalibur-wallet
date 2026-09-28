@@ -41,7 +41,8 @@ final class SendModel {
     var networkConfirmed = false
 
     var needsNetworkConfirmation: Bool {
-        guard let chain, chain.family == .evm, destination != nil else { return false }
+        // Sui: "0x" e 64 hex, o mesmo formato da Aptos.
+        guard let chain, chain.family == .evm || chain.family == .sui, destination != nil else { return false }
         return isFirstSend
     }
     var amountText = ""
@@ -396,7 +397,9 @@ struct SendStages: View {
                     NetworkBadge(chain: chain, size: 28, ring: .clear)
                     Text("Envio pela rede \(chain.name)").typeStyle(.row).foregroundStyle(Palette.ink)
                 }
-                Text("Endereços EVM são iguais em todas as redes EVM, então o endereço não diz a rede. Se quem vai receber só aceita \(holding.asset.symbol) por outra rede (uma exchange que recebe só pela Ethereum, por exemplo), o valor não chega.")
+                Text(chain.family == .sui
+                     ? "Endereços Sui têm o mesmo formato dos endereços Aptos, então o endereço não diz a rede. Se quem vai receber espera o valor pela Aptos ou por outra rede, ele não chega."
+                     : "Endereços EVM são iguais em todas as redes EVM, então o endereço não diz a rede. Se quem vai receber só aceita \(holding.asset.symbol) por outra rede (uma exchange que recebe só pela Ethereum, por exemplo), o valor não chega.")
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 Toggle(isOn: $model.networkConfirmed) {
                     Text("Quem vai receber aceita \(holding.asset.symbol) pela \(chain.name)").typeStyle(.note).foregroundStyle(Palette.ink)
