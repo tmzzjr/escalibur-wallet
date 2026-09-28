@@ -151,9 +151,11 @@ struct ReaderSupportTests {
         let started = Date()
         for _ in 0..<3 { _ = try await paced.send(.get(URL(string: "https://paced.test/x")!)) }
         #expect(Date().timeIntervalSince(started) >= 0.29)
+        // Host sem espacamento: tres seguidas nao esperam. Com espacamento seriam 0,30 s ou
+        // mais; o teto de 0,25 separa os dois casos e tolera o runner do CI carregado.
         let quick = Date()
         for _ in 0..<3 { _ = try await paced.send(.get(URL(string: "https://free.test/x")!)) }
-        #expect(Date().timeIntervalSince(quick) < 0.1)
+        #expect(Date().timeIntervalSince(quick) < 0.25)
     }
 
     @Test("429 espera e tenta de novo uma vez")
