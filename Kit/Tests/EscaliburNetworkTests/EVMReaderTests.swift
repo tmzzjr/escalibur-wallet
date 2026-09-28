@@ -370,12 +370,13 @@ struct EVMReaderTests {
             transactions: ReaderFixtures.json("evm", "blockscout-transactions-base"),
             tokenTransfers: ReaderFixtures.json("evm", "blockscout-token-transfers-base")
         )
-        // Nada de token fora da lista chega a tela: "EṬH", "IUK", "C", "OPG", "MORPHO".
+        // Nada de token fora da lista chega a tela: "EṬH", "IUK", "C", "OPG". O MORPHO
+        // entrou na lista em 27/09/2026: o recebimento real dele aparece.
         #expect(page.items.allSatisfy { $0.asset.kind == .native || TokenRegistry.tokens.contains($0.asset) })
-        #expect(page.suspicious.unknownAsset == 8)
+        #expect(page.suspicious.unknownAsset == 7)
         // 0,0000423 ETH do sosia 0x2652742D...1008 e 100 wei: po, escondido.
         #expect(page.suspicious.dust == 2)
-        #expect(!page.items.contains { $0.direction == .received })
+        #expect(page.items.filter { $0.direction == .received }.map(\.asset.symbol) == ["MORPHO"])
         // As chamadas do dono (sem valor nativo) aparecem como "outro", com a taxa.
         let calls = page.items.filter { $0.direction == .other }
         #expect(calls.count == 4)

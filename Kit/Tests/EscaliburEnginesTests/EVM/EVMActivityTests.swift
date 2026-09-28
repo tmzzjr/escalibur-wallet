@@ -38,10 +38,16 @@ struct EVMActivityTests {
         #expect(entries.allSatisfy { $0.chainID == "base" && $0.asset.map { EVMActivityScreen.isListed($0, chain: .base) } == true })
         // 0,00037342 ETH de 0xaF20290f...20c9: recebimento de verdade, acima do po. O
         // "EṬH" do sosia 0xaF2007aD...20c9 e o po de 0x2652742D...1008 nao chegam aqui.
+        // O MORPHO da Morpho (0x3304E22D...) entrou na lista em 27/09/2026 e passa a
+        // aparecer como recebimento real.
         let received = entries.filter { $0.direction == .received }
-        #expect(received.count == 1)
-        #expect(received.first?.amount == BigUInt(373_420_000_000_000))
-        #expect(received.first?.counterparty == "0xaF20290fb8717d456C0c7c6A1C758976d94820c9")
+        #expect(received.count == 2)
+        let ether = received.first { $0.asset == .native(.base) }
+        #expect(ether?.amount == BigUInt(373_420_000_000_000))
+        #expect(ether?.counterparty == "0xaF20290fb8717d456C0c7c6A1C758976d94820c9")
+        let morpho = received.first { $0.asset?.symbol == "MORPHO" }
+        #expect(morpho?.amount == BigUInt(decimal: "352049404000000000000000"))
+        #expect(morpho?.counterparty == "0x3304E22DDaa22bCdC5fCa2269b418046aE7b566A")
         #expect(received.allSatisfy { !$0.suspicious })
         // As chamadas do dono (sem valor nativo, tokens fora da lista) aparecem como
         // "outro", com a taxa, e nunca como suspeitas.

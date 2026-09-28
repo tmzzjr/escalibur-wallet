@@ -40,7 +40,8 @@ final class ReceiveFlowTests: XCTestCase {
         XCTAssertTrue(receive.waitForExistence(timeout: 30))
         receive.tap()
         let rlusd = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'RLUSD'")).firstMatch
-        if !rlusd.waitForExistence(timeout: 5) { app.swipeUp() }
+        // A lista tem as nativas e depois dezenas de tokens: rola ate o RLUSD aparecer.
+        for _ in 0..<6 where !rlusd.waitForExistence(timeout: 2) { app.swipeUp() }
         XCTAssertTrue(rlusd.waitForExistence(timeout: 10))
         rlusd.tap()
         let xrpl = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'XRP Ledger'")).firstMatch

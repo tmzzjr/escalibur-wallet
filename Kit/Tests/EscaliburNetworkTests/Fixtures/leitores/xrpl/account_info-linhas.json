@@ -1,0 +1,43 @@
+{
+ "result": {
+  "account_data": {
+   "Account": "rLoD9U2ghXP2xUYbtML6G6v1p8LhM9mSnc",
+   "Balance": "4179816000005",
+   "Flags": 0,
+   "LedgerEntryType": "AccountRoot",
+   "MessageKey": "02000000000000000000000000EBD87AF474180E7879022C60AE7073020A44C10F",
+   "OwnerCount": 2,
+   "PreviousTxnID": "B5D0BBF1D1A7982A2A0736B68C498FD44D1B61A6A1312E17809B71843FE64774",
+   "PreviousTxnLgrSeq": 107280054,
+   "Sequence": 19614,
+   "index": "FCE581D2F6F2A35CFBD50F61416D2EB09938D1A18F596A539602BE35AA115D1E"
+  },
+  "ledger_hash": "E36C6C3330157DC9CAA7D52FBE65CF40B6F69B7A4F73745A5FAD8A446D7D1C26",
+  "ledger_index": 107280302,
+  "validated": true,
+  "account_flags": {
+   "defaultRipple": false,
+   "depositAuth": false,
+   "disableMasterKey": false,
+   "disallowIncomingXRP": false,
+   "globalFreeze": false,
+   "noFreeze": false,
+   "passwordSpent": false,
+   "requireAuthorization": false,
+   "requireDestinationTag": false,
+   "disallowIncomingNFTokenOffer": false,
+   "disallowIncomingCheck": false,
+   "disallowIncomingPayChan": false,
+   "disallowIncomingTrustline": false,
+   "allowTrustLineClawback": false,
+   "allowTrustLineLocking": false
+  },
+  "status": "success"
+ },
+ "warnings": [
+  {
+   "id": 2001,
+   "message": "This is a clio server. clio only serves validated data. If you want to talk to rippled, include 'ledger_index':'current' in your request"
+  }
+ ]
+}

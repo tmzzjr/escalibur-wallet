@@ -336,8 +336,10 @@ struct ReceiveCoin: Identifiable, Hashable {
     let coingeckoID: String?
     let assets: [Asset]
 
-    /// Agrupa pelo identificador de preco (USDT e USDT em outra rede sao a mesma moeda),
-    /// na ordem em que as redes e os tokens aparecem.
+    /// Agrupa pelo identificador de preco (USDT e USDT em outra rede sao a mesma moeda).
+    /// Primeiro as moedas nativas, na ordem das redes; depois os tokens, na ordem da lista
+    /// curada (os mais antigos e, dali em diante, por valor de mercado). Com dezenas de
+    /// tokens na Ethereum, a ordem das redes enterraria SOL, XRP e BNB no fim da lista.
     static func group(_ assets: [Asset]) -> [ReceiveCoin] {
         var order: [String] = []
         var byKey: [String: [Asset]] = [:]
@@ -346,12 +348,19 @@ struct ReceiveCoin: Identifiable, Hashable {
             if byKey[key] == nil { order.append(key) }
             byKey[key, default: []].append(asset)
         }
-        return order.compactMap { key in
+        let coins: [ReceiveCoin] = order.compactMap { key in
             guard let items = byKey[key], let first = items.first else { return nil }
             let native = items.first { $0.kind == .native }
             let name = native.map { $0.chain?.nativeName ?? $0.name } ?? first.name
             return ReceiveCoin(id: key, symbol: first.symbol, name: name, coingeckoID: first.coingeckoID, assets: items)
         }
+        var rank: [String: Int] = [:]
+        for (index, token) in TokenRegistry.tokens.enumerated() where rank[token.coingeckoID ?? token.id] == nil {
+            rank[token.coingeckoID ?? token.id] = index
+        }
+        let natives = coins.filter { coin in coin.assets.contains { $0.kind == .native } }
+        let tokens = coins.filter { coin in !coin.assets.contains { $0.kind == .native } }
+        return natives + tokens.sorted { (rank[$0.id] ?? .max, $0.id) < (rank[$1.id] ?? .max, $1.id) }
     }
 
     /// O padrao do token na rede, para quem envia de uma corretora achar a opcao certa.

@@ -1,0 +1,37 @@
+{
+ "result": {
+  "account": "rLoD9U2ghXP2xUYbtML6G6v1p8LhM9mSnc",
+  "ledger_hash": "E36C6C3330157DC9CAA7D52FBE65CF40B6F69B7A4F73745A5FAD8A446D7D1C26",
+  "ledger_index": 107280302,
+  "validated": true,
+  "limit": 400,
+  "lines": [
+   {
+    "account": "rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De",
+    "balance": "9696.979559",
+    "currency": "524C555344000000000000000000000000000000",
+    "limit": "9999999999999999",
+    "limit_peer": "0",
+    "quality_in": 0,
+    "quality_out": 0,
+    "no_ripple": true
+   },
+   {
+    "account": "rsoLo2S1kiGeCcn6hCUXVrCpGMWLrRrLZz",
+    "balance": "6796.3730812",
+    "currency": "534F4C4F00000000000000000000000000000000",
+    "limit": "200000000",
+    "limit_peer": "0",
+    "quality_in": 0,
+    "quality_out": 0
+   }
+  ],
+  "status": "success"
+ },
+ "warnings": [
+  {
+   "id": 2001,
+   "message": "This is a clio server. clio only serves validated data. If you want to talk to rippled, include 'ledger_index':'current' in your request"
+  }
+ ]
+}

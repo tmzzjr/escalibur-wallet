@@ -97,10 +97,12 @@ struct EVMSecondWaveTests {
         ("celo", "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e", "USDT", "tether"),
     ]
 
-    @Test("Lista de tokens: so os stablecoins dos emissores, com 6 casas e checksum da fonte")
+    @Test("Lista de tokens: USDC e USDT so os dos emissores, com 6 casas e checksum da fonte")
     func registry() throws {
         let secondWave = Set(Self.expected.map(\.id))
-        let listed = TokenRegistry.tokens.filter { secondWave.contains($0.chainID) }
+        // Os outros tokens destas redes (terceira leva, 27/09/2026) seguem as regras de
+        // TokenRegistryTests; aqui ficam o USDC e o USDT, que nao podem ser os da ponte.
+        let listed = TokenRegistry.tokens.filter { secondWave.contains($0.chainID) && ["USDC", "USDT"].contains($0.symbol) }
         #expect(listed.count == Self.tokens.count)
         for token in Self.tokens {
             let asset = try #require(TokenRegistry.find(chainID: token.chain, contract: token.contract.lowercased()), "\(token.chain) \(token.symbol)")
