@@ -40,7 +40,19 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
         super.init()
     }
 
-    private lazy var session: URLSession = {
+    /// Criada uma vez so, sob a trava: `lazy var` nao e seguro entre threads, e duas
+    /// sessoes repetiriam `taskIdentifier`, trocando a leitura de uma pela de outra.
+    private var session: URLSession {
+        lock.withLock {
+            if let existing = sessionStorage { return existing }
+            let made = makeSession()
+            sessionStorage = made
+            return made
+        }
+    }
+    private var sessionStorage: URLSession?
+
+    private func makeSession() -> URLSession {
         let configuration = URLSessionConfiguration.ephemeral
         if let protocolClasses { configuration.protocolClasses = protocolClasses }
         configuration.urlCache = nil
@@ -54,7 +66,7 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
         configuration.tlsMinimumSupportedProtocolVersion = .TLSv12
         configuration.httpAdditionalHeaders = ["User-Agent": Self.userAgent, "Accept-Language": "en"]
         return URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
-    }()
+    }
 
     // MARK: Requisicoes
 
@@ -99,59 +111,109 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
 
     /// O corpo e lido em fluxo e cortado ao passar do limite. Resposta sem
     /// Content-Length (chunked) nao chega inteira na memoria antes de ser medida.
+    ///
+    /// Uma tarefa de dados com o delegado da sessao, e nao `bytes(for:)`: em algumas
+    /// versoes do macOS (a do runner do CI) o fluxo de `bytes(for:)` parava de entregar
+    /// o corpo, e o delegado classico mede cada pedaco igual em todas.
     private func perform(_ request: URLRequest) async throws -> Data {
         guard request.url?.scheme == "https", let host = request.url?.host, allowedHosts.contains(host) else {
             throw Failure.hostNotAllowed
         }
-        do {
-            let (bytes, response) = try await session.bytes(for: request)
-            guard let http = response as? HTTPURLResponse else {
-                bytes.task.cancel()
-                throw Failure.invalidResponse
+        let task = session.dataTask(with: request)
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                lock.withLock { transfers[ObjectIdentifier(task)] = Transfer(continuation) }
+                task.resume()
             }
-            guard (200..<300).contains(http.statusCode) else {
-                bytes.task.cancel()
-                if (300..<400).contains(http.statusCode) { throw Failure.redirectRefused }
-                throw Failure.status(http.statusCode)
-            }
-            guard http.expectedContentLength <= Int64(Self.maxResponseBytes) else {
-                bytes.task.cancel()
-                throw Failure.tooLarge
-            }
-            var data = Data()
-            data.reserveCapacity(http.expectedContentLength > 0 ? Int(http.expectedContentLength) : 16 * 1024)
-            for try await byte in bytes {
-                data.append(byte)
-                if data.count > Self.maxResponseBytes {
-                    bytes.task.cancel()
-                    throw Failure.tooLarge
-                }
-            }
-            return data
-        } catch let error as URLError {
-            switch error.code {
-            case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed: throw Failure.offline
-            case .timedOut: throw Failure.timeout
-            default: throw Failure.invalidResponse
-            }
+        } onCancel: {
+            task.cancel()
+        }
+    }
+
+    /// Uma leitura em andamento: o corpo que ja chegou, a recusa (se houve) e quem espera.
+    private final class Transfer {
+        var data = Data()
+        var failure: Failure?
+        let continuation: CheckedContinuation<Data, Error>
+
+        init(_ continuation: CheckedContinuation<Data, Error>) { self.continuation = continuation }
+    }
+
+    private let lock = NSLock()
+    /// Pela identidade da tarefa, viva ate `didCompleteWithError` tirar a entrada daqui.
+    private var transfers: [ObjectIdentifier: Transfer] = [:]
+
+    private func transfer(_ task: URLSessionTask) -> Transfer? {
+        lock.withLock { transfers[ObjectIdentifier(task)] }
+    }
+
+    static func failure(for error: Error) -> Failure {
+        switch (error as? URLError)?.code {
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed: return .offline
+        case .timedOut: return .timeout
+        default: return .invalidResponse
         }
     }
 }
 
-extension HTTPClient: URLSessionTaskDelegate {
+extension HTTPClient: URLSessionDataDelegate {
     /// Redirecionamento nunca e seguido: um provedor comprometido nao manda o app
     /// buscar dado em outro host.
     public func urlSession(
         _ session: URLSession, task: URLSessionTask,
-        willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest
-    ) async -> URLRequest? {
-        nil
+        willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
+        completionHandler: @escaping @Sendable (URLRequest?) -> Void
+    ) {
+        completionHandler(nil)
     }
 
-    // Sem `dataTask:didReceive:` aqui: a leitura e por `bytes(for:)`, que tem o proprio
-    // delegado da tarefa, e responder a resposta nos dois lugares travava o fluxo do
-    // corpo em algumas versoes do sistema (visto no CI, macOS do runner). A resposta que
-    // anuncia mais que o limite e recusada em `perform`, logo depois dos cabecalhos.
+    /// Status e tamanho anunciado sao conferidos antes de qualquer byte do corpo.
+    public func urlSession(
+        _ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
+        completionHandler: @escaping @Sendable (URLSession.ResponseDisposition) -> Void
+    ) {
+        guard let transfer = transfer(dataTask) else { return completionHandler(.cancel) }
+        let refusal: Failure?
+        if let http = response as? HTTPURLResponse {
+            if (300..<400).contains(http.statusCode) { refusal = .redirectRefused }
+            else if !(200..<300).contains(http.statusCode) { refusal = .status(http.statusCode) }
+            else if http.expectedContentLength > Int64(Self.maxResponseBytes) { refusal = .tooLarge }
+            else { refusal = nil }
+        } else {
+            refusal = .invalidResponse
+        }
+        lock.withLock {
+            transfer.failure = refusal
+            if refusal == nil, response.expectedContentLength > 0 {
+                transfer.data.reserveCapacity(Int(response.expectedContentLength))
+            }
+        }
+        completionHandler(refusal == nil ? .allow : .cancel)
+    }
+
+    public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        guard let transfer = transfer(dataTask) else { return }
+        let over = lock.withLock { () -> Bool in
+            guard transfer.failure == nil else { return false }
+            transfer.data.append(data)
+            guard transfer.data.count > Self.maxResponseBytes else { return false }
+            transfer.failure = .tooLarge
+            transfer.data = Data()
+            return true
+        }
+        if over { dataTask.cancel() }
+    }
+
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        guard let transfer = lock.withLock({ transfers.removeValue(forKey: ObjectIdentifier(task)) }) else { return }
+        if let failure = transfer.failure {
+            transfer.continuation.resume(throwing: failure)
+        } else if let error {
+            transfer.continuation.resume(throwing: Self.failure(for: error))
+        } else {
+            transfer.continuation.resume(returning: transfer.data)
+        }
+    }
 }
 
 /// Um conjunto de provedores equivalentes para o mesmo servico, com contingencia.
