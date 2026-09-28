@@ -287,6 +287,10 @@ struct ReceiveSheet: View {
                 return "Na exchange, escolha a rede Sui. O endereço tem o mesmo formato dos endereços Aptos, e um envio pela Aptos não chega aqui."
             case .cardano:
                 return "Na exchange, escolha a rede Cardano. Envie só ADA: tokens nativos que chegarem aqui ainda não podem ser movidos pela Escalibur."
+            case .polkadot:
+                return exists
+                    ? "Na exchange, escolha a rede Polkadot Asset Hub e envie só DOT. DOT enviado pela relay chain antiga não aparece aqui."
+                    : "Na exchange, escolha a rede Polkadot Asset Hub. O primeiro recebimento precisa ser de 0,01 DOT ou mais, o mínimo da rede para a conta existir."
             }
         }()
         Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
@@ -405,6 +409,8 @@ struct ReceiveCoin: Identifiable, Hashable {
         case .sui: return ""
         // A carteira ainda nao lista token nativo da Cardano.
         case .cardano: return ""
+        // A carteira ainda nao lista ativo da Polkadot Asset Hub alem do DOT.
+        case .polkadot: return ""
         }
     }
 }

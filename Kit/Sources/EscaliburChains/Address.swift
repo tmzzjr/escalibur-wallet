@@ -65,6 +65,9 @@ public enum Address {
             return try SuiAddress(ed25519PublicKey: publicKey).hex
         case .cardano:
             return try CardanoAddress.base(publicKeys: publicKey)
+        case .polkadot:
+            guard let address = PolkadotAddress(accountID: publicKey) else { throw Problem.malformed }
+            return address.ss58
         }
     }
 
@@ -104,6 +107,7 @@ public enum Address {
         case .ton: result = TONAddress.validate(text)
         case .sui: result = SuiAddress.validateDestination(text)
         case .cardano: result = CardanoAddress.validateDestination(text)
+        case .polkadot: result = PolkadotAddress.validateDestination(text)
         }
         if case .failure(let problem) = result, problem == .malformed || problem == .badChecksum,
            let other = guessChain(text), other.id != chain.id, !(other.family == .evm && chain.family == .evm) {
@@ -130,6 +134,7 @@ public enum Address {
         case .tron, .solana, .xrpl: return destination.address
         case .sui: return destination.address
         case .cardano: return destination.address
+        case .polkadot: return destination.address
         }
     }
 
@@ -157,6 +162,8 @@ public enum Address {
         }
         if case .success = TONAddress.validate(text) { return .ton }
         if CardanoAddress.isCardano(text) { return .cardano }
+        // SS58 com o prefixo 0 so existe na Polkadot: nao e ambiguo.
+        if PolkadotAddress.isPolkadot(text) { return .polkadot }
         if case .success = validateSolana(text) { return .solana }
         return nil
     }
@@ -346,6 +353,11 @@ public enum DefaultPaths {
         // (m/1852'/1815'/i'/2/0) e entra no endereco base. E o que Eternl, Yoroi, Lace e
         // Trust Wallet abrem com a mesma frase (chave mestra Icarus, CIP-3).
         case "cardano": return DerivationPath(components: [h(1852), h(1815), h(account), 0, 0])
+        // Polkadot: SLIP-10 Ed25519, tudo endurecido, a conta no terceiro nivel. E o caminho
+        // e a derivacao da Trust Wallet (wallet-core, registry.json). A Ledger usa o mesmo
+        // caminho com outra derivacao (BIP32-Ed25519), e a Polkadot.js, a Nova e a Talisman
+        // usam sr25519 a partir da entropia: nas tres a mesma frase abre outra conta.
+        case "polkadot": return DerivationPath(components: [h(44), h(354), h(account), h(0), h(0)])
         default:
             // EVM: todas as redes compartilham a mesma conta, m/44'/60'/0'/0/i.
             return DerivationPath(components: [h(44), h(60), h(0), 0, account])

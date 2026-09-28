@@ -23,6 +23,7 @@ https://arbitrum-one-rpc.publicnode.com
 https://arbitrum.blockscout.com
 https://arbitrum.drpc.org
 https://arbitrum.meowrpc.com
+https://asset-hub-polkadot-rpc.n.dwellir.com
 https://assets.coingecko.com
 https://avalanche-c-chain-rpc.publicnode.com
 https://avalanche.drpc.org
@@ -60,9 +61,12 @@ https://open-api.de1.exchange
 https://optimism-rpc.publicnode.com
 https://optimism.drpc.org
 https://plasma.gateway.tenderly.co
+https://polkadot-asset-hub-public-sidecar.parity-chains.parity.io
+https://polkadot-asset-hub-rpc.polkadot.io
 https://polygon-bor-rpc.publicnode.com
 https://polygon.blockscout.com
 https://polygon.drpc.org
+https://rpc-asset-hub-polkadot.luckyfriday.io
 https://rpc-mainnet.suiscan.xyz
 https://rpc.flashbots.net
 https://rpc.linea.build
@@ -76,6 +80,8 @@ https://solana-mainnet.gateway.tatum.io
 https://solana-rpc.publicnode.com
 https://sonic-rpc.publicnode.com
 https://sonic.drpc.org
+https://statemint.api.onfinality.io
+https://subquery-history-polkadot-ah-prod.novasama-tech.org
 https://sui-mainnet.nodeinfra.com
 https://tonapi.io
 https://toncenter.com

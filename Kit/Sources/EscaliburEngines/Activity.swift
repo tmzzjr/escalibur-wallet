@@ -59,6 +59,7 @@ public enum ActivitySources {
         case .ton: return EngineRegistry.tonActivity(chain)
         case .sui: return EngineRegistry.suiActivity(chain)
         case .cardano: return EngineRegistry.cardanoActivity(chain)
+        case .polkadot: return EngineRegistry.polkadotActivity(chain)
         }
     }
 }

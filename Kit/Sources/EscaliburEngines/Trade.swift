@@ -238,6 +238,7 @@ public enum TradeEngines {
         case .ton: return EngineRegistry.tonTrade(chain)
         case .sui: return EngineRegistry.suiTrade(chain)
         case .cardano: return EngineRegistry.cardanoTrade(chain)
+        case .polkadot: return EngineRegistry.polkadotTrade(chain)
         }
     }
 }

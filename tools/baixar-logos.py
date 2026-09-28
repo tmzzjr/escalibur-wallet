@@ -29,6 +29,7 @@ MOEDAS = ["bitcoin", "ethereum", "solana", "ripple", "stellar", "tron", "the-ope
           "the-sandbox", "golem"]
 MOEDAS += ["sui"]
 MOEDAS += ["cardano"]
+MOEDAS += ["polkadot"]
 # Provedores de troca com token proprio: o logo e o do token no CoinGecko. LI.FI e
 # De¹ nao tem token; o app desenha a inicial.
 PROVEDORES = {"kyberswap": "kyber-network-crystal", "cow": "cow-protocol", "velora": "paraswap",
@@ -41,6 +42,7 @@ REDES = {"base": "base", "arbitrum": "arbitrum-one", "optimism": "optimistic-eth
          "celo": "celo"}
 REDES["sui"] = "sui"
 REDES["cardano"] = "cardano"
+REDES["polkadot"] = "polkadot"
 SO = set(sys.argv[1:])
 
 def get(url):

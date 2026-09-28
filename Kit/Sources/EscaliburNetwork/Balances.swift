@@ -72,6 +72,7 @@ public actor BalanceService {
         case .ton: return try await ton(addresses[0])
         case .sui: return try await SuiReader.shared.displayBalance(owner: addresses[0])
         case .cardano: return try await CardanoReader.shared.displayBalance(owner: addresses[0])
+        case .polkadot: return try await PolkadotReader.shared.displayBalance(owner: addresses[0])
         }
     }
 
