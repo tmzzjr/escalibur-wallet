@@ -41,9 +41,19 @@ final class SendModel {
     var networkConfirmed = false
 
     var needsNetworkConfirmation: Bool {
+        guard let chain, let destination, isFirstSend else { return false }
+        switch chain.family {
         // Sui: "0x" e 64 hex, o mesmo formato da Aptos.
-        guard let chain, chain.family == .evm || chain.family == .sui, destination != nil else { return false }
-        return isFirstSend
+        case .evm, .sui: return true
+        // NEAR: a conta implicita e 64 hex, o formato de Sui e Aptos sem o "0x". Colado
+        // por engano, vira uma conta NEAR nova que ninguem controla.
+        case .near: return Self.isBareHex64(destination.address)
+        default: return false
+        }
+    }
+
+    static func isBareHex64(_ text: String) -> Bool {
+        text.count == 64 && text.allSatisfy(\.isHexDigit)
     }
     var amountText = ""
     var sendAll = false
@@ -397,12 +407,11 @@ struct SendStages: View {
                     NetworkBadge(chain: chain, size: 28, ring: .clear)
                     Text("Envio pela rede \(chain.name)").typeStyle(.row).foregroundStyle(Palette.ink)
                 }
-                Text(chain.family == .sui
-                     ? "Endereços Sui têm o mesmo formato dos endereços Aptos, então o endereço não diz a rede. Se quem vai receber espera o valor pela Aptos ou por outra rede, ele não chega."
-                     : "Endereços EVM são iguais em todas as redes EVM, então o endereço não diz a rede. Se quem vai receber só aceita \(holding.asset.symbol) por outra rede (uma exchange que recebe só pela Ethereum, por exemplo), o valor não chega.")
+                Text(Self.networkConfirmationNote(chain, symbol: holding.asset.symbol))
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 Toggle(isOn: $model.networkConfirmed) {
-                    Text("Quem vai receber aceita \(holding.asset.symbol) pela \(chain.name)").typeStyle(.note).foregroundStyle(Palette.ink)
+                    Text(chain.family == .near ? "Este endereço é de uma conta NEAR" : "Quem vai receber aceita \(holding.asset.symbol) pela \(chain.name)")
+                        .typeStyle(.note).foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .tint(Palette.lime)
@@ -412,6 +421,17 @@ struct SendStages: View {
             .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
                 .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
             .padding(.top, Space.md)
+        }
+    }
+
+    static func networkConfirmationNote(_ chain: Chain, symbol: String) -> String {
+        switch chain.family {
+        case .sui:
+            return "Endereços Sui têm o mesmo formato dos endereços Aptos, então o endereço não diz a rede. Se quem vai receber espera o valor pela Aptos ou por outra rede, ele não chega."
+        case .near:
+            return "Contas NEAR sem nome têm 64 letras e números, o mesmo formato de um endereço Sui ou Aptos sem o 0x. Se este endereço é de outra rede, o valor vai para uma conta NEAR que ninguém controla e se perde."
+        default:
+            return "Endereços EVM são iguais em todas as redes EVM, então o endereço não diz a rede. Se quem vai receber só aceita \(symbol) por outra rede (uma exchange que recebe só pela Ethereum, por exemplo), o valor não chega."
         }
     }
 
