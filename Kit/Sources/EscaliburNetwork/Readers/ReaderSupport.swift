@@ -393,4 +393,8 @@ actor HostPacer {
         let wait = slot.timeIntervalSince(now)
         if wait > 0 { try await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000)) }
     }
+
+    /// So para os testes: o proximo horario reservado do host, se algum. Host sem
+    /// intervalo nunca reserva, e por isso nunca espera.
+    func reservedSlot(host: String) -> Date? { nextSlot[host] }
 }

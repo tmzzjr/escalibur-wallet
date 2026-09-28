@@ -151,11 +151,12 @@ struct ReaderSupportTests {
         let started = Date()
         for _ in 0..<3 { _ = try await paced.send(.get(URL(string: "https://paced.test/x")!)) }
         #expect(Date().timeIntervalSince(started) >= 0.29)
-        // Host sem espacamento: tres seguidas nao esperam. Com espacamento seriam 0,30 s ou
-        // mais; o teto de 0,25 separa os dois casos e tolera o runner do CI carregado.
-        let quick = Date()
+        // Host sem espacamento: nenhuma reserva de horario, logo nenhuma espera. Conferido
+        // pelo estado do espacador e nao pelo relogio, que no runner do CI carregado
+        // passava de qualquer teto.
         for _ in 0..<3 { _ = try await paced.send(.get(URL(string: "https://free.test/x")!)) }
-        #expect(Date().timeIntervalSince(quick) < 0.25)
+        #expect(await HostPacer.shared.reservedSlot(host: "free.test") == nil)
+        #expect(await HostPacer.shared.reservedSlot(host: "paced.test") != nil)
     }
 
     @Test("429 espera e tenta de novo uma vez")
