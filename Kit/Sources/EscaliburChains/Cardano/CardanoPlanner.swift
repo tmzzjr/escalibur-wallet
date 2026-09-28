@@ -120,7 +120,7 @@ public enum CardanoPlanner {
     /// Slot 0 da contagem Shelley em tempo Unix: slot = segundos Unix - este numero, com
     /// slot de 1 segundo desde a Shelley (genese: systemStart da Byron mais os 4.492.800
     /// slots de 20 s ate a epoca 208). Conferido contra a ponta da rede em 27/09/2026.
-    static let shelleySlotOffset: Int64 = 1_591_566_291
+    public static let shelleySlotOffset: Int64 = 1_591_566_291
     /// Distancia maxima entre a ponta lida e o relogio.
     static let tipTolerance: Int64 = 600
 

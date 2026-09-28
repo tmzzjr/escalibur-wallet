@@ -33,3 +33,10 @@ GraphQL da Sui Foundation): respostas gRPC-Web cruas (.bin, quadro e trailers co
 os bytes das duas transacoes simuladas (-tx.bin) e o GraphQL do historico. Conta: Binance 1;
 destino das simulacoes: OKX 1. Sem alteracao. Os testes dos motores (EscaliburEnginesTests)
 leem estes mesmos arquivos.
+
+Cardano, gravadas em 27/09/2026 por leitores/cardano/gravar.py (sem chave, Koios e backend
+da Yoroi, no mesmo minuto): moedas, ponta, parametros, genese, estado de transacao e
+historico. Contas: um endereco com duas moedas so de ADA (a chave publica e a testemunha
+das transacoes dele na rede) e um com oito moedas que carregam tokens. Alterado: o
+`costModels` dos parametros sai (o leitor nao le). Os testes dos motores
+(EscaliburEnginesTests) leem estes mesmos arquivos.

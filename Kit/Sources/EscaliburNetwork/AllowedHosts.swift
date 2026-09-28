@@ -15,11 +15,13 @@ enum AllowedHosts {
         "api.coinpaprika.com",
         "api.cow.fi",
         "api.jup.ag",
+        "api.koios.rest",
         "api.mainnet.solana.com",
         "api.routescan.io",
         "api.trongrid.io",
         "api.tronstack.io",
         "api.velora.xyz",
+        "api.yoroiwallet.com",
         "arb1.arbitrum.io",
         "arbitrum-one-rpc.publicnode.com",
         "arbitrum.blockscout.com",
@@ -88,5 +90,6 @@ enum AllowedHosts {
         "www.okx.com",
         "xlayer.drpc.org",
         "xrplcluster.com",
+        "zero.yoroiwallet.com",
     ]
 }

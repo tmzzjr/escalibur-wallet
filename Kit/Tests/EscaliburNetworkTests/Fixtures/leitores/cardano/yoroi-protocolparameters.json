@@ -1,0 +1,136 @@
+{
+ "coinsPerUtxoByte": "4310",
+ "collateralPercentage": "150",
+ "constitutionalCommitteeMaxTermLength": "146",
+ "constitutionalCommitteeMinSize": "5",
+ "delegateRepresentativeDeposit": "500000000",
+ "delegateRepresentativeMaxIdleTime": "20",
+ "desiredNumberOfStakePools": "500",
+ "epoch": 658,
+ "governanceActionDeposit": "100000000000",
+ "governanceActionLifetime": "6",
+ "keyDeposit": "2000000",
+ "linearFee": {
+  "coefficient": "44",
+  "constant": "155381"
+ },
+ "maxBlockBodySize": "90112",
+ "maxBlockHeaderSize": "1100",
+ "maxCollateralInputs": "3",
+ "maxExecutionUnits": {
+  "perBlock": {
+   "cpu": "20000000000",
+   "memory": "72000000"
+  },
+  "perTransaction": {
+   "cpu": "10000000000",
+   "memory": "16500000"
+  }
+ },
+ "maxReferenceScriptsSize": "204800",
+ "maxTxSize": "16384",
+ "maxValueSize": "5000",
+ "minFeeReferenceScript": {
+  "coinsPerByte": {
+   "denominator": "1",
+   "numerator": "15"
+  },
+  "multiplier": "1.2",
+  "tierStepBytes": "25600"
+ },
+ "minPoolCost": "170000000",
+ "monetaryExpansion": {
+  "denominator": "1000",
+  "numerator": "3"
+ },
+ "poolDeposit": "500000000",
+ "scriptExecutionPrices": {
+  "cpu": {
+   "denominator": "10000000",
+   "numerator": "721"
+  },
+  "memory": {
+   "denominator": "10000",
+   "numerator": "577"
+  }
+ },
+ "stakePoolPledgeInfluence": {
+  "denominator": "10",
+  "numerator": "3"
+ },
+ "stakePoolRetirementEpochBound": "18",
+ "treasuryExpansion": {
+  "denominator": "5",
+  "numerator": "1"
+ },
+ "version": {
+  "major": "11",
+  "minor": "0"
+ },
+ "votingThresholds": {
+  "delegateRep": {
+   "committeeNoConfidence": {
+    "denominator": "5",
+    "numerator": "3"
+   },
+   "committeeNormal": {
+    "denominator": "100",
+    "numerator": "67"
+   },
+   "constitution": {
+    "denominator": "4",
+    "numerator": "3"
+   },
+   "hardFork": {
+    "denominator": "5",
+    "numerator": "3"
+   },
+   "noConfidence": {
+    "denominator": "100",
+    "numerator": "67"
+   },
+   "ppEconomic": {
+    "denominator": "100",
+    "numerator": "67"
+   },
+   "ppGovernance": {
+    "denominator": "4",
+    "numerator": "3"
+   },
+   "ppNetwork": {
+    "denominator": "100",
+    "numerator": "67"
+   },
+   "ppTechnical": {
+    "denominator": "100",
+    "numerator": "67"
+   },
+   "treasury": {
+    "denominator": "100",
+    "numerator": "67"
+   }
+  },
+  "stakePool": {
+   "committeeNoConfidence": {
+    "denominator": "100",
+    "numerator": "51"
+   },
+   "committeeNormal": {
+    "denominator": "100",
+    "numerator": "51"
+   },
+   "hardFork": {
+    "denominator": "100",
+    "numerator": "51"
+   },
+   "noConfidence": {
+    "denominator": "100",
+    "numerator": "51"
+   },
+   "ppSecurity": {
+    "denominator": "100",
+    "numerator": "51"
+   }
+  }
+ }
+}

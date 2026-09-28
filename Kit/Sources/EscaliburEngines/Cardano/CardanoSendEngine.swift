@@ -15,10 +15,13 @@ import Foundation
 struct CardanoSendEngine: SendEngine {
     let reader: CardanoReader
     let deadlines: Deadlines
+    /// O relogio que confere a ponta lida e data o plano. Troca so nos testes.
+    let now: @Sendable () -> Date
 
-    init(reader: CardanoReader = .shared, deadlines: Deadlines = .shared) {
+    init(reader: CardanoReader = .shared, deadlines: Deadlines = .shared, now: @escaping @Sendable () -> Date = { .now }) {
         self.reader = reader
         self.deadlines = deadlines
+        self.now = now
     }
 
     // MARK: Destino
@@ -36,7 +39,7 @@ struct CardanoSendEngine: SendEngine {
         do {
             let source = try Self.source(request)
             let state = try await reader.spendState(owner: source.address)
-            let maximum = try CardanoPlanner.maximumSendable(source: source, to: request.destination, state: state)
+            let maximum = try CardanoPlanner.maximumSendable(source: source, to: request.destination, state: state, now: now())
             let locked = state.utxos.filter { !$0.isPlainADA }.reduce(UInt64(0)) { $0 + $1.lovelace }
             let plain = state.utxos.filter(\.isPlainADA).count
             var notes: [String] = []
@@ -58,13 +61,13 @@ struct CardanoSendEngine: SendEngine {
             let state = try await reader.spendState(owner: source.address)
             var amount: BigUInt? = request.amount
             if request.sendAll {
-                let maximum = try CardanoPlanner.maximumSendable(source: source, to: request.destination, state: state)
+                let maximum = try CardanoPlanner.maximumSendable(source: source, to: request.destination, state: state, now: now())
                 guard !maximum.isZero else { throw SendEngineError.message(CardanoEngineText.insufficient) }
                 // Tudo, se couber no que o dono viu; se o saldo cresceu, so o que ele viu.
                 if maximum <= request.amount { amount = nil }
             }
             let plan = try CardanoPlanner.planSend(
-                walletID: request.walletID, source: source, to: request.destination, amount: amount, state: state
+                walletID: request.walletID, source: source, to: request.destination, amount: amount, state: state, now: now()
             )
             return try Self.reviewed(plan, for: request)
         } catch {

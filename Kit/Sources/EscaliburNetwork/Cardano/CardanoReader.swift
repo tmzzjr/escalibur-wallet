@@ -419,6 +419,8 @@ public actor CardanoReader {
                 fee: spent == 0 ? nil : BigUInt(fee), hash: hash, explorerURL: Chain.cardano.explorerURL(tx: hash)
             ))
         }
+        // A Koios devolve as transacoes na ordem que quiser: a tela quer a mais nova primeiro.
+        items.sort { ($0.date, $0.id) > ($1.date, $1.id) }
         return ActivityPage(chainID: Chain.cardano.id, items: items, suspicious: SuspiciousSummary(), isComplete: complete)
     }
 
