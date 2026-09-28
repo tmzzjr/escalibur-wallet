@@ -283,7 +283,7 @@ extension XRPLDecimal {
     /// conforme o lado: o que sai arredonda para cima e o minimo que entra para baixo, e
     /// assim a conferencia da tela nunca ve menos saindo nem mais entrando do que a
     /// transacao grava. nil para valor negativo ou fora de qualquer escala real.
-    func units(decimals: Int, roundingUp: Bool) -> BigUInt? {
+    public func units(decimals: Int, roundingUp: Bool) -> BigUInt? {
         guard !isNegative else { return nil }
         guard !isZero else { return BigUInt() }
         let limit = 40

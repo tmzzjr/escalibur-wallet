@@ -48,65 +48,111 @@ struct BalanceLiveTests {
 @Suite("Lista de tokens contra a cadeia", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_REDE"] == "1"))
 struct TokenRegistryLiveTests {
     /// Os nomes que a cadeia usa para o mesmo ativo. O USDT0 da Tether (Arbitrum,
-    /// Polygon, Plasma, X Layer, Unichain) responde "USDT0" ou "USD₮0"; na Celo, "USD₮";
-    /// na Avalanche, "USDt". A lista mostra "USDT" em todos.
+    /// Polygon, Plasma, X Layer, Unichain, Optimism) responde "USDT0" ou "USD₮0"; na Celo,
+    /// "USD₮"; na Avalanche, "USDt". O LINK da Avalanche e o LINK.e da ponte que a
+    /// Chainlink lista; o CAKE responde "Cake" e o XAUT, "XAUt".
     static let symbolAliases: [String: Set<String>] = [
         "USDT": ["USDT", "USD₮", "USDT0", "USD₮0", "USDt"],
+        "LINK": ["LINK", "LINK.e"],
+        "CAKE": ["Cake"],
+        "XAUT": ["XAUt"],
     ]
 
-    /// `symbol()` como string ABI (offset, tamanho, bytes).
-    static func decodeString(_ hex: String) -> String? {
-        guard let bytes = Hex.decode(String(hex.dropFirst(2))), bytes.count >= 64,
-              let length = BigUInt(bigEndian: bytes[32..<64]).uint64, bytes.count >= 64 + Int(length)
-        else { return nil }
-        return String(bytes: bytes[64..<(64 + Int(length))], encoding: .utf8)
+    /// keccak256 do codigo executavel do Multicall3 (sem o trailer CBOR de metadados do
+    /// solc), igual nas 13 redes em 27/09/2026. Na Linea so o hash de metadados muda.
+    static let multicall3CodeHash = "51abac3e901750a3f73ad94b55bcf66bd323f31f8042408dfd36356373496e53"
+
+    static func rpc(_ url: URL, _ method: String, _ params: [StrictJSON]) async throws -> StrictJSON {
+        try await EVMReader.call(HTTPClient.shared, url, method, params)
     }
 
-    @Test("decimals() e symbol() de cada ERC-20 batem com a lista, em dois nos")
+    /// Codigo sem o trailer de metadados: os dois ultimos bytes dizem o tamanho do CBOR.
+    static func executable(_ code: [UInt8]) -> [UInt8] {
+        guard code.count > 2 else { return code }
+        let metadata = Int(code[code.count - 2]) << 8 | Int(code[code.count - 1])
+        guard metadata + 2 < code.count else { return code }
+        return Array(code.prefix(code.count - metadata - 2))
+    }
+
+    /// `symbol()` e `decimals()` de todos os tokens da rede num `aggregate3`, lidos em dois
+    /// provedores diferentes (o proximo da lista entra se um falhar). O Multicall3 de cada
+    /// provedor e conferido pelo codigo antes.
+    @Test("decimals() e symbol() de cada ERC-20 batem com a lista, em dois nos, e o Multicall3 e o conferido")
     func evmDecimals() async throws {
-        for token in TokenRegistry.tokens {
-            guard let chain = token.chain, chain.family == .evm, case .token(let contract) = token.kind else { continue }
-            let providers = Array((Endpoints.evm[chain.id] ?? []).prefix(2))
-            var answers: [Int] = []
-            var symbols: [String] = []
-            for provider in providers {
-                let call: JSONValue = .object(["to": .string(contract), "data": .string("0x313ce567")])
-                if let hex = try? await JSONRPC.call(provider.baseURL, method: "eth_call", params: [call, .string("latest")], as: String.self),
-                   let value = BigUInt(hex: hex)?.uint64 {
-                    answers.append(Int(value))
+        let symbolCall = try ABIFunction("symbol()").selector
+        for chain in Chain.evmChains {
+            let tokens = TokenRegistry.assets(on: chain).compactMap { asset -> (Asset, EVMAddress)? in
+                guard case .token(let contract) = asset.kind, let address = try? EVMAddress(contract) else { return nil }
+                return (asset, address)
+            }
+            guard !tokens.isEmpty else { continue }
+            let calls = tokens.flatMap { [Multicall3.Call(target: $0.1, data: symbolCall), Multicall3.Call(target: $0.1, data: ERC20.decimals())] }
+            let data = try Multicall3.aggregate3(calls)
+            var answered = 0
+            for provider in Endpoints.evm[chain.id] ?? [] where answered < 2 {
+                do {
+                    let code = try await Self.rpc(provider.baseURL, "eth_getCode", [.string(Multicall3.address.checksummed), .string("latest")]).hexData("code")
+                    #expect(Hex.encode(Hash.keccak256(Self.executable(code))) == Self.multicall3CodeHash, "\(chain.id) \(provider.name): Multicall3")
+                    let request: StrictJSON = .object(["to": .string(Multicall3.address.checksummed), "data": .string(Hex.encode(data, prefix: true))])
+                    let returned = try await Self.rpc(provider.baseURL, "eth_call", [request, .string("latest")]).hexData("aggregate3")
+                    let results = try Multicall3.decodeAggregate3(returned, expected: calls.count)
+                    answered += 1
+                    for (index, (asset, contract)) in tokens.enumerated() {
+                        let label = "\(chain.id) \(provider.name) \(asset.symbol) \(contract.checksummed)"
+                        guard let symbolData = results[2 * index], let decimalsData = results[2 * index + 1] else {
+                            Issue.record("\(label): symbol() ou decimals() reverteu"); continue
+                        }
+                        let decimals = try ERC20.decodeDecimals(decimalsData)
+                        #expect(Int(decimals) == asset.decimals, "\(label): cadeia diz \(decimals), lista diz \(asset.decimals)")
+                        let symbol = try ABI.decode([.string], from: symbolData).first?.stringValue ?? ""
+                        #expect((Self.symbolAliases[asset.symbol] ?? [asset.symbol]).contains(symbol), "\(label): cadeia diz \(symbol)")
+                    }
+                } catch {
+                    Live.note("\(chain.id) \(provider.name): \(error)")
                 }
-                let symbolCall: JSONValue = .object(["to": .string(contract), "data": .string("0x95d89b41")])
-                if let hex = try? await JSONRPC.call(provider.baseURL, method: "eth_call", params: [symbolCall, .string("latest")], as: String.self),
-                   let symbol = Self.decodeString(hex) {
-                    symbols.append(symbol)
-                }
             }
-            #expect(!answers.isEmpty, "\(chain.id) \(token.symbol): nenhum no respondeu")
-            for answer in answers {
-                #expect(answer == token.decimals, "\(chain.id) \(token.symbol) \(contract): cadeia diz \(answer), lista diz \(token.decimals)")
-            }
-            #expect(!symbols.isEmpty, "\(chain.id) \(token.symbol): symbol() sem resposta")
-            let accepted = Self.symbolAliases[token.symbol] ?? [token.symbol]
-            for symbol in symbols {
-                #expect(accepted.contains(symbol), "\(chain.id) \(token.symbol) \(contract): cadeia diz \(symbol)")
-            }
+            #expect(answered == 2, "\(chain.id): so \(answered) provedor(es) responderam")
         }
     }
 
-    @Test("Mints da Solana existem, pertencem ao programa de token e tem as casas da lista")
+    @Test("Mints da Solana em dois RPCs: programa Token classico, casas da lista, sem extensao")
     func solanaMints() async throws {
         for token in TokenRegistry.tokens where token.chainID == "solana" {
             guard case .token(let mint) = token.kind else { continue }
-            let result = try await JSONRPC.call(
-                Endpoints.solana[0].baseURL, method: "getAccountInfo",
-                params: [.string(mint), .object(["encoding": .string("jsonParsed")])], as: JSONValue.self
-            )
-            let value = result["value"]
-            #expect(value != nil && value != .null, "\(token.symbol) \(mint): mint nao existe")
-            let owner = value?["owner"]?.stringValue ?? ""
-            #expect(owner == "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" || owner == "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb", "\(token.symbol): dono \(owner)")
-            let decimals = value?["data"]?["parsed"]?["info"]?["decimals"]?.doubleValue
-            #expect(decimals.map(Int.init) == token.decimals, "\(token.symbol): casas \(String(describing: decimals))")
+            var answered = 0
+            for provider in Endpoints.solana where answered < 2 {
+                guard let result = try? await JSONRPC.call(
+                    provider.baseURL, method: "getAccountInfo",
+                    params: [.string(mint), .object(["encoding": .string("jsonParsed")])], as: JSONValue.self
+                ) else { continue }
+                answered += 1
+                let value = result["value"]
+                #expect(value != nil && value != .null, "\(token.symbol) \(mint): mint nao existe")
+                // O historico e a troca derivam o ATA com o programa classico.
+                #expect(value?["owner"]?.stringValue == "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", "\(token.symbol): dono")
+                let info = value?["data"]?["parsed"]?["info"]
+                #expect(info?["decimals"]?.doubleValue.map(Int.init) == token.decimals, "\(token.symbol): casas")
+                #expect(info?["extensions"] == nil, "\(token.symbol): extensao Token-2022")
+            }
+            #expect(answered == 2, "\(token.symbol): so \(answered) RPC(s)")
+        }
+    }
+
+    @Test("Emissores do XRP Ledger em dois servidores: a conta existe e nao cobra taxa de transferencia")
+    func xrplIssuers() async throws {
+        let transport = HTTPClient.shared
+        for token in TokenRegistry.tokens where token.chainID == "xrpl" {
+            guard case .issued(_, let issuer) = token.kind else { continue }
+            var answered = 0
+            for provider in Endpoints.xrpl where answered < 2 {
+                guard let result = try? await XRPLReader.call(transport, provider.baseURL, "account_info", [
+                    "account": .string(issuer), "ledger_index": .string("validated"),
+                ]), let data = result.optionalField("account_data") else { continue }
+                answered += 1
+                #expect(data.optionalField("TransferRate") == nil, "\(token.symbol): TransferRate")
+                #expect(data.optionalField("Domain") != nil, "\(token.symbol): sem Domain")
+            }
+            #expect(answered == 2, "\(token.symbol): so \(answered) servidor(es)")
         }
     }
 

@@ -9,14 +9,24 @@ para o repositorio e passa por revisao como qualquer outro arquivo.
     python3 tools/baixar-logos.py celo linea   so os nomes dados (id do CoinGecko da
                                                moeda ou id da rede em Chain.swift)
 """
-import json, os, sys, urllib.request, hashlib
+import json, os, sys, urllib.request, hashlib, shutil, subprocess, tempfile
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(RAIZ, "App/EscaliburWallet/Resources/Assets.xcassets/Logos")
 MOEDAS = ["bitcoin", "ethereum", "solana", "ripple", "stellar", "tron", "the-open-network", "litecoin",
           "dogecoin", "binancecoin", "avalanche-2", "polygon-ecosystem-token", "tether", "usd-coin", "dai",
           "wrapped-bitcoin", "weth", "chainlink", "uniswap", "arbitrum", "optimism", "jupiter-exchange-solana",
-          "plasma", "okb", "sonic-3", "celo", "ripple-usd"]
+          "plasma", "okb", "sonic-3", "celo", "ripple-usd", "wrapped-steth", "usds", "leo-token",
+          "coinbase-wrapped-btc", "wrapped-eeth", "ethena-usde", "susds", "usd1-wlfi", "crypto-com-chain",
+          "global-dollar", "ethena", "paypal-usd", "ondo-finance", "tether-gold", "aave", "mantle", "aster-2",
+          "sky", "morpho", "pax-gold", "pepe", "usdd", "bitget-token", "ethena-staked-usde", "jito-staked-sol",
+          "pancakeswap-token", "render-token", "rocket-pool-eth", "nexo", "aerodrome-finance",
+          "injective-protocol", "gho", "ether-fi", "pyth-network", "official-trump", "raydium", "fetch-ai",
+          "curve-dao-token", "virtual-protocol", "coinbase-wrapped-staked-eth", "true-usd", "usdtb", "euro-coin",
+          "pendle", "lido-dao", "the-graph", "gnosis", "jito-governance-token", "starknet",
+          "ethereum-name-service", "syrup", "eigenlayer", "trust-wallet-token", "compound-governance-token",
+          "crvusd", "agora-dollar", "convex-finance", "immutable-x", "havven", "basic-attention-token",
+          "the-sandbox", "golem"]
 # Provedores de troca com token proprio: o logo e o do token no CoinGecko. LI.FI e
 # De¹ nao tem token; o app desenha a inicial.
 PROVEDORES = {"kyberswap": "kyber-network-crystal", "cow": "cow-protocol", "velora": "paraswap",
@@ -33,8 +43,21 @@ def get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "EscaliburWallet-tools"})
     return urllib.request.urlopen(req, timeout=30).read()
 
+def webp_para_png(dados):
+    """O CoinGecko serve alguns logos so em WebP. O app so decodifica PNG e JPEG (menos
+    decodificador no processo que assina), entao o WebP vira PNG aqui, com o sips do macOS."""
+    if not shutil.which("sips"): return None
+    with tempfile.TemporaryDirectory() as pasta:
+        origem, destino = os.path.join(pasta, "a.webp"), os.path.join(pasta, "a.png")
+        open(origem, "wb").write(dados)
+        r = subprocess.run(["sips", "-s", "format", "png", origem, "--out", destino], capture_output=True)
+        if r.returncode != 0 or not os.path.exists(destino): return None
+        return open(destino, "rb").read()
+
 def salvar(nome, url):
     dados = get(url.replace("/large/", "/large/"))
+    if dados[:4] == b"RIFF" and dados[8:12] == b"WEBP":
+        dados = webp_para_png(dados) or dados
     if not (dados.startswith(b"\x89PNG") or dados.startswith(b"\xff\xd8\xff")):
         print("formato recusado", nome, url); return
     ext = "png" if dados.startswith(b"\x89PNG") else "jpg"
