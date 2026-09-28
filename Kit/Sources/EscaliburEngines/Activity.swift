@@ -60,6 +60,7 @@ public enum ActivitySources {
         case .sui: return EngineRegistry.suiActivity(chain)
         case .cardano: return EngineRegistry.cardanoActivity(chain)
         case .polkadot: return EngineRegistry.polkadotActivity(chain)
+        case .near: return EngineRegistry.nearActivity(chain)
         }
     }
 }

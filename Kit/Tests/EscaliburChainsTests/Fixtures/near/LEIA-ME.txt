@@ -1,0 +1,14 @@
+Vetores da NEAR, conferidos em 28/09/2026.
+
+transferencias-reais.json  tres transferencias reais da rede principal (duas para conta
+                           com nome, uma para conta implicita que a transferencia criou),
+                           tiradas dos blocos 217.579.717 a 217.579.887 (extrair-reais.py).
+                           A visao JSON do no nao mostra o block_hash; o script acha o
+                           bloco cujo hash monta a transacao com o SHA-256 igual ao id, e
+                           confere a assinatura original. A Escalibur remonta a transacao
+                           Borsh byte a byte, o id e a SignedTransaction, e verifica a
+                           assinatura original sobre o hash que ela calcula.
+
+O vetor de serializacao do near-api-js e do wallet-core (transfer de 1 yocto de test.near
+para whatever.near, com a SignedTransaction e o hash) e os de derivacao (frase para
+conta) estao no proprio teste, com a fonte.

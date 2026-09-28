@@ -24,6 +24,7 @@ gravados na transação, com o `Asset.id` da lista curada. O app confere contra 
 | Sui | SUI, separado da moeda de gas; a transação exata simulada em dois provedores | Sim, pelo GraphQL da Sui Foundation | Não na v1 | Não |
 | Cardano | ADA, das moedas só de ADA que a Koios e a Yoroi listam iguais; troco abaixo do mínimo recusado | Sim, pela Koios | Não na v1 | Não |
 | Polkadot | DOT na Asset Hub por `transfer_keep_alive`; depósito existencial dos dois lados conferido | Sim, pelo indexador da Nova | Não na v1 | Não |
+| NEAR | NEAR da conta implícita; conta com nome só se existir, lida em dois provedores; implícita nova criada pelo envio | Sim, pela FastNEAR | Não na v1 | Não |
 
 Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
 
@@ -105,6 +106,13 @@ Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
   bloco. A era nasce nesse bloco e vale 256 blocos. `transaction_version` diferente da
   compilada, ou nó que não avalia a transação, param o envio. Resultado do envio pelo
   sidecar da Parity, depois de um nó achar a transação num bloco finalizado.
+- **NEAR**: o bloco de referência (o final mais baixo de dois provedores, com o hash
+  igual em dois, que vai na transação), a conta do dono, a chave de acesso dele (nonce e
+  permissão), a conta de destino, o preço do gas e as regras do protocolo que entram na
+  taxa e no saldo preso por armazenamento vêm de dois dos quatro nós sem chave,
+  concordando, no mesmo bloco. A taxa segue a conta do nearcore, com a compra do gas do
+  recibo a `min_gas_purchase_price` e a cobrança de conta nova; teto de 0,05 NEAR de
+  reserva. Transmissão por `send_tx` esperando a inclusão; resultado por `tx` em dois.
 - **Vencimento**: na Solana, "venceu, pode enviar de novo" só com a altura finalizada de
   dois provedores 150 blocos além do `lastValidBlockHeight` e o histórico dos dois sem a
   transação. Na Tron, pela hora do último bloco solidificado em dois provedores (a

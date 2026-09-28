@@ -68,6 +68,9 @@ public enum Address {
         case .polkadot:
             guard let address = PolkadotAddress(accountID: publicKey) else { throw Problem.malformed }
             return address.ss58
+        case .near:
+            guard let account = NEARAccountID(implicitPublicKey: publicKey) else { throw Problem.malformed }
+            return account.text
         }
     }
 
@@ -108,6 +111,7 @@ public enum Address {
         case .sui: result = SuiAddress.validateDestination(text)
         case .cardano: result = CardanoAddress.validateDestination(text)
         case .polkadot: result = PolkadotAddress.validateDestination(text)
+        case .near: result = NEARAccountID.validateDestination(text)
         }
         if case .failure(let problem) = result, problem == .malformed || problem == .badChecksum,
            let other = guessChain(text), other.id != chain.id, !(other.family == .evm && chain.family == .evm) {
@@ -135,6 +139,7 @@ public enum Address {
         case .sui: return destination.address
         case .cardano: return destination.address
         case .polkadot: return destination.address
+        case .near: return destination.address
         }
     }
 
@@ -164,6 +169,10 @@ public enum Address {
         if CardanoAddress.isCardano(text) { return .cardano }
         // SS58 com o prefixo 0 so existe na Polkadot: nao e ambiguo.
         if PolkadotAddress.isPolkadot(text) { return .polkadot }
+        // Nomes NEAR sob .near e .tg: nenhuma outra rede tem esse formato. A conta implicita
+        // (64 hex) fica sem palpite, pelo mesmo motivo da Sui: e tambem um endereco da Sui
+        // ou da Aptos sem o 0x.
+        if NEARAccountID.isNEAR(text) { return .near }
         if case .success = validateSolana(text) { return .solana }
         return nil
     }
@@ -358,6 +367,10 @@ public enum DefaultPaths {
         // caminho com outra derivacao (BIP32-Ed25519), e a Polkadot.js, a Nova e a Talisman
         // usam sr25519 a partir da entropia: nas tres a mesma frase abre outra conta.
         case "polkadot": return DerivationPath(components: [h(44), h(354), h(account), h(0), h(0)])
+        // NEAR: SLIP-10 Ed25519 em m/44'/397'/i', a conta implicita e a chave publica. E o
+        // caminho da MyNearWallet e do near-cli (near-seed-phrase) e da Trust Wallet
+        // (wallet-core, registry.json). A Ledger usa m/44'/397'/0'/0'/1' e abre outra conta.
+        case "near": return DerivationPath(components: [h(44), h(397), h(account)])
         default:
             // EVM: todas as redes compartilham a mesma conta, m/44'/60'/0'/0/i.
             return DerivationPath(components: [h(44), h(60), h(0), 0, account])
