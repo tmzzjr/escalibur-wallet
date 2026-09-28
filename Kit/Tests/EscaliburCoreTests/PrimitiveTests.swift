@@ -23,6 +23,24 @@ struct HashTests {
         #expect(Array(Keccak.hash256(Array("approve(address,uint256)".utf8)).prefix(4)).hex == "095ea7b3")
     }
 
+    /// SHA3-256 contra os exemplos do NIST (csrc.nist.gov, "Cryptographic Standards and
+    /// Guidelines: Examples with Intermediate Values", SHA3-256_Msg0, SHA3-256_1600 e os
+    /// vetores de mensagem curta "abc" e de 448 e 896 bits do FIPS 202). Com o byte de
+    /// dominio do Keccak (0x01) no lugar do 0x06, todos falham: a Aptos teria outro
+    /// endereco para a mesma chave.
+    @Test("SHA3-256 (vetores do NIST, FIPS 202)")
+    func sha3() {
+        #expect(Hash.sha3_256([]).hex == "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a")
+        #expect(Hash.sha3_256(Array("abc".utf8)).hex == "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532")
+        #expect(Hash.sha3_256(Array("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq".utf8)).hex
+            == "41c0dba2a9d6240849100376a8235e2c82e1b9998a999e21db32dd97496d3376")
+        #expect(Hash.sha3_256(Array("abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu".utf8)).hex
+            == "916f6061fe879741ca6469b43971dfdb28b1a32dc36cb3254e812be27aad1d18")
+        // 1600 bits de 0xA3 (exemplo do NIST com valores intermediarios): passa de um bloco.
+        #expect(Hash.sha3_256([UInt8](repeating: 0xA3, count: 200)).hex == "79f38adec5c20307a98ef76e8324afbfd46cfd81b22e3973c65fa1bd9de31787")
+        #expect(Hash.sha3_256(Array("abc".utf8)) != Hash.keccak256(Array("abc".utf8)))
+    }
+
     @Test("RIPEMD-160 (vetores do artigo original)")
     func ripemd() {
         #expect(RIPEMD160.hash([UInt8]()).hex == "9c1185a5c5e9fc54612808977ee8f548b2258d31")

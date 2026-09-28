@@ -240,6 +240,7 @@ public enum TradeEngines {
         case .cardano: return EngineRegistry.cardanoTrade(chain)
         case .polkadot: return EngineRegistry.polkadotTrade(chain)
         case .near: return EngineRegistry.nearTrade(chain)
+        case .aptos: return EngineRegistry.aptosTrade(chain)
         }
     }
 }

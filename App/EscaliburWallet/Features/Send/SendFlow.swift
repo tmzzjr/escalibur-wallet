@@ -43,8 +43,8 @@ final class SendModel {
     var needsNetworkConfirmation: Bool {
         guard let chain, let destination, isFirstSend else { return false }
         switch chain.family {
-        // Sui: "0x" e 64 hex, o mesmo formato da Aptos.
-        case .evm, .sui: return true
+        // Sui e Aptos: "0x" e 64 hex nas duas, e o texto nao diz de qual e.
+        case .evm, .sui, .aptos: return true
         // NEAR: a conta implicita e 64 hex, o formato de Sui e Aptos sem o "0x". Colado
         // por engano, vira uma conta NEAR nova que ninguem controla.
         case .near: return Self.isBareHex64(destination.address)
@@ -428,6 +428,8 @@ struct SendStages: View {
         switch chain.family {
         case .sui:
             return "Endereços Sui têm o mesmo formato dos endereços Aptos, então o endereço não diz a rede. Se quem vai receber espera o valor pela Aptos ou por outra rede, ele não chega."
+        case .aptos:
+            return "Endereços Aptos têm o mesmo formato dos endereços Sui, então o endereço não diz a rede. Se quem vai receber espera o valor pela Sui ou por outra rede, ele não chega."
         case .near:
             return "Contas NEAR sem nome têm 64 letras e números, o mesmo formato de um endereço Sui ou Aptos sem o 0x. Se este endereço é de outra rede, o valor vai para uma conta NEAR que ninguém controla e se perde."
         default:

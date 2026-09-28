@@ -40,3 +40,10 @@ historico. Contas: um endereco com duas moedas so de ADA (a chave publica e a te
 das transacoes dele na rede) e um com oito moedas que carregam tokens. Alterado: o
 `costModels` dos parametros sai (o leitor nao le). Os testes dos motores
 (EscaliburEnginesTests) leem estes mesmos arquivos.
+
+Aptos, gravadas em 28/09/2026 por leitores/aptos/gravar.py (sem chave, PublicNode e Sentio
+na mesma versao do ledger, e o indexador GraphQL da Aptos Labs): indice de cada no, as views
+(sequencia, chave de autenticacao, saldo, loja de APT do destino), o preco do gas, as quatro
+simulacoes (estimativa e envio, para um destino com APT e um novo) com os bytes simulados
+(.bcs.hex), uma transacao pelo hash e o historico. Conta: 0x966e...6c41, chave publica tirada
+de uma assinatura dela na rede. Sem alteracao. Os testes dos motores leem estes arquivos.

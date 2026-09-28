@@ -295,6 +295,8 @@ struct ReceiveSheet: View {
                 return exists
                     ? "Na exchange, escolha a rede NEAR e envie só NEAR. Esta é a conta implícita da carteira, com 64 caracteres, e não precisa de memo."
                     : "Na exchange, escolha a rede NEAR. Esta é a conta implícita da carteira: ela passa a existir no primeiro recebimento, de qualquer valor, e não precisa de memo."
+            case .aptos:
+                return "Na exchange, escolha a rede Aptos e envie só APT. O endereço tem o mesmo formato dos endereços Sui, e um envio pela Sui não chega aqui. A conta passa a existir no primeiro recebimento, de qualquer valor."
             }
         }()
         Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
@@ -417,6 +419,8 @@ struct ReceiveCoin: Identifiable, Hashable {
         case .polkadot: return ""
         // A carteira ainda nao lista token NEP-141 da NEAR.
         case .near: return ""
+        // A carteira ainda nao lista fungible asset da Aptos alem do APT.
+        case .aptos: return ""
         }
     }
 }
