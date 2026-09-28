@@ -22,6 +22,7 @@ gravados na transação, com o `Asset.id` da lista curada. O app confere contra 
 | Tron | TRX e USDT; conta com controle dividido recusada | Sim, com o envenenamento de zero USDT marcado | Não na v1 | Não |
 | TON | TON e USDT; bounce conforme a conta, lida na toncenter e na tonapi | Sim | Não na v1 | Não |
 | Sui | SUI, separado da moeda de gas; a transação exata simulada em dois provedores | Sim, pelo GraphQL da Sui Foundation | Não na v1 | Não |
+| Cardano | ADA, das moedas só de ADA que a Koios e a Yoroi listam iguais; troco abaixo do mínimo recusado | Sim, pela Koios | Não na v1 | Não |
 
 Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
 
@@ -90,6 +91,13 @@ Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
   de 1 MIST em dois provedores (o maior custo, mais 20%, teto de 0,05 SUI), e a transação
   exata é simulada de novo nos dois: o destino recebe o valor e o dono paga o valor e o gas,
   nada mais. Vale até o fim da época seguinte (`TransactionExpiration::Epoch`).
+- **Cardano**: as moedas do endereço do dono, os parâmetros de taxa (`min_fee_a`,
+  `min_fee_b`, `coins_per_utxo_size`, tamanho máximo) e a ponta da cadeia vêm da Koios e do
+  backend da Yoroi, as duas respondendo. Entra no envio só a moeda que as duas listam com o
+  mesmo valor, sem token e sem script de referência; mesma moeda com valor diferente, ou
+  parâmetros diferentes, é recusa. A taxa é a mínima do tamanho exato da transação assinada,
+  sob teto de 2 ADA, e o TTL é a ponta mais 900 slots (15 minutos), com a ponta a no máximo
+  10 minutos do relógio pela contagem de slots da rede principal.
 - **Vencimento**: na Solana, "venceu, pode enviar de novo" só com a altura finalizada de
   dois provedores 150 blocos além do `lastValidBlockHeight` e o histórico dos dois sem a
   transação. Na Tron, pela hora do último bloco solidificado em dois provedores (a

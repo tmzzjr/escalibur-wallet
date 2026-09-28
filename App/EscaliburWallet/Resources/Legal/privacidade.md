@@ -30,6 +30,7 @@ A lista abaixo é completa: o app não consegue falar com nenhum outro endereço
 - **Tron:** `api.trongrid.io`, `api.tronstack.io`, `tron-rpc.publicnode.com`
 - **TON:** `tonapi.io`, `toncenter.com`
 - **Sui:** `fullnode.mainnet.sui.io`, `graphql.mainnet.sui.io`, `rpc-mainnet.suiscan.xyz`, `sui-mainnet.nodeinfra.com`
+- **Cardano:** `api.koios.rest`, `api.yoroiwallet.com`, `zero.yoroiwallet.com`
 - **Trocas e ordens limite:** `aggregator-api.kyberswap.com`, `api.cow.fi`, `api.jup.ag`, `api.velora.xyz`, `li.quest`, `open-api.de1.exchange`
 
 Cada um desses serviços tem a própria política de privacidade.

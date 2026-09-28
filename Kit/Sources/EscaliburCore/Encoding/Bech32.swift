@@ -52,8 +52,14 @@ public enum Bech32 {
     }
 
     public static func decode(_ text: String) -> (hrp: String, data: [UInt8], variant: Variant)? {
+        decode(text, maxLength: 90)
+    }
+
+    /// O mesmo, com outro teto de tamanho. O BIP-173 limita a 90 caracteres; a Cardano
+    /// (CIP-19) usa o mesmo checksum sem esse limite, e um endereco base tem 103.
+    public static func decode(_ text: String, maxLength: Int) -> (hrp: String, data: [UInt8], variant: Variant)? {
         let bytes = Array(text.utf8)
-        guard bytes.count >= 8, bytes.count <= 90 else { return nil }
+        guard bytes.count >= 8, bytes.count <= maxLength else { return nil }
         // Caixa mista e invalida por especificacao.
         let hasLower = bytes.contains { $0 >= 0x61 && $0 <= 0x7A }
         let hasUpper = bytes.contains { $0 >= 0x41 && $0 <= 0x5A }

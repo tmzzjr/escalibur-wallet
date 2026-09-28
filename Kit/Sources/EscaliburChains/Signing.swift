@@ -18,6 +18,9 @@ public enum SignatureScheme: String, Sendable, Codable {
     case ed25519
     /// Schnorr BIP-340 com a chave ajustada pelo BIP-86. Taproot.
     case schnorrBIP340
+    /// Ed25519 com chave estendida BIP32-Ed25519, da chave mestra Icarus (CIP-3), sobre o
+    /// hash de 32 bytes do corpo da transacao. Cardano.
+    case ed25519Cardano
 }
 
 /// Uma assinatura que a transacao precisa.

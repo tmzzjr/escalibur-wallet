@@ -172,6 +172,19 @@ public enum Endpoints {
     /// 27/09/2026; o endereco vai nas variaveis do corpo, nunca na URL.
     public static let suiGraphQL = url("https://graphql.mainnet.sui.io/graphql")
 
+    /// Cardano, duas fontes independentes e sem chave, conferidas em 27/09/2026:
+    /// - Koios (`api.koios.rest`), a API comunitaria da Cardano Community Guild, camada
+    ///   publica sem chave (5.000 requisicoes por dia por IP, koios.rest "Pricing");
+    /// - o backend da Yoroi, da Emurgo (`api.yoroiwallet.com` para moedas, ponta,
+    ///   transmissao e estado; `zero.yoroiwallet.com` para os parametros de protocolo), o
+    ///   mesmo que os apps da Yoroi usam, sem chave e sem documentacao publica de limite.
+    /// Blockfrost, Maestro, Cardanoscan, NOWNodes e GetBlock pedem chave. As duas fontes
+    /// deram as mesmas moedas, a mesma ponta e os mesmos parametros (44, 155.381, 4.310,
+    /// 16.384) no mesmo endereco. O endereco vai no corpo do POST, nunca na URL.
+    public static let cardanoKoios = url("https://api.koios.rest/api/v1")
+    public static let cardanoYoroi = url("https://api.yoroiwallet.com/api")
+    public static let cardanoYoroiZero = url("https://zero.yoroiwallet.com")
+
     // MARK: Leitores de estado, transmissao e historico
 
     /// Transmissao com protecao de MEV na Ethereum, so quando o chamador pede (troca).

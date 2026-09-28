@@ -11,12 +11,15 @@ public enum ChainFamily: String, Codable, Sendable, CaseIterable {
     case tron
     case ton
     case sui
+    case cardano
 
     public var curve: Curve {
         switch self {
         case .utxo, .evm, .xrpl, .tron: return .secp256k1
         case .solana, .stellar, .ton: return .ed25519
         case .sui: return .ed25519
+        // Cardano: a curva e a mesma, a derivacao nao (BIP32-Ed25519, chave mestra Icarus).
+        case .cardano: return .ed25519
         }
     }
 }
@@ -182,6 +185,16 @@ public extension Chain {
         explorerName: "Suiscan", typicalConfirmationSeconds: 1, destinationTag: .none
     )
 
+    /// Cardano: SLIP-44 1815, 6 casas (lovelace), explorador Cardanoscan. Um bloco a cada
+    /// 20 s em media (coeficiente de slot ativo 0,05 com slot de 1 s, genese Shelley).
+    static let cardano = Chain(
+        id: "cardano", name: "Cardano", family: .cardano, coinType: 1815,
+        nativeSymbol: "ADA", nativeName: "Cardano", nativeDecimals: 6, coingeckoID: "cardano",
+        evmChainID: nil,
+        explorerTx: "https://cardanoscan.io/transaction/{tx}", explorerAddress: "https://cardanoscan.io/address/{address}",
+        explorerName: "Cardanoscan", typicalConfirmationSeconds: 20, destinationTag: .none
+    )
+
     /// Todas as redes, na ordem em que aparecem na interface.
     static let all: [Chain] = [
         .bitcoin, .ethereum, .solana, .xrpl, .stellar, .tron, .ton,
@@ -189,6 +202,7 @@ public extension Chain {
         .plasma, .xlayer, .linea, .unichain, .sonic, .celo,
         .litecoin, .dogecoin,
         .sui,
+        .cardano,
     ]
 
     static func find(_ id: String) -> Chain? { all.first { $0.id == id } }

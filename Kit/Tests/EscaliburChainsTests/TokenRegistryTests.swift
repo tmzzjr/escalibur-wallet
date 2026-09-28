@@ -73,6 +73,9 @@ struct TokenRegistryTests {
             case .utxo: range = 0...0
             // Coin<T> da Sui: `decimals` e u8 no CoinMetadata.
             case .sui: range = 0...18
+            // Tokens nativos da Cardano: `decimals` do registro CIP-26/CIP-68, ate 255; a lista
+            // nao tem nenhum na v1.
+            case .cardano: range = 0...18
             }
             #expect(range.contains(token.decimals), "\(token.id): \(token.decimals) casas")
         }

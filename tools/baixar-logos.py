@@ -28,6 +28,7 @@ MOEDAS = ["bitcoin", "ethereum", "solana", "ripple", "stellar", "tron", "the-ope
           "crvusd", "agora-dollar", "convex-finance", "immutable-x", "havven", "basic-attention-token",
           "the-sandbox", "golem"]
 MOEDAS += ["sui"]
+MOEDAS += ["cardano"]
 # Provedores de troca com token proprio: o logo e o do token no CoinGecko. LI.FI e
 # De¹ nao tem token; o app desenha a inicial.
 PROVEDORES = {"kyberswap": "kyber-network-crystal", "cow": "cow-protocol", "velora": "paraswap",
@@ -39,6 +40,7 @@ REDES = {"base": "base", "arbitrum": "arbitrum-one", "optimism": "optimistic-eth
          "plasma": "plasma", "xlayer": "x-layer", "linea": "linea", "unichain": "unichain", "sonic": "sonic",
          "celo": "celo"}
 REDES["sui"] = "sui"
+REDES["cardano"] = "cardano"
 SO = set(sys.argv[1:])
 
 def get(url):

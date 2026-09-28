@@ -1,0 +1,22 @@
+[
+ {
+  "amount": "710782414",
+  "assets": [],
+  "block_num": 13997240,
+  "receiver": "addr1q8ph5dwx5hzrygtwfdpk2nxp2y4p0rr35tds049rz3dee4kr0g6udfwyxgskuj6rv4xvz5f2z7x8rgkmql22x9zmnntqar3scw",
+  "script_ref": null,
+  "tx_hash": "20c9cd5dbc66210862f5a3c1a7407902b8908205cf29cf5c5bf91a0680d6ba23",
+  "tx_index": 1,
+  "utxo_id": "20c9cd5dbc66210862f5a3c1a7407902b8908205cf29cf5c5bf91a0680d6ba23:1"
+ },
+ {
+  "amount": "562456215",
+  "assets": [],
+  "block_num": 13997246,
+  "receiver": "addr1q8ph5dwx5hzrygtwfdpk2nxp2y4p0rr35tds049rz3dee4kr0g6udfwyxgskuj6rv4xvz5f2z7x8rgkmql22x9zmnntqar3scw",
+  "script_ref": null,
+  "tx_hash": "0dcb37399a16220a9a38e857e0e825a1a48ebaad704ed8486a34ab066eed8a74",
+  "tx_index": 1,
+  "utxo_id": "0dcb37399a16220a9a38e857e0e825a1a48ebaad704ed8486a34ab066eed8a74:1"
+ }
+]

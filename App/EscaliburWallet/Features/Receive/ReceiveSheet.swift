@@ -285,6 +285,8 @@ struct ReceiveSheet: View {
                 return "Envie só pela rede TON. Não precisa de comentário."
             case .sui:
                 return "Na exchange, escolha a rede Sui. O endereço tem o mesmo formato dos endereços Aptos, e um envio pela Aptos não chega aqui."
+            case .cardano:
+                return "Na exchange, escolha a rede Cardano. Envie só ADA: tokens nativos que chegarem aqui ainda não podem ser movidos pela Escalibur."
             }
         }()
         Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
@@ -401,6 +403,8 @@ struct ReceiveCoin: Identifiable, Hashable {
         case .utxo: return ""
         // A carteira ainda nao lista moeda da Sui alem do SUI.
         case .sui: return ""
+        // A carteira ainda nao lista token nativo da Cardano.
+        case .cardano: return ""
         }
     }
 }

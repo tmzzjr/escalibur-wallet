@@ -77,6 +77,10 @@ public enum AddressPoisoning {
             break
         case .sui:
             if text.hasPrefix("0x") { text.removeFirst(2) }
+        case .cardano:
+            // "addr1" e o caractere do cabecalho (tipo de endereco), que o atacante copia
+            // de graca, como o hrp e a versao do bech32 no Bitcoin.
+            if text.hasPrefix("addr1"), text.count > 6 { text.removeFirst(6) }
         }
         return text
     }

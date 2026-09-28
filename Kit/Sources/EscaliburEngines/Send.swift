@@ -194,6 +194,7 @@ public enum SendEngines {
         case .tron: return EngineRegistry.tronSend(chain)
         case .ton: return EngineRegistry.tonSend(chain)
         case .sui: return EngineRegistry.suiSend(chain)
+        case .cardano: return EngineRegistry.cardanoSend(chain)
         }
     }
 }
