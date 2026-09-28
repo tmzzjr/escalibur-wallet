@@ -283,6 +283,8 @@ struct ReceiveSheet: View {
                     : "Esta conta Tron ainda não está ativa. Ela ativa no primeiro recebimento de TRX ou de token."
             case .ton:
                 return "Envie só pela rede TON. Não precisa de comentário."
+            case .sui:
+                return "Na exchange, escolha a rede Sui. O endereço tem o mesmo formato dos endereços Aptos, e um envio pela Aptos não chega aqui."
             }
         }()
         Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
@@ -397,6 +399,8 @@ struct ReceiveCoin: Identifiable, Hashable {
         case .ton: return "Jetton"
         case .stellar, .xrpl: return "Ativo emitido"
         case .utxo: return ""
+        // A carteira ainda nao lista moeda da Sui alem do SUI.
+        case .sui: return ""
         }
     }
 }

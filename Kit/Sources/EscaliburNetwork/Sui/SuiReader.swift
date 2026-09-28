@@ -44,12 +44,13 @@ public actor SuiReader {
     public init(
         transport: ReaderTransport = HTTPClient.shared,
         providers: [ProviderPool.Provider] = Endpoints.sui,
-        graphQL: URL? = Endpoints.suiGraphQL
+        graphQL: URL? = Endpoints.suiGraphQL,
+        pacing: TimeInterval = 0.25
     ) {
         // Os nos publicos limitam por IP, sem numero publicado: um quarto de segundo
         // entre chamadas ao mesmo host, e o 429 repete uma vez.
         let hosts = (providers.map(\.baseURL) + [graphQL].compactMap { $0 }).compactMap(\.host)
-        self.transport = PacedTransport(base: transport, intervals: Dictionary(hosts.map { ($0, 0.25) }, uniquingKeysWith: { a, _ in a }))
+        self.transport = PacedTransport(base: transport, intervals: Dictionary(hosts.map { ($0, pacing) }, uniquingKeysWith: { a, _ in a }))
         self.pool = ProviderPool(providers)
         self.providers = providers
         self.graphQL = graphQL
@@ -86,7 +87,7 @@ public actor SuiReader {
     private func accountState(_ owner: SuiAddress, at provider: Provider) async throws -> SuiAccountState {
         try await ensureMainnet(provider)
         let coins = try await coins(owner, at: provider)
-        let epoch = try Self.parseEpoch(try await call(provider, "sui.rpc.v2.LedgerService/GetEpoch", Self.epochRequest()))
+        let epoch = try await epochReading(provider)
         let balance = try Self.parseBalance(
             try await call(provider, "sui.rpc.v2.StateService/GetBalance", Self.balanceRequest(owner)), coinType: SuiPlanner.suiCoinType
         )
@@ -188,8 +189,12 @@ public actor SuiReader {
     public func currentEpoch() async throws -> UInt64 {
         try await Quorum.agree(await pool.available(), pool: pool, field: "epoch") { provider in
             try await self.ensureMainnet(provider)
-            return try Self.parseEpoch(try await self.call(provider, "sui.rpc.v2.LedgerService/GetEpoch", Self.epochRequest())).epoch
+            return try await self.epochReading(provider).epoch
         }
+    }
+
+    func epochReading(_ provider: Provider) async throws -> EpochReading {
+        try Self.parseEpoch(try await call(provider, "sui.rpc.v2.LedgerService/GetEpoch", Self.epochRequest()))
     }
 
     // MARK: Saldo da tela
@@ -292,7 +297,8 @@ public actor SuiReader {
         var w = SuiProtoWriter()
         w.message(1, transaction(bytes))
         w.message(2, .fieldMask([
-            "transaction.digest", "transaction.effects.status", "transaction.effects.gas_used", "transaction.balance_changes",
+            "transaction.effects.transaction_digest", "transaction.effects.status", "transaction.effects.gas_used",
+            "transaction.balance_changes",
         ]))
         return w
     }
@@ -305,7 +311,7 @@ public actor SuiReader {
         var w = SuiProtoWriter()
         w.message(1, transaction(bytes))
         w.message(2, userSignature)
-        w.message(3, .fieldMask(["digest", "effects.status"]))
+        w.message(3, .fieldMask(["digest", "effects.transaction_digest", "effects.status"]))
         return w
     }
 
@@ -405,12 +411,15 @@ public actor SuiReader {
         return CoinPage(coins: coins, nextPageToken: token.flatMap { $0.isEmpty ? nil : $0 })
     }
 
-    /// `SimulateTransactionResponse { ExecutedTransaction transaction = 1 }`, com digesto,
-    /// `effects.status`, `effects.gas_used` e `balance_changes`.
+    /// `SimulateTransactionResponse { ExecutedTransaction transaction = 1 }`, com
+    /// `effects.transaction_digest`, `effects.status`, `effects.gas_used` e
+    /// `balance_changes`.
     static func parseSimulation(_ message: SuiProtoMessage, digest: String) throws -> SuiSimulation {
         let executed = try message.requiredMessage(1, "transaction")
-        guard try executed.string(1, "digest") == digest else { throw ReaderError.responseMismatch(field: "simulate.digest") }
         let effects = try executed.requiredMessage(4, "effects")
+        // A simulacao nao preenche o digesto de fora; o dos efeitos diz de que transacao
+        // eles sao.
+        guard try effects.string(7, "transaction_digest") == digest else { throw ReaderError.responseMismatch(field: "simulate.digest") }
         let success = try effects.requiredMessage(4, "status").bool(1, "success") ?? false
         let gasUsed = try effects.requiredMessage(6, "gas_used")
         let gas = SuiGasCost(
@@ -432,10 +441,12 @@ public actor SuiReader {
     /// devolvido tem de ser o da transacao; devolve se a execucao deu certo.
     static func parseExecution(_ message: SuiProtoMessage, digest: String) throws -> Bool {
         let executed = try message.requiredMessage(1, "transaction")
-        guard try executed.string(1, "digest") == digest else { throw ReaderError.broadcastMismatch }
         guard let effects = try executed.message(4, "effects"), let status = try effects.message(4, "status") else {
             throw ReaderError.malformed(field: "execute.effects.status")
         }
+        // O digesto de fora ou o dos efeitos: os dois, quando vierem, tem de ser o calculado.
+        let reported = [try executed.string(1, "digest"), try effects.string(7, "transaction_digest")].compactMap { $0 }
+        guard !reported.isEmpty, reported.allSatisfy({ $0 == digest }) else { throw ReaderError.broadcastMismatch }
         return try status.bool(1, "success") ?? false
     }
 

@@ -56,10 +56,11 @@ enum SuiGRPC {
     /// `grpc-status` dos trailers (linhas "nome:valor" separadas por CRLF).
     static func trailerStatus(_ body: [UInt8]) -> String? {
         let text = String(decoding: body, as: UTF8.self)
-        for line in text.split(whereSeparator: { $0 == "\r" || $0 == "\n" }) {
+        // "\r\n" e um caractere so no Swift: `isNewline` pega os tres casos.
+        for line in text.split(whereSeparator: \.isNewline) {
             let parts = line.split(separator: ":", maxSplits: 1)
-            if parts.count == 2, parts[0].trimmingCharacters(in: .whitespaces).lowercased() == "grpc-status" {
-                return parts[1].trimmingCharacters(in: .whitespaces)
+            if parts.count == 2, parts[0].trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "grpc-status" {
+                return parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
         return nil

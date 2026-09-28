@@ -27,3 +27,9 @@ get-method em conta sem contrato; os testes simulam isso sem arquivo.
 Quando um teste precisa de um caso que a rede nao ofereceu na hora (pagamento parcial,
 DepositAuth, Sequence divergente, taxa absurda), ele altera a resposta gravada dentro do
 proprio teste e diz o que alterou.
+
+Sui, gravadas em 27/09/2026 por leitores/sui/gravar.py (sem chave, no da Sui Foundation e
+GraphQL da Sui Foundation): respostas gRPC-Web cruas (.bin, quadro e trailers como vieram),
+os bytes das duas transacoes simuladas (-tx.bin) e o GraphQL do historico. Conta: Binance 1;
+destino das simulacoes: OKX 1. Sem alteracao. Os testes dos motores (EscaliburEnginesTests)
+leem estes mesmos arquivos.

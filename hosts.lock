@@ -41,6 +41,8 @@ https://eth.drpc.org
 https://ethereum-rpc.publicnode.com
 https://explorer.optimism.io
 https://forno.celo.org
+https://fullnode.mainnet.sui.io
+https://graphql.mainnet.sui.io
 https://horizon.stellar.lobstr.co
 https://horizon.stellar.org
 https://li.quest
@@ -59,6 +61,7 @@ https://plasma.gateway.tenderly.co
 https://polygon-bor-rpc.publicnode.com
 https://polygon.blockscout.com
 https://polygon.drpc.org
+https://rpc-mainnet.suiscan.xyz
 https://rpc.flashbots.net
 https://rpc.linea.build
 https://rpc.mevblocker.io
@@ -71,6 +74,7 @@ https://solana-mainnet.gateway.tatum.io
 https://solana-rpc.publicnode.com
 https://sonic-rpc.publicnode.com
 https://sonic.drpc.org
+https://sui-mainnet.nodeinfra.com
 https://tonapi.io
 https://toncenter.com
 https://tron-rpc.publicnode.com

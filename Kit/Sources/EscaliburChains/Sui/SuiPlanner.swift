@@ -320,7 +320,7 @@ public enum SuiPlanner {
     }
 
     /// Destino e valor de uma transacao no formato de `payFromGas`, lidos dos campos.
-    static func sendParameters(_ data: SuiTransactionData) -> (SuiAddress, UInt64)? {
+    public static func sendParameters(_ data: SuiTransactionData) -> (SuiAddress, UInt64)? {
         guard data.commands == [.splitCoins(.gasCoin, amounts: [.input(0)]), .transferObjects([.nestedResult(0, 0)], to: .input(1))],
               data.inputs.count == 2,
               case .pure(let amountBytes) = data.inputs[0], amountBytes.count == 8,
