@@ -6,7 +6,7 @@ As chaves ficam no iPhone do dono. Não existe conta, e-mail nem servidor que gu
 
 ## Redes
 
-Bitcoin, Litecoin, Dogecoin, Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Plasma, X Layer, Linea, Unichain, Sonic, Celo, Solana, XRP Ledger, Stellar, Tron e TON. Cada carteira é uma frase BIP-39, derivada pelos caminhos padrão de cada rede. Por isso a mesma frase abre a carteira em Ledger, Trust Wallet, MetaMask, Phantom, Xaman, Lobstr e Tonkeeper.
+Bitcoin, Litecoin, Dogecoin, Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Plasma, X Layer, Linea, Unichain, Sonic, Celo, Solana, XRP Ledger, Stellar, Tron, TON, Sui, Cardano, Polkadot, NEAR e Aptos. Cada carteira é uma frase BIP-39, derivada pelos caminhos padrão de cada rede. Por isso a mesma frase abre a carteira em Ledger, Trust Wallet, MetaMask, Phantom, Xaman, Lobstr, Tonkeeper, Slush, Eternl, Yoroi, Lace, MyNearWallet e Petra. Na Polkadot a conta é a da Trust Wallet (ed25519); Polkadot.js, Nova, Talisman e Ledger derivam outra. Em Sui, Cardano, Polkadot, NEAR e Aptos o envio é só da moeda nativa; o que cada uma deixa de fora está em `docs/redes/`.
 
 Enviar funciona em todas, e ver o histórico em todas menos BNB Chain, X Layer e Sonic (sem indexador público sem chave). Trocar funciona nas redes EVM (menos Avalanche, X Layer e Celo), Solana, XRP Ledger (XRP e RLUSD, pelo livro da própria rede) e Stellar; ordem limite pela CoW na Ethereum, Arbitrum, Base, Polygon, BNB Chain, Plasma e Linea, e nativa no XRP Ledger e na Stellar, com prazo ou até cancelar, e tela de ordens abertas para cancelar. O que cada rede faz e onde para está em [`docs/redes/motores.md`](docs/redes/motores.md).
 
@@ -52,4 +52,4 @@ tools/verificar.sh           as verificações que valem por afirmação públic
 
 ## Dependências
 
-Nenhuma remota. Todo código de terceiro está no repositório, compilado do fonte e travado por digesto: libsecp256k1 (MIT) e Argon2 (CC0/Apache 2.0). Keccak, RIPEMD-160, Bech32, RLP, XDR, protobuf, células da TON e o codec binário do XRP Ledger foram escritos aqui, e cada um tem os vetores oficiais nos testes.
+Nenhuma remota. Todo código de terceiro está no repositório, compilado do fonte e travado por digesto: libsecp256k1 (MIT) e Argon2 (CC0/Apache 2.0). Keccak, SHA3-256, BLAKE2b (a referência que vem com o Argon2), Ed25519 com chave estendida (porte do TweetNaCl, para a Cardano), RIPEMD-160, Bech32, BCS, Borsh, SCALE, CBOR, RLP, XDR, protobuf, células da TON e o codec binário do XRP Ledger foram escritos aqui, e cada um tem os vetores oficiais nos testes.
