@@ -232,6 +232,27 @@ public enum Endpoints {
     /// NearBlocks devolve valores como numero de ponto flutuante. Conferido em 28/09/2026.
     public static let nearHistory = url("https://tx.main.fastnear.com")
 
+    /// Aptos: a API REST de fullnode (`/v1`) de tres operadores independentes, sem chave,
+    /// conferidos em 28/09/2026: a PublicNode (Allnodes, no podado em 100 milhoes de
+    /// versoes), a Sentio (no de arquivo, versao mais antiga 0) e a Aptos Labs (podado em
+    /// 150 milhoes). Nos tres, `chain_id` 1, views numa versao fixa do ledger, simulacao e
+    /// transmissao em BCS. A Aptos Labs vai por ultimo: sem chave ela limita a 40.000
+    /// unidades de computo a cada 5 minutos por IP, e o historico usa o indexador dela.
+    /// Fora: o 1RPC (a origem nao e publicada, e o erro de versao podada aponta o arquivo
+    /// da Aptos Labs, entao nao conta como operador independente dela), Ankr, dRPC,
+    /// NodeReal, Nodit, BlockPI e GetBlock (pedem chave ou plano pago), Blast (encerrado) e
+    /// OnFinality (recusa por limite na segunda requisicao).
+    public static let aptos: [ProviderPool.Provider] = [
+        .init(name: "publicnode", baseURL: url("https://aptos-rest.publicnode.com/v1")),
+        .init(name: "sentio", baseURL: url("https://rpc.sentio.xyz/aptos/v1")),
+        .init(name: "aptoslabs", baseURL: url("https://api.mainnet.aptoslabs.com/v1")),
+    ]
+
+    /// Indexador GraphQL da Aptos Labs, o unico sem chave com o historico de transferencias
+    /// de uma conta (a API do fullnode so lista o que a conta enviou). Informativo: nada
+    /// dali entra num plano.
+    public static let aptosIndexer = url("https://api.mainnet.aptoslabs.com/v1/graphql")
+
     // MARK: Leitores de estado, transmissao e historico
 
     /// Transmissao com protecao de MEV na Ethereum, so quando o chamador pede (troca).

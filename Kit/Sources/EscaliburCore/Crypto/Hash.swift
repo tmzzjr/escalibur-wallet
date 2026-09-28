@@ -32,6 +32,11 @@ public enum Hash {
         Keccak.hash256(bytes)
     }
 
+    /// SHA3-256 (FIPS 202), que nao e o Keccak-256 da Ethereum.
+    public static func sha3_256(_ bytes: [UInt8]) -> [UInt8] {
+        Keccak.sha3_256(bytes)
+    }
+
     public static func ripemd160(_ bytes: [UInt8]) -> [UInt8] {
         RIPEMD160.hash(bytes)
     }

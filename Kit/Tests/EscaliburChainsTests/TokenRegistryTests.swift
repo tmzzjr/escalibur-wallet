@@ -82,6 +82,9 @@ struct TokenRegistryTests {
             // Tokens NEP-141 da NEAR: `decimals` e u8 nos metadados; a lista nao tem nenhum
             // na v1.
             case .near: range = 0...24
+            // Fungible assets da Aptos: `decimals` e u8 nos metadados; a lista nao tem nenhum
+            // na v1.
+            case .aptos: range = 0...18
             }
             #expect(range.contains(token.decimals), "\(token.id): \(token.decimals) casas")
         }

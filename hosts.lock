@@ -12,12 +12,14 @@ https://api.coinpaprika.com
 https://api.cow.fi
 https://api.jup.ag
 https://api.koios.rest
+https://api.mainnet.aptoslabs.com
 https://api.mainnet.solana.com
 https://api.routescan.io
 https://api.trongrid.io
 https://api.tronstack.io
 https://api.velora.xyz
 https://api.yoroiwallet.com
+https://aptos-rest.publicnode.com
 https://arb1.arbitrum.io
 https://arbitrum-one-rpc.publicnode.com
 https://arbitrum.blockscout.com
@@ -75,6 +77,7 @@ https://rpc.intea.rs
 https://rpc.linea.build
 https://rpc.mevblocker.io
 https://rpc.plasma.to
+https://rpc.sentio.xyz
 https://rpc.shitzuapes.xyz
 https://rpc.soniclabs.com
 https://rpc.xlayer.tech

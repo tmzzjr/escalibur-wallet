@@ -14,6 +14,7 @@ public enum ChainFamily: String, Codable, Sendable, CaseIterable {
     case cardano
     case polkadot
     case near
+    case aptos
 
     public var curve: Curve {
         switch self {
@@ -27,6 +28,8 @@ public enum ChainFamily: String, Codable, Sendable, CaseIterable {
         case .polkadot: return .ed25519
         // NEAR: Ed25519 por SLIP-10, como a MyNearWallet e a Trust Wallet.
         case .near: return .ed25519
+        // Aptos: Ed25519 por SLIP-10, como a Petra e a Trust Wallet.
+        case .aptos: return .ed25519
         }
     }
 }
@@ -227,6 +230,18 @@ public extension Chain {
         explorerName: "NearBlocks", typicalConfirmationSeconds: 2, destinationTag: .none
     )
 
+    /// Aptos: SLIP-44 637, 8 casas (octa). Explorador da Aptos Labs, que abre a transacao
+    /// pelo hash ou pela versao do ledger (o historico do indexador so traz a versao).
+    /// Finalidade em cerca de um segundo.
+    static let aptos = Chain(
+        id: "aptos", name: "Aptos", family: .aptos, coinType: 637,
+        nativeSymbol: "APT", nativeName: "Aptos", nativeDecimals: 8, coingeckoID: "aptos",
+        evmChainID: nil,
+        explorerTx: "https://explorer.aptoslabs.com/txn/{tx}?network=mainnet",
+        explorerAddress: "https://explorer.aptoslabs.com/account/{address}?network=mainnet",
+        explorerName: "Aptos Explorer", typicalConfirmationSeconds: 1, destinationTag: .none
+    )
+
     /// Todas as redes, na ordem em que aparecem na interface.
     static let all: [Chain] = [
         .bitcoin, .ethereum, .solana, .xrpl, .stellar, .tron, .ton,
@@ -237,6 +252,7 @@ public extension Chain {
         .cardano,
         .polkadot,
         .near,
+        .aptos,
     ]
 
     static func find(_ id: String) -> Chain? { all.first { $0.id == id } }

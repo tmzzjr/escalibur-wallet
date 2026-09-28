@@ -71,6 +71,8 @@ public enum Address {
         case .near:
             guard let account = NEARAccountID(implicitPublicKey: publicKey) else { throw Problem.malformed }
             return account.text
+        case .aptos:
+            return try AptosAddress(ed25519PublicKey: publicKey).hex
         }
     }
 
@@ -112,6 +114,7 @@ public enum Address {
         case .cardano: result = CardanoAddress.validateDestination(text)
         case .polkadot: result = PolkadotAddress.validateDestination(text)
         case .near: result = NEARAccountID.validateDestination(text)
+        case .aptos: result = AptosAddress.validateDestination(text)
         }
         if case .failure(let problem) = result, problem == .malformed || problem == .badChecksum,
            let other = guessChain(text), other.id != chain.id, !(other.family == .evm && chain.family == .evm) {
@@ -140,6 +143,7 @@ public enum Address {
         case .cardano: return destination.address
         case .polkadot: return destination.address
         case .near: return destination.address
+        case .aptos: return destination.address
         }
     }
 
@@ -156,7 +160,8 @@ public enum Address {
     /// onde o dinheiro vai.
     ///
     /// Sui fica de fora de proposito: "0x" + 64 hex e tambem o formato da Aptos, e nada
-    /// no texto diz de qual das duas ele e. Dizer "este endereco e da Sui" seria chute.
+    /// no texto diz de qual das duas ele e. Dizer "este endereco e da Sui" seria chute. A
+    /// Aptos fica de fora pelo mesmo motivo.
     public static func guessChain(_ text: String) -> Chain? {
         if case .success = validateEVM(text) { return .ethereum }
         if case .success = validateTron(text) { return .tron }
@@ -371,6 +376,10 @@ public enum DefaultPaths {
         // caminho da MyNearWallet e do near-cli (near-seed-phrase) e da Trust Wallet
         // (wallet-core, registry.json). A Ledger usa m/44'/397'/0'/0'/1' e abre outra conta.
         case "near": return DerivationPath(components: [h(44), h(397), h(account)])
+        // Aptos: SLIP-10 Ed25519, tudo endurecido, a conta no terceiro nivel. E o caminho da
+        // Petra, do SDK oficial em TypeScript (`Account.fromDerivationPath`) e do wallet-core
+        // da Trust Wallet.
+        case "aptos": return DerivationPath(components: [h(44), h(637), h(account), h(0), h(0)])
         default:
             // EVM: todas as redes compartilham a mesma conta, m/44'/60'/0'/0/i.
             return DerivationPath(components: [h(44), h(60), h(0), 0, account])

@@ -25,6 +25,7 @@ gravados na transação, com o `Asset.id` da lista curada. O app confere contra 
 | Cardano | ADA, das moedas só de ADA que a Koios e a Yoroi listam iguais; troco abaixo do mínimo recusado | Sim, pela Koios | Não na v1 | Não |
 | Polkadot | DOT na Asset Hub por `transfer_keep_alive`; depósito existencial dos dois lados conferido | Sim, pelo indexador da Nova | Não na v1 | Não |
 | NEAR | NEAR da conta implícita; conta com nome só se existir, lida em dois provedores; implícita nova criada pelo envio | Sim, pela FastNEAR | Não na v1 | Não |
+| Aptos | APT por `aptos_account::transfer`, que cria a conta de destino; a transação exata simulada em dois provedores | Sim, pelo indexador da Aptos Labs | Não na v1 | Não |
 
 Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
 
@@ -113,6 +114,13 @@ Taxa da Escalibur: zero em todas as trocas, com teste por provedor.
   concordando, no mesmo bloco. A taxa segue a conta do nearcore, com a compra do gas do
   recibo a `min_gas_purchase_price` e a cobrança de conta nova; teto de 0,05 NEAR de
   reserva. Transmissão por `send_tx` esperando a inclusão; resultado por `tx` em dois.
+- **Aptos**: sequência, chave de autenticação e saldo do dono, se o destino já tem loja de
+  APT e o `chain_id` vêm de dois dos três nós REST sem chave (PublicNode, Sentio, Aptos
+  Labs), na mesma versão do ledger, iguais; o preço do gas, igual nos dois, relê uma vez.
+  O gas máximo sai da simulação de um envio de 1 octa em dois provedores (o maior, mais 20%,
+  teto de 0,05 APT), e a transação exata é simulada de novo nos dois: o mesmo hash, e só a
+  saída do valor da loja do dono e a entrada na loja do destino, mais a taxa. Vale até a
+  hora do ledger mais 120 s, com o relógio a no máximo 2 minutos dela.
 - **Vencimento**: na Solana, "venceu, pode enviar de novo" só com a altura finalizada de
   dois provedores 150 blocos além do `lastValidBlockHeight` e o histórico dos dois sem a
   transação. Na Tron, pela hora do último bloco solidificado em dois provedores (a

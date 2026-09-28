@@ -64,6 +64,14 @@ public enum Keccak {
     /// testes conferirem a permutacao contra o SHA3-256 do sistema em mensagens de
     /// varios blocos, onde vetor publicado de Keccak e raro.
     static func sha3_256ForTesting<S: Sequence>(_ input: S) -> [UInt8] where S.Element == UInt8 {
+        sha3_256(input)
+    }
+
+    /// SHA3-256 do FIPS 202: a mesma permutacao e a mesma taxa do Keccak-256, com o
+    /// byte de dominio 0x06 no padding em vez do 0x01. E o hash da Aptos (endereco,
+    /// prefixo do que se assina, id da transacao). Trocar um pelo outro da outro
+    /// endereco, valido e de ninguem: os vetores do NIST em HashTests conferem.
+    public static func sha3_256<S: Sequence>(_ input: S) -> [UInt8] where S.Element == UInt8 {
         sponge256(input, domain: 0x06)
     }
 

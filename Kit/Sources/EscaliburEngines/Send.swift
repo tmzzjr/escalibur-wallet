@@ -197,6 +197,7 @@ public enum SendEngines {
         case .cardano: return EngineRegistry.cardanoSend(chain)
         case .polkadot: return EngineRegistry.polkadotSend(chain)
         case .near: return EngineRegistry.nearSend(chain)
+        case .aptos: return EngineRegistry.aptosSend(chain)
         }
     }
 }
