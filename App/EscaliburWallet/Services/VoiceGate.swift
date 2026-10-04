@@ -40,14 +40,29 @@ final class VoiceGate {
 
     /// Tres desafios falhos em seguida pausam as acoes com voz por 15 minutos.
     static let challengesBeforeLock = 3
+    /// Frases erradas por desafio. Nao ouvir nada nao conta.
+    static let attemptsPerChallenge = 3
     static let lockSeconds: TimeInterval = 15 * 60
 
     var challenge: Challenge?
 
+    /// So para dobrar acentos e caixa na forma canonica; a frase pode ser em qualquer
+    /// lingua de `VoiceLanguage`.
     static var locale: Locale { Locale(identifier: "pt-BR") }
 
-    static var isSupported: Bool {
-        SFSpeechRecognizer(locale: locale)?.supportsOnDeviceRecognition == true
+    /// As linguas que este iPhone reconhece sem internet agora.
+    static var languages: [VoiceLanguage] { VoiceLanguage.allCases.filter(\.onDevice) }
+
+    static var isSupported: Bool { !languages.isEmpty }
+
+    /// Uma linha para a tela: em que linguas o iPhone ouve a frase.
+    static func languageNote(_ languages: [VoiceLanguage]) -> String {
+        let missing = VoiceLanguage.allCases.filter { !languages.contains($0) }
+        if languages.isEmpty { return "Este iPhone não reconhece fala sem internet agora." }
+        if missing.isEmpty { return "Entendo a frase em português ou em inglês." }
+        let on = languages.map(\.name).joined(separator: " e ")
+        let off = missing.map(\.name).joined(separator: " e ")
+        return "Entendo só em \(on): o \(off) não está disponível sem internet neste iPhone."
     }
 
     /// Precisa de voz para esta acao? Se sim, pede; se nao, deixa passar.
@@ -73,6 +88,9 @@ final class VoiceGate {
     /// `exhausted`: o dono errou as tres tentativas deste desafio (fechar a folha nao
     /// conta como falha).
     func finish(_ challenge: Challenge, passed: Bool, exhausted: Bool = false) {
+        // Uma resposta por desafio: fechar a folha enquanto ela ainda confere a fala
+        // nao pode retomar a continuacao duas vezes (o Swift derrubaria o app).
+        guard self.challenge?.id == challenge.id else { return }
         self.challenge = nil
         OverlayWindow.shared.hide()
         let session = challenge.session
@@ -130,6 +148,16 @@ final class VoiceGate {
         Hash.constantTimeEqual(Array(digest(heard, salt: salt).utf8), Array(expected.utf8))
     }
 
+    /// Alguma das leituras confere? Cada lingua devolve a melhor leitura e as
+    /// alternativas; vale qualquer uma. Confere todas, sem parar na primeira.
+    static func matches(any heard: [String], expected: String, salt: String) -> Bool {
+        var found = false
+        for text in heard where !normalize(text).isEmpty {
+            found = matches(text, expected: expected, salt: salt) || found
+        }
+        return found
+    }
+
     // MARK: Frase
 
     /// Forma canonica do que foi dito: minusculas, sem acento, sem pontuacao, um
@@ -159,21 +187,104 @@ extension Metadata {
     }
 }
 
-/// Ouve ate 6 segundos e devolve o que reconheceu, so no aparelho.
+/// As linguas em que a frase pode ser dita. Cada uma so entra se o iPhone a reconhece
+/// sem internet; a que nao tiver modelo no aparelho fica de fora, e a tela diz.
+enum VoiceLanguage: String, CaseIterable, Sendable {
+    case portuguese = "pt-BR"
+    case english = "en-US"
+
+    var locale: Locale { Locale(identifier: rawValue) }
+    var name: String { self == .portuguese ? "português" : "inglês" }
+    var onDevice: Bool { SFSpeechRecognizer(locale: locale)?.supportsOnDeviceRecognition == true }
+}
+
+/// Ouve uma frase curta e devolve o que reconheceu, so no aparelho.
+///
+/// Os mesmos pedacos do microfone vao para um reconhecedor por lingua (portugues e
+/// ingles, as que o iPhone tiver sem internet), e vale o que qualquer um ouvir.
+/// Para sozinho pouco depois da ultima palavra; desiste se ninguem falar.
 @MainActor
 final class SpeechListener: ObservableObject {
-    @Published var transcript = ""
-    @Published var level: Float = 0
-    @Published var listening = false
+    /// O que uma escuta devolve.
+    struct Heard: Sendable {
+        enum Failure: Sendable { case unavailable, microphone, nothing }
+        var failure: Failure?
+        /// A melhor leitura de cada lingua, da mais confiante para a menos.
+        var readings: [Reading] = []
+        /// Todas as leituras, com as alternativas de cada reconhecedor, para conferir.
+        var alternatives: [String] = []
+
+        var best: Reading? { readings.first }
+    }
+
+    struct Reading: Sendable, Equatable {
+        let language: VoiceLanguage
+        let text: String
+        let confidence: Float
+    }
+
+    /// O que o reconhecedor de uma lingua entrega, da fila dele para o ator principal.
+    struct Update: Sendable {
+        let language: VoiceLanguage
+        let text: String?
+        let alternatives: [String]
+        let confidence: Float
+        let isFinal: Bool
+    }
+
+    /// Para 1,2 s depois da ultima palavra; desiste em 6 s se nao ouvir nada; nunca
+    /// passa de 10 s com o microfone aberto.
+    static let quietAfterSpeech: Duration = .milliseconds(1200)
+    static let waitForSpeech: Duration = .seconds(6)
+    static let maxListen: Duration = .seconds(10)
+    /// Nivel (0 a 1) acima do qual o pedaco conta como som de fala.
+    static let speechLevel: Float = 0.35
+    static let historyCount = 12
+
+    /// A melhor leitura ate agora, ao vivo.
+    @Published private(set) var transcript = ""
+    /// O que a outra lingua ouviu, quando difere da melhor.
+    @Published private(set) var alternate: Reading?
+    @Published private(set) var level: Float = 0
+    /// Os ultimos niveis, do mais antigo ao mais novo, para a onda.
+    @Published private(set) var levels = [Float](repeating: 0, count: SpeechListener.historyCount)
+    /// Microfone aberto.
+    @Published private(set) var listening = false
+    /// Do toque em falar ate a leitura final (inclui o meio segundo de conferencia).
+    @Published private(set) var busy = false
+    /// As linguas desta escuta.
+    @Published private(set) var languages = VoiceGate.languages
+
+    private struct Live {
+        var text = ""
+        var alternatives: [String] = []
+        var confidence: Float = 0
+        var done = false
+        var failed = false
+    }
 
     private let engine = AVAudioEngine()
-    private var request: SFSpeechAudioBufferRecognitionRequest?
-    private var task: SFSpeechRecognitionTask?
+    private var tasks: [SFSpeechRecognitionTask] = []
+    private var requests: [SFSpeechAudioBufferRecognitionRequest] = []
+    private var live: [VoiceLanguage: Live] = [:]
+    /// Cada escuta tem um numero; o que chegar de uma escuta antiga e ignorado.
+    private var session = 0
+    private var stopRequested = false
+    private var lastWord = ContinuousClock.now
+    private var lastLoud = ContinuousClock.now
+    private var lastHistory = ContinuousClock.now
+    private var interruption: NSObjectProtocol?
+    #if DEBUG
+    private var debugFeed: DebugDemo.VoiceFeed?
+    #endif
 
     /// O iOS responde as permissoes numa fila de fundo. Um bloco escrito dentro desta
     /// classe herdaria o ator principal, e o Swift 6 derruba o app quando ele roda fora
     /// dela (visto no iPhone: o app fechava ao permitir o reconhecimento de voz). Por
-    /// isso os tres blocos que o sistema chama de outra fila nascem fora do ator.
+    /// isso todo bloco que o sistema chama de outra fila (permissao, pedaco de audio,
+    /// resultado do reconhecedor, aviso de interrupcao do audio) nasce numa funcao
+    /// `nonisolated static`, e so atravessa para o ator principal por `Task`.
+    /// Nunca escreva um desses blocos direto num metodo desta classe.
     nonisolated static func requestPermissions() async -> Bool {
         let speech = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
             SFSpeechRecognizer.requestAuthorization(Self.authorizationHandler(continuation))
@@ -187,125 +298,345 @@ final class SpeechListener: ObservableObject {
         { status in continuation.resume(returning: status == .authorized) }
     }
 
-    /// Roda na thread de audio: entrega o pedaco ao reconhecedor e o pico ao medidor.
-    nonisolated private static func tapBlock(_ request: SFSpeechAudioBufferRecognitionRequest,
-                                             level: @escaping @Sendable (Float) -> Void) -> AVAudioNodeTapBlock {
+    /// Roda na thread de audio: entrega o mesmo pedaco a cada reconhecedor e o nivel
+    /// ao medidor.
+    nonisolated static func tapBlock(_ requests: [SFSpeechAudioBufferRecognitionRequest],
+                                     level: @escaping @Sendable (Float) -> Void) -> AVAudioNodeTapBlock {
         { buffer, _ in
-            request.append(buffer)
-            var peak: Float = 0
-            if let samples = buffer.floatChannelData?[0] {
-                for i in 0..<Int(buffer.frameLength) { peak = max(peak, abs(samples[i])) }
-            }
-            level(peak)
+            for request in requests { request.append(buffer) }
+            level(meter(buffer))
         }
     }
 
-    /// Roda na fila do reconhecedor: so o texto atravessa para o ator principal.
-    nonisolated private static func resultHandler(_ transcript: @escaping @Sendable (String) -> Void)
+    /// Nivel de 0 a 1 do pedaco: a media quadratica em decibeis, de -55 dB (sala em
+    /// silencio) a -15 dB (fala perto do iPhone).
+    nonisolated static func meter(_ buffer: AVAudioPCMBuffer) -> Float {
+        guard let samples = buffer.floatChannelData?[0], buffer.frameLength > 0 else { return 0 }
+        let count = Int(buffer.frameLength)
+        var sum: Float = 0
+        for i in 0..<count { sum += samples[i] * samples[i] }
+        let decibels = 20 * log10(max((sum / Float(count)).squareRoot(), 1e-7))
+        return min(1, max(0, (decibels + 55) / 40))
+    }
+
+    /// Roda na fila do reconhecedor: so texto e numero atravessam para o ator principal.
+    nonisolated private static func resultHandler(_ language: VoiceLanguage, _ deliver: @escaping @Sendable (Update) -> Void)
         -> (SFSpeechRecognitionResult?, Error?) -> Void {
-        { result, _ in
-            guard let text = result?.bestTranscription.formattedString else { return }
-            transcript(text)
+        { result, error in
+            if let result {
+                let best = result.bestTranscription
+                let confidence = best.segments.isEmpty ? 0 : best.segments.reduce(0) { $0 + $1.confidence } / Float(best.segments.count)
+                deliver(Update(language: language, text: best.formattedString,
+                               alternatives: result.transcriptions.map(\.formattedString),
+                               confidence: confidence, isFinal: result.isFinal))
+            } else if error != nil {
+                deliver(Update(language: language, text: nil, alternatives: [], confidence: 0, isFinal: true))
+            }
         }
     }
 
-    func listen() async -> String {
-        guard let recognizer = SFSpeechRecognizer(locale: VoiceGate.locale), recognizer.supportsOnDeviceRecognition else { return "" }
-        transcript = ""
-        let request = SFSpeechAudioBufferRecognitionRequest()
-        request.requiresOnDeviceRecognition = true
-        request.shouldReportPartialResults = true
-        request.addsPunctuation = false
-        self.request = request
+    /// Roda na fila de quem avisa (central de notificacoes): uma ligacao ou a Siri
+    /// tomou o audio, e a escuta para.
+    nonisolated private static func interruptionBlock(_ stop: @escaping @Sendable () -> Void) -> @Sendable (Notification) -> Void {
+        { _ in stop() }
+    }
 
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.record, mode: .measurement, options: .duckOthers)
-        try? session.setActive(true, options: .notifyOthersOnDeactivation)
+    /// Os tres recados para o ator principal tambem nascem aqui, fora dele.
+    nonisolated private static func forwardLevel(to listener: SpeechListener, session: Int) -> @Sendable (Float) -> Void {
+        { [weak listener] value in Task { @MainActor in listener?.receive(level: value, session: session) } }
+    }
+
+    nonisolated private static func forwardUpdate(to listener: SpeechListener, session: Int) -> @Sendable (Update) -> Void {
+        { [weak listener] update in Task { @MainActor in listener?.receive(update, session: session) } }
+    }
+
+    nonisolated private static func forwardStop(to listener: SpeechListener, session: Int) -> @Sendable () -> Void {
+        { [weak listener] in Task { @MainActor in if listener?.session == session { listener?.stop() } } }
+    }
+
+    /// Ouve uma vez. Volta quando a pessoa para de falar, quando toca em parar, ou
+    /// no limite de tempo.
+    func listen() async -> Heard {
+        let languages = VoiceGate.languages
+        self.languages = languages
+        reset()
+        guard !languages.isEmpty else { return Heard(failure: .unavailable) }
+        session += 1
+        let id = session
+        busy = true
+        defer { busy = false }
+        stopRequested = false
+
+        let recognizers = languages.compactMap { language in
+            SFSpeechRecognizer(locale: language.locale).map { (language, $0) }
+        }
+        requests = recognizers.map { _ in
+            let request = SFSpeechAudioBufferRecognitionRequest()
+            request.requiresOnDeviceRecognition = true
+            request.shouldReportPartialResults = true
+            request.addsPunctuation = false
+            return request
+        }
+        let tap = Self.tapBlock(requests, level: Self.forwardLevel(to: self, session: id))
+        guard startAudio(tap, session: id) else {
+            finishAudio()
+            requests = []
+            return Heard(failure: .microphone)
+        }
+        listening = true
+        for ((language, recognizer), request) in zip(recognizers, requests) {
+            tasks.append(recognizer.recognitionTask(with: request, resultHandler: Self.resultHandler(language, Self.forwardUpdate(to: self, session: id))))
+        }
+
+        let start = ContinuousClock.now
+        lastWord = start
+        lastLoud = start
+        while !stopRequested && !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(100))
+            let now = ContinuousClock.now
+            let spoke = live.values.contains { !$0.text.isEmpty }
+            if now - start > Self.maxListen { break }
+            if !spoke && now - start > Self.waitForSpeech { break }
+            if spoke && now - lastWord > Self.quietAfterSpeech && now - lastLoud > .milliseconds(500) { break }
+            if languages.allSatisfy({ live[$0]?.failed == true }) { break }
+        }
+
+        finishAudio()
+        for request in requests { request.endAudio() }
+        // Depois do fim do audio cada reconhecedor entrega a leitura final, que costuma
+        // ser melhor que a parcial. Espera por ela no maximo 1,5 s.
+        let deadline = ContinuousClock.now + .milliseconds(1500)
+        while ContinuousClock.now < deadline, !languages.allSatisfy({ live[$0]?.done == true }) {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        for task in tasks { task.cancel() }
+        tasks = []
+        requests = []
+        let failedEarly = languages.allSatisfy { live[$0]?.failed == true }
+        let heard = result()
+        session += 1
+        live = [:]
+        if heard.readings.isEmpty { return Heard(failure: failedEarly ? .unavailable : .nothing) }
+        return heard
+    }
+
+    /// Para de ouvir agora e confere o que ja ouviu.
+    func stop() {
+        stopRequested = true
+    }
+
+    /// Limpa a transcricao da tela.
+    func reset() {
+        transcript = ""
+        alternate = nil
+        level = 0
+        levels = [Float](repeating: 0, count: Self.historyCount)
+    }
+
+    private func receive(level value: Float, session id: Int) {
+        guard id == session, listening else { return }
+        level = value
+        let now = ContinuousClock.now
+        if value > Self.speechLevel { lastLoud = now }
+        // A onda anda no maximo a cada 60 ms, para nao correr mais rapido num iPhone
+        // que entrega pedacos menores.
+        if now - lastHistory >= .milliseconds(60) {
+            lastHistory = now
+            levels.removeFirst()
+            levels.append(value)
+        }
+    }
+
+    private func receive(_ update: Update, session id: Int) {
+        guard id == session else { return }
+        var entry = live[update.language] ?? Live()
+        if let text = update.text {
+            if text != entry.text { lastWord = .now }
+            entry.text = text
+            entry.alternatives = update.alternatives
+            entry.confidence = update.confidence
+        } else if listening {
+            // Erro com o microfone ainda aberto: essa lingua nao vai ouvir nada.
+            entry.failed = true
+        }
+        if update.isFinal { entry.done = true }
+        live[update.language] = entry
+        let readings = result().readings
+        transcript = readings.first?.text ?? ""
+        alternate = readings.dropFirst().first { VoiceGate.normalize($0.text) != VoiceGate.normalize(transcript) }
+    }
+
+    /// As leituras de agora: a mais confiante primeiro; empate fica na ordem das linguas.
+    private func result() -> Heard {
+        let order = VoiceLanguage.allCases
+        let readings = live.compactMap { language, entry in
+            entry.text.isEmpty ? nil : Reading(language: language, text: entry.text, confidence: entry.confidence)
+        }
+        .sorted { a, b in
+            a.confidence != b.confidence ? a.confidence > b.confidence
+                : order.firstIndex(of: a.language)! < order.firstIndex(of: b.language)!
+        }
+        let alternatives = live.values.flatMap { [$0.text] + $0.alternatives }.filter { !$0.isEmpty }
+        return Heard(readings: readings, alternatives: alternatives)
+    }
+
+    private func startAudio(_ tap: @escaping AVAudioNodeTapBlock, session id: Int) -> Bool {
+        #if DEBUG
+        if let file = DebugDemo.nextVoiceAudio() {
+            debugFeed = DebugDemo.feedVoice(file, tap: tap)
+            return debugFeed != nil
+        }
+        #endif
+        let audio = AVAudioSession.sharedInstance()
+        do {
+            try audio.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try audio.setActive(true, options: .notifyOthersOnDeactivation)
+        } catch {
+            return false
+        }
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
+        // Sem entrada de audio o formato vem zerado, e o installTap derrubaria o app
+        // com uma excecao de Objective-C. Confere antes.
+        guard format.sampleRate > 0, format.channelCount > 0 else { return false }
         input.removeTap(onBus: 0)
-        input.installTap(onBus: 0, bufferSize: 1024, format: format, block: Self.tapBlock(request) { @Sendable [weak self] peak in
-            Task { @MainActor in self?.level = peak }
-        })
+        input.installTap(onBus: 0, bufferSize: 1024, format: format, block: tap)
         engine.prepare()
-        try? engine.start()
-        listening = true
-
-        task = recognizer.recognitionTask(with: request, resultHandler: Self.resultHandler { @Sendable [weak self] text in
-            Task { @MainActor in self?.transcript = text }
-        })
-        try? await Task.sleep(for: .seconds(6))
-        stop()
-        return transcript
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            return false
+        }
+        interruption = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification, object: audio, queue: nil,
+            using: Self.interruptionBlock(Self.forwardStop(to: self, session: id))
+        )
+        return true
     }
 
-    func stop() {
-        engine.stop()
-        engine.inputNode.removeTap(onBus: 0)
-        request?.endAudio()
-        task?.cancel()
+    /// Fecha o microfone. O reconhecedor continua com o que ja recebeu.
+    private func finishAudio() {
         listening = false
         level = 0
-        try? AVAudioSession.sharedInstance().setActive(false)
+        #if DEBUG
+        if let debugFeed {
+            debugFeed.stop()
+            self.debugFeed = nil
+            return
+        }
+        #endif
+        if let interruption { NotificationCenter.default.removeObserver(interruption) }
+        interruption = nil
+        if engine.isRunning { engine.stop() }
+        engine.inputNode.removeTap(onBus: 0)
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }
 
-/// S4b: "Diga a sua frase de voz".
+/// S4b: "Diga a sua frase de voz". Mostra ao vivo o que o iPhone ouve, mas aqui nao
+/// tem campo para digitar: na hora de confirmar so a voz vale, senao a camada nao
+/// conferiria nada que o PIN ja nao confira.
 struct VoiceChallengeSheet: View {
     let challenge: VoiceGate.Challenge
     @StateObject private var listener = SpeechListener()
     @State private var attempts = 0
     @State private var message: String?
+    @State private var needsPermission = false
+    @State private var passed = false
+    @State private var closed = false
+
+    private var locked: Bool { challenge.lockedUntil != nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Diga a sua frase de voz") { VoiceGate.shared.finish(challenge, passed: false) }
+            SheetHeader(title: "Diga a sua frase de voz") { close() }
             if let until = challenge.lockedUntil {
                 Text("Muitas tentativas de voz seguidas. As operações que pedem voz voltam às \(until.formatted(date: .omitted, time: .shortened)).")
                     .typeStyle(.body).foregroundStyle(Palette.down).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("A frase que só você sabe. Depois dela vem o \(KeyServices.biometryName) ou o PIN. O iPhone reconhece a frase, não a sua voz.")
+            Text("Fale a frase que você gravou. Depois dela vem o \(KeyServices.biometryName) ou o PIN. O iPhone reconhece a frase, não a sua voz.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 4) {
-                ForEach(0..<24, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Float(index) / 24 < listener.level * 3 ? Palette.ink : Palette.rail)
-                        .frame(width: 6, height: 28)
-                }
-            }
-            .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+            VoiceListeningPanel(listener: listener, idle: locked ? "Em espera" : "Toque em Falar agora e diga a frase.",
+                                outcome: passed ? .passed : nil)
+                .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
             if let message {
                 Text(message).typeStyle(.note).foregroundStyle(Palette.down).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("voz-mensagem")
             }
-            Spacer()
-            PrimaryButton(title: listener.listening ? "Ouvindo" : "Falar agora", enabled: !listener.listening && challenge.lockedUntil == nil) {
-                Task { await listen() }
+            if needsPermission {
+                TertiaryButton(title: "Abrir os Ajustes do iPhone") { VoicePermission.openSettings() }
+                    .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+            }
+            Spacer(minLength: Space.md)
+            Text(VoiceGate.languageNote(listener.languages))
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.horizontal, Space.gutter).padding(.bottom, Space.sm)
+                .fixedSize(horizontal: false, vertical: true)
+            PrimaryButton(title: listener.listening ? "Terminei de falar" : "Falar agora",
+                          enabled: !locked && !passed, loading: listener.busy && !listener.listening) {
+                if listener.listening { listener.stop() } else { Task { await listen() } }
             }
             .padding(.horizontal, Space.gutter).padding(.bottom, Space.xs)
         }
-        .presentationDetents([.medium])
-        .presentationBackground(Palette.body)
-        .presentationCornerRadius(Radius.sheet)
-        .interactiveDismissDisabled()
+        .background(Palette.void.ignoresSafeArea())
+        .onDisappear { listener.stop() }
+    }
+
+    private func close() {
+        closed = true
+        listener.stop()
+        VoiceGate.shared.finish(challenge, passed: false)
     }
 
     private func listen() async {
+        message = nil
         guard await SpeechListener.requestPermissions() else {
-            message = "Para usar a voz, o app precisa do microfone e do reconhecimento de fala."
+            message = VoicePermission.deniedMessage
+            needsPermission = true
             return
         }
+        needsPermission = false
         let heard = await listener.listen()
-        if VoiceGate.matches(heard, expected: challenge.expected, salt: challenge.salt) {
+        guard !closed else { return }
+        if let failure = heard.failure {
+            // Nao ouvir nada nao gasta tentativa: so conta a frase errada.
+            message = VoicePermission.message(for: failure)
+            return
+        }
+        if VoiceGate.matches(any: heard.alternatives, expected: challenge.expected, salt: challenge.salt) {
+            passed = true
+            try? await Task.sleep(for: .milliseconds(800))
             VoiceGate.shared.finish(challenge, passed: true)
             return
         }
         attempts += 1
-        if attempts >= 3 {
+        let left = VoiceGate.attemptsPerChallenge - attempts
+        if left <= 0 {
             VoiceGate.shared.finish(challenge, passed: false, exhausted: true)
         } else {
-            message = "Não reconheci. Fale de novo, perto do iPhone."
+            message = left == 1 ? "Não conferiu. Você tem mais 1 tentativa." : "Não conferiu. Você tem mais \(left) tentativas."
         }
+    }
+}
+
+/// Textos e atalhos de permissao e de falha, iguais no cadastro e na conferencia.
+enum VoicePermission {
+    static let deniedMessage = "Para usar a voz, permita o microfone e o reconhecimento de fala para este app nos Ajustes do iPhone."
+
+    static func message(for failure: SpeechListener.Heard.Failure) -> String {
+        switch failure {
+        case .nothing: return "Não ouvi nada. Toque em falar e diga a frase perto do iPhone."
+        case .microphone: return "O microfone não abriu. Se outro app estiver usando o microfone, feche e tente de novo."
+        case .unavailable: return "O reconhecimento de fala sem internet não respondeu. Tente de novo em instantes."
+        }
+    }
+
+    @MainActor
+    static func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 }
