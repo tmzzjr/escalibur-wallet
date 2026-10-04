@@ -11,7 +11,7 @@ import Foundation
 struct StellarActivitySource: ActivitySource {
     let reader: StellarReader
 
-    static let limit = 30
+    static let limit = 20
 
     init(reader: StellarReader = StellarReader()) {
         self.reader = reader

@@ -21,7 +21,7 @@ struct SolanaActivitySource: ActivitySource {
     static let shared = SolanaActivitySource(network: SolanaLiveNetwork())
 
     /// Transacoes lidas por consulta, o padrao do leitor.
-    static let limit = 30
+    static let limit = 20
 
     let network: any SolanaEngineNetwork
 

@@ -13,7 +13,7 @@ struct UTXOActivitySource: ActivitySource {
     let reader: UTXOReader
 
     /// As ultimas transacoes, como a tela mostra.
-    static let limit = 30
+    static let limit = 20
 
     init(chain: Chain, reader: UTXOReader) {
         self.chain = chain

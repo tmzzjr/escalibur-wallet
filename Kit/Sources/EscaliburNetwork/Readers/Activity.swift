@@ -116,7 +116,7 @@ public struct ActivityPage: Sendable, Equatable {
 /// So recebimentos sao filtrados. O que a propria conta fez (envio, aprovacao, troca)
 /// aparece sempre: foi o dono que assinou, e esconder isso esconderia um dreno.
 enum ActivityRules {
-    static let pageSize = 30
+    static let pageSize = 20
 
     enum Suspicion { case zeroValue, unknownAsset, dust, flaggedByProvider }
 

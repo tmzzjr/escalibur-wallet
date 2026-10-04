@@ -23,18 +23,28 @@ final class ActivityFeed {
         case failed
     }
 
+    /// Redes que ainda nao responderam nesta leitura.
+    private(set) var remaining = 0
+
+    /// Cada rede entra na tela assim que responde, em vez de todas esperarem a mais
+    /// lenta (uma varredura UTXO, um provedor no limite). Na primeira leitura a lista vai
+    /// crescendo; ao atualizar uma lista que ja existe, ela so troca no fim, sem piscar.
     func load(_ wallet: WalletMeta?, disabled: Set<String>) async {
         guard let wallet, !loading else { return }
         loading = true
-        defer { loading = false }
+        defer { loading = false; remaining = 0 }
+        let progressive = entries.isEmpty
         var collected: [ActivityEntry] = []
         var failures: [Chain] = []
         var missing: [(chain: Chain, reason: String)] = []
+        let jobs: [(Chain, DerivedAccount, any ActivitySource, UTXOUsage?)] = wallet.accounts.compactMap { account in
+            guard let chain = Chain.find(account.chainID), !disabled.contains(chain.id),
+                  let source = ActivitySources.source(for: chain) else { return nil }
+            return (chain, account, source, wallet.utxoUsage[chain.id])
+        }
+        remaining = jobs.count
         await withTaskGroup(of: (Chain, Outcome).self) { group in
-            for account in wallet.accounts {
-                guard let chain = Chain.find(account.chainID), !disabled.contains(chain.id),
-                      let source = ActivitySources.source(for: chain) else { continue }
-                let usage = wallet.utxoUsage[chain.id]
+            for (chain, account, source, usage) in jobs {
                 group.addTask {
                     do {
                         return (chain, .items(try await source.history(chain: chain, account: account, usage: usage)))
@@ -46,18 +56,24 @@ final class ActivityFeed {
                 }
             }
             for await (chain, outcome) in group {
+                remaining -= 1
                 switch outcome {
                 case .items(let items): collected += items
                 case .unavailable(let reason): missing.append((chain, reason))
                 case .failed: failures.append(chain)
                 }
+                if progressive { publish(collected, failures, missing) }
             }
         }
+        publish(collected, failures, missing)
+        loadedOnce = true
+    }
+
+    private func publish(_ collected: [ActivityEntry], _ failures: [Chain], _ missing: [(chain: Chain, reason: String)]) {
         suspiciousCount = collected.filter(\.suspicious).count
         entries = collected.filter { !$0.suspicious }.sorted { $0.date > $1.date }
         failed = failures.sorted { $0.name < $1.name }
         unavailable = missing.sorted { $0.chain.name < $1.chain.name }
-        loadedOnce = true
     }
 }
 
@@ -69,14 +85,20 @@ struct ActivityView: View {
     @Environment(\.openURL) private var openURL
     @State private var feed = ActivityFeed()
     @State private var receiving = false
+    /// Quantas movimentacoes ja concluidas aparecem: 20 por vez, mais 20 ao chegar no fim.
+    @State private var visibleCount = 20
 
     private var pending: [ActivityEntry] {
         feed.entries.filter { if case .pending = $0.status { return true }; return false }
     }
 
+    private var doneEntries: [ActivityEntry] {
+        feed.entries.filter { if case .pending = $0.status { return false }; return true }
+    }
+
     private var grouped: [(String, [ActivityEntry])] {
         let calendar = Calendar(identifier: .gregorian)
-        let done = feed.entries.filter { if case .pending = $0.status { return false }; return true }
+        let done = doneEntries.prefix(visibleCount)
         var order: [String] = []
         var groups: [String: [ActivityEntry]] = [:]
         for entry in done {
@@ -117,8 +139,23 @@ struct ActivityView: View {
                     if !pending.isEmpty {
                         section("Pendentes", pending)
                     }
+                    if feed.loading, !feed.entries.isEmpty, feed.remaining > 0 {
+                        HStack(spacing: Space.xs) {
+                            ProgressView().controlSize(.small).tint(Palette.inkSoft)
+                            Text(feed.remaining == 1 ? "Lendo mais 1 rede" : "Lendo mais \(feed.remaining) redes")
+                                .typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                        }
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.sm)
+                    }
                     ForEach(grouped, id: \.0) { title, items in
                         section(title, items)
+                    }
+                    if doneEntries.count > visibleCount {
+                        // Chegar ao fim da lista ja traz as proximas 20; o botao fica para
+                        // quem navega pelo VoiceOver.
+                        SecondaryButton(title: "Mostrar mais") { visibleCount += 20 }
+                            .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+                            .onAppear { visibleCount += 20 }
                     }
 
                     // Redes sem historico publico: uma linha so, e so se esta carteira tem
@@ -161,7 +198,7 @@ struct ActivityView: View {
             .statusBarBackdrop()
             .navigationDestination(for: ActivityEntry.self) { entry in ActivityDetailView(entry: entry) }
         }
-        .task(id: session.selectedWallet?.id) { await reload() }
+        .task(id: session.selectedWallet?.id) { visibleCount = 20; await reload() }
         // O aviso das redes sem historico depende do saldo: quem abre direto na
         // Atividade ainda nao carregou a carteira.
         .task(id: session.selectedWallet?.id) { await portfolio.ensureLoaded(session.selectedWallet, session: session) }
