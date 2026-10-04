@@ -234,8 +234,8 @@ struct WalletSettingsView: View {
         .fullScreenCover(isPresented: $sealing) {
             if let wallet { SealEnvelopeFlow(wallet: wallet) { sealing = false } }
         }
-        .confirmationDialog("Remover \(wallet?.name ?? "") deste iPhone?", isPresented: $confirmRemove, titleVisibility: .visible) {
-            Button("Remover", role: .destructive) { Task { await remove() } }
+        .alert("Remover \(wallet?.name ?? "") deste iPhone?", isPresented: $confirmRemove) {
+            Button("Remover permanentemente", role: .destructive) { Task { await remove() } }
             Button("Cancelar", role: .cancel) {}
         } message: {
             Text(wallet?.hasBackup == false

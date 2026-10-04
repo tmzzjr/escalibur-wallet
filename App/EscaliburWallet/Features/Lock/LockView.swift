@@ -102,30 +102,77 @@ struct LockView: View {
     }
 
     private var forgotSheet: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Não existe redefinir o PIN") { forgotPIN = false }
-            Text("O PIN mora só neste iPhone. Para voltar a usar o app, apague as carteiras deste aparelho e importe de novo, com a senha de cada carteira ou com um envelope Escalibur.")
-                .typeStyle(.body)
-                .foregroundStyle(Palette.inkSoft)
-                .fixedSize(horizontal: false, vertical: true)
+        VStack(spacing: 0) {
+            SheetHeader(title: "") { forgotPIN = false }
+            ScrollView {
+                VStack(spacing: 0) {
+                    Image(systemName: "lock.iphone")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(Palette.purple)
+                        .frame(width: 72, height: 72)
+                        .background(Circle().fill(Palette.brand.opacity(0.16)))
+                    Text("Não existe redefinir o PIN")
+                        .typeStyle(.title).foregroundStyle(Palette.ink)
+                        .padding(.top, Space.md)
+                    Text("O PIN mora só neste iPhone, e ninguém tem cópia dele, nem a Escalibur. Para voltar a usar o app, comece de novo:")
+                        .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, Space.xs)
+                    VStack(alignment: .leading, spacing: Space.md) {
+                        ForgotStep(number: 1, text: "Tenha em mãos a senha de cada carteira (as 12 ou 24 palavras) ou o envelope Escalibur.")
+                        ForgotStep(number: 2, text: "Apague as carteiras deste iPhone.")
+                        ForgotStep(number: 3, text: "Crie um PIN novo e importe cada carteira de novo.")
+                    }
+                    .padding(Space.base)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
+                    .padding(.top, Space.lg)
+                }
+                .multilineTextAlignment(.center)
                 .padding(.horizontal, Space.gutter)
-                .padding(.top, Space.md)
-            Spacer()
-            DestructiveButton(title: "Apagar as carteiras deste iPhone") { confirmErase = true }
-                .padding(.horizontal, Space.gutter)
-                .padding(.bottom, Space.xs)
+                .padding(.top, Space.xs)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            VStack(spacing: Space.sm) {
+                DestructiveButton(title: "Apagar as carteiras deste iPhone") { confirmErase = true }
+                SecondaryButton(title: "Voltar e tentar o PIN") { forgotPIN = false }
+            }
+            .padding(.horizontal, Space.gutter)
+            .padding(.top, Space.sm)
+            .padding(.bottom, Space.xs)
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.large])
         .presentationBackground(Palette.body)
         .presentationCornerRadius(Radius.sheet)
-        .confirmationDialog("Apagar as carteiras deste iPhone?", isPresented: $confirmErase, titleVisibility: .visible) {
-            Button("Apagar", role: .destructive) {
+        // O alerta do proprio iPhone, no centro da tela: apagar e para sempre.
+        .alert("Apagar as carteiras deste iPhone?", isPresented: $confirmErase) {
+            Button("Apagar permanentemente", role: .destructive) {
                 forgotPIN = false
                 session.eraseEverything()
             }
             Button("Cancelar", role: .cancel) {}
         } message: {
-            Text("Sem a senha de cada carteira, o saldo delas fica inacessível para sempre.")
+            Text("Sem a senha de cada carteira ou um envelope, o saldo delas fica inacessível para sempre.")
+        }
+    }
+}
+
+/// Um passo numerado de como voltar a usar o app sem o PIN.
+private struct ForgotStep: View {
+    let number: Int
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Space.sm) {
+            Text("\(number)")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Palette.ink)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(Palette.control))
+            Text(text).typeStyle(.body).foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 3)
         }
     }
 }
