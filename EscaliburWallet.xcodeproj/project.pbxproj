@@ -18,6 +18,7 @@
 		19E1559AA99AE5A16A3BD1AC /* QRScannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7543B278315E1446160A8DAF /* QRScannerSheet.swift */; };
 		20F684E79E7161139654F6DE /* OnboardingFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */; };
 		21A2E4CF04770FD56E788AF9 /* LegalDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */; };
+		23F2FD5E0D08C33DB73E5584 /* PassphraseWalletTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2552656E9F2EA038F885C9CB /* PassphraseWalletTests.swift */; };
 		2468359EF9FB1503F19395D5 /* AuthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D423B66DA20C4DA018418902 /* AuthCoordinator.swift */; };
 		26ABABDDB73200E71CD0D50F /* WalletHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E3E554F1FF4F3B1B0A077A6 /* WalletHomeView.swift */; };
 		271A5135782331B746AC5833 /* VoiceGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C114911EA7725CA6C7171D11 /* VoiceGate.swift */; };
@@ -40,6 +41,7 @@
 		5848F371CF905048C9ABA616 /* RecordWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5287E825D53043F109D791D /* RecordWordsView.swift */; };
 		5932324C0521646D89823F75 /* ContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AD68422B44E0DD96545710 /* ContactsView.swift */; };
 		5E9A7A552DC87E261A506B48 /* EscaliburKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 0911AD585A30024A352B31B6 /* EscaliburKeys */; };
+		5ECB862AD137C04F475B0CD2 /* PassphraseWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7E330A6D249E3EA26CE9BA4 /* PassphraseWalletView.swift */; };
 		6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B2519CA657D4A05E4C4A06 /* Metrics.swift */; };
 		764A13E8CD7AFD1D2F471CDF /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */; };
 		76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0C91AC7C8CD9C5B8D31703 /* Components.swift */; };
@@ -122,6 +124,7 @@
 		1722E329135DB398B784E8C8 /* KeyServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyServices.swift; sourceTree = "<group>"; };
 		178D0EBBB2AA6CB89DC6772B /* PlanReviewViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanReviewViews.swift; sourceTree = "<group>"; };
 		17A71DEB35D1AAC25A23037D /* AllocationDonut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllocationDonut.swift; sourceTree = "<group>"; };
+		2552656E9F2EA038F885C9CB /* PassphraseWalletTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassphraseWalletTests.swift; sourceTree = "<group>"; };
 		268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		290C3A2CEF411E071AA05800 /* WordInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordInputField.swift; sourceTree = "<group>"; };
 		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -172,6 +175,7 @@
 		B2C49639FCBF7D664F63210A /* LogoColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoColor.swift; sourceTree = "<group>"; };
 		B2CB54D5FE5615D8A3F582F8 /* ReceiveSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveSheet.swift; sourceTree = "<group>"; };
 		B6269216B260E5FA27BB51E6 /* ImportPhraseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPhraseTests.swift; sourceTree = "<group>"; };
+		B7E330A6D249E3EA26CE9BA4 /* PassphraseWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassphraseWalletView.swift; sourceTree = "<group>"; };
 		B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
 		BC0C91AC7C8CD9C5B8D31703 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceChart.swift; sourceTree = "<group>"; };
@@ -333,6 +337,7 @@
 				AD4DB38ABFB63662F684831D /* LegalTests.swift */,
 				811D8AF3EF3BDDB831240B3A /* LimitOrderTests.swift */,
 				CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */,
+				2552656E9F2EA038F885C9CB /* PassphraseWalletTests.swift */,
 				8E73AD40F44D72D64B0F550B /* ReceiveFlowTests.swift */,
 				98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */,
 				1020538B4146BC659BF384E8 /* TradeQuoteTests.swift */,
@@ -353,6 +358,7 @@
 			children = (
 				85AD68422B44E0DD96545710 /* ContactsView.swift */,
 				6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */,
+				B7E330A6D249E3EA26CE9BA4 /* PassphraseWalletView.swift */,
 				529FF2FD620686A71B265A06 /* RevealFlow.swift */,
 				7372B2C6D0156F65AA215FE5 /* SettingsView.swift */,
 				1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */,
@@ -628,6 +634,7 @@
 				534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */,
 				3E9B59FEC10974F0AF152882 /* LimitOrderTests.swift in Sources */,
 				20F684E79E7161139654F6DE /* OnboardingFlowTests.swift in Sources */,
+				23F2FD5E0D08C33DB73E5584 /* PassphraseWalletTests.swift in Sources */,
 				2A90FB479DFA2C8FA3B4A582 /* ReceiveFlowTests.swift in Sources */,
 				4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */,
 				046D4A66EDC4E578C0246247 /* TradeQuoteTests.swift in Sources */,
@@ -679,6 +686,7 @@
 				A86F60C8E0ACDA0DB1C3F8B4 /* OpenOrdersView.swift in Sources */,
 				39A4945DC4DAEFEDE0DBEB1F /* PINPad.swift in Sources */,
 				9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */,
+				5ECB862AD137C04F475B0CD2 /* PassphraseWalletView.swift in Sources */,
 				3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */,
 				17A65BEC30C064A2F585BA4E /* PlanReviewViews.swift in Sources */,
 				90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */,

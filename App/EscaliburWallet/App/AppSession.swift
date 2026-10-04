@@ -245,6 +245,39 @@ final class AppSession {
         return wallet
     }
 
+    /// A carteira da 25ª palavra: a frase de `base` com uma palavra a mais, escolhida pelo
+    /// dono, abre outra carteira, com outros enderecos (a carteira oculta da Ledger e da
+    /// Trezor). A frase nunca sai do cofre: abre, deriva e e gravada dentro da mesma
+    /// funcao sincrona, com uma confirmacao so.
+    func addPassphraseWallet(base: WalletMeta, passphrase: SecureBytes, name: String, credential: Credential) async throws -> WalletMeta {
+        guard case .phrase(let wordCount) = base.kind else { throw WalletError.notPhraseWallet }
+        let baseID = base.id
+        let id = UUID()
+        let (accounts, fingerprint): ([DerivedAccount], [UInt8]) = try await withRootKey(credential) { rk in
+            let original = try KeyServices.wallets.open(walletID: baseID, rk: rk)
+            defer { original.wipe() }
+            let entropy = SecureBytes(capacity: original.entropy.count)
+            original.entropy.withUnsafeBytes { entropy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
+            let secret = WalletSecret(entropy: entropy, language: original.language, passphrase: passphrase)
+            defer { secret.wipe() }
+            try KeyServices.wallets.save(secret, walletID: id, rk: rk)
+            return try AccountDeriver.derive(secret)
+        }
+        if let existing = metadata.wallets.first(where: { $0.fingerprint == fingerprint.hex && !$0.isWatchOnly }) {
+            try? KeyServices.wallets.delete(id)
+            throw WalletError.alreadyImported(existing.name)
+        }
+        let wallet = WalletMeta(
+            id: id, name: name, kind: .phrase(wordCount: wordCount), origin: base.origin, createdAt: .now,
+            accounts: accounts, fingerprint: fingerprint.hex, hasPassphrase: true,
+            backupConfirmedAt: base.backupConfirmedAt
+        )
+        metadata.wallets.append(wallet)
+        metadata.selectedWalletID = id
+        try persist()
+        return wallet
+    }
+
     func addWatchWallet(chain: Chain, address: String, name: String) throws -> WalletMeta {
         // Endereco EVM vale em todas as redes EVM: observa todas.
         let chains = chain.family == .evm ? Chain.evmChains : [chain]
@@ -297,10 +330,12 @@ final class AppSession {
 
 enum WalletError: LocalizedError {
     case alreadyImported(String)
+    case notPhraseWallet
 
     var errorDescription: String? {
         switch self {
         case .alreadyImported(let name): return "Esta carteira já está aqui, como \(name)."
+        case .notPhraseWallet: return "Esta carteira só acompanha um endereço. A 25ª palavra precisa da senha de 12 ou 24 palavras."
         }
     }
 }
