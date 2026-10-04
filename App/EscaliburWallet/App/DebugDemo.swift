@@ -44,9 +44,12 @@ enum DebugDemo {
             }
             if session.metadata.wallets.isEmpty {
                 let secret = try WalletSecret.from(phrase: BIP39.canonical(phrase), language: .english)
+                // `-sem-copia`: carteira criada aqui e ainda sem copia, para as telas que
+                // pedem gravar a senha antes de receber.
+                let withoutBackup = arguments.contains("-sem-copia")
                 _ = try await session.addWallet(
-                    secret: secret, name: "Carteira principal", origin: .importedPhrase, wordCount: 12,
-                    backupConfirmed: true, credential: .pin(securePIN())
+                    secret: secret, name: "Carteira principal", origin: withoutBackup ? .created : .importedPhrase, wordCount: 12,
+                    backupConfirmed: !withoutBackup, credential: .pin(securePIN())
                 )
             }
             switch screen {

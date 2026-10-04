@@ -33,6 +33,7 @@
 		424496A6E4E34E2651C3AC55 /* DebugDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71977F38FE1026DDFD0C189A /* DebugDemo.swift */; };
 		4311115E36CE8A987E173E93 /* WordInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 290C3A2CEF411E071AA05800 /* WordInputField.swift */; };
 		478026866DF85E9EF5D50A76 /* ImportPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839F9C92169FD1A8C5C69A3B /* ImportPreview.swift */; };
+		4969D8FAA1778B206D93B390 /* BackupFirstArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EE4EBF2B576AD8F92E2DA9 /* BackupFirstArt.swift */; };
 		4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */; };
 		4DA261DD7012A533E034CF1C /* termos.md in Resources */ = {isa = PBXBuildFile; fileRef = 7C28ED1879662A04236281C1 /* termos.md */; };
 		534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD4DB38ABFB63662F684831D /* LegalTests.swift */; };
@@ -135,6 +136,7 @@
 		4027F05D922AF46864DCED58 /* Portfolio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Portfolio.swift; sourceTree = "<group>"; };
 		445327A094057374455F9FD5 /* LEIA-ME.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LEIA-ME.txt"; sourceTree = "<group>"; };
 		464E41DA23598ED80A750BD4 /* EscaliburWalletUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EscaliburWalletUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		49EE4EBF2B576AD8F92E2DA9 /* BackupFirstArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupFirstArt.swift; sourceTree = "<group>"; };
 		4A0E9C686393C93E1E34895B /* PlatformGuards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformGuards.swift; sourceTree = "<group>"; };
 		4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataCompatibilityTests.swift; sourceTree = "<group>"; };
 		4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometryNameTests.swift; sourceTree = "<group>"; };
@@ -382,6 +384,7 @@
 		96313B8D851FAC37D702C8C1 /* Receive */ = {
 			isa = PBXGroup;
 			children = (
+				49EE4EBF2B576AD8F92E2DA9 /* BackupFirstArt.swift */,
 				B2CB54D5FE5615D8A3F582F8 /* ReceiveSheet.swift */,
 			);
 			path = Receive;
@@ -659,6 +662,7 @@
 				C9C99BCB70E1AFF3536D3968 /* AppSession.swift in Sources */,
 				F2B74E9DFA78D4082923023D /* AssetDetailView.swift in Sources */,
 				2468359EF9FB1503F19395D5 /* AuthCoordinator.swift in Sources */,
+				4969D8FAA1778B206D93B390 /* BackupFirstArt.swift in Sources */,
 				E09B8272656E909426D4987D /* Buttons.swift in Sources */,
 				F188A8EA4A5EBDCD53F891E7 /* CoinActions.swift in Sources */,
 				B259A28741C3A8C0F7D74759 /* CoinLogo.swift in Sources */,

@@ -88,13 +88,22 @@ struct ReceiveSheet: View {
     }
 
     private var blocked: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: 0) {
             HStack { Spacer(); closeButton }
-            Text("Grave a senha da carteira antes de receber").typeStyle(.title).foregroundStyle(Palette.ink)
-            Text("Esta carteira ainda não tem cópia. Se o iPhone sumir antes disso, o que chegar aqui se perde. Leva 2 minutos.")
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
-            Spacer()
+            BackupFirstArt(height: 280)
+            VStack(spacing: Space.sm) {
+                Text("Grave a senha da carteira antes de receber").typeStyle(.title).foregroundStyle(Palette.ink)
+                Text("Esta carteira ainda não tem cópia. Se o iPhone sumir antes disso, o que chegar aqui se perde.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                Label("Leva 2 minutos", systemImage: "clock")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                    .padding(.top, Space.xxs)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.top, Space.md)
+            Spacer(minLength: Space.md)
             PrimaryButton(title: "Gravar agora") { backingUp = true }
+            SecondaryButton(title: "Agora não") { dismiss() }.padding(.top, Space.sm)
         }
         .padding(.horizontal, Space.gutter).padding(.top, Space.md).padding(.bottom, Space.xs)
     }
