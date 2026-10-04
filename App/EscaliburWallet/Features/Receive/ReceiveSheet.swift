@@ -43,6 +43,7 @@ struct ReceiveSheet: View {
 
     @State private var query = ""
     @State private var backingUp = false
+    @State private var copied = false
 
     private var wallet: WalletMeta? { session.selectedWallet }
 
@@ -235,10 +236,16 @@ struct ReceiveSheet: View {
                         .padding(.top, Space.sm)
                 }
 
-                PrimaryButton(title: "Copiar endereço") {
+                PrimaryButton(title: copied ? "Endereço copiado" : "Copiar endereço") {
                     Pasteboard.copyAddress(address)
                     toasts.show("Endereço copiado. Depois de colar, confira o endereço inteiro, inclusive o meio.")
+                    withAnimation(Motion.fade) { copied = true }
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(2))
+                        withAnimation(Motion.fade) { copied = false }
+                    }
                 }
+                .sensoryFeedback(.success, trigger: copied) { _, now in now }
                 .padding(.top, Space.lg)
                 ShareLink(item: address) {
                     Text("Compartilhar").typeStyle(.action).frame(maxWidth: .infinity).frame(height: Height.secondary)

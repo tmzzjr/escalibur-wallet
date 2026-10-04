@@ -26,9 +26,6 @@ struct RootView: View {
         ZStack(alignment: .bottom) {
             Palette.void.ignoresSafeArea()
             content
-            if let toast = toasts.current {
-                ToastView(toast: toast).padding(.bottom, 72)
-            }
         }
         .onChange(of: scenePhase) { _, phase in session.scenePhaseChanged(phase) }
         // Travar no meio da primeira carteira derruba o fluxo em tela cheia, mas a

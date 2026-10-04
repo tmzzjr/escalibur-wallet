@@ -29,6 +29,13 @@ final class ReceiveFlowTests: XCTestCase {
         tron.tap()
         XCTAssertTrue(app.staticTexts["Receber USDT"].waitForExistence(timeout: 10))
         shot("r3-endereco", app)
+
+        // Copiar mostra que copiou: no botao e no aviso, por cima da folha de Receber.
+        app.buttons["Copiar endereço"].tap()
+        XCTAssertTrue(app.buttons["Endereço copiado"].waitForExistence(timeout: 3), "o botao deveria dizer que copiou")
+        let toast = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Endereço copiado.'")).firstMatch
+        XCTAssertTrue(toast.waitForExistence(timeout: 3), "o aviso de copiado deveria aparecer por cima da folha")
+        shot("r4-copiado", app)
     }
 
     /// Token emitido (RLUSD no XRP Ledger): a tela avisa da linha de confianca.

@@ -347,8 +347,13 @@ final class ToastCenter {
     }
 
     var current: Toast?
+    /// A janela propria do aviso, acima de tudo, inclusive de folhas e telas cheias:
+    /// desenhado na raiz, o aviso ficava atras da folha de Receber e ninguem via o
+    /// "Endereco copiado".
+    private var window: UIWindow?
 
     func show(_ text: String, kind: Toast.Kind = .success) {
+        attachWindow()
         let toast = Toast(kind: kind, text: text)
         withAnimation(Motion.toastIn) { current = toast }
         Task { @MainActor in
@@ -357,6 +362,41 @@ final class ToastCenter {
                 withAnimation(.easeIn(duration: 0.2)) { current = nil }
             }
         }
+    }
+}
+
+extension ToastCenter {
+    fileprivate func attachWindow() {
+        guard window == nil,
+              let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else { return }
+        let host = UIHostingController(rootView: ToastLayer(center: self))
+        host.view.backgroundColor = .clear
+        let overlay = PassthroughWindow(windowScene: scene)
+        overlay.windowLevel = .normal + 1
+        overlay.rootViewController = host
+        overlay.overrideUserInterfaceStyle = .dark
+        overlay.isHidden = false
+        window = overlay
+    }
+}
+
+/// Janela que so mostra: nenhum toque para nela, tudo segue para o app embaixo.
+private final class PassthroughWindow: UIWindow {
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? { nil }
+}
+
+private struct ToastLayer: View {
+    let center: ToastCenter
+
+    var body: some View {
+        // No alto da tela: por cima de folhas, o rodape e onde ficam os botoes de acao.
+        ZStack(alignment: .top) {
+            Color.clear
+            if let toast = center.current {
+                ToastView(toast: toast).padding(.top, Space.xs)
+            }
+        }
+        .ignoresSafeArea(.keyboard)
     }
 }
 
@@ -371,6 +411,7 @@ struct ToastView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, Space.md)
+        .padding(.vertical, Space.sm)
         .frame(minHeight: 48)
         .background(
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
@@ -379,7 +420,7 @@ struct ToastView: View {
                 .shadow(color: .black.opacity(0.5), radius: 24, y: 8)
         )
         .padding(.horizontal, Space.gutter)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     private var icon: String {
