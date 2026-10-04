@@ -14,15 +14,35 @@ struct MarketView: View {
     @State private var query = ""
     @State private var loading = false
     @State private var failed = false
+    @State private var order: Order = .relevance
+
+    /// A ordem da lista. Relevancia e a do CoinGecko (valor de mercado).
+    enum Order: String, CaseIterable, Hashable {
+        case relevance = "Relevância"
+        case gainers = "Maior alta"
+        case losers = "Maior queda"
+        case priceHigh = "Maior preço"
+
+        func sorted(_ coins: [MarketCoin]) -> [MarketCoin] {
+            switch self {
+            case .relevance: return coins
+            // Sem variacao conhecida, a moeda vai para o fim nos dois sentidos.
+            case .gainers: return coins.sorted { ($0.change24h ?? -.infinity) > ($1.change24h ?? -.infinity) }
+            case .losers: return coins.sorted { ($0.change24h ?? .infinity) < ($1.change24h ?? .infinity) }
+            case .priceHigh: return coins.sorted { $0.price > $1.price }
+            }
+        }
+    }
 
     private var favoriteIDs: [String] { session.metadata.settings.favoriteCoins ?? [] }
 
     /// As marcadas com coracao, na ordem em que foram marcadas.
     private var favorites: [MarketCoin] {
-        favoriteIDs.compactMap { id in filtered.first { $0.id == id } }
+        let marked = favoriteIDs.compactMap { id in filtered.first { $0.id == id } }
+        return order == .relevance ? marked : order.sorted(marked)
     }
 
-    private var others: [MarketCoin] { filtered.filter { !favoriteIDs.contains($0.id) } }
+    private var others: [MarketCoin] { order.sorted(filtered.filter { !favoriteIDs.contains($0.id) }) }
 
     private func sectionTitle(_ text: String) -> some View {
         Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft)
@@ -41,6 +61,18 @@ struct MarketView: View {
                     TabTitle("Mercado")
                     SearchField(prompt: "Buscar moeda", text: $query)
                         .padding(.horizontal, Space.gutter).padding(.top, Space.sm)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: Space.xs) {
+                            ForEach(Order.allCases, id: \.self) { option in
+                                Chip(title: option.rawValue, selected: order == option) {
+                                    withAnimation(Motion.fade) { order = option }
+                                }
+                                .accessibilityIdentifier("ordem-\(option.rawValue)")
+                            }
+                        }
+                        .padding(.horizontal, Space.gutter)
+                    }
+                    .padding(.top, Space.sm)
 
                     if coins.isEmpty && loading {
                         ForEach(0..<8, id: \.self) { _ in
@@ -77,6 +109,7 @@ struct MarketView: View {
                     }
                     .padding(.top, Space.sm)
                     .animation(Motion.fade, value: favoriteIDs)
+                    .animation(Motion.fade, value: order)
                     Text("Dados de mercado: CoinGecko").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                         .frame(maxWidth: .infinity).padding(.top, Space.lg)
                 }
@@ -156,8 +189,9 @@ struct MarketRow: View {
 }
 
 /// A pilula de variacao do dia: seta cheia e numero sem sinal (a seta ja diz a
-/// direcao), na cor da direcao sobre o fundo tingido da mesma cor. Nunca texto branco
-/// sobre verde (contraste 2,29:1). Variacao abaixo de 0,01% e neutra, sem seta.
+/// direcao), sobre a cor cheia da direcao. Alta: lima com texto escuro (nunca branco
+/// sobre verde, 2,29:1). Queda: vermelho um tom mais fundo que o da interface, para o
+/// texto branco ficar em 5,7:1. Variacao abaixo de 0,01% e neutra, sem seta.
 struct ChangePill: View {
     let change: Double?
 
@@ -165,7 +199,7 @@ struct ChangePill: View {
         let value = change ?? 0
         let up = value > 0.004
         let down = value < -0.004
-        let tint = up ? Palette.up : (down ? Palette.down : Palette.inkSoft)
+        let tint = up ? Palette.onLime : (down ? Color.white : Palette.inkSoft)
         HStack(spacing: 4) {
             if up || down {
                 Image(systemName: up ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
@@ -177,13 +211,14 @@ struct ChangePill: View {
         }
         .foregroundStyle(tint)
         .lineLimit(1)
+        .fixedSize()
         .padding(.horizontal, Space.sm)
         .frame(minWidth: 80, minHeight: 28)
         .background(
             Capsule(style: .continuous)
-                .fill(up ? Palette.upTint : (down ? Palette.downTint : Palette.rail))
-                .overlay(Capsule(style: .continuous).strokeBorder(tint.opacity(0.22), lineWidth: 1))
+                .fill(up ? Palette.up : (down ? Palette.downSolid : Palette.rail))
         )
+        .layoutPriority(1)
         .animation(Motion.fade, value: value)
         .accessibilityLabel(up ? "Subiu \(Fmt.percent(abs(value)))" : (down ? "Caiu \(Fmt.percent(abs(value)))" : "Estável"))
     }

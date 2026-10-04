@@ -31,6 +31,8 @@ enum Palette {
     static let upTint = Color(hex: 0x1F260B)
     static let down = Color(hex: 0xFF4D3D)
     static let downTint = Color(hex: 0x2D1413)
+    /// Vermelho cheio para fundo com texto branco (5,7:1); o `down` e para texto e linha.
+    static let downSolid = Color(hex: 0xE0322A)
     static let downPress = Color(hex: 0x3C1816)
     static let caution = Color(hex: 0xF5A524)
     // As cores da marca (decisao do dono, 27/09/2026): lima na acao principal, na aba

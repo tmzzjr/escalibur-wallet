@@ -45,6 +45,7 @@
 		5E9A7A552DC87E261A506B48 /* EscaliburKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 0911AD585A30024A352B31B6 /* EscaliburKeys */; };
 		5ECB862AD137C04F475B0CD2 /* PassphraseWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7E330A6D249E3EA26CE9BA4 /* PassphraseWalletView.swift */; };
 		6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B2519CA657D4A05E4C4A06 /* Metrics.swift */; };
+		709592474B6D28D167D13C47 /* MarketSortTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E53CBDE23167A0EB7AEB5D4 /* MarketSortTests.swift */; };
 		764A13E8CD7AFD1D2F471CDF /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */; };
 		76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0C91AC7C8CD9C5B8D31703 /* Components.swift */; };
 		7A74109E68924D0D8E3AC608 /* decifrar.py in Resources */ = {isa = PBXBuildFile; fileRef = 878FC0383FDC934FC98F0EA0 /* decifrar.py */; };
@@ -174,6 +175,7 @@
 		98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLookalikeTests.swift; sourceTree = "<group>"; };
 		99E3B6E8E96F664B813E15B7 /* ForgotPINTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPINTests.swift; sourceTree = "<group>"; };
 		9DD76B5A4D8E49D97000A77E /* TradeReviewFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeReviewFlow.swift; sourceTree = "<group>"; };
+		9E53CBDE23167A0EB7AEB5D4 /* MarketSortTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketSortTests.swift; sourceTree = "<group>"; };
 		A1BADB432EFAFD601991FB0A /* MarketView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketView.swift; sourceTree = "<group>"; };
 		A98E0FCFFA466C4A03F3490A /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		AAEF81421478F9FA6F85FE56 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
@@ -343,6 +345,7 @@
 				B6269216B260E5FA27BB51E6 /* ImportPhraseTests.swift */,
 				AD4DB38ABFB63662F684831D /* LegalTests.swift */,
 				811D8AF3EF3BDDB831240B3A /* LimitOrderTests.swift */,
+				9E53CBDE23167A0EB7AEB5D4 /* MarketSortTests.swift */,
 				CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */,
 				2552656E9F2EA038F885C9CB /* PassphraseWalletTests.swift */,
 				8E73AD40F44D72D64B0F550B /* ReceiveFlowTests.swift */,
@@ -642,6 +645,7 @@
 				CEB6F2EDD5952E9EF8FB6517 /* ImportPhraseTests.swift in Sources */,
 				534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */,
 				3E9B59FEC10974F0AF152882 /* LimitOrderTests.swift in Sources */,
+				709592474B6D28D167D13C47 /* MarketSortTests.swift in Sources */,
 				20F684E79E7161139654F6DE /* OnboardingFlowTests.swift in Sources */,
 				23F2FD5E0D08C33DB73E5584 /* PassphraseWalletTests.swift in Sources */,
 				2A90FB479DFA2C8FA3B4A582 /* ReceiveFlowTests.swift in Sources */,
