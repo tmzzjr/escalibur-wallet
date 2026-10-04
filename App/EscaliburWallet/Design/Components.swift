@@ -117,6 +117,26 @@ struct StatusBadge: View {
     }
 }
 
+// MARK: Selecao
+
+/// A selecao do app em vidro liquido (iOS 26), sem cor: o material da vez, um pouco
+/// mais claro que o trilho. Antes do iOS 26, material fino com borda clara.
+struct SelectionGlass: ViewModifier {
+    let active: Bool
+
+    func body(content: Content) -> some View {
+        if !active {
+            content
+        } else if #available(iOS 26.0, *) {
+            content.glassEffect(.regular.tint(Color.white.opacity(0.06)).interactive(), in: Capsule(style: .continuous))
+        } else {
+            content
+                .background(Capsule(style: .continuous).fill(.ultraThinMaterial))
+                .overlay(Capsule(style: .continuous).stroke(Color.white.opacity(0.18), lineWidth: 1))
+        }
+    }
+}
+
 // MARK: Chip
 
 struct Chip: View {
@@ -128,17 +148,15 @@ struct Chip: View {
         Button(action: action) {
             Text(title)
                 .typeStyle(.label)
-                .foregroundStyle(selected ? Color.white : Palette.inkSoft)
+                .foregroundStyle(selected ? Palette.ink : Palette.inkSoft)
                 .padding(.horizontal, Space.sm)
                 .frame(height: Height.chip)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(selected ? Palette.purple : Color.clear)
-                        .overlay(
-                            Capsule(style: .continuous)
-                                .stroke(selected ? Color.clear : Palette.edge, lineWidth: 1)
-                        )
-                )
+                .background {
+                    if !selected {
+                        Capsule(style: .continuous).stroke(Palette.edge, lineWidth: 1)
+                    }
+                }
+                .modifier(SelectionGlass(active: selected))
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: selected)
@@ -148,7 +166,7 @@ struct Chip: View {
 // MARK: Escolha exclusiva
 
 /// O unico desenho de escolha exclusiva do app ("Imediata | Limite", "12 | 24
-/// palavras"): trilho body, segmento roxo que desliza.
+/// palavras"): trilho body, segmento de vidro que desliza.
 ///
 /// O segmento e uma capsula so, que vive no trilho e anda ate a opcao escolhida.
 /// Antes eram duas capsulas com `matchedGeometryEffect`, uma no fundo de cada botao,
@@ -170,7 +188,7 @@ struct Segmented<Value: Hashable>: View {
                 } label: {
                     Text(title)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(index == selectedIndex ? Color.white : Palette.inkMuted)
+                        .foregroundStyle(index == selectedIndex ? Palette.ink : Palette.inkMuted)
                         .frame(maxWidth: .infinity)
                         .frame(height: 36)
                         .contentShape(Rectangle())
@@ -182,9 +200,9 @@ struct Segmented<Value: Hashable>: View {
         .background(alignment: .leading) {
             GeometryReader { proxy in
                 let width = proxy.size.width / CGFloat(max(options.count, 1))
-                Capsule(style: .continuous)
-                    .fill(Palette.purple)
+                Color.clear
                     .frame(width: width, height: proxy.size.height)
+                    .modifier(SelectionGlass(active: true))
                     .offset(x: width * CGFloat(selectedIndex))
             }
             .accessibilityHidden(true)

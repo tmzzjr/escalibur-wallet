@@ -129,10 +129,35 @@ struct SlippageSlider: View {
 
     static let range: ClosedRange<Int> = 10...300
     static let step = 10
+    /// Marcas de referencia, em pontos-base: 0,1%, 0,5%, 1%, 2% e 3%.
+    static let marks = [10, 50, 100, 200, 300]
 
-    private var fraction: CGFloat {
-        CGFloat(basisPoints - Self.range.lowerBound) / CGFloat(Self.range.upperBound - Self.range.lowerBound)
+    /// As marcas ficam a distancias iguais e a escala e linear entre duas vizinhas: o
+    /// trecho baixo, onde a tolerancia importa mais, ganha mais espaco para o dedo.
+    static func position(_ bps: Int) -> CGFloat {
+        let value = Double(min(max(bps, range.lowerBound), range.upperBound))
+        let segments = Double(marks.count - 1)
+        for index in 0..<(marks.count - 1) where value <= Double(marks[index + 1]) {
+            let low = Double(marks[index]), high = Double(marks[index + 1])
+            return CGFloat((Double(index) + (value - low) / (high - low)) / segments)
+        }
+        return 1
     }
+
+    /// O inverso de `position`, ja no passo de 0,1%.
+    static func value(at ratio: Double) -> Int {
+        let x = min(max(ratio, 0), 1) * Double(marks.count - 1)
+        let index = min(Int(x), marks.count - 2)
+        let raw = Double(marks[index]) + (x - Double(index)) * Double(marks[index + 1] - marks[index])
+        let snapped = Int((raw / Double(step)).rounded()) * step
+        return min(max(snapped, range.lowerBound), range.upperBound)
+    }
+
+    static func label(_ bps: Int) -> String {
+        "\(Fmt.grouped(Double(bps) / 100, fractionDigits: 1, trimZeros: true))%"
+    }
+
+    private var fraction: CGFloat { Self.position(basisPoints) }
 
     private var percentText: String {
         "\(Fmt.grouped(Double(basisPoints) / 100, fractionDigits: 1, trimZeros: true))%"
@@ -159,33 +184,62 @@ struct SlippageSlider: View {
             }
             GeometryReader { geometry in
                 let width = geometry.size.width
-                let knob: CGFloat = dragging ? 26 : 22
+                let knob: CGFloat = dragging ? 30 : 24
+                let fill = basisPoints > 100 ? Palette.caution : Palette.ink
                 ZStack(alignment: .leading) {
-                    Capsule(style: .continuous).fill(Palette.rail).frame(height: 8)
+                    Capsule(style: .continuous).fill(Palette.rail).frame(height: 6)
                     Capsule(style: .continuous)
-                        .fill(LinearGradient(colors: [Palette.purpleDeep, Palette.purple], startPoint: .leading, endPoint: .trailing))
-                        .frame(width: max(8, shown * width), height: 8)
+                        .fill(fill)
+                        .frame(width: max(6, shown * width), height: 6)
+                    // As marcas de referencia, sobre o trilho.
+                    ForEach(Self.marks, id: \.self) { mark in
+                        Circle()
+                            .fill(mark <= basisPoints ? Palette.void.opacity(0.35) : Palette.edgeStrong)
+                            .frame(width: 4, height: 4)
+                            .offset(x: Self.position(mark) * width - 2)
+                    }
                     Circle()
                         .fill(Palette.ink)
                         .frame(width: knob, height: knob)
-                        .overlay(Circle().strokeBorder(Palette.purple, lineWidth: 3))
+                        .shadow(color: .black.opacity(0.45), radius: 6, y: 2)
                         .offset(x: max(0, min(width - knob, shown * width - knob / 2)))
                 }
-                .frame(height: 30)
+                .frame(height: 34)
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
                             dragging = true
-                            let ratio = min(max(value.location.x / width, 0), 1)
-                            let raw = Double(Self.range.lowerBound) + ratio * Double(Self.range.upperBound - Self.range.lowerBound)
-                            let snapped = Int((raw / Double(Self.step)).rounded()) * Self.step
-                            basisPoints = min(max(snapped, Self.range.lowerBound), Self.range.upperBound)
+                            basisPoints = Self.value(at: Double(value.location.x / width))
                         }
                         .onEnded { _ in withAnimation(Motion.select) { dragging = false } }
                 )
             }
-            .frame(height: 30)
+            .frame(height: 34)
+            // Os rotulos das marcas: tocar leva direto ao valor.
+            GeometryReader { geometry in
+                ZStack(alignment: .topLeading) {
+                    ForEach(Self.marks, id: \.self) { mark in
+                        Button { basisPoints = mark } label: {
+                            Text(Self.label(mark))
+                                .typeStyle(.note)
+                                .foregroundStyle(mark == basisPoints ? Palette.ink : Palette.inkMuted)
+                                .fixedSize()
+                                .padding(.vertical, 4)
+                        }
+                        .buttonStyle(.plain)
+                        .alignmentGuide(.leading) { d in
+                            let x = Self.position(mark) * geometry.size.width
+                            // A primeira e a ultima ficam dentro da borda.
+                            if mark == Self.marks.first { return 0 }
+                            if mark == Self.marks.last { return d.width - geometry.size.width }
+                            return d.width / 2 - x
+                        }
+                        .accessibilityHidden(true)
+                    }
+                }
+            }
+            .frame(height: 24)
             Text(explanation).typeStyle(.note).foregroundStyle(basisPoints > 100 ? Palette.caution : Palette.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)
                 .animation(Motion.fade, value: explanation)
