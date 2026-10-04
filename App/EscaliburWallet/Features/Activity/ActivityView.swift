@@ -65,6 +65,38 @@ final class ActivityFeed {
                 if progressive { publish(collected, failures, missing) }
             }
         }
+        // Segunda tentativa para quem falhou, um instante depois: na abertura do app o
+        // saldo, o mercado e o historico disparam juntos, e os RPCs gratis cortam a
+        // rajada (relatado no iPhone com a Solana). So o que falhar duas vezes fica no
+        // aviso.
+        if !failures.isEmpty {
+            try? await Task.sleep(for: .seconds(2))
+            let again = jobs.filter { job in failures.contains { $0.id == job.0.id } }
+            failures = []
+            remaining = again.count
+            await withTaskGroup(of: (Chain, Outcome).self) { group in
+                for (chain, account, source, usage) in again {
+                    group.addTask {
+                        do {
+                            return (chain, .items(try await source.history(chain: chain, account: account, usage: usage)))
+                        } catch SendEngineError.unavailable(let reason) {
+                            return (chain, .unavailable(reason))
+                        } catch {
+                            return (chain, .failed)
+                        }
+                    }
+                }
+                for await (chain, outcome) in group {
+                    remaining -= 1
+                    switch outcome {
+                    case .items(let items): collected += items
+                    case .unavailable(let reason): missing.append((chain, reason))
+                    case .failed: failures.append(chain)
+                    }
+                    if progressive { publish(collected, failures, missing) }
+                }
+            }
+        }
         publish(collected, failures, missing)
         loadedOnce = true
     }
