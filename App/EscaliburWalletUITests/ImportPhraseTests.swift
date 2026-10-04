@@ -24,6 +24,10 @@ final class ImportPhraseTests: XCTestCase {
         app.launch()
         let option = app.staticTexts["Importar com a senha da carteira"]
         XCTAssertTrue(option.waitForExistence(timeout: 30))
+        // A tela entra animada: o toque so vale depois que ela assenta.
+        let settled = NSPredicate(format: "hittable == true")
+        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: settled, object: option)], timeout: 5)
+        sleep(1)
         option.tap()
 
         // Antes de digitar, o aceite de responsabilidade. Com a carteira ainda
@@ -86,6 +90,10 @@ final class ImportPhraseTests: XCTestCase {
         app.launch()
         let option = app.staticTexts["Importar com a senha da carteira"]
         XCTAssertTrue(option.waitForExistence(timeout: 30))
+        // A tela entra animada: o toque so vale depois que ela assenta.
+        let settled = NSPredicate(format: "hittable == true")
+        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: settled, object: option)], timeout: 5)
+        sleep(1)
         option.tap()
         let accept = app.buttons["aceite-responsabilidade"]
         if !accept.waitForExistence(timeout: 8) { option.tap() }
