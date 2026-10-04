@@ -27,6 +27,10 @@ struct StellarActivitySource: ActivitySource {
             return ChainActivityEntries.entries(
                 items, chain: .stellar, own: [source.account.address], resolve: StellarEngineSupport.asset
             )
+        } catch HTTPClient.Failure.status(404) {
+            // Conta que nunca recebeu XLM ainda nao existe na rede, e o Horizon responde
+            // 404. Nao ha historico para mostrar; nao e falha de leitura.
+            return []
         } catch {
             throw StellarEngineSupport.translate(error)
         }

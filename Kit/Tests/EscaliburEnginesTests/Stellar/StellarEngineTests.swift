@@ -433,3 +433,18 @@ struct StellarTradeTests {
         }
     }
 }
+
+@Suite("Atividade da Stellar: conta nova")
+struct StellarNewAccountActivityTests {
+    @Test("Conta que nunca recebeu XLM (Horizon responde 404): historico vazio, nao falha")
+    func unfundedAccountHasEmptyHistory() async throws {
+        let fake = FakeHTTP()
+        for host in ["horizon-a.test", "horizon-b.test"] {
+            fake.on("\(host)/accounts/\(TestAccounts.stellarAddress)/operations", status: 404)
+            fake.on("\(host)/accounts/\(TestAccounts.stellarAddress)/trades", status: 404)
+        }
+        let source = StellarActivitySource(reader: StellarEngineTests.reader(fake))
+        let entries = try await source.history(chain: .stellar, account: TestAccounts.stellar, usage: nil)
+        #expect(entries.isEmpty)
+    }
+}

@@ -65,6 +65,7 @@ final class ActivityFeed {
 struct ActivityView: View {
     @Environment(AppSession.self) private var session
     @Environment(Router.self) private var router
+    @Environment(Portfolio.self) private var portfolio
     @State private var feed = ActivityFeed()
     @State private var receiving = false
 
@@ -106,7 +107,9 @@ struct ActivityView: View {
                                 .frame(maxWidth: .infinity)
                                 .containerRelativeFrame(.vertical, alignment: .center) { length, _ in length * 0.72 }
                         } else {
-                            empty.padding(.top, Space.lg)
+                            empty
+                                .frame(maxWidth: .infinity)
+                                .containerRelativeFrame(.vertical, alignment: .center) { length, _ in length * 0.8 }
                         }
                     }
 
@@ -117,8 +120,11 @@ struct ActivityView: View {
                         section(title, items)
                     }
 
-                    ForEach(feed.unavailable, id: \.chain.id) { item in
-                        Text(item.reason).typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                    // Redes sem historico publico: uma linha so, e so se esta carteira tem
+                    // saldo nelas. Para quem nao usa essas redes, nao ha o que avisar.
+                    if !unavailableWithBalance.isEmpty {
+                        Text("O histórico de \(Self.names(unavailableWithBalance)) ainda não aparece aqui. O saldo aparece na Carteira.")
+                            .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                             .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -169,16 +175,24 @@ struct ActivityView: View {
         }
     }
 
-    private var empty: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            Text("Nada aconteceu nesta carteira ainda").typeStyle(.row).foregroundStyle(Palette.ink)
-            Text("Envios, recebimentos, trocas e ordens aparecem aqui, com o status de cada um.")
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-            SecondaryButton(title: "Receber") { receiving = true }.padding(.top, Space.xs)
+    private var unavailableWithBalance: [Chain] {
+        feed.unavailable.map(\.chain).filter { chain in
+            portfolio.balance(chain)?.holdings.contains { !$0.amount.isZero } ?? false
         }
-        .padding(Space.md)
-        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+    }
+
+    private var empty: some View {
+        VStack(spacing: 0) {
+            ActivityEmptyArt(height: 230)
+            VStack(spacing: Space.sm) {
+                Text("Sua atividade aparece aqui").typeStyle(.title).foregroundStyle(Palette.ink)
+                Text("Envios, recebimentos, trocas e ordens, cada um com o seu status.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.top, Space.md)
+            PrimaryButton(title: "Receber") { receiving = true }.padding(.top, Space.lg)
+        }
         .padding(.horizontal, Space.gutter)
     }
 }
