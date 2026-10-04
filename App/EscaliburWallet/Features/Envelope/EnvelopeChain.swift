@@ -256,39 +256,29 @@ struct EnvelopeChain: View {
         if ring > 0.01, lockFade > 0.01, flap > 0.5 {
             var lock = envelope
             lock.opacity = lockFade
-            lock.translateBy(x: G.cx, y: G.top + G.flapClosed)
+            lock.translateBy(x: G.cx, y: G.top + G.flapClosed * 0.52)
             drawKeyhole(lock, ring: ring, hole: hole, pulse: pulse)
         }
     }
 
-    /// A fechadura embutida na ponta da aba, centrada na origem: um disco do mesmo cinza
-    /// da aba, contornado pela linha do envelope (`ring` desenha o contorno), o buraco da
-    /// chave escuro (`hole`) e um anel que se abre e some ao trancar (`pulse`).
+    /// O buraco de fechadura, so ele, em branco sobre a aba fechada, centrado na origem:
+    /// a cabeca redonda e o corpo que alarga para baixo, como o de porta e o do cadeado.
+    /// `ring` faz ele aparecer (cresce e assenta), `hole` firma o traco e `pulse` da um
+    /// leve estalo ao trancar.
     private func drawKeyhole(_ context: GraphicsContext, ring: Double, hole: Double, pulse: Double) {
-        let radius: CGFloat = 14
-        let disc = Path(ellipseIn: CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2))
-        var plate = context
-        plate.opacity = context.opacity * min(1, ring * 3)
-        plate.fill(disc, with: .color(Palette.control))
-        context.stroke(disc.trimmedPath(from: 0, to: ring), with: .color(Palette.ink), style: G.line)
-        if hole > 0.01 {
-            var cut = context
-            cut.opacity = context.opacity * hole
-            var keyhole = Path(ellipseIn: CGRect(x: -3.6, y: -7, width: 7.2, height: 7.2))
-            keyhole.move(to: CGPoint(x: -1.8, y: -1.5))
-            keyhole.addLine(to: CGPoint(x: 1.8, y: -1.5))
-            keyhole.addLine(to: CGPoint(x: 2.8, y: 7))
-            keyhole.addLine(to: CGPoint(x: -2.8, y: 7))
-            keyhole.closeSubpath()
-            cut.fill(keyhole, with: .color(Palette.void))
-        }
-        if pulse > 0, pulse < 1 {
-            var echo = context
-            echo.opacity = context.opacity * (1 - pulse) * 0.8
-            let r = radius + CGFloat(pulse) * 12
-            echo.stroke(Path(ellipseIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2)), with: .color(Palette.ink),
-                        style: StrokeStyle(lineWidth: 1.2))
-        }
+        guard ring > 0.01 else { return }
+        var mark = context
+        let click = 1 + 0.12 * sin(.pi * clamp(pulse / 0.5))
+        let scale = backOut(ring) * click
+        mark.scaleBy(x: scale, y: scale)
+        mark.opacity = context.opacity * (0.55 + 0.45 * hole)
+        var keyhole = Path(ellipseIn: CGRect(x: -6, y: -12, width: 12, height: 12))
+        keyhole.move(to: CGPoint(x: -3, y: -3))
+        keyhole.addLine(to: CGPoint(x: 3, y: -3))
+        keyhole.addLine(to: CGPoint(x: 5, y: 11))
+        keyhole.addLine(to: CGPoint(x: -5, y: 11))
+        keyhole.closeSubpath()
+        mark.fill(keyhole, with: .color(Palette.ink))
     }
 
     private func fallY(_ q: Double) -> CGFloat {

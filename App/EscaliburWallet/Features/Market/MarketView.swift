@@ -298,7 +298,6 @@ struct MarketCoinDetail: View {
         // abre direto no Mercado ainda nao carregou a carteira.
         .task(id: session.selectedWallet?.id) { await portfolio.ensureLoaded(session.selectedWallet, session: session) }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 6) {

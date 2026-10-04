@@ -34,7 +34,6 @@ struct AssetDetailView: View {
         }
         .background(Palette.void.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 6) {
