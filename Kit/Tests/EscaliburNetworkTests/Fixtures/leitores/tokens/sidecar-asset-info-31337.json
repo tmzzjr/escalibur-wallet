@@ -1,0 +1,27 @@
+{
+ "at": {
+  "hash": "0x9cca20fa4175aa22996c604d9df90d8f0265631fc0d830fd6faf087c6d5dfa9b",
+  "height": "21440834"
+ },
+ "assetInfo": {
+  "owner": "15b8URP7cg1hiJU8MsppqeayP9MvenkUZ7McBn37TzF1Ar69",
+  "issuer": "15b8URP7cg1hiJU8MsppqeayP9MvenkUZ7McBn37TzF1Ar69",
+  "admin": "15b8URP7cg1hiJU8MsppqeayP9MvenkUZ7McBn37TzF1Ar69",
+  "freezer": "15b8URP7cg1hiJU8MsppqeayP9MvenkUZ7McBn37TzF1Ar69",
+  "supply": "9999391629781674287772",
+  "deposit": "2019000000",
+  "minBalance": "10000000",
+  "isSufficient": false,
+  "accounts": "221363",
+  "sufficients": "0",
+  "approvals": "0",
+  "status": "Live"
+ },
+ "assetMetaData": {
+  "deposit": "2008000000",
+  "name": "0x474156554e20575544",
+  "symbol": "0x575544",
+  "decimals": "10",
+  "isFrozen": false
+ }
+}

@@ -12,6 +12,15 @@ Todo plano diz o que sai (`review.outgoing`) e, na troca e na ordem, o mínimo q
 (`review.incomingMinimum`) e quem recebe (`review.beneficiary`), tirados dos valores
 gravados na transação, com o `Asset.id` da lista curada. O app confere contra o pedido.
 
+Moeda custom (o dono adiciona colando o contrato; `CustomToken`, `TokenInspector`): o
+`Asset.id` tem a mesma forma do da lista (rede e contrato, ou rede, código e emissor), e
+a conferência é a mesma. Envio pela EVM (casas relidas em dois provedores, o próprio
+contrato bloqueado como destino, `transfer` simulado), pela Solana (mint lido em dois
+provedores com as casas salvas, `transferChecked`, extensões do Token-2022 recusadas como
+em qualquer token) e pela Stellar (código e emissor salvos, linha do destino conferida).
+Tron e TON enviam só TRX, TON e USDT; o XRP Ledger, só XRP: nelas a moeda custom aparece
+e recebe, e o envio diz o motivo. Na troca, só a lista.
+
 | Família | Envio | Histórico | Troca | Ordem limite |
 |---|---|---|---|---|
 | Bitcoin, Litecoin, Dogecoin | Varredura com gap limit endereço a endereço; troco no próximo índice livre, conferido em dois provedores; poeira fica de fora, e a revisão conta o que ficou | Sim | Não (pede ponte entre redes) | Não |

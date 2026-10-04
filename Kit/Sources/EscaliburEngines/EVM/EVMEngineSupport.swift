@@ -22,6 +22,8 @@ enum EVMEngineFailure: Error, Equatable, Sendable {
     case accountMismatch
     /// Token fora da lista curada, ou com casas decimais diferentes das compiladas.
     case assetNotListed
+    /// Moeda custom cujas casas decimais na rede nao sao mais as salvas.
+    case customDecimalsChanged
     /// Tag, memo ou comentario num envio EVM, que nao tem esse campo.
     case tagNotSupported
     /// O plano saiu com um destinatario diferente do pedido.
@@ -96,18 +98,29 @@ enum EVMEngineSupport {
     /// O ativo do pedido pela lista curada. Do `Asset` que o app manda so se usa o
     /// contrato para achar a entrada; simbolo e casas decimais vem da lista, e casas
     /// diferentes recusam (o valor digitado seria lido em outra escala).
-    static func resolve(_ asset: Asset, on chain: Chain) throws -> EVMResolvedAsset {
+    ///
+    /// `allowCustom` (so o envio): uma moeda custom do dono, fora da lista, vira token com
+    /// o contrato e as casas salvas. O motor rele as casas na rede, em dois provedores,
+    /// antes de montar (`EVMSendEngine`), e a revisao leva o aviso de nao verificado.
+    /// Contrato da lista nunca vira custom: com o mesmo contrato, vale a lista.
+    static func resolve(_ asset: Asset, on chain: Chain, allowCustom: Bool = false) throws -> EVMResolvedAsset {
         guard asset.chainID == chain.id else { throw EVMEngineFailure.assetNotListed }
         switch asset.kind {
         case .native:
             guard asset.decimals == chain.nativeDecimals else { throw EVMEngineFailure.assetNotListed }
             return .native
         case .token(let contract):
-            guard let listed = TokenRegistry.find(chainID: chain.id, contract: contract), listed.decimals == asset.decimals,
-                  case .token(let listedContract) = listed.kind, let address = try? EVMAddress(listedContract),
-                  let decimals = UInt8(exactly: listed.decimals)
+            if let listed = TokenRegistry.find(chainID: chain.id, contract: contract) {
+                guard listed.decimals == asset.decimals, case .token(let listedContract) = listed.kind,
+                      let address = try? EVMAddress(listedContract), let decimals = UInt8(exactly: listed.decimals)
+                else { throw EVMEngineFailure.assetNotListed }
+                return .token(EVMToken(chain: chain, contract: address, symbol: listed.symbol, decimals: decimals))
+            }
+            guard allowCustom, asset.isCustom, let address = try? EVMAddress(contract),
+                  let decimals = UInt8(exactly: asset.decimals), decimals <= 36
             else { throw EVMEngineFailure.assetNotListed }
-            return .token(EVMToken(chain: chain, contract: address, symbol: listed.symbol, decimals: decimals))
+            let symbol = TokenSafety.clean(asset.symbol, limit: TokenSafety.symbolLimit)
+            return .token(EVMToken(chain: chain, contract: address, symbol: symbol.isEmpty ? String(address.checksummed.prefix(6)) : symbol, decimals: decimals))
         case .issued:
             throw EVMEngineFailure.assetNotListed
         }

@@ -137,21 +137,47 @@ public actor CardanoReader {
     /// diferentes chegaram, escondidos por padrao. Koios, e a Yoroi se ela falhar.
     public func displayBalance(owner text: String) async throws -> ChainBalance {
         let owner = try Self.ownerAddress(text)
-        let (utxos, tokens) = try await displayReading(owner)
+        let (utxos, tokens, unlisted) = try await displayReading(owner)
         let total = utxos.reduce(BigUInt(0)) { $0 + BigUInt($1.lovelace) }
         return ChainBalance(
             chainID: Chain.cardano.id, holdings: [Holding(asset: .native(.cardano), amount: total)],
-            accountExists: true, unknownTokenCount: tokens, fetchedAt: .now
+            accountExists: true, unknownTokenCount: tokens, fetchedAt: .now, unlisted: unlisted.map(UnlistedHolding.sorted)
         )
     }
 
-    private func displayReading(_ owner: String) async throws -> ([CardanoUTXO], Int) {
+    private func displayReading(_ owner: String) async throws -> ([CardanoUTXO], Int, [UnlistedHolding]?) {
         do {
             let data = try await transport.send(Self.koiosUTXORequest(koios, owner))
-            return (try Self.parseKoiosUTXOs(data, owner: owner), try Self.tokenKinds(koios: data))
+            return (try Self.parseKoiosUTXOs(data, owner: owner), try Self.tokenKinds(koios: data), try? Self.nativeTokens(koios: data))
         } catch {
             let data = try await transport.send(Self.yoroiUTXORequest(yoroi, owner))
-            return (try Self.parseYoroiUTXOs(data, owner: owner), try Self.tokenKinds(yoroi: data))
+            return (try Self.parseYoroiUTXOs(data, owner: owner), try Self.tokenKinds(yoroi: data), nil)
+        }
+    }
+
+    /// Os tokens nativos das moedas da Koios, somados por politica e nome. O nome do ativo
+    /// vem em hex e quase sempre e texto; as casas sao as do registro de tokens da Cardano
+    /// que a Koios repassa (zero quando o token nao esta la). O "contrato" e a unidade:
+    /// politica seguida do nome em hex.
+    static func nativeTokens(koios data: Data) throws -> [UnlistedHolding] {
+        var totals: [String: (policy: String, name: String, decimals: Int, amount: BigUInt)] = [:]
+        for row in try StrictJSON.parse(data).array("address_utxos") {
+            for asset in try row.field("asset_list", "asset_list").array("asset_list") {
+                let policy = try asset.field("policy_id", "policy_id").string("policy_id")
+                let name = try asset.field("asset_name", "asset_name").string("asset_name")
+                let quantity = try asset.field("quantity", "quantity").decimalString("quantity")
+                let declared: UInt64? = asset.optionalField("decimals").flatMap { try? $0.uint64("decimals") }
+                let decimals: Int = declared.map { $0 <= 36 ? Int($0) : 0 } ?? 0
+                let unit = policy + name
+                let previous = totals[unit]?.amount ?? BigUInt()
+                totals[unit] = (policy, name, decimals, previous + quantity)
+            }
+        }
+        return totals.compactMap { unit, entry in
+            guard !entry.amount.isZero else { return nil }
+            let text = Hex.decode(entry.name).flatMap { String(bytes: $0, encoding: .utf8) } ?? ""
+            let symbol = text.isEmpty ? String(entry.policy.prefix(8)) : text
+            return UnlistedHolding.make(chain: .cardano, kind: .token(contract: unit), symbol: symbol, name: symbol, decimals: entry.decimals, amount: entry.amount)
         }
     }
 

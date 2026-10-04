@@ -45,10 +45,18 @@ enum SolanaEngineGuard {
 enum SolanaEngineAsset: Equatable {
     case sol
     /// Token da `TokenRegistry`, com o mint compilado. Mint que nao esta na lista,
-    /// ou esta com outras casas, nao chega aqui.
+    /// ou esta com outras casas, nao chega aqui. No envio (`allowCustom`), tambem a
+    /// moeda custom do dono: `listed` e entao a moeda salva, e o motor confere as casas
+    /// na rede, em dois provedores, antes de montar.
     case token(mint: SolanaPublicKey, listed: Asset)
 
-    init(_ asset: Asset) throws {
+    /// Moeda custom (fora da lista) que o envio aceita.
+    var isCustom: Bool {
+        if case .token(_, let asset) = self { return asset.isCustom }
+        return false
+    }
+
+    init(_ asset: Asset, allowCustom: Bool = false) throws {
         guard asset.chainID == Chain.solana.id else { throw SolanaEngineProblem.assetNotSupported }
         switch asset.kind {
         case .native:
@@ -57,10 +65,17 @@ enum SolanaEngineAsset: Equatable {
         case .token(let contract):
             // Comparacao exata do texto do mint: base58 distingue maiusculas, e a busca
             // da lista (`TokenRegistry.find`) ignora a caixa por causa dos contratos EVM.
-            guard let listed = TokenRegistry.tokens.first(where: { $0.chainID == asset.chainID && $0.kind == asset.kind }),
-                  listed.decimals == asset.decimals, let mint = try? SolanaPublicKey(base58: contract)
+            if let listed = TokenRegistry.tokens.first(where: { $0.chainID == asset.chainID && $0.kind == asset.kind }) {
+                guard listed.decimals == asset.decimals, let mint = try? SolanaPublicKey(base58: contract) else {
+                    throw SolanaEngineProblem.assetNotSupported
+                }
+                self = .token(mint: mint, listed: listed)
+                return
+            }
+            guard allowCustom, asset.isCustom, let mint = try? SolanaPublicKey(base58: contract), mint.base58 == contract,
+                  (0...36).contains(asset.decimals), SolanaProgram(id: mint) == nil, mint != SolanaWrappedSOL.mint
             else { throw SolanaEngineProblem.assetNotSupported }
-            self = .token(mint: mint, listed: listed)
+            self = .token(mint: mint, listed: asset)
         case .issued:
             throw SolanaEngineProblem.assetNotSupported
         }

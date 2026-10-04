@@ -203,6 +203,7 @@ struct TONSendEngine: SendEngine {
     /// TON, ou o USDT do mestre compilado. Qualquer outro jetton fica fora.
     static func coin(_ asset: Asset) throws -> Coin {
         guard asset.chainID == Chain.ton.id else { throw SendEngineError.message(TONEngineText.unsupportedAsset) }
+        if asset.isCustom, let reason = CustomToken.sendUnavailableReason(.ton) { throw SendEngineError.unavailable(reason) }
         switch asset.kind {
         case .native:
             return .ton

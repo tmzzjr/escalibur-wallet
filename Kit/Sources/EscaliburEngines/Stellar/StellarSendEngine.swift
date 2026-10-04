@@ -52,7 +52,7 @@ struct StellarSendEngine: SendEngine {
     func spendable(_ request: SendRequest) async throws -> Spendable {
         try requireChain(request.chain)
         let source = try StellarEngineSupport.source(request.account)
-        let asset = try StellarEngineSupport.stellar(request.asset)
+        let asset = try StellarEngineSupport.stellar(request.asset, allowCustom: true)
         do {
             async let owner = reader.ownerAccount(source.account)
             async let networkState = reader.networkState()
@@ -88,7 +88,8 @@ struct StellarSendEngine: SendEngine {
     func plan(_ request: SendRequest) async throws -> SigningPlan {
         try requireChain(request.chain)
         let source = try StellarEngineSupport.source(request.account)
-        let asset = try StellarEngineSupport.stellar(request.asset)
+        let asset = try StellarEngineSupport.stellar(request.asset, allowCustom: true)
+        let isCustom = !asset.isNative && !StellarEngineSupport.allowedAssets.contains(asset)
         let memo = try StellarEngineSupport.memo(request.tag)
         do {
             async let owner = reader.ownerAccount(source.account)
@@ -99,7 +100,7 @@ struct StellarSendEngine: SendEngine {
             guard let account = try await owner else { throw SendEngineError.message(StellarEngineSupport.accountMissing) }
             let context = StellarPlanContext(
                 walletID: request.walletID, source: source, account: account, network: network,
-                allowedAssets: StellarEngineSupport.allowedAssets
+                allowedAssets: StellarEngineSupport.allowedAssets + (isCustom ? [asset] : [])
             )
             let amount = request.sendAll ? try Self.sendAllAmount(asset, account: account, network: network) : request.amount
             if asset.isNative {
@@ -107,9 +108,11 @@ struct StellarSendEngine: SendEngine {
                     amount: amount, to: request.destination, memo: memo, destination: destination, context: context
                 )
             }
-            return try StellarPlanner.planSendAsset(
+            let plan = try StellarPlanner.planSendAsset(
                 asset, amount: amount, to: request.destination, memo: memo, destination: destination, context: context
             )
+            // Moeda custom: o emissor nao foi conferido pela Escalibur, e a revisao diz.
+            return isCustom ? plan.addingWarnings([.unverifiedToken(symbol: asset.code)]) : plan
         } catch {
             throw StellarEngineSupport.translate(error)
         }

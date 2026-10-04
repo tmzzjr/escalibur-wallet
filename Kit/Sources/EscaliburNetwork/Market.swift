@@ -131,6 +131,11 @@ public actor MarketService {
     private var learnedPaprikaIDs: [String: String] = [:]
     private var geckoPausedUntil: Date?
     private var geckoPause: TimeInterval = 0
+    /// Preco por contrato (moeda custom e token fora da lista), por moeda e por
+    /// `Asset.id`. `nil` guardado: a fonte respondeu e nao tem preco para o contrato.
+    private var tokenPrices: [String: [String: (at: Date, quote: Quote?)]] = [:]
+    /// Contrato para id do CoinPaprika, por plataforma: a reserva do preco por contrato.
+    private var paprikaContracts: [String: (at: Date, ids: [String: String])] = [:]
 
     static let quoteLifetime: TimeInterval = 30
     static let listLifetime: TimeInterval = 25
@@ -325,6 +330,107 @@ public actor MarketService {
             guard let values = values(currency), let price = values.price, price.isFinite, price > 0 else { return nil }
             return Quote(price: price, change24h: values.percent_change_24h)
         }
+    }
+
+    // MARK: Preco por contrato
+
+    /// A plataforma de cada rede no CoinGecko (`/asset_platforms`, conferido em
+    /// 04/10/2026) e no CoinPaprika (`/contracts`). Sem plataforma no CoinPaprika, a rede
+    /// fica so com o CoinGecko.
+    static let tokenPlatforms: [String: (gecko: String, paprika: String?)] = [
+        "ethereum": ("ethereum", "eth-ethereum"), "base": ("base", "base-base"), "arbitrum": ("arbitrum-one", "arb-arbitrum"),
+        "optimism": ("optimistic-ethereum", "op-optimism"), "polygon": ("polygon-pos", "matic-polygon"),
+        "bnb": ("binance-smart-chain", "bnb-binance-coin"), "avalanche": ("avalanche", "avax-avalanche"), "plasma": ("plasma", nil),
+        "xlayer": ("x-layer", "okb-okb"), "linea": ("linea", "linea-linea"), "unichain": ("unichain", "uni-uniswap"),
+        "sonic": ("sonic", "s-sonic"), "celo": ("celo", "celo-celo"), "solana": ("solana", "sol-solana"), "tron": ("tron", "trx-tron"),
+        "ton": ("the-open-network", "toncoin-the-open-network"), "sui": ("sui", "sui-sui"), "aptos": ("aptos", "apt-aptos"),
+        // NEAR: o contrato e o nome da conta; Cardano: politica seguida do nome em hex.
+        // Conferidos no CoinGecko em 04/10/2026. A Asset Hub da Polkadot nao responde por
+        // numero de ativo, e fica sem preco por contrato.
+        "near": ("near-protocol", "near-near-protocol"), "cardano": ("cardano", "ada-cardano"),
+    ]
+
+    static let tokenPriceLifetime: TimeInterval = 300
+    /// "Sem preco" vale meia hora: o CoinGecko sem chave aceita um contrato por chamada
+    /// e poucas chamadas por minuto, e a maioria dos tokens que chegam sozinhos nunca vai
+    /// ter preco.
+    static let tokenMissLifetime: TimeInterval = 1800
+    /// Contratos novos consultados por vez; os outros ficam para a proxima atualizacao.
+    static let tokenLookupsPerCall = 6
+
+    /// Preco por endereco de contrato, numa fonte que lista o contrato: o CoinGecko
+    /// (`simple/token_price/{plataforma}`) e, com ele fora (429, sem rede), o CoinPaprika
+    /// (contrato para moeda em `/contracts/{plataforma}`, preco em `/tickers/{id}`). Nunca
+    /// pelo simbolo: qualquer um cria um "USDC". Devolve por `Asset.id`; o que nao tem
+    /// preco nao aparece.
+    public func tokenQuotes(_ assets: [Asset], currency: String) async -> [String: Quote] {
+        let moment = now()
+        var out: [String: Quote] = [:]
+        var pending: [Asset] = []
+        var seen = Set<String>()
+        for asset in assets where seen.insert(asset.id).inserted {
+            guard case .token = asset.kind, Self.tokenPlatforms[asset.chainID] != nil else { continue }
+            if let cached = tokenPrices[currency]?[asset.id],
+               moment.timeIntervalSince(cached.at) < (cached.quote == nil ? Self.tokenMissLifetime : Self.tokenPriceLifetime) {
+                if let quote = cached.quote { out[asset.id] = quote }
+                continue
+            }
+            pending.append(asset)
+        }
+        for asset in pending.prefix(Self.tokenLookupsPerCall) {
+            guard let answer = await tokenQuote(asset, currency: currency) else {
+                // As duas fontes falharam: o ultimo preco bom, se houver, e nada se guarda.
+                if let stale = tokenPrices[currency]?[asset.id]?.quote { out[asset.id] = stale }
+                continue
+            }
+            tokenPrices[currency, default: [:]][asset.id] = (moment, answer.quote)
+            if let quote = answer.quote { out[asset.id] = quote }
+        }
+        return out
+    }
+
+    /// `nil`: nenhuma fonte respondeu. `quote == nil`: a fonte respondeu sem preco.
+    private func tokenQuote(_ asset: Asset, currency: String) async -> (quote: Quote?, Void)? {
+        guard case .token(let contract) = asset.kind, let platform = Self.tokenPlatforms[asset.chainID] else { return nil }
+        do {
+            // O CoinGecko respondeu: com ou sem preco, e a resposta.
+            return (try await fromGecko { try await self.geckoTokenQuote(platform.gecko, contract: contract, currency: currency) }, ())
+        } catch {
+            // Fora do ar ou de castigo: a reserva.
+        }
+        guard let paprikaPlatform = platform.paprika else { return nil }
+        return try? await (paprikaTokenQuote(paprikaPlatform, contract: contract, currency: currency), ())
+    }
+
+    private func geckoTokenQuote(_ platform: String, contract: String, currency: String) async throws -> Quote? {
+        let url = Self.url(Self.gecko, "simple/token_price/\(platform)", [
+            ("contract_addresses", contract), ("vs_currencies", currency), ("include_24hr_change", "true"),
+        ])
+        let raw = try await get([String: [String: Double?]].self, url)
+        return Self.tokenQuote(raw, contract: contract, currency: currency)
+    }
+
+    /// A resposta do CoinGecko vem com o contrato como chave (minusculo na EVM).
+    static func tokenQuote(_ raw: [String: [String: Double?]], contract: String, currency: String) -> Quote? {
+        guard let values = raw.first(where: { $0.key.lowercased() == contract.lowercased() })?.value,
+              let price = values[currency] ?? nil, price.isFinite, price > 0
+        else { return nil }
+        return Quote(price: price, change24h: values["\(currency)_24h_change"] ?? nil)
+    }
+
+    private func paprikaTokenQuote(_ platform: String, contract: String, currency: String) async throws -> Quote? {
+        let ids: [String: String]
+        if let cached = paprikaContracts[platform], now().timeIntervalSince(cached.at) < 6 * 3600 {
+            ids = cached.ids
+        } else {
+            struct Entry: Decodable { let address: String; let id: String; let active: Bool? }
+            let list = try await get([Entry].self, Self.url(Self.paprika, "contracts/\(platform)"), timeout: 20)
+            ids = Dictionary(list.filter { $0.active != false }.map { ($0.address.lowercased(), $0.id) }, uniquingKeysWith: { a, _ in a })
+            paprikaContracts[platform] = (now(), ids)
+        }
+        guard let id = ids[contract.lowercased()] else { return nil }
+        let ticker = try await get(PaprikaTicker.self, Self.url(Self.paprika, "tickers/\(id)", [("quotes", currency.uppercased())]))
+        return ticker.quote(currency)
     }
 
     // MARK: Lista de mercado

@@ -220,7 +220,13 @@ struct BalanceBatchTests {
         """.utf8))
         let (holdings, unknown) = BalanceService.trustLineHoldings(json)
         #expect(holdings == [Holding(asset: usdc, amount: BigUInt(15_000_000))])
-        // O "USD" do mesmo emissor nao e o USDC: codigo diferente, token desconhecido.
-        #expect(unknown == 1)
+        // O "USD" do mesmo emissor nao e o USDC: codigo diferente, fica em "Outros
+        // tokens", marcado, com as casas que a carteira usa no XRP Ledger.
+        #expect(unknown.count == 1)
+        #expect(unknown.first?.asset.symbol == "USD")
+        #expect(unknown.first?.asset.origin == .discovered)
+        #expect(unknown.first?.amount == BigUInt(2_000_000))
+        // Linha de confianca so nasce pelo dono: nada de poeira "sem pedir" aqui.
+        #expect(unknown.first?.reasons.contains(.dust) == false)
     }
 }

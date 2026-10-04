@@ -208,11 +208,49 @@ public actor SuiReader {
             return try Self.parseBalances(try await self.call(provider, "sui.rpc.v2.StateService/ListBalances", Self.balancesRequest(owner)))
         }
         let sui = balances.first { $0.coinType == SuiPlanner.suiCoinType }?.total ?? 0
-        let others = balances.filter { $0.coinType != SuiPlanner.suiCoinType && $0.total > 0 }.count
+        let others = balances.filter { $0.coinType != SuiPlanner.suiCoinType && $0.total > 0 }
+        // Nome, simbolo e casas das outras moedas pelo GraphQL da Sui Foundation. Sem ele,
+        // a tela so sabe quantas sao.
+        let unlisted = try? await otherCoins(Array(others.prefix(50)))
         return ChainBalance(
             chainID: Chain.sui.id, holdings: [Holding(asset: .native(.sui), amount: BigUInt(sui))],
-            accountExists: true, unknownTokenCount: others, fetchedAt: .now
+            accountExists: true, unknownTokenCount: others.count, fetchedAt: .now, unlisted: unlisted.map(UnlistedHolding.sorted)
         )
+    }
+
+    /// `coinMetadata` de cada tipo de moeda, numa consulta so (um apelido por tipo; o tipo
+    /// vai em variavel, nunca no texto da consulta).
+    func otherCoins(_ readings: [BalanceReading]) async throws -> [UnlistedHolding] {
+        guard let graphQL else { throw ReaderError.unsupported("sem GraphQL") }
+        guard !readings.isEmpty else { return [] }
+        let json = try StrictJSON.parse(try await transport.send(.post(graphQL, Self.metadataQuery(readings.map(\.coinType)))))
+        return try Self.parseOtherCoins(json, readings: readings)
+    }
+
+    static func metadataQuery(_ types: [String]) -> StrictJSON {
+        let parameters = types.indices.map { "$t\($0): String!" }.joined(separator: ", ")
+        let fields = types.indices.map { "m\($0): coinMetadata(coinType: $t\($0)) { decimals name symbol }" }.joined(separator: " ")
+        var variables: [String: StrictJSON] = [:]
+        for (index, type) in types.enumerated() { variables["t\(index)"] = .string(type) }
+        return .object(["query": .string("query(\(parameters)) { \(fields) }"), "variables": .object(variables)])
+    }
+
+    /// Moeda sem metadados (ou casas fora da faixa) aparece com o fim do tipo como simbolo
+    /// e sem casas: nada se inventa.
+    static func parseOtherCoins(_ json: StrictJSON, readings: [BalanceReading]) throws -> [UnlistedHolding] {
+        if let errors = json.optionalField("errors"), !(errors.arrayValue ?? []).isEmpty { throw ReaderError.providerError(code: "graphql") }
+        let data = try json.field("data", "$")
+        return readings.enumerated().map { index, reading in
+            let metadata = data.optionalField("m\(index)")
+            let decimals = (metadata?.optionalField("decimals")).flatMap { try? $0.uint64("decimals") }.flatMap { $0 <= 36 ? Int($0) : nil }
+            let fallback = String(reading.coinType.split(separator: ":").last ?? "")
+            return UnlistedHolding.make(
+                chain: .sui, kind: .token(contract: reading.coinType),
+                symbol: (metadata?.optionalField("symbol")).flatMap { try? $0.string("symbol") } ?? fallback,
+                name: (metadata?.optionalField("name")).flatMap { try? $0.string("name") } ?? fallback,
+                decimals: decimals ?? 0, amount: BigUInt(reading.total)
+            )
+        }
     }
 
     // MARK: Transporte

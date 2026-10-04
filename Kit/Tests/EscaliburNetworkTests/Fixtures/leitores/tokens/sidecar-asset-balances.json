@@ -1,0 +1,68 @@
+{
+ "at": {
+  "hash": "0x9cca20fa4175aa22996c604d9df90d8f0265631fc0d830fd6faf087c6d5dfa9b",
+  "height": "21440834"
+ },
+ "assets": [
+  {
+   "assetId": "30",
+   "balance": "499562033401098729362",
+   "isFrozen": "isFrozen does not exist for this runtime",
+   "isSufficient": false
+  },
+  {
+   "assetId": "42069",
+   "balance": "14200006900000000",
+   "isFrozen": "isFrozen does not exist for this runtime",
+   "isSufficient": false
+  },
+  {
+   "assetId": "1984",
+   "balance": "5134516679594",
+   "isFrozen": "isFrozen does not exist for this runtime",
+   "isSufficient": true
+  },
+  {
+   "assetId": "31337",
+   "balance": "6666680000000000",
+   "isFrozen": "isFrozen does not exist for this runtime",
+   "isSufficient": false
+  },
+  {
+   "assetId": "1337",
+   "balance": "1479493325950",
+   "isFrozen": "isFrozen does not exist for this runtime",
+   "isSufficient": true
+  },
+  {
+   "assetId": "23",
+   "balance": "298009300000",
+   "isFrozen": "isFrozen does not exist for this runtime",
+   "isSufficient": false
+  },
+  {
+   "assetId": "64",
+   "balance": "10000000000000000000",
+   "isFrozen": "isFrozen does not exist for this runtime",
+   "isSufficient": false
+  },
+  {
+   "assetId": "22222005",
+   "balance": "0",
+   "isFrozen": false,
+   "isSufficient": false
+  },
+  {
+   "assetId": "50000074",
+   "balance": "0",
+   "isFrozen": false,
+   "isSufficient": false
+  },
+  {
+   "assetId": "9999",
+   "balance": "0",
+   "isFrozen": false,
+   "isSufficient": false
+  }
+ ]
+}

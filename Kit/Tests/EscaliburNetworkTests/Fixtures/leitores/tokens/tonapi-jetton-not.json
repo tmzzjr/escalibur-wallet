@@ -1,0 +1,18 @@
+{
+ "mintable": true,
+ "total_supply": "102452655868343930134",
+ "metadata": {
+  "address": "0:2f956143c461769579baef2e32cc2d7bc18283f40d20bb03e432cd603ac33ffc",
+  "name": "Notcoin",
+  "symbol": "NOT",
+  "decimals": "9",
+  "image": "https://cdn.joincommunity.xyz/clicker/not_logo.png"
+ },
+ "verification": "whitelist",
+ "code_hash": "+D0FSQr3ycxYAZSIx7JTyUktScJdEtCTg+UugVN+NDo=",
+ "data_hash": "u9ZPx5+yy0E0gsONtxCxYKxJg4IZRuEyrQzIqTJ4vyY=",
+ "name": "notcoin-minter.ton",
+ "interfaces": [
+  "jetton_master"
+ ]
+}

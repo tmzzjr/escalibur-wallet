@@ -66,7 +66,7 @@ struct SolanaSendEngine: SendEngine {
             // O destino so ajusta a estimativa (prioridade das contas gravaveis, conta
             // de token a criar). Destino ainda invalido nao impede a conta.
             let destination = try? SolanaEngineGuard.destination(request.destination)
-            switch try SolanaEngineAsset(request.asset) {
+            switch try SolanaEngineAsset(request.asset, allowCustom: true) {
             case .sol:
                 return try await spendableSOL(owner: owner, destination: destination)
             case .token(let mint, let listed):
@@ -99,7 +99,8 @@ struct SolanaSendEngine: SendEngine {
     /// motivo na nota. E estimativa: quem decide e o planejador, com o estado da hora.
     func spendableToken(owner: SolanaOwner, mint: SolanaPublicKey, listed: Asset, destination: SolanaPublicKey?) async throws -> Spendable {
         let token = try await network.tokenState(owner: owner.publicKey, mint: mint)
-        guard token.isVerified, Int(token.decimals) == listed.decimals else { throw SolanaEngineProblem.tokenNotVerified }
+        // Moeda custom nunca e "verificada"; as casas da rede tem de ser as salvas.
+        guard token.isVerified || listed.isCustom, Int(token.decimals) == listed.decimals else { throw SolanaEngineProblem.tokenNotVerified }
         // Sem destino legivel, o pior caso: criar a conta de token dele.
         var createsAccount = true
         var writable = [token.source.address]
@@ -150,24 +151,32 @@ struct SolanaSendEngine: SendEngine {
         var flow = SolanaEngineMessages.Flow.sendSOL
         do {
             try SolanaEngineGuard.chain(request.chain)
-            let asset = try SolanaEngineAsset(request.asset)
+            let asset = try SolanaEngineAsset(request.asset, allowCustom: true)
             guard (request.tag ?? "").isEmpty else { throw SolanaEngineProblem.tagNotSupported }
             let owner = try SolanaEngineGuard.owner(request.account)
             let destination = try SolanaEngineGuard.destination(request.destination)
+            if case .token(let mint, _) = asset, destination == mint { throw SolanaEngineProblem.destinationIsMint }
             let plan: SigningPlan
             switch asset {
             case .sol:
                 let lamports = request.sendAll ? try await sendAllLamports(shown: request.amount, owner: owner, destination: destination) : request.amount
                 plan = try await network.planSendSOL(walletID: request.walletID, owner: owner, to: request.destination, lamports: lamports)
-            case .token(let mint, _):
+            case .token(let mint, let saved):
                 flow = .sendToken
                 // Conta de token colada no lugar de carteira: o planejador aceitaria, mas
                 // o destino do plano seria o dono dela, nao o endereco digitado, e o app
                 // recusaria sem dizer por que. Recusa aqui, com o motivo.
                 if case .tokenAccount = try await network.destinationAccount(destination) { throw SolanaEngineProblem.destinationIsTokenAccount }
+                if asset.isCustom {
+                    // Moeda custom: o mint lido em dois provedores tem as casas salvas.
+                    // O planejador le de novo e grava essas casas no transferChecked.
+                    let onChain = try await network.swapAsset(mint: mint)
+                    guard Int(onChain.decimals) == saved.decimals else { throw SolanaEngineProblem.tokenNotVerified }
+                }
                 plan = try await network.planSendToken(walletID: request.walletID, owner: owner, to: request.destination, mint: mint, amount: request.amount)
-                // Mint da lista com casas diferentes na rede: o planejador so avisa.
-                if plan.review.warnings.contains(where: { if case .unverifiedToken = $0 { true } else { false } }) {
+                // Mint da lista com casas diferentes na rede: o planejador so avisa. Na
+                // moeda custom o aviso de nao verificado e esperado e fica na revisao.
+                if !asset.isCustom, plan.review.warnings.contains(where: { if case .unverifiedToken = $0 { true } else { false } }) {
                     throw SolanaEngineProblem.tokenNotVerified
                 }
             }

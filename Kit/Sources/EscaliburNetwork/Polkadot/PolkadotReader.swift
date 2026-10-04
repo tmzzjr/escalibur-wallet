@@ -135,9 +135,49 @@ public actor PolkadotReader {
             let raw = try Self.optionalHex(try await self.call(provider, "state_getStorage", [.string(Self.accountKey(owner))]), "storage")
             return try Self.accountInfo(raw)
         }
+        // Os ativos da Asset Hub (pallet assets) pelo sidecar da Parity: saldo de todos
+        // numa chamada, nome, simbolo e casas de cada um com saldo. Sem o sidecar, so o DOT.
+        let unlisted = try? await otherAssets(text)
         return ChainBalance(
             chainID: Chain.polkadot.id, holdings: [Holding(asset: .native(.polkadot), amount: info.total)],
-            accountExists: !info.total.isZero, unknownTokenCount: 0, fetchedAt: .now
+            accountExists: !info.total.isZero, unknownTokenCount: 0, fetchedAt: .now, unlisted: unlisted.map(UnlistedHolding.sorted)
+        )
+    }
+
+    func otherAssets(_ owner: String) async throws -> [UnlistedHolding] {
+        let balances = try StrictJSON.parse(try await transport.send(.get(sidecar.adding(path: "accounts/\(owner)/asset-balances"), timeout: 20)))
+        var out: [UnlistedHolding] = []
+        for (id, amount) in try Self.assetBalances(balances).prefix(20) {
+            let info = try? StrictJSON.parse(try await transport.send(.get(sidecar.adding(path: "pallets/assets/\(id)/asset-info"))))
+            out.append(Self.assetHolding(id: id, amount: amount, info: info))
+        }
+        return out
+    }
+
+    /// Os ativos com saldo de `/accounts/{a}/asset-balances` (o sidecar lista todos, a
+    /// maioria com zero).
+    static func assetBalances(_ json: StrictJSON) throws -> [(id: String, amount: BigUInt)] {
+        try json.field("assets", "asset-balances").array("assets").compactMap { asset in
+            guard let id = try? asset.field("assetId", "asset").integer("assetId"),
+                  let amount = try? asset.field("balance", "asset").integer("balance"), !amount.isZero
+            else { return nil }
+            return (id.decimalString, amount)
+        }
+    }
+
+    /// Nome e simbolo vem em hex (bytes do pallet); casas em texto. Sem metadados, o
+    /// numero do ativo.
+    static func assetHolding(id: String, amount: BigUInt, info: StrictJSON?) -> UnlistedHolding {
+        let metadata = info?.optionalField("assetMetaData")
+        func text(_ key: String) -> String {
+            guard let hex = (metadata?.optionalField(key)).flatMap({ try? $0.string(key) }), let bytes = Hex.decode(hex) else { return "" }
+            return String(bytes: bytes, encoding: .utf8) ?? ""
+        }
+        let decimals = (metadata?.optionalField("decimals")).flatMap { try? $0.integer("decimals") }.flatMap(\.uint64).map { $0 <= 36 ? Int($0) : 0 } ?? 0
+        let symbol = text("symbol")
+        return UnlistedHolding.make(
+            chain: .polkadot, kind: .token(contract: id), symbol: symbol.isEmpty ? "#\(id)" : symbol, name: text("name"),
+            decimals: decimals, amount: amount
         )
     }
 

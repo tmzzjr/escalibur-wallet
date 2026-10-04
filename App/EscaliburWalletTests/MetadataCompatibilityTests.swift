@@ -1,4 +1,5 @@
 import EscaliburChains
+import EscaliburCore
 import EscaliburEngines
 import EscaliburNetwork
 import Foundation
@@ -44,6 +45,32 @@ struct MetadataCompatibilityTests {
         #expect(back.responsibilityAccepted == when)
         #expect(back.responsibilityVersion == ResponsibilityView.version)
         #expect(back.wallets == metadata.wallets)
+    }
+
+    @Test("Moedas custom e outros tokens: o arquivo da 1.0 abre sem eles, e eles vao e voltam")
+    func customAssetsRoundTrip() throws {
+        var metadata = try JSONDecoder().decode(Metadata.self, from: Data(contentsOf: Self.fixture))
+        #expect(metadata.customAssets == nil && metadata.customTokens.isEmpty)
+        let cached = try #require(metadata.balanceCache.values.first?["ethereum"])
+        #expect(cached.unlisted == nil && cached.unknownTokenCount == 2)
+        let custom = CustomToken.asset(chain: .base, kind: .token(contract: "0xd77cD3531c306204069684F48Af23F1213FE0165"), symbol: "OpenAI",
+                                       name: "OpenAI", decimals: 18)
+        metadata.customAssets = [custom]
+        let found = UnlistedHolding(
+            asset: Asset(chainID: "base", kind: .token(contract: "0x53f2f8629585F397EF0cb8395325C673F86F272b"), symbol: "www.badrp.co",
+                         name: "Reward", decimals: 18, coingeckoID: nil, isStablecoin: false, origin: .discovered),
+            amount: BigUInt(7), reasons: [.link, .bait]
+        )
+        let walletID = try #require(metadata.balanceCache.keys.first)
+        metadata.balanceCache[walletID]?["base"] = ChainBalance(
+            chainID: "base", holdings: [Holding(asset: custom, amount: BigUInt(9))], accountExists: true, unknownTokenCount: 0,
+            fetchedAt: Date(timeIntervalSince1970: 1_790_000_000), unlisted: [found]
+        )
+        let back = try JSONDecoder().decode(Metadata.self, from: JSONEncoder().encode(metadata))
+        #expect(back.customAssets == [custom] && back.customTokens.first?.isCustom == true)
+        let base = try #require(back.balanceCache[walletID]?["base"])
+        #expect(base.unlisted == [found] && base.unknownTokenCount == 1)
+        #expect(base.holdings.first?.asset == custom)
     }
 
     /// Gera o arquivo uma vez, na versao 1.0: `ESCALIBUR_GRAVAR_METADADOS=1`. Depois

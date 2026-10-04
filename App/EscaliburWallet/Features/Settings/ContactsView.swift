@@ -236,15 +236,17 @@ struct AddContactSheet: View {
     }
 }
 
-/// P4: gerenciar ativos.
+/// P4: gerenciar ativos: o que aparece na Carteira e as moedas custom.
 struct ManageAssetsView: View {
     @Environment(AppSession.self) private var session
     @Environment(Portfolio.self) private var portfolio
+    @State private var adding = false
+    @State private var removing: Asset?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                if let wallet = session.selectedWallet {
+                if let wallet = session.selectedWallet, !portfolio.allRows.isEmpty {
                     SettingsGroup {
                         ForEach(portfolio.allRows) { row in
                             Toggle(isOn: Binding(
@@ -257,8 +259,9 @@ struct ManageAssetsView: View {
                                 }
                             )) {
                                 HStack(spacing: Space.sm) {
-                                    CoinLogo(coingeckoID: row.coingeckoID, symbol: row.symbol, size: 28, ringColor: Palette.body)
-                                    Text(row.symbol).typeStyle(.body).foregroundStyle(Palette.ink)
+                                    CoinLogo(coingeckoID: row.coingeckoID, symbol: row.symbol, size: 28, ringColor: Palette.body, unverified: row.origin != nil)
+                                    Text(verbatim: row.symbol).typeStyle(.body).foregroundStyle(Palette.ink)
+                                    if row.isCustom { TokenBadge(.custom) }
                                 }
                             }
                             .tint(Palette.lime)
@@ -267,16 +270,71 @@ struct ManageAssetsView: View {
                     }
                     .padding(.top, Space.md)
                 }
+
+                VStack(alignment: .leading, spacing: Space.xxs) {
+                    Text("Moedas custom").typeStyle(.heading).foregroundStyle(Palette.ink)
+                    Text("Um token que não está na lista verificada e que você quer ver, receber e enviar. A carteira lê nome, símbolo e casas decimais na própria rede antes de salvar.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, Space.gutter).padding(.top, Space.xl)
+
+                if !session.metadata.customTokens.isEmpty {
+                    SettingsGroup {
+                        ForEach(session.metadata.customTokens, id: \.id) { asset in
+                            HStack(spacing: Space.sm) {
+                                CoinLogo(coingeckoID: nil, symbol: asset.symbol, size: 28, network: asset.chain, ringColor: Palette.body, unverified: true)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(verbatim: asset.symbol).typeStyle(.body).foregroundStyle(Palette.ink).lineLimit(1)
+                                    Text(verbatim: "\(asset.chain?.name ?? asset.chainID) · \(Fmt.address(CustomToken.reference(asset.kind) ?? ""))")
+                                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
+                                }
+                                Spacer()
+                                Button { removing = asset } label: {
+                                    Text("Remover").typeStyle(.note).foregroundStyle(Palette.inkSoft).frame(minHeight: Height.touch)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Remover \(asset.symbol)")
+                            }
+                            .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
+                        }
+                    }
+                    .padding(.top, Space.sm)
+                }
+
+                SecondaryButton(title: "Adicionar moeda", systemImage: "plus") { adding = true }
+                    .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+                    .accessibilityIdentifier("adicionar-moeda")
+
                 if portfolio.unknownTokens > 0 {
-                    Text("\(portfolio.unknownTokens) tokens chegaram sem você pedir e não estão na lista verificada. Muitos são golpe: o nome aponta para um site que pede a senha da carteira. Eles ficam escondidos.")
+                    Text("\(portfolio.unknownTokens) \(portfolio.unknownTokens == 1 ? "token chegou" : "tokens chegaram") numa rede em que a carteira ainda só conta quantos são, sem ler nome e contrato. Eles ficam escondidos.")
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                         .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .padding(.bottom, Space.xl)
         }
         .background(Palette.void.ignoresSafeArea())
         .navigationTitle("Gerenciar ativos")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $adding) {
+            NavigationStack { AddCustomTokenView { adding = false } }
+                .presentationBackground(Palette.void)
+        }
+        .alert("Remover \(removing?.symbol ?? "")?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } })) {
+            Button("Cancelar", role: .cancel) { removing = nil }
+            Button("Remover", role: .destructive) { remove() }
+        } message: {
+            Text("A moeda some da Carteira, de Receber e de Enviar. O saldo continua na rede, e você pode adicionar de novo.")
+        }
+    }
+
+    private func remove() {
+        guard let asset = removing else { return }
+        removing = nil
+        session.metadata.customAssets = session.metadata.customTokens.filter { $0.id != asset.id }
+        try? session.persist()
+        portfolio.customChanged(session.selectedWallet, session: session)
+        Task { await portfolio.refresh(session.selectedWallet, session: session) }
     }
 }

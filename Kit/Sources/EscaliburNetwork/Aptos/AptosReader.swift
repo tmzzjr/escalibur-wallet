@@ -230,10 +230,44 @@ public actor AptosReader {
                 try await self.view(provider, nil, "0x1::coin::balance", ["0x1::aptos_coin::AptosCoin"], [owner.hex]), "coin::balance"
             )
         }
+        // As outras moedas (fungible assets e coins), com nome, simbolo e casas, pelo
+        // indexador da Aptos Labs. Sem ele, so o APT.
+        let unlisted = try? await otherAssets(owner)
         return ChainBalance(
             chainID: Chain.aptos.id, holdings: [Holding(asset: .native(.aptos), amount: BigUInt(octas))],
-            accountExists: true, unknownTokenCount: 0, fetchedAt: .now
+            accountExists: true, unknownTokenCount: 0, fetchedAt: .now, unlisted: unlisted.map(UnlistedHolding.sorted)
         )
+    }
+
+    static let balancesQuery = #"query Saldos($owner: String!) { current_fungible_asset_balances(where: {owner_address: {_eq: $owner}, amount: {_gt: "0"}}, limit: 100) { asset_type amount metadata { name symbol decimals } } }"#
+
+    /// O APT aparece como coin e como fungible asset; os dois ficam de fora.
+    static let aptTypes: Set<String> = ["0x1::aptos_coin::AptosCoin", "0x000000000000000000000000000000000000000000000000000000000000000a", "0xa"]
+
+    func otherAssets(_ owner: AptosAddress) async throws -> [UnlistedHolding] {
+        guard let indexer else { throw ReaderError.unsupported("sem indexador") }
+        let body: StrictJSON = .object(["query": .string(Self.balancesQuery), "variables": .object(["owner": .string(owner.hex)])])
+        let json = try StrictJSON.parse(try await transport.send(ReaderRequest(method: .post, url: indexer, body: body.serialized, timeout: 30)))
+        return try Self.parseOtherAssets(json)
+    }
+
+    static func parseOtherAssets(_ json: StrictJSON) throws -> [UnlistedHolding] {
+        if let errors = json.optionalField("errors"), !(errors.arrayValue ?? []).isEmpty { throw ReaderError.providerError(code: "graphql") }
+        let rows = try json.field("data", "$").field("current_fungible_asset_balances", "data").array("balances")
+        return rows.compactMap { row in
+            guard let type = try? row.field("asset_type", "row").string("asset_type"), !aptTypes.contains(type),
+                  let amount = try? row.field("amount", "row").integer("amount"), !amount.isZero
+            else { return nil }
+            let metadata = row.optionalField("metadata")
+            let decimals = (metadata?.optionalField("decimals")).flatMap { try? $0.uint64("decimals") }.flatMap { $0 <= 36 ? Int($0) : nil }
+            let fallback = String(type.split(separator: ":").last ?? "")
+            return UnlistedHolding.make(
+                chain: .aptos, kind: .token(contract: type),
+                symbol: (metadata?.optionalField("symbol")).flatMap { try? $0.string("symbol") } ?? fallback,
+                name: (metadata?.optionalField("name")).flatMap { try? $0.string("name") } ?? fallback,
+                decimals: decimals ?? 0, amount: amount
+            )
+        }
     }
 
     // MARK: Historico

@@ -1,0 +1,35 @@
+{
+ "_embedded": {
+  "records": [
+   {
+    "asset_type": "credit_alphanum4",
+    "asset_code": "AQUA",
+    "asset_issuer": "GBNZILSTVQZ4R7IKQDGHYGY2QXL5QOFJYQMXPKWRRM5PAV7Y4M67AQUA",
+    "paging_token": "AQUA_GBNZILSTVQZ4R7IKQDGHYGY2QXL5QOFJYQMXPKWRRM5PAV7Y4M67AQUA_credit_alphanum4",
+    "contract_id": "CAUIKL3IYGMERDRUN6YSCLWVAKIFG5Q4YJHUKM4S4NJZQIA3BAS6OJPK",
+    "num_claimable_balances": 41716,
+    "num_liquidity_pools": 1301,
+    "num_contracts": 244,
+    "accounts": {
+     "authorized": 192011,
+     "authorized_to_maintain_liabilities": 0,
+     "unauthorized": 0
+    },
+    "claimable_balances_amount": "13863083188.3467596",
+    "liquidity_pools_amount": "545110150.7779088",
+    "contracts_amount": "5452558188.9416430",
+    "balances": {
+     "authorized": "80060944110.6881075",
+     "authorized_to_maintain_liabilities": "0.0000000",
+     "unauthorized": "0.0000000"
+    },
+    "flags": {
+     "auth_required": false,
+     "auth_revocable": false,
+     "auth_immutable": false,
+     "auth_clawback_enabled": false
+    }
+   }
+  ]
+ }
+}

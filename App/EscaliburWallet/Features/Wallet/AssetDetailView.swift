@@ -10,24 +10,33 @@ struct AssetDetailView: View {
     @Environment(AppSession.self) private var session
     @Environment(Router.self) private var router
     @Environment(ToastCenter.self) private var toasts
+    @Environment(Portfolio.self) private var portfolio
+    @Environment(\.dismiss) private var dismiss
     let row: PortfolioRow
 
     @State private var receiving = false
+    @State private var removing = false
 
     private var primaryChain: Chain? { row.positions.first?.asset.chain }
-    private var canTrade: Bool { primaryChain.flatMap { TradeEngines.engine(for: $0) } != nil }
+    /// Moeda custom nao entra na troca: a lista de pares e a sanidade de preco sao da
+    /// lista conferida.
+    private var canTrade: Bool { !row.isCustom && primaryChain.flatMap { TradeEngines.engine(for: $0) } != nil }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 position.padding(.horizontal, Space.gutter)
-                MarketChartSection(
-                    coingeckoID: row.coingeckoID, symbol: row.symbol, name: row.name,
-                    livePrice: row.price, liveChange: row.change24h, isStable: row.isStablecoin, priceAsFigure: false
-                )
-                .padding(.top, Space.lg)
-                if row.positions.count > 1 { networks.padding(.top, Space.xl) }
-                contract.padding(.top, Space.lg)
+                if row.isCustom, let asset = row.positions.first?.asset {
+                    customDetails(asset).padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+                } else {
+                    MarketChartSection(
+                        coingeckoID: row.coingeckoID, symbol: row.symbol, name: row.name,
+                        livePrice: row.price, liveChange: row.change24h, isStable: row.isStablecoin, priceAsFigure: false
+                    )
+                    .padding(.top, Space.lg)
+                    if row.positions.count > 1 { networks.padding(.top, Space.xl) }
+                    contract.padding(.top, Space.lg)
+                }
             }
             .padding(.top, Space.sm)
             .padding(.bottom, Space.xl)
@@ -37,8 +46,9 @@ struct AssetDetailView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 6) {
-                    CoinLogo(coingeckoID: row.coingeckoID, symbol: row.symbol, size: 20)
+                    CoinLogo(coingeckoID: row.coingeckoID, symbol: row.symbol, size: 20, unverified: row.origin != nil)
                     Text(verbatim: row.name).typeStyle(.action).foregroundStyle(Palette.ink)
+                    if row.isCustom { TokenBadge(.custom) }
                 }
             }
             ToolbarItem(placement: .topBarTrailing) { FavoriteButton(coingeckoID: row.coingeckoID) }
@@ -60,6 +70,40 @@ struct AssetDetailView: View {
             }
         }
         .sheet(isPresented: $receiving) { ReceiveSheet(preselected: row.positions.first?.asset) }
+        .alert("Remover \(row.symbol)?", isPresented: $removing) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Remover", role: .destructive) { removeCustom() }
+        } message: {
+            Text("A moeda some da Carteira, de Receber e de Enviar. O saldo continua na rede, e você pode adicionar de novo.")
+        }
+    }
+
+    /// Moeda custom: preco so por contrato, o contrato inteiro, o aviso e remover.
+    private func customDetails(_ asset: Asset) -> some View {
+        VStack(alignment: .leading, spacing: Space.md) {
+            Text(customPriceLine(asset)).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+            Banner(kind: .caution, title: "Moeda custom, não verificada", message: TokenReasonText.anyoneCanCreate)
+            ContractPanel(asset: asset)
+            if let chain = asset.chain, let reason = CustomToken.sendUnavailableReason(chain) {
+                Banner(kind: .neutral, title: "Envio indisponível nesta rede", message: reason)
+            }
+            TertiaryButton(title: "Remover moeda custom") { removing = true }
+                .accessibilityIdentifier("remover-moeda-custom")
+        }
+    }
+
+    private func customPriceLine(_ asset: Asset) -> String {
+        guard let price = row.price else { return "Sem preço confiável por contrato. Fica fora do saldo total." }
+        return "Preço por contrato: \(Fmt.price(price, session.currency)) cada."
+    }
+
+    private func removeCustom() {
+        let ids = Set(row.positions.map(\.asset.id))
+        session.metadata.customAssets = session.metadata.customTokens.filter { !ids.contains($0.id) }
+        try? session.persist()
+        portfolio.customChanged(session.selectedWallet, session: session)
+        Task { await portfolio.refresh(session.selectedWallet, session: session) }
+        dismiss()
     }
 
     private var position: some View {

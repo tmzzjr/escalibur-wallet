@@ -263,6 +263,11 @@ public enum Endpoints {
     /// NearBlocks devolve valores como numero de ponto flutuante. Conferido em 28/09/2026.
     public static let nearHistory = url("https://tx.main.fastnear.com")
 
+    /// Quais tokens NEP-141 uma conta tem, sem chave: a API da FastNEAR
+    /// (`/v1/account/{id}/ft`, contrato e saldo). Os nos RPC nao listam isso. Conferido ao
+    /// vivo em 04/10/2026. Nome e casas de cada token vem do `ft_metadata` do contrato.
+    public static let nearTokens = url("https://api.fastnear.com")
+
     /// Aptos: a API REST de fullnode (`/v1`) de tres operadores independentes, sem chave,
     /// conferidos em 28/09/2026: a PublicNode (Allnodes, no podado em 100 milhoes de
     /// versoes), a Sentio (no de arquivo, versao mais antiga 0) e a Aptos Labs (podado em
@@ -323,6 +328,25 @@ public enum Endpoints {
         "linea": [.init(name: "blockscout", baseURL: url("https://api-explorer.linea.build/api/v2"))],
         "unichain": [.init(name: "blockscout", baseURL: url("https://unichain.blockscout.com/api/v2"))],
         "celo": [.init(name: "blockscout", baseURL: url("https://celo.blockscout.com/api/v2"))],
+    ]
+
+    /// Quais ERC-20 uma conta tem, sem chave (`TokenIndex`). As mesmas instancias do
+    /// Blockscout do historico e, na Avalanche e na Plasma, a API propria do Routescan.
+    /// Conferido ao vivo em 04/10/2026 com a conta publica de teste do BIP-39: `200` e a
+    /// lista de tokens em todas (de 0 a 50 itens, a maioria isca de golpe). BNB Chain, X
+    /// Layer e Sonic ficam de fora: nenhum indexador sem chave atende (Blockscout e
+    /// Routescan respondem 404 e "chain not supported"; Ankr pede chave).
+    public static let evmTokenIndex: [String: ProviderPool.Provider] = [
+        "ethereum": .init(name: "blockscout", baseURL: url("https://eth.blockscout.com/api/v2")),
+        "base": .init(name: "blockscout", baseURL: url("https://base.blockscout.com/api/v2")),
+        "optimism": .init(name: "blockscout", baseURL: url("https://explorer.optimism.io/api/v2")),
+        "arbitrum": .init(name: "blockscout", baseURL: url("https://arbitrum.blockscout.com/api/v2")),
+        "polygon": .init(name: "blockscout", baseURL: url("https://polygon.blockscout.com/api/v2")),
+        "linea": .init(name: "blockscout", baseURL: url("https://api-explorer.linea.build/api/v2")),
+        "unichain": .init(name: "blockscout", baseURL: url("https://unichain.blockscout.com/api/v2")),
+        "celo": .init(name: "blockscout", baseURL: url("https://celo.blockscout.com/api/v2")),
+        "avalanche": .init(name: "routescan", baseURL: url("https://api.routescan.io/v2/network/mainnet/evm/43114")),
+        "plasma": .init(name: "routescan", baseURL: url("https://api.routescan.io/v2/network/mainnet/evm/9745")),
     ]
 
     /// Reservas de RPC EVM para os leitores de estado, somadas as listas de `evm`. BNB

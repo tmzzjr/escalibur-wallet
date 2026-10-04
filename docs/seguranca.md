@@ -499,6 +499,8 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
   - O aviso mostra os dois endereços lado a lado, com as diferenças destacadas.
 - **No histórico**:
   - Ocultar por padrão as transferências de valor zero, o pó e os tokens fora da lista.
+- **No saldo**, token fora da lista aparece em "Outros tokens", marcado como não verificado, sem preço até uma fonte confiável ter o contrato (CoinGecko por plataforma, reserva CoinPaprika por contrato; nunca pelo símbolo), e fora do total enquanto não tiver preço. O suspeito (`TokenSafety`: site ou @ no nome, isca, símbolo que imita stablecoin ou moeda nativa depois de desfazer letras cirílicas e de largura cheia, poeira chegada sem pedir, caractere invisível, lista negra da própria fonte) fica atrás de "Mostrar suspeitos" e nunca entra no total. Na EVM o indexador só diz quais contratos a conta tem: saldo e casas são relidos na rede.
+- **Moeda custom** só nasce de leitura na própria rede, com dois provedores concordando nas casas decimais, e nunca com o contrato de um token da lista. No envio (EVM, Solana, Stellar), o motor relê as casas em dois provedores antes de montar, bloqueia o próprio contrato como destino e põe o aviso de não verificado na revisão; a conferência do plano (`PlanIntentCheck`), a revisão e o PIN são os mesmos. Tron, TON e XRP Ledger recusam com o motivo.
   - Um `Transfer` com `from == self` numa transação cujo `tx.from` não é self é marcado como falsificado.
   - Nunca oferecer "copiar endereço" a partir de uma transação recebida de um desconhecido.
 - **Primeiro envio para um endereço**: aviso de que nunca houve envio para ali.
