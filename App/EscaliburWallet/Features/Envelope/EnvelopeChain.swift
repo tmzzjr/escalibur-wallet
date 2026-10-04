@@ -165,18 +165,21 @@ struct EnvelopeChain: View {
         let sealing = mode == .sealed ? smooth(f.since / 0.4) : 0
         let opening = mode == .opened ? smooth(f.since / 0.5) : 0
         var flap = mode == .sealed ? -1 + 2 * smooth((f.since - 0.2) / 0.45) : -1
-        let sealPop = mode == .sealed ? backOut((f.since - 0.62) / 0.4) : 0
         let rise = mode == .opened ? easeOut((f.since - 0.15) / 0.65) : 0
         let travelling = (1 - sealing) * (1 - opening)
         // Parado: fecha, tranca, segura, destranca e abre.
-        var lockPop = sealPop
-        var shackle = mode == .sealed ? smooth((f.since - 0.9) / 0.18) : 0
+        // A fechadura e parte da aba: o disco se desenha com a mesma linha do envelope,
+        // o buraco da chave aparece, e um pulso discreto marca o trancar.
+        var ring = mode == .sealed ? smooth((f.since - 0.62) / 0.28) : 0
+        var hole = mode == .sealed ? smooth((f.since - 0.9) / 0.12) : 0
+        var pulse = mode == .sealed ? clamp((f.since - 1.0) / 0.4) : 0
         var lockFade = 1.0
         if story {
             let t = whole.p
             flap = -1 + 2 * smooth((t - 0.5) / 0.08) - 2 * smooth((t - 0.9) / 0.07)
-            lockPop = backOut((t - 0.58) / 0.07)
-            shackle = smooth((t - 0.67) / 0.035)
+            ring = smooth((t - 0.58) / 0.08)
+            hole = smooth((t - 0.66) / 0.04)
+            pulse = clamp((t - 0.7) / 0.1)
             lockFade = 1 - smooth((t - 0.84) / 0.05)
         }
 
@@ -250,37 +253,42 @@ struct EnvelopeChain: View {
             envelope.stroke(outline, with: .color(Palette.ink), style: G.line)
         }
 
-        if lockPop > 0.01, lockFade > 0.01, flap > 0.5 {
+        if ring > 0.01, lockFade > 0.01, flap > 0.5 {
             var lock = envelope
             lock.opacity = lockFade
             lock.translateBy(x: G.cx, y: G.top + G.flapClosed)
-            // O estalo: o corpo cresce um pouco no instante em que a alca encaixa.
-            let click = 1 + 0.1 * sin(.pi * clamp((shackle - 0.6) / 0.4))
-            lock.scaleBy(x: lockPop * click, y: lockPop * click)
-            drawPadlock(lock, shackle: shackle)
+            drawKeyhole(lock, ring: ring, hole: hole, pulse: pulse)
         }
     }
 
-    /// Cadeado com buraco de fechadura, centrado na origem: corpo branco, alca que
-    /// desce e encaixa (`shackle` de 0, aberta, a 1, trancada).
-    private func drawPadlock(_ context: GraphicsContext, shackle: Double) {
-        let body = CGRect(x: -13, y: -6, width: 26, height: 21)
-        // A alca: um arco com as duas pernas; aberta, sobe e a perna direita sai do corpo.
-        let lift = CGFloat(1 - shackle) * 7
-        var arch = Path()
-        arch.move(to: CGPoint(x: -7.5, y: -4 - lift * 0.4))
-        arch.addLine(to: CGPoint(x: -7.5, y: -11 - lift))
-        arch.addArc(center: CGPoint(x: 0, y: -11 - lift), radius: 7.5, startAngle: .degrees(180), endAngle: .degrees(0), clockwise: false)
-        arch.addLine(to: CGPoint(x: 7.5, y: -4 - lift))
-        context.stroke(arch, with: .color(Palette.ink), style: StrokeStyle(lineWidth: 3.4, lineCap: .round))
-        context.fill(Path(roundedRect: body, cornerRadius: 5, style: .continuous), with: .color(Palette.ink))
-        var keyhole = Path(ellipseIn: CGRect(x: -3, y: 0, width: 6, height: 6))
-        keyhole.move(to: CGPoint(x: -1.6, y: 4.5))
-        keyhole.addLine(to: CGPoint(x: 1.6, y: 4.5))
-        keyhole.addLine(to: CGPoint(x: 2.3, y: 11))
-        keyhole.addLine(to: CGPoint(x: -2.3, y: 11))
-        keyhole.closeSubpath()
-        context.fill(keyhole, with: .color(Palette.void))
+    /// A fechadura embutida na ponta da aba, centrada na origem: um disco do mesmo cinza
+    /// da aba, contornado pela linha do envelope (`ring` desenha o contorno), o buraco da
+    /// chave escuro (`hole`) e um anel que se abre e some ao trancar (`pulse`).
+    private func drawKeyhole(_ context: GraphicsContext, ring: Double, hole: Double, pulse: Double) {
+        let radius: CGFloat = 14
+        let disc = Path(ellipseIn: CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2))
+        var plate = context
+        plate.opacity = context.opacity * min(1, ring * 3)
+        plate.fill(disc, with: .color(Palette.control))
+        context.stroke(disc.trimmedPath(from: 0, to: ring), with: .color(Palette.ink), style: G.line)
+        if hole > 0.01 {
+            var cut = context
+            cut.opacity = context.opacity * hole
+            var keyhole = Path(ellipseIn: CGRect(x: -3.6, y: -7, width: 7.2, height: 7.2))
+            keyhole.move(to: CGPoint(x: -1.8, y: -1.5))
+            keyhole.addLine(to: CGPoint(x: 1.8, y: -1.5))
+            keyhole.addLine(to: CGPoint(x: 2.8, y: 7))
+            keyhole.addLine(to: CGPoint(x: -2.8, y: 7))
+            keyhole.closeSubpath()
+            cut.fill(keyhole, with: .color(Palette.void))
+        }
+        if pulse > 0, pulse < 1 {
+            var echo = context
+            echo.opacity = context.opacity * (1 - pulse) * 0.8
+            let r = radius + CGFloat(pulse) * 12
+            echo.stroke(Path(ellipseIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2)), with: .color(Palette.ink),
+                        style: StrokeStyle(lineWidth: 1.2))
+        }
     }
 
     private func fallY(_ q: Double) -> CGFloat {
