@@ -26,8 +26,10 @@ final class ImportPhraseTests: XCTestCase {
         XCTAssertTrue(option.waitForExistence(timeout: 30))
         option.tap()
 
-        // Antes de digitar, o aceite de responsabilidade.
+        // Antes de digitar, o aceite de responsabilidade. Com a carteira ainda
+        // carregando atras, o primeiro toque as vezes chega antes da folha assentar.
         let accept = app.buttons["aceite-responsabilidade"]
+        if !accept.waitForExistence(timeout: 8) { option.tap() }
         XCTAssertTrue(accept.waitForExistence(timeout: 10))
         accept.tap()
         app.buttons["Digitar as palavras"].tap()
@@ -53,5 +55,46 @@ final class ImportPhraseTests: XCTestCase {
         XCTAssertTrue(importButton.waitForExistence(timeout: 5))
         XCTAssertTrue(importButton.isEnabled, "com as 12 palavras o Importar deveria liberar")
         shot("i2-preenchida", app)
+    }
+
+    func type(pin: String, in app: XCUIApplication) {
+        for digit in pin {
+            let key = app.buttons.matching(identifier: "tecla-\(digit)").firstMatch
+            XCTAssertTrue(key.waitForExistence(timeout: 10), "tecla \(digit)")
+            key.tap()
+        }
+    }
+
+    /// O caminho inteiro: digitar, conferir os enderecos, guardar com o PIN e cair na
+    /// carteira nova. A carteira da demo aqui e sorteada (-vazia), para a frase publica
+    /// de teste nao ser "ja importada".
+    func testImportAllTheWayToSaved() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-vazia", "-tela", "adicionar"]
+        app.launch()
+        let option = app.staticTexts["Importar com a senha da carteira"]
+        XCTAssertTrue(option.waitForExistence(timeout: 30))
+        option.tap()
+        let accept = app.buttons["aceite-responsabilidade"]
+        if !accept.waitForExistence(timeout: 8) { option.tap() }
+        XCTAssertTrue(accept.waitForExistence(timeout: 10))
+        accept.tap()
+        app.buttons["Digitar as palavras"].tap()
+        let first = app.otherElements["palavra-1"]
+        XCTAssertTrue(first.waitForExistence(timeout: 10))
+        first.tap()
+        for _ in 1...11 { app.typeText("abandon ") }
+        app.typeText("about")
+        app.typeText("\n")
+        app.buttons["Importar"].tap()
+        let failure = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Não foi possível importar'")).firstMatch
+        let review = app.staticTexts["Confira antes de guardar"]
+        XCTAssertTrue(review.waitForExistence(timeout: 15), failure.exists ? failure.label : "a conferencia nao apareceu")
+        shot("i3-conferir", app)
+        app.buttons["Guardar esta carteira"].tap()
+        type(pin: "111111", in: app)
+        let saved = app.staticTexts["Carteira 2"]
+        XCTAssertTrue(saved.waitForExistence(timeout: 30), failure.exists ? failure.label : "a carteira importada nao virou a carteira em uso")
+        shot("i4-guardada", app)
     }
 }

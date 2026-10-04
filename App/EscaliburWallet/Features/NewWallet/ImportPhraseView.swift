@@ -97,12 +97,24 @@ struct ImportPhraseView: View {
     }
 
     var body: some View {
-        if let pending {
-            ImportPreviewView(preview: pending.preview, hasPassphrase: pending.secret.passphrase.count > 0, saving: working,
-                              onSave: { Task { await save() } }, onBack: discardPending)
-                .guardedAgainstCapture()
-        } else {
-            form
+        // O ZStack fica de pe na troca entre o formulario e a conferencia: so sair da
+        // tela de importar dispara o onDisappear dele. Antes a limpeza estava no
+        // formulario, e a troca para a conferencia apagava o segredo recem-montado; o
+        // Guardar recebia uma carteira vazia (entropia com tamanho fora do padrao).
+        ZStack {
+            if let pending {
+                ImportPreviewView(preview: pending.preview, hasPassphrase: pending.secret.passphrase.count > 0, saving: working,
+                                  onSave: { Task { await save() } }, onBack: discardPending)
+                    .guardedAgainstCapture()
+            } else {
+                form
+            }
+        }
+        .onDisappear {
+            pending?.secret.wipe()
+            entry.wipe()
+            passphrase.wipe()
+            passphraseAgain.wipe()
         }
     }
 
@@ -186,12 +198,6 @@ struct ImportPhraseView: View {
         .onChange(of: typed) { _, value in absorb(value) }
         .background(Palette.void.ignoresSafeArea())
         .guardedAgainstCapture()
-        .onDisappear {
-            pending?.secret.wipe()
-            entry.wipe()
-            passphrase.wipe()
-            passphraseAgain.wipe()
-        }
     }
 
     /// Colar a frase inteira. O PasteButton do sistema le a area de transferencia sem o
@@ -347,7 +353,7 @@ struct ImportPhraseView: View {
                     throw error
                 }
             } catch {
-                message = "Não foi possível importar a carteira."
+                message = "Não foi possível importar a carteira." + Self.debugDetail(error)
             }
         case .wrongLength(let count):
             message = "Faltam palavras: \(count) de \(entry.count)."
@@ -385,8 +391,18 @@ struct ImportPhraseView: View {
             message = walletError.errorDescription
         } catch {
             discardPending()
-            message = "Não foi possível importar a carteira."
+            message = "Não foi possível importar a carteira." + Self.debugDetail(error)
         }
+    }
+
+    /// So na compilacao de desenvolvimento: o motivo tecnico junto da mensagem, para
+    /// achar a causa de uma falha relatada no aparelho.
+    static func debugDetail(_ error: Any) -> String {
+        #if DEBUG
+        return " [\(String(describing: error).prefix(160))]"
+        #else
+        return ""
+        #endif
     }
 
     private func discardPending() {

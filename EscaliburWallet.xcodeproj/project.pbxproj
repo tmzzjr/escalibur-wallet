@@ -99,6 +99,7 @@
 		ECDF3B3B1D37C45AF88FD2A8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */; };
 		F188A8EA4A5EBDCD53F891E7 /* CoinActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C75178B68BC09E156440A1 /* CoinActions.swift */; };
 		F2B74E9DFA78D4082923023D /* AssetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB2C6C888DAF848A575AD7A /* AssetDetailView.swift */; };
+		F31E9A19BDD8A75BEFD422B9 /* ImportPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 257E1C63C5F4FC66E542B13F /* ImportPipelineTests.swift */; };
 		F442789E52824CD5BF6184A6 /* CoinDetailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D40F7F537F7FF07C6720903 /* CoinDetailTests.swift */; };
 		F60A5B68C1C271353B804B0B /* ReceiveSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2CB54D5FE5615D8A3F582F8 /* ReceiveSheet.swift */; };
 		F6959527BC4CC168A38CFA35 /* LockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DB4670DA96F1FBC6FF41CC /* LockView.swift */; };
@@ -140,6 +141,7 @@
 		178D0EBBB2AA6CB89DC6772B /* PlanReviewViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanReviewViews.swift; sourceTree = "<group>"; };
 		17A71DEB35D1AAC25A23037D /* AllocationDonut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllocationDonut.swift; sourceTree = "<group>"; };
 		2552656E9F2EA038F885C9CB /* PassphraseWalletTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassphraseWalletTests.swift; sourceTree = "<group>"; };
+		257E1C63C5F4FC66E542B13F /* ImportPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPipelineTests.swift; sourceTree = "<group>"; };
 		268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		290C3A2CEF411E071AA05800 /* WordInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordInputField.swift; sourceTree = "<group>"; };
 		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -511,6 +513,7 @@
 		E2F45D4F18929752144D2A39 /* EscaliburWalletTests */ = {
 			isa = PBXGroup;
 			children = (
+				257E1C63C5F4FC66E542B13F /* ImportPipelineTests.swift */,
 				4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */,
 				B27717125F1CAF51E389386B /* SlippageScaleTests.swift */,
 			);
@@ -706,6 +709,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F31E9A19BDD8A75BEFD422B9 /* ImportPipelineTests.swift in Sources */,
 				9199129964B9661C2FF62FDF /* MetadataCompatibilityTests.swift in Sources */,
 				67C3581CF252367C1BEC66F8 /* SlippageScaleTests.swift in Sources */,
 			);
