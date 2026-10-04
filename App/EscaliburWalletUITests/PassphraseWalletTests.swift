@@ -44,7 +44,7 @@ final class PassphraseWalletTests: XCTestCase {
         let waited = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: focused, object: second)], timeout: 5)
         XCTAssertEqual(waited, .completed, "tocar no segundo campo deveria pôr o teclado nele")
         second.typeText("lanterna")
-        app.buttons["Criar carteira"].tap()
+        app.buttons["Abrir carteira"].tap()
         type(pin: "111111", in: app)
 
         // Volta para Seguranca; a carteira nova e a selecionada.

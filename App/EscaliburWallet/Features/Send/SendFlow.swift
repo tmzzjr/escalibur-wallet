@@ -381,7 +381,7 @@ struct SendStages: View {
     private var contacts: some View {
         let saved = session.metadata.contacts.filter { $0.chainID == model.chain?.id }
         if !saved.isEmpty {
-            Text("Contatos").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            Text("Endereços salvos").typeStyle(.note).foregroundStyle(Palette.inkSoft)
             ForEach(saved) { contact in
                 Button {
                     model.destinationText = contact.address

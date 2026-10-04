@@ -74,7 +74,7 @@ struct PassphraseWalletView: View {
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
             ActionFooter {
-                PrimaryButton(title: "Criar carteira", enabled: passphraseLength > 0 && againLength > 0, loading: working) {
+                PrimaryButton(title: "Abrir carteira", enabled: passphraseLength > 0 && againLength > 0, loading: working) {
                     Task { await create() }
                 }
             }

@@ -22,7 +22,7 @@ struct SettingsView: View {
                             SettingsRow(icon: "lock", title: "Segurança")
                         }
                         NavigationLink { ContactsView() } label: {
-                            SettingsRow(icon: "person.2", title: "Contatos", value: session.metadata.contacts.isEmpty ? nil : "\(session.metadata.contacts.count)")
+                            SettingsRow(icon: "book.closed", title: "Endereços salvos", value: session.metadata.contacts.isEmpty ? nil : "\(session.metadata.contacts.count)")
                         }
                         Button { openingEnvelope = true } label: {
                             SettingsRow(icon: "envelope.open", title: "Abrir um envelope")
@@ -193,6 +193,9 @@ struct WalletSettingsView: View {
                         SettingsGroup {
                             Button { revealing = true } label: { SettingsRow(icon: "eye", title: "Ver a senha da carteira") }
                             Button { sealing = true } label: { SettingsRow(icon: "envelope.badge.shield.half.filled", title: "Guardar num envelope Escalibur") }
+                            NavigationLink { PassphraseWalletView(base: wallet) } label: {
+                                SettingsRow(icon: "key.horizontal", title: "Abrir ou criar com passphrase")
+                            }
                         }
                         .padding(.top, Space.lg)
                     }

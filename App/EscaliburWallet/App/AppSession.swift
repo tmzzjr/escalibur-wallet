@@ -263,9 +263,13 @@ final class AppSession {
             try KeyServices.wallets.save(secret, walletID: id, rk: rk)
             return try AccountDeriver.derive(secret)
         }
+        // A mesma frase com a mesma passphrase abre a mesma carteira: se ela ja esta aqui,
+        // abrir e so passar a usa-la.
         if let existing = metadata.wallets.first(where: { $0.fingerprint == fingerprint.hex && !$0.isWatchOnly }) {
             try? KeyServices.wallets.delete(id)
-            throw WalletError.alreadyImported(existing.name)
+            metadata.selectedWalletID = existing.id
+            try persist()
+            return existing
         }
         let wallet = WalletMeta(
             id: id, name: name, kind: .phrase(wordCount: wordCount), origin: base.origin, createdAt: .now,

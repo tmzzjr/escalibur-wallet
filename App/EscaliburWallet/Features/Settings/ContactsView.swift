@@ -33,19 +33,19 @@ struct ContactsView: View {
                                     Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Palette.inkMuted)
                                         .frame(width: Height.touch, height: Height.touch)
                                 }
-                                .accessibilityLabel("Apagar contato")
+                                .accessibilityLabel("Apagar endereço salvo")
                             }
                             .padding(.horizontal, Space.md).frame(minHeight: Height.row)
                         }
                     }
                     .padding(.top, Space.md)
                 }
-                SecondaryButton(title: "Adicionar contato") { adding = true }
+                SecondaryButton(title: "Salvar um endereço") { adding = true }
                     .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
             }
         }
         .background(Palette.void.ignoresSafeArea())
-        .navigationTitle("Contatos")
+        .navigationTitle("Endereços salvos")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $adding) { AddContactSheet() }
     }
@@ -90,7 +90,7 @@ struct AddContactSheet: View {
                 }
             }
             .background(Palette.body.ignoresSafeArea())
-            .navigationTitle("Novo contato")
+            .navigationTitle("Salvar endereço")
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationBackground(Palette.body)
@@ -115,7 +115,7 @@ struct AddContactSheet: View {
     private func save() async {
         guard case .success(let destination) = validation else { return }
         let finalTag = destination.tag.map(String.init) ?? (tag.isEmpty ? nil : tag)
-        guard (try? await auth.perform(session, reason: "Salvar o contato \(String(name.prefix(40)))", { _ in true })) == true else { return }
+        guard (try? await auth.perform(session, reason: "Salvar o endereço de \(String(name.prefix(40)))", { _ in true })) == true else { return }
         session.metadata.contacts.append(Contact(id: UUID(), name: String(name.prefix(40)), chainID: chain.id, address: destination.address, tag: finalTag))
         do {
             try session.persist()
