@@ -14,6 +14,7 @@
 		0BD31CF923D94F41C7BF61FE /* FORMATO.md in Resources */ = {isa = PBXBuildFile; fileRef = CF3019F2F06749CD522B32AB /* FORMATO.md */; };
 		0C69486F69E82B02C7F393AE /* NonceQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */; };
 		0E72E15B4987058F90F1117C /* MarketCoinActionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4C1798A2E008CDBC7E2F8F /* MarketCoinActionsTests.swift */; };
+		0EA6EDD44AB204C413E8EDC3 /* VoiceFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6095C38283534AF48C451BC4 /* VoiceFlowTests.swift */; };
 		12BD568C64CF45967323782A /* EscaliburCore in Frameworks */ = {isa = PBXBuildFile; productRef = A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */; };
 		17A65BEC30C064A2F585BA4E /* PlanReviewViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178D0EBBB2AA6CB89DC6772B /* PlanReviewViews.swift */; };
 		17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */; };
@@ -28,6 +29,7 @@
 		2A90FB479DFA2C8FA3B4A582 /* ReceiveFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E73AD40F44D72D64B0F550B /* ReceiveFlowTests.swift */; };
 		2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0E6EBFF95E21A9523382BC5 /* Format.swift */; };
 		2D73A0117C1A454535DEA85B /* WalletOrbit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E8104D596BB55DD5566A8B0 /* WalletOrbit.swift */; };
+		31BF7E0264D1196F10A0DBCA /* voz-frase.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C9A0D213F5797560FD754C92 /* voz-frase.m4a */; };
 		32C85CC66E71ADDE142F2B2C /* OpenEnvelopeFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */; };
 		3436AC2D44A808B71561FBA0 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E67A652A823737F6EAC7745 /* RootView.swift */; };
 		3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09712057581F9378B87996C5 /* PasswordCost.swift */; };
@@ -47,6 +49,7 @@
 		5932324C0521646D89823F75 /* ContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AD68422B44E0DD96545710 /* ContactsView.swift */; };
 		5E9A7A552DC87E261A506B48 /* EscaliburKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 0911AD585A30024A352B31B6 /* EscaliburKeys */; };
 		5ECB862AD137C04F475B0CD2 /* PassphraseWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7E330A6D249E3EA26CE9BA4 /* PassphraseWalletView.swift */; };
+		626F2BC5780C35D64013FD02 /* voz-outra.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0F76C16D398D30B3A8C5C1C6 /* voz-outra.m4a */; };
 		6555C4EDEBE0DF08F72AE01A /* ResponsibilityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D19676DE10AD70D111052D72 /* ResponsibilityView.swift */; };
 		67C3581CF252367C1BEC66F8 /* SlippageScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B27717125F1CAF51E389386B /* SlippageScaleTests.swift */; };
 		6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B2519CA657D4A05E4C4A06 /* Metrics.swift */; };
@@ -73,6 +76,7 @@
 		A0E20FEC7CF495BB4B8AE0E1 /* EnvelopeFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3FC7ED2F0ACB292691CA0A /* EnvelopeFlowTests.swift */; };
 		A19377FDA0B48E972A57A2C7 /* SwordInStone.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDDF2E10A05978EE32252CD4 /* SwordInStone.swift */; };
 		A2EB350AFF4C3B63897F97DA /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C77E773E63B6664F4262AD /* Metadata.swift */; };
+		A39D66D49D46DDDF65FF9C8A /* VoiceListeningPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE76619E0AC218A55627033C /* VoiceListeningPanel.swift */; };
 		A735272844639F9878C01046 /* BiometryNameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */; };
 		A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34BAC1217309C0064F23CE7 /* TradeView.swift */; };
 		A86F60C8E0ACDA0DB1C3F8B4 /* OpenOrdersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */; };
@@ -127,6 +131,7 @@
 		0BAD724431DF1B7C99C5C031 /* ActivityEmptyArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityEmptyArt.swift; sourceTree = "<group>"; };
 		0E3E554F1FF4F3B1B0A077A6 /* WalletHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletHomeView.swift; sourceTree = "<group>"; };
 		0F3FC7ED2F0ACB292691CA0A /* EnvelopeFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeFlowTests.swift; sourceTree = "<group>"; };
+		0F76C16D398D30B3A8C5C1C6 /* voz-outra.m4a */ = {isa = PBXFileReference; path = "voz-outra.m4a"; sourceTree = "<group>"; };
 		1020538B4146BC659BF384E8 /* TradeQuoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeQuoteTests.swift; sourceTree = "<group>"; };
 		1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSettingsView.swift; sourceTree = "<group>"; };
 		1292233C35D3175EC36E4F70 /* EscaliburWallet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EscaliburWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -154,6 +159,7 @@
 		529FF2FD620686A71B265A06 /* RevealFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealFlow.swift; sourceTree = "<group>"; };
 		53CECA7890449A2051DB3B96 /* EmptySendArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptySendArt.swift; sourceTree = "<group>"; };
 		5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenOrdersView.swift; sourceTree = "<group>"; };
+		6095C38283534AF48C451BC4 /* VoiceFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceFlowTests.swift; sourceTree = "<group>"; };
 		609FB55F39FC297CF3C80DE8 /* Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Kit; path = Kit; sourceTree = SOURCE_ROOT; };
 		634FB486C1AC19A1DC738122 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
 		6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalDocumentView.swift; sourceTree = "<group>"; };
@@ -186,6 +192,7 @@
 		A98E0FCFFA466C4A03F3490A /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		AAEF81421478F9FA6F85FE56 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
 		AD4DB38ABFB63662F684831D /* LegalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalTests.swift; sourceTree = "<group>"; };
+		AE76619E0AC218A55627033C /* VoiceListeningPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceListeningPanel.swift; sourceTree = "<group>"; };
 		B192EE33D90EEA58E27E195C /* NewWalletFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewWalletFlowTests.swift; sourceTree = "<group>"; };
 		B27717125F1CAF51E389386B /* SlippageScaleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlippageScaleTests.swift; sourceTree = "<group>"; };
 		B2C49639FCBF7D664F63210A /* LogoColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogoColor.swift; sourceTree = "<group>"; };
@@ -197,6 +204,7 @@
 		BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceChart.swift; sourceTree = "<group>"; };
 		C10914896D99BB58942178E3 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
 		C114911EA7725CA6C7171D11 /* VoiceGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceGate.swift; sourceTree = "<group>"; };
+		C9A0D213F5797560FD754C92 /* voz-frase.m4a */ = {isa = PBXFileReference; path = "voz-frase.m4a"; sourceTree = "<group>"; };
 		C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinLogo.swift; sourceTree = "<group>"; };
 		CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowTests.swift; sourceTree = "<group>"; };
 		CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
@@ -363,6 +371,8 @@
 				8E73AD40F44D72D64B0F550B /* ReceiveFlowTests.swift */,
 				98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */,
 				1020538B4146BC659BF384E8 /* TradeQuoteTests.swift */,
+				6095C38283534AF48C451BC4 /* VoiceFlowTests.swift */,
+				8FCA9CA066F75BD38C39BE52 /* Fixtures */,
 			);
 			path = EscaliburWalletUITests;
 			sourceTree = "<group>";
@@ -384,6 +394,7 @@
 				B7E330A6D249E3EA26CE9BA4 /* PassphraseWalletView.swift */,
 				529FF2FD620686A71B265A06 /* RevealFlow.swift */,
 				7372B2C6D0156F65AA215FE5 /* SettingsView.swift */,
+				AE76619E0AC218A55627033C /* VoiceListeningPanel.swift */,
 				1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */,
 			);
 			path = Settings;
@@ -402,6 +413,15 @@
 				371DC381FB8EB8018354EEC1 /* WatchAddressView.swift */,
 			);
 			path = NewWallet;
+			sourceTree = "<group>";
+		};
+		8FCA9CA066F75BD38C39BE52 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				C9A0D213F5797560FD754C92 /* voz-frase.m4a */,
+				0F76C16D398D30B3A8C5C1C6 /* voz-outra.m4a */,
+			);
+			path = Fixtures;
 			sourceTree = "<group>";
 		};
 		96313B8D851FAC37D702C8C1 /* Receive */ = {
@@ -531,6 +551,7 @@
 			buildConfigurationList = 7CDF93D7BAB804E87CD3DE7C /* Build configuration list for PBXNativeTarget "EscaliburWalletUITests" */;
 			buildPhases = (
 				93A123D8151C63B5A9BA852C /* Sources */,
+				A9299453C28083ADCE300199 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -646,6 +667,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A9299453C28083ADCE300199 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				31BF7E0264D1196F10A0DBCA /* voz-frase.m4a in Resources */,
+				626F2BC5780C35D64013FD02 /* voz-outra.m4a in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -668,6 +698,7 @@
 				2A90FB479DFA2C8FA3B4A582 /* ReceiveFlowTests.swift in Sources */,
 				4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */,
 				046D4A66EDC4E578C0246247 /* TradeQuoteTests.swift in Sources */,
+				0EA6EDD44AB204C413E8EDC3 /* VoiceFlowTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -744,6 +775,7 @@
 				A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */,
 				E74B179E19640B5584F2F303 /* Typography.swift in Sources */,
 				271A5135782331B746AC5833 /* VoiceGate.swift in Sources */,
+				A39D66D49D46DDDF65FF9C8A /* VoiceListeningPanel.swift in Sources */,
 				94DBFEF727803296C21B8924 /* VoiceSettingsView.swift in Sources */,
 				26ABABDDB73200E71CD0D50F /* WalletHomeView.swift in Sources */,
 				2D73A0117C1A454535DEA85B /* WalletOrbit.swift in Sources */,
