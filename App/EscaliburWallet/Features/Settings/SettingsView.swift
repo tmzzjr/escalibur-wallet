@@ -120,7 +120,7 @@ struct WalletsListView: View {
                     ForEach(session.metadata.wallets) { wallet in
                         NavigationLink { WalletSettingsView(walletID: wallet.id) } label: {
                             HStack(spacing: Space.sm) {
-                                WalletGlyph(id: wallet.id, size: 32, selected: true)
+                                WalletGlyph(id: wallet.id, size: 32, selected: true, watchOnly: wallet.isWatchOnly)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
                                     Text(wallet.hasBackup || wallet.isWatchOnly ? originText(wallet) : "Sem cópia")

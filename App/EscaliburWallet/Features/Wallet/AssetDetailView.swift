@@ -127,6 +127,7 @@ struct AssetDetailView: View {
 /// dedo no grafico troca o preco pelo do ponto tocado.
 struct MarketChartSection: View {
     @Environment(AppSession.self) private var session
+    @Environment(Portfolio.self) private var portfolio
     let coingeckoID: String?
     let symbol: String
     let name: String
@@ -134,6 +135,11 @@ struct MarketChartSection: View {
     let liveChange: Double?
     var isStable = false
     var priceAsFigure = true
+    /// A linha de 7 dias, hora a hora, que a lista do Mercado ja trouxe: desenha o
+    /// grafico na hora, enquanto o detalhado chega.
+    var seed: [Double] = []
+    /// Tocar no preco mostra a outra moeda (real e dolar), com o grafico junto.
+    @State private var alternate = false
 
     @State private var range: ChartRange = .day
     @State private var points: [PricePoint] = []
@@ -147,24 +153,53 @@ struct MarketChartSection: View {
     private var shownPrice: Double? { selection?.price ?? price ?? livePrice ?? points.last?.price }
 
     private var shownChange: Double? {
-        guard let first = points.first?.price, first > 0 else { return change ?? liveChange }
+        guard let first = displayPoints.first?.price, first > 0 else { return change ?? liveChange }
         if let selection { return (selection.price - first) / first * 100 }
         if range == .day, let current = change ?? liveChange { return current }
-        guard let last = points.last?.price else { return change ?? liveChange }
+        guard let last = displayPoints.last?.price else { return change ?? liveChange }
         return (last - first) / first * 100
+    }
+
+    /// A moeda mostrada: a do app, ou a outra (dolar, ou real para quem usa dolar).
+    private var displayCurrency: Fmt.Currency {
+        alternate ? (session.currency == .usd ? .brl : .usd) : session.currency
+    }
+
+    /// Quanto vale 1 da moeda do app na mostrada, pela cotacao do bitcoin. Sem cotacao,
+    /// nao ha troca.
+    private var factor: Double? {
+        guard alternate else { return 1 }
+        return portfolio.convert(1, to: Fmt.DisplayUnit(displayCurrency), base: session.currency)
+    }
+
+    private var displayPoints: [PricePoint] {
+        guard let factor, factor != 1 else { return points }
+        return points.map { PricePoint(time: $0.time, price: $0.price * factor) }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Group {
+                // O ponto escolhido no grafico ja vem na moeda mostrada; o preco vivo, nao.
+                let live = (price ?? livePrice ?? points.last?.price).flatMap { value in factor.map { value * $0 } }
+                let shown = selection?.price ?? live
                 if priceAsFigure {
-                    Text(shownPrice.map { Fmt.price($0, session.currency) } ?? " ")
+                    Text(shown.map { Fmt.price($0, displayCurrency) } ?? " ")
                         .typeStyle(.figure)
                 } else {
-                    Text(shownPrice.map { Fmt.price($0, session.currency) } ?? " ")
+                    Text(shown.map { Fmt.price($0, displayCurrency) } ?? " ")
                         .typeStyle(.row)
                 }
             }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                let next = !alternate
+                let target: Fmt.Currency = session.currency == .usd ? .brl : .usd
+                guard !next || portfolio.convert(1, to: Fmt.DisplayUnit(target), base: session.currency) != nil else { return }
+                withAnimation(Motion.number) { alternate = next }
+            }
+            .sensoryFeedback(.selection, trigger: alternate)
+            .accessibilityHint(session.currency == .usd ? "Toque para ver em reais" : "Toque para ver em dólar")
             .foregroundStyle(selection == nil ? tick : Palette.ink)
             .contentTransition(.numericText(value: shownPrice ?? 0))
             .animation(Motion.number, value: shownPrice)
@@ -184,7 +219,7 @@ struct MarketChartSection: View {
             .padding(.horizontal, Space.gutter)
             .padding(.top, Space.xxs)
 
-            PriceChart(points: points, loading: loading, isStable: isStable, selection: $selection, currency: session.currency)
+            PriceChart(points: displayPoints, loading: loading && points.isEmpty, isStable: isStable, selection: $selection, currency: displayCurrency)
                 .padding(.top, Space.sm)
             if failed && points.isEmpty {
                 Text("Não foi possível carregar o gráfico agora.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
@@ -210,6 +245,7 @@ struct MarketChartSection: View {
 
     private func load() async {
         guard let coingeckoID else { return }
+        if points.isEmpty { points = Self.seeded(seed, range: range) }
         loading = true
         defer { loading = false }
         do {
@@ -217,6 +253,21 @@ struct MarketChartSection: View {
             failed = false
         } catch {
             failed = true
+        }
+    }
+
+    /// O comeco do grafico com a linha de 7 dias da lista: as ultimas 24 horas para 24h,
+    /// a linha toda para 7 dias. Os pontos sao horarios e terminam agora.
+    static func seeded(_ hourly: [Double], range: ChartRange) -> [PricePoint] {
+        let values: [Double]
+        switch range {
+        case .day: values = Array(hourly.suffix(25))
+        case .week: values = hourly
+        default: return []
+        }
+        let now = Date()
+        return values.enumerated().map { index, price in
+            PricePoint(time: now.addingTimeInterval(-Double(values.count - 1 - index) * 3600), price: price)
         }
     }
 

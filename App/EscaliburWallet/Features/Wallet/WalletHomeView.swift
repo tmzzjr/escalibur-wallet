@@ -484,7 +484,7 @@ struct WalletSwitcherSheet: View {
                             dismiss()
                         } label: {
                             HStack(spacing: Space.sm) {
-                                WalletGlyph(id: wallet.id, size: 36, selected: wallet.id == session.selectedWallet?.id)
+                                WalletGlyph(id: wallet.id, size: 36, selected: wallet.id == session.selectedWallet?.id, watchOnly: wallet.isWatchOnly)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
                                     Text(subtitle(wallet)).typeStyle(.note)

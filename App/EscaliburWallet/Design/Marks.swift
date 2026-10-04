@@ -1,4 +1,3 @@
-import CryptoKit
 import SwiftUI
 
 /// A espada do Escalibur, como geometria. Proporcoes medidas no icone de 1024 do
@@ -49,37 +48,22 @@ struct WalletBadge: View {
     }
 }
 
-/// A marca de uma carteira: o glifo 4x4 do Escalibur, derivado do identificador.
-/// Monocromatico, estavel para sempre, e nunca um avatar de cor sorteada.
+/// A marca de uma carteira: o icone de carteira, branco na selecionada; carteira so
+/// de observar mostra um olho, para nao parecer que dela se pode enviar.
 struct WalletGlyph: View {
     let id: UUID
     var size: CGFloat = 36
     var selected: Bool = false
-
-    private var bits: [Bool] {
-        let digest = SHA256.hash(data: withUnsafeBytes(of: id.uuid) { Data($0) })
-        let two = Array(digest.prefix(2))
-        return (0..<16).map { index in (two[index / 8] >> UInt8(7 - index % 8)) & 1 == 1 }
-    }
+    var watchOnly: Bool = false
 
     var body: some View {
-        let cell = size * 0.16
-        let gap = size * 0.04
         RoundedRectangle(cornerRadius: size <= 24 ? 6 : Radius.card, style: .continuous)
             .fill(Palette.rail)
             .frame(width: size, height: size)
             .overlay {
-                VStack(spacing: gap) {
-                    ForEach(0..<4, id: \.self) { row in
-                        HStack(spacing: gap) {
-                            ForEach(0..<4, id: \.self) { column in
-                                Rectangle()
-                                    .fill(bits[row * 4 + column] ? (selected ? Palette.ink : Palette.inkMuted) : .clear)
-                                    .frame(width: cell, height: cell)
-                            }
-                        }
-                    }
-                }
+                Image(systemName: watchOnly ? "eye" : "wallet.bifold.fill")
+                    .font(.system(size: size * 0.42, weight: .semibold))
+                    .foregroundStyle(selected ? Palette.ink : Palette.inkMuted)
             }
             .accessibilityHidden(true)
     }

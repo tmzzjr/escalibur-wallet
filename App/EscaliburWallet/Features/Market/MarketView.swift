@@ -190,8 +190,8 @@ struct MarketRow: View {
 
 /// A pilula de variacao do dia: seta cheia e numero sem sinal (a seta ja diz a
 /// direcao), sobre a cor cheia da direcao. Alta: lima com texto escuro (nunca branco
-/// sobre verde, 2,29:1). Queda: vermelho um tom mais fundo que o da interface, para o
-/// texto branco ficar em 5,7:1. Variacao abaixo de 0,01% e neutra, sem seta.
+/// sobre verde, 2,29:1). Queda: vermelho saturado (#E8112D), com o texto branco
+/// a 4,6:1. Variacao abaixo de 0,01% e neutra, sem seta.
 struct ChangePill: View {
     let change: Double?
 
@@ -249,16 +249,25 @@ struct Sparkline: View {
 struct MarketCoinDetail: View {
     @Environment(AppSession.self) private var session
     @Environment(Router.self) private var router
+    @Environment(Portfolio.self) private var portfolio
     let coin: MarketCoin
 
     private var tradable: Asset? { CoinTrade.asset(for: coin.id) }
+
+    /// O que a carteira tem desta moeda, na rede onde ha mais: e o que Vender oferece.
+    private var held: Asset? {
+        Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings)
+            .filter { $0.asset.coingeckoID == coin.id && !$0.amount.isZero }
+            .max { Fmt.double($0.amount, decimals: $0.asset.decimals) < Fmt.double($1.amount, decimals: $1.asset.decimals) }?
+            .asset
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 MarketChartSection(coingeckoID: coin.id, symbol: coin.symbol, name: coin.name,
                                    livePrice: coin.price, liveChange: coin.change24h,
-                                   isStable: ["tether", "usd-coin", "dai"].contains(coin.id))
+                                   isStable: ["tether", "usd-coin", "dai"].contains(coin.id), seed: coin.sparkline)
                 MarketStats(items: [
                     ("Capitalização", coin.marketCap.map { Fmt.compact($0, session.currency) } ?? "sem dado"),
                     ("Volume em 24h", coin.volume24h.map { Fmt.compact($0, session.currency) } ?? "sem dado"),
@@ -270,6 +279,9 @@ struct MarketCoinDetail: View {
             .padding(.bottom, Space.xl)
         }
         .background(Palette.void.ignoresSafeArea())
+        // Vender depende do saldo, e tocar no preco, da cotacao em outras moedas: quem
+        // abre direto no Mercado ainda nao carregou a carteira.
+        .task(id: session.selectedWallet?.id) { await portfolio.ensureLoaded(session.selectedWallet, session: session) }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
@@ -282,11 +294,21 @@ struct MarketCoinDetail: View {
             ToolbarItem(placement: .topBarTrailing) { FavoriteButton(coingeckoID: coin.id) }
         }
         .safeAreaInset(edge: .bottom) {
-            if let tradable, session.selectedWallet?.isWatchOnly != true {
+            if session.selectedWallet?.isWatchOnly != true, tradable != nil || held != nil {
                 ActionFooter {
-                    PrimaryButton(title: "Trocar por \(coin.symbol.uppercased())") {
-                        router.tradePreset = (tradable, false)
-                        router.tab = .trade
+                    HStack(spacing: Space.sm) {
+                        if let held {
+                            SecondaryButton(title: "Vender", height: Height.primary) {
+                                router.tradePreset = (held, true)
+                                router.tab = .trade
+                            }
+                        }
+                        if let tradable {
+                            PrimaryButton(title: "Comprar \(coin.symbol.uppercased())") {
+                                router.tradePreset = (tradable, false)
+                                router.tab = .trade
+                            }
+                        }
                     }
                 }
             }
