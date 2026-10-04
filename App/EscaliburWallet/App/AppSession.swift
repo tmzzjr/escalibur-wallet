@@ -305,6 +305,13 @@ final class AppSession {
         try? persist()
     }
 
+    /// Grava o aceite de responsabilidade: a data e a versao do texto aceito.
+    func acceptResponsibility(version: Int) {
+        metadata.responsibilityAccepted = .now
+        metadata.responsibilityVersion = version
+        try? persist()
+    }
+
     func remove(_ wallet: WalletMeta) {
         try? KeyServices.wallets.delete(wallet.id)
         metadata.wallets.removeAll { $0.id == wallet.id }

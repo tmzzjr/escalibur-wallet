@@ -26,6 +26,12 @@ final class ImportPhraseTests: XCTestCase {
         XCTAssertTrue(option.waitForExistence(timeout: 30))
         option.tap()
 
+        // Antes de digitar, o aceite de responsabilidade.
+        let accept = app.buttons["aceite-responsabilidade"]
+        XCTAssertTrue(accept.waitForExistence(timeout: 10))
+        accept.tap()
+        app.buttons["Digitar as palavras"].tap()
+
         let first = app.otherElements["palavra-1"]
         XCTAssertTrue(first.waitForExistence(timeout: 10))
         first.tap()

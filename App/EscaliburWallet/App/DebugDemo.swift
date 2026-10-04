@@ -71,22 +71,40 @@ enum DebugDemo {
 }
 
 /// `-tela lacrar` e `-tela abrir` abrem as telas de envelope por cima da carteira.
+/// `-tela adicionar`, `-tela criar`, `-tela seguranca` e `-tela observar` abrem as
+/// telas de carteira nova.
 struct DemoEnvelopes: ViewModifier {
     @Environment(AppSession.self) private var session
     @State private var sealing: WalletMeta?
     @State private var opening = false
+    @State private var newWallet: DemoNewWallet?
     @State private var shown = false
 
     func body(content: Content) -> some View {
         content
             .fullScreenCover(item: $sealing) { wallet in SealEnvelopeFlow(wallet: wallet) { sealing = nil } }
             .fullScreenCover(isPresented: $opening) { OpenEnvelopeFlow(initialURL: DebugDemo.envelopeURL) { opening = false } }
+            .fullScreenCover(item: $newWallet) { screen in
+                switch screen {
+                case .criar: NewWalletFlow(isFirstWallet: false) { newWallet = nil }
+                case .seguranca: NavigationStack { ResponsibilityView(continueTitle: "Digitar as palavras") {} }
+                case .observar: NavigationStack { WatchAddressView { newWallet = nil } }
+                case .adicionar: AddWalletView(isFirst: false) { newWallet = nil }
+                }
+            }
             .task(id: session.metadata.wallets.first?.id) {
                 guard !shown, let first = session.metadata.wallets.first else { return }
                 shown = true
                 if DebugDemo.screen == "lacrar" { sealing = first }
                 if DebugDemo.screen == "abrir" { opening = true }
+                newWallet = DebugDemo.screen.flatMap(DemoNewWallet.init(rawValue:))
             }
     }
+}
+
+/// As telas de carteira nova que `-tela` abre direto.
+enum DemoNewWallet: String, Identifiable {
+    case adicionar, criar, seguranca, observar
+    var id: String { rawValue }
 }
 #endif

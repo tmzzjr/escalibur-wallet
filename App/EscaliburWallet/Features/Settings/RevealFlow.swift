@@ -49,12 +49,15 @@ struct RevealFlow: View {
 
     private var warning: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Ninguém da Escalibur vai pedir estas palavras")
+            Text("Ninguém da Escalibur vai pedir suas palavras")
                 .typeStyle(.title).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Suporte, gerente de exchange, recuperação de conta: quem pede a senha da carteira está tentando roubar o saldo.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
+            Text("Estou ciente que:")
+                .typeStyle(.row).foregroundStyle(Palette.ink)
+                .padding(.top, Space.lg)
             VStack(spacing: 0) {
                 ForEach(Array(Self.statements.enumerated()), id: \.offset) { index, statement in
                     Button {
@@ -62,10 +65,10 @@ struct RevealFlow: View {
                     } label: {
                         HStack(spacing: Space.sm) {
                             ZStack {
-                                Circle().stroke(acknowledged.contains(index) ? Palette.ink : Palette.inkMuted, lineWidth: 1.5)
+                                Circle().stroke(acknowledged.contains(index) ? Palette.purple : Palette.inkMuted, lineWidth: 1.5)
                                 if acknowledged.contains(index) {
-                                    Circle().fill(Palette.ink)
-                                    Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(Palette.onLive)
+                                    Circle().fill(Palette.purple)
+                                    Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
                                 }
                             }
                             .frame(width: 22, height: 22)
@@ -80,7 +83,7 @@ struct RevealFlow: View {
                     .sensoryFeedback(.selection, trigger: acknowledged.contains(index))
                 }
             }
-            .padding(.top, Space.lg)
+            .padding(.top, Space.xxs)
             if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }
             Spacer()
             PrimaryButton(title: "Ver as palavras", enabled: acknowledged.count == Self.statements.count, loading: working) {
@@ -92,10 +95,11 @@ struct RevealFlow: View {
         .padding(.bottom, Space.xs)
     }
 
+    /// Cada item continua a frase "Estou ciente que:".
     static let statements = [
-        "Quem tem as palavras tem o saldo.",
-        "A Escalibur nunca pede as palavras.",
-        "Vou ver sozinho, longe de câmeras.",
+        "quem tem as palavras tem o saldo",
+        "a Escalibur nunca pede as palavras",
+        "devo ver as palavras sozinho, longe de câmeras",
     ]
 
     private func open() async {

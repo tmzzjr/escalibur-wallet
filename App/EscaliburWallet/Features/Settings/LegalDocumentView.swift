@@ -40,6 +40,9 @@ enum LegalDocument: String, Identifiable {
             let line = raw.trimmingCharacters(in: .whitespaces)
             if line.isEmpty {
                 flush()
+            } else if line.hasPrefix("<!--") {
+                // Nota interna (revisao juridica), nunca mostrada no app.
+                continue
             } else if line.hasPrefix("# ") {
                 flush()
             } else if line.hasPrefix("## ") {

@@ -1,28 +1,30 @@
 import EscaliburCore
 import SwiftUI
 
-/// O3 (gravar) e X2 (revelar): tres palavras por vez, sessenta segundos por grupo,
-/// na placa clara. Nada de copiar, nada de "mostrar todas".
+/// O3 (gravar) e X2 (revelar): tres palavras por vez, na placa clara, que se arrasta
+/// de lado como paginas. Nada de copiar, nada de "mostrar todas". As palavras nao
+/// somem por tempo; somem quando o app sai da frente, e a captura de tela e a
+/// gravacao continuam barradas (`guardedAgainstCapture`).
 struct RecordWordsView: View {
     let draft: PhraseDraft
     /// Nil na criacao; o nome da carteira na revelacao (X2).
     let walletName: String?
-    /// A 25a palavra, em buffer; vira texto so enquanto o grupo dela esta na tela.
+    /// A passphrase, em buffer; vira texto so enquanto o grupo dela esta por perto.
     var passphrase: SecureBytes? = nil
     let onDone: () -> Void
 
     @State private var group = 0
-    @State private var secondsLeft = 60
     @State private var hidden = false
-    /// As tres palavras do grupo atual. Carregadas ao trocar de grupo, soltas ao
-    /// esconder e ao sair; `body` so le daqui.
-    @State private var shown: [String] = []
+    /// As palavras do grupo na tela e dos dois vizinhos, para a pagina ja estar pronta
+    /// quando o dedo arrasta. Recarregadas ao trocar de grupo, soltas ao esconder e ao
+    /// sair; `body` so le daqui.
+    @State private var shown: [Int: [String]] = [:]
     @Environment(\.scenePhase) private var scenePhase
 
     private let perGroup = 3
-    private let window = 60
+    private let rowHeight: CGFloat = 84
     private var groups: Int { draft.wordCount / perGroup + (passphrase == nil ? 0 : 1) }
-    private var isPassphraseGroup: Bool { passphrase != nil && group == groups - 1 }
+    private func isPassphrase(_ index: Int) -> Bool { passphrase != nil && index == groups - 1 }
     private var isLast: Bool { group == groups - 1 }
 
     var body: some View {
@@ -31,10 +33,12 @@ struct RecordWordsView: View {
                 .typeStyle(.title).foregroundStyle(Palette.ink)
             Text(subtitle)
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
+                .contentTransition(.numericText())
 
-            plate.padding(.top, Space.lg)
+            pages.padding(.top, Space.lg)
+            pageIndicator.padding(.top, Space.sm)
 
-            if isPassphraseGroup {
+            if isPassphrase(group) {
                 Text("Sem ela, as palavras acima abrem uma carteira diferente e vazia.")
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
             }
@@ -53,100 +57,132 @@ struct RecordWordsView: View {
         .padding(.bottom, Space.xs)
         .background(Palette.void.ignoresSafeArea())
         .guardedAgainstCapture()
-        .task(id: group) { await countdown() }
         .onChange(of: group, initial: true) { _, _ in load() }
-        .onChange(of: hidden) { _, isHidden in if isHidden { shown = [] } else { load() } }
-        .onDisappear { shown = [] }
+        .onChange(of: hidden) { _, _ in load() }
+        .onDisappear { shown = [:] }
         .onChange(of: scenePhase) { _, phase in
-            // Em segundo plano as palavras escondem e o tempo reinicia.
-            if phase != .active { hidden = true; secondsLeft = window }
+            // Em segundo plano as palavras escondem; voltam com um toque.
+            if phase != .active { hidden = true }
         }
     }
 
+    /// Carrega o grupo atual e os vizinhos; tudo o mais sai da memoria.
     private func load() {
         guard !hidden else {
-            shown = []
+            shown = [:]
             return
         }
-        if isPassphraseGroup {
-            shown = passphrase.map { secret in [secret.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }] } ?? []
-            return
+        var next: [Int: [String]] = [:]
+        for index in max(0, group - 1)...min(groups - 1, group + 1) {
+            next[index] = shown[index] ?? words(of: index)
         }
-        let start = group * perGroup
-        shown = draft.words(start..<min(start + perGroup, draft.wordCount))
+        shown = next
+    }
+
+    private func words(of index: Int) -> [String] {
+        if isPassphrase(index) {
+            return passphrase.map { secret in [secret.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }] } ?? []
+        }
+        let start = index * perGroup
+        return draft.words(start..<min(start + perGroup, draft.wordCount))
     }
 
     private var subtitle: String {
-        if isPassphraseGroup { return "25ª palavra" }
+        if isPassphrase(group) { return "Passphrase" }
         let first = group * perGroup + 1
         let last = min(first + perGroup - 1, draft.wordCount)
         let prefix = walletName.map { "\($0) · " } ?? ""
         return "\(prefix)Palavras \(first) a \(last) de \(draft.wordCount)"
     }
 
-    private var plate: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            GeometryReader { geometry in
-                Rectangle()
-                    .fill(Palette.plateBurn)
-                    .frame(width: geometry.size.width * CGFloat(window - secondsLeft) / CGFloat(window), height: 4)
+    /// Uma placa por grupo, em paginas de verdade: arrastar para a esquerda mostra as
+    /// proximas, para a direita as anteriores.
+    private var pages: some View {
+        TabView(selection: $group) {
+            ForEach(0..<groups, id: \.self) { index in
+                plate(index)
+                    .padding(.horizontal, Space.gutter)
+                    .tag(index)
             }
-            .frame(height: 4)
-
-            ZStack {
-                VStack(spacing: 0) {
-                    if isPassphraseGroup {
-                        plateRow(index: nil, word: shown.first ?? "")
-                    } else {
-                        let start = group * perGroup
-                        ForEach(Array(shown.enumerated()), id: \.offset) { offset, word in
-                            plateRow(index: start + offset + 1, word: word)
-                            if offset < shown.count - 1 {
-                                Rectangle().fill(Palette.plateRule).frame(height: 1).padding(.leading, Space.base)
-                            }
-                        }
-                    }
-                }
-                .opacity(hidden ? 0 : 1)
-
-                if hidden {
-                    VStack(spacing: Space.sm) {
-                        Text("Escondidas para ninguém ler por cima do seu ombro.")
-                            .typeStyle(.body).foregroundStyle(Palette.plateInk).multilineTextAlignment(.center)
-                        Button {
-                            hidden = false
-                            secondsLeft = window
-                        } label: {
-                            Text("Mostrar de novo").typeStyle(.action).foregroundStyle(Palette.plateInk)
-                                .padding(.horizontal, Space.md).frame(height: 40)
-                                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.plateInk, lineWidth: 1.5))
-                        }
-                    }
-                    .padding(Space.md)
-                }
-            }
-            .frame(minHeight: 3 * 84)
-
-            HStack {
-                Spacer()
-                Text(hidden ? " " : "Esconde em \(secondsLeft) s")
-                    .typeStyle(.note).foregroundStyle(Palette.plateMuted)
-            }
-            .padding(.horizontal, Space.md)
-            .padding(.bottom, Space.sm)
         }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .frame(height: CGFloat(perGroup) * rowHeight + 2 * Space.xs)
+        .padding(.horizontal, -Space.gutter)
+        .accessibilityIdentifier("placa-palavras")
+    }
+
+    private func plate(_ index: Int) -> some View {
+        ZStack {
+            VStack(spacing: 0) {
+                let words = shown[index] ?? []
+                if isPassphrase(index) {
+                    plateRow(index: nil, word: words.first ?? "")
+                } else {
+                    let start = index * perGroup
+                    ForEach(Array(words.enumerated()), id: \.offset) { offset, word in
+                        plateRow(index: start + offset + 1, word: word)
+                        if offset < words.count - 1 {
+                            Rectangle().fill(Palette.plateRule).frame(height: 1).padding(.leading, Space.base)
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, Space.xs)
+            .opacity(hidden ? 0 : 1)
+
+            if hidden {
+                VStack(spacing: Space.sm) {
+                    Text("Escondidas para ninguém ler por cima do seu ombro.")
+                        .typeStyle(.body).foregroundStyle(Palette.plateInk).multilineTextAlignment(.center)
+                    Button {
+                        hidden = false
+                    } label: {
+                        Text("Mostrar de novo").typeStyle(.action).foregroundStyle(Palette.plateInk)
+                            .padding(.horizontal, Space.md).frame(height: 40)
+                            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.plateInk, lineWidth: 1.5))
+                    }
+                }
+                .padding(Space.md)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(LacquerPlate().fill(Palette.live))
         .clipShape(LacquerPlate())
         .textSelection(.disabled)
         .accessibilityElement(children: .contain)
     }
 
+    /// Indicador discreto: um traco por grupo, o atual mais longo. No VoiceOver e um
+    /// controle ajustavel (deslizar para cima ou para baixo troca o grupo).
+    private var pageIndicator: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<groups, id: \.self) { index in
+                Capsule(style: .continuous)
+                    .fill(index == group ? Palette.purple : Palette.edgeStrong)
+                    .frame(width: index == group ? 18 : 6, height: 6)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .animation(Motion.select, value: group)
+        .accessibilityElement()
+        .accessibilityLabel("Grupo de palavras")
+        .accessibilityValue("\(group + 1) de \(groups)")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: move(1)
+            case .decrement: move(-1)
+            @unknown default: break
+            }
+        }
+    }
+
     private func plateRow(index: Int?, word: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: Space.md) {
-            Text(index.map { String(format: "%02d", $0) } ?? "25ª")
+            Text(index.map { String(format: "%02d", $0) } ?? "Pass")
                 .font(.system(size: 15, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Palette.plateMuted)
-                .frame(width: 34, alignment: .leading)
+                .frame(width: index == nil ? 44 : 34, alignment: .leading)
             Text(verbatim: word)
                 .accessibilityIdentifier(index.map { "palavra-\($0)" } ?? "palavra-25")
                 .font(.system(size: 30, weight: .semibold, design: .monospaced))
@@ -156,24 +192,12 @@ struct RecordWordsView: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, Space.base)
-        .frame(height: 84)
+        .frame(height: rowHeight)
     }
 
     private func move(_ delta: Int) {
         withAnimation(Motion.crossfade) {
             group = max(0, min(groups - 1, group + delta))
-            hidden = false
-            secondsLeft = window
-        }
-    }
-
-    private func countdown() async {
-        secondsLeft = window
-        while !Task.isCancelled {
-            try? await Task.sleep(for: .seconds(1))
-            guard !Task.isCancelled, !hidden else { continue }
-            secondsLeft -= 1
-            if secondsLeft <= 0 { hidden = true }
         }
     }
 }
@@ -182,6 +206,8 @@ struct RecordWordsView: View {
 struct ConfirmWordsView: View {
     let draft: PhraseDraft
     let onBack: () -> Void
+    /// Sair sem conferir: a carteira fica marcada "Sem copia". Nil onde nao se aplica.
+    var onLater: (() -> Void)? = nil
     let onConfirmed: () -> Void
 
     @State private var positions: [Int] = []
@@ -231,6 +257,11 @@ struct ConfirmWordsView: View {
             }
             Spacer()
             PrimaryButton(title: "Confirmar", enabled: !typed.isEmpty, action: check)
+            if let onLater {
+                TertiaryButton(title: "Anotar e confirmar depois", action: onLater)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, Space.xxs)
+            }
         }
         .padding(.horizontal, Space.gutter)
         .padding(.top, Space.md)

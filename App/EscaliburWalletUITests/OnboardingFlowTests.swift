@@ -53,8 +53,14 @@ final class OnboardingFlowTests: XCTestCase {
         shot("04-primeira-carteira", app)
         app.buttons["Criar carteira nova"].tap()
 
-        XCTAssertTrue(app.buttons["Mostrar as palavras"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Continuar"].waitForExistence(timeout: 5))
         shot("05-antes-das-palavras", app)
+        app.buttons["Continuar"].tap()
+
+        // Seguranca e responsabilidade: so segue com a caixa marcada.
+        XCTAssertTrue(app.buttons["aceite-responsabilidade"].waitForExistence(timeout: 5))
+        shot("05b-seguranca", app)
+        app.buttons["aceite-responsabilidade"].tap()
         app.buttons["Mostrar as palavras"].tap()
 
         // Sem Face ID ligado, a folha do PIN confirma a gravacao.
