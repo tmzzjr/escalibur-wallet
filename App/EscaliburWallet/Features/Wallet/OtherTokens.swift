@@ -219,7 +219,14 @@ struct ContractPanel: View {
                     Text("\(CustomToken.addressLabel(chain)) \(chain.id == "xrpl" ? "no" : "na") \(chain.name)")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 }
-                AddressBlocks(address: reference)
+                if reference.count >= 26, reference.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) }) {
+                    AddressBlocks(address: reference)
+                } else {
+                    // Conta com nome (NEAR), tipo de moeda da Sui, numero de ativo: inteiro,
+                    // sem quebrar em blocos que nao existem nele.
+                    Text(verbatim: reference).font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 HStack(spacing: Space.sm) {
                     Button {
                         Pasteboard.copyAddress(reference)
