@@ -43,7 +43,10 @@ enum DebugDemo {
                 try await session.unlock(pin: securePIN())
             }
             if session.metadata.wallets.isEmpty {
-                let secret = try WalletSecret.from(phrase: BIP39.canonical(phrase), language: .english)
+                // `-vazia`: uma carteira nova, sorteada agora, sem saldo nenhum.
+                let secret = arguments.contains("-vazia")
+                    ? try WalletSecret.from(phrase: BIP39.generate(wordCount: 12), language: .english)
+                    : try WalletSecret.from(phrase: BIP39.canonical(phrase), language: .english)
                 // `-sem-copia`: carteira criada aqui e ainda sem copia, para as telas que
                 // pedem gravar a senha antes de receber.
                 let withoutBackup = arguments.contains("-sem-copia")

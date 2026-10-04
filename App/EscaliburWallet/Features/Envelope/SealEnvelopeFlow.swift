@@ -366,9 +366,9 @@ private struct EnvelopePoint: View {
         HStack(alignment: .top, spacing: Space.sm) {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Palette.purple)
+                .foregroundStyle(Palette.ink)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(Palette.brand.opacity(0.16)))
+                .background(Circle().fill(Palette.control))
             Text(text).typeStyle(.body).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 5)
@@ -385,7 +385,7 @@ private struct EnvelopeOptionButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: Space.xs) {
-                Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.purple)
+                Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
                 Text(title).typeStyle(.action).foregroundStyle(Palette.ink).lineLimit(1).minimumScaleFactor(0.85)
             }
             .frame(maxWidth: .infinity)

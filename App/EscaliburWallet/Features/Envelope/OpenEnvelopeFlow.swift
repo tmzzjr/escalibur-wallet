@@ -150,7 +150,7 @@ struct OpenEnvelopeFlow: View {
         let words = contents.phrase.withUnsafeBytes { raw in raw.filter { $0 == 0x20 }.count + 1 }
         Text(verbatim: contents.label.isEmpty ? "Envelope aberto" : contents.label)
             .typeStyle(.title).foregroundStyle(Palette.ink)
-        Text("\(words) palavras, lista em \(contents.language.displayName.lowercased())" + (contents.passphrase.count > 0 ? " · com 25ª palavra" : ""))
+        Text("\(words) palavras, lista em \(contents.language.displayName.lowercased())" + (contents.passphrase.count > 0 ? " · com passphrase" : ""))
             .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
         if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }
         Spacer()

@@ -310,11 +310,11 @@ struct SecuritySettingsView: View {
                 if let wallet = session.selectedWallet, !wallet.isWatchOnly {
                     SettingsGroup {
                         NavigationLink { PassphraseWalletView(base: wallet) } label: {
-                            SettingsRow(icon: "key.horizontal", title: "Carteira com 25ª palavra")
+                            SettingsRow(icon: "key.horizontal", title: "Carteira com passphrase")
                         }
                     }
                     .padding(.top, Space.lg)
-                    Text("Outra carteira, aberta pela senha de \(wallet.name) com uma palavra a mais que só você sabe.")
+                    Text("Outra carteira, aberta pela senha de \(wallet.name) com uma passphrase que só você sabe.")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                         .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                         .fixedSize(horizontal: false, vertical: true)

@@ -39,7 +39,7 @@ struct ImportPreviewView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Confira antes de guardar").typeStyle(.title).foregroundStyle(Palette.ink)
                 Text(hasPassphrase
-                     ? "Se esta carteira já recebeu antes, estes endereços são os que você conhece. Se não baterem, a frase ou a 25ª palavra está diferente, e o que abriria aqui é outra carteira, vazia."
+                     ? "Se esta carteira já recebeu antes, estes endereços são os que você conhece. Se não baterem, a frase ou a passphrase está diferente, e o que abriria aqui é outra carteira, vazia."
                      : "Se esta carteira já recebeu antes, estes endereços são os que você conhece. Se não baterem, alguma palavra está diferente, e o que abriria aqui é outra carteira, vazia.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)

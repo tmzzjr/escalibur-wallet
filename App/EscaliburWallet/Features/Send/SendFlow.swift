@@ -158,17 +158,24 @@ struct SendAssetPicker: View {
     @Environment(Portfolio.self) private var portfolio
     let onPick: (Holding) -> Void
     @State private var query = ""
+    @State private var receiving = false
 
     var body: some View {
         let holdings = Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings).filter { !$0.amount.isZero }
         let filtered = query.isEmpty ? holdings : holdings.filter { $0.asset.symbol.localizedCaseInsensitiveContains(query) }
         VStack(alignment: .leading, spacing: 0) {
-            Text("Escolha o que enviar").typeStyle(.title).foregroundStyle(Palette.ink).padding(.horizontal, Space.gutter)
-            if holdings.isEmpty {
-                Text("Nada para enviar ainda. Quando chegar saldo nesta carteira, ele aparece aqui.")
-                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(Space.gutter)
+            if holdings.isEmpty && portfolio.loading {
+                Text("Escolha o que enviar").typeStyle(.title).foregroundStyle(Palette.ink).padding(.horizontal, Space.gutter)
+                HStack(spacing: Space.sm) {
+                    ProgressView().tint(Palette.inkSoft)
+                    Text("Lendo os saldos desta carteira.").typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                }
+                .padding(Space.gutter)
                 Spacer()
+            } else if holdings.isEmpty {
+                empty
             } else {
+                Text("Escolha o que enviar").typeStyle(.title).foregroundStyle(Palette.ink).padding(.horizontal, Space.gutter)
                 TextField("", text: $query, prompt: Text("Buscar").foregroundColor(Palette.inkDead))
                     .typeStyle(.body).foregroundStyle(Palette.ink)
                     .padding(.horizontal, Space.md).frame(height: 44)
@@ -200,8 +207,28 @@ struct SendAssetPicker: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.top, Space.md)
         .task(id: session.selectedWallet?.id) { await portfolio.ensureLoaded(session.selectedWallet, session: session) }
+    }
+
+    /// Carteira sem saldo: a ilustracao de nada para enviar e o caminho para receber.
+    private var empty: some View {
+        VStack(spacing: 0) {
+            EmptySendArt(height: 280).padding(.top, Space.sm)
+            VStack(spacing: Space.sm) {
+                Text("Ainda não há ativos para enviar").typeStyle(.title).foregroundStyle(Palette.ink)
+                Text("Quando chegar saldo nesta carteira, ele aparece aqui para você escolher o que enviar.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.top, Space.md)
+            Spacer(minLength: Space.md)
+            PrimaryButton(title: "Receber") { receiving = true }
+        }
+        .padding(.horizontal, Space.gutter)
+        .padding(.bottom, Space.xs)
+        .sheet(isPresented: $receiving) { ReceiveSheet(preselected: nil) }
     }
 }
 

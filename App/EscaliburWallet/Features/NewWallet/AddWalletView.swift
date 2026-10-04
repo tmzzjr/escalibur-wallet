@@ -10,7 +10,6 @@ struct AddWalletView: View {
     @State private var route: Route?
     @State private var creating = false
     @State private var openingEnvelope = false
-    @State private var appeared = false
 
     enum Route: Hashable { case importPhrase, watch }
 
@@ -30,13 +29,13 @@ struct AddWalletView: View {
                 .padding(.horizontal, Space.gutter)
                 .padding(.top, Space.sm)
                 VStack(spacing: 0) {
-                    row("Importar com a senha da carteira", "Você já tem 12 ou 24 palavras de outra carteira.", "text.word.spacing", order: 0) {
+                    row("Importar com a senha da carteira", "Você já tem 12 ou 24 palavras de outra carteira.", "text.word.spacing") {
                         route = .importPhrase
                     }
-                    row("Importar de um envelope Escalibur", "O arquivo .esclbr e a senha do envelope.", "envelope", order: 1) {
+                    row("Importar de um envelope Escalibur", "O arquivo .esclbr e a senha do envelope.", "envelope") {
                         openingEnvelope = true
                     }
-                    row("Só observar um endereço", "Acompanhe um saldo sem poder enviar.", "eye", order: 2) {
+                    row("Só observar um endereço", "Acompanhe um saldo sem poder enviar.", "eye") {
                         route = .watch
                     }
                 }
@@ -75,15 +74,14 @@ struct AddWalletView: View {
         }
     }
 
-    /// Cada opcao sobe um pouco depois da anterior, na primeira aparicao.
-    private func row(_ title: String, _ subtitle: String, _ icon: String, order: Int, action: @escaping () -> Void) -> some View {
+    private func row(_ title: String, _ subtitle: String, _ icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: Space.sm) {
                 Image(systemName: icon)
                     .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(.white)
                     .frame(width: 40, height: 40)
-                    .background(Circle().fill(Palette.purple))
+                    .background(Circle().fill(Palette.control))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).typeStyle(.row).foregroundStyle(Palette.ink)
                     Text(subtitle).typeStyle(.note).foregroundStyle(Palette.inkSoft)
@@ -95,9 +93,5 @@ struct AddWalletView: View {
             .frame(height: 72)
         }
         .buttonStyle(RowStyle())
-        .opacity(appeared ? 1 : 0)
-        .offset(y: appeared ? 0 : 16)
-        .animation(.spring(response: 0.5, dampingFraction: 0.85).delay(0.25 + 0.08 * Double(order)), value: appeared)
-        .onAppear { appeared = true }
     }
 }

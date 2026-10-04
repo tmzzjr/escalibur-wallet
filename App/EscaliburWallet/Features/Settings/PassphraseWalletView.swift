@@ -27,12 +27,12 @@ struct PassphraseWalletView: View {
             VStack(spacing: 0) {
                 Image(systemName: "key.horizontal")
                     .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(Palette.purple)
+                    .foregroundStyle(Palette.ink)
                     .frame(width: 64, height: 64)
-                    .background(Circle().fill(Palette.brand.opacity(0.16)))
+                    .background(Circle().fill(Palette.control))
                 VStack(spacing: Space.xs) {
-                    Text("Carteira com 25ª palavra").typeStyle(.title).foregroundStyle(Palette.ink)
-                    Text("Uma palavra a mais, escolhida por você. Junto com a senha de \(base.name), ela abre outra carteira, com outros endereços.")
+                    Text("Carteira com passphrase").typeStyle(.title).foregroundStyle(Palette.ink)
+                    Text("Uma senha extra, escolhida por você. Junto com a senha de \(base.name), ela abre outra carteira, com outros endereços.")
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -41,8 +41,8 @@ struct PassphraseWalletView: View {
 
                 VStack(alignment: .leading, spacing: Space.md) {
                     PassphrasePoint(icon: "eye.slash", text: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não esta.")
-                    PassphrasePoint(icon: "pencil.and.list.clipboard", text: "Anote a 25ª palavra longe das \(wordCount). Para abrir esta carteira em outro aparelho, você vai precisar das duas.")
-                    PassphrasePoint(icon: "exclamationmark.triangle", text: "Esquecer a 25ª palavra é perder o que estiver nesta carteira. Ninguém recupera, nem a Escalibur.", caution: true)
+                    PassphrasePoint(icon: "pencil.and.list.clipboard", text: "Anote a passphrase longe das \(wordCount). Para abrir esta carteira em outro aparelho, você vai precisar das duas.")
+                    PassphrasePoint(icon: "exclamationmark.triangle", text: "Esquecer a passphrase é perder o que estiver nesta carteira. Ninguém recupera, nem a Escalibur.", caution: true)
                 }
                 .padding(Space.base)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -50,9 +50,9 @@ struct PassphraseWalletView: View {
                 .padding(.top, Space.lg)
 
                 VStack(alignment: .leading, spacing: Space.xs) {
-                    Text("25ª palavra").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                    PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "25ª palavra")
-                    PasswordBox(buffer: again, length: $againLength, placeholder: "Repita a 25ª palavra") { Task { await create() } }
+                    Text("Passphrase").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "Passphrase")
+                    PasswordBox(buffer: again, length: $againLength, placeholder: "Repita a passphrase") { Task { await create() } }
                     Text("Diferença de maiúscula, acento ou espaço já abre outra carteira.")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -83,7 +83,7 @@ struct PassphraseWalletView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .guardedAgainstCapture()
-        .onAppear { if name.isEmpty { name = "\(base.name) 25ª" } }
+        .onAppear { if name.isEmpty { name = "\(base.name) com passphrase" } }
         .onDisappear {
             passphrase.wipe()
             again.wipe()
@@ -94,18 +94,18 @@ struct PassphraseWalletView: View {
         guard !working, passphraseLength > 0 else { return }
         message = nil
         guard Hash.constantTimeEqual(passphrase, again) else {
-            message = "As duas versões da 25ª palavra não conferem."
+            message = "As duas versões da passphrase não conferem."
             return
         }
         working = true
         defer { working = false }
-        guard let credential = await auth.credential(reason: "Criar a carteira da 25ª palavra") else { return }
+        guard let credential = await auth.credential(reason: "Criar a carteira com passphrase") else { return }
         // O cofre fica com uma copia: os campos continuam donos dos seus buffers.
         let copy = SecureBytes(capacity: passphrase.count)
         passphrase.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
         let title = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40))
         do {
-            _ = try await session.addPassphraseWallet(base: base, passphrase: copy, name: title.isEmpty ? "\(base.name) 25ª" : title,
+            _ = try await session.addPassphraseWallet(base: base, passphrase: copy, name: title.isEmpty ? "\(base.name) com passphrase" : title,
                                                       credential: credential)
             passphrase.wipe()
             again.wipe()
@@ -128,9 +128,9 @@ private struct PassphrasePoint: View {
         HStack(alignment: .top, spacing: Space.sm) {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(caution ? Palette.caution : Palette.purple)
+                .foregroundStyle(caution ? Palette.caution : Palette.ink)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill((caution ? Palette.caution : Palette.brand).opacity(0.16)))
+                .background(Circle().fill(caution ? Palette.caution.opacity(0.16) : Palette.control))
             Text(text).typeStyle(.body).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 5)

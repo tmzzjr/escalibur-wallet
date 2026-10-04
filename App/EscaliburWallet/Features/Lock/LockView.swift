@@ -108,9 +108,9 @@ struct LockView: View {
                 VStack(spacing: 0) {
                     Image(systemName: "lock.iphone")
                         .font(.system(size: 30, weight: .semibold))
-                        .foregroundStyle(Palette.purple)
+                        .foregroundStyle(Palette.ink)
                         .frame(width: 72, height: 72)
-                        .background(Circle().fill(Palette.brand.opacity(0.16)))
+                        .background(Circle().fill(Palette.control))
                     Text("Não existe redefinir o PIN")
                         .typeStyle(.title).foregroundStyle(Palette.ink)
                         .padding(.top, Space.md)

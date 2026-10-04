@@ -40,6 +40,7 @@
 		53F96070D034447AEEA27845 /* AllocationDonut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A71DEB35D1AAC25A23037D /* AllocationDonut.swift */; };
 		57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C53992781573FB54743C00 /* SecureInputField.swift */; };
 		5848F371CF905048C9ABA616 /* RecordWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5287E825D53043F109D791D /* RecordWordsView.swift */; };
+		5921DC5AA483FB6C6E65C073 /* EmptySendArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53CECA7890449A2051DB3B96 /* EmptySendArt.swift */; };
 		5932324C0521646D89823F75 /* ContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AD68422B44E0DD96545710 /* ContactsView.swift */; };
 		5E9A7A552DC87E261A506B48 /* EscaliburKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 0911AD585A30024A352B31B6 /* EscaliburKeys */; };
 		5ECB862AD137C04F475B0CD2 /* PassphraseWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7E330A6D249E3EA26CE9BA4 /* PassphraseWalletView.swift */; };
@@ -142,6 +143,7 @@
 		4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometryNameTests.swift; sourceTree = "<group>"; };
 		4E8104D596BB55DD5566A8B0 /* WalletOrbit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletOrbit.swift; sourceTree = "<group>"; };
 		529FF2FD620686A71B265A06 /* RevealFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealFlow.swift; sourceTree = "<group>"; };
+		53CECA7890449A2051DB3B96 /* EmptySendArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptySendArt.swift; sourceTree = "<group>"; };
 		5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenOrdersView.swift; sourceTree = "<group>"; };
 		609FB55F39FC297CF3C80DE8 /* Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Kit; path = Kit; sourceTree = SOURCE_ROOT; };
 		634FB486C1AC19A1DC738122 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
@@ -312,6 +314,7 @@
 		6D35E79B4E7BBC60645EDBAB /* Send */ = {
 			isa = PBXGroup;
 			children = (
+				53CECA7890449A2051DB3B96 /* EmptySendArt.swift */,
 				7543B278315E1446160A8DAF /* QRScannerSheet.swift */,
 				09754506E0869351661279D1 /* SendFlow.swift */,
 			);
@@ -670,6 +673,7 @@
 				5932324C0521646D89823F75 /* ContactsView.swift in Sources */,
 				424496A6E4E34E2651C3AC55 /* DebugDemo.swift in Sources */,
 				DAC0E966C277EFDAF466D0EB /* DeviceIntegrity.swift in Sources */,
+				5921DC5AA483FB6C6E65C073 /* EmptySendArt.swift in Sources */,
 				AF3BC69E48877AAA3F75D755 /* EnvelopeChain.swift in Sources */,
 				17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */,
 				2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */,

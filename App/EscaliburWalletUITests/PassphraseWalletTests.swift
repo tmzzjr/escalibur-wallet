@@ -28,10 +28,10 @@ final class PassphraseWalletTests: XCTestCase {
         let security = app.staticTexts["Segurança"]
         XCTAssertTrue(security.waitForExistence(timeout: 30))
         security.tap()
-        let row = app.staticTexts["Carteira com 25ª palavra"]
+        let row = app.staticTexts["Carteira com passphrase"]
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.tap()
-        XCTAssertTrue(app.staticTexts["Carteira com 25ª palavra"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Carteira com passphrase"].waitForExistence(timeout: 5))
         shot("q1-25a", app)
 
         let fields = app.secureTextFields
@@ -50,7 +50,7 @@ final class PassphraseWalletTests: XCTestCase {
         // Volta para Seguranca; a carteira nova e a selecionada.
         XCTAssertTrue(app.staticTexts["Mudar o PIN"].waitForExistence(timeout: 30), "deveria voltar para Seguranca")
         app.buttons["Carteira"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Carteira principal 25ª"].waitForExistence(timeout: 15), "a carteira nova deveria estar em uso")
+        XCTAssertTrue(app.staticTexts["Carteira principal com passphrase"].waitForExistence(timeout: 15), "a carteira nova deveria estar em uso")
         shot("q2-em-uso", app)
     }
 }

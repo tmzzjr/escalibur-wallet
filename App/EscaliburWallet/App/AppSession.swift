@@ -335,7 +335,7 @@ enum WalletError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .alreadyImported(let name): return "Esta carteira já está aqui, como \(name)."
-        case .notPhraseWallet: return "Esta carteira só acompanha um endereço. A 25ª palavra precisa da senha de 12 ou 24 palavras."
+        case .notPhraseWallet: return "Esta carteira só acompanha um endereço. A passphrase precisa da senha de 12 ou 24 palavras."
         }
     }
 }

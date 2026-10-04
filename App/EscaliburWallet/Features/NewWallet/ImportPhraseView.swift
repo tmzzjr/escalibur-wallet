@@ -142,15 +142,15 @@ struct ImportPhraseView: View {
 
                     VStack(alignment: .leading, spacing: 0) {
                         Toggle(isOn: $usesPassphrase) {
-                            Text("Esta carteira usa 25ª palavra").typeStyle(.body).foregroundStyle(Palette.ink)
+                            Text("Esta carteira usa passphrase").typeStyle(.body).foregroundStyle(Palette.ink)
                         }
                         .tint(Palette.lime)
                         if usesPassphrase {
-                            Text("Com a 25ª palavra errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes.")
+                            Text("Com a passphrase errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes.")
                                 .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                                 .fixedSize(horizontal: false, vertical: true)
-                            PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "25ª palavra").padding(.top, Space.sm)
-                            PasswordBox(buffer: passphraseAgain, length: $passphraseAgainLength, placeholder: "Repita a 25ª palavra").padding(.top, Space.xs)
+                            PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "Passphrase").padding(.top, Space.sm)
+                            PasswordBox(buffer: passphraseAgain, length: $passphraseAgainLength, placeholder: "Repita a passphrase").padding(.top, Space.xs)
                         }
                         if let message {
                             Banner(kind: .failure, title: message).padding(.top, Space.md)
@@ -200,9 +200,9 @@ struct ImportPhraseView: View {
         HStack(spacing: Space.sm) {
             Image(systemName: "doc.on.clipboard")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Palette.purple)
+                .foregroundStyle(Palette.ink)
                 .frame(width: 40, height: 40)
-                .background(Circle().fill(Palette.brand.opacity(0.16)))
+                .background(Circle().fill(Palette.control))
             VStack(alignment: .leading, spacing: 2) {
                 Text("Tem a senha copiada?").typeStyle(.row).foregroundStyle(Palette.ink)
                 Text("Cola as palavras todas de uma vez.").typeStyle(.note).foregroundStyle(Palette.inkSoft)
@@ -328,7 +328,7 @@ struct ImportPhraseView: View {
             if usesPassphrase {
                 let same = Hash.constantTimeEqual(passphrase, passphraseAgain)
                 guard same, passphraseLength > 0 else {
-                    message = "As duas versões da 25ª palavra não conferem."
+                    message = "As duas versões da passphrase não conferem."
                     phrase.wipe()
                     return
                 }
