@@ -31,6 +31,14 @@ struct RootView: View {
             }
         }
         .onChange(of: scenePhase) { _, phase in session.scenePhaseChanged(phase) }
+        // Travar no meio da primeira carteira derruba o fluxo em tela cheia, mas a
+        // carteira ja foi guardada antes das palavras. Ao destravar com carteira, a
+        // primeira vez acabou: vai para a Carteira, onde o aviso de copia pendente leva a
+        // gravar as palavras. Sem isto, a marca ficava ligada e o dono caia de novo na
+        // oferta do Face ID e em "Sua primeira carteira" (visto no iPhone).
+        .onChange(of: session.phase) { _, phase in
+            if phase == .unlocked, !session.metadata.wallets.isEmpty { firstRun = false }
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataWillBecomeUnavailableNotification)) { _ in
             session.deviceWillLock()
         }
