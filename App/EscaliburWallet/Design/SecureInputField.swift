@@ -13,6 +13,8 @@ struct SecureInputField: UIViewRepresentable {
     let buffer: SecureBytes
     @Binding var length: Int
     var placeholder: String = ""
+    /// Abre o teclado assim que o campo aparece (quem tocou para digitar uma senha).
+    var focusOnAppear = false
     var onSubmit: (() -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -37,6 +39,7 @@ struct SecureInputField: UIViewRepresentable {
         field.font = .systemFont(ofSize: 20, weight: .medium)
         field.attributedPlaceholder = NSAttributedString(string: placeholder, attributes: [.foregroundColor: UIColor(Palette.inkDead)])
         field.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        if focusOnAppear { DispatchQueue.main.async { field.becomeFirstResponder() } }
         return field
     }
 
@@ -79,10 +82,11 @@ struct PasswordBox: View {
     let buffer: SecureBytes
     @Binding var length: Int
     var placeholder: String
+    var focusOnAppear = false
     var onSubmit: (() -> Void)?
 
     var body: some View {
-        SecureInputField(buffer: buffer, length: $length, placeholder: placeholder, onSubmit: onSubmit)
+        SecureInputField(buffer: buffer, length: $length, placeholder: placeholder, focusOnAppear: focusOnAppear, onSubmit: onSubmit)
             .padding(.horizontal, Space.md)
             .frame(height: 56)
             .background(

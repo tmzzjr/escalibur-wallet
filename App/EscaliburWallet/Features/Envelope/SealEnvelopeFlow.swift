@@ -85,14 +85,37 @@ struct SealEnvelopeFlow: View {
     // MARK: Etapas
 
     private var intro: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            EnvelopeChain(mode: .idle).padding(.top, Space.sm).padding(.bottom, Space.xl)
-            Text("Guardar num envelope Escalibur").typeStyle(.title).foregroundStyle(Palette.ink)
-            Text("O envelope é um arquivo cifrado com a senha da carteira dentro. Ele abre no app Escalibur, aqui, ou no decifrador aberto num computador, com uma senha só dele.")
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+            EnvelopeChain(mode: .idle).padding(.top, Space.sm).padding(.bottom, Space.lg)
+            VStack(spacing: Space.sm) {
+                Text("Guardar num envelope Escalibur").typeStyle(.title).foregroundStyle(Palette.ink)
+                Text("Uma cópia de segurança da senha da carteira, trancada com outra senha que só você conhece.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+            }
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            VStack(alignment: .leading, spacing: Space.md) {
+                EnvelopePoint(icon: "lock.doc", text: "A senha da carteira é cifrada neste iPhone e vira um arquivo.")
+                EnvelopePoint(icon: "key", text: "Você escolhe a senha que abre o arquivo. Ela não sai do iPhone e ninguém mais sabe.")
+                EnvelopePoint(icon: "eye.slash", text: "Nem a Escalibur consegue abrir: não temos a sua senha nem cópia do arquivo.")
+                EnvelopePoint(icon: "externaldrive", text: "Guarde o arquivo onde quiser. Ele abre aqui ou no decifrador aberto, num computador.")
+            }
+            .padding(Space.base)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+            .padding(.top, Space.lg)
             if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }
-            Spacer()
+            }
+            .padding(.bottom, Space.md)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollIndicators(.hidden)
+        // O botao fica preso embaixo; o texto rola por tras dele no iPhone pequeno.
+        .safeAreaInset(edge: .bottom) {
             PrimaryButton(title: "Continuar", loading: working) { Task { await unlockPhrase() } }
+                .padding(.top, Space.xs)
+                .background(Palette.void)
         }
     }
 
@@ -104,15 +127,16 @@ struct SealEnvelopeFlow: View {
             Text("Só ela abre o envelope, em qualquer aparelho. Não é o PIN e não pode ser a senha da carteira. Não existe redefinir.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
             if customPassword {
-                PasswordBox(buffer: password, length: $passwordLength, placeholder: "Senha do envelope") { proceedFromCreate() }
+                PasswordBox(buffer: password, length: $passwordLength, placeholder: "Senha do envelope", focusOnAppear: true) { proceedFromCreate() }
                     .padding(.top, Space.lg)
-                costLine.padding(.top, Space.sm)
-                TertiaryButton(title: "Usar 6 palavras sorteadas") {
+                strengthLine.padding(.top, Space.sm)
+                EnvelopeOptionButton(title: "Usar 6 palavras sorteadas", icon: "dice") {
                     password.wipe()
                     passwordLength = 0
                     error = nil
                     customPassword = false
                 }
+                .padding(.top, Space.md)
             } else {
                 Text(verbatim: suggestion.joined(separator: " "))
                     .font(.system(size: 22, weight: .semibold, design: .monospaced))
@@ -123,18 +147,19 @@ struct SealEnvelopeFlow: View {
                     .padding(.top, Space.lg)
                     .textSelection(.disabled)
                     .accessibilityIdentifier("palavras-envelope")
-                Text("Seis palavras sorteadas neste iPhone. Com o arquivo nas mãos, o crime organizado levaria \(PasswordCost.describe(PasswordCost.seconds(bits: 66, kdf: kdf))) para adivinhar.")
+                Text("Seis palavras sorteadas neste iPhone. Anote em outro lugar, longe do papel da senha da carteira.")
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Anote em outro lugar, longe do papel da senha da carteira.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
-                HStack(spacing: Space.sm) {
-                    TertiaryButton(title: "Sortear outras") { suggest() }
-                    TertiaryButton(title: "Prefiro criar a minha") {
+                HStack(spacing: Space.xs) {
+                    EnvelopeOptionButton(title: "Sortear outras", icon: "dice") {
+                        withAnimation(Motion.fade) { suggest() }
+                    }
+                    EnvelopeOptionButton(title: "Criar a minha", icon: "pencil") {
                         error = nil
                         customPassword = true
                     }
                 }
+                .padding(.top, Space.md)
             }
             if let error { Text(error).typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.xs).fixedSize(horizontal: false, vertical: true) }
             Spacer()
@@ -151,23 +176,16 @@ struct SealEnvelopeFlow: View {
         .onAppear { if suggestion.isEmpty { suggest() } }
     }
 
-    private var costLine: some View {
+    private var strengthLine: some View {
         let bits = passwordLength == 0 ? 0 : PasswordStrength.bits(password)
-        let seconds = PasswordCost.seconds(bits: bits, kdf: kdf)
         let weak = passwordLength > 0 && bits < PasswordStrength.minimumBits
-        return VStack(alignment: .leading, spacing: Space.xxs) {
-            Text(passwordLength == 0
-                 ? "Digite para ver quanto custa adivinhar."
-                 : "Com este arquivo nas mãos, o crime organizado levaria \(PasswordCost.describe(seconds)) para adivinhar esta senha.")
-                .typeStyle(.note)
-                .foregroundStyle(weak ? Palette.down : Palette.inkSoft)
-                .fixedSize(horizontal: false, vertical: true)
-            if weak {
-                Text("Abaixo do mínimo para um envelope. Use uma frase mais longa ou 6 palavras sorteadas.")
-                    .typeStyle(.note).foregroundStyle(Palette.down)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
+        return Text(passwordLength == 0
+                    ? "Uma frase longa, só sua. Não use a senha da carteira nem o PIN."
+                    : weak ? "Abaixo do mínimo para um envelope. Use uma frase mais longa ou 6 palavras sorteadas."
+                    : "Forte o bastante para o envelope.")
+            .typeStyle(.note)
+            .foregroundStyle(passwordLength == 0 ? Palette.inkSoft : weak ? Palette.down : Palette.up)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var repeatStep: some View {
@@ -270,7 +288,7 @@ struct SealEnvelopeFlow: View {
             error = "Só números não bastam para um arquivo que pode ir para a nuvem. Use 6 palavras sorteadas ou uma frase longa."
             return
         case .weak(let bits):
-            error = "Com o arquivo nas mãos, o crime organizado levaria \(PasswordCost.describe(PasswordCost.seconds(bits: bits, kdf: kdf))) para adivinhar esta senha. Use 6 palavras sorteadas ou uma frase mais longa."
+            error = "Esta senha é fraca para um envelope. Use 6 palavras sorteadas ou uma frase mais longa."
             return
         }
         error = nil
@@ -336,5 +354,46 @@ struct SealEnvelopeFlow: View {
         repeatPassword.wipe()
         if let sealed { try? FileManager.default.removeItem(at: sealed.url) }
         onClose()
+    }
+}
+
+/// Um ponto da explicacao do envelope: icone do assunto e uma frase.
+private struct EnvelopePoint: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Space.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.purple)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Palette.brand.opacity(0.16)))
+            Text(text).typeStyle(.body).foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 5)
+        }
+    }
+}
+
+/// As escolhas da senha do envelope: pilulas da mesma largura, com o icone do que fazem.
+private struct EnvelopeOptionButton: View {
+    let title: String
+    let icon: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Space.xs) {
+                Image(systemName: icon).font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.purple)
+                Text(title).typeStyle(.action).foregroundStyle(Palette.ink).lineLimit(1).minimumScaleFactor(0.85)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background(Capsule().fill(Palette.rail))
+            .overlay(Capsule().stroke(Palette.edge, lineWidth: 1))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }

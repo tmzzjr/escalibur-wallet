@@ -170,12 +170,43 @@ final class SpeechListener: ObservableObject {
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
 
-    static func requestPermissions() async -> Bool {
-        let speech = await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0 == .authorized) }
+    /// O iOS responde as permissoes numa fila de fundo. Um bloco escrito dentro desta
+    /// classe herdaria o ator principal, e o Swift 6 derruba o app quando ele roda fora
+    /// dela (visto no iPhone: o app fechava ao permitir o reconhecimento de voz). Por
+    /// isso os tres blocos que o sistema chama de outra fila nascem fora do ator.
+    nonisolated static func requestPermissions() async -> Bool {
+        let speech = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            SFSpeechRecognizer.requestAuthorization(Self.authorizationHandler(continuation))
         }
         guard speech else { return false }
         return await AVAudioApplication.requestRecordPermission()
+    }
+
+    nonisolated private static func authorizationHandler(_ continuation: CheckedContinuation<Bool, Never>)
+        -> (SFSpeechRecognizerAuthorizationStatus) -> Void {
+        { status in continuation.resume(returning: status == .authorized) }
+    }
+
+    /// Roda na thread de audio: entrega o pedaco ao reconhecedor e o pico ao medidor.
+    nonisolated private static func tapBlock(_ request: SFSpeechAudioBufferRecognitionRequest,
+                                             level: @escaping @Sendable (Float) -> Void) -> AVAudioNodeTapBlock {
+        { buffer, _ in
+            request.append(buffer)
+            var peak: Float = 0
+            if let samples = buffer.floatChannelData?[0] {
+                for i in 0..<Int(buffer.frameLength) { peak = max(peak, abs(samples[i])) }
+            }
+            level(peak)
+        }
+    }
+
+    /// Roda na fila do reconhecedor: so o texto atravessa para o ator principal.
+    nonisolated private static func resultHandler(_ transcript: @escaping @Sendable (String) -> Void)
+        -> (SFSpeechRecognitionResult?, Error?) -> Void {
+        { result, _ in
+            guard let text = result?.bestTranscription.formattedString else { return }
+            transcript(text)
+        }
     }
 
     func listen() async -> String {
@@ -193,21 +224,16 @@ final class SpeechListener: ObservableObject {
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
         input.removeTap(onBus: 0)
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-            request.append(buffer)
-            let samples = buffer.floatChannelData?[0]
-            var peak: Float = 0
-            if let samples { for i in 0..<Int(buffer.frameLength) { peak = max(peak, abs(samples[i])) } }
+        input.installTap(onBus: 0, bufferSize: 1024, format: format, block: Self.tapBlock(request) { @Sendable [weak self] peak in
             Task { @MainActor in self?.level = peak }
-        }
+        })
         engine.prepare()
         try? engine.start()
         listening = true
 
-        task = recognizer.recognitionTask(with: request) { [weak self] result, _ in
-            guard let result else { return }
-            Task { @MainActor in self?.transcript = result.bestTranscription.formattedString }
-        }
+        task = recognizer.recognitionTask(with: request, resultHandler: Self.resultHandler { @Sendable [weak self] text in
+            Task { @MainActor in self?.transcript = text }
+        })
         try? await Task.sleep(for: .seconds(6))
         stop()
         return transcript
