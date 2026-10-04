@@ -49,7 +49,12 @@ struct WordInputField: UIViewRepresentable {
         if isFocused, !field.isFirstResponder {
             DispatchQueue.main.async { field.becomeFirstResponder() }
         } else if !isFocused, field.isFirstResponder {
-            DispatchQueue.main.async { field.resignFirstResponder() }
+            // Dois saltos: quando o foco passa para outro campo na mesma atualizacao, o
+            // outro assume primeiro e este ja nao e o primeiro respondedor. O teclado
+            // nao desce e sobe entre uma palavra e a seguinte.
+            DispatchQueue.main.async {
+                DispatchQueue.main.async { if field.isFirstResponder { field.resignFirstResponder() } }
+            }
         }
     }
 

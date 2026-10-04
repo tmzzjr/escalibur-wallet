@@ -65,6 +65,7 @@ struct WalletHomeView: View {
             if DebugDemo.screen == "detalhe", let first = portfolio.rows.first { router.walletPath.append(first) }
             if DebugDemo.screen == "receber" { receiving = true }
             if DebugDemo.screen == "revelar" { backingUp = true }
+            if DebugDemo.screen == "adicionar" { addingWallet = true }
             #endif
         }
         .sheet(isPresented: $switching) {

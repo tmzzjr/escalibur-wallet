@@ -107,75 +107,83 @@ struct ImportPhraseView: View {
     }
 
     private var form: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Importar com a senha da carteira").typeStyle(.title).foregroundStyle(Palette.ink)
-                Text("Digite as palavras na ordem. Ninguém da Escalibur pede estas palavras.")
-                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: Space.xs) {
-                    ForEach(Mnemonic.validWordCounts, id: \.self) { n in
-                        Chip(title: "\(n)", selected: entry.count == n) { entry.count = n }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    VStack(spacing: Space.xs) {
+                        Text("Importar com a senha da carteira").typeStyle(.title).foregroundStyle(Palette.ink)
+                        Text("Toque numa posição e digite a palavra. Ninguém da Escalibur pede estas palavras.")
+                            .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    Spacer()
-                    PasteButton(payloadType: String.self) { strings in
-                        guard let text = strings.first else { return }
-                        Task { @MainActor in
-                            entry.paste(text)
-                            UIPasteboard.general.items = []
-                            pasteNotice = true
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+
+                    Segmented(options: Mnemonic.validWordCounts.map { ($0, "\($0)") },
+                              selection: Binding(get: { entry.count }, set: { entry.count = $0; typed = "" }))
+                        .padding(.top, Space.lg)
+                    Text("palavras na senha").typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xxs)
+
+                    pasteCard.padding(.top, Space.md)
+
+                    if pasteNotice {
+                        Text("Colado. A área de transferência foi limpa agora, mas pode já ter sincronizado com outros aparelhos Apple.")
+                            .typeStyle(.note).foregroundStyle(Palette.caution).padding(.top, Space.xs)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    grid.padding(.top, Space.md)
+
+                    HStack {
+                        Spacer()
+                        TertiaryButton(title: reveal ? "Esconder palavras" : "Mostrar palavras") { reveal.toggle() }
+                    }
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        Toggle(isOn: $usesPassphrase) {
+                            Text("Esta carteira usa 25ª palavra").typeStyle(.body).foregroundStyle(Palette.ink)
+                        }
+                        .tint(Palette.lime)
+                        if usesPassphrase {
+                            Text("Com a 25ª palavra errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes.")
+                                .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                                .fixedSize(horizontal: false, vertical: true)
+                            PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "25ª palavra").padding(.top, Space.sm)
+                            PasswordBox(buffer: passphraseAgain, length: $passphraseAgainLength, placeholder: "Repita a 25ª palavra").padding(.top, Space.xs)
+                        }
+                        if let message {
+                            Banner(kind: .failure, title: message).padding(.top, Space.md)
                         }
                     }
-                    .buttonBorderShape(.capsule)
-                    .labelStyle(.titleOnly)
-                    .tint(Palette.rail)
+                    .padding(.top, Space.md)
                 }
+                .padding(.horizontal, Space.gutter)
                 .padding(.top, Space.md)
-
-                if pasteNotice {
-                    Text("Colado. A área de transferência foi limpa agora, mas pode já ter sincronizado com outros aparelhos Apple.")
-                        .typeStyle(.note).foregroundStyle(Palette.caution).padding(.top, Space.xs)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                grid.padding(.top, Space.md)
-
-                HStack {
-                    Spacer()
-                    TertiaryButton(title: reveal ? "Esconder palavras" : "Mostrar palavras") { reveal.toggle() }
-                }
-
-                wordInput.padding(.top, Space.xs)
-
-                Toggle(isOn: $usesPassphrase) {
-                    Text("Esta carteira usa 25ª palavra").typeStyle(.body).foregroundStyle(Palette.ink)
-                }
-                .tint(Palette.lime)
-                .padding(.top, Space.lg)
-                if usesPassphrase {
-                    Text("Com a 25ª palavra errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes.")
-                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
-                        .fixedSize(horizontal: false, vertical: true)
-                    PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "25ª palavra").padding(.top, Space.sm)
-                    PasswordBox(buffer: passphraseAgain, length: $passphraseAgainLength, placeholder: "Repita a 25ª palavra").padding(.top, Space.xs)
-                }
-
-                if let message {
-                    Banner(kind: .failure, title: message).padding(.top, Space.md)
-                }
+                .padding(.bottom, Space.md)
             }
-            .padding(.horizontal, Space.gutter)
-            .padding(.top, Space.md)
+            .onChange(of: entry.active) { _, index in
+                guard focused else { return }
+                withAnimation(Motion.fade) { proxy.scrollTo(index, anchor: .center) }
+            }
+            .onChange(of: focused) { _, isOn in
+                guard isOn else { return }
+                withAnimation(Motion.fade) { proxy.scrollTo(entry.active, anchor: .center) }
+            }
         }
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
-            ActionFooter {
-                PrimaryButton(title: "Importar", enabled: entry.filledCount == entry.count, loading: working) {
-                    Task { await importWallet() }
+            if focused {
+                suggestionBar
+            } else {
+                ActionFooter {
+                    PrimaryButton(title: "Importar", enabled: entry.filledCount == entry.count, loading: working) {
+                        Task { await importWallet() }
+                    }
                 }
             }
         }
+        .onChange(of: typed) { _, value in absorb(value) }
         .background(Palette.void.ignoresSafeArea())
         .guardedAgainstCapture()
         .onDisappear {
@@ -186,59 +194,125 @@ struct ImportPhraseView: View {
         }
     }
 
+    /// Colar a frase inteira. O PasteButton do sistema le a area de transferencia sem o
+    /// pedido de permissao do iOS, por isso fica ele, num cartao com o resto do desenho.
+    private var pasteCard: some View {
+        HStack(spacing: Space.sm) {
+            Image(systemName: "doc.on.clipboard")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Palette.purple)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(Palette.brand.opacity(0.16)))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Tem a senha copiada?").typeStyle(.row).foregroundStyle(Palette.ink)
+                Text("Cola as palavras todas de uma vez.").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            }
+            Spacer(minLength: Space.xs)
+            PasteButton(payloadType: String.self) { strings in
+                guard let text = strings.first else { return }
+                Task { @MainActor in fill(with: text) }
+            }
+            .labelStyle(.titleOnly)
+            .buttonBorderShape(.capsule)
+            .tint(Palette.brand)
+        }
+        .padding(Space.sm)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+    }
+
     private var grid: some View {
         let columns = [GridItem(.flexible(), spacing: Space.xs), GridItem(.flexible(), spacing: Space.xs)]
         return LazyVGrid(columns: columns, spacing: Space.xs) {
             ForEach(0..<entry.count, id: \.self) { index in
-                Button { entry.active = index; typed = ""; focused = true } label: {
-                    HStack(spacing: Space.xs) {
-                        Text(String(format: "%02d", index + 1))
-                            .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                            .foregroundStyle(Palette.inkMuted)
-                        Text(verbatim: slotText(index))
-                            .font(.system(size: 15, weight: .medium, design: .monospaced))
-                            .foregroundStyle(entry.isFilled(index) ? Palette.ink : Palette.inkDead)
-                            .lineLimit(1)
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, Space.sm)
-                    .frame(height: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                            .fill(Palette.body)
-                            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                                .stroke(entry.active == index ? Palette.edgeStrong : Palette.edge, lineWidth: 1))
-                    )
-                }
-                .buttonStyle(.plain)
+                PhraseSlot(index: index, display: slotText(index), isActive: focused && entry.active == index,
+                           text: textBinding(index), isFocused: focusBinding(index)) { submit() }
+                    .id(index)
             }
         }
-        .id(entry.revision)
     }
 
-    private func slotText(_ index: Int) -> String {
-        guard entry.isFilled(index) else { return "palavra" }
+    /// O que aparece numa posicao que nao esta sendo digitada: nada, pontos ou a palavra.
+    /// `revision` entra aqui para a grade acompanhar o que foi gravado nos buffers.
+    private func slotText(_ index: Int) -> String? {
+        _ = entry.revision
+        guard entry.isFilled(index) else { return nil }
         return reveal ? entry.word(at: index) : "•••••"
     }
 
-    private var wordInput: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            WordInputField(text: $typed, isFocused: $focused, placeholder: "Palavra \(entry.active + 1)", fontSize: 18, returnKey: .next) { commit(typed) }
-                .padding(.horizontal, Space.md)
-                .frame(height: Height.field)
-                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(focused ? Palette.edgeStrong : Palette.edge, lineWidth: 1)))
+    /// So a posicao em digitacao tem texto no campo; as palavras ja gravadas ficam so
+    /// nos buffers seguros, nunca no texto de um UITextField.
+    private func textBinding(_ index: Int) -> Binding<String> {
+        Binding(get: { entry.active == index ? typed : "" },
+                set: { if entry.active == index { typed = $0 } })
+    }
+
+    /// O foco anda de uma posicao para a outra sem o teclado descer: a que perde o foco
+    /// so desliga o teclado se ainda for a posicao ativa.
+    private func focusBinding(_ index: Int) -> Binding<Bool> {
+        Binding(get: { focused && entry.active == index },
+                set: { isOn in
+                    if isOn {
+                        if entry.active != index { entry.active = index; typed = "" }
+                        focused = true
+                    } else if entry.active == index {
+                        focused = false
+                    }
+                })
+    }
+
+    /// Acima do teclado: as palavras da lista que comecam com o que foi digitado. A
+    /// primeira e a que o Seguinte do teclado escolhe.
+    private var suggestionBar: some View {
+        HStack(spacing: Space.xs) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Space.xs) {
-                    ForEach(suggestions, id: \.self) { word in Chip(title: word) { commit(word) } }
+                    if typed.isEmpty {
+                        Text("Palavra \(entry.active + 1) de \(entry.count)").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                    } else if suggestions.isEmpty {
+                        Text("Nenhuma palavra da lista começa assim.").typeStyle(.note).foregroundStyle(Palette.caution)
+                    } else {
+                        ForEach(Array(suggestions.enumerated()), id: \.element) { offset, word in
+                            Chip(title: word, selected: offset == 0) { commit(word) }
+                        }
+                    }
                 }
             }
-            .frame(height: Height.chip)
+            TertiaryButton(title: "Pronto") { focused = false }
+        }
+        .padding(.horizontal, Space.gutter)
+        .frame(height: 56)
+        .background(Palette.body.ignoresSafeArea(edges: .horizontal))
+    }
+
+    /// O que chega no campo: espaco fecha a palavra; varias palavras de uma vez (colar
+    /// pelo menu do campo) preenchem a senha inteira.
+    private func absorb(_ value: String) {
+        guard !value.isEmpty else { return }
+        if Mnemonic.words(in: value).count > 1 {
+            fill(with: value)
+        } else if value.last?.isWhitespace == true {
+            commit(value)
         }
     }
 
+    private func fill(with text: String) {
+        typed = ""
+        entry.paste(text)
+        UIPasteboard.general.items = []
+        pasteNotice = true
+        message = nil
+        focused = false
+    }
+
+    /// O Seguinte do teclado: a palavra digitada se ela existe na lista, senao a primeira
+    /// sugestao.
+    private func submit() {
+        let clean = Mnemonic.canonicalize(typed)
+        if suggestions.contains(clean) || suggestions.isEmpty { commit(typed) } else if let first = suggestions.first { commit(first) }
+    }
+
     private func commit(_ word: String) {
-        let clean = word.trimmingCharacters(in: .whitespaces)
+        let clean = word.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else { return }
         entry.set(clean, at: entry.active)
         typed = ""
@@ -315,6 +389,47 @@ struct ImportPhraseView: View {
     private func discardPending() {
         pending?.secret.wipe()
         pending = nil
+    }
+}
+
+/// Uma posicao da senha: o numero e, no lugar da palavra, o proprio campo de digitar.
+private struct PhraseSlot: View {
+    let index: Int
+    let display: String?
+    let isActive: Bool
+    @Binding var text: String
+    @Binding var isFocused: Bool
+    let onSubmit: () -> Void
+
+    var body: some View {
+        HStack(spacing: Space.xs) {
+            Text(String(format: "%02d", index + 1))
+                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                .foregroundStyle(isActive ? Palette.purple : Palette.inkMuted)
+            ZStack(alignment: .leading) {
+                if text.isEmpty {
+                    Text(verbatim: display ?? "palavra")
+                        .font(.system(size: 15, weight: .medium, design: .monospaced))
+                        .foregroundStyle(display == nil || isActive ? Palette.inkDead : Palette.ink)
+                        .lineLimit(1)
+                        .allowsHitTesting(false)
+                }
+                WordInputField(text: $text, isFocused: $isFocused, fontSize: 15, returnKey: .next, onSubmit: onSubmit)
+            }
+        }
+        .padding(.horizontal, Space.sm)
+        .frame(height: 44)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                .fill(Palette.body)
+                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .stroke(isActive ? Palette.brand : Palette.edge, lineWidth: isActive ? 1.5 : 1))
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { isFocused = true }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Palavra \(index + 1), \(display == nil ? "vazia" : "preenchida")")
+        .accessibilityIdentifier("palavra-\(index + 1)")
     }
 }
 
