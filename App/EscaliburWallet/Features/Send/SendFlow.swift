@@ -159,6 +159,8 @@ struct SendAssetPicker: View {
     let onPick: (Holding) -> Void
     @State private var query = ""
     @State private var receiving = false
+    /// Moeda custom numa rede que ainda nao envia custom: o motivo, num alerta.
+    @State private var blocked: (symbol: String, reason: String)?
 
     var body: some View {
         let holdings = Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings).filter { !$0.amount.isZero }
@@ -184,16 +186,25 @@ struct SendAssetPicker: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(filtered, id: \.asset.id) { holding in
-                            Button { onPick(holding) } label: {
+                            let unavailable = holding.asset.isCustom ? holding.asset.chain.flatMap(CustomToken.sendUnavailableReason) : nil
+                            Button {
+                                if let unavailable { blocked = (holding.asset.symbol, unavailable) } else { onPick(holding) }
+                            } label: {
                                 HStack(spacing: Space.sm) {
-                                    CoinLogo(coingeckoID: holding.asset.coingeckoID, symbol: holding.asset.symbol, size: 40, network: holding.asset.chain)
+                                    CoinLogo(coingeckoID: holding.asset.coingeckoID, symbol: holding.asset.symbol, size: 40, network: holding.asset.chain,
+                                             unverified: !holding.asset.isVerified)
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(holding.asset.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
-                                        Text("na \(holding.asset.chain?.name ?? "") · \(Fmt.crypto(holding.amount, decimals: holding.asset.decimals))")
+                                        HStack(spacing: 6) {
+                                            Text(verbatim: holding.asset.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
+                                            if holding.asset.isCustom { TokenBadge(.custom) }
+                                        }
+                                        Text(unavailable == nil
+                                             ? "na \(holding.asset.chain?.name ?? "") · \(Fmt.crypto(holding.amount, decimals: holding.asset.decimals))"
+                                             : "na \(holding.asset.chain?.name ?? "") · envio indisponível")
                                             .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                                     }
                                     Spacer()
-                                    if let price = holding.asset.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) {
+                                    if let price = portfolio.price(of: holding.asset) {
                                         Text(Fmt.fiat(Fmt.double(holding.amount, decimals: holding.asset.decimals) * price, session.currency))
                                             .typeStyle(.row).foregroundStyle(Palette.ink)
                                     }
@@ -210,6 +221,11 @@ struct SendAssetPicker: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.top, Space.md)
         .task(id: session.selectedWallet?.id) { await portfolio.ensureLoaded(session.selectedWallet, session: session) }
+        .alert("Envio de \(blocked?.symbol ?? "") indisponível", isPresented: Binding(get: { blocked != nil }, set: { if !$0 { blocked = nil } })) {
+            Button("Entendi", role: .cancel) { blocked = nil }
+        } message: {
+            Text(blocked?.reason ?? "")
+        }
     }
 
     /// Carteira sem saldo: a ilustracao de nada para enviar e o caminho para receber.
@@ -270,10 +286,14 @@ struct SendStages: View {
     private var header: some View {
         HStack(spacing: Space.sm) {
             if let holding = model.holding {
-                CoinLogo(coingeckoID: holding.asset.coingeckoID, symbol: holding.asset.symbol, size: 32, network: holding.asset.chain)
+                CoinLogo(coingeckoID: holding.asset.coingeckoID, symbol: holding.asset.symbol, size: 32, network: holding.asset.chain,
+                         unverified: !holding.asset.isVerified)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Enviar \(model.holding?.asset.symbol ?? "")").typeStyle(.title).foregroundStyle(Palette.ink)
+                HStack(spacing: 6) {
+                    Text("Enviar \(model.holding?.asset.symbol ?? "")").typeStyle(.title).foregroundStyle(Palette.ink)
+                    if model.holding?.asset.isCustom == true { TokenBadge(.custom) }
+                }
                 if let chain = model.chain { Text("pela rede \(chain.name)").typeStyle(.note).foregroundStyle(Palette.inkSoft) }
             }
         }
@@ -405,8 +425,10 @@ struct SendStages: View {
     /// o endereco nao diz a rede: com o token em varias, a Ethereum primeiro, e a etapa
     /// seguinte pede a confirmacao da rede.
     private func networkSuggestion(for other: Chain) -> Holding? {
-        guard let current = model.holding?.asset else { return nil }
-        let holdings = Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings).filter { !$0.amount.isZero }
+        // Moeda custom nunca troca de rede pelo simbolo: outro contrato com o mesmo nome
+        // e outro token.
+        guard let current = model.holding?.asset, current.isVerified else { return nil }
+        let holdings = Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings).filter { !$0.amount.isZero && $0.asset.isVerified }
         let candidates = holdings.filter { holding in
             guard let chain = holding.asset.chain else { return false }
             let sameNetwork = other.family == .evm ? chain.family == .evm : chain.id == other.id
@@ -668,7 +690,7 @@ struct SendStages: View {
 
     private var amountStage: some View {
         let holding = model.holding!
-        let price = holding.asset.coingeckoID.flatMap { portfolio.quotes[$0]?.price }
+        let price = portfolio.price(of: holding.asset)
         let fiat = model.amount.map { Fmt.double($0, decimals: holding.asset.decimals) * (price ?? 0) }
         let limit = model.spendable?.amount ?? holding.amount
         let over = model.amount.map { $0 > limit } ?? false
@@ -784,7 +806,7 @@ struct SendStages: View {
 
     private var reviewStage: some View {
         let holding = model.holding!
-        let price = holding.asset.coingeckoID.flatMap { portfolio.quotes[$0]?.price }
+        let price = portfolio.price(of: holding.asset)
         // O valor em reais sai do plano, o que a transacao move, e nao do campo.
         let amount = model.plan?.review.outgoing?.amount ?? model.amount ?? 0
         return ScrollView {
@@ -852,7 +874,7 @@ struct SendStages: View {
             return
         }
         // Sem cotacao, o valor em reais e desconhecido e a voz e pedida (falha fechada).
-        let price = holding.asset.coingeckoID.flatMap { portfolio.quotes[$0]?.price }
+        let price = portfolio.price(of: holding.asset)
         let moved = plan.review.outgoing?.amount ?? model.amount ?? 0
         let fiat = price.map { Fmt.double(moved, decimals: holding.asset.decimals) * $0 }
         guard await VoiceGate.shared.confirm(.send(fiat: fiat), session: session) else { return }

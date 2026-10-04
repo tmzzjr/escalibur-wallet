@@ -257,7 +257,9 @@ Cada tela traz objetivo, hierarquia em ordem, ações (a primária sempre no rod
      - à esquerda, logo com selo da rede, o nome ("Ether") e, embaixo, preço e variação ("R$ 18.402,10 · +2,1%");
      - à direita, o valor ("R$ 22.082,52") e, embaixo, a quantidade ("1,2 ETH");
      - ativo em várias redes vira uma linha só, com o selo "3 redes".
-  8. No fim da lista: "{2} tokens desconhecidos escondidos", que leva a Gerenciar.
+  8. Moeda custom entra na lista como qualquer outra, com o selo "Custom", sempre numa linha própria (nunca junto de um ativo da lista com o mesmo símbolo).
+  9. "Outros tokens": o que a conta tem e não está na lista nem nas moedas custom, com o selo "Não verificado", logo neutro (letras ASCII brancas no cinza escuro) e "sem preço" até haver preço por contrato numa fonte confiável. Sem preço, fora do saldo total.
+  10. "Mostrar suspeitos (N)": os de cara de golpe (site ou @ no nome, isca como claim, visit, reward, símbolo imitando USDT ou USDC com outro contrato, poeira mandada sem pedir, caractere invisível, lista negra da fonte). Escondidos até o toque, nunca no total.
 - Faixa de cópia: "Esta carteira ainda não tem cópia" / "Grave as 12 palavras antes de receber. Leva 2 minutos." / "Gravar agora".
 - Estados:
   - **Vazio.** A área da lista ensina o modelo mental:
@@ -298,12 +300,17 @@ Cada tela traz objetivo, hierarquia em ordem, ações (a primária sempre no rod
   - Gráfico carregando: linha plana cinza.
   - Sem histórico: "Sem histórico de preço para este token."
   - Sem internet: "Gráfico de hoje, 14:32."
-  - Token desconhecido: "Este token não tem preço de mercado e chegou sem você pedir. Não troque nem abra sites que aparecem no nome dele: é o golpe mais comum com tokens."
+  - Token fora da lista (tocado em "Outros tokens" ou em "Mostrar suspeitos"): o contrato inteiro em blocos, "Copiar" e "Ver no explorador", e o aviso "Qualquer pessoa cria um token com qualquer nome e qualquer símbolo. Este não está na lista conferida da Escalibur...". Suspeito diz por quê. Sem enviar e sem trocar daqui; o caminho é "Adicionar como moeda custom", que lê o token de novo na rede.
+  - Moeda custom: sem gráfico, preço só por contrato, o contrato inteiro, o aviso de não verificado, "Envio indisponível nesta rede" com o motivo na Tron, na TON e no XRP Ledger, e "Remover moeda custom". Sem "Trocar".
 
 **P4 Gerenciar ativos**
-- Seções "Na carteira", "Escondidos por você" e "Desconhecidos", com uma chave de mostrar por linha.
-- Chave "Esconder saldos abaixo de R$ 1".
-- Texto da seção de desconhecidos: "Estes tokens chegaram sem você pedir. Muitos são golpe: o nome aponta para um site que pede a senha da carteira. Mostrar não tem risco. Interagir tem."
+- Uma chave de mostrar por ativo da Carteira.
+- "Moedas custom": a lista, com "Remover" (com confirmação), e "Adicionar moeda":
+  1. a rede (as que têm moeda custom e onde a carteira tem conta), escolhida em vidro;
+  2. o contrato, o mint (Solana), o mestre do jetton (TON), ou código e emissor (XRP Ledger e Stellar), conferido pelo formato e pelo checksum da rede; token da lista é recusado ("já está na lista verificada");
+  3. "Ler na rede": nome, símbolo e casas decimais lidos na própria rede, com dois provedores concordando nas casas;
+  4. a prévia: selos "Custom" e "Não verificado", rede, casas e de onde vieram, o contrato inteiro, o aviso de não verificado, os sinais de golpe se houver, e se a rede envia moeda custom;
+  5. só então "Adicionar à carteira".
 
 ### E. Enviar (tela cheia)
 
@@ -860,7 +867,7 @@ Tarefa: ver as palavras. Se errar: alguém as vê.
 12. **Bloqueio automático em 1 minuto por padrão;** o app aparece sempre coberto na troca de apps.
 13. **Voz como camada depois do Face ID ou do PIN,** com desafio de palavras sorteadas.
 14. **Privacidade dita como fato:** logos embarcados, nó próprio opcional, e a frase da notificação que explica o servidor.
-15. **Token desconhecido escondido,** com aviso no detalhe e na escolha de token.
+15. **Token fora da lista aparece marcado e fora do total; o suspeito fica escondido,** com o contrato inteiro e o aviso no detalhe.
 
 ---
 

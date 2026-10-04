@@ -10,6 +10,10 @@ Bitcoin, Litecoin, Dogecoin, Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Ch
 
 Enviar funciona em todas, e ver o histórico em todas menos BNB Chain, X Layer e Sonic (sem indexador público sem chave). Trocar funciona nas redes EVM (menos Avalanche, X Layer e Celo), Solana, XRP Ledger (XRP e RLUSD, pelo livro da própria rede) e Stellar; ordem limite pela CoW na Ethereum, Arbitrum, Base, Polygon, BNB Chain, Plasma e Linea, e nativa no XRP Ledger e na Stellar, com prazo ou até cancelar, e tela de ordens abertas para cancelar. O que cada rede faz e onde para está em [`docs/redes/motores.md`](docs/redes/motores.md).
 
+## Tudo o que a carteira tem
+
+A Carteira mostra os tokens da lista conferida, as moedas custom e, numa seção própria ("Outros tokens"), o resto do que a conta tem: nas redes EVM pelo Blockscout e pelo Routescan sem chave (menos BNB Chain, X Layer e Sonic, sem indexador público sem chave), com saldo e casas relidos na própria rede; na Solana, Tron, TON, XRP Ledger e Stellar pela própria rede ou pelo provedor que já lê o saldo. Token fora da lista leva o selo de não verificado, só tem preço por contrato e fica fora do total sem ele; o que tem cara de golpe fica atrás de "Mostrar suspeitos". Em Gerenciar ativos, "Adicionar moeda" lê nome, símbolo e casas decimais na rede, com dois provedores concordando nas casas, antes de salvar. A moeda custom recebe em todas essas redes e envia pela EVM, Solana e Stellar; na Tron, na TON e no XRP Ledger o envio diz por que ainda não. Na Sui, Cardano, Polkadot Asset Hub, NEAR e Aptos os outros tokens aparecem (pelo GraphQL da Sui, pela Koios, pelo sidecar da Parity, pela FastNEAR e pelo indexador da Aptos Labs), só para ver: moeda custom e envio de token ainda não existem nelas.
+
 ## O que este app promete, e o que não promete
 
 Não existe "impenetrável", e a palavra não aparece no app. O que existe é custo, e cada defesa diz quanto custa quebrá-la e onde ela para. O modelo de ameaça completo, com os riscos aceitos e os números, está em [`docs/seguranca.md`](docs/seguranca.md).

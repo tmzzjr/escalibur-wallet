@@ -122,7 +122,10 @@ struct ReceiveSheet: View {
     /// na Solana) e uma linha so; a rede vem depois, quando a moeda estiver escolhida.
     private var chooser: some View {
         let accounts = Set(wallet?.accounts.map(\.chainID) ?? [])
-        let all = Chain.all.filter { accounts.contains($0.id) }.flatMap { TokenRegistry.assets(on: $0) }
+        // As moedas custom entram como qualquer outra, cada uma na sua linha (nunca junto
+        // de um ativo da lista com o mesmo simbolo).
+        let custom = session.metadata.customTokens.filter { accounts.contains($0.chainID) }
+        let all = Chain.all.filter { accounts.contains($0.id) }.flatMap { TokenRegistry.assets(on: $0) } + custom
         let coins = ReceiveCoin.group(all)
         let filtered = query.isEmpty ? coins : coins.filter { $0.symbol.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query) }
         let held = Set(Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings).filter { !$0.amount.isZero }.map(\.asset.id))
@@ -154,10 +157,15 @@ struct ReceiveSheet: View {
     private func coinRow(_ coin: ReceiveCoin) -> some View {
         NavigationLink(value: coin) {
             HStack(spacing: Space.sm) {
-                CoinLogo(coingeckoID: coin.coingeckoID, symbol: coin.symbol, size: 36, network: nil, ringColor: Palette.body)
+                CoinLogo(coingeckoID: coin.coingeckoID, symbol: coin.symbol, size: 36, network: coin.isCustom ? coin.assets.first?.chain : nil,
+                         ringColor: Palette.body, unverified: coin.isCustom)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
-                    Text(coin.name).typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
+                    HStack(spacing: 6) {
+                        Text(verbatim: coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
+                        if coin.isCustom { TokenBadge(.custom) }
+                    }
+                    Text(verbatim: coin.isCustom ? "\(coin.name) na \(coin.assets.first?.chain?.name ?? "")" : coin.name)
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
                 }
                 Spacer()
                 if coin.assets.count > 1 {
@@ -227,7 +235,24 @@ struct ReceiveSheet: View {
 
                 warning(chain: chain, asset: asset, exists: balance?.accountExists ?? true)
                     .padding(.top, Space.md)
-                if case .issued = asset.kind, balance?.holdings.contains(where: { $0.asset.id == asset.id }) != true {
+                if asset.isCustom, let reference = CustomToken.reference(asset.kind) {
+                    // Moeda custom: quem envia tem de mandar este contrato, nao outro com o
+                    // mesmo simbolo.
+                    VStack(alignment: .leading, spacing: Space.xs) {
+                        HStack(spacing: 6) {
+                            TokenBadge(.custom)
+                            Text("Quem envia tem de usar exatamente \(CustomToken.usesIssuer(chain) ? "este emissor" : "este contrato"):")
+                                .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                        }
+                        AddressBlocks(address: reference)
+                    }
+                    .padding(.top, Space.sm)
+                }
+                if case .issued = asset.kind, asset.isCustom, balance?.holdings.contains(where: { $0.asset.id == asset.id }) != true {
+                    Text("Para receber \(asset.symbol), esta conta precisa antes de uma linha de confiança com o emissor. A Escalibur ainda não abre linha de confiança para moeda custom: sem ela, o envio de quem manda não passa e o valor fica com quem enviou.")
+                        .typeStyle(.note).foregroundStyle(Palette.caution).fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, Space.sm)
+                } else if case .issued = asset.kind, balance?.holdings.contains(where: { $0.asset.id == asset.id }) != true {
                     // Token emitido (XRP Ledger, Stellar): sem linha de confianca, o envio
                     // de quem manda nao passa e volta; nada se perde, mas nao chega.
                     Text("Para receber \(asset.symbol), esta conta precisa antes de uma linha de confiança com o emissor do \(asset.symbol). Sem ela, o envio de quem manda não passa e o valor fica com quem enviou. A linha é criada na primeira troca por \(asset.symbol) aqui na carteira.")
@@ -384,6 +409,8 @@ struct ReceiveCoin: Identifiable, Hashable {
     let coingeckoID: String?
     let assets: [Asset]
 
+    var isCustom: Bool { assets.first?.isCustom == true }
+
     /// Agrupa pelo identificador de preco (USDT e USDT em outra rede sao a mesma moeda).
     /// Primeiro as moedas nativas, na ordem das redes; depois os tokens, na ordem da lista
     /// curada (os mais antigos e, dali em diante, por valor de mercado). Com dezenas de
@@ -392,7 +419,7 @@ struct ReceiveCoin: Identifiable, Hashable {
         var order: [String] = []
         var byKey: [String: [Asset]] = [:]
         for asset in assets {
-            let key = asset.coingeckoID ?? "\(asset.symbol):\(asset.chainID)"
+            let key = asset.coingeckoID ?? (asset.isCustom ? asset.id : "\(asset.symbol):\(asset.chainID)")
             if byKey[key] == nil { order.append(key) }
             byKey[key, default: []].append(asset)
         }

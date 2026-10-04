@@ -32,6 +32,12 @@ struct Metadata: Codable, Equatable {
     /// destes campos abrirem.
     var responsibilityAccepted: Date?
     var responsibilityVersion: Int?
+    /// Moedas custom: tokens que o dono adicionou colando o contrato, lidos na rede
+    /// antes de salvar (`TokenInspector`). Valem para todas as carteiras que tem a rede.
+    /// Opcional para os metadados gravados antes deste campo abrirem.
+    var customAssets: [Asset]?
+
+    var customTokens: [Asset] { customAssets ?? [] }
 
     var selectedWallet: WalletMeta? {
         wallets.first { $0.id == selectedWalletID } ?? wallets.first

@@ -13,6 +13,9 @@ struct CoinLogo: View {
     var networkCount: Int = 1
     var remoteURL: URL? = nil
     var ringColor: Color = Palette.void
+    /// Token fora da lista (custom ou descoberto): nunca um logo de fora, e as letras
+    /// so em ASCII, brancas no cinza escuro. O logo de um token de golpe e parte da isca.
+    var unverified: Bool = false
 
     @State private var remote: UIImage?
 
@@ -35,7 +38,7 @@ struct CoinLogo: View {
         }
         .accessibilityHidden(true)
         .task(id: remoteURL) {
-            guard bundled == nil, let remoteURL, let data = await ImageLoader.shared.data(for: remoteURL) else { return }
+            guard !unverified, bundled == nil, let remoteURL, let data = await ImageLoader.shared.data(for: remoteURL) else { return }
             remote = UIImage(data: data)
         }
     }
@@ -44,7 +47,17 @@ struct CoinLogo: View {
 
     @ViewBuilder
     private var base: some View {
-        if let image = bundled ?? remote {
+        if unverified {
+            let letters = TokenGlyph.letters(symbol)
+            Circle().fill(Palette.control)
+                .overlay {
+                    if letters.isEmpty {
+                        Image(systemName: "questionmark").font(.system(size: size * 0.36, weight: .semibold)).foregroundStyle(Palette.ink)
+                    } else {
+                        Text(letters).font(.system(size: size * 0.34, weight: .semibold)).foregroundStyle(Palette.ink)
+                    }
+                }
+        } else if let image = bundled ?? remote {
             if Self.bareLogos.contains(coingeckoID ?? "") {
                 // Logo sem circulo proprio (o losango do ETH, as faixas do SOL): vai
                 // num disco, com o glifo a 62%, para a coluna de circulos nao quebrar.

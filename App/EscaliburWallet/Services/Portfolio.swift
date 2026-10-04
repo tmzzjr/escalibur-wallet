@@ -30,6 +30,27 @@ struct PortfolioRow: Identifiable, Hashable {
 
     /// Logo: o da moeda; se o ativo so existe numa rede que nao e a dele, leva selo.
     var logoName: String? { coingeckoID.map { "logo-\($0)" } }
+
+    /// `.custom` numa moeda que o dono adicionou; nil na lista conferida e nas nativas.
+    var origin: Asset.Origin? { positions.first?.asset.origin }
+    var isCustom: Bool { origin == .custom }
+}
+
+/// Um token fora da lista e das moedas custom, para "Outros tokens" e "Mostrar
+/// suspeitos". O preco so existe se uma fonte confiavel tiver o contrato.
+struct OtherToken: Identifiable, Hashable {
+    let holding: UnlistedHolding
+    let price: Double?
+    let change24h: Double?
+
+    var id: String { holding.asset.id }
+    var asset: Asset { holding.asset }
+    var isSuspicious: Bool { holding.isSuspicious }
+
+    var fiatValue: Double? {
+        guard let price, !isSuspicious else { return nil }
+        return Fmt.double(holding.amount, decimals: holding.asset.decimals) * price
+    }
 }
 
 @MainActor
@@ -42,7 +63,14 @@ final class Portfolio {
     private(set) var change24hFiat: Double = 0
     private(set) var loading = false
     private(set) var failedChains: [Chain] = []
+    /// Tokens fora da lista em redes que so dizem quantos sao (Sui), escondidos.
     private(set) var unknownTokens = 0
+    /// Tokens fora da lista e das moedas custom, sem suspeita: "Outros tokens".
+    private(set) var others: [OtherToken] = []
+    /// Os que tem cara de golpe: atras de "Mostrar suspeitos".
+    private(set) var suspicious: [OtherToken] = []
+    /// Preco por contrato (moeda custom e outros tokens), por `Asset.id`.
+    private(set) var tokenQuotes: [String: Quote] = [:]
     private(set) var lastUpdated: Date?
     private(set) var offline = false
     private(set) var balances: [String: ChainBalance] = [:]
@@ -63,6 +91,7 @@ final class Portfolio {
             walletID = nil
             return
         }
+        sessionCustomIDs = session.metadata.customTokens.map(\.id)
         if force, walletID == wallet.id {
             recompute(wallet)
             return
@@ -70,7 +99,10 @@ final class Portfolio {
         if walletID != wallet.id {
             walletID = wallet.id
             balances = session.metadata.balanceCache[wallet.id] ?? [:]
-            quotes = session.metadata.quoteCache
+            quotes = session.metadata.quoteCache.filter { !$0.key.hasPrefix(Self.contractQuotePrefix) }
+            tokenQuotes = Dictionary(uniqueKeysWithValues: session.metadata.quoteCache.compactMap { key, quote in
+                key.hasPrefix(Self.contractQuotePrefix) ? (String(key.dropFirst(Self.contractQuotePrefix.count)), quote) : nil
+            })
             lastUpdated = session.metadata.cachedAt
             recompute(wallet)
         }
@@ -87,9 +119,23 @@ final class Portfolio {
     }
 
     func refresh(_ wallet: WalletMeta?, session: AppSession) async {
-        guard let wallet, !loading else { return }
+        guard let wallet else { return }
+        // Pedido no meio de uma leitura (moeda custom recem adicionada): roda de novo no
+        // fim, com a lista nova, em vez de se perder.
+        guard !loading else { pendingRefresh = true; return }
         loading = true
-        defer { loading = false }
+        await read(wallet, session: session)
+        while pendingRefresh, walletID == wallet.id {
+            pendingRefresh = false
+            await read(wallet, session: session)
+        }
+        pendingRefresh = false
+        loading = false
+    }
+
+    private var pendingRefresh = false
+
+    private func read(_ wallet: WalletMeta, session: AppSession) async {
         let disabled = session.metadata.settings.disabledChainIDs
         let targets: [(Chain, [String])] = wallet.accounts.compactMap { account in
             guard let chain = Chain.find(account.chainID), !disabled.contains(chain.id) else { return nil }
@@ -98,22 +144,35 @@ final class Portfolio {
 
         var fresh: [String: ChainBalance] = [:]
         var failed: [Chain] = []
-        await withTaskGroup(of: (Chain, ChainBalance?).self) { group in
-            for (chain, addresses) in targets {
-                group.addTask {
-                    let balance = try? await BalanceService.shared.balance(chain: chain, addresses: addresses)
-                    return (chain, balance)
-                }
-            }
-            for await (chain, balance) in group {
-                if let balance { fresh[chain.id] = balance } else { failed.append(chain) }
-            }
-        }
-
+        let custom = session.metadata.customTokens
+        sessionCustomIDs = custom.map(\.id)
+        // As cotacoes saem junto com os saldos, nao depois deles.
         let ids = Set(Chain.all.map(\.coingeckoID) + TokenRegistry.tokens.compactMap(\.coingeckoID))
         let base = session.metadata.settings.currency
         async let quoted = try? MarketService.shared.quotes(ids: Array(ids), currency: base)
         async let referencePrices = Self.bitcoinPrices(excluding: base)
+        await withTaskGroup(of: (Chain, ChainBalance?).self) { group in
+            for (chain, addresses) in targets {
+                group.addTask {
+                    let balance = try? await BalanceService.shared.balance(chain: chain, addresses: addresses, custom: custom)
+                    return (chain, balance)
+                }
+            }
+            // Cada rede aparece quando chega: a rede lenta (muitos tokens para ler) nao
+            // segura as outras.
+            for await (chain, balance) in group {
+                if let balance {
+                    fresh[chain.id] = balance
+                    if walletID == wallet.id {
+                        balances[chain.id] = balance
+                        recompute(wallet)
+                    }
+                } else {
+                    failed.append(chain)
+                }
+            }
+        }
+
         let newQuotes = await quoted
         var prices = await referencePrices
         if let btc = newQuotes?["bitcoin"]?.price { prices[base] = btc }
@@ -127,11 +186,51 @@ final class Portfolio {
         failedChains = failed.sorted { $0.name < $1.name }
         if !fresh.isEmpty { lastUpdated = .now }
         recompute(wallet)
+        // Preco por contrato: moedas custom e outros tokens sem suspeita. Nunca pelo
+        // simbolo; o que nao tiver preco fica fora do total. Vem depois do saldo, que ja
+        // esta na tela.
+        let priced = Self.contractPriced(balances)
+        if !priced.isEmpty {
+            let found = await MarketService.shared.tokenQuotes(priced, currency: base)
+            guard walletID == wallet.id else { return }
+            tokenQuotes.merge(found) { $1 }
+            recompute(wallet)
+        }
 
         session.metadata.balanceCache[wallet.id] = balances
-        session.metadata.quoteCache = quotes
+        var cache = quotes
+        for (id, quote) in tokenQuotes { cache[Self.contractQuotePrefix + id] = quote }
+        session.metadata.quoteCache = cache
         session.metadata.cachedAt = lastUpdated
         try? session.persist()
+    }
+
+    /// No cache de cotacoes, o preco por contrato vai com este prefixo antes do
+    /// `Asset.id`, para nunca se confundir com um id do CoinGecko.
+    static let contractQuotePrefix = "contrato:"
+
+    /// Os ativos cujo preco se busca por contrato: as moedas custom com saldo e os outros
+    /// tokens sem suspeita. Suspeito nunca: preco de golpe nao entra na tela.
+    /// A ordem conta: o CoinGecko sem chave responde poucos contratos por vez, e as
+    /// moedas custom e as stablecoins oficiais fora da lista vem primeiro.
+    static func contractPriced(_ balances: [String: ChainBalance]) -> [Asset] {
+        var custom: [Asset] = []
+        var official: [Asset] = []
+        var others: [Asset] = []
+        for chain in Chain.all {
+            guard let balance = balances[chain.id] else { continue }
+            custom += balance.holdings.filter { $0.asset.isCustom && !$0.amount.isZero }.map(\.asset)
+            for holding in balance.unlisted ?? [] where !holding.isSuspicious {
+                if TokenSafety.officialOutsideList.contains(holding.asset.id) { official.append(holding.asset) } else { others.append(holding.asset) }
+            }
+        }
+        return custom + official + others
+    }
+
+    /// O preco de um ativo: pelo id do CoinGecko na lista; por contrato fora dela.
+    func price(of asset: Asset) -> Double? {
+        if let id = asset.coingeckoID { return quotes[id]?.price }
+        return tokenQuotes[asset.id]?.price
     }
 
     /// O preco do bitcoin nas moedas que nao sao a do app, para as outras unidades do
@@ -179,10 +278,16 @@ final class Portfolio {
         var grouped: [String: [Holding]] = [:]
         var order: [String] = []
         var unknown = 0
+        var unlisted: [UnlistedHolding] = []
+        // Moeda custom removida pelo dono sai da tela na hora, mesmo com o cache antigo.
+        let custom = Set(sessionCustomIDs)
         for chain in Chain.all {
             guard let balance = balances[chain.id] else { continue }
-            unknown += balance.unknownTokenCount
+            if let list = balance.unlisted { unlisted += list } else { unknown += balance.unknownTokenCount }
             for holding in balance.holdings where !holding.amount.isZero {
+                if holding.asset.isCustom, !custom.contains(holding.asset.id) { continue }
+                // A moeda custom nunca se junta a um ativo da lista pelo simbolo: a chave
+                // dela e o proprio id (rede e contrato).
                 let key = holding.asset.coingeckoID ?? holding.asset.id
                 if grouped[key] == nil { order.append(key) }
                 grouped[key, default: []].append(holding)
@@ -190,7 +295,7 @@ final class Portfolio {
         }
         allRows = order.compactMap { key in
             guard let holdings = grouped[key], let first = holdings.first?.asset else { return nil }
-            let quote = first.coingeckoID.flatMap { quotes[$0] }
+            let quote = first.coingeckoID.map { quotes[$0] } ?? tokenQuotes[first.id]
             return PortfolioRow(
                 id: key, symbol: first.symbol, name: first.name, coingeckoID: first.coingeckoID,
                 isStablecoin: first.isStablecoin, positions: holdings, price: quote?.price, change24h: quote?.change24h
@@ -199,12 +304,33 @@ final class Portfolio {
         .sorted { ($0.fiatValue ?? 0) > ($1.fiatValue ?? 0) }
         rows = allRows.filter { !wallet.hiddenAssetIDs.contains($0.id) }
 
-        total = rows.reduce(0) { $0 + ($1.fiatValue ?? 0) }
-        change24hFiat = rows.reduce(0) { sum, row in
-            guard let value = row.fiatValue, let change = row.change24h else { return sum }
+        let tokens = unlisted.map { holding in
+            let quote = holding.isSuspicious ? nil : tokenQuotes[holding.asset.id]
+            return OtherToken(holding: holding, price: quote?.price, change24h: quote?.change24h)
+        }
+        others = tokens.filter { !$0.isSuspicious && !custom.contains($0.id) }
+            .sorted { (($0.fiatValue ?? 0), $1.asset.symbol.lowercased()) > (($1.fiatValue ?? 0), $0.asset.symbol.lowercased()) }
+        suspicious = tokens.filter(\.isSuspicious)
+
+        // O total so soma o que tem preco: os ativos visiveis e os outros tokens com
+        // preco por contrato. Sem preco confiavel, fora.
+        let priced = rows.compactMap(\.fiatValue) + others.compactMap(\.fiatValue)
+        total = priced.reduce(0, +)
+        let moves = rows.map { ($0.fiatValue, $0.change24h) } + others.map { ($0.fiatValue, $0.change24h) }
+        change24hFiat = moves.reduce(0) { sum, item in
+            guard let value = item.0, let change = item.1 else { return sum }
             return sum + value - value / (1 + change / 100)
         }
         unknownTokens = unknown
+    }
+
+    /// As moedas custom salvas agora (ids), lidas a cada recalculo.
+    private var sessionCustomIDs: [String] = []
+
+    /// Chamado quando o dono adiciona ou remove uma moeda custom.
+    func customChanged(_ wallet: WalletMeta?, session: AppSession) {
+        sessionCustomIDs = session.metadata.customTokens.map(\.id)
+        if let wallet { recompute(wallet) }
     }
 
     var change24hPercent: Double {

@@ -57,6 +57,10 @@ struct WalletHomeView: View {
             .navigationDestination(for: PortfolioRow.self) { row in
                 AssetDetailView(row: row)
             }
+            .navigationDestination(for: UnlistedHolding.self) { holding in
+                OtherTokenDetailView(holding: holding)
+            }
+            .navigationDestination(for: ManageAssetsRoute.self) { _ in ManageAssetsView() }
         }
         .task(id: wallet?.id) {
             portfolio.show(wallet, session: session)
@@ -66,6 +70,9 @@ struct WalletHomeView: View {
             if DebugDemo.screen == "receber" { receiving = true }
             if DebugDemo.screen == "revelar" { backingUp = true }
             if DebugDemo.screen == "adicionar" { addingWallet = true }
+            if DebugDemo.screen == "gerenciar" { router.walletPath.append(ManageAssetsRoute()) }
+            if DebugDemo.screen == "suspeito", let token = portfolio.suspicious.first { router.walletPath.append(token.holding) }
+            if DebugDemo.screen == "outro", let token = portfolio.others.first { router.walletPath.append(token.holding) }
             #endif
         }
         .sheet(isPresented: $switching) {
@@ -219,11 +226,10 @@ struct WalletHomeView: View {
             Text("Ativos").typeStyle(.heading).foregroundStyle(Palette.ink)
             if portfolio.loading { ProgressView().tint(Palette.inkMuted).scaleEffect(0.7) }
             Spacer()
-            if !portfolio.allRows.isEmpty {
-                NavigationLink { ManageAssetsView() } label: {
-                    Text("Gerenciar").typeStyle(.body).foregroundStyle(Palette.inkSoft).frame(minHeight: Height.touch)
-                }
+            NavigationLink(value: ManageAssetsRoute()) {
+                Text("Gerenciar").typeStyle(.body).foregroundStyle(Palette.inkSoft).frame(minHeight: Height.touch)
             }
+            .accessibilityIdentifier("gerenciar-ativos")
         }
         .padding(.horizontal, Space.gutter)
 
@@ -245,17 +251,20 @@ struct WalletHomeView: View {
                 }
             }
             .padding(.top, Space.xs)
-            if portfolio.unknownTokens > 0 {
-                NavigationLink { ManageAssetsView() } label: {
-                    HStack(spacing: 4) {
-                        Text("\(portfolio.unknownTokens) \(portfolio.unknownTokens == 1 ? "token desconhecido escondido" : "tokens desconhecidos escondidos")")
-                            .typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkMuted)
-                    }
-                    .frame(minHeight: Height.touch)
+        }
+        if !portfolio.others.isEmpty || !portfolio.suspicious.isEmpty {
+            OtherTokensSection().padding(.top, portfolio.rows.isEmpty ? Space.md : Space.lg)
+        }
+        if portfolio.unknownTokens > 0 {
+            NavigationLink(value: ManageAssetsRoute()) {
+                HStack(spacing: 4) {
+                    Text("\(portfolio.unknownTokens) \(portfolio.unknownTokens == 1 ? "token sem leitura escondido" : "tokens sem leitura escondidos")")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkMuted)
                 }
-                .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+                .frame(minHeight: Height.touch)
             }
+            .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
         }
         }
     }
@@ -407,9 +416,13 @@ struct AssetRowView: View {
         HStack(spacing: Space.sm) {
             logo
             VStack(alignment: .leading, spacing: 2) {
-                Text(row.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
-                HStack(spacing: 6) { priceAndChange }
+                Text(verbatim: row.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                HStack(spacing: 6) {
+                    if row.isCustom { TokenBadge(.custom) }
+                    priceAndChange
+                }
             }
+            .layoutPriority(1)
             Spacer(minLength: Space.sm)
             VStack(alignment: .trailing, spacing: 2) {
                 fiatValue
@@ -422,7 +435,8 @@ struct AssetRowView: View {
         VStack(alignment: .leading, spacing: Space.xxs) {
             HStack(spacing: Space.sm) {
                 logo
-                Text(row.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                Text(verbatim: row.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                if row.isCustom { TokenBadge(.custom) }
             }
             fiatValue
             amount
@@ -435,7 +449,7 @@ struct AssetRowView: View {
         CoinLogo(
             coingeckoID: row.coingeckoID, symbol: row.symbol, size: 40,
             network: row.positions.count == 1 ? row.positions.first?.asset.chain : nil,
-            networkCount: row.positions.count
+            networkCount: row.positions.count, unverified: row.origin != nil
         )
     }
 
@@ -551,3 +565,6 @@ struct WalletSwitcherSheet: View {
         }
     }
 }
+
+/// O caminho de "Gerenciar ativos" na pilha da Carteira.
+struct ManageAssetsRoute: Hashable {}
