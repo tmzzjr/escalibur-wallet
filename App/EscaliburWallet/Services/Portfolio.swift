@@ -109,6 +109,26 @@ final class Portfolio {
                 if let balance { fresh[chain.id] = balance } else { failed.append(chain) }
             }
         }
+        // Uma segunda tentativa para quem falhou, um instante depois: provedor gratis
+        // corta rajada (a Atividade varre dezenas de enderecos UTXO ao mesmo tempo), e
+        // uma recusa de passagem virava "Nao foi possivel ler o saldo" (relatado no
+        // iPhone com a Litecoin). So o que falhar duas vezes vai para o aviso.
+        if !failed.isEmpty {
+            try? await Task.sleep(for: .seconds(2))
+            let retry = targets.filter { target in failed.contains { $0.id == target.0.id } }
+            failed = []
+            await withTaskGroup(of: (Chain, ChainBalance?).self) { group in
+                for (chain, addresses) in retry {
+                    group.addTask {
+                        let balance = try? await BalanceService.shared.balance(chain: chain, addresses: addresses)
+                        return (chain, balance)
+                    }
+                }
+                for await (chain, balance) in group {
+                    if let balance { fresh[chain.id] = balance } else { failed.append(chain) }
+                }
+            }
+        }
 
         let ids = Set(Chain.all.map(\.coingeckoID) + TokenRegistry.tokens.compactMap(\.coingeckoID))
         let base = session.metadata.settings.currency
