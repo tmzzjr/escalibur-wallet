@@ -53,18 +53,22 @@ final class NewWalletFlowTests: XCTestCase {
 
     /// O destaque roxo esta embaixo deste botao? Le o pixel da tela entre a borda e o
     /// texto, depois de a animacao assentar.
-    func highlighted(_ button: XCUIElement, in app: XCUIApplication) -> Bool {
-        usleep(600_000)
-        let image = app.screenshot().image
-        guard let cg = image.cgImage else { return false }
-        let scale = CGFloat(cg.width) / app.windows.firstMatch.frame.width
+    func brightness(_ button: XCUIElement, in image: CGImage, app: XCUIApplication) -> Int {
+        let scale = CGFloat(image.width) / app.windows.firstMatch.frame.width
         let point = CGPoint(x: (button.frame.minX + 10) * scale, y: button.frame.midY * scale)
         var pixel = [UInt8](repeating: 0, count: 4)
         let context = CGContext(data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
                                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-        context.draw(cg, in: CGRect(x: -point.x, y: point.y - CGFloat(cg.height) + 1, width: CGFloat(cg.width), height: CGFloat(cg.height)))
-        // Trilho e quase preto; o segmento e cor de marca, bem mais claro.
-        return Int(pixel[0]) + Int(pixel[1]) + Int(pixel[2]) > 200
+        context.draw(image, in: CGRect(x: -point.x, y: point.y - CGFloat(image.height) + 1, width: CGFloat(image.width), height: CGFloat(image.height)))
+        return Int(pixel[0]) + Int(pixel[1]) + Int(pixel[2])
+    }
+
+    /// O lado escolhido tem o segmento (vidro, mais claro que o trilho); o outro, so o
+    /// trilho. Compara os dois lados na mesma imagem, sem depender da cor da selecao.
+    func highlighted(_ button: XCUIElement, over other: XCUIElement, in app: XCUIApplication) -> Bool {
+        usleep(600_000)
+        guard let image = app.screenshot().image.cgImage else { return false }
+        return brightness(button, in: image, app: app) > brightness(other, in: image, app: app) + 24
     }
 
     /// O bug do 12 | 24: tocar num lado tem de escolher esse lado, no destaque, no
@@ -78,25 +82,25 @@ final class NewWalletFlowTests: XCTestCase {
         XCTAssertFalse(twentyFour.isSelected)
         XCTAssertTrue(text("A senha da carteira são 12 palavras", in: app))
 
-        XCTAssertTrue(highlighted(twelve, in: app) && !highlighted(twentyFour, in: app), "destaque fora do 12 ao abrir")
+        XCTAssertTrue(highlighted(twelve, over: twentyFour, in: app), "destaque fora do 12 ao abrir")
 
         twentyFour.tap()
         XCTAssertTrue(twentyFour.isSelected, "tocou 24, a selecao ficou no 12")
         XCTAssertFalse(twelve.isSelected)
         XCTAssertTrue(text("A senha da carteira são 24 palavras", in: app), "tocou 24, o texto ficou em 12")
-        XCTAssertTrue(highlighted(twentyFour, in: app) && !highlighted(twelve, in: app), "tocou 24, o destaque ficou no 12")
+        XCTAssertTrue(highlighted(twentyFour, over: twelve, in: app), "tocou 24, o destaque ficou no 12")
 
         // Toque na ponta de dentro de cada lado, onde os dois encostam, e toques em
         // seguida, sem esperar a animacao.
         twelve.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
         XCTAssertTrue(twelve.isSelected, "tocou a ponta do 12, foi para o 24")
-        XCTAssertTrue(highlighted(twelve, in: app) && !highlighted(twentyFour, in: app), "tocou a ponta do 12, o destaque foi para o 24")
+        XCTAssertTrue(highlighted(twelve, over: twentyFour, in: app), "tocou a ponta do 12, o destaque foi para o 24")
         twentyFour.coordinate(withNormalizedOffset: CGVector(dx: 0.05, dy: 0.5)).tap()
         XCTAssertTrue(twentyFour.isSelected, "tocou a ponta do 24, foi para o 12")
         twelve.tap()
         twentyFour.tap()
         XCTAssertTrue(twentyFour.isSelected)
-        XCTAssertTrue(highlighted(twentyFour, in: app) && !highlighted(twelve, in: app), "toques seguidos, o destaque ficou no lado errado")
+        XCTAssertTrue(highlighted(twentyFour, over: twelve, in: app), "toques seguidos, o destaque ficou no lado errado")
 
         app.buttons["Continuar"].tap()
         acceptAndShowWords(app)

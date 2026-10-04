@@ -174,13 +174,16 @@ struct NewWalletFlow: View {
             newDraft.phrase.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
             let secret = try WalletSecret.from(phrase: copy, language: .english)
             copy.wipe()
-            guard let credential = await auth.credential(reason: "Guardar a carteira nova neste iPhone") else {
+            let name = session.metadata.wallets.isEmpty ? "Carteira principal" : "Carteira \(session.metadata.wallets.count + 1)"
+            let words = wordCount
+            guard let saved = try await auth.retrying(reason: "Guardar a carteira nova neste iPhone", { credential in
+                try await session.addWallet(secret: secret, name: name, origin: .created, wordCount: words, backupConfirmed: false, credential: credential)
+            }) else {
                 secret.wipe()
                 newDraft.wipe()
                 return
             }
-            let name = session.metadata.wallets.isEmpty ? "Carteira principal" : "Carteira \(session.metadata.wallets.count + 1)"
-            wallet = try await session.addWallet(secret: secret, name: name, origin: .created, wordCount: wordCount, backupConfirmed: false, credential: credential)
+            wallet = saved
             draft = newDraft
             step = .record
         } catch {

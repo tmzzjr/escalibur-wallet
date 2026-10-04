@@ -99,14 +99,16 @@ struct PassphraseWalletView: View {
         }
         working = true
         defer { working = false }
-        guard let credential = await auth.credential(reason: "Criar a carteira com passphrase") else { return }
         // O cofre fica com uma copia: os campos continuam donos dos seus buffers.
         let copy = SecureBytes(capacity: passphrase.count)
         passphrase.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
+        defer { copy.wipe() }
         let title = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40))
+        let walletName = title.isEmpty ? "\(base.name) com passphrase" : title
         do {
-            _ = try await session.addPassphraseWallet(base: base, passphrase: copy, name: title.isEmpty ? "\(base.name) com passphrase" : title,
-                                                      credential: credential)
+            guard try await auth.retrying(reason: "Abrir a carteira com passphrase", { credential in
+                try await session.addPassphraseWallet(base: base, passphrase: copy, name: walletName, credential: credential)
+            }) != nil else { return }
             passphrase.wipe()
             again.wipe()
             dismiss()

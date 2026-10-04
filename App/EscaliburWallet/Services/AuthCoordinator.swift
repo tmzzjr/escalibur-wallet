@@ -46,15 +46,22 @@ final class AuthCoordinator {
     func perform<T: Sendable>(
         _ session: AppSession, reason: String, requirePIN: Bool = false, _ body: @escaping @Sendable (SecureBytes) throws -> T
     ) async throws -> T? {
+        try await retrying(reason: reason, requirePIN: requirePIN) { try await session.withRootKey($0, body) }
+    }
+
+    /// O laco de `perform` para operacoes que recebem a credencial pronta (guardar uma
+    /// carteira): Face ID cancelado, mudado ou pedindo o PIN depois de reiniciar cai
+    /// para o PIN; PIN errado ou espera volta ao teclado com o aviso. Antes, guardar uma
+    /// carteira com o Face ID ligado nao tinha esse laco, e qualquer falha do rosto
+    /// virava "Nao foi possivel importar" (visto no iPhone). Devolve nil se o dono
+    /// desistir; o apagamento (`wiped`) e qualquer erro da propria operacao sobem.
+    func retrying<T>(reason: String, requirePIN: Bool = false, _ operation: (Credential) async throws -> T) async throws -> T? {
         guard var attempt = await credential(reason: reason, forcePIN: requirePIN) else { return nil }
-        // PIN errado ou espera dentro de um envio ou troca volta para o teclado com o
-        // mesmo aviso da tela de bloqueio, e nao como falha de rede (auditoria 2, M4).
-        // O apagamento (`wiped`) e qualquer erro da propria operacao sobem.
         while true {
             var notice: String?
             var error: String?
             do {
-                return try await session.withRootKey(attempt, body)
+                return try await operation(attempt)
             } catch RootKeyVault.Failure.cancelled {
                 notice = nil
             } catch RootKeyVault.Failure.biometryChanged {

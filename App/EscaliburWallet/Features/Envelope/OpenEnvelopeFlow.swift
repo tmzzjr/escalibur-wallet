@@ -256,10 +256,11 @@ struct OpenEnvelopeFlow: View {
         guard let pending else { return }
         importing = true
         defer { importing = false }
-        guard let credential = await auth.credential(reason: "Guardar a carteira do envelope neste iPhone") else { return }
         do {
-            _ = try await session.addWallet(secret: pending.secret, name: pending.name, origin: .importedEnvelope,
+            guard try await auth.retrying(reason: "Guardar a carteira do envelope neste iPhone", { credential in
+                try await session.addWallet(secret: pending.secret, name: pending.name, origin: .importedEnvelope,
                                             wordCount: pending.words, backupConfirmed: true, credential: credential)
+            }) != nil else { return }
             self.pending = nil
             close()
         } catch let walletError as WalletError {

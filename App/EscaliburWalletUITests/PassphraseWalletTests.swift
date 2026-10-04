@@ -39,9 +39,14 @@ final class PassphraseWalletTests: XCTestCase {
         fields.element(boundBy: 0).tap()
         fields.element(boundBy: 0).typeText("lanterna")
         let second = fields.element(boundBy: 1)
-        second.tap()
         let focused = NSPredicate(format: "hasKeyboardFocus == true")
-        let waited = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: focused, object: second)], timeout: 5)
+        // O toque logo depois de digitar no primeiro campo as vezes chega durante a
+        // animacao do teclado; um segundo toque resolve, como faria a pessoa.
+        var waited = XCTWaiter.Result.timedOut
+        for _ in 0..<2 where waited != .completed {
+            second.tap()
+            waited = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: focused, object: second)], timeout: 3)
+        }
         XCTAssertEqual(waited, .completed, "tocar no segundo campo deveria pôr o teclado nele")
         second.typeText("lanterna")
         app.buttons["Abrir carteira"].tap()

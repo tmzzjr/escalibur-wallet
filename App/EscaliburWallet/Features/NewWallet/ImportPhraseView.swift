@@ -369,11 +369,14 @@ struct ImportPhraseView: View {
         guard let pending else { return }
         working = true
         defer { working = false }
-        guard let credential = await auth.credential(reason: "Guardar a carteira importada neste iPhone") else { return }
         do {
-            let name = "Carteira \(session.metadata.wallets.count + 1)"
-            _ = try await session.addWallet(secret: pending.secret, name: session.metadata.wallets.isEmpty ? "Carteira principal" : name,
-                                            origin: .importedPhrase, wordCount: entry.count, backupConfirmed: true, credential: credential)
+            let name = session.metadata.wallets.isEmpty ? "Carteira principal" : "Carteira \(session.metadata.wallets.count + 1)"
+            let words = entry.count
+            // Desistiu da confirmacao: a conferencia dos enderecos continua na tela.
+            guard try await auth.retrying(reason: "Guardar a carteira importada neste iPhone", { credential in
+                try await session.addWallet(secret: pending.secret, name: name, origin: .importedPhrase, wordCount: words,
+                                            backupConfirmed: true, credential: credential)
+            }) != nil else { return }
             self.pending = nil
             entry.wipe()
             onFinished()
