@@ -59,6 +59,7 @@
 		9A8477455F2ABEB9D91113AF /* Portfolio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4027F05D922AF46864DCED58 /* Portfolio.swift */; };
 		9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAEF81421478F9FA6F85FE56 /* Palette.swift */; };
 		A0E20FEC7CF495BB4B8AE0E1 /* EnvelopeFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3FC7ED2F0ACB292691CA0A /* EnvelopeFlowTests.swift */; };
+		A19377FDA0B48E972A57A2C7 /* SwordInStone.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDDF2E10A05978EE32252CD4 /* SwordInStone.swift */; };
 		A2EB350AFF4C3B63897F97DA /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C77E773E63B6664F4262AD /* Metadata.swift */; };
 		A735272844639F9878C01046 /* BiometryNameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */; };
 		A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34BAC1217309C0064F23CE7 /* TradeView.swift */; };
@@ -186,6 +187,7 @@
 		E92DA0C0AAD564FC730F1CFF /* EscaliburWalletTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EscaliburWalletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5287E825D53043F109D791D /* RecordWordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWordsView.swift; sourceTree = "<group>"; };
 		F5ECD2EB5627AA912E7957E4 /* DeviceIntegrity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIntegrity.swift; sourceTree = "<group>"; };
+		FDDF2E10A05978EE32252CD4 /* SwordInStone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwordInStone.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -386,6 +388,7 @@
 			isa = PBXGroup;
 			children = (
 				B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */,
+				FDDF2E10A05978EE32252CD4 /* SwordInStone.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -684,6 +687,7 @@
 				57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */,
 				7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */,
 				EAD6592758D7814329227F15 /* SettingsView.swift in Sources */,
+				A19377FDA0B48E972A57A2C7 /* SwordInStone.swift in Sources */,
 				E6F4BCF5A1C5733FBA004E5D /* TradeComponents.swift in Sources */,
 				E9B262D8C5C872AC0A1391B7 /* TradeReviewFlow.swift in Sources */,
 				A86E2552260E069EEA06CFAE /* TradeView.swift in Sources */,

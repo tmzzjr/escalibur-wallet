@@ -109,7 +109,7 @@ final class VoiceGate {
         if boot == PINPolicy.unknownBoot {
             return max(0, (voice.lockedUntil ?? .distantPast).timeIntervalSinceNow)
         }
-        if voice.lockBoot != Hex.encode(boot) {
+        if !PINPolicy.isSameBoot(voice.lockBoot.flatMap(Hex.decode) ?? [], boot) {
             voice.startLock(seconds: Self.lockSeconds)
             session.metadata.settings.voice = voice
             try? session.persist()

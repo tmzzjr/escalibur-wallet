@@ -39,36 +39,42 @@ struct OnboardingFlow: View {
     }
 
     private var welcome: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            WalletBadge(size: 40).padding(.top, Space.md)
-            Spacer()
-            Text("Uma carteira que só você abre")
-                .typeStyle(.hero)
-                .foregroundStyle(Palette.ink)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("As chaves ficam só neste iPhone, fora do backup do iCloud. Sem conta e sem e\u{2011}mail: a Escalibur não tem como ver, mover nem recuperar o seu saldo.")
-                .typeStyle(.body)
-                .foregroundStyle(Palette.inkSoft)
-                .padding(.top, Space.sm)
-                .fixedSize(horizontal: false, vertical: true)
+        VStack(spacing: 0) {
+            SwordInStone()
+                .frame(maxWidth: .infinity, minHeight: 220, maxHeight: .infinity)
+                .padding(.top, Space.xs)
+            VStack(spacing: Space.sm) {
+                Text("Uma carteira que só você abre")
+                    .typeStyle(.hero)
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("As chaves ficam só neste iPhone, fora do backup do iCloud. Sem conta e sem e\u{2011}mail: a Escalibur não tem como ver, mover nem recuperar o seu saldo.")
+                    .typeStyle(.body)
+                    .foregroundStyle(Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.top, Space.lg)
             if DeviceIntegrity.suspicious {
                 Banner(kind: .caution, title: "Este iPhone parece ter jailbreak",
                        message: "Apps de fora da App Store podem ler o que este app guarda.")
-                    .padding(.top, Space.lg)
+                    .padding(.top, Space.md)
             }
             if !KeyServices.deviceIsEligible {
                 Banner(kind: .failure, title: "Este iPhone não tem código",
                        message: "Configure um código em Ajustes do iPhone. Sem ele, o iOS não protege as chaves da carteira.")
-                    .padding(.top, Space.lg)
+                    .padding(.top, Space.md)
             }
             PrimaryButton(title: "Começar", enabled: KeyServices.deviceIsEligible) {
                 step = .choosePIN
             }
-            .padding(.top, Space.xl)
+            .padding(.top, Space.lg)
             Text("Ao continuar, você aceita os [Termos de uso](escalibur-doc:termos) e a [Política de privacidade](escalibur-doc:privacidade).")
                 .typeStyle(.note)
                 .foregroundStyle(Palette.inkMuted)
                 .tint(Palette.inkSoft)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, Space.sm)
                 .environment(\.openURL, OpenURLAction { url in
                     legalDocument = LegalDocument(rawValue: url.absoluteString.replacingOccurrences(of: "escalibur-doc:", with: ""))
@@ -127,13 +133,21 @@ struct BiometryOfferView: View {
     var body: some View {
         if askPIN {
             PINScreen(title: "Confirme com o PIN", subtitle: "Para ligar o \(KeyServices.biometryName) nesta carteira.", entry: entry, working: working,
-                      onComplete: { Task { await enable() } }) { EmptyView() }
+                      onComplete: { Task { await enable() } }) {
+                TertiaryButton(title: "Voltar") {
+                    entry = PINEntry()
+                    askPIN = false
+                }
+                .accessibilityIdentifier("biometria-voltar")
+            }
         } else {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(spacing: 0) {
                 Spacer()
                 Image(systemName: KeyServices.biometryIcon)
                     .font(.system(size: 44, weight: .regular))
                     .foregroundStyle(Palette.ink)
+                    .frame(width: 96, height: 96)
+                    .background(Circle().fill(Palette.rail))
                 Text("Destravar com o \(KeyServices.biometryName)")
                     .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
                 Text("Destrava o app e confirma envios em 1 segundo. Se o \(KeyServices.biometryName) falhar, o PIN vale.")
@@ -143,6 +157,7 @@ struct BiometryOfferView: View {
                 PrimaryButton(title: "Usar o \(KeyServices.biometryName)") { askPIN = true }
                 SecondaryButton(title: "Agora não") { onDone() }.padding(.top, Space.sm)
             }
+            .multilineTextAlignment(.center)
             .padding(.horizontal, Space.gutter)
             .padding(.bottom, Space.xs)
             .background(Palette.void.ignoresSafeArea())
@@ -157,6 +172,8 @@ struct BiometryOfferView: View {
             onDone()
         } catch RootKeyVault.Failure.wrongPIN {
             entry.fail("PIN incorreto.")
+        } catch RootKeyVault.Failure.throttled(let seconds) {
+            entry.fail("Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
         } catch RootKeyVault.Failure.cancelled {
             entry.fail("O \(KeyServices.biometryName) não confirmou. Ele continua desligado; você pode ligar depois nos Ajustes.")
         } catch {

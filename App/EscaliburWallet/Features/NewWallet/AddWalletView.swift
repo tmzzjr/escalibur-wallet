@@ -18,13 +18,17 @@ struct AddWalletView: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
                 WalletOrbit(height: 260).padding(.top, Space.xs)
-                Text(isFirst ? "Sua primeira carteira" : "Adicionar carteira")
-                    .typeStyle(.title).foregroundStyle(Palette.ink)
-                    .padding(.horizontal, Space.gutter)
-                    .padding(.top, Space.sm)
-                Text("Uma frase, um endereço em cada rede. As chaves ficam só neste iPhone.")
-                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, Space.gutter).padding(.top, Space.xxs)
+                // Centrado sob o selo em orbita: titulo e frase de apoio no mesmo eixo dele.
+                VStack(spacing: Space.xxs) {
+                    Text(isFirst ? "Sua primeira carteira" : "Adicionar carteira")
+                        .typeStyle(.title).foregroundStyle(Palette.ink)
+                    Text("Uma frase, um endereço em cada rede. As chaves ficam só neste iPhone.")
+                        .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                }
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, Space.gutter)
+                .padding(.top, Space.sm)
                 VStack(spacing: 0) {
                     row("Importar com a senha da carteira", "Você já tem 12 ou 24 palavras de outra carteira.", "text.word.spacing", order: 0) {
                         route = .importPhrase

@@ -201,6 +201,9 @@ struct PINScreen<Footer: View>: View {
             footer
                 .padding(.top, Space.lg)
                 .padding(.bottom, Space.xs)
+            // O teclado um pouco acima da borda, mais perto do polegar e dos pontos. No
+            // iPhone pequeno este respiro some antes dos outros.
+            Spacer(minLength: Space.xs).frame(maxHeight: 56)
         }
         .frame(maxWidth: .infinity)
         .background(Palette.void.ignoresSafeArea())

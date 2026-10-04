@@ -206,6 +206,9 @@ public final class RootKeyVault: @unchecked Sendable {
         }
         // O contador de PIN nao zera aqui: quem apresenta o rosto do dono a forca nao
         // ganha chutes de PIN de graca a cada Face ID (auditoria 2, B4). So o PIN certo zera.
+        // A ancora do boot acompanha a oscilacao do kern.boottime: ainda e o mesmo boot
+        // (conferido acima), so com o instante lido agora.
+        recordPINThisBoot()
         return rk
     }
 
@@ -230,9 +233,8 @@ public final class RootKeyVault: @unchecked Sendable {
 
     /// O PIN foi digitado neste boot? Depois de reiniciar, o Face ID espera o PIN.
     public var pinEnteredThisBoot: Bool {
-        let current = PINPolicy.bootSession
-        guard current != PINPolicy.unknownBoot, let saved = try? store.read(Account.pinBoot, context: nil) else { return false }
-        return [UInt8](saved) == current
+        guard let saved = try? store.read(Account.pinBoot, context: nil) else { return false }
+        return PINPolicy.isSameBoot([UInt8](saved), PINPolicy.bootSession)
     }
 
     private func recordPINThisBoot() {

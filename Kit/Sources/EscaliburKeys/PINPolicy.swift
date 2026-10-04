@@ -42,17 +42,47 @@ public enum PINPolicy {
         return TimeInterval(time.tv_sec) + TimeInterval(time.tv_nsec) / 1e9
     }
 
-    /// Identidade deste boot (`kern.bootsessionuuid`). Se mudou, o relogio monotonico
-    /// recomecou do zero e o prazo gravado com ele deixou de valer. Comparar um UUID
-    /// e exato; o instante do boot em ponto flutuante oscilava com ajuste de NTP.
+    /// Identidade deste boot, 16 bytes. Se mudou, o relogio monotonico recomecou do zero
+    /// e o prazo gravado com ele deixou de valer.
+    ///
+    /// No Mac e no simulador e o `kern.bootsessionuuid`, comparado byte a byte. No iPhone
+    /// a sandbox recusa essa leitura (EPERM, medido num iPhone 13 Pro Max com iOS 26.3):
+    /// vale o instante do boot (`kern.boottime`), marcado com `boottimeMark` e comparado
+    /// com folga de `boottimeTolerance` em `isSameBoot`, porque ele oscila um pouco com o
+    /// ajuste de hora pela rede.
     public static var bootSession: [UInt8] {
+        if let uuid = bootSessionUUID { return withUnsafeBytes(of: uuid.uuid) { Array($0) } }
+        var time = timeval()
+        var size = MemoryLayout<timeval>.size
+        guard sysctlbyname("kern.boottime", &time, &size, nil, 0) == 0, time.tv_sec > 0 else { return unknownBoot }
+        let micros = UInt64(time.tv_sec) * 1_000_000 + UInt64(time.tv_usec)
+        return boottimeMark + (0..<8).map { UInt8(truncatingIfNeeded: micros >> (56 - 8 * $0)) }
+    }
+
+    private static var bootSessionUUID: UUID? {
         var size = 0
-        guard sysctlbyname("kern.bootsessionuuid", nil, &size, nil, 0) == 0, size > 0 else { return unknownBoot }
+        guard sysctlbyname("kern.bootsessionuuid", nil, &size, nil, 0) == 0, size > 0 else { return nil }
         var buffer = [CChar](repeating: 0, count: size)
-        guard sysctlbyname("kern.bootsessionuuid", &buffer, &size, nil, 0) == 0 else { return unknownBoot }
-        let text = String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
-        guard let uuid = UUID(uuidString: text) else { return unknownBoot }
-        return withUnsafeBytes(of: uuid.uuid) { Array($0) }
+        guard sysctlbyname("kern.bootsessionuuid", &buffer, &size, nil, 0) == 0 else { return nil }
+        return UUID(uuidString: String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self))
+    }
+
+    /// Os 8 primeiros bytes de uma identidade tirada do `kern.boottime` ("ESCBOOT1").
+    static let boottimeMark: [UInt8] = Array("ESCBOOT1".utf8)
+
+    /// Reiniciar move o instante do boot pelo tempo que o iPhone ficou ligado mais o da
+    /// propria reinicializacao, sempre bem mais que isto. O ajuste de hora pela rede
+    /// move milissegundos. Mudar a hora a mao parece um boot novo: o PIN volta a ser
+    /// pedido e a espera recomeca cheia, nunca o contrario.
+    static let boottimeTolerance: UInt64 = 10_000_000
+
+    /// As duas identidades sao do mesmo boot? Desconhecida nunca e.
+    public static func isSameBoot(_ a: [UInt8], _ b: [UInt8]) -> Bool {
+        guard a.count == 16, b.count == 16, a != unknownBoot, b != unknownBoot else { return false }
+        guard Array(a.prefix(8)) == boottimeMark, Array(b.prefix(8)) == boottimeMark else { return a == b }
+        let x = a.suffix(8).reduce(UInt64(0)) { $0 << 8 | UInt64($1) }
+        let y = b.suffix(8).reduce(UInt64(0)) { $0 << 8 | UInt64($1) }
+        return (x > y ? x - y : y - x) <= boottimeTolerance
     }
 
     /// Sem identidade de boot, cada leitura parece um boot novo: a espera recomeca
@@ -115,7 +145,7 @@ struct AttemptRecord: Equatable {
 
     /// O prazo foi gravado em outro boot (ou num formato antigo)?
     var isFromAnotherBoot: Bool {
-        failures > 0 && (bootSession == PINPolicy.unknownBoot || bootSession != PINPolicy.bootSession)
+        failures > 0 && !PINPolicy.isSameBoot(bootSession, PINPolicy.bootSession)
     }
 
     /// Quanto falta de espera. De outro boot, a resposta e a espera cheia ate alguem
