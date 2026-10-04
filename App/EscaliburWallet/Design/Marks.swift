@@ -36,11 +36,12 @@ struct WalletBadge: View {
                 Path(CGRect(x: x * w, y: y * h, width: width * w, height: height * h))
             }
             context.fill(Path(CGRect(origin: .zero, size: canvas)), with: .color(Palette.brand))
-            context.fill(rect(0.4297, 0.2900, 0.1396, 0.0616), with: .color(.white))               // pomo
-            context.fill(rect(0.4639, 0.3516, 0.0713, 0.1435), with: .color(Color(hex: 0xB0B0BA)))  // punho
-            context.fill(rect(0.2041, 0.4951, 0.5908, 0.0488), with: .color(.white))               // travessao
-            context.fill(rect(0.4375, 0.5439, 0.0620, 0.4561), with: .color(.white))               // lamina, lado claro
-            context.fill(rect(0.4995, 0.5439, 0.0620, 0.4561), with: .color(Color(hex: 0xCECED6)))  // lamina, lado do fio
+            // A espada do Escalibur, em proporcao com o icone de 1024 pontos.
+            let steel = Color(hex: 0xF2F2F3)
+            context.fill(rect(0.4297, 0.2900, 0.1406, 0.0615), with: .color(steel))  // pomo
+            context.fill(rect(0.4639, 0.3516, 0.0723, 0.1436), with: .color(steel))  // punho
+            context.fill(rect(0.2041, 0.4951, 0.5918, 0.0498), with: .color(steel))  // travessao
+            context.fill(rect(0.4375, 0.5449, 0.1250, 0.4551), with: .color(steel))  // lamina
         }
         .frame(width: size, height: size)
         .clipShape(shape)

@@ -35,10 +35,10 @@ enum Palette {
     static let caution = Color(hex: 0xF5A524)
     // As cores da marca (decisao do dono, 27/09/2026): lima na acao principal, na aba
     // escolhida e na alta; roxo na selecao. Chapadas.
-    static let purple = Color(hex: 0x8B5CF6)
+    static let purple = Color(hex: 0xFF4FA3)
     /// O roxo do icone do app, mais vivo que o de selecao.
-    static let brand = Color(hex: 0x7C3AED)
-    static let purpleDeep = Color(hex: 0x4C1D95)
+    static let brand = Color(hex: 0xFF007B)
+    static let purpleDeep = Color(hex: 0x99004A)
     static let lime = Color(hex: 0xC4F135)
     static let limePress = Color(hex: 0xA8D21F)
     static let onLime = Color(hex: 0x0B0D05)

@@ -2,7 +2,8 @@ import SwiftUI
 
 /// A abertura: a espada cravada na pedra. Escalibur e a Excalibur da lenda, a espada que
 /// so o dono de direito tira da pedra, que e o que a tela promete: uma carteira que so
-/// voce abre. O painel e o roxo do icone, para o app abrir como continuacao dele.
+/// voce abre. O painel e o rosa do icone e a espada e a dele, para o app abrir como
+/// continuacao do icone. A pedra e grafite, como o resto do app.
 ///
 /// Ao aparecer, a espada desce e crava; um anel lima marca o encaixe, uma vez so. Depois,
 /// um brilho corre a lamina de tempos em tempos, como metal polido. Com Reduzir
@@ -20,8 +21,8 @@ struct SwordInStone: View {
             let size = geo.size
             let entry = CGPoint(x: size.width / 2, y: size.height * Self.entryY)
             ZStack(alignment: .topLeading) {
-                // Luz de cima: o roxo do icone no alto, um tom abaixo junto da pedra.
-                LinearGradient(colors: [Color(hex: 0x8B4DF5), Palette.brand, Color(hex: 0x6A2BD9)],
+                // Luz de cima: o rosa do icone no alto, um tom abaixo junto da pedra.
+                LinearGradient(colors: [Color(hex: 0xFF2E92), Palette.brand, Color(hex: 0xDE006B)],
                                startPoint: .top, endPoint: .bottom)
                 Canvas { context, size in Self.drawStone(context, size) }
                 TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion || !landed)) { timeline in
@@ -62,13 +63,13 @@ struct SwordInStone: View {
     // MARK: Pedra
 
     private enum Stone {
-        static let top = Color(hex: 0xA78BFA)
-        static let left = Color(hex: 0x5B21B6)
-        static let middle = Palette.purpleDeep
-        static let middleCut = Color(hex: 0x431A88)
-        static let edge = Color(hex: 0xC4B5FD)
-        static let right = Color(hex: 0x3B0F80)
-        static let slot = Color(hex: 0x2E1065)
+        static let top = Color(hex: 0x3A3A40)
+        static let left = Palette.control
+        static let middle = Palette.rail
+        static let middleCut = Color(hex: 0x19191C)
+        static let edge = Color(hex: 0x5A5A62)
+        static let right = Color(hex: 0x141417)
+        static let slot = Palette.void
     }
 
     /// Pedra lapidada: face de cima clara (luz de cima) e tres faces da frente, que
@@ -100,47 +101,30 @@ struct SwordInStone: View {
 
     // MARK: Espada
 
-    private enum Steel {
-        static let light = Color.white
-        /// A lamina um tom abaixo do branco, para o brilho aparecer no lado claro tambem.
-        static let blade = Color(hex: 0xECECEF)
-        static let shade = Color(hex: 0xD4D4D8)
-        static let fuller = Color(hex: 0xA1A1AA)
-        static let grip = Palette.logoDisc
-        static let wrap = Palette.purpleDeep
-    }
+    /// A espada do icone, de pe e cravada: pomo, punho, travessao e lamina retos, na
+    /// proporcao do icone de 1024 pontos (o travessao tem 606 pontos de largura).
+    static let steel = Color(hex: 0xF2F2F3)
+    /// A lamina um tom abaixo, para o brilho aparecer sobre ela.
+    static let bladeSteel = Color(hex: 0xE6E6EA)
 
-    /// A espada do icone, de pe: pomo, punho com tres voltas, guarda reta e lamina com
-    /// o lado esquerdo claro e o direito em sombra, como no icone.
     static func drawSword(_ context: GraphicsContext, _ size: CGSize, glint: CGFloat?) {
         let h = size.height
         let cx = size.width / 2
-        let pommelRadius = h * 0.032
-        let top = h * 0.09
-        let gripWidth = h * 0.046
-        let gripTop = top + pommelRadius * 1.6
-        let gripBottom = gripTop + h * 0.12
-        let guardHeight = h * 0.036
-        let guardWidth = h * 0.27
-        let bladeWidth = h * 0.078
-        let bladeTop = gripBottom + guardHeight
+        let unit = h * 0.40 / 606
+        func bar(_ width: CGFloat, _ top: CGFloat, _ height: CGFloat) -> Path {
+            Path(CGRect(x: cx - width * unit / 2, y: top, width: width * unit, height: height * unit))
+        }
+        let pommelTop = h * 0.10
+        let gripTop = pommelTop + 63 * unit
+        let guardTop = gripTop + 147 * unit
+        let bladeTop = guardTop + 51 * unit
+        let bladeWidth = 128 * unit
         let tipStart = h * entryY + h * 0.06
         let tip = tipStart + bladeWidth * 0.9
 
-        let pommel = Path(ellipseIn: CGRect(x: cx - pommelRadius, y: top, width: pommelRadius * 2, height: pommelRadius * 2))
-        context.fill(pommel, with: .color(Steel.light))
-
-        let grip = Path(roundedRect: CGRect(x: cx - gripWidth / 2, y: gripTop, width: gripWidth, height: gripBottom - gripTop),
-                        cornerRadius: gripWidth * 0.2)
-        context.fill(grip, with: .color(Steel.grip))
-        for index in 1...3 {
-            let y = gripTop + (gripBottom - gripTop) * CGFloat(index) / 4
-            context.fill(Path(CGRect(x: cx - gripWidth / 2, y: y - 1.5, width: gripWidth, height: 3)), with: .color(Steel.wrap))
-        }
-
-        let guardBar = Path(roundedRect: CGRect(x: cx - guardWidth / 2, y: gripBottom, width: guardWidth, height: guardHeight),
-                            cornerRadius: guardHeight / 2)
-        context.fill(guardBar, with: .color(Steel.light))
+        context.fill(bar(144, pommelTop, 63), with: .color(steel))
+        context.fill(bar(74, gripTop, 147), with: .color(steel))
+        context.fill(bar(606, guardTop, 51), with: .color(steel))
 
         var blade = Path()
         blade.move(to: CGPoint(x: cx - bladeWidth / 2, y: bladeTop))
@@ -149,18 +133,7 @@ struct SwordInStone: View {
         blade.addLine(to: CGPoint(x: cx, y: tip))
         blade.addLine(to: CGPoint(x: cx - bladeWidth / 2, y: tipStart))
         blade.closeSubpath()
-        context.fill(blade, with: .color(Steel.blade))
-        var shade = Path()
-        shade.move(to: CGPoint(x: cx, y: bladeTop))
-        shade.addLine(to: CGPoint(x: cx + bladeWidth / 2, y: bladeTop))
-        shade.addLine(to: CGPoint(x: cx + bladeWidth / 2, y: tipStart))
-        shade.addLine(to: CGPoint(x: cx, y: tip))
-        shade.closeSubpath()
-        context.fill(shade, with: .color(Steel.shade))
-        var fuller = Path()
-        fuller.move(to: CGPoint(x: cx, y: bladeTop + h * 0.02))
-        fuller.addLine(to: CGPoint(x: cx, y: tipStart))
-        context.stroke(fuller, with: .color(Steel.fuller), lineWidth: 1.5)
+        context.fill(blade, with: .color(bladeSteel))
 
         // O brilho: uma faixa inclinada que desce pela lamina, presa ao contorno dela.
         if let glint {
@@ -174,7 +147,7 @@ struct SwordInStone: View {
                 band.addLine(to: CGPoint(x: cx + bladeWidth, y: y - bladeWidth * 0.6 + h * 0.05))
                 band.addLine(to: CGPoint(x: cx - bladeWidth, y: y + bladeWidth * 0.6 + h * 0.05))
                 band.closeSubpath()
-                layer.fill(band, with: .color(.white.opacity(0.85)))
+                layer.fill(band, with: .color(.white))
             }
         }
     }
