@@ -35,8 +35,10 @@ final class PhraseEntry {
         slots[index].withUnsafeBytes { String(decoding: $0, as: UTF8.self) }
     }
 
-    func isFilled(_ index: Int) -> Bool { slots[index].count > 0 }
-    var filledCount: Int { slots.filter { $0.count > 0 }.count }
+    /// Os dois leem `revision`: o conteudo dos buffers muda sem o SwiftUI ver, e e a
+    /// revisao que avisa as telas (o Importar seguia ligado depois de Limpar).
+    func isFilled(_ index: Int) -> Bool { _ = revision; return slots[index].count > 0 }
+    var filledCount: Int { _ = revision; return slots.filter { $0.count > 0 }.count }
 
     /// Distribui uma frase colada pelas posicoes.
     func paste(_ text: String) {
@@ -80,6 +82,7 @@ struct ImportPhraseView: View {
     @State private var pasteNotice = false
     @State private var working = false
     @State private var focused = false
+    @State private var confirmClear = false
     /// A carteira ja montada, esperando o dono conferir os enderecos.
     @State private var pending: (secret: WalletSecret, preview: ImportPreview)?
 
@@ -148,6 +151,10 @@ struct ImportPhraseView: View {
                     grid.padding(.top, Space.md)
 
                     HStack {
+                        if entry.filledCount > 0 {
+                            TertiaryButton(title: "Limpar") { confirmClear = true }
+                                .accessibilityIdentifier("limpar-palavras")
+                        }
                         Spacer()
                         TertiaryButton(title: reveal ? "Esconder palavras" : "Mostrar palavras") { reveal.toggle() }
                     }
@@ -196,6 +203,12 @@ struct ImportPhraseView: View {
             }
         }
         .onChange(of: typed) { _, value in absorb(value) }
+        .alert("Apagar as palavras digitadas?", isPresented: $confirmClear) {
+            Button("Apagar", role: .destructive) { clearAll() }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("As \(entry.filledCount) palavras saem desta tela. Você digita de novo, a partir da primeira.")
+        }
         .background(Palette.void.ignoresSafeArea())
         .guardedAgainstCapture()
     }
@@ -231,7 +244,8 @@ struct ImportPhraseView: View {
         return LazyVGrid(columns: columns, spacing: Space.xs) {
             ForEach(0..<entry.count, id: \.self) { index in
                 PhraseSlot(index: index, display: slotText(index), isActive: focused && entry.active == index,
-                           text: textBinding(index), isFocused: focusBinding(index)) { submit() }
+                           text: textBinding(index), isFocused: focusBinding(index),
+                           word: { [entry] in entry.word(at: index) }) { submit() }
                     .id(index)
             }
         }
@@ -299,6 +313,15 @@ struct ImportPhraseView: View {
         } else if value.last?.isWhitespace == true {
             commit(value)
         }
+    }
+
+    private func clearAll() {
+        typed = ""
+        focused = false
+        entry.wipe()
+        entry.active = 0
+        pasteNotice = false
+        message = nil
     }
 
     private func fill(with text: String) {
@@ -418,7 +441,10 @@ private struct PhraseSlot: View {
     let isActive: Bool
     @Binding var text: String
     @Binding var isFocused: Bool
+    /// Le a palavra so enquanto o dedo segura a posicao: fora disso ela fica no buffer.
+    let word: () -> String
     let onSubmit: () -> Void
+    @State private var holding = false
 
     var body: some View {
         HStack(spacing: Space.xs) {
@@ -427,13 +453,26 @@ private struct PhraseSlot: View {
                 .foregroundStyle(isActive ? Palette.purple : Palette.inkMuted)
             ZStack(alignment: .leading) {
                 if text.isEmpty {
-                    Text(verbatim: display ?? "palavra")
+                    Text(verbatim: holding ? word() : (display ?? "palavra"))
                         .font(.system(size: 15, weight: .medium, design: .monospaced))
                         .foregroundStyle(display == nil || isActive ? Palette.inkDead : Palette.ink)
                         .lineLimit(1)
                         .allowsHitTesting(false)
                 }
                 WordInputField(text: $text, isFocused: $isFocused, fontSize: 15, returnKey: .next, onSubmit: onSubmit)
+                // Posicao preenchida e fora de edicao: segurar mostra a palavra enquanto
+                // o dedo esta em cima; tocar e soltar abre a posicao para corrigir.
+                if !isActive, display != nil {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(
+                            LongPressGesture(minimumDuration: 0.25)
+                                .sequenced(before: DragGesture(minimumDistance: 0))
+                                .onChanged { value in if case .second(true, _) = value { holding = true } }
+                                .onEnded { _ in holding = false }
+                                .exclusively(before: TapGesture().onEnded { isFocused = true })
+                        )
+                }
             }
         }
         .padding(.horizontal, Space.sm)

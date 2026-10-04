@@ -55,6 +55,18 @@ final class ImportPhraseTests: XCTestCase {
         XCTAssertTrue(importButton.waitForExistence(timeout: 5))
         XCTAssertTrue(importButton.isEnabled, "com as 12 palavras o Importar deveria liberar")
         shot("i2-preenchida", app)
+
+        // Segurar uma posicao preenchida mostra a palavra e nao abre a edicao.
+        app.otherElements["palavra-3"].press(forDuration: 0.8)
+        XCTAssertFalse(focusedSlot(app, 3), "segurar nao deveria abrir a posicao para digitar")
+
+        // Limpar, com o alerta do iPhone, esvazia as doze posicoes.
+        app.buttons["limpar-palavras"].tap()
+        let alert = app.alerts["Apagar as palavras digitadas?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Apagar"].tap()
+        XCTAssertFalse(importButton.isEnabled, "depois de limpar, Importar volta a ficar desligado")
+        XCTAssertFalse(app.buttons["limpar-palavras"].exists)
     }
 
     func type(pin: String, in app: XCUIApplication) {

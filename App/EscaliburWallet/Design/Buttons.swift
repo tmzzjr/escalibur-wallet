@@ -22,7 +22,9 @@ struct PrimaryButton: View {
             .frame(height: Height.primary)
         }
         .buttonStyle(PrimaryStyle(enabled: enabled))
-        .accessibilityAddTraits(enabled ? [] : .isStaticText)
+        // Desligado de verdade, nao so no desenho: o VoiceOver diz "esmaecido" e o
+        // toque nem chega a acao.
+        .disabled(!enabled)
     }
 }
 

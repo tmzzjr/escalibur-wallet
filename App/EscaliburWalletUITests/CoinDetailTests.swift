@@ -29,7 +29,7 @@ final class CoinDetailTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Favoritas"].waitForExistence(timeout: 5))
         shot("m2-favoritas", app)
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'SOL'")).firstMatch.tap()
-        let trade = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Trocar por'")).firstMatch
+        let trade = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Comprar'")).firstMatch
         XCTAssertTrue(trade.waitForExistence(timeout: 10))
         trade.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Rede:'")).firstMatch.waitForExistence(timeout: 10))

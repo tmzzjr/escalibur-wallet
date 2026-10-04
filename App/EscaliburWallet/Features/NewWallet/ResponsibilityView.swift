@@ -99,12 +99,12 @@ struct ResponsibilityView: View {
             Button { toggle() } label: {
                 HStack(alignment: .top, spacing: Space.sm) {
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(accepted ? Palette.purple : Palette.void)
+                        .fill(accepted ? Palette.control : Palette.void)
                         .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .stroke(accepted ? Color.clear : Palette.edgeStrong, lineWidth: 1.5))
+                            .stroke(accepted ? Palette.inkSoft : Palette.edgeStrong, lineWidth: 1.5))
                         .overlay {
                             if accepted {
-                                Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
+                                Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(Palette.ink)
                             }
                         }
                         .frame(width: 24, height: 24)
@@ -145,7 +145,7 @@ struct ResponsibilityView: View {
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .fill(Palette.body)
                 .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                    .stroke(accepted ? Palette.purple : Palette.edge, lineWidth: 1))
+                    .stroke(accepted ? Palette.edgeStrong : Palette.edge, lineWidth: 1))
         )
         .animation(Motion.select, value: accepted)
     }
