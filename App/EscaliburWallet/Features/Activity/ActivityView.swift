@@ -66,6 +66,7 @@ struct ActivityView: View {
     @Environment(AppSession.self) private var session
     @Environment(Router.self) private var router
     @Environment(Portfolio.self) private var portfolio
+    @Environment(\.openURL) private var openURL
     @State private var feed = ActivityFeed()
     @State private var receiving = false
 
@@ -123,10 +124,26 @@ struct ActivityView: View {
                     // Redes sem historico publico: uma linha so, e so se esta carteira tem
                     // saldo nelas. Para quem nao usa essas redes, nao ha o que avisar.
                     if !unavailableWithBalance.isEmpty {
-                        Text("O histórico de \(Self.names(unavailableWithBalance)) ainda não aparece aqui. O saldo aparece na Carteira.")
-                            .typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                            .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
-                            .fixedSize(horizontal: false, vertical: true)
+                        VStack(alignment: .leading, spacing: Space.sm) {
+                            Text("O histórico de \(Self.names(unavailableWithBalance)) não aparece aqui: nenhum serviço gratuito publica o histórico dessas redes sem cadastro. O saldo aparece na Carteira, e o histórico completo, no explorador da rede.")
+                                .typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                                .fixedSize(horizontal: false, vertical: true)
+                            ForEach(unavailableWithBalance, id: \.id) { chain in
+                                if let address = session.selectedWallet?.account(chain)?.address, let url = chain.explorerURL(address: address) {
+                                    Button { openURL(url) } label: {
+                                        HStack(spacing: Space.xs) {
+                                            NetworkBadge(chain: chain, size: 20, ring: Palette.body)
+                                            Text("Ver o histórico no \(chain.explorerName)").typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.ink)
+                                            Image(systemName: "arrow.up.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                                        }
+                                        .padding(.horizontal, Space.sm).frame(height: 36)
+                                        .background(Capsule().fill(Palette.rail))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                     }
 
                     if feed.suspiciousCount > 0 {
@@ -145,6 +162,9 @@ struct ActivityView: View {
             .navigationDestination(for: ActivityEntry.self) { entry in ActivityDetailView(entry: entry) }
         }
         .task(id: session.selectedWallet?.id) { await reload() }
+        // O aviso das redes sem historico depende do saldo: quem abre direto na
+        // Atividade ainda nao carregou a carteira.
+        .task(id: session.selectedWallet?.id) { await portfolio.ensureLoaded(session.selectedWallet, session: session) }
         .sheet(isPresented: $receiving) { ReceiveSheet(preselected: nil) }
     }
 

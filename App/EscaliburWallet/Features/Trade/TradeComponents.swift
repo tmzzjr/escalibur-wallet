@@ -209,10 +209,24 @@ struct SlippageSlider: View {
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
-                            dragging = true
-                            basisPoints = Self.value(at: Double(value.location.x / width))
+                            // Arrastando, o botao fica embaixo do dedo, sem animacao: a mola
+                            // que segue o valor deixava o botao atrasado (relatado no iPhone).
+                            let ratio = min(max(value.location.x / width, 0), 1)
+                            var instant = Transaction()
+                            instant.disablesAnimations = true
+                            withTransaction(instant) {
+                                dragging = true
+                                shown = ratio
+                            }
+                            basisPoints = Self.value(at: Double(ratio))
                         }
-                        .onEnded { _ in withAnimation(Motion.select) { dragging = false } }
+                        .onEnded { _ in
+                            // Ao soltar, assenta no passo de 0,1% escolhido.
+                            withAnimation(.easeOut(duration: 0.12)) {
+                                dragging = false
+                                shown = fraction
+                            }
+                        }
                 )
             }
             .frame(height: 34)
@@ -249,7 +263,9 @@ struct SlippageSlider: View {
             withAnimation(.spring(response: 0.7, dampingFraction: 0.8).delay(0.1)) { shown = fraction }
         }
         .onChange(of: basisPoints) { _, _ in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { shown = fraction }
+            // So o toque numa marca anima; o arrasto ja posicionou o botao.
+            guard !dragging else { return }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { shown = fraction }
         }
         .sensoryFeedback(.selection, trigger: basisPoints)
         .accessibilityElement(children: .ignore)
