@@ -41,6 +41,7 @@
 		4969D8FAA1778B206D93B390 /* BackupFirstArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EE4EBF2B576AD8F92E2DA9 /* BackupFirstArt.swift */; };
 		4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */; };
 		4DA261DD7012A533E034CF1C /* termos.md in Resources */ = {isa = PBXBuildFile; fileRef = 7C28ED1879662A04236281C1 /* termos.md */; };
+		5143A0046AF4070D0D0A5686 /* MarketCoinFactsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51574B877B1EE0EC055AEBA8 /* MarketCoinFactsTests.swift */; };
 		534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD4DB38ABFB63662F684831D /* LegalTests.swift */; };
 		53F96070D034447AEEA27845 /* AllocationDonut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A71DEB35D1AAC25A23037D /* AllocationDonut.swift */; };
 		57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C53992781573FB54743C00 /* SecureInputField.swift */; };
@@ -59,6 +60,7 @@
 		7A74109E68924D0D8E3AC608 /* decifrar.py in Resources */ = {isa = PBXBuildFile; fileRef = 878FC0383FDC934FC98F0EA0 /* decifrar.py */; };
 		7B173231DE2779A868F26303 /* EscaliburEngines in Frameworks */ = {isa = PBXBuildFile; productRef = 3E79C0581616E2A098D4B56B /* EscaliburEngines */; };
 		7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09754506E0869351661279D1 /* SendFlow.swift */; };
+		8209971855BF1B93A25ADB15 /* MarketFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE7F2431E841450CA0BCE4D /* MarketFacts.swift */; };
 		88CD26394B5179DE5B332364 /* ForgotPINTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E3B6E8E96F664B813E15B7 /* ForgotPINTests.swift */; };
 		8A3A9028D49AF27A483E090C /* EscaliburNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = C09378074DCB9273C75F8FA1 /* EscaliburNetwork */; };
 		8AD9BAAFA95723925CCB3A6D /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10914896D99BB58942178E3 /* Router.swift */; };
@@ -158,6 +160,7 @@
 		4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataCompatibilityTests.swift; sourceTree = "<group>"; };
 		4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometryNameTests.swift; sourceTree = "<group>"; };
 		4E8104D596BB55DD5566A8B0 /* WalletOrbit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletOrbit.swift; sourceTree = "<group>"; };
+		51574B877B1EE0EC055AEBA8 /* MarketCoinFactsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketCoinFactsTests.swift; sourceTree = "<group>"; };
 		529FF2FD620686A71B265A06 /* RevealFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealFlow.swift; sourceTree = "<group>"; };
 		53CECA7890449A2051DB3B96 /* EmptySendArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptySendArt.swift; sourceTree = "<group>"; };
 		5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenOrdersView.swift; sourceTree = "<group>"; };
@@ -202,6 +205,7 @@
 		B6269216B260E5FA27BB51E6 /* ImportPhraseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPhraseTests.swift; sourceTree = "<group>"; };
 		B7E330A6D249E3EA26CE9BA4 /* PassphraseWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassphraseWalletView.swift; sourceTree = "<group>"; };
 		B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
+		BAE7F2431E841450CA0BCE4D /* MarketFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketFacts.swift; sourceTree = "<group>"; };
 		BC0C91AC7C8CD9C5B8D31703 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceChart.swift; sourceTree = "<group>"; };
 		C10914896D99BB58942178E3 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
@@ -256,6 +260,7 @@
 			isa = PBXGroup;
 			children = (
 				72C75178B68BC09E156440A1 /* CoinActions.swift */,
+				BAE7F2431E841450CA0BCE4D /* MarketFacts.swift */,
 				A1BADB432EFAFD601991FB0A /* MarketView.swift */,
 			);
 			path = Market;
@@ -366,6 +371,7 @@
 				AD4DB38ABFB63662F684831D /* LegalTests.swift */,
 				811D8AF3EF3BDDB831240B3A /* LimitOrderTests.swift */,
 				CE4C1798A2E008CDBC7E2F8F /* MarketCoinActionsTests.swift */,
+				51574B877B1EE0EC055AEBA8 /* MarketCoinFactsTests.swift */,
 				9E53CBDE23167A0EB7AEB5D4 /* MarketSortTests.swift */,
 				B192EE33D90EEA58E27E195C /* NewWalletFlowTests.swift */,
 				CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */,
@@ -694,6 +700,7 @@
 				534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */,
 				3E9B59FEC10974F0AF152882 /* LimitOrderTests.swift in Sources */,
 				0E72E15B4987058F90F1117C /* MarketCoinActionsTests.swift in Sources */,
+				5143A0046AF4070D0D0A5686 /* MarketCoinFactsTests.swift in Sources */,
 				709592474B6D28D167D13C47 /* MarketSortTests.swift in Sources */,
 				04B18402EA73A60AC95466C5 /* NewWalletFlowTests.swift in Sources */,
 				20F684E79E7161139654F6DE /* OnboardingFlowTests.swift in Sources */,
@@ -744,6 +751,7 @@
 				21A2E4CF04770FD56E788AF9 /* LegalDocumentView.swift in Sources */,
 				F6959527BC4CC168A38CFA35 /* LockView.swift in Sources */,
 				93B9E6DE2F90C83B21A8B2B1 /* LogoColor.swift in Sources */,
+				8209971855BF1B93A25ADB15 /* MarketFacts.swift in Sources */,
 				0B7E83EED78DFCB68FCE521B /* MarketView.swift in Sources */,
 				FABE9F4C3D6EBE05D7CB48CE /* Marks.swift in Sources */,
 				A2EB350AFF4C3B63897F97DA /* Metadata.swift in Sources */,

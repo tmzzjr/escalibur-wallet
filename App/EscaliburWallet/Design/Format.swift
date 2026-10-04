@@ -187,6 +187,23 @@ enum Fmt {
         return "\(text.prefix(head))…\(text.suffix(tail))"
     }
 
+    /// "14:32", ou "ontem, 14:32" e "3 out, 14:32" quando nao e de hoje: a hora de um
+    /// dado de mercado que ficou antigo.
+    static func stamp(_ date: Date, now: Date = .now) -> String {
+        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(locale))
+        let calendar = Calendar(identifier: .gregorian)
+        if calendar.isDate(date, inSameDayAs: now) { return time }
+        if calendar.isDateInYesterday(date) { return "ontem, \(time)" }
+        let day = date.formatted(.dateTime.day().month(.abbreviated).locale(locale)).replacingOccurrences(of: ".", with: "")
+        return "\(day), \(time)"
+    }
+
+    /// "7 de mai de 2021".
+    static func longDay(_ date: Date) -> String {
+        let day = date.formatted(.dateTime.day().month(.abbreviated).year().locale(locale)).replacingOccurrences(of: ".", with: "")
+        return day
+    }
+
     static func relative(_ date: Date, now: Date = .now) -> String {
         let seconds = now.timeIntervalSince(date)
         if seconds < 60 { return "agora" }

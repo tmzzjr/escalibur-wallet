@@ -10,11 +10,15 @@ import SwiftUI
 struct MarketView: View {
     @Environment(AppSession.self) private var session
     @Environment(Router.self) private var router
+    @Environment(\.scenePhase) private var scenePhase
     @State private var coins: [MarketCoin] = []
     @State private var query = ""
     @State private var loading = false
     @State private var failed = false
     @State private var order: Order = .relevance
+    /// De onde e de quando e a lista na tela; `isStale` quando as fontes falharam agora
+    /// e a lista e a ultima boa.
+    @State private var snapshot: MarketSnapshot?
 
     /// A ordem da lista. Relevancia e a do CoinGecko (valor de mercado).
     enum Order: String, CaseIterable, Hashable {
@@ -91,6 +95,14 @@ struct MarketView: View {
                             Task { await load() }
                         }
                         .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+                    } else if let snapshot, snapshot.isStale {
+                        Banner(
+                            kind: .neutral, title: "Sem conexão com os dados de mercado agora.",
+                            message: "Mostrando os preços de \(Fmt.stamp(snapshot.fetchedAt)).", actionTitle: "Tentar de novo"
+                        ) {
+                            Task { await load() }
+                        }
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.md)
                     }
 
                     LazyVStack(alignment: .leading, spacing: 0) {
@@ -110,10 +122,22 @@ struct MarketView: View {
                     .padding(.top, Space.sm)
                     .animation(Motion.fade, value: favoriteIDs)
                     .animation(Motion.fade, value: order)
-                    Text("Dados de mercado: CoinGecko").typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                        .frame(maxWidth: .infinity).padding(.top, Space.lg)
+                    if let snapshot {
+                        Text("Dados de mercado: \(snapshot.source.rawValue), às \(Fmt.stamp(snapshot.fetchedAt))")
+                            .typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                            .frame(maxWidth: .infinity).padding(.top, Space.lg)
+                    }
                 }
                 .padding(.bottom, Space.xl)
+            }
+            // Lista viva: atualiza a cada 30 s so enquanto ela esta na tela e o app na
+            // frente. Abrir uma moeda, trocar de aba ou sair do app para a atualizacao.
+            .task(id: scenePhase) {
+                guard scenePhase == .active else { return }
+                while !Task.isCancelled {
+                    await load()
+                    try? await Task.sleep(for: .seconds(30))
+                }
             }
             .refreshable { await load() }
             .background(Palette.void.ignoresSafeArea())
@@ -123,20 +147,15 @@ struct MarketView: View {
                 MarketCoinDetail(coin: coin)
             }
         }
-        .task {
-            // Lista viva: atualiza a cada 30 s enquanto a aba esta na tela.
-            while !Task.isCancelled {
-                await load()
-                try? await Task.sleep(for: .seconds(30))
-            }
-        }
     }
 
     private func load() async {
         loading = true
         defer { loading = false }
         do {
-            coins = try await MarketService.shared.markets(currency: session.metadata.settings.currency)
+            let fresh = try await MarketService.shared.marketSnapshot(currency: session.metadata.settings.currency)
+            snapshot = fresh
+            coins = fresh.coins
             failed = false
         } catch {
             failed = true
@@ -268,13 +287,9 @@ struct MarketCoinDetail: View {
                 MarketChartSection(coingeckoID: coin.id, symbol: coin.symbol, name: coin.name,
                                    livePrice: coin.price, liveChange: coin.change24h,
                                    isStable: ["tether", "usd-coin", "dai"].contains(coin.id), seed: coin.sparkline)
-                MarketStats(items: [
-                    ("Capitalização", coin.marketCap.map { Fmt.compact($0, session.currency) } ?? "sem dado"),
-                    ("Volume em 24h", coin.volume24h.map { Fmt.compact($0, session.currency) } ?? "sem dado"),
-                    ("Posição no mercado", coin.rank.map { "\($0)º" } ?? "sem dado"),
-                ])
-                .padding(.horizontal, Space.gutter)
-                .padding(.top, Space.xl)
+                MarketFacts(coin: coin)
+                    .padding(.horizontal, Space.gutter)
+                    .padding(.top, Space.xl)
             }
             .padding(.bottom, Space.xl)
         }

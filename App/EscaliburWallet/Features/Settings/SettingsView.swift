@@ -664,7 +664,7 @@ struct AboutView: View {
                 }
                 VStack(alignment: .leading, spacing: Space.xs) {
                     Text("Preços").typeStyle(.heading).foregroundStyle(Palette.ink)
-                    Text("Preços e dados de mercado: CoinGecko. Os saldos e as transações vêm direto das redes.")
+                    Text("Preços e dados de mercado: CoinGecko, com CoinPaprika e OKX de reserva. Os saldos e as transações vêm direto das redes.")
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 }
                 SettingsGroup {

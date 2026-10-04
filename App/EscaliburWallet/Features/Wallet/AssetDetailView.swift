@@ -146,6 +146,8 @@ struct MarketChartSection: View {
     @State private var loading = false
     @State private var selection: PricePoint?
     @State private var failed = false
+    /// Hora do grafico na tela quando as fontes falharam e ele e o ultimo bom.
+    @State private var staleSince: Date?
     @State private var price: Double?
     @State private var change: Double?
     @State private var tick: Color = Palette.ink
@@ -224,6 +226,9 @@ struct MarketChartSection: View {
             if failed && points.isEmpty {
                 Text("Não foi possível carregar o gráfico agora.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     .padding(.horizontal, Space.gutter)
+            } else if let staleSince {
+                Text("Gráfico de \(Fmt.stamp(staleSince)). Sem conexão com as fontes agora.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                    .padding(.horizontal, Space.gutter)
             }
             PeriodPicker(range: $range)
                 .padding(.horizontal, Space.gutter)
@@ -249,7 +254,9 @@ struct MarketChartSection: View {
         loading = true
         defer { loading = false }
         do {
-            points = try await MarketService.shared.chart(id: coingeckoID, currency: session.metadata.settings.currency, range: range)
+            let snapshot = try await MarketService.shared.chartSnapshot(id: coingeckoID, currency: session.metadata.settings.currency, range: range)
+            points = snapshot.points
+            staleSince = snapshot.isStale ? snapshot.fetchedAt : nil
             failed = false
         } catch {
             failed = true
