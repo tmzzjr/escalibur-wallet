@@ -148,38 +148,61 @@ struct Chip: View {
 // MARK: Escolha exclusiva
 
 /// O unico desenho de escolha exclusiva do app ("Imediata | Limite", "12 | 24
-/// palavras"): trilho body, segmento control que desliza.
+/// palavras"): trilho body, segmento roxo que desliza.
+///
+/// O segmento e uma capsula so, que vive no trilho e anda ate a opcao escolhida.
+/// Antes eram duas capsulas com `matchedGeometryEffect`, uma no fundo de cada botao,
+/// inseridas e removidas a cada toque, e o estilo `.plain` apagava o rotulo tocado:
+/// com o dedo em cima, o lado tocado apagava e o outro seguia aceso, e na troca a
+/// capsula nova nascia no lugar da velha, do outro lado.
 struct Segmented<Value: Hashable>: View {
     let options: [(Value, String)]
     @Binding var selection: Value
-    @Namespace private var namespace
+
+    private var selectedIndex: Int { options.firstIndex { $0.0 == selection } ?? 0 }
 
     var body: some View {
         HStack(spacing: 0) {
-            ForEach(options, id: \.0) { value, title in
+            ForEach(options.indices, id: \.self) { index in
+                let (value, title) = options[index]
                 Button {
                     withAnimation(Motion.select) { selection = value }
                 } label: {
                     Text(title)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(selection == value ? Color.white : Palette.inkMuted)
+                        .foregroundStyle(index == selectedIndex ? Color.white : Palette.inkMuted)
                         .frame(maxWidth: .infinity)
                         .frame(height: 36)
-                        .background {
-                            if selection == value {
-                                Capsule(style: .continuous)
-                                    .fill(Palette.purple)
-                                    .matchedGeometryEffect(id: "segmento", in: namespace)
-                            }
-                        }
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SegmentStyle())
+                .accessibilityAddTraits(index == selectedIndex ? .isSelected : [])
             }
+        }
+        .background(alignment: .leading) {
+            GeometryReader { proxy in
+                let width = proxy.size.width / CGFloat(max(options.count, 1))
+                Capsule(style: .continuous)
+                    .fill(Palette.purple)
+                    .frame(width: width, height: proxy.size.height)
+                    .offset(x: width * CGFloat(selectedIndex))
+            }
+            .accessibilityHidden(true)
         }
         .padding(2)
         .background(Capsule(style: .continuous).fill(Palette.body))
+        .animation(Motion.select, value: selectedIndex)
         .sensoryFeedback(.selection, trigger: selection)
+    }
+}
+
+/// Toque sem apagar o rotulo: so um leve encolher, para o lado tocado nunca parecer
+/// desmarcado enquanto o dedo esta em cima.
+private struct SegmentStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(Motion.press, value: configuration.isPressed)
     }
 }
 

@@ -27,6 +27,11 @@ struct Metadata: Codable, Equatable {
     /// Transacoes EVM transmitidas e ainda em transito, por carteira, rede e conta
     /// (`NonceQueue`). Opcional para os metadados gravados antes deste campo abrirem.
     var pendingEVM: [String: [PendingEVMTransaction]]?
+    /// O ultimo aceite da tela de seguranca e responsabilidade (`ResponsibilityView`):
+    /// quando e em qual versao do texto. Opcionais para os metadados gravados antes
+    /// destes campos abrirem.
+    var responsibilityAccepted: Date?
+    var responsibilityVersion: Int?
 
     var selectedWallet: WalletMeta? {
         wallets.first { $0.id == selectedWalletID } ?? wallets.first

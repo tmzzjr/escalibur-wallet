@@ -72,21 +72,25 @@ struct NewWalletFlow: View {
     @State private var wallet: WalletMeta?
     @State private var saving = false
     @State private var error: String?
+    @State private var askingLater = false
 
-    enum Step { case before, record, confirm, created }
+    /// `pledge` e o aceite de responsabilidade, logo antes de a frase nascer.
+    enum Step { case before, pledge, record, confirm, created }
 
     var body: some View {
         NavigationStack {
             Group {
                 switch step {
                 case .before: before
+                case .pledge:
+                    ResponsibilityView(continueTitle: "Mostrar as palavras", loading: saving) { Task { await start() } }
                 case .record:
                     if let draft {
                         RecordWordsView(draft: draft, walletName: nil) { step = .confirm }
                     }
                 case .confirm:
                     if let draft {
-                        ConfirmWordsView(draft: draft, onBack: { step = .record }) { confirmed() }
+                        ConfirmWordsView(draft: draft, onBack: { step = .record }, onLater: { askingLater = true }) { confirmed() }
                     }
                 case .created:
                     if let wallet { WalletCreatedView(wallet: wallet, isFirst: isFirstWallet, onFinish: finish) }
@@ -94,14 +98,29 @@ struct NewWalletFlow: View {
             }
             .background(Palette.void.ignoresSafeArea())
             .toolbar {
-                if step != .created {
+                if step == .pledge || step == .confirm {
+                    // Voltar um passo: a carteira em criacao e as palavras continuam.
                     ToolbarItem(placement: .topBarLeading) {
-                        Button { cancel() } label: {
+                        Button { step = step == .pledge ? .before : .record } label: {
+                            Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                        }
+                        .accessibilityLabel("Voltar")
+                    }
+                } else if step != .created {
+                    // Com a carteira ja guardada e sem copia, fechar passa pelo aviso.
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { if wallet == nil { cancel() } else { askingLater = true } } label: {
                             Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.inkSoft)
                         }
                         .accessibilityLabel("Fechar")
                     }
                 }
+            }
+            .alert("Confirmar depois?", isPresented: $askingLater) {
+                Button("Voltar e anotar", role: .cancel) {}
+                Button("Confirmar depois", role: .destructive) { cancel() }
+            } message: {
+                Text("Sem a senha da carteira anotada, perder o iPhone é perder os ativos. Até você confirmar, a carteira fica marcada Sem cópia e não recebe.")
             }
         }
         .interactiveDismissDisabled()
@@ -116,7 +135,7 @@ struct NewWalletFlow: View {
             VStack(alignment: .leading, spacing: Space.md) {
                 fact("clock", "Leva cerca de 2 minutos.")
                 fact("pencil.and.scribble", "Anote no papel, à mão. Captura de tela vai para a Fototeca e sobe para o iCloud.")
-                fact("eye.slash", "Aparecem 3 palavras por vez, por 60 segundos.")
+                fact("eye.slash", "Aparecem 3 palavras por vez. Arraste o cartão para ver as próximas.")
                 fact("iphone.slash", "A carteira não vai para o backup do iPhone. Num iPhone novo, só as palavras ou um envelope trazem ela de volta.")
             }
             .padding(.top, Space.lg)
@@ -129,7 +148,7 @@ struct NewWalletFlow: View {
             Text("12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
                 .padding(.bottom, Space.lg)
-            PrimaryButton(title: "Mostrar as palavras", loading: saving) { Task { await start() } }
+            PrimaryButton(title: "Continuar") { error = nil; step = .pledge }
         }
         .padding(.horizontal, Space.gutter)
         .padding(.top, Space.md)
@@ -166,6 +185,7 @@ struct NewWalletFlow: View {
             step = .record
         } catch {
             self.error = "Não foi possível guardar a carteira. Tente de novo."
+            step = .before
         }
     }
 

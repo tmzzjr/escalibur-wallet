@@ -12,6 +12,8 @@ A Escalibur Wallet é um programa de computador que roda no seu iPhone e ajuda v
 
 - **A senha da carteira (as palavras) é a carteira.** Quem tiver as palavras tem o saldo. Se você perder as palavras e o acesso ao iPhone, ninguém recupera a carteira, nem a Escalibur.
 - **Cada transação é sua.** Confira destino, rede, valor, tag ou memo antes de confirmar. Transações em rede pública não têm desfazer.
+<!-- REVISAR COM O ADVOGADO: cláusula de guarda exclusiva da senha da carteira, incluída em 04/10/2026, ligada ao aceite da versão 1 no app. -->
+- **Só você guarda a senha da carteira.** Você é o único responsável por guardar as palavras em segurança, longe de outras pessoas. A Escalibur não tem cópia delas: se as palavras se perderem, ou se outra pessoa tiver acesso a elas, a Escalibur não tem como recuperar, bloquear ou devolver os seus ativos.
 - **Ninguém da Escalibur pede as suas palavras**, nem por suporte, e-mail, mensagem ou telefone.
 
 ## Serviços de terceiros

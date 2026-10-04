@@ -48,7 +48,6 @@ enum Palette {
     static let plateInk = Color(hex: 0x070708)
     static let plateMuted = Color(hex: 0x5C5C63)
     static let plateRule = Color(hex: 0xDADADF)
-    static let plateBurn = Color(hex: 0xB9B9C0)
 
     /// Disco atras de logo escuro (XRP, XLM), para ele nao sumir no preto.
     static let logoDisc = Color(hex: 0xE4E4E7)

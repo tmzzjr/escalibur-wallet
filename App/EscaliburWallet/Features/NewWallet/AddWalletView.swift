@@ -7,15 +7,16 @@ struct AddWalletView: View {
     let isFirst: Bool
     let onFinished: () -> Void
 
-    @State private var route: Route?
+    @State private var path: [Route] = []
     @State private var creating = false
     @State private var openingEnvelope = false
     @State private var appeared = false
 
-    enum Route: Hashable { case importPhrase, watch }
+    /// Importar passa antes pela tela de seguranca e responsabilidade.
+    enum Route: Hashable { case responsibility, importPhrase, watch }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(alignment: .leading, spacing: 0) {
                 WalletOrbit(height: 260).padding(.top, Space.xs)
                 // Centrado sob o selo em orbita: titulo e frase de apoio no mesmo eixo dele.
@@ -31,13 +32,13 @@ struct AddWalletView: View {
                 .padding(.top, Space.sm)
                 VStack(spacing: 0) {
                     row("Importar com a senha da carteira", "Você já tem 12 ou 24 palavras de outra carteira.", "text.word.spacing", order: 0) {
-                        route = .importPhrase
+                        path.append(.responsibility)
                     }
                     row("Importar de um envelope Escalibur", "O arquivo .esclbr e a senha do envelope.", "envelope", order: 1) {
                         openingEnvelope = true
                     }
                     row("Só observar um endereço", "Acompanhe um saldo sem poder enviar.", "eye", order: 2) {
-                        route = .watch
+                        path.append(.watch)
                     }
                 }
                 .padding(.top, Space.md)
@@ -47,8 +48,10 @@ struct AddWalletView: View {
                 }
             }
             .background(Palette.void.ignoresSafeArea())
-            .navigationDestination(item: $route) { route in
+            .navigationDestination(for: Route.self) { route in
                 switch route {
+                case .responsibility:
+                    ResponsibilityView(continueTitle: "Digitar as palavras") { path.append(.importPhrase) }
                 case .importPhrase: ImportPhraseView(onFinished: onFinished)
                 case .watch: WatchAddressView(onFinished: onFinished)
                 }

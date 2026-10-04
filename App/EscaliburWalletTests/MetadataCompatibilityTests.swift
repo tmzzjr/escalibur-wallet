@@ -30,6 +30,20 @@ struct MetadataCompatibilityTests {
         #expect(metadata.balanceCache.values.first?["ethereum"]?.accountExists == true)
         #expect(metadata.quoteCache["bitcoin"]?.price == 100_000)
         #expect(metadata.pendingEVM?.values.first?.first?.nonce == 7)
+        #expect(metadata.responsibilityAccepted == nil)
+        #expect(metadata.responsibilityVersion == nil)
+    }
+
+    @Test("O aceite de responsabilidade grava e volta: data e versao do texto")
+    func responsibilityRoundTrip() throws {
+        var metadata = try JSONDecoder().decode(Metadata.self, from: Data(contentsOf: Self.fixture))
+        let when = Date(timeIntervalSince1970: 1_790_000_900)
+        metadata.responsibilityAccepted = when
+        metadata.responsibilityVersion = ResponsibilityView.version
+        let back = try JSONDecoder().decode(Metadata.self, from: JSONEncoder().encode(metadata))
+        #expect(back.responsibilityAccepted == when)
+        #expect(back.responsibilityVersion == ResponsibilityView.version)
+        #expect(back.wallets == metadata.wallets)
     }
 
     /// Gera o arquivo uma vez, na versao 1.0: `ESCALIBUR_GRAVAR_METADADOS=1`. Depois
