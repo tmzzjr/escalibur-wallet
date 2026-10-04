@@ -46,25 +46,3 @@ enum CoinTrade {
         return nil
     }
 }
-
-/// "Sobre o mercado": tres numeros lado a lado, grandes, com o rotulo embaixo.
-struct MarketStats: View {
-    let items: [(label: String, value: String)]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Space.md) {
-            Text("Sobre o mercado").typeStyle(.heading).foregroundStyle(Palette.ink)
-            HStack(alignment: .top, spacing: Space.md) {
-                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.value).typeStyle(.row).foregroundStyle(Palette.ink)
-                            .lineLimit(1).minimumScaleFactor(0.7)
-                        Text(item.label).typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-        }
-    }
-}

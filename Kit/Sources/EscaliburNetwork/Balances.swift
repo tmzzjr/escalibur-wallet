@@ -148,50 +148,25 @@ public actor BalanceService {
 
     // MARK: UTXO
 
+    /// Pelo `UTXOReader`: a mesma lista de provedores, a mesma contingencia e o mesmo
+    /// banco por rede da varredura e do envio (Litecoin e Dogecoin tem cinco e quatro
+    /// fontes; antes o saldo do Litecoin dependia so do litecoinspace).
     private func utxo(_ chain: Chain, addresses: [String]) async throws -> ChainBalance {
-        var total = BigUInt()
-        if chain.id == "dogecoin" {
-            let pool = pool("dogecoin", Endpoints.dogecoin)
-            for address in addresses {
-                let value: BigUInt = try await pool.first { provider in
-                    if provider.name == "blockcypher" {
-                        let json = try await self.client.getJSON(JSONValue.self, from: provider.baseURL.appendingPathComponent("addrs/\(address)/balance"))
-                        guard let balance = json["final_balance"]?.doubleValue, balance >= 0 else { throw HTTPClient.Failure.invalidResponse }
-                        return BigUInt(UInt64(balance))
-                    }
-                    let json = try await self.client.getJSON(JSONValue.self, from: provider.baseURL.appendingPathComponent("dashboards/address/\(address)"))
-                    guard let balance = json["data"]?[address]?["address"]?["balance"]?.doubleValue, balance >= 0 else {
-                        throw HTTPClient.Failure.invalidResponse
-                    }
-                    return BigUInt(UInt64(balance))
-                }
-                total = total + value
-            }
-        } else {
-            let pool = pool(chain.id, Endpoints.esplora[chain.id] ?? [])
-            for address in addresses {
-                let value: BigUInt = try await pool.first { provider in
-                    let json = try await self.client.getJSON(JSONValue.self, from: provider.baseURL.appendingPathComponent("address/\(address)"))
-                    func net(_ stats: JSONValue?) -> Double {
-                        (stats?["funded_txo_sum"]?.doubleValue ?? 0) - (stats?["spent_txo_sum"]?.doubleValue ?? 0)
-                    }
-                    let sats = net(json["chain_stats"]) + net(json["mempool_stats"])
-                    return BigUInt(UInt64(max(0, sats)))
-                }
-                total = total + value
-            }
-        }
-        return ChainBalance(chainID: chain.id, holdings: [Holding(asset: .native(chain), amount: total)], accountExists: true, unknownTokenCount: 0, fetchedAt: .now)
+        let reader = try UTXOReader(chain: chain, transport: utxoTransport)
+        let total = try await reader.balance(addresses: addresses)
+        return ChainBalance(
+            chainID: chain.id, holdings: [Holding(asset: .native(chain), amount: BigUInt(total))],
+            accountExists: true, unknownTokenCount: 0, fetchedAt: .now
+        )
+    }
+
+    private var utxoTransport: ChainReaderTransport {
+        PacedChainTransport(base: HTTPReaderTransport(client: client), intervals: Endpoints.utxoPacing)
     }
 
     /// Quais enderecos ja receberam algo: a varredura de gap limit usa isto.
     public func hasHistory(chain: Chain, address: String) async throws -> Bool {
-        let pool = pool(chain.id, Endpoints.esplora[chain.id] ?? [])
-        return try await pool.first { provider in
-            let json = try await self.client.getJSON(JSONValue.self, from: provider.baseURL.appendingPathComponent("address/\(address)"))
-            let count = (json["chain_stats"]?["tx_count"]?.doubleValue ?? 0) + (json["mempool_stats"]?["tx_count"]?.doubleValue ?? 0)
-            return count > 0
-        }
+        try await UTXOReader(chain: chain, transport: utxoTransport).isUsed(address)
     }
 
     // MARK: Solana

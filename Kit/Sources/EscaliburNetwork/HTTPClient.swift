@@ -259,6 +259,32 @@ public actor ProviderPool {
         }
     }
 
+    /// A falha com o motivo. Recusa por limite vai direto para o banco, por mais tempo:
+    /// insistir num provedor que ja disse "chega" so prolonga o bloqueio do IP (a
+    /// Blockchair passa do 429 ao 430, "IP temporary blacklisted"). O resto segue a regra
+    /// das tres falhas seguidas.
+    public func reportFailure(_ provider: Provider, error: Error, now: Date = .now) {
+        guard let pause = Self.benchTime(for: error) else { return reportFailure(provider, now: now) }
+        let until = now.addingTimeInterval(pause)
+        benchedUntil[provider.name] = max(benchedUntil[provider.name] ?? until, until)
+        failures[provider.name] = 0
+    }
+
+    /// Quanto tempo cada recusa deixa o provedor de fora. 429 e o limite por IP; 430
+    /// (Blockchair) e 403 (Cloudflare) sao bloqueio do IP, mais demorado; um provedor
+    /// fora do ar custa o timeout inteiro a cada pergunta.
+    public static func benchTime(for error: Error) -> TimeInterval? {
+        switch error as? HTTPClient.Failure {
+        case .status(429): return 5 * 60
+        case .status(430), .status(403): return 15 * 60
+        case .timeout: return 2 * 60
+        default: return nil
+        }
+    }
+
+    /// So para os testes e para a tela: ate quando o provedor esta no banco.
+    public func benched(_ provider: Provider) -> Date? { benchedUntil[provider.name] }
+
     /// Tenta cada provedor em ordem ate um responder.
     public func first<T: Sendable>(_ operation: @Sendable (Provider) async throws -> T) async throws -> T {
         var lastError: Error = HTTPClient.Failure.offline

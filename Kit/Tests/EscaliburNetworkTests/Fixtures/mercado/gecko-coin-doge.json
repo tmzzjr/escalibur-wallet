@@ -1,0 +1,55 @@
+{
+ "id": "dogecoin",
+ "symbol": "doge",
+ "name": "Dogecoin",
+ "description": {
+  "en": "Dogecoin is an open-source digital currency based on the \"Doge\" meme that functions as a peer-to-peer medium for fast payments and digital tipping. Unlike projects backed by corporate entities, its value is driven by a global community, and the project is managed by a decentralized group of volunteers and the non-profit Dogecoin Foundation rather than a formal company.\n\nOriginally created in 2013 by software engineers Billy Markus and Jackson Palmer as a market parody, the project held no public sale or venture capital rounds. The network operates as a fork of LuckyCoin, which itself was a fork of Litecoin, using a proof of work consensus mechanism. It employs the Scrypt algorithm to ensure the mining process remains fast and efficient, with new blocks processed every 60 seconds. A unique technical feature is its use of merged mining, allowing miners to secure Dogecoin simultaneously with other Scrypt-based networks like Litecoin.\n\nTo keep transaction fees low and the network running indefinitely, Dogecoin features an uncapped supply where new coins are added forever. In a major regulatory milestone in March 2026, a joint SEC and CFTC framework officially classified Dogecoin as a digital commodity, placing it in the same asset category as gold or oil.",
+  "pt": ""
+ },
+ "market_cap_rank": 12,
+ "market_data": {
+  "current_price": {
+   "brl": 0.496009,
+   "usd": 0.095196
+  },
+  "ath": {
+   "brl": 3.83,
+   "usd": 0.731578
+  },
+  "ath_change_percentage": {
+   "brl": -87.04956,
+   "usd": -86.98758
+  },
+  "ath_date": {
+   "brl": "2021-05-07T21:08:23.000Z",
+   "usd": "2021-05-07T21:08:23.000Z"
+  },
+  "market_cap": {
+   "brl": 77462699907,
+   "usd": 14866939181
+  },
+  "market_cap_rank": 12,
+  "fully_diluted_valuation": {
+   "brl": 77462828858,
+   "usd": 14866963929
+  },
+  "total_volume": {
+   "brl": 2221700440,
+   "usd": 426397290
+  },
+  "high_24h": {
+   "brl": 0.493337,
+   "usd": 0.094683
+  },
+  "low_24h": {
+   "brl": 0.482258,
+   "usd": 0.092557
+  },
+  "price_change_percentage_24h": 2.02778,
+  "total_supply": 156186716383.7052,
+  "max_supply": null,
+  "max_supply_infinite": true,
+  "circulating_supply": 156185966383.70523,
+  "last_updated": "2026-10-04T17:16:40.000Z"
+ }
+}

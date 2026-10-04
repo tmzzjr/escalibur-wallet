@@ -1,0 +1,55 @@
+{
+ "id": "bitcoin",
+ "symbol": "btc",
+ "name": "Bitcoin",
+ "description": {
+  "en": "Bitcoin is the world's first decentralized cryptocurrency, created in 2009 by the pseudonymous Satoshi Nakamoto. It enables peer-to-peer electronic cash transactions without intermediaries like banks or governments, operating on a blockchain secured by Proof of Work mining and the SHA-256 cryptographic algorithm. \n\nWith a fixed supply cap of 21 million coins and programmatic halvings every four years that reduce miner rewards, Bitcoin is designed as a deflationary digital asset often called \"digital gold.\" Its value stems from solving the double-spending problem without trusted intermediaries, creating the first truly scarce digital asset with censorship resistance and permissionless access that no government, corporation, or individual can control.\n\nBitcoin operates as a decentralized peer-to-peer network where transactions are recorded on a public ledger called the blockchain, distributed across thousands of computers globally. Transactions are grouped into blocks added approximately every 10 minutes through mining, where specialized computers compete to solve complex mathematical puzzles. \n\nBitcoin has achieved mainstream adoption through multiple vectors. The January 2024 SEC approval of 11 spot Bitcoin ETFs opened Bitcoin investment to traditional finance participants, and corporations like Strategy (formerly MicroStrategy) are using Bitcoin as a treasury reserve asset to protect against currency debasement, offering MSTR holders amplified exposure to Bitcoin. \n\nThe Bitcoin ecosystem continues to evolve with innovations like Ordinals, which emerged in January 2023 to enable NFT-like functionality directly on Bitcoin, and BRC-20 tokens, an experimental standard for creating fungible tokens using Ordinal inscriptions. BTCFi (Bitcoin Finance) represents emerging financial applications extending beyond Bitcoin's traditional role, with protocols like Babylon allowing Bitcoin holders to stake BTC to secure Proof of Stake chains. ",
+  "pt": ""
+ },
+ "market_cap_rank": 1,
+ "market_data": {
+  "current_price": {
+   "brl": 444779,
+   "usd": 85364
+  },
+  "ath": {
+   "brl": 685780,
+   "usd": 126080
+  },
+  "ath_change_percentage": {
+   "brl": -35.14257,
+   "usd": -32.29393
+  },
+  "ath_date": {
+   "brl": "2025-07-13T23:56:01.000Z",
+   "usd": "2025-10-06T10:57:42.000Z"
+  },
+  "market_cap": {
+   "brl": 8936966100830,
+   "usd": 1715216893296
+  },
+  "market_cap_rank": 1,
+  "fully_diluted_valuation": {
+   "brl": 8936966100830,
+   "usd": 1715216893296
+  },
+  "total_volume": {
+   "brl": 77001216311,
+   "usd": 14778369475
+  },
+  "high_24h": {
+   "brl": 445153,
+   "usd": 85435
+  },
+  "low_24h": {
+   "brl": 440653,
+   "usd": 84572
+  },
+  "price_change_percentage_24h": 0.59961,
+  "total_supply": 20093321.0,
+  "max_supply": 21000000.0,
+  "max_supply_infinite": false,
+  "circulating_supply": 20093321.0,
+  "last_updated": "2026-10-04T16:57:50.000Z"
+ }
+}

@@ -33,4 +33,32 @@ struct MarketLiveTests {
         let data = await ImageLoader().data(for: url)
         #expect(data != nil)
     }
+
+    /// O CoinGecko cortado (como no IP que estourou a cota): tudo vem da reserva.
+    struct GeckoBlocked: ReaderTransport {
+        func send(_ request: ReaderRequest) async throws -> Data {
+            if request.url.host == "api.coingecko.com" { throw HTTPClient.Failure.status(429) }
+            return try await HTTPClient.shared.send(request)
+        }
+    }
+
+    @Test("Sem CoinGecko: lista, cotacao, grafico e detalhe pela reserva")
+    func reserve() async throws {
+        let service = MarketService(transport: GeckoBlocked())
+        let list = try await service.marketSnapshot(currency: "brl")
+        #expect(list.source == .coinpaprika && list.coins.count >= 50)
+        #expect(list.coins.first?.id == "bitcoin")
+        let quotes = try await service.quotes(ids: ["bitcoin", "dogecoin", "litecoin"], currency: "brl")
+        #expect(quotes.count == 3)
+        let chart = try await service.chartSnapshot(id: "dogecoin", currency: "brl", range: .day)
+        #expect(chart.source == .okx && chart.points.count > 50)
+        let details = try await service.coinDetails(id: "dogecoin", currency: "brl")
+        #expect(details.source == .coinpaprika && details.high24h != nil && details.about != nil)
+    }
+
+    @Test("Detalhe pelo CoinGecko")
+    func details() async throws {
+        let details = try await MarketService().coinDetails(id: "bitcoin", currency: "brl")
+        #expect(details.maxSupply == 21_000_000 && details.allTimeHigh != nil && details.about != nil)
+    }
 }

@@ -29,3 +29,26 @@ Horizon (SDF, e LOBSTR onde o nome diz):
   horizon-operations-offers.json  LOBSTR GET /accounts/GB3FQB7J.../operations?limit=6
   horizon-trades.json           LOBSTR GET /accounts/GB3FQB7J.../trades?limit=4
   horizon-transaction.json      GET /transactions/f374929844a4725abdbb61bda497b8c99833d877ec224ee6d41af00cb23601cb
+
+Gravadas em 2026-10-04 (UTC), contingencia de Litecoin e Dogecoin:
+Blockbook da Atomic Wallet (dogecoin.atomicwallet.io e litecoin.atomicwallet.io, /api/v2):
+  blockbook-doge-status.json      GET /api/v2 (bestHeight 6401440)
+  blockbook-doge-address.json     GET /address/DDrRHGaBYqLULgbphrRxzw8LwM1iasW4Mx?details=basic
+  blockbook-doge-utxo.json        GET /utxo/DDrRHGaBYqLULgbphrRxzw8LwM1iasW4Mx (6 moedas)
+  blockbook-doge-tx.json          GET /tx/4f71c71caa8c51b3cc6cb235d31e3c4266eba87b86db4a12767b8ffe566f0324
+                                  (a entrada assina com a chave 03f17684...adf0 do proprio DDrR...)
+  blockbook-doge-estimatefee-N.json  GET /estimatefee/N, N = 2, 6, 12
+  blockbook-doge-txs.json         GET /address/DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC?details=txs&pageSize=50
+  blockbook-ltc-estimatefee-N.json   GET litecoin.atomicwallet.io /estimatefee/N
+Bitcore da BitPay (api.bitcore.io/api/DOGE/mainnet e /api/LTC/mainnet):
+  bitcore-doge-coins.json         GET /address/DDrRHGaBYqLULgbphrRxzw8LwM1iasW4Mx?unspent=true&limit=200
+  bitcore-doge-count.json         GET /address/DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC?limit=1
+  bitcore-doge-count-unused.json  GET /address/<endereco sem uso>?limit=1
+  bitcore-doge-txs.json           GET /address/DBus3bamQjgJULBJtYXpEzDWQRwF5iwxgC/txs?limit=100
+  bitcore-doge-tip.json           GET /block/tip
+  bitcore-doge-fee-N.json         GET /fee/N
+  bitcore-doge-balance.json       GET /address/DDrRHGaBYqLULgbphrRxzw8LwM1iasW4Mx/balance
+  bitcore-doge-tx.json            GET /tx/4f71c71caa8c51b3cc6cb235d31e3c4266eba87b86db4a12767b8ffe566f0324
+  bitcore-ltc-fee-N.json          GET /api/LTC/mainnet/fee/N
+As respostas de transmissao (sendtx, tx/send) sao montadas nos testes no formato
+documentado: {"result":"<txid>"} no Blockbook, {"txid":"<txid>"} no Bitcore.
