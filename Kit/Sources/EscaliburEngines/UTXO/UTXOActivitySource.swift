@@ -29,7 +29,9 @@ struct UTXOActivitySource: ActivitySource {
         guard chain == self.chain else { throw SendEngineError.message(NetworkFailureText.wrongAccount) }
         do {
             let utxoAccount = try UTXOEngineSupport.account(account, chain: chain)
-            let discovery = try await UTXODiscoveryCache.discover(utxoAccount, usage: usage, reader: reader)
+            let discovery = try await UTXODiscoveryCache.discover(
+                utxoAccount, usage: usage, reader: reader, maxAge: UTXODiscoveryCache.displayLifetime
+            )
             let items = try await reader.history(discovery, limit: Self.limit)
             return ChainActivityEntries.entries(
                 items, chain: chain, own: discovery.scanned.map(\.address),

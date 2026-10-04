@@ -106,16 +106,47 @@ public enum Endpoints {
         ],
     ]
 
-    /// Litecoin fora do Esplora: segunda e terceira fonte de taxa, rotas extras de
-    /// transmissao e contingencia de leitura (so ha um Esplora publico de LTC).
+    /// Litecoin e Dogecoin alem do Esplora, conferidos ao vivo em 04/10/2026, sem chave:
+    /// - Blockbook da Atomic Wallet (`litecoin.atomicwallet.io`, `dogecoin.atomicwallet.io`,
+    ///   "indexer for AtomicWallet, used with Trezor's consent"): status, endereco, moedas,
+    ///   transacao com hex, historico, `estimatefee` e `sendtx`, todos em menos de 1 s;
+    /// - Bitcore da BitPay (`api.bitcore.io`): moedas, saldo, altura, taxa e transmissao;
+    ///   sem transacao crua (as moedas dele sao conferidas pelo hex de outro provedor);
+    /// - Blockcypher e Blockchair por ultimo: cortam por IP (429 "Limits reached." e 430
+    ///   "IP temporary blacklisted" em 04/10/2026).
+    /// Ficaram de fora: os Blockbook da Trezor (`ltc1`/`doge1.trezor.io` respondem 403 a
+    /// apps, e `litecoinblockexplorer.net`, que e da Trezor, pede "do not use for any other
+    /// purpose"); a SoChain (API v2 desligada, v3 com chave); o gateway da Tatum (5
+    /// requisicoes por minuto sem chave); a Bitaps (timeout de 12 s no endereco); o
+    /// cryptoID (Cloudflare e chave).
     public static let litecoinExtra: [ProviderPool.Provider] = [
+        .init(name: "bitcore", baseURL: url("https://api.bitcore.io/api/LTC/mainnet")),
         .init(name: "blockcypher", baseURL: url("https://api.blockcypher.com/v1/ltc/main")),
         .init(name: "blockchair", baseURL: url("https://api.blockchair.com/litecoin")),
     ]
 
+    /// O Blockbook vai na frente do litecoinspace: os dois repartem os enderecos de cada
+    /// leitura, e o litecoinspace ficou fora do ar (timeout de 15 s) em 04/10/2026.
+    public static let litecoinBlockbook: [ProviderPool.Provider] = [
+        .init(name: "atomic", baseURL: url("https://litecoin.atomicwallet.io/api/v2")),
+    ]
+
     public static let dogecoin: [ProviderPool.Provider] = [
+        .init(name: "atomic", baseURL: url("https://dogecoin.atomicwallet.io/api/v2")),
+        .init(name: "bitcore", baseURL: url("https://api.bitcore.io/api/DOGE/mainnet")),
         .init(name: "blockcypher", baseURL: url("https://api.blockcypher.com/v1/doge/main")),
         .init(name: "blockchair", baseURL: url("https://api.blockchair.com/dogecoin")),
+    ]
+
+    /// Intervalo minimo entre requisicoes por host nas redes UTXO, para o processo
+    /// inteiro (`HostPacer`). Blockcypher sem chave: 3 por segundo; Blockchair sem chave:
+    /// 30 por minuto. Os outros nao publicam limite; um respiro curto evita rajada.
+    public static let utxoPacing: [String: TimeInterval] = [
+        "api.blockcypher.com": 0.4,
+        "api.blockchair.com": 2.0,
+        "api.bitcore.io": 0.15,
+        "litecoin.atomicwallet.io": 0.1,
+        "dogecoin.atomicwallet.io": 0.1,
     ]
 
     public static let solana: [ProviderPool.Provider] = [

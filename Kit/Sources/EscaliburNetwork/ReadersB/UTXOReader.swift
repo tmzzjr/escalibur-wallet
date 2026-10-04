@@ -6,9 +6,14 @@ import Foundation
 ///
 /// Provedores, na ordem de preferencia (`UTXOReader.providers(for:)`):
 /// - Bitcoin: mempool.space, blockstream.info e mempool.emzy.de, todos Esplora.
-/// - Litecoin: litecoinspace.org (Esplora), com Blockcypher e Blockchair como segunda
-///   e terceira fonte de taxa, rota extra de transmissao e contingencia de leitura.
-/// - Dogecoin: Blockcypher e Blockchair.
+/// - Litecoin: Blockbook da Atomic Wallet e litecoinspace.org (Esplora), que repartem os
+///   enderecos; Bitcore da BitPay; Blockcypher e Blockchair por ultimo.
+/// - Dogecoin: Blockbook da Atomic Wallet e Bitcore, que repartem os enderecos;
+///   Blockcypher e Blockchair por ultimo.
+///
+/// O banco de provedores e um por rede para o app inteiro (`sharedPool`): quem recusou
+/// por limite (429, 430) fica de fora por minutos em todas as leituras, nao so na que
+/// levou a recusa.
 ///
 /// O que o leitor confere, e por que:
 /// - enderecos saem da xpub **aqui**; o provedor so ve endereco, um por vez;
@@ -30,38 +35,69 @@ public struct UTXOReader: Sendable {
     /// Requisicoes simultaneas por leitura.
     static let parallelism = 4
 
-    public init(chain: Chain, transport: ChainReaderTransport = HTTPReaderTransport(), providers: [ProviderPool.Provider]? = nil) throws {
+    public init(chain: Chain, transport: ChainReaderTransport? = nil, providers: [ProviderPool.Provider]? = nil) throws {
         guard chain.family == .utxo else { throw ChainReaderError.unsupportedAccount }
         self.chain = chain
-        self.transport = transport
-        self.pool = ProviderPool(providers ?? Self.providers(for: chain))
+        self.transport = transport ?? PacedChainTransport(base: HTTPReaderTransport(), intervals: Endpoints.utxoPacing)
+        self.pool = providers.map(ProviderPool.init) ?? Self.sharedPool(for: chain)
     }
 
     public static func providers(for chain: Chain) -> [ProviderPool.Provider] {
         switch chain.id {
         case Chain.dogecoin.id: return Endpoints.dogecoin
-        case Chain.litecoin.id: return (Endpoints.esplora["litecoin"] ?? []) + Endpoints.litecoinExtra
+        case Chain.litecoin.id: return Endpoints.litecoinBlockbook + (Endpoints.esplora["litecoin"] ?? []) + Endpoints.litecoinExtra
         default: return Endpoints.esplora[chain.id] ?? []
+        }
+    }
+
+    private final class Pools: @unchecked Sendable {
+        let lock = NSLock()
+        var byChain: [String: ProviderPool] = [:]
+    }
+    private static let pools = Pools()
+
+    /// Um banco por rede, para o processo inteiro: o limite dos provedores e por IP.
+    static func sharedPool(for chain: Chain) -> ProviderPool {
+        pools.lock.withLock {
+            if let existing = pools.byChain[chain.id] { return existing }
+            let created = ProviderPool(providers(for: chain))
+            pools.byChain[chain.id] = created
+            return created
         }
     }
 
     // MARK: Provedores
 
     private func client(_ provider: ProviderPool.Provider) -> UTXOProviderClient {
-        UTXOProviderClient(provider: provider, transport: transport)
+        UTXOProviderClient(provider: provider, transport: transport, chain: chain)
+    }
+
+    /// Conta a falha no banco, menos "nao serve esta operacao", que nao e culpa dele.
+    private func report(_ provider: ProviderPool.Provider, _ error: Error) async {
+        guard !(error is UTXOProviderClient.Unsupported) else { return }
+        await pool.reportFailure(provider, error: error)
     }
 
     /// Tenta os provedores em ordem ate um responder.
     ///
-    /// `spread` gira a ordem entre os provedores Esplora do topo da lista: cada um ve
-    /// so parte dos enderecos da conta, em vez de um so ver todos. Nao substitui no
-    /// proprio, mas corta o que cada provedor consegue ligar sozinho (§1.6).
+    /// `spread` gira a ordem entre os provedores do topo da lista que aguentam carga
+    /// (`sharesAddressLoad`: Esplora, Blockbook, Bitcore): cada um ve so parte dos
+    /// enderecos da conta, em vez de um so ver todos, e a cota de cada um rende mais.
+    /// Nao substitui no proprio, mas corta o que cada provedor consegue ligar sozinho
+    /// (§1.6). `prefer` passa para a frente os provedores que servem melhor a operacao.
     private func withProvider<T: Sendable>(
-        spread: Int? = nil, _ operation: @Sendable (UTXOProviderClient) async throws -> T
+        spread: Int? = nil, prefer: (@Sendable (UTXOBackend) -> Bool)? = nil,
+        _ operation: @Sendable (UTXOProviderClient) async throws -> T
     ) async throws -> T {
         var providers = await pool.available()
+        if let prefer {
+            providers = providers.filter { prefer(UTXOBackend.of($0)) } + providers.filter { !prefer(UTXOBackend.of($0)) }
+        }
         if let spread {
-            let leading = providers.prefix { if case .esplora = UTXOBackend.of($0) { return true } else { return false } }.count
+            let leading = providers.prefix { provider in
+                let backend = UTXOBackend.of(provider)
+                return backend.sharesAddressLoad && (prefer?(backend) ?? true)
+            }.count
             if leading > 1 {
                 let shift = spread % leading
                 providers = Array(providers[shift..<leading] + providers[..<shift] + providers[leading...])
@@ -74,11 +110,28 @@ public struct UTXOReader: Sendable {
                 await pool.reportSuccess(provider)
                 return value
             } catch {
-                await pool.reportFailure(provider)
+                await report(provider, error)
                 lastError = error
             }
         }
         throw lastError
+    }
+
+    // MARK: Saldo
+
+    /// Saldo somado dos enderecos, para exibir. Um endereco por consulta, repartidos
+    /// entre os provedores como na varredura.
+    public func balance(addresses: [String]) async throws -> UInt64 {
+        let values = try await ReaderConcurrency.map(Array(addresses.enumerated()), limit: Self.parallelism) { entry in
+            try await self.withProvider(spread: entry.offset) { try await $0.balance(entry.element) }
+        }
+        var total: UInt64 = 0
+        for value in values {
+            let (sum, overflow) = total.addingReportingOverflow(value)
+            guard !overflow else { throw ChainReaderError.malformedResponse(field: "balance") }
+            total = sum
+        }
+        return total
     }
 
     // MARK: Descoberta
@@ -126,6 +179,11 @@ public struct UTXOReader: Sendable {
         return UTXODiscovery(account: account, gapLimit: gapLimit, used: used, scanned: scanned, nextReceive: nextReceive, nextChange: nextChange)
     }
 
+    /// O endereco ja teve alguma transacao, segundo o primeiro provedor que responder.
+    public func isUsed(_ address: String) async throws -> Bool {
+        try await withProvider { try await $0.transactionCount(address) > 0 }
+    }
+
     /// O endereco nunca recebeu nada, segundo dois provedores diferentes: basta um ver
     /// historico para contar como usado. Serve ao troco, que a varredura achou livre com
     /// um provedor so por endereco (auditoria 2, B6): um provedor que esconde o historico
@@ -137,7 +195,7 @@ public struct UTXOReader: Sendable {
                 answers.append(try await client(provider).transactionCount(address))
                 await pool.reportSuccess(provider)
             } catch {
-                await pool.reportFailure(provider)
+                await report(provider, error)
             }
         }
         guard answers.count == 2 else { throw ChainReaderError.notEnoughSources(needed: 2, got: answers.count) }
@@ -244,9 +302,12 @@ public struct UTXOReader: Sendable {
     /// bata, devolve a que veio (para a conferencia recusar com o motivo certo).
     private func previousTransaction(_ txid: UTXOTxID) async -> [UInt8]? {
         var fallback: [UInt8]?
-        for provider in await pool.available() {
-            guard let raw = try? await client(provider).rawTransaction(txid) else {
-                await pool.reportFailure(provider)
+        for provider in await pool.available() where UTXOBackend.of(provider).servesRawTransactions {
+            let raw: [UInt8]
+            do {
+                raw = try await client(provider).rawTransaction(txid)
+            } catch {
+                await report(provider, error)
                 continue
             }
             if (try? UTXOTransaction(parsing: raw))?.txid == txid {
@@ -269,14 +330,25 @@ public struct UTXOReader: Sendable {
 
     // MARK: Rede
 
-    /// Altura do ultimo bloco. Pergunta a todos; se mais de um responder, tem de
-    /// estar a ate 3 blocos um do outro, e vale a menor: nLockTime acima da altura
-    /// real deixaria a transacao presa ate la.
+    /// Altura do ultimo bloco. Pergunta aos tres primeiros disponiveis (e aos outros so
+    /// se nenhum responder, para nao gastar a cota curta de Blockcypher e Blockchair);
+    /// se mais de um responder, tem de estar a ate 3 blocos um do outro, e vale a
+    /// menor: nLockTime acima da altura real deixaria a transacao presa ate la.
     public func tipHeight() async throws -> UInt32 {
         let providers = await pool.available()
-        let answers = try await ReaderConcurrency.map(providers, limit: Self.parallelism) { provider in
-            try? await self.client(provider).tipHeight()
-        }.compactMap { $0 }
+        var answers: [UInt32] = []
+        for group in [Array(providers.prefix(3)), Array(providers.dropFirst(3))] where answers.isEmpty && !group.isEmpty {
+            answers = try await ReaderConcurrency.map(group, limit: Self.parallelism) { provider -> UInt32? in
+                do {
+                    let height = try await self.client(provider).tipHeight()
+                    await self.pool.reportSuccess(provider)
+                    return height
+                } catch {
+                    await self.report(provider, error)
+                    return nil
+                }
+            }.compactMap { $0 }
+        }
         guard let low = answers.min(), let high = answers.max() else { throw HTTPClient.Failure.offline }
         guard high - low <= Self.tipTolerance else { throw ChainReaderError.providersDisagree }
         return low
@@ -285,17 +357,44 @@ public struct UTXOReader: Sendable {
     /// Taxa em tres niveis pela regra de `UTXOFeeConsensus`, com o piso da rede.
     ///
     /// Fontes: Bitcoin, `/v1/fees/precise` do mempool.space e do emzy e `/fee-estimates`
-    /// da Blockstream; Litecoin, `/v1/fees/precise` do litecoinspace, o `high/medium/
-    /// low_fee_per_kb` da Blockcypher e o sugerido da Blockchair; Dogecoin, Blockcypher
-    /// e Blockchair. Exige duas que nao discordem mais de 3x; com duas, cada nivel e o
-    /// menor delas, e com tres ou mais, a mediana. O teto e compilado (`UTXORules`).
+    /// da Blockstream; Litecoin, o `estimatesmartfee` do no do Blockbook e do Bitcore,
+    /// `/v1/fees/precise` do litecoinspace, o `high/medium/low_fee_per_kb` da Blockcypher
+    /// e o sugerido da Blockchair; Dogecoin, Blockbook, Bitcore, Blockcypher e Blockchair.
+    /// Exige duas que nao discordem mais de 3x; com duas, cada nivel e o menor delas, e
+    /// com tres ou mais, a mediana. O teto e compilado (`UTXORules`).
+    ///
+    /// Pergunta na ordem de preferencia ate juntar `feeQuorum` respostas: as primeiras
+    /// fontes da lista respondem e as do fim (cota curta) so entram no lugar de quem
+    /// falhou. No Dogecoin o quorum e dois: o no estima perto de 0,5 DOGE/kB, enquanto
+    /// Blockcypher e Blockchair cotam 2 e 5; juntar as quatro faria a regra dos 3x
+    /// recusar sempre.
     public func feeLevels() async throws -> UTXOFeeLevels {
         let providers = await pool.available()
-        let quotes = try await ReaderConcurrency.map(providers, limit: Self.parallelism) { provider in
-            try? await self.client(provider).fees()
-        }.compactMap { $0 }
+        let quorum = Self.feeQuorum(for: chain)
+        var quotes: [UTXOFeeQuote] = []
+        var next = 0
+        while quotes.count < quorum, next < providers.count {
+            let batch = Array(providers[next..<min(providers.count, next + quorum - quotes.count)])
+            next += batch.count
+            quotes += try await ReaderConcurrency.map(batch, limit: Self.parallelism) { provider -> UTXOFeeQuote? in
+                do {
+                    let quote = try await self.client(provider).fees()
+                    await self.pool.reportSuccess(provider)
+                    return quote
+                } catch {
+                    await self.report(provider, error)
+                    return nil
+                }
+            }.compactMap { $0 }
+        }
         guard quotes.count >= 2 else { throw ChainReaderError.notEnoughSources(needed: 2, got: quotes.count) }
         return try Self.combine(quotes, rules: UTXORules.for(chain))
+    }
+
+    /// Quantas fontes de taxa a leitura junta. Bitcoin e Litecoin, tres (a mediana);
+    /// Dogecoin, duas (ver `feeLevels`).
+    static func feeQuorum(for chain: Chain) -> Int {
+        chain.id == Chain.dogecoin.id ? 2 : 3
     }
 
     static func combine(_ quotes: [UTXOFeeQuote], rules: UTXORules) throws -> UTXOFeeLevels {
@@ -369,11 +468,11 @@ public struct UTXOReader: Sendable {
         let tip = try? await tipHeight()
         var answers: [ChainTransactionStatus] = []
         for provider in await pool.available() where answers.count < 2 {
-            if let answer = try? await client(provider).status(id, tip: tip) {
-                answers.append(answer)
+            do {
+                answers.append(try await client(provider).status(id, tip: tip))
                 await pool.reportSuccess(provider)
-            } else {
-                await pool.reportFailure(provider)
+            } catch {
+                await report(provider, error)
             }
         }
         guard let first = answers.first else { throw HTTPClient.Failure.offline }
@@ -395,8 +494,10 @@ public struct UTXOReader: Sendable {
     public func history(_ discovery: UTXODiscovery, limit: Int = 30, knownCounterparties: Set<String> = []) async throws -> [ChainActivity] {
         guard discovery.account.chain == chain else { throw ChainReaderError.unsupportedAccount }
         let tip = try? await tipHeight()
+        // Historico com a transacao inteira primeiro (Blockbook, Esplora): o efeito so
+        // por endereco (Bitcore, Blockcypher, Blockchair) nao tem taxa nem contraparte.
         let pages = try await ReaderConcurrency.map(discovery.used, limit: Self.parallelism) { address in
-            try await self.withProvider(spread: Int(address.index)) { try await $0.history(address.address) }
+            try await self.withProvider(spread: Int(address.index), prefer: { $0.servesFullHistory }) { try await $0.history(address.address) }
         }
         let ours = Set(discovery.scanned.map(\.scriptPubKey))
         let threshold = UTXORules.for(chain).protectionThreshold(for: discovery.account.kind, chain: chain)

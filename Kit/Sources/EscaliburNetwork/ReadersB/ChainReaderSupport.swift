@@ -68,6 +68,34 @@ public struct HTTPReaderTransport: ChainReaderTransport {
     }
 }
 
+/// Espaca as requisicoes por host, com o relogio do processo inteiro (`HostPacer`, o
+/// mesmo do `PacedTransport`). Nao repete o 429: nas redes UTXO ha outro provedor na
+/// fila, e o `ProviderPool` poe no banco quem recusou (`reportFailure(_:error:)`).
+public struct PacedChainTransport: ChainReaderTransport {
+    let base: ChainReaderTransport
+    let intervals: [String: TimeInterval]
+
+    public init(base: ChainReaderTransport, intervals: [String: TimeInterval]) {
+        self.base = base
+        self.intervals = intervals
+    }
+
+    private func pace(_ url: URL) async throws {
+        let host = url.host ?? ""
+        try await HostPacer.shared.wait(host: host, interval: intervals[host] ?? 0)
+    }
+
+    public func fetch(_ url: URL) async throws -> Data {
+        try await pace(url)
+        return try await base.fetch(url)
+    }
+
+    public func send(_ url: URL, body: Data, contentType: String, timeout: TimeInterval) async throws -> Data {
+        try await pace(url)
+        return try await base.send(url, body: body, contentType: contentType, timeout: timeout)
+    }
+}
+
 // MARK: Decodificacao estrita
 
 enum ReaderDecode {

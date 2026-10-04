@@ -2,15 +2,23 @@ import EscaliburChains
 import EscaliburCore
 import Foundation
 
-// Os tres formatos de API que as redes UTXO usam, atras de uma interface so.
+// Os formatos de API que as redes UTXO usam, atras de uma interface so.
 //
 // - Esplora (mempool.space, blockstream.info, mempool.emzy.de, litecoinspace.org):
 //   a API completa, com transacao crua, historico por endereco e transmissao em texto.
-// - Blockcypher (Dogecoin e segunda fonte do Litecoin): referencias por endereco,
-//   transacao crua com `includeHex`, taxa em tres niveis por kB.
-// - Blockchair (Dogecoin e terceira fonte do Litecoin): painel por endereco, transacao
-//   crua, taxa sugerida unica. Sem chave de API o limite por IP e baixo e o bloqueio
-//   temporario (HTTP 430) e comum: fica por ultimo na ordem.
+// - Blockbook (o indexador da Trezor, na instancia da Atomic Wallet para Litecoin e
+//   Dogecoin): tambem completa. Saldo, contagem e moedas por endereco, a transacao com
+//   o hex inteiro, historico com entradas e saidas, taxa do no (`estimatesmartfee`) e
+//   transmissao. Valores em texto decimal, em satoshis.
+// - Bitcore (api.bitcore.io, da BitPay, Litecoin e Dogecoin): moedas por endereco,
+//   saldo, altura, taxa do no e transmissao. Nao entrega a transacao crua: as moedas
+//   dela sao conferidas pelo hex de outro provedor, e o historico sai como efeito por
+//   endereco, sem data.
+// - Blockcypher (Dogecoin e Litecoin): referencias por endereco, transacao crua com
+//   `includeHex`, taxa em tres niveis por kB. Sem chave: 3 por segundo e 100 por hora.
+// - Blockchair (Dogecoin e Litecoin): painel por endereco, transacao crua, taxa sugerida
+//   unica. Sem chave o limite por IP e baixo e o bloqueio temporario (HTTP 430) e comum.
+//   Blockcypher e Blockchair ficam por ultimo na ordem.
 //
 // Cada metodo devolve dado bruto do provedor, ja com o formato conferido. Quem decide
 // o que vale (txid contra os bytes, script contra a chave derivada) e o UTXOReader.
@@ -18,6 +26,8 @@ import Foundation
 enum UTXOBackend: Equatable, Sendable {
     /// `blockstream` so muda a fonte de taxa (`/fee-estimates` em vez de `/v1/fees`).
     case esplora(blockstream: Bool)
+    case blockbook
+    case bitcore
     case blockcypher
     case blockchair
 
@@ -26,7 +36,29 @@ enum UTXOBackend: Equatable, Sendable {
         case "blockcypher": return .blockcypher
         case "blockchair": return .blockchair
         case "blockstream": return .esplora(blockstream: true)
+        case "atomic": return .blockbook
+        case "bitcore": return .bitcore
         default: return .esplora(blockstream: false)
+        }
+    }
+
+    /// Entrega a transacao crua inteira, que prova o valor de cada moeda pelo txid.
+    var servesRawTransactions: Bool { self != .bitcore }
+
+    /// Historico com a transacao inteira (entradas e saidas), nao so o efeito.
+    var servesFullHistory: Bool {
+        switch self {
+        case .esplora, .blockbook: return true
+        case .bitcore, .blockcypher, .blockchair: return false
+        }
+    }
+
+    /// Cota folgada sem chave: pode receber parte dos enderecos de cada leitura.
+    /// Blockcypher e Blockchair so entram quando os outros falham.
+    var sharesAddressLoad: Bool {
+        switch self {
+        case .esplora, .blockbook, .bitcore: return true
+        case .blockcypher, .blockchair: return false
         }
     }
 }
@@ -81,6 +113,12 @@ struct EsploraStatus: Decodable, Sendable, Equatable {
         case blockTime = "block_time"
     }
 
+    init(confirmed: Bool, blockHeight: UInt32?, blockTime: UInt64?) {
+        self.confirmed = confirmed && blockHeight != nil
+        self.blockHeight = blockHeight
+        self.blockTime = blockTime
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         confirmed = try c.decode(Bool.self, forKey: .confirmed)
@@ -96,7 +134,13 @@ struct EsploraStatus: Decodable, Sendable, Equatable {
 struct EsploraAddress: Decodable, Sendable {
     struct Stats: Decodable, Sendable {
         let txCount: UInt64
-        enum CodingKeys: String, CodingKey { case txCount = "tx_count" }
+        let fundedTxoSum: UInt64?
+        let spentTxoSum: UInt64?
+        enum CodingKeys: String, CodingKey {
+            case txCount = "tx_count"
+            case fundedTxoSum = "funded_txo_sum"
+            case spentTxoSum = "spent_txo_sum"
+        }
     }
 
     let address: String
@@ -220,7 +264,11 @@ struct BlockchairAddressDashboard: Decodable, Sendable {
     struct Entry: Decodable, Sendable {
         struct Summary: Decodable, Sendable {
             let transactionCount: UInt64
-            enum CodingKeys: String, CodingKey { case transactionCount = "transaction_count" }
+            let balance: Int64?
+            enum CodingKeys: String, CodingKey {
+                case balance
+                case transactionCount = "transaction_count"
+            }
         }
         struct Transaction: Decodable, Sendable {
             let blockId: Int64
@@ -305,14 +353,111 @@ struct BlockchairPush: Decodable, Sendable {
     let data: Data
 }
 
+// MARK: Blockbook
+
+struct BlockbookStatus: Decodable, Sendable {
+    struct Info: Decodable, Sendable { let bestHeight: UInt32 }
+    let blockbook: Info
+}
+
+/// `GET /api/v2/address/{a}?details=basic`. `unconfirmedBalance` some quando e zero, e
+/// pode ser negativo (gasto na mempool).
+struct BlockbookAddress: Decodable, Sendable {
+    let address: String
+    let balance: String
+    let unconfirmedBalance: String?
+    let txs: UInt64
+    let unconfirmedTxs: UInt64?
+}
+
+/// `GET /api/v2/utxo/{a}`: sem `height` quando ainda na mempool.
+struct BlockbookUnspent: Decodable, Sendable {
+    let txid: String
+    let vout: UInt32
+    let value: String
+    let height: UInt32?
+    let confirmations: UInt64
+}
+
+struct BlockbookTransaction: Decodable, Sendable {
+    struct Input: Decodable, Sendable {
+        let addresses: [String]?
+        let isAddress: Bool?
+        let value: String?
+    }
+    struct Output: Decodable, Sendable {
+        let value: String
+        let n: UInt32
+        let hex: String?
+        let addresses: [String]?
+        let isAddress: Bool?
+    }
+    let txid: String
+    let vin: [Input]
+    let vout: [Output]
+    /// -1 na mempool.
+    let blockHeight: Int64
+    let confirmations: UInt64
+    let blockTime: UInt64?
+    let fees: String?
+    let hex: String?
+}
+
+struct BlockbookAddressTransactions: Decodable, Sendable {
+    let address: String
+    let transactions: [BlockbookTransaction]?
+}
+
+/// `estimatefee` e `sendtx`: um texto em `result`.
+struct BlockbookResult: Decodable, Sendable { let result: String }
+
+// MARK: Bitcore
+
+/// Uma moeda no Bitcore: criada em `mintTxid` (altura -1 na mempool) e gasta em
+/// `spentTxid` (vazio quando nao gasta; altura -2 nao gasta, -1 gasto na mempool).
+struct BitcoreCoin: Decodable, Sendable {
+    let mintTxid: String
+    let mintIndex: UInt32
+    let mintHeight: Int64
+    let spentTxid: String
+    let spentHeight: Int64
+    let address: String
+    let value: UInt64
+}
+
+struct BitcoreBalance: Decodable, Sendable {
+    let confirmed: Int64
+    let unconfirmed: Int64
+    let balance: Int64
+}
+
+struct BitcoreBlock: Decodable, Sendable { let height: UInt64 }
+
+/// Moeda da rede por kB; -1 quando o no nao tem estimativa.
+struct BitcoreFee: Decodable, Sendable { let feerate: Double }
+
+struct BitcoreTransaction: Decodable, Sendable {
+    let txid: String
+    /// -1 na mempool.
+    let blockHeight: Int64
+}
+
+struct BitcoreSent: Decodable, Sendable { let txid: String }
+
 // MARK: Cliente de um provedor
 
 /// Um provedor UTXO, falando o dialeto dele.
 struct UTXOProviderClient: Sendable {
     let provider: ProviderPool.Provider
     let transport: ChainReaderTransport
+    /// A rede: o Blockbook da o endereco das entradas, e o script sai dele aqui.
+    var chain: Chain = .bitcoin
 
     var backend: UTXOBackend { UTXOBackend.of(provider) }
+
+    /// O provedor nao serve esta operacao (Bitcore nao entrega transacao crua). Nao e
+    /// falha do provedor: quem chama pula para o proximo sem tirar ponto dele.
+    struct Unsupported: Error, Equatable {}
 
     private func url(_ path: String, _ query: [URLQueryItem] = []) throws -> URL {
         try ReaderURL.make(provider.baseURL, path, query: query)
@@ -322,16 +467,37 @@ struct UTXOProviderClient: Sendable {
         try ReaderDecode.json(T.self, from: try await transport.fetch(try url(path, query)))
     }
 
+    /// Valor em satoshis em texto decimal (Blockbook), so digitos.
+    static func sats(_ text: String, field: String) throws -> UInt64 {
+        try ReaderDecode.unsigned(text, field: field)
+    }
+
+    /// Valor com sinal em texto decimal (`unconfirmedBalance` do Blockbook).
+    static func signedSats(_ text: String, field: String) throws -> Int64 {
+        let negative = text.hasPrefix("-")
+        let magnitude = try ReaderDecode.unsigned(negative ? String(text.dropFirst()) : text, field: field)
+        guard magnitude <= UInt64(Int64.max) else { throw ChainReaderError.malformedResponse(field: field) }
+        return negative ? -Int64(magnitude) : Int64(magnitude)
+    }
+
     // MARK: Historico por endereco
 
     /// Quantas transacoes o endereco tem (confirmadas e na mempool). So o numero:
-    /// e o que a varredura por gap limit precisa.
+    /// e o que a varredura por gap limit precisa. No Bitcore e o numero de moedas
+    /// (ate 1): basta para dizer se o endereco ja foi usado.
     func transactionCount(_ address: String) async throws -> UInt64 {
         switch backend {
         case .esplora:
             let info = try await get(EsploraAddress.self, "address/\(address)")
             guard info.address == address else { throw ChainReaderError.mismatchedResponse }
             return info.chainStats.txCount + info.mempoolStats.txCount
+        case .blockbook:
+            let info = try await blockbookAddress(address)
+            return info.txs + (info.unconfirmedTxs ?? 0)
+        case .bitcore:
+            let coins = try await get([BitcoreCoin].self, "address/\(address)", [URLQueryItem(name: "limit", value: "1")])
+            guard coins.allSatisfy({ $0.address == address }) else { throw ChainReaderError.mismatchedResponse }
+            return UInt64(coins.count)
         case .blockcypher:
             let info = try await get(BlockcypherAddress.self, "addrs/\(address)", [URLQueryItem(name: "limit", value: "1")])
             guard info.address == address else { throw ChainReaderError.mismatchedResponse }
@@ -342,6 +508,12 @@ struct UTXOProviderClient: Sendable {
         }
     }
 
+    private func blockbookAddress(_ address: String) async throws -> BlockbookAddress {
+        let info = try await get(BlockbookAddress.self, "address/\(address)", [URLQueryItem(name: "details", value: "basic")])
+        guard info.address == address else { throw ChainReaderError.mismatchedResponse }
+        return info
+    }
+
     private func blockchairAddress(_ address: String, transactions: Int, unspent: Int) async throws -> BlockchairAddressDashboard.Entry {
         let dashboard = try await get(
             BlockchairAddressDashboard.self, "dashboards/address/\(address)",
@@ -349,6 +521,46 @@ struct UTXOProviderClient: Sendable {
         )
         guard dashboard.data.count == 1, let entry = dashboard.data[address] else { throw ChainReaderError.mismatchedResponse }
         return entry
+    }
+
+    // MARK: Saldo
+
+    /// Saldo do endereco em satoshis, confirmado mais mempool. So para exibir: o que um
+    /// envio gasta sai das moedas conferidas uma a uma, nunca deste numero.
+    func balance(_ address: String) async throws -> UInt64 {
+        let total: Int64
+        switch backend {
+        case .esplora:
+            let info = try await get(EsploraAddress.self, "address/\(address)")
+            guard info.address == address else { throw ChainReaderError.mismatchedResponse }
+            func net(_ stats: EsploraAddress.Stats) throws -> Int64 {
+                guard let funded = stats.fundedTxoSum, let spent = stats.spentTxoSum, funded >= spent, funded <= UInt64(Int64.max) else {
+                    throw ChainReaderError.malformedResponse(field: "funded_txo_sum")
+                }
+                return Int64(funded - spent)
+            }
+            // A mempool pode gastar o que esta confirmado: o liquido dela e negativo.
+            let mempoolFunded = Int64(clamping: info.mempoolStats.fundedTxoSum ?? 0)
+            let mempoolSpent = Int64(clamping: info.mempoolStats.spentTxoSum ?? 0)
+            total = try net(info.chainStats) + mempoolFunded - mempoolSpent
+        case .blockbook:
+            let info = try await blockbookAddress(address)
+            total = try Self.signedSats(info.balance, field: "balance")
+                + (try info.unconfirmedBalance.map { try Self.signedSats($0, field: "unconfirmedBalance") } ?? 0)
+        case .bitcore:
+            total = try await get(BitcoreBalance.self, "address/\(address)/balance").balance
+        case .blockcypher:
+            struct Balance: Decodable { let address: String; let final_balance: Int64 }
+            let info = try await get(Balance.self, "addrs/\(address)/balance")
+            guard info.address == address else { throw ChainReaderError.mismatchedResponse }
+            total = info.final_balance
+        case .blockchair:
+            let entry = try await blockchairAddress(address, transactions: 1, unspent: 1)
+            guard let balance = entry.address.balance else { throw ChainReaderError.malformedResponse(field: "address.balance") }
+            total = balance
+        }
+        guard total >= 0 else { throw ChainReaderError.malformedResponse(field: "balance") }
+        return UInt64(total)
     }
 
     // MARK: Moedas
@@ -361,6 +573,27 @@ struct UTXOProviderClient: Sendable {
                 UTXOUnspentClaim(
                     outpoint: UTXOOutpoint(txid: try ReaderDecode.txid(item.txid, field: "txid"), vout: item.vout),
                     claimedValue: item.value, height: item.status.confirmed ? item.status.blockHeight : nil
+                )
+            }
+        case .blockbook:
+            let list = try await get([BlockbookUnspent].self, "utxo/\(address)")
+            return try list.map { item in
+                UTXOUnspentClaim(
+                    outpoint: UTXOOutpoint(txid: try ReaderDecode.txid(item.txid, field: "txid"), vout: item.vout),
+                    claimedValue: try Self.sats(item.value, field: "value"),
+                    height: item.confirmations > 0 ? item.height : nil
+                )
+            }
+        case .bitcore:
+            let coins = try await get(
+                [BitcoreCoin].self, "address/\(address)",
+                [URLQueryItem(name: "unspent", value: "true"), URLQueryItem(name: "limit", value: "500")]
+            )
+            return try coins.map { coin in
+                guard coin.address == address, coin.spentTxid.isEmpty else { throw ChainReaderError.mismatchedResponse }
+                return UTXOUnspentClaim(
+                    outpoint: UTXOOutpoint(txid: try ReaderDecode.txid(coin.mintTxid, field: "mintTxid"), vout: coin.mintIndex),
+                    claimedValue: coin.value, height: try Self.height(coin.mintHeight)
                 )
             }
         case .blockcypher:
@@ -389,7 +622,7 @@ struct UTXOProviderClient: Sendable {
         }
     }
 
-    /// -1 e "na mempool" no Blockcypher e no Blockchair.
+    /// -1 e "na mempool" no Blockcypher, no Blockchair, no Blockbook e no Bitcore.
     static func height(_ value: Int64) throws -> UInt32? {
         if value == -1 { return nil }
         guard value >= 0, value < Int64(UTXORules.lockTimeThreshold) else { throw ChainReaderError.malformedResponse(field: "block_height") }
@@ -402,6 +635,12 @@ struct UTXOProviderClient: Sendable {
         case .esplora:
             let data = try await transport.fetch(try url("tx/\(txid.hex)/hex"))
             return try ReaderDecode.hexBytes(try ReaderDecode.text(data, field: "hex"), field: "hex")
+        case .blockbook:
+            let tx = try await get(BlockbookTransaction.self, "tx/\(txid.hex)")
+            guard let hex = tx.hex else { throw ChainReaderError.malformedResponse(field: "hex") }
+            return try ReaderDecode.hexBytes(hex, field: "hex")
+        case .bitcore:
+            throw Unsupported()
         case .blockcypher:
             let tx = try await get(
                 BlockcypherTransaction.self, "txs/\(txid.hex)",
@@ -424,6 +663,10 @@ struct UTXOProviderClient: Sendable {
         case .esplora:
             let data = try await transport.fetch(try url("blocks/tip/height"))
             height = try ReaderDecode.unsigned(try ReaderDecode.text(data, field: "height"), field: "height")
+        case .blockbook:
+            height = UInt64(try await get(BlockbookStatus.self, "").blockbook.bestHeight)
+        case .bitcore:
+            height = try await get(BitcoreBlock.self, "block/tip").height
         case .blockcypher:
             height = UInt64(try await get(BlockcypherChain.self, "").height)
         case .blockchair:
@@ -432,6 +675,11 @@ struct UTXOProviderClient: Sendable {
         guard height > 0, height < UInt64(UTXORules.lockTimeThreshold) else { throw ChainReaderError.malformedResponse(field: "height") }
         return UInt32(height)
     }
+
+    /// Alvos em blocos dos tres niveis nas fontes que perguntam ao no
+    /// (`estimatesmartfee`): proximos 2 blocos, uma hora (6) e duas horas (12). O alvo
+    /// de 1 bloco o Dogecoin Core nao estima.
+    static let nodeFeeTargets = (fast: 2, normal: 6, slow: 12)
 
     func fees() async throws -> UTXOFeeQuote {
         switch backend {
@@ -458,6 +706,24 @@ struct UTXOProviderClient: Sendable {
             }
             let fast = try at(1)
             return UTXOFeeQuote(source: provider.name, fastest: fast, levels: (try at(6), try at(3), fast))
+        case .blockbook:
+            // Moeda por kvB em texto ("0.00000997"); "-1" quando o no nao estima.
+            func at(_ blocks: Int) async throws -> UTXOFeeRate {
+                let text = try await get(BlockbookResult.self, "estimatefee/\(blocks)").result
+                let perKvB = try DecimalUnits.parse(text, decimals: 8, field: "result")
+                guard let value = UInt64(perKvB.decimalString) else { throw ChainReaderError.malformedResponse(field: "result") }
+                return try Self.rate(satPerKvB: value)
+            }
+            let targets = Self.nodeFeeTargets
+            let fast = try await at(targets.fast)
+            return UTXOFeeQuote(source: provider.name, fastest: fast, levels: (try await at(targets.slow), try await at(targets.normal), fast))
+        case .bitcore:
+            func at(_ blocks: Int) async throws -> UTXOFeeRate {
+                try Self.rate(coinPerKvB: try await get(BitcoreFee.self, "fee/\(blocks)").feerate)
+            }
+            let targets = Self.nodeFeeTargets
+            let fast = try await at(targets.fast)
+            return UTXOFeeQuote(source: provider.name, fastest: fast, levels: (try await at(targets.slow), try await at(targets.normal), fast))
         case .blockcypher:
             // Por 1000 bytes, nao vbytes. No Dogecoin e o mesmo; no Litecoin segwit
             // superestima um pouco, o que so sobe o teto.
@@ -484,6 +750,12 @@ struct UTXOProviderClient: Sendable {
         return UTXOFeeRate(satPerKvB: max(1, UInt64((value * 1000 - 0.000_001).rounded(.up))))
     }
 
+    /// Moeda por kvB (JSON do Bitcore, como o `estimatesmartfee` do no) para sat/kvB.
+    static func rate(coinPerKvB value: Double) throws -> UTXOFeeRate {
+        guard value.isFinite, value > 0, value < 10 else { throw ChainReaderError.malformedResponse(field: "feerate") }
+        return UTXOFeeRate(satPerKvB: max(1, UInt64((value * 100_000_000 - 0.000_001).rounded(.up))))
+    }
+
     static func rate(satPerKvB value: UInt64) throws -> UTXOFeeRate {
         guard value > 0 else { throw ChainReaderError.malformedResponse(field: "fee") }
         return UTXOFeeRate(satPerKvB: value)
@@ -497,6 +769,13 @@ struct UTXOProviderClient: Sendable {
         case .esplora:
             let data = try await transport.send(try url("tx"), body: Data(hex.utf8), contentType: "text/plain", timeout: 15)
             return try ReaderDecode.text(data, field: "txid")
+        case .blockbook:
+            let data = try await transport.send(try url("sendtx/"), body: Data(hex.utf8), contentType: "text/plain", timeout: 15)
+            return try ReaderDecode.json(BlockbookResult.self, from: data).result
+        case .bitcore:
+            let body = try JSONEncoder().encode(["rawTx": hex])
+            let data = try await transport.send(try url("tx/send"), body: body, contentType: "application/json", timeout: 15)
+            return try ReaderDecode.json(BitcoreSent.self, from: data).txid
         case .blockcypher:
             let body = try JSONEncoder().encode(["tx": hex])
             let data = try await transport.send(try url("txs/push"), body: body, contentType: "application/json", timeout: 15)
@@ -521,6 +800,23 @@ struct UTXOProviderClient: Sendable {
             case .esplora:
                 let status = try await get(EsploraStatus.self, "tx/\(txid.hex)/status")
                 guard status.confirmed, let height = status.blockHeight else { return .pending }
+                return confirmed(height)
+            case .blockbook:
+                let tx: BlockbookTransaction
+                do {
+                    tx = try await get(BlockbookTransaction.self, "tx/\(txid.hex)")
+                } catch HTTPClient.Failure.status(400) {
+                    // O Blockbook responde 400 "Transaction ... not found"; o txid ja foi
+                    // conferido aqui (64 hex), entao nao ha outro 400 possivel.
+                    return .notFound
+                }
+                guard tx.txid == txid.hex else { throw ChainReaderError.mismatchedResponse }
+                guard tx.confirmations > 0, let height = try Self.height(tx.blockHeight) else { return .pending }
+                return confirmed(height)
+            case .bitcore:
+                let tx = try await get(BitcoreTransaction.self, "tx/\(txid.hex)")
+                guard tx.txid == txid.hex else { throw ChainReaderError.mismatchedResponse }
+                guard let height = try Self.height(tx.blockHeight) else { return .pending }
                 return confirmed(height)
             case .blockcypher:
                 let tx = try await get(BlockcypherTransaction.self, "txs/\(txid.hex)", [URLQueryItem(name: "limit", value: "1")])
@@ -547,6 +843,29 @@ struct UTXOProviderClient: Sendable {
             // Mempool e as ultimas confirmadas (25 no Esplora da Blockstream, 50 no
             // mempool.space): o bastante para as ~30 da tela.
             return .full(try await get([EsploraTransaction].self, "address/\(address)/txs"))
+        case .blockbook:
+            let page = try await get(
+                BlockbookAddressTransactions.self, "address/\(address)",
+                [URLQueryItem(name: "details", value: "txs"), URLQueryItem(name: "pageSize", value: "50")]
+            )
+            guard page.address == address else { throw ChainReaderError.mismatchedResponse }
+            return .full(try (page.transactions ?? []).map { try Self.esplora($0, chain: chain) })
+        case .bitcore:
+            let coins = try await get([BitcoreCoin].self, "address/\(address)/txs", [URLQueryItem(name: "limit", value: "100")])
+            var byTx: [String: (height: UInt32?, received: UInt64, spent: UInt64)] = [:]
+            for coin in coins {
+                guard coin.address == address else { throw ChainReaderError.mismatchedResponse }
+                _ = try ReaderDecode.txid(coin.mintTxid, field: "mintTxid")
+                var minted = try byTx[coin.mintTxid] ?? (Self.height(coin.mintHeight), 0, 0)
+                minted.received &+= coin.value
+                byTx[coin.mintTxid] = minted
+                guard !coin.spentTxid.isEmpty else { continue }
+                _ = try ReaderDecode.txid(coin.spentTxid, field: "spentTxid")
+                var spent = try byTx[coin.spentTxid] ?? (Self.height(coin.spentHeight), 0, 0)
+                spent.spent &+= coin.value
+                byTx[coin.spentTxid] = spent
+            }
+            return .deltas(byTx.map { UTXOAddressDelta(txid: $0.key, height: $0.value.height, date: nil, received: $0.value.received, spent: $0.value.spent) })
         case .blockcypher:
             let info = try await get(BlockcypherAddress.self, "addrs/\(address)", [URLQueryItem(name: "limit", value: "50")])
             guard info.address == address else { throw ChainReaderError.mismatchedResponse }
@@ -573,6 +892,34 @@ struct UTXOProviderClient: Sendable {
                 )
             })
         }
+    }
+
+    /// Uma transacao do Blockbook no formato do Esplora, para o historico ter o mesmo
+    /// calculo nas duas fontes. A saida traz o script (`hex`); a entrada so o endereco,
+    /// e o script sai dele aqui (`UTXOScript.scriptPubKey`). Entrada sem endereco
+    /// (coinbase, script fora do padrao) fica sem `prevout`, e a taxa deixa de ser "nossa".
+    static func esplora(_ tx: BlockbookTransaction, chain: Chain) throws -> EsploraTransaction {
+        let inputs = try tx.vin.map { input -> EsploraTransaction.Input in
+            guard input.isAddress != false, let address = input.addresses?.first, input.addresses?.count == 1,
+                  let value = input.value, let script = try? UTXOScript.scriptPubKey(for: address, chain: chain)
+            else { return EsploraTransaction.Input(prevout: nil, isCoinbase: false) }
+            return EsploraTransaction.Input(
+                prevout: EsploraTransaction.Output(
+                    scriptpubkey: Hex.encode(script), scriptpubkeyAddress: address, value: try sats(value, field: "vin.value")
+                ),
+                isCoinbase: false
+            )
+        }
+        let outputs = try tx.vout.map { output -> EsploraTransaction.Output in
+            let address = output.isAddress == false ? nil : output.addresses?.first
+            let script = output.hex ?? address.flatMap { try? UTXOScript.scriptPubKey(for: $0, chain: chain) }.map { Hex.encode($0) } ?? ""
+            return EsploraTransaction.Output(scriptpubkey: script, scriptpubkeyAddress: address, value: try sats(output.value, field: "vout.value"))
+        }
+        let height = tx.confirmations > 0 ? try Self.height(tx.blockHeight) : nil
+        return EsploraTransaction(
+            txid: tx.txid, vin: inputs, vout: outputs, fee: try tx.fees.map { try sats($0, field: "fees") } ?? 0,
+            status: EsploraStatus(confirmed: height != nil, blockHeight: height, blockTime: tx.blockTime)
+        )
     }
 
     static func isoDate(_ text: String?) -> Date? {
