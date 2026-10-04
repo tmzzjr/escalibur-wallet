@@ -71,8 +71,18 @@ struct EnvelopeChain: View {
     private static func isFinal(_ mode: Mode) -> Bool { mode == .sealed || mode == .opened }
 
     private static func period(for mode: Mode) -> Double {
-        mode == .working ? 0.95 : 2.4
+        switch mode {
+        case .working: return 0.95
+        // Parado, o ciclo conta a historia inteira: entra um bloco, a aba fecha, o
+        // cadeado tranca, destranca e a aba abre para o proximo.
+        case .idle: return 5.2
+        default: return 2.4
+        }
     }
+
+    /// Fracao do ciclo parado em que a corrente anda e o bloco cai; o resto e do
+    /// envelope fechando e trancando.
+    private static let idleTravel = 0.46
 
     // MARK: Tempo
 
@@ -147,13 +157,28 @@ struct EnvelopeChain: View {
 
     // MARK: Desenho
 
-    private func draw(_ context: GraphicsContext, _ f: Frame) {
+    private func draw(_ context: GraphicsContext, _ whole: Frame) {
+        let story = mode == .idle && !reduceMotion
+        // Na historia do modo parado, a corrente e a queda usam so o comeco do ciclo.
+        var f = whole
+        if story { f.p = min(whole.p / Self.idleTravel, 1) }
         let sealing = mode == .sealed ? smooth(f.since / 0.4) : 0
         let opening = mode == .opened ? smooth(f.since / 0.5) : 0
-        let flap = mode == .sealed ? -1 + 2 * smooth((f.since - 0.2) / 0.45) : -1
+        var flap = mode == .sealed ? -1 + 2 * smooth((f.since - 0.2) / 0.45) : -1
         let sealPop = mode == .sealed ? backOut((f.since - 0.62) / 0.4) : 0
         let rise = mode == .opened ? easeOut((f.since - 0.15) / 0.65) : 0
         let travelling = (1 - sealing) * (1 - opening)
+        // Parado: fecha, tranca, segura, destranca e abre.
+        var lockPop = sealPop
+        var shackle = mode == .sealed ? smooth((f.since - 0.9) / 0.18) : 0
+        var lockFade = 1.0
+        if story {
+            let t = whole.p
+            flap = -1 + 2 * smooth((t - 0.5) / 0.08) - 2 * smooth((t - 0.9) / 0.07)
+            lockPop = backOut((t - 0.58) / 0.07)
+            shackle = smooth((t - 0.67) / 0.035)
+            lockFade = 1 - smooth((t - 0.84) / 0.05)
+        }
 
         drawChain(context, f, sealing: sealing, opening: opening)
 
@@ -225,16 +250,37 @@ struct EnvelopeChain: View {
             envelope.stroke(outline, with: .color(Palette.ink), style: G.line)
         }
 
-        if sealPop > 0 {
-            var seal = envelope
-            seal.translateBy(x: G.cx, y: G.top + G.flapClosed)
-            seal.scaleBy(x: sealPop, y: sealPop)
-            seal.fill(Path(ellipseIn: CGRect(x: -16, y: -16, width: 32, height: 32)), with: .color(Palette.purple))
-            var lock = seal.resolve(Image(systemName: "lock.fill"))
-            lock.shading = .color(Palette.ink)
-            seal.scaleBy(x: 0.8, y: 0.8)
-            seal.draw(lock, at: .zero)
+        if lockPop > 0.01, lockFade > 0.01, flap > 0.5 {
+            var lock = envelope
+            lock.opacity = lockFade
+            lock.translateBy(x: G.cx, y: G.top + G.flapClosed)
+            // O estalo: o corpo cresce um pouco no instante em que a alca encaixa.
+            let click = 1 + 0.1 * sin(.pi * clamp((shackle - 0.6) / 0.4))
+            lock.scaleBy(x: lockPop * click, y: lockPop * click)
+            drawPadlock(lock, shackle: shackle)
         }
+    }
+
+    /// Cadeado com buraco de fechadura, centrado na origem: corpo branco, alca que
+    /// desce e encaixa (`shackle` de 0, aberta, a 1, trancada).
+    private func drawPadlock(_ context: GraphicsContext, shackle: Double) {
+        let body = CGRect(x: -13, y: -6, width: 26, height: 21)
+        // A alca: um arco com as duas pernas; aberta, sobe e a perna direita sai do corpo.
+        let lift = CGFloat(1 - shackle) * 7
+        var arch = Path()
+        arch.move(to: CGPoint(x: -7.5, y: -4 - lift * 0.4))
+        arch.addLine(to: CGPoint(x: -7.5, y: -11 - lift))
+        arch.addArc(center: CGPoint(x: 0, y: -11 - lift), radius: 7.5, startAngle: .degrees(180), endAngle: .degrees(0), clockwise: false)
+        arch.addLine(to: CGPoint(x: 7.5, y: -4 - lift))
+        context.stroke(arch, with: .color(Palette.ink), style: StrokeStyle(lineWidth: 3.4, lineCap: .round))
+        context.fill(Path(roundedRect: body, cornerRadius: 5, style: .continuous), with: .color(Palette.ink))
+        var keyhole = Path(ellipseIn: CGRect(x: -3, y: 0, width: 6, height: 6))
+        keyhole.move(to: CGPoint(x: -1.6, y: 4.5))
+        keyhole.addLine(to: CGPoint(x: 1.6, y: 4.5))
+        keyhole.addLine(to: CGPoint(x: 2.3, y: 11))
+        keyhole.addLine(to: CGPoint(x: -2.3, y: 11))
+        keyhole.closeSubpath()
+        context.fill(keyhole, with: .color(Palette.void))
     }
 
     private func fallY(_ q: Double) -> CGFloat {
