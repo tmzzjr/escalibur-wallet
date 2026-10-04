@@ -343,7 +343,11 @@ public actor MarketService {
         "bnb": ("binance-smart-chain", "bnb-binance-coin"), "avalanche": ("avalanche", "avax-avalanche"), "plasma": ("plasma", nil),
         "xlayer": ("x-layer", "okb-okb"), "linea": ("linea", "linea-linea"), "unichain": ("unichain", "uni-uniswap"),
         "sonic": ("sonic", "s-sonic"), "celo": ("celo", "celo-celo"), "solana": ("solana", "sol-solana"), "tron": ("tron", "trx-tron"),
-        "ton": ("the-open-network", "toncoin-the-open-network"),
+        "ton": ("the-open-network", "toncoin-the-open-network"), "sui": ("sui", "sui-sui"), "aptos": ("aptos", "apt-aptos"),
+        // NEAR: o contrato e o nome da conta; Cardano: politica seguida do nome em hex.
+        // Conferidos no CoinGecko em 04/10/2026. A Asset Hub da Polkadot nao responde por
+        // numero de ativo, e fica sem preco por contrato.
+        "near": ("near-protocol", "near-near-protocol"), "cardano": ("cardano", "ada-cardano"),
     ]
 
     static let tokenPriceLifetime: TimeInterval = 300

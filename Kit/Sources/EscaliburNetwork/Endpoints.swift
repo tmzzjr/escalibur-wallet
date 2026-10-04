@@ -263,6 +263,11 @@ public enum Endpoints {
     /// NearBlocks devolve valores como numero de ponto flutuante. Conferido em 28/09/2026.
     public static let nearHistory = url("https://tx.main.fastnear.com")
 
+    /// Quais tokens NEP-141 uma conta tem, sem chave: a API da FastNEAR
+    /// (`/v1/account/{id}/ft`, contrato e saldo). Os nos RPC nao listam isso. Conferido ao
+    /// vivo em 04/10/2026. Nome e casas de cada token vem do `ft_metadata` do contrato.
+    public static let nearTokens = url("https://api.fastnear.com")
+
     /// Aptos: a API REST de fullnode (`/v1`) de tres operadores independentes, sem chave,
     /// conferidos em 28/09/2026: a PublicNode (Allnodes, no podado em 100 milhoes de
     /// versoes), a Sentio (no de arquivo, versao mais antiga 0) e a Aptos Labs (podado em

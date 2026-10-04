@@ -132,12 +132,17 @@ struct TokenDiscoveryTests {
 
     // MARK: Tron
 
-    @Test("Tron: USDT da lista, e os outros TRC-20 com nome, simbolo e casas lidos do contrato")
+    @Test("Tron: USDT da lista; os outros TRC-20 com nome e casas da TronGrid numa chamada, e o que faltar lido do contrato")
     func tron() async throws {
         let transport = FixtureTransport([{ request, body in
+            if request.url.host == "trongrid.test", request.url.path.hasSuffix("v1/trc20/info") {
+                // Gravada com 4 dos 5 contratos: o quinto vai ao contrato.
+                return try Self.data("trongrid-trc20-info")
+            }
             if request.url.host == "trongrid.test" { return try Self.data("trongrid-account-abandon") }
+            // O contrato que faltou na gravacao responde como o KYC.
             guard request.url.path.hasSuffix("wallet/triggerconstantcontract"), case .object(let fields)? = body,
-                  case .string("TQGaH1PigTUJsSbCootv52Hi92Gx2Hbmw8")? = fields["contract_address"],
+                  case .string("TVh4nokXoSxQGxh7T6Tn6NTb2uSUhAhLwb")? = fields["contract_address"],
                   case .string(let selector)? = fields["function_selector"]
             else { throw HTTPClient.Failure.status(500) }
             return try Self.data("tron-constant-\(selector.replacingOccurrences(of: "()", with: ""))-kyc")
@@ -150,6 +155,13 @@ struct TokenDiscoveryTests {
         let kyc = try #require(unlisted.first { $0.asset.id == "tron:TQGaH1PigTUJsSbCootv52Hi92Gx2Hbmw8" })
         #expect(kyc.asset.symbol == "KYC" && kyc.asset.name == "KYC Public Welfare Token" && kyc.asset.decimals == 6)
         #expect(kyc.amount == BigUInt(1_000_000) && !kyc.isSuspicious)
+        // Outro contrato com o simbolo USDT: imitacao.
+        let fake = try #require(unlisted.first { $0.asset.id == "tron:TATx8MfXpWZ5tKiFVhB6K9r1kDY9hraoyT" })
+        #expect(fake.asset.symbol == "USDT" && fake.reasons.contains(.imitation))
+        // O que faltou na TronGrid foi lido do contrato.
+        let direct = try #require(unlisted.first { $0.asset.id == "tron:TVh4nokXoSxQGxh7T6Tn6NTb2uSUhAhLwb" })
+        #expect(direct.asset.symbol == "KYC" && direct.asset.decimals == 6)
+        #expect(transport.requests.filter { $0.url.path.hasSuffix("v1/trc20/info") }.count == 1)
     }
 
     // MARK: TON
@@ -238,6 +250,88 @@ struct TokenDiscoveryTests {
         let parsed = try #require(SolanaMetaplex.parse([UInt8](bytes)))
         #expect(parsed.mint == mint && parsed.name == "Bonk" && parsed.symbol == "Bonk")
         #expect(SolanaMetaplex.parse([4] + [UInt8](repeating: 0, count: 10)) == nil)
+    }
+
+    // MARK: Sui, Aptos e Cardano (so exibicao)
+
+    @Test("Sui: as outras moedas com nome, simbolo e casas do GraphQL; o tipo vai em variavel")
+    func suiOtherCoins() throws {
+        let usdc = "0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC"
+        let bait = "0x01392d0aa4e392e63f46d32823040775c555d43d0d02aac6de7563c7a50734dd::asui::ASUI"
+        let bare = "0x0618a6296ed8cdf64d89ee4b1cb418f69346e8fb1eaa6275027df4fbe08b4b00::x::X"
+        let query = SuiReader.metadataQuery([usdc, bait])
+        #expect(String(decoding: query.serialized, as: UTF8.self).contains("$t1: String!"))
+        #expect(!String(decoding: (try query.field("query", "q")).serialized, as: UTF8.self).contains("usdc"))
+        let json = try StrictJSON.parse(Data("""
+        {"data":{"m0":{"decimals":6,"name":"USDC","symbol":"USDC"},
+                 "m1":{"decimals":9,"name":"aSUI (Bridge on: suibridgev2.com)","symbol":"aSUI"},"m2":null}}
+        """.utf8))
+        let readings = [
+            SuiReader.BalanceReading(coinType: usdc, total: 2_500_000, address: 0, coins: 1),
+            SuiReader.BalanceReading(coinType: bait, total: 1_000_000_000_000, address: 0, coins: 1),
+            SuiReader.BalanceReading(coinType: bare, total: 7, address: 0, coins: 1),
+        ]
+        let coins = try SuiReader.parseOtherCoins(json, readings: readings)
+        // O USDC oficial da Circle na Sui nao e imitacao; o "aSUI" com site no nome e isca.
+        #expect(coins[0].asset.symbol == "USDC" && coins[0].asset.decimals == 6 && !coins[0].isSuspicious)
+        #expect(coins[1].reasons.contains(.link))
+        #expect(coins[2].asset.symbol == "X" && coins[2].asset.decimals == 0)
+    }
+
+    @Test("Aptos: o indexador da Aptos Labs; APT fica de fora, isca e USDT de ponte ficam suspeitos")
+    func aptosOtherAssets() throws {
+        let assets = try AptosReader.parseOtherAssets(StrictJSON.parse(Self.data("aptos-indexer-saldos")))
+        #expect(assets.count == 2)
+        let unlock = try #require(assets.first { $0.asset.symbol == "LAPT" })
+        #expect(unlock.reasons.contains(.link) && unlock.reasons.contains(.bait))
+        // O USDT da LayerZero nao e o fungible asset da Tether: imita o simbolo.
+        let bridged = try #require(assets.first { $0.asset.symbol == "USDT" })
+        #expect(bridged.reasons.contains(.imitation) && bridged.asset.decimals == 6)
+    }
+
+    @Test("Cardano: tokens nativos somados por politica e nome, com as casas do registro")
+    func cardanoNativeTokens() throws {
+        let tokens = try CardanoReader.nativeTokens(koios: ReaderFixtures.data("cardano", "koios-address_utxos-tokens"))
+        #expect(!tokens.isEmpty)
+        let night = try #require(tokens.first { $0.asset.symbol == "NIGHT" })
+        #expect(night.asset.decimals == 6 && night.asset.id.hasPrefix("cardano:0691b2fecca1ac4f53cb6dfb00b7013e561d1f34403b957cbb5af1fa"))
+        #expect(night.amount > BigUInt(100_000_000))
+    }
+
+    @Test("Polkadot Asset Hub: ativos com saldo pelo sidecar; USDt e USDC oficiais nao sao imitacao")
+    func polkadotAssets() async throws {
+        let transport = FixtureTransport([{ request, _ in
+            let path = request.url.path
+            if path.hasSuffix("/asset-balances") { return try Self.data("sidecar-asset-balances") }
+            for id in ["1984", "30", "31337", "42069", "1337"] where path.hasSuffix("/assets/\(id)/asset-info") {
+                return try Self.data("sidecar-asset-info-\(id)")
+            }
+            throw HTTPClient.Failure.status(404)
+        }])
+        let reader = PolkadotReader(transport: transport, providers: testProviders("dot-a"), sidecar: URL(string: "https://sidecar.test")!)
+        let assets = try await reader.otherAssets("13UVJyLnbVp9RBZYFwFGyDvVd1y27Tt8tkntv6Q7JVPhFsTB")
+        #expect(assets.count == 7)
+        let usdt = try #require(assets.first { $0.asset.id == "polkadot:1984" })
+        #expect(usdt.asset.symbol == "USDt" && usdt.asset.name == "Tether USD" && usdt.asset.decimals == 6 && !usdt.isSuspicious)
+        #expect(assets.first { $0.asset.id == "polkadot:1337" }?.isSuspicious == false)
+        // Sem metadados gravados: o numero do ativo, sem casas inventadas.
+        let bare = try #require(assets.first { $0.asset.id == "polkadot:23" })
+        #expect(bare.asset.symbol == "#23" && bare.asset.decimals == 0)
+    }
+
+    @Test("NEAR: tokens da FastNEAR, com nome e casas do ft_metadata do contrato")
+    func nearTokens() async throws {
+        let transport = FixtureTransport([{ request, body in
+            if request.url.host == "fastnear-api.test" { return try Self.data("fastnear-ft-aurora") }
+            if FixtureTransport.method(body) == "query" { return try Self.data("near-ft_metadata-metapool") }
+            return nil
+        }])
+        let reader = NEARReader(transport: transport, providers: testProviders("near-a"), tokens: URL(string: "https://fastnear-api.test")!)
+        let tokens = try await reader.otherTokens("aurora")
+        #expect(tokens.count == 6)
+        let staked = try #require(tokens.first { $0.asset.id == "near:meta-pool.near" })
+        #expect(staked.asset.symbol == "STNEAR" && staked.asset.decimals == 24)
+        #expect(transport.requests.first?.url.path == "/v1/account/aurora/ft")
     }
 
     // MARK: Moeda custom

@@ -51,8 +51,8 @@ public enum TokenSafety {
     /// Redes em que um token chega sem o dono pedir.
     public static func arrivesUnsolicited(_ chain: Chain) -> Bool {
         switch chain.family {
-        case .evm, .solana, .tron, .ton, .sui, .aptos, .cardano: return true
-        case .xrpl, .stellar, .utxo, .polkadot, .near: return false
+        case .evm, .solana, .tron, .ton, .sui, .aptos, .cardano, .polkadot, .near: return true
+        case .xrpl, .stellar, .utxo: return false
         }
     }
 
@@ -99,8 +99,24 @@ public enum TokenSafety {
     static func imitates(symbol: String, chainID: String, kind: Asset.Kind) -> Bool {
         let key = normalizedSymbol(symbol)
         guard !key.isEmpty, TokenRegistry.listed(chainID: chainID, kind: kind) == nil else { return false }
+        if case .token(let contract) = kind, officialOutsideList.contains("\(chainID):\(contract)") { return false }
         return protectedSymbols(chainID: chainID).contains(key)
     }
+
+    /// Stablecoins oficiais em redes cuja lista ainda nao tem token (a carteira so envia a
+    /// moeda nativa delas): nao sao imitacao, mesmo com o simbolo protegido. Continuam
+    /// "nao verificadas" na tela. Fontes dos emissores, conferidas em 04/10/2026:
+    /// developers.circle.com "USDC contract addresses" (Sui, Aptos, Polkadot Asset Hub e
+    /// NEAR) e tether.to "Supported protocols" (Aptos, Polkadot Asset Hub e NEAR).
+    public static let officialOutsideList: Set<String> = [
+        "sui:0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC",
+        "aptos:0xbae207659db88bea0cbead6da0ed00aac12edcdda169e591cd41c94180b46f3b",
+        "aptos:0x357b0b74bc833e95a115ad22604854d6b0fca151cecd94111770e5d6ffc9dc2b",
+        // Polkadot Asset Hub: USDC (Circle, ativo 1337) e USDt (Tether, ativo 1984).
+        "polkadot:1337", "polkadot:1984",
+        // NEAR: USDC (Circle) e USDt (Tether).
+        "near:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1", "near:usdt.tether-token.near",
+    ]
 
     static func protectedSymbols(chainID: String) -> Set<String> {
         var out = Set(TokenRegistry.tokens.filter(\.isStablecoin).map { normalizedSymbol($0.symbol) })

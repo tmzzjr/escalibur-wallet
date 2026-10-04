@@ -1,0 +1,27 @@
+{
+ "at": {
+  "hash": "0x9cca20fa4175aa22996c604d9df90d8f0265631fc0d830fd6faf087c6d5dfa9b",
+  "height": "21440834"
+ },
+ "assetInfo": {
+  "owner": "136FwWWfX7jf9pKxE66UXzQ25QJrcP77q5jPfwxC9M2xdsHn",
+  "issuer": "136FwWWfX7jf9pKxE66UXzQ25QJrcP77q5jPfwxC9M2xdsHn",
+  "admin": "136FwWWfX7jf9pKxE66UXzQ25QJrcP77q5jPfwxC9M2xdsHn",
+  "freezer": "136FwWWfX7jf9pKxE66UXzQ25QJrcP77q5jPfwxC9M2xdsHn",
+  "supply": "9999999594298900000000",
+  "deposit": "100000000000",
+  "minBalance": "1",
+  "isSufficient": false,
+  "accounts": "1306837",
+  "sufficients": "0",
+  "approvals": "2",
+  "status": "Live"
+ },
+ "assetMetaData": {
+  "deposit": "2007400000",
+  "name": "0x444544",
+  "symbol": "0x444544",
+  "decimals": "10",
+  "isFrozen": false
+ }
+}

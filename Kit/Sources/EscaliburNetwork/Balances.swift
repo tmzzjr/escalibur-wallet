@@ -558,9 +558,17 @@ public actor BalanceService {
                         unknown.append((contract, amount))
                     }
                 }
+                // Nome, simbolo e casas de todos numa chamada (`/v1/trc20/info` da TronGrid);
+                // o que faltar, pelo proprio contrato, poucos por vez.
+                await self.tronInfo(provider, contracts: unknown.map(\.contract))
                 var unlisted: [UnlistedHolding] = []
-                for entry in unknown.prefix(30) {
-                    let facts = await self.tronFacts(entry.contract)
+                var direct = 0
+                for entry in unknown.prefix(60) {
+                    var facts = await self.cachedTronFacts(entry.contract)
+                    if facts == nil, direct < 5 {
+                        direct += 1
+                        facts = await self.tronFacts(entry.contract)
+                    }
                     unlisted.append(.make(
                         chain: .tron, kind: .token(contract: entry.contract), symbol: facts?.symbol ?? "", name: facts?.name ?? "",
                         decimals: facts?.decimals ?? 0, amount: entry.amount
@@ -601,6 +609,32 @@ public actor BalanceService {
                   TronAddress(base58: contract) != nil, let amount = try? value.decimalString("trc20"), !amount.isZero
             else { return nil }
             return (contract, amount)
+        }
+    }
+
+    private func cachedTronFacts(_ contract: String) -> (name: String, symbol: String, decimals: Int)? { tronMetadata[contract] }
+
+    /// `/v1/trc20/info?contract_list=` da TronGrid: nome, simbolo e casas de ate 20
+    /// contratos por chamada, guardados para a sessao. Falha aqui nao derruba o saldo.
+    private func tronInfo(_ provider: ProviderPool.Provider, contracts: [String]) async {
+        let missing = contracts.filter { tronMetadata[$0] == nil }
+        for start in stride(from: 0, to: min(missing.count, 60), by: 20) {
+            let chunk = Array(missing[start..<min(start + 20, missing.count)])
+            let url = provider.baseURL.adding(path: "v1/trc20/info").adding(query: [("contract_list", chunk.joined(separator: ","))])
+            guard let json = try? await getJSON(url) else { return }
+            for (contract, facts) in Self.trc20Info(json) where chunk.contains(contract) { tronMetadata[contract] = facts }
+        }
+    }
+
+    static func trc20Info(_ json: StrictJSON) -> [(String, (name: String, symbol: String, decimals: Int))] {
+        let rows = (try? json.field("data", "info").array("data")) ?? []
+        return rows.compactMap { row in
+            guard let contract = try? row.field("contract_address", "row").string("contract_address"),
+                  let decimals = (try? row.field("decimals", "row").integer("decimals"))?.uint64, decimals <= 36
+            else { return nil }
+            let name = (try? row.field("name", "row").string("name")) ?? ""
+            let symbol = (try? row.field("symbol", "row").string("symbol")) ?? ""
+            return (contract, (name, symbol, Int(decimals)))
         }
     }
 

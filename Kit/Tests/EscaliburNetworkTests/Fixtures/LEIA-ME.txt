@@ -65,3 +65,12 @@ Tokens fora da lista e moeda custom, gravadas em 04/10/2026 (sem chave), em toke
 - horizon-assets-aqua (/assets?asset_code=AQUA&asset_issuer=GBNZ...AQUA, sem os `_links`),
   xrpl-account_info-solo e xrpl-gateway_balances-solo (emissor do SOLO), sem alteracao.
 - coingecko-token_price-arb: /simple/token_price/arbitrum-one do ARB em BRL, sem alteracao.
+- aptos-indexer-saldos: current_fungible_asset_balances da conta 0x71d2...e0ce no indexador
+  GraphQL da Aptos Labs (APT, uma isca "APT Unlock at APTUNLOCK.COM" e o USDT da LayerZero),
+  sem alteracao.
+- trongrid-trc20-info: /v1/trc20/info com 4 dos 5 TRC-20 da conta de teste (o quinto fica de
+  fora de proposito, para o teste ler o que faltar no contrato), sem alteracao.
+- sidecar-asset-balances (conta 13UVJy...FsTB na Asset Hub, so os 7 ativos com saldo e 3 com
+  zero dos 763 da resposta) e sidecar-asset-info-{1984,30,31337,42069,1337}, sem alteracao.
+- fastnear-ft-aurora (api.fastnear.com/v1/account/aurora/ft, 6 dos tokens) e
+  near-ft_metadata-metapool (ft_metadata de meta-pool.near pela FastNEAR RPC), sem alteracao.

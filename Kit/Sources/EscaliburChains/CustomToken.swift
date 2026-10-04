@@ -41,6 +41,10 @@ public enum CustomToken {
         case .solana: return "Mint do token"
         case .ton: return "Endereço mestre do jetton"
         case .xrpl, .stellar: return "Emissor"
+        case .sui: return "Tipo da moeda"
+        case .cardano: return "Política e nome do ativo"
+        case .polkadot: return "Número do ativo"
+        case .aptos: return "Endereço do ativo"
         default: return "Contrato do token"
         }
     }
@@ -148,6 +152,16 @@ public enum CustomToken {
 
     static func xrplSymbolOrCode(_ code: String) -> String {
         code.count == 40 ? xrplSymbol(code) : code
+    }
+
+    /// O explorador da rede abre a pagina do token pelo mesmo endereco de conta? Na Sui,
+    /// Cardano, Polkadot e Aptos o identificador do token nao e uma conta, e o link levaria
+    /// a outro lugar.
+    public static func explorerShowsToken(_ chain: Chain) -> Bool {
+        switch chain.family {
+        case .evm, .solana, .tron, .ton, .xrpl, .stellar, .near: return true
+        case .utxo, .sui, .cardano, .polkadot, .aptos: return false
+        }
     }
 
     /// O contrato inteiro, como a tela mostra e o dono confere. Na XRPL e na Stellar,

@@ -25,6 +25,8 @@ public actor NEARReader {
     let providers: [ProviderPool.Provider]
     let pool: ProviderPool
     let historyURL: URL
+    /// Quais tokens NEP-141 a conta tem (`api.fastnear.com`). Nil: so o NEAR.
+    let tokensURL: URL?
     private var verifiedNetwork: Set<String> = []
     private var tracked: [String: Tracked] = [:]
 
@@ -37,15 +39,16 @@ public actor NEARReader {
 
     public init(
         transport: ReaderTransport = HTTPClient.shared, providers: [ProviderPool.Provider] = Endpoints.near,
-        history: URL = Endpoints.nearHistory, pacing: TimeInterval = 0.1
+        history: URL = Endpoints.nearHistory, tokens: URL? = Endpoints.nearTokens, pacing: TimeInterval = 0.1
     ) {
         // Os nos publicos limitam por IP. Um decimo de segundo entre chamadas ao mesmo
         // host, e o 429 repete uma vez.
-        let hosts = (providers.map(\.baseURL) + [history]).compactMap(\.host)
+        let hosts = (providers.map(\.baseURL) + [history] + [tokens].compactMap { $0 }).compactMap(\.host)
         self.transport = PacedTransport(base: transport, intervals: Dictionary(hosts.map { ($0, pacing) }, uniquingKeysWith: { a, _ in a }))
         self.providers = providers
         self.pool = ProviderPool(providers)
         self.historyURL = history
+        self.tokensURL = tokens
     }
 
     // MARK: Estado para o plano
@@ -123,9 +126,55 @@ public actor NEARReader {
             try await self.ensureNetwork(provider)
             return OptionalAccount(value: try await self.account(provider, owner.text, at: nil))
         }.value
+        let unlisted = try? await otherTokens(owner.text)
         return ChainBalance(
             chainID: Chain.near.id, holdings: [Holding(asset: .native(.near), amount: state?.amount ?? 0)],
-            accountExists: state != nil, unknownTokenCount: 0, fetchedAt: .now
+            accountExists: state != nil, unknownTokenCount: 0, fetchedAt: .now, unlisted: unlisted.map(UnlistedHolding.sorted)
+        )
+    }
+
+    /// Os tokens NEP-141 com saldo pela FastNEAR; nome, simbolo e casas de cada um pelo
+    /// `ft_metadata` do proprio contrato, num no da lista.
+    func otherTokens(_ owner: String) async throws -> [UnlistedHolding] {
+        guard let tokensURL else { throw ReaderError.unsupported("sem indexador de tokens") }
+        let list = try StrictJSON.parse(try await transport.send(.get(tokensURL.adding(path: "v1/account/\(owner)/ft"), timeout: 20)))
+        var out: [UnlistedHolding] = []
+        for (contract, amount) in Self.ftBalances(list).prefix(20) {
+            let metadata = try? await Quorum.first(await live(), pool: pool) { provider in
+                let result = try await self.call(provider, "query", .object([
+                    "request_type": .string("call_function"), "finality": .string("final"), "account_id": .string(contract),
+                    "method_name": .string("ft_metadata"), "args_base64": .string("e30="),
+                ]))
+                return try Self.ftMetadata(result)
+            }
+            out.append(UnlistedHolding.make(
+                chain: .near, kind: .token(contract: contract), symbol: metadata?.symbol ?? "", name: metadata?.name ?? "",
+                decimals: metadata?.decimals ?? 0, amount: amount
+            ))
+        }
+        return out
+    }
+
+    static func ftBalances(_ json: StrictJSON) -> [(contract: String, amount: BigUInt)] {
+        ((try? json.field("tokens", "ft").array("tokens")) ?? []).compactMap { token in
+            guard let contract = try? token.field("contract_id", "token").string("contract_id"),
+                  case .success = NEARAccountID.parse(contract),
+                  let amount = try? token.field("balance", "token").decimalString("balance"), !amount.isZero
+            else { return nil }
+            return (contract, amount)
+        }
+    }
+
+    /// O retorno de `ft_metadata`: bytes de um JSON com `name`, `symbol` e `decimals`.
+    static func ftMetadata(_ result: StrictJSON) throws -> (name: String, symbol: String, decimals: Int) {
+        let bytes = try result.field("result", "query").array("result").map { try UInt8(exactly: $0.uint64("byte")) ?? { throw ReaderError.malformed(field: "byte") }() }
+        let json = try StrictJSON.parse(Data(bytes))
+        let decimals = try json.field("decimals", "ft_metadata").uint64("decimals")
+        guard decimals <= 36 else { throw ReaderError.implausibleValue(field: "decimals") }
+        return (
+            (try? json.field("name", "ft_metadata").string("name")) ?? "",
+            (try? json.field("symbol", "ft_metadata").string("symbol")) ?? "",
+            Int(decimals)
         )
     }
 

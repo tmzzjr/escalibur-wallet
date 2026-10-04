@@ -1,0 +1,35 @@
+{
+ "account_id": "aurora",
+ "tokens": [
+  {
+   "contract_id": "ea7cc765ebc94c4805e3bff28d7e4ae48d06468a.factory.bridge.near",
+   "last_update_block_height": 217871722,
+   "balance": "37472798709322423272793784"
+  },
+  {
+   "contract_id": "b8919522331c59f5c16bdfaa6a121a6e03a91f62.factory.bridge.near",
+   "last_update_block_height": null,
+   "balance": "10000000"
+  },
+  {
+   "contract_id": "v2-nearx.stader-labs.near",
+   "last_update_block_height": 217250773,
+   "balance": "616214680093025588967413486"
+  },
+  {
+   "contract_id": "meta-pool.near",
+   "last_update_block_height": 218405573,
+   "balance": "111285213520311142157999294844"
+  },
+  {
+   "contract_id": "lpbot.near",
+   "last_update_block_height": null,
+   "balance": "10000000"
+  },
+  {
+   "contract_id": "3ea8ea4237344c9931214796d9417af1a1180770.factory.bridge.near",
+   "last_update_block_height": 218531341,
+   "balance": "1998712766258253375149198"
+  }
+ ]
+}
