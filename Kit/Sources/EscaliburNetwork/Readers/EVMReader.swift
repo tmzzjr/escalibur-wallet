@@ -153,6 +153,58 @@ public actor EVMReader {
         return EVMTokenState(contractHasCode: try await code, balance: try await balance, allowance: allowance)
     }
 
+    /// Nome, simbolo e casas decimais de um contrato, para a previa da moeda custom. O
+    /// contrato tem de ter codigo, e as casas vem de dois provedores concordando no mesmo
+    /// bloco (o valor digitado e lido nessa escala). Nome e simbolo tambem pedem dois;
+    /// sem acordo, ficam vazios e a tela mostra o contrato.
+    public func tokenFacts(chain: Chain, contract: EVMAddress) async throws -> EVMTokenFacts {
+        let (pool, providers) = try await eligible(chain)
+        let pin = try await pinnedBlock(chain, pool: pool, providers: providers)
+        guard try await hasCode(chain, contract, block: pin, pool: pool, providers: providers) else {
+            throw ReaderError.unsupported("sem codigo")
+        }
+        let (decimals, sources) = try await decimalsReading(chain, contract, block: pin, pool: pool, providers: providers)
+        async let symbol = textCall(chain, contract, "symbol()", block: pin, pool: pool, providers: providers)
+        async let name = textCall(chain, contract, "name()", block: pin, pool: pool, providers: providers)
+        return EVMTokenFacts(name: await name ?? "", symbol: await symbol ?? "", decimals: decimals, sources: sources)
+    }
+
+    /// As casas decimais de um token, com dois provedores concordando: o envio de moeda
+    /// custom confere contra as casas salvas antes de montar o plano.
+    public func tokenDecimals(chain: Chain, contract: EVMAddress) async throws -> Int {
+        let (pool, providers) = try await eligible(chain)
+        let pin = try await pinnedBlock(chain, pool: pool, providers: providers)
+        return try await decimalsReading(chain, contract, block: pin, pool: pool, providers: providers).value
+    }
+
+    private func decimalsReading(
+        _ chain: Chain, _ contract: EVMAddress, block: String, pool: ProviderPool, providers: [Provider]
+    ) async throws -> (value: Int, sources: [String]) {
+        let transport = self.transport
+        let request: StrictJSON = .object(["to": .string(contract.checksummed), "data": .string(Hex.encode(ERC20.decimals(), prefix: true))])
+        let (value, sources) = try await Quorum.agreeing(providers, pool: pool, field: "decimals") { provider in
+            try await self.verify(provider, chain: chain)
+            let returned = try await Self.call(transport, provider.baseURL, "eth_call", [request, .string(block)]).hexData("decimals")
+            do { return try ERC20.decodeUInt256(returned) } catch { throw ReaderError.malformed(field: "decimals") }
+        }
+        guard let places = value.uint64, places <= 36 else { throw ReaderError.implausibleValue(field: "decimals") }
+        return (Int(places), sources)
+    }
+
+    private func textCall(
+        _ chain: Chain, _ contract: EVMAddress, _ signature: String, block: String, pool: ProviderPool, providers: [Provider]
+    ) async -> String? {
+        guard let selector = try? ABI.selector(signature) else { return nil }
+        let transport = self.transport
+        let request: StrictJSON = .object(["to": .string(contract.checksummed), "data": .string(Hex.encode(selector, prefix: true))])
+        return try? await Quorum.agree(providers, pool: pool, field: signature) { provider in
+            try await self.verify(provider, chain: chain)
+            let returned = try await Self.call(transport, provider.baseURL, "eth_call", [request, .string(block)]).hexData(signature)
+            guard let text = CustomToken.decodeABIText(returned) else { throw ReaderError.malformed(field: signature) }
+            return text
+        }
+    }
+
     /// `eth_getCode` de um endereco, com dois provedores concordando no bloco fixado. O
     /// motor de envio diz ao dono, antes do valor, que o destino e contrato (ou conta com
     /// delegacao EIP-7702), e nao uma carteira comum.
@@ -913,4 +965,13 @@ extension EVMAddress {
     init(bytesUnchecked bytes: [UInt8]) {
         self = EVMAddress(bytes: bytes)!
     }
+}
+
+/// O que um contrato ERC-20 declara de si, para a previa da moeda custom.
+public struct EVMTokenFacts: Sendable, Equatable {
+    public let name: String
+    public let symbol: String
+    public let decimals: Int
+    /// Os dois provedores que concordaram nas casas decimais.
+    public let sources: [String]
 }

@@ -47,3 +47,21 @@ na mesma versao do ledger, e o indexador GraphQL da Aptos Labs): indice de cada 
 simulacoes (estimativa e envio, para um destino com APT e um novo) com os bytes simulados
 (.bcs.hex), uma transacao pelo hash e o historico. Conta: 0x966e...6c41, chave publica tirada
 de uma assinatura dela na rede. Sem alteracao. Os testes dos motores leem estes arquivos.
+
+Tokens fora da lista e moeda custom, gravadas em 04/10/2026 (sem chave), em tokens/:
+- blockscout-tokens-base e blockscout-tokens-ethereum: /api/v2/addresses/0x9858...aEda94/
+  tokens?type=ERC-20 da conta publica de teste do BIP-39 ("abandon ... about"), sem
+  alteracao. Quase tudo e isca de golpe de verdade, e e o que o filtro tem de pegar.
+- routescan-erc20-holdings-avalanche: /v2/network/mainnet/evm/43114/address/.../erc20-holdings
+  da mesma conta, sem alteracao.
+- trongrid-account-abandon: /v1/accounts/TUEZ...YdH, so `address`, `create_time`, `trc20` e
+  `meta`. tron-constant-*-kyc: triggerconstantcontract de name(), symbol() e decimals() no
+  contrato TQGaH1...bmw8 (api.tronstack.io), sem o objeto `transaction`.
+- tonapi-jettons: /v2/accounts/EQCD39...xqB2N/jettons (TON Foundation), cortada em 8 jettons
+  (2 whitelist, 2 blacklist, 4 none) e so os campos que o leitor le. tonapi-jetton-not e
+  toncenter-jetton-masters-not: o mestre do NOT; sem `preview`, `holders_count` e `metadata`.
+- solana-getMultipleAccounts-metaplex-bonk (conta de metadados da Metaplex do BONK, base64) e
+  solana-getAccountInfo-mint-bonk (o mint, jsonParsed), sem alteracao.
+- horizon-assets-aqua (/assets?asset_code=AQUA&asset_issuer=GBNZ...AQUA, sem os `_links`),
+  xrpl-account_info-solo e xrpl-gateway_balances-solo (emissor do SOLO), sem alteracao.
+- coingecko-token_price-arb: /simple/token_price/arbitrum-one do ARB em BRL, sem alteracao.

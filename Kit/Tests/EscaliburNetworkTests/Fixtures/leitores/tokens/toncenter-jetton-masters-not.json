@@ -1,0 +1,27 @@
+{
+ "jetton_masters": [
+  {
+   "address": "0:2F956143C461769579BAEF2E32CC2D7BC18283F40D20BB03E432CD603AC33FFC",
+   "total_supply": "102452655868343930134",
+   "mintable": true,
+   "admin_address": null,
+   "jetton_content": {
+    "decimals": "9",
+    "uri": "https://cdn.joincommunity.xyz/clicker/not.json"
+   },
+   "jetton_wallet_code_hash": "jSjqQht36AX+pSrPM1KWSZ8Drsjp/SHdtfJWSqZcSN4=",
+   "code_hash": "+D0FSQr3ycxYAZSIx7JTyUktScJdEtCTg+UugVN+NDo=",
+   "data_hash": "u9ZPx5+yy0E0gsONtxCxYKxJg4IZRuEyrQzIqTJ4vyY=",
+   "last_transaction_lt": "107766683000013"
+  }
+ ],
+ "address_book": {
+  "0:2F956143C461769579BAEF2E32CC2D7BC18283F40D20BB03E432CD603AC33FFC": {
+   "user_friendly": "EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT",
+   "domain": "notcoin-minter.ton",
+   "interfaces": [
+    "jetton_master"
+   ]
+  }
+ }
+}

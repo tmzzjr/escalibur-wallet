@@ -20,6 +20,38 @@ public struct Asset: Hashable, Codable, Sendable, Identifiable {
     /// Para preco e para o logo embarcado.
     public let coingeckoID: String?
     public let isStablecoin: Bool
+    /// De onde a carteira conhece o ativo. `nil`: a moeda nativa ou um token da lista
+    /// conferida (`TokenRegistry`). Fora dela o nome e o simbolo vieram da rede, e
+    /// qualquer um cria token com qualquer nome: a tela marca, o total so conta com
+    /// preco por contrato e o motor confere de novo na rede antes de montar um envio.
+    /// Opcional para o cache de saldo gravado antes deste campo continuar abrindo.
+    public let origin: Origin?
+
+    public enum Origin: String, Codable, Sendable, Hashable {
+        /// O dono colou o contrato e a carteira leu nome, simbolo e casas na propria
+        /// rede, com dois provedores concordando nas casas, antes de salvar.
+        case custom
+        /// Chegou na conta e nao esta na lista nem nas moedas custom. So exibicao.
+        case discovered
+    }
+
+    public init(
+        chainID: String, kind: Kind, symbol: String, name: String, decimals: Int, coingeckoID: String?, isStablecoin: Bool,
+        origin: Origin? = nil
+    ) {
+        self.chainID = chainID
+        self.kind = kind
+        self.symbol = symbol
+        self.name = name
+        self.decimals = decimals
+        self.coingeckoID = coingeckoID
+        self.isStablecoin = isStablecoin
+        self.origin = origin
+    }
+
+    /// Da lista conferida (ou a moeda nativa da rede).
+    public var isVerified: Bool { origin == nil }
+    public var isCustom: Bool { origin == .custom }
 
     public var id: String {
         switch kind {
@@ -458,6 +490,24 @@ public enum TokenRegistry {
     /// Todos os ativos de uma rede: a moeda nativa e os tokens da lista.
     public static func assets(on chain: Chain) -> [Asset] {
         [Asset.native(chain)] + tokens.filter { $0.chainID == chain.id }
+    }
+
+    /// O token da lista com este contrato (ou codigo e emissor). Na EVM a caixa do
+    /// endereco nao importa; nas outras redes importa, e a comparacao e exata. Codigo do
+    /// XRP Ledger compara sem caixa, como a leitura das linhas de confianca.
+    public static func listed(chainID: String, kind: Asset.Kind) -> Asset? {
+        switch kind {
+        case .native:
+            return nil
+        case .token(let contract):
+            if Chain.find(chainID)?.family == .evm { return find(chainID: chainID, contract: contract) }
+            return tokens.first { $0.chainID == chainID && $0.kind == kind }
+        case .issued(let code, let issuer):
+            return tokens.first { asset in
+                guard asset.chainID == chainID, case .issued(let listedCode, let listedIssuer) = asset.kind else { return false }
+                return listedIssuer == issuer && listedCode.uppercased() == code.uppercased()
+            }
+        }
     }
 
     public static func find(chainID: String, contract: String) -> Asset? {

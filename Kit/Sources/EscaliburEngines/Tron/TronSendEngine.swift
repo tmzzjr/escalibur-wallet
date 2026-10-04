@@ -198,6 +198,7 @@ struct TronSendEngine: SendEngine {
     /// TRX, ou o USDT do contrato compilado. Qualquer outro TRC-20 ou TRC-10 fica fora.
     static func coin(_ asset: Asset) throws -> Coin {
         guard asset.chainID == Chain.tron.id else { throw SendEngineError.message(TronEngineText.unsupportedAsset) }
+        if asset.isCustom, let reason = CustomToken.sendUnavailableReason(.tron) { throw SendEngineError.unavailable(reason) }
         switch asset.kind {
         case .native: return .trx
         case .token(let contract) where contract == TRC20.usdt.contract.base58: return .usdt

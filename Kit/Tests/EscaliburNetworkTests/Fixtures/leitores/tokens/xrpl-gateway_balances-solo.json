@@ -1,0 +1,12 @@
+{
+ "result": {
+  "account": "rsoLo2S1kiGeCcn6hCUXVrCpGMWLrRrLZz",
+  "ledger_hash": "A02DDC1F26AB22AA31E9946804CB8F61BCD67CD38E9A58BF5E7CBB1D539FF7D2",
+  "ledger_index": 107436430,
+  "obligations": {
+   "534F4C4F00000000000000000000000000000000": "151002553.495689"
+  },
+  "validated": true,
+  "status": "success"
+ }
+}

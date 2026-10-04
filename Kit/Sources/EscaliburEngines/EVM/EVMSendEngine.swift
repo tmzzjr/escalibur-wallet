@@ -147,6 +147,14 @@ public struct EVMSendEngine: SendEngine {
             )
             simulate = state.destinationHasCode
         case .token(let token):
+            var policy = policy
+            if context.isCustom {
+                // Moeda custom: as casas salvas tem de ser as da rede agora, em dois
+                // provedores; e o proprio contrato nunca e destino.
+                let onChain = try await reader.tokenDecimals(chain: chain, contract: token.contract)
+                guard onChain == Int(token.decimals) else { throw EVMEngineFailure.customDecimalsChanged }
+                policy.blockedRecipients.insert(token.contract)
+            }
             let tokenState = try await reader.tokenState(token: token, owner: owner)
             let amount = request.sendAll ? tokenState.balance : request.amount
             let state = try await reader.networkState(chain: chain, account: owner, intent: .token(token, to: context.recipient, amount: amount))
@@ -172,7 +180,9 @@ public struct EVMSendEngine: SendEngine {
         guard Address.sameRecipient(plan.review.recipient, request.destination, chain: chain) else {
             throw EVMEngineFailure.recipientMismatch
         }
-        return EVMEngineSupport.adding(Self.warnings(recipient: context.recipient, known: request.knownAddresses, chain: chain), to: plan)
+        var warnings = Self.warnings(recipient: context.recipient, known: request.knownAddresses, chain: chain)
+        if context.isCustom, case .token(let token) = context.asset { warnings.append(.unverifiedToken(symbol: token.symbol)) }
+        return EVMEngineSupport.adding(warnings, to: plan)
     }
 
     /// O valor do envio de token em wei do nativo, pelo preco de mercado: e o que o aviso
@@ -252,12 +262,15 @@ struct EVMSendContext {
     let account: EVMAccount
     let asset: EVMResolvedAsset
     let recipient: EVMAddress
+    /// Moeda custom do dono, fora da lista.
+    let isCustom: Bool
 
     init(_ request: SendRequest, chain: Chain) throws {
         guard request.chain.id == chain.id else { throw EVMEngineFailure.wrongChain }
         if let tag = request.tag, !tag.isEmpty { throw EVMEngineFailure.tagNotSupported }
         account = try EVMEngineSupport.account(request.account, chain: chain)
-        asset = try EVMEngineSupport.resolve(request.asset, on: chain)
+        asset = try EVMEngineSupport.resolve(request.asset, on: chain, allowCustom: true)
+        isCustom = request.asset.isCustom && TokenRegistry.listed(chainID: chain.id, kind: request.asset.kind) == nil
         recipient = try EVMAddress(request.destination)
     }
 }

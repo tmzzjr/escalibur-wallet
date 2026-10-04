@@ -197,6 +197,7 @@ struct XRPLSendEngine: SendEngine {
     /// O pedido e do XRP Ledger e em XRP: o planejador de envio so envia XRP.
     private func check(_ request: SendRequest) throws {
         try requireChain(request.chain)
+        if request.asset.isCustom, let reason = CustomToken.sendUnavailableReason(.xrpl) { throw SendEngineError.unavailable(reason) }
         guard request.asset.chainID == Chain.xrpl.id, request.asset.kind == .native else {
             throw SendEngineError.message("Enviar tokens pelo XRP Ledger chega numa atualização em breve. XRP já funciona.")
         }

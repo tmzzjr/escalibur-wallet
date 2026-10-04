@@ -31,17 +31,22 @@ enum StellarEngineSupport {
 
     static var allowedAssets: [StellarAsset] { curated.map(\.stellar) }
 
-    /// O ativo da Stellar para um `Asset` da carteira: o XLM ou um da lista curada.
-    static func stellar(_ asset: Asset) throws -> StellarAsset {
+    /// O ativo da Stellar para um `Asset` da carteira: o XLM ou um da lista curada. No
+    /// envio (`allowCustom`), tambem a moeda custom do dono, com codigo e emissor salvos
+    /// e as 7 casas que a rede usa para todo ativo.
+    static func stellar(_ asset: Asset, allowCustom: Bool = false) throws -> StellarAsset {
         guard asset.chainID == Chain.stellar.id else { throw SendEngineError.message("Este ativo não é da rede Stellar.") }
         switch asset.kind {
         case .native:
             return .native
         case .issued(let code, let issuer):
-            guard let match = curated.first(where: { $0.stellar.code == code && $0.stellar.issuer?.address == issuer }) else {
+            if let match = curated.first(where: { $0.stellar.code == code && $0.stellar.issuer?.address == issuer }) {
+                return match.stellar
+            }
+            guard allowCustom, asset.isCustom, asset.decimals == 7, let custom = try? StellarAsset(code: code, issuer: issuer), !custom.isNative else {
                 throw SendEngineError.message("\(asset.symbol) deste emissor não está na lista de ativos da carteira.")
             }
-            return match.stellar
+            return custom
         case .token:
             throw SendEngineError.message("Este ativo não é da rede Stellar.")
         }

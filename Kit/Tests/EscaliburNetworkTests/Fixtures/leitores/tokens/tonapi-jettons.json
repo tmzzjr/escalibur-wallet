@@ -1,0 +1,84 @@
+{
+ "balances": [
+  {
+   "balance": "1000000000",
+   "jetton": {
+    "address": "0:749ed6c9ecda14f077203687f24327e609bc959decff92b36166f4097e8d9183",
+    "name": "Nova BIT",
+    "symbol": "NVB",
+    "decimals": 9,
+    "verification": "none"
+   }
+  },
+  {
+   "balance": "1000000000",
+   "jetton": {
+    "address": "0:50edd4c23d7cad14ffaeaebd7ce79fcc5bff4a34f23bcbfae1a3bdaeb6d0f7d9",
+    "name": "Things",
+    "symbol": "Thick",
+    "decimals": 9,
+    "verification": "none"
+   }
+  },
+  {
+   "balance": "10000000000000",
+   "jetton": {
+    "address": "0:e7b6133a0e364b22543f950942c2d8fe133d94ad8ce9594578f776dc71ccfe46",
+    "name": "Make Gram Great Again",
+    "symbol": "MGRMGA",
+    "decimals": 9,
+    "verification": "whitelist"
+   }
+  },
+  {
+   "balance": "4280000000000",
+   "jetton": {
+    "address": "0:e9688a0d14f794f2db27195034b915eeba2b15da55d676ea22eb66e0989d0d63",
+    "name": "LOCKED TONNEL",
+    "symbol": "TONNEL 💎 Unlock at TONNEL.ME",
+    "decimals": 9,
+    "verification": "none"
+   }
+  },
+  {
+   "balance": "119200000000",
+   "jetton": {
+    "address": "0:19e5bc74a0a2445fec46c632ac597932feda8168f860c0f02dffe21ee2d3340f",
+    "name": "LOCKED GRAM",
+    "symbol": "GRAM Unlock at gramunlock.org",
+    "decimals": 9,
+    "verification": "blacklist"
+   }
+  },
+  {
+   "balance": "100000000000",
+   "jetton": {
+    "address": "0:6320a6c56fd7835b72fce82d24e9fa57e79ce7feba8ecdc0fce4e4f119d7df7a",
+    "name": "GRAM AIRDROP",
+    "symbol": "GRAM AT GRAMEVENT.ORG",
+    "decimals": 9,
+    "verification": "blacklist"
+   }
+  },
+  {
+   "balance": "2500000000000",
+   "jetton": {
+    "address": "0:f4d5f9d9f0603cfe8a784ac99b2c505ffab2fcfc629c3dd6873c7fba31dc7682",
+    "name": "Ursi",
+    "symbol": "Usi",
+    "decimals": 9,
+    "verification": "none"
+   }
+  },
+  {
+   "balance": "1000000000000000000000000",
+   "jetton": {
+    "address": "0:5f5fd28ee72205a6b1d63e9269dceb17fba7232e310917e879b88404dde2c963",
+    "name": "Virtuals Worlds",
+    "symbol": "VWS",
+    "decimals": 18,
+    "verification": "whitelist"
+   }
+  }
+ ]
+}

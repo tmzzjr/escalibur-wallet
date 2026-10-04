@@ -275,12 +275,22 @@ enum Quorum {
     static func agree<T: Sendable & Equatable>(
         _ providers: [Provider], pool: ProviderPool, field: String, _ operation: @escaping @Sendable (Provider) async throws -> T
     ) async throws -> T {
+        try await agreeing(providers, pool: pool, field: field, operation).value
+    }
+
+    /// Como `agree`, e diz quais dois provedores concordaram (a previa da moeda custom
+    /// mostra ao dono de onde vieram as casas decimais).
+    static func agreeing<T: Sendable & Equatable>(
+        _ providers: [Provider], pool: ProviderPool, field: String, _ operation: @escaping @Sendable (Provider) async throws -> T
+    ) async throws -> (value: T, providers: [String]) {
         let (answers, lastError) = await gather(providers, pool: pool, count: providers.count, firstWave: 2, until: { values in
             values.enumerated().contains { index, value in values[(index + 1)...].contains(value) }
         }, operation)
         let values = answers.map(\.value)
-        for (index, value) in values.enumerated() where values[(index + 1)...].contains(value) {
-            return value
+        for (index, value) in values.enumerated() {
+            if let other = values[(index + 1)...].firstIndex(of: value) {
+                return (value, [answers[index].provider.name, answers[other].provider.name])
+            }
         }
         if answers.isEmpty, let lastError { throw lastError }
         if answers.count < 2 { throw ReaderError.notEnoughProviders(needed: 2, got: answers.count) }

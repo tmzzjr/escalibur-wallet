@@ -17,8 +17,9 @@ extension PlanReview.Movement {
     /// O id e o do ativo da lista curada com esse contrato. No EVM a lista guarda o
     /// endereco com as maiusculas do EIP-55, e a comparacao ignora caixa; nas outras
     /// redes o endereco e sensivel a caixa e a comparacao e exata. Fora da lista, o id
-    /// e rede e contrato como vieram, que nenhum ativo da tela tem: a conferencia do
-    /// app recusa, que e o certo para token que a carteira nao conhece.
+    /// e rede e contrato como vieram: so casa com uma moeda custom que o dono salvou com
+    /// esse mesmo contrato (o `Asset.id` dela tem a mesma forma); qualquer outro token
+    /// a conferencia do app recusa.
     static func token(_ chain: Chain, contract: String, _ amount: BigUInt) -> Self {
         token(chain, amount, fallback: contract) { listed in
             chain.family == .evm ? listed.lowercased() == contract.lowercased() : listed == contract
