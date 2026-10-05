@@ -37,9 +37,36 @@ final class ActivityFeed {
     /// lenta (uma varredura UTXO, um provedor no limite). Na primeira leitura a lista vai
     /// crescendo; ao atualizar uma lista que ja existe, ela so troca no fim, sem piscar.
     func load(_ wallet: WalletMeta?, disabled: Set<String>) async {
-        guard let wallet, !loading else { return }
+        guard let wallet else { return }
+        // Leitura em andamento da mesma carteira: espera por ela em vez de comecar outra.
+        if let current, currentWalletID == wallet.id {
+            await current.value
+            return
+        }
+        current?.cancel()
+        // Numa tarefa propria, que a troca de aba nao cancela: antes, sair da Atividade
+        // no meio cancelava os pedidos que faltavam, e as redes mais lentas (Base e
+        // Ethereum pelo Blockscout) viravam "nao foi possivel ler" (print do iPhone).
+        generation += 1
+        let mine = generation
+        let job = Task { await run(wallet, disabled: disabled, generation: mine) }
+        current = job
+        currentWalletID = wallet.id
+        await job.value
+        if currentWalletID == wallet.id {
+            current = nil
+            currentWalletID = nil
+        }
+    }
+
+    private var current: Task<Void, Never>?
+    private var currentWalletID: UUID?
+    /// A leitura valida: uma de carteira trocada no meio termina sem mexer na tela.
+    private var generation = 0
+
+    private func run(_ wallet: WalletMeta, disabled: Set<String>, generation mine: Int) async {
         loading = true
-        defer { loading = false; remaining = 0 }
+        defer { if generation == mine { loading = false; remaining = 0 } }
         let progressive = entries.isEmpty
         var collected: [ActivityEntry] = []
         var failures: [Chain] = []
@@ -52,6 +79,7 @@ final class ActivityFeed {
         var pending = jobs
         for attempt in 0...Self.retryDelays.count {
             if attempt > 0 { try? await Task.sleep(for: Self.retryDelays[attempt - 1]) }
+            guard !Task.isCancelled, generation == mine else { return }
             remaining = pending.count
             failures = []
             await withTaskGroup(of: (Chain, Outcome).self) { group in
@@ -65,12 +93,13 @@ final class ActivityFeed {
                     case .unavailable(let reason): missing.append((chain, reason))
                     case .failed: failures.append(chain)
                     }
-                    if progressive { publish(collected, failures, missing) }
+                    if progressive, generation == mine { publish(collected, failures, missing) }
                 }
             }
             pending = jobs.filter { job in failures.contains { $0.id == job.0.id } }
             if pending.isEmpty { break }
         }
+        guard !Task.isCancelled, generation == mine else { return }
         publish(collected, failures, missing)
         loadedOnce = true
     }
@@ -226,8 +255,11 @@ struct ActivityView: View {
     /// motivo (limite do provedor, tempo esgotado). Na distribuicao, nada.
     static var debugDetail: String? {
         #if DEBUG
+        // Os indexadores de historico primeiro: sao eles que a Atividade le.
+        let history = ["blockscout", "routescan", "explorer", "novasama", "solana", "vibestation", "trongrid", "toncenter", "tonapi", "horizon", "koios", "fastnear", "aptos", "sui", "ripple", "xrpl"]
         let recent = NetworkDiagnostics.shared.recent()
-        return recent.isEmpty ? nil : "Teste: " + recent.prefix(8).joined(separator: "; ")
+        let sorted = recent.filter { line in history.contains { line.contains($0) } } + recent.filter { line in !history.contains { line.contains($0) } }
+        return sorted.isEmpty ? nil : "Teste: " + sorted.prefix(12).joined(separator: "; ")
         #else
         return nil
         #endif

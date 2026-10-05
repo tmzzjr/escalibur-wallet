@@ -436,6 +436,26 @@ public actor MarketService {
         return try? await (paprikaTokenQuote(paprikaPlatform, contract: contract, currency: currency), ())
     }
 
+    /// A imagem da moeda que o CoinGecko lista com este contrato (`/coins/{plataforma}/
+    /// contract/{contrato}`), so se ela estiver num host de imagem do CoinGecko. `nil`: o
+    /// CoinGecko respondeu e nao lista o contrato (ou a imagem nao serve). Erro: nao
+    /// respondeu (429, sem rede), e vale perguntar de novo depois.
+    public func tokenImage(_ asset: Asset) async throws -> URL? {
+        guard case .token(let contract) = asset.kind, let platform = Self.tokenPlatforms[asset.chainID] else { return nil }
+        struct Coin: Decodable {
+            struct Images: Decodable { let large: String?; let small: String? }
+            let image: Images?
+        }
+        let url = Self.url(Self.gecko, "coins/\(platform.gecko)/contract/\(contract)")
+        do {
+            let coin = try await fromGecko { try await self.get(Coin.self, url) }
+            let link = (coin.image?.large ?? coin.image?.small).flatMap(URL.init(string:))
+            return link.flatMap { ImageLoader.isAllowed($0) ? $0 : nil }
+        } catch HTTPClient.Failure.status(404) {
+            return nil
+        }
+    }
+
     private func geckoTokenQuote(_ platform: String, contract: String, currency: String) async throws -> Quote? {
         let url = Self.url(Self.gecko, "simple/token_price/\(platform)", [
             ("contract_addresses", contract), ("vs_currencies", currency), ("include_24hr_change", "true"),

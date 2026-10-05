@@ -64,3 +64,65 @@ public enum TokenLogos {
             && !url.path.contains("..")
     }
 }
+
+/// De onde vem a logo de um token fora da lista, em ordem: a pasta do contrato no
+/// repositorio da Trust Wallet e, sem ela, a moeda que o CoinGecko lista com o mesmo
+/// contrato (imagem no host de imagens do CoinGecko, que o app ja usa).
+///
+/// Ficam de fora, de proposito: a imagem que o proprio token declara (de qualquer host,
+/// escolhido por quem criou o token) e o WebP do proxy da tonapi (o decodificador de
+/// WebP foi a porta do BLASTPASS em 2023; o app so abre PNG e JPEG). Token sem nenhuma
+/// das duas fontes fica com as letras do simbolo.
+///
+/// As perguntas ao CoinGecko saem uma a cada 3 s: sem chave, ele corta a rajada, e a
+/// mesma cota serve o Mercado.
+/// O resultado fica so na memoria; "nao listado" vale ate o app fechar.
+public actor TokenLogoResolver {
+    public static let shared = TokenLogoResolver()
+
+    private let market: MarketService
+    private var resolved: [String: URL?] = [:]
+    private var running: [String: Task<URL?, Never>] = [:]
+    private var gate: Task<Void, Never>?
+    static let spacing: Duration = .seconds(3)
+
+    public init(market: MarketService = .shared) {
+        self.market = market
+    }
+
+    public func logo(for asset: Asset) async -> URL? {
+        if let done = resolved[asset.id] { return done }
+        if let task = running[asset.id] { return await task.value }
+        let task = Task { await self.lookup(asset) }
+        running[asset.id] = task
+        let value = await task.value
+        running[asset.id] = nil
+        return value
+    }
+
+    private func lookup(_ asset: Asset) async -> URL? {
+        if let trust = TokenLogos.url(for: asset), await ImageLoader.shared.data(for: trust) != nil {
+            resolved[asset.id] = trust
+            return trust
+        }
+        await waitTurn()
+        do {
+            let found = try await market.tokenImage(asset)
+            resolved[asset.id] = .some(found)
+            return found
+        } catch {
+            return nil
+        }
+    }
+
+    /// A vez na fila do CoinGecko: cada pergunta espera a anterior e mais 3 s.
+    private func waitTurn() async {
+        let previous = gate
+        let mine = Task {
+            await previous?.value
+            try? await Task.sleep(for: Self.spacing)
+        }
+        gate = mine
+        await previous?.value
+    }
+}

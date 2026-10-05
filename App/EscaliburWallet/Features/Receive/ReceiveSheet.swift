@@ -160,7 +160,7 @@ struct ReceiveSheet: View {
             HStack(spacing: Space.sm) {
                 CoinLogo(coingeckoID: coin.coingeckoID, symbol: coin.symbol, size: 36, network: coin.isCustom ? coin.assets.first?.chain : nil,
                          ringColor: Palette.body, unverified: coin.isCustom,
-                         contractLogo: coin.isCustom ? coin.assets.first.flatMap(TokenLogos.url(for:)) : nil)
+                         logoAsset: coin.isCustom ? coin.assets.first : nil)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(verbatim: coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink)

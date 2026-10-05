@@ -13,6 +13,7 @@ struct MarketView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var coins: [MarketCoin] = []
     @State private var query = ""
+    @FocusState private var searching: Bool
     @State private var loading = false
     @State private var failed = false
     @State private var order: Order = .relevance
@@ -63,7 +64,7 @@ struct MarketView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     TabTitle("Mercado")
-                    SearchField(prompt: "Buscar moeda", text: $query)
+                    SearchField(prompt: "Buscar moeda", text: $query, focus: $searching)
                         .padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: Space.xs) {
@@ -130,6 +131,7 @@ struct MarketView: View {
                 }
                 .padding(.bottom, Space.xl)
             }
+            .dismissesKeyboard($searching)
             // Lista viva: atualiza a cada 30 s so enquanto ela esta na tela e o app na
             // frente. Abrir uma moeda, trocar de aba ou sair do app para a atualizacao.
             .task(id: scenePhase) {
@@ -190,7 +192,7 @@ struct MarketRow: View {
                         Text(coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
                     }
                     price
-                    ChangePill(change: coin.change24h)
+                    ChangePill(change: coin.change24h, animated: false)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, Space.sm)
@@ -203,7 +205,7 @@ struct MarketRow: View {
                     }
                     Spacer(minLength: Space.xs)
                     price.frame(width: 120, alignment: .trailing)
-                    ChangePill(change: coin.change24h)
+                    ChangePill(change: coin.change24h, animated: false)
                 }
             }
         }
@@ -212,10 +214,13 @@ struct MarketRow: View {
         .contentShape(Rectangle())
     }
 
+    /// Na lista, preco e variacao trocam sem animar. A lista atualiza a cada 30 s com a
+    /// aba aberta, muitas vezes no meio de uma rolagem, e cem numeros rolando e cem
+    /// pilulas mudando de cor juntos piscavam a tela (relatado no iPhone). A pagina da
+    /// moeda continua animando o seu numero.
     private var price: some View {
         Text(Fmt.price(coin.price, currency)).typeStyle(.row).foregroundStyle(Palette.ink)
             .lineLimit(1).minimumScaleFactor(0.6)
-            .contentTransition(.numericText(value: coin.price))
     }
 }
 
@@ -225,6 +230,8 @@ struct MarketRow: View {
 /// a 4,6:1. Variacao abaixo de 0,01% e neutra, sem seta.
 struct ChangePill: View {
     let change: Double?
+    /// Fora de lista longa: o numero rola e a cor troca devagar. Na lista do Mercado, nao.
+    var animated = true
 
     var body: some View {
         let value = change ?? 0
@@ -238,7 +245,7 @@ struct ChangePill: View {
             }
             Text(Fmt.percent(abs(value)).replacingOccurrences(of: "+", with: ""))
                 .typeStyle(.label).monospacedDigit()
-                .contentTransition(.numericText(value: value))
+                .contentTransition(animated ? .numericText(value: value) : .identity)
         }
         .foregroundStyle(tint)
         .lineLimit(1)
@@ -250,7 +257,7 @@ struct ChangePill: View {
                 .fill(up ? Palette.up : (down ? Palette.downSolid : Palette.rail))
         )
         .layoutPriority(1)
-        .animation(Motion.fade, value: value)
+        .animation(animated ? Motion.fade : nil, value: value)
         .accessibilityLabel(up ? "Subiu \(Fmt.percent(abs(value)))" : (down ? "Caiu \(Fmt.percent(abs(value)))" : "Estável"))
     }
 }

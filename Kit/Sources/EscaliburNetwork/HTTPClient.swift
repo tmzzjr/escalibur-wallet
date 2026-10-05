@@ -130,9 +130,6 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
                 task.cancel()
             }
         } catch {
-            #if DEBUG
-            NetworkDiagnostics.shared.record(host: host, error: error)
-            #endif
             throw error
         }
     }
@@ -213,6 +210,9 @@ extension HTTPClient: URLSessionDataDelegate {
 
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         guard let transfer = lock.withLock({ transfers.removeValue(forKey: ObjectIdentifier(task)) }) else { return }
+        #if DEBUG
+        NetworkDiagnostics.shared.record(host: task.originalRequest?.url?.host ?? "?", failure: transfer.failure, error: error)
+        #endif
         if let failure = transfer.failure {
             transfer.continuation.resume(throwing: failure)
         } else if let error {
@@ -414,8 +414,20 @@ public final class NetworkDiagnostics: @unchecked Sendable {
     private let lock = NSLock()
     private var entries: [(host: String, reason: String, at: Date)] = []
 
-    func record(host: String, error: Error) {
-        let reason = (error as? HTTPClient.Failure).map { String(describing: $0) } ?? String(describing: type(of: error))
+    /// A recusa do app (status, tamanho, redirecionamento) ou o codigo do URLError. Pedido
+    /// cancelado (a tela saiu, a leitura foi trocada) nao e falha de rede e nao entra.
+    func record(host: String, failure: HTTPClient.Failure?, error: Error?) {
+        let reason: String
+        if let failure {
+            reason = String(describing: failure)
+        } else if let error = error as? URLError {
+            guard error.code != .cancelled else { return }
+            reason = "URLError \(error.code.rawValue)"
+        } else if let error {
+            reason = String(describing: type(of: error))
+        } else {
+            return
+        }
         lock.withLock {
             entries.append((host, reason, .now))
             if entries.count > 80 { entries.removeFirst(entries.count - 80) }

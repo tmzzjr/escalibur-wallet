@@ -255,17 +255,87 @@ struct SearchField: View {
     let prompt: String
     @Binding var text: String
     var surface: Color = Palette.body
+    /// Com uma `KeyboardDismissArea` em volta: o foco do campo e onde ele esta, para o
+    /// toque fora dele fechar o teclado.
+    var focus: FocusState<Bool>.Binding? = nil
 
     var body: some View {
         HStack(spacing: Space.xs) {
             Image(systemName: "magnifyingglass").font(.system(size: 15, weight: .medium)).foregroundStyle(Palette.inkMuted)
-            TextField("", text: $text, prompt: Text(prompt).foregroundColor(Palette.inkMuted))
-                .typeStyle(.body).foregroundStyle(Palette.ink)
-                .textInputAutocapitalization(.never).autocorrectionDisabled()
+            field
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill").font(.system(size: 16)).foregroundStyle(Palette.inkMuted)
+                        .frame(width: 32, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Limpar busca")
+            }
         }
-        .padding(.horizontal, Space.md)
+        .padding(.leading, Space.md)
+        .padding(.trailing, text.isEmpty ? Space.md : Space.xxs)
         .frame(height: 44)
         .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(surface))
+        .background {
+            if focus != nil {
+                GeometryReader { proxy in
+                    Color.clear.preference(key: SearchFieldFrameKey.self, value: proxy.frame(in: .named(KeyboardDismissArea.space)))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var field: some View {
+        let base = TextField("", text: $text, prompt: Text(prompt).foregroundColor(Palette.inkMuted))
+            .typeStyle(.body).foregroundStyle(Palette.ink)
+            .textInputAutocapitalization(.never).autocorrectionDisabled()
+            .submitLabel(.search)
+        if let focus {
+            base.focused(focus).onSubmit { focus.wrappedValue = false }
+        } else {
+            base
+        }
+    }
+}
+
+/// Onde esta o campo de busca, no espaco da `KeyboardDismissArea`.
+struct SearchFieldFrameKey: PreferenceKey {
+    static let defaultValue = CGRect.zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let next = nextValue()
+        if next != .zero { value = next }
+    }
+}
+
+/// Tocar em qualquer lugar fora do campo de busca fecha o teclado, e rolar tambem. O
+/// toque continua valendo para o que estiver embaixo (abrir uma moeda, trocar a ordem);
+/// dentro do campo, mexe no texto como sempre.
+struct KeyboardDismissArea: ViewModifier {
+    static let space = "area-do-teclado"
+    var focus: FocusState<Bool>.Binding
+    @State private var field: CGRect = .zero
+
+    func body(content: Content) -> some View {
+        content
+            .coordinateSpace(name: Self.space)
+            .onPreferenceChange(SearchFieldFrameKey.self) { frame in
+                Task { @MainActor in field = frame }
+            }
+            .simultaneousGesture(
+                SpatialTapGesture(coordinateSpace: .named(Self.space)).onEnded { tap in
+                    if focus.wrappedValue, !field.contains(tap.location) { focus.wrappedValue = false }
+                }
+            )
+            .scrollDismissesKeyboard(.immediately)
+    }
+}
+
+extension View {
+    func dismissesKeyboard(_ focus: FocusState<Bool>.Binding) -> some View {
+        modifier(KeyboardDismissArea(focus: focus))
     }
 }
 
@@ -352,6 +422,15 @@ final class ToastCenter {
     /// "Endereco copiado".
     private var window: UIWindow?
 
+    /// Onde o aviso esta agora, na tela: so ali a janela do aviso recebe toque.
+    var toastFrame: CGRect = .zero
+
+    /// Arrastado para cima: sai na hora.
+    func dismiss(_ id: UUID) {
+        guard current?.id == id else { return }
+        withAnimation(.easeIn(duration: 0.18)) { current = nil }
+    }
+
     func show(_ text: String, kind: Toast.Kind = .success) {
         attachWindow()
         let toast = Toast(kind: kind, text: text)
@@ -372,6 +451,7 @@ extension ToastCenter {
         let host = UIHostingController(rootView: ToastLayer(center: self))
         host.view.backgroundColor = .clear
         let overlay = PassthroughWindow(windowScene: scene)
+        overlay.toasts = self
         overlay.windowLevel = .normal + 1
         overlay.rootViewController = host
         overlay.overrideUserInterfaceStyle = .dark
@@ -380,9 +460,15 @@ extension ToastCenter {
     }
 }
 
-/// Janela que so mostra: nenhum toque para nela, tudo segue para o app embaixo.
+/// Janela do aviso: so o proprio aviso recebe toque (para arrastar e tirar); fora dele,
+/// tudo segue para o app embaixo.
 private final class PassthroughWindow: UIWindow {
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? { nil }
+    weak var toasts: ToastCenter?
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        guard let toasts, toasts.current != nil, toasts.toastFrame.contains(point) else { return nil }
+        return super.hitTest(point, with: event)
+    }
 }
 
 private struct ToastLayer: View {
@@ -393,7 +479,15 @@ private struct ToastLayer: View {
         ZStack(alignment: .top) {
             Color.clear
             if let toast = center.current {
-                ToastView(toast: toast).padding(.top, Space.xs)
+                ToastView(toast: toast) { center.dismiss(toast.id) }
+                    .padding(.top, Space.xs)
+                    .background {
+                        GeometryReader { proxy in
+                            Color.clear
+                                .onAppear { center.toastFrame = proxy.frame(in: .global) }
+                                .onChange(of: proxy.frame(in: .global)) { _, frame in center.toastFrame = frame }
+                        }
+                    }
             }
         }
         .ignoresSafeArea(.keyboard)
@@ -402,6 +496,8 @@ private struct ToastLayer: View {
 
 struct ToastView: View {
     let toast: ToastCenter.Toast
+    var onDismiss: (() -> Void)? = nil
+    @State private var drag: CGFloat = 0
 
     var body: some View {
         HStack(spacing: Space.sm) {
@@ -420,6 +516,24 @@ struct ToastView: View {
                 .shadow(color: .black.opacity(0.5), radius: 24, y: 8)
         )
         .padding(.horizontal, Space.gutter)
+        // Segue o dedo para cima; para baixo, so cede um pouco. Solto alto o bastante (ou
+        // jogado para cima), sai.
+        .offset(y: drag)
+        .gesture(
+            DragGesture(minimumDistance: 4)
+                .onChanged { value in
+                    let dy = value.translation.height
+                    drag = dy < 0 ? dy : dy / 5
+                }
+                .onEnded { value in
+                    if value.translation.height < -24 || value.predictedEndTranslation.height < -60 {
+                        onDismiss?()
+                    } else {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { drag = 0 }
+                    }
+                }
+        )
+        .accessibilityAction(named: "Fechar aviso") { onDismiss?() }
         .transition(.move(edge: .top).combined(with: .opacity))
     }
 

@@ -17,10 +17,11 @@ struct CoinLogo: View {
     /// declara, e as letras so em ASCII, brancas no cinza escuro. O logo de um token de
     /// golpe e parte da isca.
     var unverified: Bool = false
-    /// A logo do contrato exato no repositorio da Trust Wallet (`TokenLogos`). Vale
-    /// tambem para token fora da lista: segue o contrato, nao o nome, e o golpe que copia
-    /// o nome do USDT nao tem a pasta do contrato do USDT. Suspeito nunca recebe.
-    var contractLogo: URL? = nil
+    /// O token cuja logo vem pelo contrato exato (`TokenLogoResolver`: repositorio da
+    /// Trust Wallet, depois o CoinGecko). Vale tambem para token fora da lista: segue o
+    /// contrato, nao o nome, e o golpe que copia o nome do USDT nao tem o contrato do
+    /// USDT. Suspeito nunca recebe.
+    var logoAsset: Asset? = nil
 
     @State private var remote: UIImage?
 
@@ -42,9 +43,10 @@ struct CoinLogo: View {
             }
         }
         .accessibilityHidden(true)
-        .task(id: contractLogo ?? remoteURL) {
-            if let contractLogo {
-                guard bundled == nil, let data = await ImageLoader.shared.data(for: contractLogo) else { return }
+        .task(id: logoAsset?.id ?? remoteURL?.absoluteString) {
+            if let logoAsset {
+                guard bundled == nil, let url = await TokenLogoResolver.shared.logo(for: logoAsset),
+                      let data = await ImageLoader.shared.data(for: url) else { return }
                 remote = UIImage(data: data)
                 return
             }
@@ -57,7 +59,7 @@ struct CoinLogo: View {
 
     @ViewBuilder
     private var base: some View {
-        if unverified, contractLogo != nil, let remote {
+        if unverified, logoAsset != nil, let remote {
             Image(uiImage: remote)
                 .resizable()
                 .interpolation(.high)

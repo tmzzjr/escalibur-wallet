@@ -203,7 +203,7 @@ struct AddCustomTokenView: View {
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: Space.sm) {
                 CoinLogo(coingeckoID: nil, symbol: asset.symbol, size: 48, network: asset.chain, ringColor: Palette.void, unverified: true,
-                         contractLogo: TokenLogos.url(for: asset))
+                         logoAsset: asset)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(verbatim: asset.symbol).typeStyle(.title).foregroundStyle(Palette.ink).lineLimit(1)

@@ -124,16 +124,29 @@ final class Portfolio {
         // fim, com a lista nova, em vez de se perder.
         guard !loading else { pendingRefresh = true; return }
         loading = true
-        await read(wallet, session: session)
-        while pendingRefresh, walletID == wallet.id {
-            pendingRefresh = false
+        // A leitura e da carteira, nao da tela que pediu: numa tarefa propria, que a
+        // troca de aba nao cancela. Antes, sair da tela no meio cancelava os pedidos que
+        // faltavam, e cada rede ainda sem resposta virava "nao foi possivel ler o saldo"
+        // (relatado no iPhone com Litecoin, BNB Chain e Ethereum).
+        let job = Task {
             await read(wallet, session: session)
+            while pendingRefresh, walletID == wallet.id {
+                pendingRefresh = false
+                await read(wallet, session: session)
+            }
+            pendingRefresh = false
+            loading = false
         }
-        pendingRefresh = false
-        loading = false
+        await job.value
     }
 
     private var pendingRefresh = false
+
+    /// A ultima leitura boa da rede nao tinha saldo nem token nenhum.
+    static func knownEmpty(_ balance: ChainBalance?) -> Bool {
+        guard let balance else { return false }
+        return balance.holdings.allSatisfy { $0.amount.isZero } && (balance.unlisted ?? []).isEmpty
+    }
 
     private func read(_ wallet: WalletMeta, session: AppSession) async {
         let disabled = session.metadata.settings.disabledChainIDs
@@ -183,12 +196,12 @@ final class Portfolio {
                 }
             }
         }
-        // Uma segunda tentativa para quem falhou, um instante depois: provedor gratis
-        // corta rajada (a Atividade varre dezenas de enderecos UTXO ao mesmo tempo), e
-        // uma recusa de passagem virava "Nao foi possivel ler o saldo" (relatado no
-        // iPhone com a Litecoin). So o que falhar duas vezes vai para o aviso.
-        if !failed.isEmpty {
-            try? await Task.sleep(for: .seconds(2))
+        // Mais duas tentativas para quem falhou, 2 s e 6 s depois: provedor gratis corta
+        // rajada (a Atividade varre dezenas de enderecos UTXO ao mesmo tempo), e uma
+        // recusa de passagem virava "Nao foi possivel ler o saldo" (relatado no iPhone com
+        // a Litecoin). So o que falhar tres vezes vai para o aviso.
+        for delay in [2, 6] where !failed.isEmpty {
+            try? await Task.sleep(for: .seconds(delay))
             let retry = targets.filter { target in failed.contains { $0.id == target.0.id } }
             failed = []
             await withTaskGroup(of: (Chain, ChainBalance?).self) { group in
@@ -222,7 +235,10 @@ final class Portfolio {
         guard walletID == wallet.id else { return }
         for (id, balance) in fresh { balances[id] = balance }
         if let newQuotes, !newQuotes.isEmpty { quotes = newQuotes }
-        failedChains = failed.sorted { $0.name < $1.name }
+        // Rede cuja ultima leitura boa nao tinha nada (o Litecoin de quem nunca teve
+        // Litecoin): a falha de agora nao muda o que a tela mostra, e o aviso so
+        // assustaria. Fica o zero guardado ate a proxima leitura responder.
+        failedChains = failed.filter { !Self.knownEmpty(balances[$0.id]) }.sorted { $0.name < $1.name }
         if !fresh.isEmpty { lastUpdated = .now }
         recompute(wallet)
         // Preco por contrato: moedas custom e outros tokens sem suspeita. Nunca pelo
