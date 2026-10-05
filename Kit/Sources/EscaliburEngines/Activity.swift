@@ -21,10 +21,15 @@ public struct ActivityEntry: Identifiable, Hashable, Sendable {
     /// Valor zero ou poeira vinda de desconhecido, de endereco parecido com um
     /// nosso, ou token fora da lista: escondido por padrao (envenenamento).
     public let suspicious: Bool
+    /// Na troca, o que entrou (`asset` e `amount` sao o que saiu). Nil fora de troca, ou
+    /// quando a rede so diz um lado.
+    public let receivedAsset: Asset?
+    public let receivedAmount: BigUInt?
 
     public init(
         id: String, chainID: String, direction: Direction, asset: Asset?, amount: BigUInt, counterparty: String?,
-        date: Date, status: Status, fee: BigUInt?, hash: String, suspicious: Bool
+        date: Date, status: Status, fee: BigUInt?, hash: String, suspicious: Bool,
+        receivedAsset: Asset? = nil, receivedAmount: BigUInt? = nil
     ) {
         self.id = id
         self.chainID = chainID
@@ -37,6 +42,8 @@ public struct ActivityEntry: Identifiable, Hashable, Sendable {
         self.fee = fee
         self.hash = hash
         self.suspicious = suspicious
+        self.receivedAsset = receivedAsset
+        self.receivedAmount = receivedAmount
     }
 
     public var chain: Chain? { Chain.find(chainID) }

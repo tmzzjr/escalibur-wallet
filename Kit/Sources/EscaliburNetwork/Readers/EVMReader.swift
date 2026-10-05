@@ -359,9 +359,11 @@ public actor EVMReader {
                 let common = [("module", "account"), ("address", address.checksummed), ("page", "1"), ("offset", "50"), ("sort", "desc")]
                 let txs = try StrictJSON.parse(try await transport.send(.get(base.adding(query: common + [("action", "txlist")]), timeout: 30)))
                 let tokens = try? StrictJSON.parse(try await transport.send(.get(base.adding(query: common + [("action", "tokentx")]), timeout: 30)))
+                let internals = try? StrictJSON.parse(try await transport.send(.get(base.adding(query: common + [("action", "txlistinternal")]), timeout: 30)))
                 return try Self.parseEtherscanHistory(
                     chain: chain, owner: address, transactions: txs,
-                    tokenTransfers: tokens ?? .object(["status": .string("1"), "result": .array([])]), complete: tokens != nil
+                    tokenTransfers: tokens ?? .object(["status": .string("1"), "result": .array([])]), complete: tokens != nil,
+                    internals: internals
                 )
             }
             let path = "addresses/" + address.checksummed
@@ -369,8 +371,12 @@ public actor EVMReader {
             let tokens = try? StrictJSON.parse(try await transport.send(
                 .get(provider.baseURL.adding(path: path + "/token-transfers").adding(query: [("type", "ERC-20")]), timeout: 30)
             ))
+            // O ETH que volta de uma troca de token por ETH chega por transacao interna (o
+            // roteador manda), que nao esta em `/transactions`. Opcional como os tokens.
+            let internals = try? StrictJSON.parse(try await transport.send(.get(provider.baseURL.adding(path: path + "/internal-transactions"), timeout: 30)))
             return try Self.parseBlockscoutHistory(
-                chain: chain, owner: address, transactions: txs, tokenTransfers: tokens ?? .object(["items": .array([])]), complete: tokens != nil
+                chain: chain, owner: address, transactions: txs, tokenTransfers: tokens ?? .object(["items": .array([])]), complete: tokens != nil,
+                internals: internals
             )
         }
     }
@@ -750,9 +756,21 @@ public actor EVMReader {
         let amount: BigUInt
     }
 
-    /// Blockscout v2: `/addresses/{a}/transactions` e `/token-transfers?type=ERC-20`.
+    /// Valor nativo movido por um contrato dentro de uma transacao (transacao interna).
+    struct InternalRow {
+        let hash: String
+        let index: String
+        let date: Date
+        let from: EVMAddress
+        let to: EVMAddress
+        let value: BigUInt
+    }
+
+    /// Blockscout v2: `/addresses/{a}/transactions`, `/token-transfers?type=ERC-20` e,
+    /// quando vier, `/internal-transactions`.
     static func parseBlockscoutHistory(
-        chain: Chain, owner: EVMAddress, transactions: StrictJSON, tokenTransfers: StrictJSON, complete: Bool = true
+        chain: Chain, owner: EVMAddress, transactions: StrictJSON, tokenTransfers: StrictJSON, complete: Bool = true,
+        internals: StrictJSON? = nil
     ) throws -> ActivityPage {
         var rows: [TransactionRow] = []
         for (offset, item) in try transactions.field("items", "transactions").array("transactions.items").enumerated() {
@@ -782,12 +800,30 @@ public actor EVMReader {
                 amount: try item.field("total", path).field("value", path + ".total").decimalString(path + ".total.value")
             ))
         }
-        return assemble(chain: chain, owner: owner, rows: rows, tokens: tokens, complete: complete)
+        // Internas: so as que deram certo, com valor e destino. Item torto sai sozinho, sem
+        // derrubar a pagina: elas so completam o que as transacoes ja mostram.
+        var inner: [InternalRow] = []
+        let internalItems = (try? internals?.field("items", "internals").array("internals.items")) ?? []
+        for (offset, item) in internalItems.enumerated() {
+            let path = "internals.items[\(offset)]"
+            guard (try? item.field("success", path).bool(path + ".success")) != false,
+                  let hash = try? item.field("transaction_hash", path).string(path + ".transaction_hash"),
+                  let date = try? isoDate(try item.field("timestamp", path).string(path + ".timestamp"), path + ".timestamp"),
+                  let from = try? address(try item.field("from", path).field("hash", path + ".from"), path + ".from.hash"),
+                  let toField = item.optionalField("to"), let to = try? address(try toField.field("hash", path + ".to"), path + ".to.hash"),
+                  let value = try? item.field("value", path).decimalString(path + ".value"), !value.isZero
+            else { continue }
+            let index = (try? item.field("index", path).int64(path + ".index")).map { "i\($0)" } ?? "i\(offset)"
+            inner.append(InternalRow(hash: hash, index: index, date: date, from: from, to: to, value: value))
+        }
+        return assemble(chain: chain, owner: owner, rows: rows, tokens: tokens, internals: inner, complete: complete)
     }
 
-    /// Formato Etherscan (Routescan na Avalanche e na Plasma): `txlist` e `tokentx`.
+    /// Formato Etherscan (Routescan na Avalanche e na Plasma): `txlist`, `tokentx` e,
+    /// quando vier, `txlistinternal`.
     static func parseEtherscanHistory(
-        chain: Chain, owner: EVMAddress, transactions: StrictJSON, tokenTransfers: StrictJSON, complete: Bool = true
+        chain: Chain, owner: EVMAddress, transactions: StrictJSON, tokenTransfers: StrictJSON, complete: Bool = true,
+        internals: StrictJSON? = nil
     ) throws -> ActivityPage {
         func results(_ json: StrictJSON, _ path: String) throws -> [StrictJSON] {
             let status = try json.field("status", path).string(path + ".status")
@@ -832,7 +868,20 @@ public actor EVMReader {
                 amount: try item.field("value", path).decimalString(path + ".value")
             ))
         }
-        return assemble(chain: chain, owner: owner, rows: rows, tokens: tokens, complete: complete)
+        var inner: [InternalRow] = []
+        let internalItems = (try? internals.map { try results($0, "txlistinternal") }) ?? []
+        for (offset, item) in internalItems.enumerated() {
+            let path = "txlistinternal.result[\(offset)]"
+            guard (try? item.field("isError", path).string(path + ".isError")) != "1",
+                  let hash = try? item.field("hash", path).string(path + ".hash"),
+                  let stamp = try? item.field("timeStamp", path).decimalString(path + ".timeStamp"), let date = try? unixDate(stamp, path),
+                  let from = try? address(try item.field("from", path), path + ".from"),
+                  let to = try? address(try item.field("to", path), path + ".to"),
+                  let value = try? item.field("value", path).decimalString(path + ".value"), !value.isZero
+            else { continue }
+            inner.append(InternalRow(hash: hash, index: "i\(offset)", date: date, from: from, to: to, value: value))
+        }
+        return assemble(chain: chain, owner: owner, rows: rows, tokens: tokens, internals: inner, complete: complete)
     }
 
     /// Contratos ERC-20 que sao a propria moeda nativa. Celo: o CELO e nativo e ERC-20
@@ -848,21 +897,26 @@ public actor EVMReader {
     /// Junta transacoes e transferencias de token por hash e aplica as regras de
     /// `ActivityRules`: saiu um ativo e entrou outro na mesma transacao do dono, troca;
     /// recebimento de valor zero, de token fora da lista ou po, suspeito.
-    static func assemble(chain: Chain, owner: EVMAddress, rows: [TransactionRow], tokens: [TokenRow], complete: Bool = true) -> ActivityPage {
+    static func assemble(
+        chain: Chain, owner: EVMAddress, rows: [TransactionRow], tokens: [TokenRow], internals: [InternalRow] = [], complete: Bool = true
+    ) -> ActivityPage {
         let native = Asset.native(chain)
         let nativeContract = chain.evmChainID.flatMap { nativeTokenContracts[$0] }
         var suspicious = SuspiciousSummary()
         var items: [ActivityItem] = []
         let rowsByHash = Dictionary(rows.map { ($0.hash.lowercased(), $0) }, uniquingKeysWith: { first, _ in first })
         let tokensByHash = Dictionary(grouping: tokens, by: { $0.hash.lowercased() })
+        // So o valor que chega ao dono: a saida dele ja e a transacao que ele assinou.
+        let internalsByHash = Dictionary(grouping: internals.filter { $0.to == owner && $0.from != owner }, by: { $0.hash.lowercased() })
         var hashes = rows.map { $0.hash.lowercased() }
         for hash in tokensByHash.keys where rowsByHash[hash] == nil { hashes.append(hash) }
+        for hash in internalsByHash.keys where rowsByHash[hash] == nil && tokensByHash[hash] == nil { hashes.append(hash) }
         var seen = Set<String>()
 
         for hash in hashes where seen.insert(hash).inserted {
             let row = rowsByHash[hash]
             let sentByOwner = row?.from == owner
-            let date = row?.date ?? tokensByHash[hash]?.first?.date ?? .distantPast
+            let date = row?.date ?? tokensByHash[hash]?.first?.date ?? internalsByHash[hash]?.first?.date ?? .distantPast
             let status = row?.status ?? .confirmed
             let fee = sentByOwner ? row?.fee : nil
             let explorer = chain.explorerURL(tx: row?.hash ?? tokensByHash[hash]?.first?.hash ?? hash)
@@ -875,6 +929,11 @@ public actor EVMReader {
                 movements.append(Movement(
                     key: "native", asset: native, amount: row.value, outgoing: outgoing, incoming: incoming,
                     counterparty: outgoing ? row.to : row.from
+                ))
+            }
+            for inner in internalsByHash[hash] ?? [] {
+                movements.append(Movement(
+                    key: inner.index, asset: native, amount: inner.value, outgoing: false, incoming: true, counterparty: inner.from
                 ))
             }
             for token in tokensByHash[hash] ?? [] where token.from == owner || token.to == owner {
@@ -913,7 +972,12 @@ public actor EVMReader {
 
             let outs = shown.filter { $0.outgoing && !$0.incoming }
             let ins = shown.filter { $0.incoming && !$0.outgoing }
-            if sentByOwner, let out = outs.first, let into = ins.first, out.asset != into.asset, let outAsset = out.asset, let inAsset = into.asset {
+            // Troca: o dono assinou, saiu um ativo e entrou outro. Ou a ordem da CoW
+            // executada pelo solver: o ativo sai do dono para o contrato de liquidacao e o
+            // outro volta dele, na mesma transacao. So esse contrato: um spender qualquer
+            // que levasse o token e devolvesse uma migalha nao pode virar "troca".
+            let settled = !sentByOwner && outs.first?.counterparty == CoWProtocol.settlement && ins.first?.counterparty == CoWProtocol.settlement
+            if sentByOwner || settled, let out = outs.first, let into = ins.first, out.asset != into.asset, let outAsset = out.asset, let inAsset = into.asset {
                 items.append(ActivityItem(
                     id: "\(chain.id):\(hash):swap", chainID: chain.id, direction: .swap, asset: outAsset, amount: out.amount,
                     receivedAsset: inAsset, receivedAmount: into.amount, counterparty: nil, date: date, status: status,

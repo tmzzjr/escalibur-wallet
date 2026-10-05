@@ -66,7 +66,8 @@ enum EVMActivityScreen {
             ActivityEntry(
                 id: item.id, chainID: item.chainID, direction: direction(item.direction), asset: item.asset, amount: item.amount,
                 counterparty: item.counterparty, date: item.date, status: status(item.status), fee: item.fee, hash: item.hash,
-                suspicious: isSuspicious(item, known: known, chain: chain)
+                suspicious: isSuspicious(item, known: known, chain: chain),
+                receivedAsset: item.receivedAsset, receivedAmount: item.receivedAmount
             )
         }
     }

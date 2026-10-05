@@ -37,6 +37,7 @@ struct AssetDetailView: View {
                     if row.positions.count > 1 { networks.padding(.top, Space.xl) }
                     contract.padding(.top, Space.lg)
                 }
+                AssetActivitySection(row: row).padding(.top, Space.xl)
             }
             .padding(.top, Space.sm)
             .padding(.bottom, Space.xl)

@@ -58,13 +58,18 @@ struct SolanaActivitySource: ActivitySource {
         // O erro do no nao vai para a tela; ela diz "Falhou".
         case .failed: status = .failed(nil)
         }
+        // Na troca, o lado que entrou: a mudanca de entrada de um ativo da lista.
+        let received: (Asset, BigUInt)? = direction == .swap
+            ? activity.changes.first { $0.isIncoming && asset($0.asset) != nil }.flatMap { change in asset(change.asset).map { ($0, change.amount) } }
+            : nil
         return ActivityEntry(
             id: activity.id, chainID: Chain.solana.id, direction: direction,
             // Sem movimento de ativo (so a taxa), nao ha valor a mostrar.
             asset: direction == .other ? nil : asset(activity.asset), amount: activity.amount, counterparty: activity.counterparty,
             // Sem `blockTime` (o no ainda nao tem a hora do bloco), a transacao e recente.
             date: activity.date ?? now, status: status, fee: activity.fee.isZero ? nil : activity.fee, hash: activity.id,
-            suspicious: suspicious(activity, known: known)
+            suspicious: suspicious(activity, known: known),
+            receivedAsset: received?.0, receivedAmount: received?.1
         )
     }
 

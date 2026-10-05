@@ -323,7 +323,7 @@ struct ActivityRow: View {
         switch entry.direction {
         case .sent: return "Enviado · \(symbol)"
         case .received: return "Recebido · \(symbol)"
-        case .swap: return "Troca · \(symbol)"
+        case .swap: return entry.receivedAsset.map { "Troca · \(symbol) por \($0.symbol)" } ?? "Troca · \(symbol)"
         case .approval: return "Autorização · \(symbol)"
         case .order: return "Ordem · \(symbol)"
         case .other: return entry.chain?.name ?? ""
@@ -336,6 +336,10 @@ struct ActivityRow: View {
         case .pending(let detail): return detail ?? "Aguardando confirmação"
         case .failed: return "Falhou"
         case .confirmed:
+            // Troca: o que saiu fica embaixo; o que entrou vai a direita.
+            if entry.direction == .swap, entry.receivedAsset != nil, let asset = entry.asset, !hidden {
+                return "\(Fmt.minus)\(Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .list)) · \(time)"
+            }
             guard let counterparty = entry.counterparty else { return time }
             let preposition = entry.direction == .received ? "De" : "Para"
             return "\(preposition) \(Fmt.address(counterparty)) · \(time)"
@@ -352,7 +356,14 @@ struct ActivityRow: View {
                 Text(subtitle).typeStyle(.note).foregroundStyle(isFailed ? Palette.down : Palette.inkSoft).lineLimit(1)
             }
             Spacer(minLength: Space.sm)
-            if let asset = entry.asset {
+            if entry.direction == .swap, let received = entry.receivedAsset, let amount = entry.receivedAmount {
+                Text(hidden ? Redaction.short : ((isFailed ? "" : "+") + Fmt.crypto(amount, decimals: received.decimals, symbol: received.symbol, style: .list)))
+                    .typeStyle(.row)
+                    .foregroundStyle(isFailed ? Palette.inkMuted : Palette.up)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .strikethrough(isFailed)
+            } else if let asset = entry.asset {
                 Text(hidden ? Redaction.short : (sign + Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .list)))
                     .typeStyle(.row)
                     .foregroundStyle(isFailed ? Palette.inkMuted : (entry.direction == .received ? Palette.up : Palette.ink))
@@ -382,7 +393,15 @@ struct ActivityDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.md) {
-                if let asset = entry.asset {
+                if entry.direction == .swap, let asset = entry.asset, let received = entry.receivedAsset, let amount = entry.receivedAmount {
+                    // Troca: o que entrou em destaque, o que saiu logo abaixo.
+                    VStack(alignment: .leading, spacing: Space.xxs) {
+                        Text("+" + Fmt.crypto(amount, decimals: received.decimals, symbol: received.symbol, style: .full))
+                            .typeStyle(.figure).foregroundStyle(Palette.ink)
+                        Text("por " + Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .full))
+                            .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                    }
+                } else if let asset = entry.asset {
                     Text((entry.direction == .received ? "+" : "") + Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .full))
                         .typeStyle(.figure).foregroundStyle(Palette.ink)
                 }

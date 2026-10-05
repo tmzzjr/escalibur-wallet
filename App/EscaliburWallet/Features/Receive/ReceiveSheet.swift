@@ -44,6 +44,8 @@ struct ReceiveSheet: View {
 
     @State private var query = ""
     @State private var backingUp = false
+    /// A rede trocada no seletor da tela do endereco, por moeda.
+    @State private var chosenNetwork: [String: Asset] = [:]
 
     private var wallet: WalletMeta? { session.selectedWallet }
 
@@ -122,12 +124,7 @@ struct ReceiveSheet: View {
     /// R1: so as moedas. A mesma moeda em redes diferentes (USDT na Tron, na Ethereum,
     /// na Solana) e uma linha so; a rede vem depois, quando a moeda estiver escolhida.
     private var chooser: some View {
-        let accounts = Set(wallet?.accounts.map(\.chainID) ?? [])
-        // As moedas custom entram como qualquer outra, cada uma na sua linha (nunca junto
-        // de um ativo da lista com o mesmo simbolo).
-        let custom = session.metadata.customTokens.filter { accounts.contains($0.chainID) }
-        let all = Chain.all.filter { accounts.contains($0.id) }.flatMap { TokenRegistry.assets(on: $0) } + custom
-        let coins = ReceiveCoin.group(all)
+        let coins = ReceiveCoin.group(receivable)
         let filtered = query.isEmpty ? coins : coins.filter { $0.symbol.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query) }
         let held = Set(Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings).filter { !$0.amount.isZero }.map(\.asset.id))
         let inWallet = filtered.filter { coin in coin.assets.contains { held.contains($0.id) } }
@@ -220,16 +217,67 @@ struct ReceiveSheet: View {
         }
     }
 
+    /// Tudo o que a carteira recebe: nativas e tokens da lista nas redes com conta, e as
+    /// moedas custom (cada uma na sua linha, nunca junto de um ativo da lista).
+    private var receivable: [Asset] {
+        let accounts = Set(wallet?.accounts.map(\.chainID) ?? [])
+        let custom = session.metadata.customTokens.filter { accounts.contains($0.chainID) }
+        return Chain.all.filter { accounts.contains($0.id) }.flatMap { TokenRegistry.assets(on: $0) } + custom
+    }
+
     // MARK: R2
 
+    /// A tela do endereco, com a rede que o seletor escolheu (a da lista, de inicio).
     private func addressView(asset: Asset, chain: Chain) -> some View {
+        let siblings = ReceiveCoin.group(receivable).first { coin in coin.assets.contains { $0.id == asset.id } }?.assets ?? [asset]
+        let key = siblings.first?.id ?? asset.id
+        let shown = chosenNetwork[key].flatMap { choice in siblings.first { $0.id == choice.id } } ?? asset
+        return addressContent(asset: shown, chain: shown.chain ?? chain, siblings: siblings, key: key)
+    }
+
+    /// "pela rede X": com mais de uma rede, um seletor que troca a rede sem voltar.
+    @ViewBuilder
+    private func networkLine(asset: Asset, chain: Chain, siblings: [Asset], key: String) -> some View {
+        if siblings.count > 1 {
+            Menu {
+                ForEach(siblings) { item in
+                    if let itemChain = item.chain {
+                        Button {
+                            withAnimation(Motion.fade) { chosenNetwork[key] = item }
+                        } label: {
+                            if item.id == asset.id {
+                                Label(itemChain.name, systemImage: "checkmark")
+                            } else {
+                                Text(item.kind == .native ? itemChain.name : "\(itemChain.name) · \(ReceiveCoin.standard(itemChain))")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    NetworkBadge(chain: chain, size: 18, ring: Palette.rail)
+                    Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.ink)
+                    Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                }
+                .padding(.leading, 6).padding(.trailing, Space.sm)
+                .frame(height: 34)
+                .background(Capsule(style: .continuous).fill(Palette.rail))
+            }
+            .accessibilityLabel("Rede: \(chain.name). Trocar a rede")
+            .accessibilityIdentifier("receber-rede")
+        } else {
+            Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.inkSoft)
+        }
+    }
+
+    private func addressContent(asset: Asset, chain: Chain, siblings: [Asset], key: String) -> some View {
         let address = wallet?.account(chain)?.address ?? ""
         let balance = portfolio.balance(chain)
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 if preselected != nil { HStack { Spacer(); closeButton } }
                 Text("Receber \(asset.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
-                Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
+                networkLine(asset: asset, chain: chain, siblings: siblings, key: key).padding(.top, Space.xs)
 
                 qrPlate(address: address, chain: chain).padding(.top, Space.lg)
 
