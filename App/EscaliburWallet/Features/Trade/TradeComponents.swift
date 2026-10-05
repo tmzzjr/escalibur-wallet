@@ -124,6 +124,10 @@ struct ShimmerBar: View {
 /// agitado ou pouca liquidez, e em troca aceita receber menos e atrai robos.
 struct SlippageSlider: View {
     @Binding var basisPoints: Int
+    /// Com ele, a ponta esquerda do controle e "Auto": a tolerancia sai de
+    /// `AutoSlippage` a cada cotacao, e `autoValue` e a de agora.
+    var automatic: Binding<Bool>? = nil
+    var autoValue: Int = AutoSlippage.floor
     @State private var shown: CGFloat = 0
     @State private var dragging = false
 
@@ -154,16 +158,38 @@ struct SlippageSlider: View {
     }
 
     static func label(_ bps: Int) -> String {
-        "\(Fmt.grouped(Double(bps) / 100, fractionDigits: 1, trimZeros: true))%"
+        "\(Fmt.grouped(Double(bps) / 100, fractionDigits: 2, trimZeros: true))%"
     }
 
-    private var fraction: CGFloat { Self.position(basisPoints) }
+    private var isAuto: Bool { automatic?.wrappedValue == true }
+    /// A tolerancia que vale agora: a automatica ou a escolhida.
+    private var effective: Int { isAuto ? autoValue : basisPoints }
+
+    private var fraction: CGFloat { isAuto ? 0 : Self.position(basisPoints) }
+
+    private func markLabel(_ mark: Int) -> String {
+        automatic != nil && mark == Self.marks.first ? "Auto" : Self.label(mark)
+    }
 
     private var percentText: String {
-        "\(Fmt.grouped(Double(basisPoints) / 100, fractionDigits: 1, trimZeros: true))%"
+        isAuto ? "Auto · \(Self.label(autoValue))" : Self.label(basisPoints)
+    }
+
+    /// Muda para o valor do controle; a ponta esquerda, com o automatico disponivel, e
+    /// "Auto".
+    private func choose(_ value: Int) {
+        if let automatic, value <= Self.range.lowerBound {
+            automatic.wrappedValue = true
+        } else {
+            automatic?.wrappedValue = false
+            basisPoints = value
+        }
     }
 
     private var explanation: String {
+        if isAuto {
+            return "Automática: a menor tolerância que costuma passar para este par, agora \(Self.label(autoValue)). Recalculada a cada cotação: entre stablecoins fica perto de 0,1%; moeda de pouca liquidez ou dia agitado ganha mais folga."
+        }
         switch basisPoints {
         case ..<30:
             return "Protege mais o preço, mas a troca pode falhar se o mercado se mexer, e a taxa da rede é cobrada mesmo assim."
@@ -185,7 +211,7 @@ struct SlippageSlider: View {
             GeometryReader { geometry in
                 let width = geometry.size.width
                 let knob: CGFloat = dragging ? 30 : 24
-                let fill = basisPoints > 100 ? Palette.caution : Palette.ink
+                let fill = effective > 100 ? Palette.caution : Palette.ink
                 ZStack(alignment: .leading) {
                     Capsule(style: .continuous).fill(Palette.rail).frame(height: 6)
                     Capsule(style: .continuous)
@@ -218,7 +244,7 @@ struct SlippageSlider: View {
                                 dragging = true
                                 shown = ratio
                             }
-                            basisPoints = Self.value(at: Double(ratio))
+                            choose(Self.value(at: Double(ratio)))
                         }
                         .onEnded { _ in
                             // Ao soltar, assenta no passo de 0,1% escolhido.
@@ -235,10 +261,10 @@ struct SlippageSlider: View {
                 let width = geometry.size.width
                 ZStack(alignment: .topLeading) {
                     ForEach(Self.marks, id: \.self) { mark in
-                        Button { basisPoints = mark } label: {
-                            Text(Self.label(mark))
+                        Button { choose(mark) } label: {
+                            Text(markLabel(mark))
                                 .typeStyle(.note)
-                                .foregroundStyle(mark == basisPoints ? Palette.ink : Palette.inkMuted)
+                                .foregroundStyle((isAuto ? mark == Self.marks.first : mark == basisPoints) ? Palette.ink : Palette.inkMuted)
                                 .fixedSize()
                                 .padding(.vertical, 4)
                         }
@@ -255,7 +281,7 @@ struct SlippageSlider: View {
                 }
             }
             .frame(height: 24)
-            Text(explanation).typeStyle(.note).foregroundStyle(basisPoints > 100 ? Palette.caution : Palette.inkMuted)
+            Text(explanation).typeStyle(.note).foregroundStyle(effective > 100 ? Palette.caution : Palette.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)
                 .animation(Motion.fade, value: explanation)
         }
@@ -268,14 +294,19 @@ struct SlippageSlider: View {
             guard !dragging else { return }
             withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { shown = fraction }
         }
+        .onChange(of: isAuto) { _, _ in
+            guard !dragging else { return }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { shown = fraction }
+        }
         .sensoryFeedback(.selection, trigger: basisPoints)
+        .sensoryFeedback(.selection, trigger: isAuto)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Tolerância de preço")
         .accessibilityValue(percentText)
         .accessibilityAdjustableAction { direction in
             switch direction {
-            case .increment: basisPoints = min(basisPoints + Self.step, Self.range.upperBound)
-            case .decrement: basisPoints = max(basisPoints - Self.step, Self.range.lowerBound)
+            case .increment: choose(isAuto ? Self.range.lowerBound + Self.step : min(basisPoints + Self.step, Self.range.upperBound))
+            case .decrement: choose(isAuto ? Self.range.lowerBound : max(basisPoints - Self.step, Self.range.lowerBound))
             @unknown default: break
             }
         }
