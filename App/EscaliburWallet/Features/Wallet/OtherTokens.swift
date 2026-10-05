@@ -81,7 +81,8 @@ struct OtherTokenRow: View {
 
     var body: some View {
         HStack(spacing: Space.sm) {
-            CoinLogo(coingeckoID: nil, symbol: token.asset.symbol, size: 40, network: token.asset.chain, unverified: true)
+            CoinLogo(coingeckoID: nil, symbol: token.asset.symbol, size: 40, network: token.asset.chain, unverified: true,
+                     contractLogo: token.isSuspicious ? nil : TokenLogos.url(for: token.asset))
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: token.asset.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
                 HStack(spacing: 6) {
@@ -128,7 +129,8 @@ struct OtherTokenDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: Space.sm) {
-                    CoinLogo(coingeckoID: nil, symbol: asset.symbol, size: 48, network: chain, ringColor: Palette.void, unverified: true)
+                    CoinLogo(coingeckoID: nil, symbol: asset.symbol, size: 48, network: chain, ringColor: Palette.void, unverified: true,
+                             contractLogo: holding.isSuspicious ? nil : TokenLogos.url(for: asset))
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
                             Text(verbatim: asset.symbol).typeStyle(.title).foregroundStyle(Palette.ink).lineLimit(1)

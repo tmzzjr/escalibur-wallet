@@ -78,6 +78,8 @@ enum AllowedHosts {
         "polygon-bor-rpc.publicnode.com",
         "polygon.blockscout.com",
         "polygon.drpc.org",
+        "public.rpc.solanavibestation.com",
+        "raw.githubusercontent.com",
         "rpc-asset-hub-polkadot.luckyfriday.io",
         "rpc-mainnet.suiscan.xyz",
         "rpc.flashbots.net",

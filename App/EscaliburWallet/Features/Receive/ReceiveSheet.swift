@@ -1,6 +1,7 @@
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import EscaliburChains
+import EscaliburNetwork
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
@@ -43,7 +44,6 @@ struct ReceiveSheet: View {
 
     @State private var query = ""
     @State private var backingUp = false
-    @State private var copied = false
 
     private var wallet: WalletMeta? { session.selectedWallet }
 
@@ -159,7 +159,8 @@ struct ReceiveSheet: View {
         NavigationLink(value: coin) {
             HStack(spacing: Space.sm) {
                 CoinLogo(coingeckoID: coin.coingeckoID, symbol: coin.symbol, size: 36, network: coin.isCustom ? coin.assets.first?.chain : nil,
-                         ringColor: Palette.body, unverified: coin.isCustom)
+                         ringColor: Palette.body, unverified: coin.isCustom,
+                         contractLogo: coin.isCustom ? coin.assets.first.flatMap(TokenLogos.url(for:)) : nil)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(verbatim: coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
@@ -261,16 +262,10 @@ struct ReceiveSheet: View {
                         .padding(.top, Space.sm)
                 }
 
-                PrimaryButton(title: copied ? "Endereço copiado" : "Copiar endereço") {
+                CopyButton {
                     Pasteboard.copyAddress(address)
                     toasts.show("Endereço copiado. Depois de colar, confira o endereço inteiro, inclusive o meio.")
-                    withAnimation(Motion.fade) { copied = true }
-                    Task { @MainActor in
-                        try? await Task.sleep(for: .seconds(2))
-                        withAnimation(Motion.fade) { copied = false }
-                    }
                 }
-                .sensoryFeedback(.success, trigger: copied) { _, now in now }
                 .padding(.top, Space.lg)
                 ShareLink(item: address) {
                     Text("Compartilhar").typeStyle(.action).frame(maxWidth: .infinity).frame(height: Height.secondary)

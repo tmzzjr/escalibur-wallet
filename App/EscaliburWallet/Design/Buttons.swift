@@ -214,3 +214,81 @@ struct AccentStyle: ButtonStyle {
             .animation(Motion.press, value: configuration.isPressed)
     }
 }
+
+/// O botao primario de copiar. No toque, a capsula da um pulo curto, o icone de
+/// copiar vira visto com um quique, o rotulo sobe e da lugar a `doneTitle`, e uma faixa
+/// clara atravessa a capsula da esquerda para a direita. Depois de 2 segundos volta,
+/// pelo caminho inverso. Com Reduzir Movimento, so troca o icone e o texto.
+struct CopyButton: View {
+    var title = "Copiar endereço"
+    var doneTitle = "Endereço copiado"
+    let action: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var copied = false
+    @State private var taps = 0
+    @State private var reset: Task<Void, Never>?
+
+    var body: some View {
+        let still = reduceMotion
+        Button {
+            action()
+            taps += 1
+            reset?.cancel()
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.7)) { copied = true }
+            reset = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.86)) { copied = false }
+            }
+        } label: {
+            HStack(spacing: Space.xs) {
+                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 16, weight: .bold))
+                    .contentTransition(.symbolEffect(.replace.downUp))
+                    .symbolEffect(.bounce, value: taps)
+                    .frame(width: 20)
+                ZStack {
+                    Text(copied ? doneTitle : title)
+                        .typeStyle(.action)
+                        .id(copied)
+                        .transition(reduceMotion ? .opacity : .asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .move(edge: .top).combined(with: .opacity)
+                        ))
+                }
+                .clipped()
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: Height.primary)
+            .background {
+                if !still {
+                    GeometryReader { proxy in
+                        let width = proxy.size.width
+                        let band = width * 0.45
+                        LinearGradient(colors: [.white.opacity(0), .white.opacity(0.6), .white.opacity(0)], startPoint: .leading, endPoint: .trailing)
+                            .frame(width: band)
+                            // De -1 (fora, a esquerda) a 1 (fora, a direita); parada, some.
+                            .keyframeAnimator(initialValue: CGFloat(-1), trigger: taps) { view, x in
+                                view.offset(x: (width + band) * (x + 1) / 2 - band).opacity(x > -1 && x < 1 ? 1 : 0)
+                            } keyframes: { _ in
+                                CubicKeyframe(1, duration: 0.65)
+                            }
+                    }
+                    .allowsHitTesting(false)
+                }
+            }
+            .clipShape(Capsule(style: .continuous))
+            .keyframeAnimator(initialValue: 1.0, trigger: taps) { view, scale in
+                view.scaleEffect(still ? 1 : scale)
+            } keyframes: { _ in
+                SpringKeyframe(0.96, duration: 0.08)
+                SpringKeyframe(1.025, duration: 0.18)
+                SpringKeyframe(1, duration: 0.28)
+            }
+        }
+        .buttonStyle(PrimaryStyle())
+        .sensoryFeedback(.success, trigger: taps)
+        .accessibilityLabel(copied ? doneTitle : title)
+    }
+}

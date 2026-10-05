@@ -1,4 +1,5 @@
 import EscaliburChains
+import EscaliburNetwork
 import SwiftUI
 
 /// S6: enderecos salvos. Guarda nome, endereco, rede e a tag ou o memo junto, para o
@@ -259,7 +260,8 @@ struct ManageAssetsView: View {
                                 }
                             )) {
                                 HStack(spacing: Space.sm) {
-                                    CoinLogo(coingeckoID: row.coingeckoID, symbol: row.symbol, size: 28, ringColor: Palette.body, unverified: row.origin != nil)
+                                    CoinLogo(coingeckoID: row.coingeckoID, symbol: row.symbol, size: 28, ringColor: Palette.body, unverified: row.origin != nil,
+                                             contractLogo: row.isCustom ? row.positions.first.flatMap { TokenLogos.url(for: $0.asset) } : nil)
                                     Text(verbatim: row.symbol).typeStyle(.body).foregroundStyle(Palette.ink)
                                     if row.isCustom { TokenBadge(.custom) }
                                 }
@@ -282,7 +284,8 @@ struct ManageAssetsView: View {
                     SettingsGroup {
                         ForEach(session.metadata.customTokens, id: \.id) { asset in
                             HStack(spacing: Space.sm) {
-                                CoinLogo(coingeckoID: nil, symbol: asset.symbol, size: 28, network: asset.chain, ringColor: Palette.body, unverified: true)
+                                CoinLogo(coingeckoID: nil, symbol: asset.symbol, size: 28, network: asset.chain, ringColor: Palette.body, unverified: true,
+                                         contractLogo: TokenLogos.url(for: asset))
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: asset.symbol).typeStyle(.body).foregroundStyle(Palette.ink).lineLimit(1)
                                     Text(verbatim: "\(asset.chain?.name ?? asset.chainID) · \(Fmt.address(CustomToken.reference(asset.kind) ?? ""))")

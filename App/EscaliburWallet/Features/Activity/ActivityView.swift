@@ -2,6 +2,7 @@ import EscaliburChains
 import EscaliburCore
 import EscaliburEngines
 import EscaliburKeys
+import EscaliburNetwork
 import SwiftUI
 
 @MainActor
@@ -26,6 +27,12 @@ final class ActivityFeed {
     /// Redes que ainda nao responderam nesta leitura.
     private(set) var remaining = 0
 
+    /// Esperas antes de cada nova tentativa das redes que falharam. Na abertura do app o
+    /// saldo, os tokens, o mercado e o historico disparam juntos, e os provedores gratis
+    /// cortam a rajada por alguns segundos (relatado no iPhone com Base, Polkadot e
+    /// Solana). So o que falhar tres vezes fica no aviso.
+    static let retryDelays: [Duration] = [.seconds(2), .seconds(5)]
+
     /// Cada rede entra na tela assim que responde, em vez de todas esperarem a mais
     /// lenta (uma varredura UTXO, um provedor no limite). Na primeira leitura a lista vai
     /// crescendo; ao atualizar uma lista que ja existe, ela so troca no fim, sem piscar.
@@ -42,49 +49,14 @@ final class ActivityFeed {
                   let source = ActivitySources.source(for: chain) else { return nil }
             return (chain, account, source, wallet.utxoUsage[chain.id])
         }
-        remaining = jobs.count
-        await withTaskGroup(of: (Chain, Outcome).self) { group in
-            for (chain, account, source, usage) in jobs {
-                group.addTask {
-                    do {
-                        return (chain, .items(try await source.history(chain: chain, account: account, usage: usage)))
-                    } catch SendEngineError.unavailable(let reason) {
-                        return (chain, .unavailable(reason))
-                    } catch {
-                        return (chain, .failed)
-                    }
-                }
-            }
-            for await (chain, outcome) in group {
-                remaining -= 1
-                switch outcome {
-                case .items(let items): collected += items
-                case .unavailable(let reason): missing.append((chain, reason))
-                case .failed: failures.append(chain)
-                }
-                if progressive { publish(collected, failures, missing) }
-            }
-        }
-        // Segunda tentativa para quem falhou, um instante depois: na abertura do app o
-        // saldo, o mercado e o historico disparam juntos, e os RPCs gratis cortam a
-        // rajada (relatado no iPhone com a Solana). So o que falhar duas vezes fica no
-        // aviso.
-        if !failures.isEmpty {
-            try? await Task.sleep(for: .seconds(2))
-            let again = jobs.filter { job in failures.contains { $0.id == job.0.id } }
+        var pending = jobs
+        for attempt in 0...Self.retryDelays.count {
+            if attempt > 0 { try? await Task.sleep(for: Self.retryDelays[attempt - 1]) }
+            remaining = pending.count
             failures = []
-            remaining = again.count
             await withTaskGroup(of: (Chain, Outcome).self) { group in
-                for (chain, account, source, usage) in again {
-                    group.addTask {
-                        do {
-                            return (chain, .items(try await source.history(chain: chain, account: account, usage: usage)))
-                        } catch SendEngineError.unavailable(let reason) {
-                            return (chain, .unavailable(reason))
-                        } catch {
-                            return (chain, .failed)
-                        }
-                    }
+                for (chain, account, source, usage) in pending {
+                    group.addTask { (chain, await Self.read(source, chain: chain, account: account, usage: usage)) }
                 }
                 for await (chain, outcome) in group {
                     remaining -= 1
@@ -96,9 +68,21 @@ final class ActivityFeed {
                     if progressive { publish(collected, failures, missing) }
                 }
             }
+            pending = jobs.filter { job in failures.contains { $0.id == job.0.id } }
+            if pending.isEmpty { break }
         }
         publish(collected, failures, missing)
         loadedOnce = true
+    }
+
+    nonisolated private static func read(_ source: any ActivitySource, chain: Chain, account: DerivedAccount, usage: UTXOUsage?) async -> Outcome {
+        do {
+            return .items(try await source.history(chain: chain, account: account, usage: usage))
+        } catch SendEngineError.unavailable(let reason) {
+            return .unavailable(reason)
+        } catch {
+            return .failed
+        }
     }
 
     private func publish(_ collected: [ActivityEntry], _ failures: [Chain], _ missing: [(chain: Chain, reason: String)]) {
@@ -152,7 +136,7 @@ struct ActivityView: View {
 
                     if !feed.failed.isEmpty {
                         Banner(kind: .neutral, title: "Não foi possível ler o histórico de \(Self.names(feed.failed)) agora.",
-                               actionTitle: "Tentar de novo") { Task { await reload() } }
+                               message: Self.debugDetail, actionTitle: "Tentar de novo") { Task { await reload() } }
                             .padding(.horizontal, Space.gutter).padding(.top, Space.md)
                     }
 
@@ -238,6 +222,17 @@ struct ActivityView: View {
     }
 
     /// "Stellar", "Stellar e Dogecoin", "Stellar, Dogecoin e mais 2 redes".
+    /// So no build de teste: as ultimas falhas de rede, para o print do iPhone dizer o
+    /// motivo (limite do provedor, tempo esgotado). Na distribuicao, nada.
+    static var debugDetail: String? {
+        #if DEBUG
+        let recent = NetworkDiagnostics.shared.recent()
+        return recent.isEmpty ? nil : "Teste: " + recent.prefix(8).joined(separator: "; ")
+        #else
+        return nil
+        #endif
+    }
+
     static func names(_ chains: [Chain]) -> String {
         let names = chains.map(\.name)
         switch names.count {

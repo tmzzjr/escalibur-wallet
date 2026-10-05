@@ -13,9 +13,14 @@ struct CoinLogo: View {
     var networkCount: Int = 1
     var remoteURL: URL? = nil
     var ringColor: Color = Palette.void
-    /// Token fora da lista (custom ou descoberto): nunca um logo de fora, e as letras
-    /// so em ASCII, brancas no cinza escuro. O logo de um token de golpe e parte da isca.
+    /// Token fora da lista (custom ou descoberto): nunca o logo que o proprio token
+    /// declara, e as letras so em ASCII, brancas no cinza escuro. O logo de um token de
+    /// golpe e parte da isca.
     var unverified: Bool = false
+    /// A logo do contrato exato no repositorio da Trust Wallet (`TokenLogos`). Vale
+    /// tambem para token fora da lista: segue o contrato, nao o nome, e o golpe que copia
+    /// o nome do USDT nao tem a pasta do contrato do USDT. Suspeito nunca recebe.
+    var contractLogo: URL? = nil
 
     @State private var remote: UIImage?
 
@@ -37,7 +42,12 @@ struct CoinLogo: View {
             }
         }
         .accessibilityHidden(true)
-        .task(id: remoteURL) {
+        .task(id: contractLogo ?? remoteURL) {
+            if let contractLogo {
+                guard bundled == nil, let data = await ImageLoader.shared.data(for: contractLogo) else { return }
+                remote = UIImage(data: data)
+                return
+            }
             guard !unverified, bundled == nil, let remoteURL, let data = await ImageLoader.shared.data(for: remoteURL) else { return }
             remote = UIImage(data: data)
         }
@@ -47,7 +57,13 @@ struct CoinLogo: View {
 
     @ViewBuilder
     private var base: some View {
-        if unverified {
+        if unverified, contractLogo != nil, let remote {
+            Image(uiImage: remote)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .clipShape(Circle())
+        } else if unverified {
             let letters = TokenGlyph.letters(symbol)
             Circle().fill(Palette.control)
                 .overlay {

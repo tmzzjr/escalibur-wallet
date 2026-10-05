@@ -120,13 +120,20 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
             throw Failure.hostNotAllowed
         }
         let task = session.dataTask(with: request)
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                lock.withLock { transfers[ObjectIdentifier(task)] = Transfer(continuation) }
-                task.resume()
+        do {
+            return try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { continuation in
+                    lock.withLock { transfers[ObjectIdentifier(task)] = Transfer(continuation) }
+                    task.resume()
+                }
+            } onCancel: {
+                task.cancel()
             }
-        } onCancel: {
-            task.cancel()
+        } catch {
+            #if DEBUG
+            NetworkDiagnostics.shared.record(host: host, error: error)
+            #endif
+            throw error
         }
     }
 
@@ -396,3 +403,37 @@ public enum JSONValue: Codable, Sendable, Equatable {
     }
     public var arrayValue: [JSONValue]? { if case .array(let a) = self { return a }; return nil }
 }
+
+#if DEBUG
+/// So no build de teste: as ultimas falhas de rede (host e motivo), para a tela dizer
+/// por que uma leitura falhou no iPhone de quem testa. Fica so na memoria, sem endereco
+/// nem corpo de resposta, e o build de distribuicao nem compila isto.
+public final class NetworkDiagnostics: @unchecked Sendable {
+    public static let shared = NetworkDiagnostics()
+
+    private let lock = NSLock()
+    private var entries: [(host: String, reason: String, at: Date)] = []
+
+    func record(host: String, error: Error) {
+        let reason = (error as? HTTPClient.Failure).map { String(describing: $0) } ?? String(describing: type(of: error))
+        lock.withLock {
+            entries.append((host, reason, .now))
+            if entries.count > 80 { entries.removeFirst(entries.count - 80) }
+        }
+    }
+
+    /// "host: motivo (n)" de cada falha dos ultimos `seconds` segundos.
+    public func recent(seconds: TimeInterval = 180) -> [String] {
+        let since = Date.now.addingTimeInterval(-seconds)
+        let recent = lock.withLock { entries.filter { $0.at >= since } }
+        var counts: [String: Int] = [:]
+        var order: [String] = []
+        for entry in recent {
+            let key = "\(entry.host): \(entry.reason)"
+            if counts[key] == nil { order.append(key) }
+            counts[key, default: 0] += 1
+        }
+        return order.map { "\($0) (\(counts[$0] ?? 0))" }
+    }
+}
+#endif

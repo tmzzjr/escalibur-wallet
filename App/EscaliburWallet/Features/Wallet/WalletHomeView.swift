@@ -449,7 +449,8 @@ struct AssetRowView: View {
         CoinLogo(
             coingeckoID: row.coingeckoID, symbol: row.symbol, size: 40,
             network: row.positions.count == 1 ? row.positions.first?.asset.chain : nil,
-            networkCount: row.positions.count, unverified: row.origin != nil
+            networkCount: row.positions.count, unverified: row.origin != nil,
+            contractLogo: row.isCustom ? row.positions.first.flatMap { TokenLogos.url(for: $0.asset) } : nil
         )
     }
 

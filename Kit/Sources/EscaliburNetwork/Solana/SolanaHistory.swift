@@ -350,7 +350,9 @@ struct RPCTransaction: Decodable, Sendable {
 
 /// O historico recente de uma conta.
 public actor SolanaHistoryReader {
-    public static let shared = SolanaHistoryReader()
+    /// Com os provedores que guardam historico (`Endpoints.solanaHistory`), nunca o
+    /// pool geral de saldo.
+    public static let shared = SolanaHistoryReader(reader: SolanaNetworkReader(providers: Endpoints.solanaHistory))
 
     let reader: SolanaNetworkReader
     /// Quantas transacoes buscar em paralelo (os RPCs publicos limitam por IP).
@@ -423,6 +425,9 @@ public actor SolanaHistoryReader {
             }
             for case let (info, tx?) in fetched { transactions.append((info, tx)) }
         }
+        // Havia transacoes e nenhuma veio: o provedor cortou. Lista vazia aqui diria
+        // "nenhum movimento"; o erro faz a tela dizer que nao leu e tentar de novo.
+        if !selected.isEmpty, transactions.isEmpty { throw HTTPClient.Failure.offline }
         transactions.sort { ($0.0.slot, $0.0.signature) > ($1.0.slot, $1.0.signature) }
         return Self.activities(transactions, owner: owner, knownAddresses: knownAddresses)
     }

@@ -787,18 +787,34 @@ public actor ImageLoader {
     /// como qualquer outro endereco.
     static let origins = ["https://coin-images.coingecko.com", "https://assets.coingecko.com"]
     static let allowedHosts: Set<String> = Set(origins.compactMap { URL(string: $0)?.host })
-    static let maxBytes = 96 * 1024
+    /// As logos da Trust Wallet tem 256 px e passam de 70 KB em algumas.
+    static let maxBytes = 160 * 1024
 
     private var cache: [URL: Data] = [:]
     private var order: [URL] = []
+    /// Logo que nao existe (404 da Trust Wallet, a maioria dos tokens): nao pede de novo
+    /// nesta abertura do app.
+    private var missing: Set<URL> = []
 
+    /// Os hosts de logo do mercado, ou uma logo do repositorio da Trust Wallet (so o
+    /// caminho das logos, nao qualquer arquivo do GitHub).
     public static func isAllowed(_ url: URL) -> Bool {
-        url.scheme == "https" && allowedHosts.contains(url.host ?? "")
+        (url.scheme == "https" && allowedHosts.contains(url.host ?? "")) || TokenLogos.isLogo(url)
     }
 
     public func data(for url: URL) async -> Data? {
         if let cached = cache[url] { return cached }
-        guard Self.isAllowed(url), let data = try? await HTTPClient.shared.get(url, timeout: 8) else { return nil }
+        guard Self.isAllowed(url), !missing.contains(url) else { return nil }
+        let fetched: Data
+        do {
+            fetched = try await HTTPClient.shared.get(url, timeout: 8)
+        } catch HTTPClient.Failure.status(404) {
+            missing.insert(url)
+            return nil
+        } catch {
+            return nil
+        }
+        let data = fetched
         guard data.count <= Self.maxBytes, Self.isPNGOrJPEG(data) else { return nil }
         cache[url] = data
         order.append(url)

@@ -287,7 +287,7 @@ struct SealEnvelopeFlow: View {
         case .digitsOnly:
             error = "Só números não bastam para um arquivo que pode ir para a nuvem. Use 6 palavras sorteadas ou uma frase longa."
             return
-        case .weak(let bits):
+        case .weak:
             error = "Esta senha é fraca para um envelope. Use 6 palavras sorteadas ou uma frase mais longa."
             return
         }

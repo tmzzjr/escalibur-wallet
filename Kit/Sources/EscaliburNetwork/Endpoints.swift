@@ -155,6 +155,16 @@ public enum Endpoints {
         .init(name: "tatum", baseURL: url("https://solana-mainnet.gateway.tatum.io")),
     ]
 
+    /// Historico da Solana (`getSignaturesForAddress` e `getTransaction`): so quem
+    /// guarda o historico. O publicnode responde `[]` para qualquer conta (sucesso
+    /// vazio, que a tela leria como "nenhum movimento") e o Tatum recusa o metodo sem
+    /// chave; conferido ao vivo em 05/10/2026, junto com o RPC publico da Solana Vibe
+    /// Station, que atende os dois metodos sem chave.
+    public static let solanaHistory: [ProviderPool.Provider] = [
+        .init(name: "solana", baseURL: url("https://api.mainnet.solana.com")),
+        .init(name: "vibestation", baseURL: url("https://public.rpc.solanavibestation.com")),
+    ]
+
     /// Jupiter Swap API v2, so leitura de cotacao e instrucoes: a transacao e
     /// montada e conferida no app (docs/seguranca.md §4.6). Sem chave: 30
     /// requisicoes por minuto por IP (confirmado em 26/09/2026). O `lite-api` esta
