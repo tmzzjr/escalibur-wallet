@@ -135,6 +135,10 @@ enum DebugDemo {
             // ver a senha da carteira.
             case "voz-conferir": Task { _ = await VoiceGate.shared.confirm(.reveal, session: session) }
             case "mercado": router.tab = .market
+            // `-tela moeda`: a pagina do bitcoin, pelo mesmo caminho do toque num alerta.
+            case "moeda":
+                router.tab = .market
+                router.pendingCoinID = "bitcoin"
             case "trocar": router.tab = .trade
             case "atividade": router.tab = .activity
             case "ajustes": router.tab = .settings
@@ -157,12 +161,15 @@ struct DemoEnvelopes: ViewModifier {
     @State private var opening = false
     @State private var newWallet: DemoNewWallet?
     @State private var voice = false
+    @State private var alerts = false
     @State private var shown = false
 
     func body(content: Content) -> some View {
         content
             // `-tela voz`: Ajustes, Seguranca, Confirmacao por voz.
             .fullScreenCover(isPresented: $voice) { NavigationStack { VoiceSettingsView() } }
+            // `-tela alertas`: Ajustes, Alertas de preco.
+            .fullScreenCover(isPresented: $alerts) { NavigationStack { PriceAlertsView() } }
             .fullScreenCover(item: $sealing) { wallet in SealEnvelopeFlow(wallet: wallet) { sealing = nil } }
             .fullScreenCover(isPresented: $opening) { OpenEnvelopeFlow(initialURL: DebugDemo.envelopeURL) { opening = false } }
             .fullScreenCover(item: $newWallet) { screen in
@@ -179,6 +186,7 @@ struct DemoEnvelopes: ViewModifier {
                 if DebugDemo.screen == "lacrar" { sealing = first }
                 if DebugDemo.screen == "abrir" { opening = true }
                 if DebugDemo.screen == "voz" { voice = true }
+                if DebugDemo.screen == "alertas" { alerts = true }
                 newWallet = DebugDemo.screen.flatMap(DemoNewWallet.init(rawValue:))
             }
     }

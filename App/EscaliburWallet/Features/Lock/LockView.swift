@@ -1,9 +1,12 @@
 import EscaliburKeys
 import SwiftUI
 
-/// A4: o app trancado. O Face ID dispara sozinho quando a tela aparece.
+/// A4: o app trancado. O Face ID dispara sozinho quando o app esta na frente.
 struct LockView: View {
     @Environment(AppSession.self) private var session
+    @Environment(\.scenePhase) private var scenePhase
+    /// O Face ID automatico ja foi tentado nesta vinda para a frente.
+    @State private var triedBiometry = false
     @State private var entry = PINEntry()
     @State private var working = false
     @State private var forgotPIN = false
@@ -28,9 +31,17 @@ struct LockView: View {
         ) {
             TertiaryButton(title: "Esqueci o PIN") { forgotPIN = true }
         }
-        .task {
+        // O alerta de preco abre o app em segundo plano, as vezes com o iPhone
+        // bloqueado: ai nao ha rosto para ler e o chaveiro nao responde. O Face ID
+        // automatico espera o app vir para a frente, uma vez a cada vinda.
+        .task(id: scenePhase) {
+            guard scenePhase == .active, !triedBiometry else { return }
+            triedBiometry = true
             showThrottleIfNeeded()
             if session.biometryEnabled, !restartNeedsPIN { await tryBiometry() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { triedBiometry = false }
         }
         .sheet(isPresented: $forgotPIN) { forgotSheet }
     }

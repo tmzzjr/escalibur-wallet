@@ -38,10 +38,15 @@ final class AppSession {
         if ProcessInfo.processInfo.arguments.contains("-reset") {
             KeyServices.root.wipeAll()
             MetadataStore.deleteFile()
+            PriceAlertStore.erase()
         }
         #endif
         KeyServices.firstLaunchCleanup()
-        KeyServices.root.rebaseAttempts()
+        // Os alertas de preco abrem o app em segundo plano, as vezes com o iPhone
+        // bloqueado: ai o chaveiro nao responde e a contagem de tentativas fica para a
+        // volta ao primeiro plano (`scenePhaseChanged`). `isSetUp` le "nao sei" como
+        // configurado, e o app abre travado, nunca na criacao do PIN.
+        if UIApplication.shared.isProtectedDataAvailable { KeyServices.root.rebaseAttempts() }
         phase = KeyServices.root.isSetUp ? .locked : .onboarding
     }
 
@@ -328,6 +333,8 @@ final class AppSession {
     func eraseEverything() {
         KeyServices.root.wipeAll()
         MetadataStore.deleteFile()
+        PriceAlertStore.erase()
+        Task { await PriceAlertCenter.shared.erase() }
         indexKey = nil
         metadata = Metadata()
         phase = .onboarding

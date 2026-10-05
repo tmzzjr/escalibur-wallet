@@ -7,6 +7,13 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppSession.self) private var session
     @State private var openingEnvelope = false
+    @State private var alerts: PriceAlertFile?
+
+    private var alertsValue: String? {
+        guard let alerts else { return nil }
+        guard alerts.enabled, !alerts.coins.isEmpty else { return "Desligados" }
+        return alerts.coins.count == 1 ? "1 moeda" : "\(alerts.coins.count) moedas"
+    }
 
     var body: some View {
         NavigationStack {
@@ -38,6 +45,10 @@ struct SettingsView: View {
                             SettingsRow(icon: "network", title: "Redes",
                                         value: "\(Chain.all.count - session.metadata.settings.disabledChainIDs.count) ligadas")
                         }
+                        NavigationLink { PriceAlertsView() } label: {
+                            SettingsRow(icon: "bell", title: "Alertas de preço", value: alertsValue)
+                        }
+                        .accessibilityIdentifier("ajustes-alertas")
                     }
 
                     SettingsSection(title: "Sobre") {
@@ -51,6 +62,7 @@ struct SettingsView: View {
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .statusBarBackdrop()
+            .onAppear { Task { alerts = await PriceAlertCenter.shared.file() } }
         }
         .fullScreenCover(isPresented: $openingEnvelope) {
             OpenEnvelopeFlow(initialURL: nil) { openingEnvelope = false }

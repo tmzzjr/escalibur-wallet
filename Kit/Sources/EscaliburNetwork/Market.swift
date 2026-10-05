@@ -226,6 +226,40 @@ public actor MarketService {
         return out
     }
 
+    /// Quanto as duas fontes podem discordar para um preco valer como alerta.
+    static let alertAgreement = 0.02
+
+    /// Precos para os alertas de preco: so o que duas fontes confirmam agora.
+    ///
+    /// O CoinGecko da o preco e a variacao (os mesmos da tela); o CoinPaprika tem de
+    /// concordar dentro de 2%. Sem cache e sem o ultimo preco bom: preco velho, ou de uma
+    /// fonte so, nao vira aviso na tela bloqueada. Moeda que uma das fontes nao tem, ou
+    /// em que elas discordam, fica de fora desta vez.
+    public func alertQuotes(ids: [String], currency: String) async -> [String: Quote] {
+        let unique = Array(Set(ids)).sorted()
+        guard !unique.isEmpty,
+              let primary = try? await fromGecko({ try await self.geckoQuotes(ids: unique, currency: currency) }),
+              !primary.isEmpty
+        else { return [:] }
+        remember(primary, currency: currency)
+        let wanted = primary.keys.sorted()
+        var second: [String: Quote] = [:]
+        if wanted.count <= 3, wanted.allSatisfy({ paprikaID(for: $0) != nil }) {
+            second = (try? await paprikaQuotes(ids: wanted, currency: currency)) ?? [:]
+        } else if let tickers = try? await paprikaTickers(currency: currency) {
+            let byPaprika = Dictionary(tickers.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            for id in wanted {
+                if let paprikaID = paprikaID(for: id), let quote = byPaprika[paprikaID]?.quote(currency) { second[id] = quote }
+            }
+        }
+        var out: [String: Quote] = [:]
+        for (id, quote) in primary {
+            guard let other = second[id], abs(quote.price / other.price - 1) <= Self.alertAgreement else { continue }
+            out[id] = quote
+        }
+        return out
+    }
+
     private func remember(_ quotes: [String: Quote], currency: String) {
         let moment = now()
         for (id, quote) in quotes { prices[currency, default: [:]][id] = (moment, quote) }

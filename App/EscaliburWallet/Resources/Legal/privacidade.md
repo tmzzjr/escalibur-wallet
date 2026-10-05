@@ -8,6 +8,7 @@ A Escalibur Wallet é oferecida por X tech a.i fund holding e participacoes LTDA
 
 - **As chaves das carteiras.** Ficam no chaveiro do iOS, presas a este aparelho, cifradas por chaves do Secure Enclave e pelo seu PIN. Não entram no backup do iCloud e não passam para outro iPhone.
 - **Nomes das carteiras, endereços, contatos e ajustes.** Ficam num arquivo cifrado no app, fora do backup.
+- **Alertas de preço, se você ligar.** As moedas que você marcou, as regras e o último preço visto ficam num arquivo à parte, fora do backup. Ele abre depois do primeiro desbloqueio do iPhone, e não só com a tela aberta como o resto: é o que deixa o alerta chegar com a tela bloqueada. Nele não entra saldo, endereço nem carteira.
 - **Nada sai do aparelho por conta do app.** A senha da carteira (as palavras) só sai quando você mesmo lacra um envelope Escalibur, cifrado com uma senha só dele.
 
 ## O que a Escalibur recebe
@@ -17,6 +18,8 @@ Nada. O app não tem análise de uso, relatório de falhas, anúncios nem rastre
 ## Com quem o app fala
 
 Para mostrar saldos, preços e histórico, e para enviar e trocar, o app fala direto com serviços públicos de cada rede, de empresas diferentes. Cada um vê o IP do seu iPhone e os endereços, valores e transações que o app consulta ou envia, e pode perceber que esses endereços são da mesma pessoa. Uma VPN esconde o IP. Desligar em Ajustes uma rede que você não usa para as consultas dela.
+
+Com os alertas de preço ligados, o iPhone consulta de tempos em tempos, também com o app fechado, o preço das moedas marcadas no CoinGecko e no CoinPaprika. Os dois veem o IP e a lista dessas moedas, nada mais.
 
 A lista abaixo é completa: o app não consegue falar com nenhum outro endereço, e o código confere isso a cada versão.
 
@@ -42,6 +45,7 @@ Cada um desses serviços tem a própria política de privacidade.
 
 - **Face ID:** quem decide é o iOS. O app recebe só "confirmou" ou "não confirmou", nunca o seu rosto.
 - **Câmera:** só para ler QR code de endereço, no aparelho. Nenhuma imagem é guardada.
+- **Notificações:** só se você ligar os alertas de preço. São notificações locais, criadas no próprio iPhone: o app não tem token de push e nenhum servidor manda nada para ele. Elas mostram a moeda e o preço, ou só "Alerta de preço", como você escolher. Nunca o saldo.
 - **Microfone e reconhecimento de fala:** só se você ligar a confirmação por voz. O reconhecimento roda no aparelho, sem servidor da Apple; o áudio não é gravado e o que foi dito não é guardado, só uma impressão cifrada da frase.
 
 ## Área de transferência

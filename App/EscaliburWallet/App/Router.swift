@@ -27,6 +27,8 @@ final class Router {
     var tradePreset: (asset: Asset, sell: Bool)?
     /// Envelope aberto pelo sistema (AirDrop, Arquivos) esperando o app destravar.
     var incomingEnvelope: URL?
+    /// Moeda de um alerta de preco tocado: o Mercado abre a pagina dela.
+    var pendingCoinID: String?
 
     func present(_ flow: Flow) { self.flow = flow }
 }

@@ -11,6 +11,7 @@ struct EscaliburWalletApp: App {
 
     init() {
         PlatformGuards.install()
+        NotificationRelay.install()
         UITabBar.appearance().unselectedItemTintColor = UIColor(Palette.inkMuted)
     }
 
@@ -28,6 +29,10 @@ struct EscaliburWalletApp: App {
                 .environment(portfolio)
                 .preferredColorScheme(.dark)
                 .tint(Palette.ink)
+        }
+        // Alertas de preco: o iOS acorda o app de tempos em tempos, quando ele quer.
+        .backgroundTask(.appRefresh(PriceAlertCenter.taskID)) {
+            await PriceAlertCenter.shared.backgroundRun()
         }
     }
 }

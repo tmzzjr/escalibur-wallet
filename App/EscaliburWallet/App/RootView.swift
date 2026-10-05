@@ -11,6 +11,7 @@ struct RootView: View {
     /// marca, a raiz trocava para a tela principal no instante do guardar e derrubava
     /// o fluxo em tela cheia: o dono caia na carteira sem ver as palavras.
     @State private var firstRun = false
+    private let inbox = NotificationInbox.shared
 
     /// O modo demo (so em DEBUG) importa a carteira de teste sozinho: nao ha primeira
     /// carteira para acompanhar.
@@ -27,7 +28,23 @@ struct RootView: View {
             Palette.void.ignoresSafeArea()
             content
         }
-        .onChange(of: scenePhase) { _, phase in session.scenePhaseChanged(phase) }
+        .onChange(of: scenePhase) { _, phase in
+            session.scenePhaseChanged(phase)
+            switch phase {
+            case .active: Task { await PriceAlertCenter.shared.check() }
+            case .background: Task { await PriceAlertCenter.shared.reschedule() }
+            default: break
+            }
+        }
+        // O toque num alerta espera o app destravar e entao abre a moeda no Mercado.
+        .onChange(of: inbox.request) { routeNotification() }
+        .onChange(of: session.phase) { routeNotification() }
+        // Os alertas falam na moeda do app; trocar a moeda zera a base de cada um.
+        .task(id: session.phase == .unlocked ? session.metadata.settings.currency : nil) {
+            guard session.phase == .unlocked else { return }
+            let currency = session.metadata.settings.currency
+            await PriceAlertCenter.shared.syncCurrency(currency)
+        }
         // Travar no meio da primeira carteira derruba o fluxo em tela cheia, mas a
         // carteira ja foi guardada antes das palavras. Ao destravar com carteira, a
         // primeira vez acabou: vai para a Carteira, onde o aviso de copia pendente leva a
@@ -46,6 +63,13 @@ struct RootView: View {
         #if DEBUG
         .task { await DebugDemo.prepare(session: session, router: router) }
         #endif
+    }
+
+    private func routeNotification() {
+        guard session.phase == .unlocked, let request = inbox.request else { return }
+        inbox.request = nil
+        router.tab = .market
+        router.pendingCoinID = request.coinID
     }
 
     @ViewBuilder

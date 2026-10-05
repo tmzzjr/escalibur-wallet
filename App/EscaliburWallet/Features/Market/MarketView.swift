@@ -146,7 +146,19 @@ struct MarketView: View {
             .navigationDestination(for: MarketCoin.self) { coin in
                 MarketCoinDetail(coin: coin)
             }
+            .onAppear { openPendingCoin() }
+            .onChange(of: router.pendingCoinID) { openPendingCoin() }
+            .onChange(of: coins.isEmpty) { openPendingCoin() }
         }
+    }
+
+    /// A moeda de um alerta de preco tocado, assim que a lista tiver chegado.
+    private func openPendingCoin() {
+        guard let id = router.pendingCoinID, let coin = coins.first(where: { $0.id == id }) else { return }
+        router.pendingCoinID = nil
+        var path = NavigationPath()
+        path.append(coin)
+        router.marketPath = path
     }
 
     private func load() async {
@@ -305,7 +317,12 @@ struct MarketCoinDetail: View {
                     Text(verbatim: coin.name).typeStyle(.action).foregroundStyle(Palette.ink)
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) { FavoriteButton(coingeckoID: coin.id) }
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack(spacing: 0) {
+                    PriceAlertBell(coin: coin)
+                    FavoriteButton(coingeckoID: coin.id)
+                }
+            }
         }
         .safeAreaInset(edge: .bottom) {
             if session.selectedWallet?.isWatchOnly != true, tradable != nil || held != nil {
