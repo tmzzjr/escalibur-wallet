@@ -150,7 +150,18 @@ final class Portfolio {
         let ids = Set(Chain.all.map(\.coingeckoID) + TokenRegistry.tokens.compactMap(\.coingeckoID))
         let base = session.metadata.settings.currency
         async let quoted = try? MarketService.shared.quotes(ids: Array(ids), currency: base)
-        async let referencePrices = Self.bitcoinPrices(excluding: base)
+        let referencePrices = Task { await Self.bitcoinPrices(excluding: base) }
+        // A cotacao do bitcoin nas outras moedas entra assim que chega, sem esperar os
+        // saldos de todas as redes: tocar no preco para ver em dolar responde na hora,
+        // mesmo com uma rede lenta ou repetindo a leitura.
+        Task {
+            let others = await referencePrices.value
+            guard !others.isEmpty,
+                  let own = try? await MarketService.shared.quotes(ids: ["bitcoin"], currency: base)["bitcoin"]?.price
+            else { return }
+            bitcoinPrices.merge(others) { $1 }
+            bitcoinPrices[base] = own
+        }
         await withTaskGroup(of: (Chain, ChainBalance?).self) { group in
             for (chain, addresses) in targets {
                 group.addTask {
@@ -202,7 +213,7 @@ final class Portfolio {
         }
 
         let newQuotes = await quoted
-        var prices = await referencePrices
+        var prices = await referencePrices.value
         if let btc = newQuotes?["bitcoin"]?.price { prices[base] = btc }
         if prices.count > 1 || !prices.isEmpty { bitcoinPrices = prices }
 

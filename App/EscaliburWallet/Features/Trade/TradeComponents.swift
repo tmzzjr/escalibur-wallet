@@ -127,14 +127,14 @@ struct SlippageSlider: View {
     @State private var shown: CGFloat = 0
     @State private var dragging = false
 
-    static let range: ClosedRange<Int> = 10...300
-    static let step = 10
+    nonisolated static let range: ClosedRange<Int> = 10...300
+    nonisolated static let step = 10
     /// Marcas de referencia, em pontos-base: 0,1%, 0,5%, 1%, 2% e 3%.
-    static let marks = [10, 50, 100, 200, 300]
+    nonisolated static let marks = [10, 50, 100, 200, 300]
 
     /// As marcas ficam a distancias iguais e a escala e linear entre duas vizinhas: o
     /// trecho baixo, onde a tolerancia importa mais, ganha mais espaco para o dedo.
-    static func position(_ bps: Int) -> CGFloat {
+    nonisolated static func position(_ bps: Int) -> CGFloat {
         let value = Double(min(max(bps, range.lowerBound), range.upperBound))
         let segments = Double(marks.count - 1)
         for index in 0..<(marks.count - 1) where value <= Double(marks[index + 1]) {
@@ -145,7 +145,7 @@ struct SlippageSlider: View {
     }
 
     /// O inverso de `position`, ja no passo de 0,1%.
-    static func value(at ratio: Double) -> Int {
+    nonisolated static func value(at ratio: Double) -> Int {
         let x = min(max(ratio, 0), 1) * Double(marks.count - 1)
         let index = min(Int(x), marks.count - 2)
         let raw = Double(marks[index]) + (x - Double(index)) * Double(marks[index + 1] - marks[index])
@@ -232,6 +232,7 @@ struct SlippageSlider: View {
             .frame(height: 34)
             // Os rotulos das marcas: tocar leva direto ao valor.
             GeometryReader { geometry in
+                let width = geometry.size.width
                 ZStack(alignment: .topLeading) {
                     ForEach(Self.marks, id: \.self) { mark in
                         Button { basisPoints = mark } label: {
@@ -243,10 +244,10 @@ struct SlippageSlider: View {
                         }
                         .buttonStyle(.plain)
                         .alignmentGuide(.leading) { d in
-                            let x = Self.position(mark) * geometry.size.width
+                            let x = Self.position(mark) * width
                             // A primeira e a ultima ficam dentro da borda.
                             if mark == Self.marks.first { return 0 }
-                            if mark == Self.marks.last { return d.width - geometry.size.width }
+                            if mark == Self.marks.last { return d.width - width }
                             return d.width / 2 - x
                         }
                         .accessibilityHidden(true)
