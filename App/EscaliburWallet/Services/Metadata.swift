@@ -117,6 +117,16 @@ struct VoiceSettings: Codable, Equatable {
     /// Adiantar o relogio do iPhone nao encurta a espera (auditoria 2, B3).
     var lockUptimeDeadline: TimeInterval?
     var lockBoot: String?
+    /// A lingua em que a frase e dita e ouvida. Nil: portugues (o padrao antes de
+    /// existir a escolha).
+    var language: VoiceLanguage?
+    /// Envios seguidos sem a frase (abaixo do valor) antes de o proximo pedir a frase.
+    /// Nil: sem limite.
+    var maxSendsWithoutVoice: Int?
+    /// Quantos envios sairam sem a frase desde a ultima frase conferida.
+    var sendsWithoutVoice: Int?
+
+    var phraseLanguage: VoiceLanguage { language ?? .portuguese }
 
     mutating func startLock(seconds: TimeInterval) {
         lockedUntil = Date.now.addingTimeInterval(seconds)

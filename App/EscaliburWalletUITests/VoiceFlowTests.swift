@@ -28,6 +28,10 @@ final class VoiceFlowTests: XCTestCase {
     }
 
     func type(pin: String, in app: XCUIApplication) {
+        // O teclado do PIN entra animando sobre a tela de baixo; o toque no meio da
+        // entrada se perde. Espera ele assentar antes do primeiro digito.
+        _ = app.buttons.matching(identifier: "tecla-1").firstMatch.waitForExistence(timeout: 30)
+        sleep(1)
         for digit in pin {
             let key = app.buttons.matching(identifier: "tecla-\(digit)").firstMatch
             XCTAssertTrue(key.waitForExistence(timeout: 30), "tecla \(digit)")

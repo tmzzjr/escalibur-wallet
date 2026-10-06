@@ -910,6 +910,9 @@ struct SendStages: View {
             wallet.utxoUsage[chain.id] = usage
             session.update(wallet)
         }
+        // Conta na sequencia de envios sem a frase ja na transmissao: mesmo sem resposta,
+        // o envio pode ter saido (falha para o lado de pedir a frase antes).
+        VoiceGate.shared.noteSendTransmitted(session: session)
         do {
             let id = try await engine.broadcast(signed, chain: chain)
             model.unsureSigned = nil

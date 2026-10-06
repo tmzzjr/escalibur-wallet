@@ -313,6 +313,7 @@ struct TradeReviewFlow: View {
         }
         stage = .sending
         do {
+            if !isCancel { VoiceGate.shared.noteSendTransmitted(session: session) }
             ids = try await engine.submit(signed, plan: plan)
             unsureSigned = nil
             stage = .done

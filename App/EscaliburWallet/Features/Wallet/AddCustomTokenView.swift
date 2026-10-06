@@ -295,7 +295,11 @@ struct AddCustomTokenView: View {
         }
         portfolio.customChanged(session.selectedWallet, session: session)
         toasts.show("\(asset.symbol) adicionada. Ela aparece na Carteira, em Receber e em Enviar.")
-        Task { await portfolio.refresh(session.selectedWallet, session: session) }
+        let wallet = session.selectedWallet
+        Task {
+            if let chain = asset.chain { await portfolio.refreshChain(chain, wallet: wallet, session: session) }
+            await portfolio.refresh(wallet, session: session)
+        }
         onDone()
     }
 }

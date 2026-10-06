@@ -45,6 +45,17 @@ final class VoiceGate {
     static let lockSeconds: TimeInterval = 15 * 60
 
     var challenge: Challenge?
+    /// O ultimo envio pedido passou pela frase? Decide se a transmissao conta na
+    /// sequencia de envios sem voz.
+    private var lastSendUsedVoice = true
+
+    /// Um envio ou troca foi transmitido (ou pode ter sido): sem a frase, conta na
+    /// sequencia; com ela, a sequencia ja zerou na conferencia.
+    func noteSendTransmitted(session: AppSession) {
+        guard session.metadata.settings.voice.enabled, !lastSendUsedVoice else { return }
+        session.metadata.settings.voice.sendsWithoutVoice = (session.metadata.settings.voice.sendsWithoutVoice ?? 0) + 1
+        try? session.persist()
+    }
 
     /// So para dobrar acentos e caixa na forma canonica; a frase pode ser em qualquer
     /// lingua de `VoiceLanguage`.
@@ -65,6 +76,24 @@ final class VoiceGate {
         return "Entendo só em \(on): o \(off) não está disponível sem internet neste iPhone."
     }
 
+    /// Uma linha para a tela: a lingua escolhida, e o que fazer quando o iPhone nao a
+    /// reconhece sem internet.
+    static func languageLine(_ language: VoiceLanguage) -> String {
+        language.onDevice
+            ? "Ouço em \(language.name). A língua se troca em Ajustes, Confirmação por voz."
+            : "O \(language.name) sem internet não está disponível neste iPhone agora. Costuma ficar disponível quando você adiciona um teclado em \(language.name) nos Ajustes do iPhone."
+    }
+
+    /// O envio pede a frase? Com o pedido em envios desligado, nunca. Sem cotacao, o
+    /// valor e desconhecido e pede (falha fechada). Abaixo do valor, so quando a
+    /// sequencia de envios sem a frase chegou ao limite.
+    static func sendNeedsVoice(fiat: Double?, settings: VoiceSettings) -> Bool {
+        guard let limit = settings.onSendAboveFiat else { return false }
+        guard let fiat else { return true }
+        let streakFull = settings.maxSendsWithoutVoice.map { (settings.sendsWithoutVoice ?? 0) >= $0 } ?? false
+        return fiat >= limit || streakFull
+    }
+
     /// Precisa de voz para esta acao? Se sim, pede; se nao, deixa passar.
     func confirm(_ action: Action, session: AppSession) async -> Bool {
         let settings = session.metadata.settings.voice
@@ -73,8 +102,8 @@ final class VoiceGate {
         case .reveal: guard settings.onReveal else { return true }
         case .envelope: guard settings.onEnvelope else { return true }
         case .send(let fiat):
-            guard let limit = settings.onSendAboveFiat else { return true }
-            if let fiat, fiat < limit { return true }
+            lastSendUsedVoice = Self.sendNeedsVoice(fiat: fiat, settings: settings)
+            guard lastSendUsedVoice else { return true }
         }
         let remaining = lockRemaining(session)
         let locked = remaining > 0 ? Date.now.addingTimeInterval(remaining) : nil
@@ -96,6 +125,7 @@ final class VoiceGate {
         let session = challenge.session
         if passed {
             session.metadata.settings.voice.clearLock()
+            session.metadata.settings.voice.sendsWithoutVoice = nil
             try? session.persist()
         } else if exhausted {
             let failures = (session.metadata.settings.voice.failedChallenges ?? 0) + 1
@@ -189,13 +219,41 @@ extension Metadata {
 
 /// As linguas em que a frase pode ser dita. Cada uma so entra se o iPhone a reconhece
 /// sem internet; a que nao tiver modelo no aparelho fica de fora, e a tela diz.
-enum VoiceLanguage: String, CaseIterable, Sendable {
+enum VoiceLanguage: String, CaseIterable, Sendable, Codable {
     case portuguese = "pt-BR"
     case english = "en-US"
 
     var locale: Locale { Locale(identifier: rawValue) }
     var name: String { self == .portuguese ? "português" : "inglês" }
-    var onDevice: Bool { SFSpeechRecognizer(locale: locale)?.supportsOnDeviceRecognition == true }
+    var title: String { self == .portuguese ? "Português" : "Inglês" }
+    /// O iPhone reconhece esta lingua sem internet? Criar um reconhecedor so para
+    /// perguntar e lento, e a tela pergunta a cada redesenho (o teclado do PIN perdia
+    /// toques): o "sim" vale 30 s. O "nao" e conferido de novo a cada vez, porque o iOS
+    /// pode dizer "nao" logo ao criar o reconhecedor e "sim" instantes depois.
+    var onDevice: Bool {
+        if VoiceLanguageAvailability.cached(self) == true { return true }
+        let available = SFSpeechRecognizer(locale: locale)?.supportsOnDeviceRecognition == true
+        if available { VoiceLanguageAvailability.store(true, for: self) }
+        return available
+    }
+}
+
+/// A disponibilidade de cada lingua, guardada por pouco tempo.
+private enum VoiceLanguageAvailability {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var answers: [VoiceLanguage: (available: Bool, at: Date)] = [:]
+    static let lifetime: TimeInterval = 30
+
+    static func cached(_ language: VoiceLanguage) -> Bool? {
+        lock.withLock {
+            guard let entry = answers[language], Date.now.timeIntervalSince(entry.at) < lifetime else { return nil }
+            return entry.available
+        }
+    }
+
+    static func store(_ available: Bool, for language: VoiceLanguage) {
+        lock.withLock { answers[language] = (available, .now) }
+    }
 }
 
 /// Ouve uma frase curta e devolve o que reconheceu, so no aparelho.
@@ -356,8 +414,10 @@ final class SpeechListener: ObservableObject {
 
     /// Ouve uma vez. Volta quando a pessoa para de falar, quando toca em parar, ou
     /// no limite de tempo.
-    func listen() async -> Heard {
-        let languages = VoiceGate.languages
+    /// So na lingua escolhida pelo dono: dois reconhecedores ao mesmo tempo faziam o
+    /// ingles "ganhar" com uma leitura errada de frase em portugues (relatado no iPhone).
+    func listen(in language: VoiceLanguage) async -> Heard {
+        let languages = language.onDevice ? [language] : []
         self.languages = languages
         reset()
         guard !languages.isEmpty else { return Heard(failure: .unavailable) }
@@ -572,7 +632,7 @@ struct VoiceChallengeSheet: View {
                     .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
             }
             Spacer(minLength: Space.md)
-            Text(VoiceGate.languageNote(listener.languages))
+            Text(VoiceGate.languageLine(challenge.session.metadata.settings.voice.phraseLanguage))
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.horizontal, Space.gutter).padding(.bottom, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
             PrimaryButton(title: listener.listening ? "Terminei de falar" : "Falar agora",
@@ -599,7 +659,7 @@ struct VoiceChallengeSheet: View {
             return
         }
         needsPermission = false
-        let heard = await listener.listen()
+        let heard = await listener.listen(in: challenge.session.metadata.settings.voice.phraseLanguage)
         guard !closed else { return }
         if let failure = heard.failure {
             // Nao ouvir nada nao gasta tentativa: so conta a frase errada.

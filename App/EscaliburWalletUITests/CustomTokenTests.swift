@@ -56,7 +56,12 @@ final class CustomTokenTests: XCTestCase {
         let app = launch()
         let manage = app.buttons["gerenciar-ativos"]
         XCTAssertTrue(manage.waitForExistence(timeout: 10))
-        manage.tap()
+        // Enquanto os saldos chegam, o cartao do total muda de altura e o "Gerenciar"
+        // desce: o toque pode cair onde ele estava. Toca de novo se a tela nao abriu.
+        for _ in 0..<3 where !app.staticTexts["Moedas custom"].waitForExistence(timeout: 1) {
+            manage.tap()
+            _ = app.staticTexts["Moedas custom"].waitForExistence(timeout: 4)
+        }
         let add = app.buttons["adicionar-moeda"]
         scroll(to: add, in: app)
         XCTAssertTrue(add.waitForExistence(timeout: 10))

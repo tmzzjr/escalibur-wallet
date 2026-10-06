@@ -32,6 +32,8 @@ struct VoiceSettingsView: View {
     @State private var testing = false
     @State private var testPassed = false
     @State private var testResult: String?
+    /// Lingua escolhida com uma frase ja gravada: espera a confirmacao para gravar outra.
+    @State private var pendingLanguage: VoiceLanguage?
     @FocusState private var editing: Bool
 
     private enum Step { case speak, review, confirm }
@@ -157,7 +159,7 @@ struct VoiceSettingsView: View {
             VoiceListeningPanel(listener: listener, idle: "Toque em Começar a falar.")
                 .padding(.top, Space.md)
             feedback
-            languageNote.padding(.top, Space.sm)
+            languagePicker.padding(.top, Space.md)
             PrimaryButton(title: listener.listening ? "Terminei de falar" : "Começar a falar",
                           loading: listener.busy && !listener.listening) {
                 listenOrStop { await hearPhrase() }
@@ -265,16 +267,53 @@ struct VoiceSettingsView: View {
         }
     }
 
-    private var languageNote: some View {
-        let missing = VoiceLanguage.allCases.filter { !listener.languages.contains($0) }.map(\.name)
-        return VStack(alignment: .leading, spacing: Space.xxs) {
-            Text(VoiceGate.languageNote(listener.languages))
-            if !missing.isEmpty && !listener.languages.isEmpty {
-                Text("Costuma ficar disponível quando você adiciona um teclado em \(missing.joined(separator: " e ")) nos Ajustes do iPhone.")
-            }
+    /// A lingua da frase: so ela e ouvida, na gravacao e na conferencia. Ouvir em duas
+    /// ao mesmo tempo fazia o ingles ganhar com leitura errada de frase em portugues.
+    private var languagePicker: some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Text("Língua da frase").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            Segmented(
+                options: VoiceLanguage.allCases.map { ($0, $0.title) },
+                selection: Binding(get: { settings.phraseLanguage }, set: { chooseLanguage($0) })
+            )
+            .accessibilityIdentifier("voz-lingua")
+            Text(VoiceGate.languageLine(settings.phraseLanguage))
+                .typeStyle(.note).foregroundStyle(settings.phraseLanguage.onDevice ? Palette.inkMuted : Palette.caution)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .typeStyle(.note).foregroundStyle(Palette.inkMuted)
-        .fixedSize(horizontal: false, vertical: true)
+        .alert("Trocar a língua da frase?", isPresented: Binding(get: { pendingLanguage != nil }, set: { if !$0 { pendingLanguage = nil } })) {
+            Button("Cancelar", role: .cancel) { pendingLanguage = nil }
+            Button("Trocar e gravar") {
+                if let language = pendingLanguage { applyLanguage(language, rerecord: true) }
+                pendingLanguage = nil
+            }
+        } message: {
+            Text("A frase gravada foi ouvida em \(settings.phraseLanguage.name). Em \(pendingLanguage?.name ?? ""), grave a frase de novo para o iPhone conferir certo.")
+        }
+    }
+
+    private func chooseLanguage(_ language: VoiceLanguage) {
+        guard language != settings.phraseLanguage else { return }
+        if session.metadata.voicePhraseHash != nil, !replacing {
+            pendingLanguage = language
+        } else {
+            applyLanguage(language, rerecord: false)
+        }
+    }
+
+    private func applyLanguage(_ language: VoiceLanguage, rerecord: Bool) {
+        listener.stop()
+        listener.reset()
+        session.metadata.settings.voice.language = language
+        save()
+        guard rerecord else { return }
+        replacing = true
+        saved = false
+        testing = false
+        testResult = nil
+        message = nil
+        draft = ""
+        step = .speak
     }
 
     /// O botao principal comeca a ouvir ou, se ja estiver ouvindo, para.
@@ -297,7 +336,7 @@ struct VoiceSettingsView: View {
     private func hearPhrase() async {
         message = nil
         guard await permitted() else { return }
-        let heard = await listener.listen()
+        let heard = await listener.listen(in: settings.phraseLanguage)
         if let failure = heard.failure {
             message = VoicePermission.message(for: failure)
             return
@@ -313,7 +352,7 @@ struct VoiceSettingsView: View {
     private func confirmPhrase() async {
         message = nil
         guard await permitted() else { return }
-        let heard = await listener.listen()
+        let heard = await listener.listen(in: settings.phraseLanguage)
         if let failure = heard.failure {
             message = VoicePermission.message(for: failure)
             return
@@ -363,13 +402,48 @@ struct VoiceSettingsView: View {
                 toggle("Pedir para lacrar envelope", \.onEnvelope)
                 Toggle(isOn: Binding(get: { settings.onSendAboveFiat != nil }, set: { on in
                     session.metadata.settings.voice.onSendAboveFiat = on ? 5000 : nil
+                    if !on { session.metadata.settings.voice.maxSendsWithoutVoice = nil }
                     save()
                 })) {
-                    Text("Pedir em envios acima de \(Fmt.fiat(5000, session.currency))").typeStyle(.body).foregroundStyle(Palette.ink)
+                    Text("Pedir em envios e trocas").typeStyle(.body).foregroundStyle(Palette.ink)
                 }
                 .tint(Palette.lime).padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
+                if let limit = settings.onSendAboveFiat {
+                    VoiceLimitField(value: limit, currency: session.currency) { value in
+                        session.metadata.settings.voice.onSendAboveFiat = value
+                        save()
+                    }
+                    .padding(.horizontal, Space.md).padding(.bottom, Space.sm)
+                    Toggle(isOn: Binding(get: { settings.maxSendsWithoutVoice != nil }, set: { on in
+                        session.metadata.settings.voice.maxSendsWithoutVoice = on ? 3 : nil
+                        session.metadata.settings.voice.sendsWithoutVoice = nil
+                        save()
+                    })) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Limitar envios seguidos sem a frase").typeStyle(.body).foregroundStyle(Palette.ink)
+                            Text("Mesmo abaixo do valor, a frase volta depois de alguns envios.").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .tint(Palette.lime).padding(.horizontal, Space.md).frame(minHeight: Height.row)
+                    if let max = settings.maxSendsWithoutVoice {
+                        Stepper(value: Binding(get: { max }, set: { value in
+                            session.metadata.settings.voice.maxSendsWithoutVoice = value
+                            save()
+                        }), in: 1...20) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(max == 1 ? "No máximo 1 envio seguido" : "No máximo \(max) envios seguidos").typeStyle(.body).foregroundStyle(Palette.ink)
+                                Text(streakLine(max)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                            }
+                        }
+                        .padding(.horizontal, Space.md).frame(minHeight: Height.row)
+                        .accessibilityIdentifier("voz-sequencia")
+                    }
+                }
             }
             .padding(.top, Space.lg)
+
+            languagePicker.padding(.horizontal, Space.gutter).padding(.top, Space.lg)
 
             VStack(alignment: .leading, spacing: 0) {
                 feedback
@@ -421,6 +495,14 @@ struct VoiceSettingsView: View {
         }
     }
 
+    /// Quantos envios ja sairam sem a frase, e o que acontece no proximo.
+    private func streakLine(_ max: Int) -> String {
+        let done = settings.sendsWithoutVoice ?? 0
+        if done >= max { return "O próximo envio pede a frase." }
+        let left = max - done
+        return left == 1 ? "Falta 1 envio sem a frase." : "Faltam \(left) envios sem a frase."
+    }
+
     private func toggle(_ title: String, _ key: WritableKeyPath<VoiceSettings, Bool>) -> some View {
         Toggle(isOn: Binding(get: { settings[keyPath: key] }, set: { value in
             session.metadata.settings.voice[keyPath: key] = value
@@ -438,7 +520,7 @@ struct VoiceSettingsView: View {
         message = nil
         guard let hash = session.metadata.voicePhraseHash, let salt = session.metadata.voicePhraseSalt else { return }
         guard await permitted() else { return }
-        let heard = await listener.listen()
+        let heard = await listener.listen(in: settings.phraseLanguage)
         if let failure = heard.failure {
             testResult = VoicePermission.message(for: failure)
             return
@@ -447,5 +529,48 @@ struct VoiceSettingsView: View {
         testResult = testPassed
             ? "Conferiu. É assim que a frase vai ser pedida."
             : "Não conferiu. Numa operação, isto contaria como uma tentativa errada."
+    }
+}
+
+/// O valor acima do qual o envio pede a frase, digitado pelo dono, em reais ou dolares
+/// inteiros. Grava a cada mudanca; vazio ou zero nao grava.
+private struct VoiceLimitField: View {
+    let value: Double
+    let currency: Fmt.Currency
+    let onChange: (Double) -> Void
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: Space.xs) {
+            Text("Acima de").typeStyle(.body).foregroundStyle(Palette.inkSoft)
+            Spacer()
+            Text(currency.symbol).typeStyle(.row).foregroundStyle(Palette.inkSoft)
+            TextField("5.000", text: $text)
+                .typeStyle(.row).foregroundStyle(Palette.ink)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .focused($focused)
+                .fixedSize()
+                .accessibilityIdentifier("voz-valor")
+        }
+        .padding(.horizontal, Space.sm)
+        .frame(height: Height.field)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
+        .onAppear { text = Fmt.grouped(value, fractionDigits: 0) }
+        .onChange(of: text) { _, new in
+            let digits = String(new.filter(\.isNumber).prefix(9))
+            let formatted = digits.isEmpty ? "" : Fmt.grouped(Double(digits) ?? 0, fractionDigits: 0)
+            if formatted != new { text = formatted }
+            if let number = Double(digits), number > 0 { onChange(number) }
+        }
+        .toolbar {
+            if focused {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("OK") { focused = false }.fontWeight(.semibold)
+                }
+            }
+        }
     }
 }

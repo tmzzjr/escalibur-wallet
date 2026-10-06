@@ -16,16 +16,26 @@ final class AssetActivityTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-reset", "-demo"]
         app.launch()
-        // TRX: a carteira de teste tem movimento frequente na Tron.
-        let trx = app.buttons.matching(NSPredicate(format: "label CONTAINS 'TRX'")).firstMatch
-        XCTAssertTrue(trx.waitForExistence(timeout: 30))
-        trx.tap()
+        // A carteira de teste e publica e os saldos mudam: abre o primeiro ativo da lista.
+        let manage = app.buttons["gerenciar-ativos"]
+        XCTAssertTrue(manage.waitForExistence(timeout: 30))
+        let row = app.buttons.matching(NSPredicate(format: "label CONTAINS 'USDT' OR label CONTAINS 'XRP' OR label CONTAINS 'NEAR' OR label CONTAINS 'SOL'")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 30), "a carteira de teste deveria listar algum ativo")
+        row.tap()
         XCTAssertTrue(app.staticTexts["Atividade"].firstMatch.waitForExistence(timeout: 10))
         app.swipeUp()
-        let row = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Enviado · TRX' OR label BEGINSWITH 'Recebido · TRX'")).firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 30), "a pagina do TRX deveria listar os movimentos de TRX")
+        // A secao termina de ler: movimentos do ativo, ou o aviso de que ainda nao ha.
+        // Nunca fica lendo para sempre nem mostra falha.
+        let movement = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Enviado · ' OR label BEGINSWITH 'Recebido · ' OR label BEGINSWITH 'Troca · '")).firstMatch
+        let none = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Nenhum movimento de'")).firstMatch
+        let deadline = Date().addingTimeInterval(45)
+        while !movement.exists && !none.exists && Date() < deadline { sleep(1) }
+        XCTAssertTrue(movement.exists || none.exists, "a secao Atividade deveria terminar de ler")
+        XCTAssertFalse(app.staticTexts["Não foi possível ler os movimentos agora."].exists)
         shot("h1-ativo-atividade", app)
-        row.tap()
-        XCTAssertTrue(app.staticTexts["Identificador"].waitForExistence(timeout: 10), "a linha deveria abrir o detalhe")
+        if movement.exists {
+            movement.tap()
+            XCTAssertTrue(app.staticTexts["Identificador"].waitForExistence(timeout: 10), "a linha deveria abrir o detalhe")
+        }
     }
 }

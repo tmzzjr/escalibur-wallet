@@ -272,6 +272,41 @@ struct ManageAssetsView: View {
                     }
                     .padding(.top, Space.md)
                 }
+                if let wallet = session.selectedWallet, !portfolio.allOthers.isEmpty {
+                    // Outros tokens: fora da lista verificada, sem suspeita. Esconder tira da
+                    // Carteira e do total; o saldo continua na rede.
+                    Text("Outros tokens").typeStyle(.heading).foregroundStyle(Palette.ink)
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.xl)
+                    Text("Fora da lista verificada. Os suspeitos não aparecem aqui: ficam sempre escondidos.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.xxs)
+                    SettingsGroup {
+                        ForEach(portfolio.allOthers) { token in
+                            Toggle(isOn: Binding(
+                                get: { !wallet.hiddenAssetIDs.contains(token.id) },
+                                set: { visible in
+                                    var updated = wallet
+                                    if visible { updated.hiddenAssetIDs.remove(token.id) } else { updated.hiddenAssetIDs.insert(token.id) }
+                                    session.update(updated)
+                                    portfolio.show(updated, session: session, force: true)
+                                }
+                            )) {
+                                HStack(spacing: Space.sm) {
+                                    CoinLogo(coingeckoID: nil, symbol: token.asset.symbol, size: 28, network: token.asset.chain, ringColor: Palette.body,
+                                             unverified: true, logoAsset: token.asset)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(verbatim: token.asset.symbol).typeStyle(.body).foregroundStyle(Palette.ink).lineLimit(1)
+                                        Text("na \(token.asset.chain?.name ?? token.asset.chainID)").typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
+                                    }
+                                }
+                            }
+                            .tint(Palette.lime)
+                            .padding(.horizontal, Space.md).frame(minHeight: Height.row)
+                        }
+                    }
+                    .padding(.top, Space.sm)
+                }
 
                 VStack(alignment: .leading, spacing: Space.xxs) {
                     Text("Moedas custom").typeStyle(.heading).foregroundStyle(Palette.ink)

@@ -35,13 +35,15 @@ final class PlatformGuards: NSObject, UIApplicationDelegate {
     @MainActor
     private static func cover() {
         for window in allWindows where window.viewWithTag(coverTag) == nil {
+            // A tela inteira no rosa da marca, com a espada do icone no centro: o selo e
+            // o proprio icone, e no mesmo rosa so a espada aparece.
             let cover = UIView(frame: window.bounds)
-            cover.backgroundColor = UIColor(Palette.void)
+            cover.backgroundColor = UIColor(Palette.brand)
             cover.tag = coverTag
             cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            let badge = UIHostingController(rootView: WalletBadge(size: 56)).view!
+            let badge = UIHostingController(rootView: WalletBadge(size: 132)).view!
             badge.backgroundColor = .clear
-            badge.frame = CGRect(x: 0, y: 0, width: 56, height: 56)
+            badge.frame = CGRect(x: 0, y: 0, width: 132, height: 132)
             badge.center = cover.center
             badge.autoresizingMask = [.flexibleTopMargin, .flexibleBottomMargin, .flexibleLeftMargin, .flexibleRightMargin]
             cover.addSubview(badge)

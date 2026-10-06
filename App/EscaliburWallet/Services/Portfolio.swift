@@ -67,6 +67,8 @@ final class Portfolio {
     private(set) var unknownTokens = 0
     /// Tokens fora da lista e das moedas custom, sem suspeita: "Outros tokens".
     private(set) var others: [OtherToken] = []
+    /// Todos os outros tokens, inclusive os que o dono escondeu (para Gerenciar ativos).
+    private(set) var allOthers: [OtherToken] = []
     /// Os que tem cara de golpe: atras de "Mostrar suspeitos".
     private(set) var suspicious: [OtherToken] = []
     /// Preco por contrato (moeda custom e outros tokens), por `Asset.id`.
@@ -363,8 +365,10 @@ final class Portfolio {
             let quote = holding.isSuspicious ? nil : tokenQuotes[holding.asset.id]
             return OtherToken(holding: holding, price: quote?.price, change24h: quote?.change24h)
         }
-        others = tokens.filter { !$0.isSuspicious && !custom.contains($0.id) }
+        allOthers = tokens.filter { !$0.isSuspicious && !custom.contains($0.id) }
             .sorted { (($0.fiatValue ?? 0), $1.asset.symbol.lowercased()) > (($1.fiatValue ?? 0), $0.asset.symbol.lowercased()) }
+        // Escondido em Gerenciar ativos: some da Carteira e do total, como os da lista.
+        others = allOthers.filter { !wallet.hiddenAssetIDs.contains($0.id) }
         suspicious = tokens.filter(\.isSuspicious)
 
         // O total so soma o que tem preco: os ativos visiveis e os outros tokens com
@@ -383,6 +387,31 @@ final class Portfolio {
     private var sessionCustomIDs: [String] = []
 
     /// Chamado quando o dono adiciona ou remove uma moeda custom.
+    /// Le uma rede so, agora, fora da leitura geral: a moeda custom recem adicionada
+    /// aparece em segundos, sem esperar terminar a leitura de todas as redes que estiver
+    /// em andamento (com as novas tentativas, passava de um minuto). Tarefa propria, que
+    /// sair da tela nao cancela.
+    func refreshChain(_ chain: Chain, wallet: WalletMeta?, session: AppSession) async {
+        guard let wallet, let account = wallet.account(chain), !session.metadata.settings.disabledChainIDs.contains(chain.id) else { return }
+        let addresses = Self.addresses(for: account, chain: chain, usage: wallet.utxoUsage[chain.id])
+        let custom = session.metadata.customTokens
+        let currency = session.metadata.settings.currency
+        let job = Task {
+            guard let balance = try? await BalanceService.shared.balance(chain: chain, addresses: addresses, custom: custom),
+                  walletID == wallet.id else { return }
+            balances[chain.id] = balance
+            failedChains.removeAll { $0.id == chain.id }
+            recompute(wallet)
+            let priced = Self.contractPriced([chain.id: balance])
+            guard !priced.isEmpty else { return }
+            let found = await MarketService.shared.tokenQuotes(priced, currency: currency)
+            guard walletID == wallet.id else { return }
+            tokenQuotes.merge(found) { $1 }
+            recompute(wallet)
+        }
+        await job.value
+    }
+
     func customChanged(_ wallet: WalletMeta?, session: AppSession) {
         sessionCustomIDs = session.metadata.customTokens.map(\.id)
         if let wallet { recompute(wallet) }
