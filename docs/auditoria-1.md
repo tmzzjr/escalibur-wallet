@@ -11,7 +11,7 @@ MUST em aberto: (1) spike da senha de aplicativo em iOS 17, 18 e 26 físicos; (2
 
 | Item | Estado | Onde |
 |---|---|---|
-| MUST 1, spike da senha de aplicativo | Pendente, precisa de iPhone físico (iOS 17, 18, 26). O desenho deixou de depender dele: a RK vai cifrada por HKDF(AP) dentro do embrulho do SE. O simulador não aplica a senha de aplicativo, e o teste de interface confere que o PIN errado é recusado pela camada interna. | 81df923 |
+| MUST 1, spike da senha de aplicativo | Feito em 10/10/2026 num iPhone 13 Pro Max: a senha de aplicativo numa chave do SE é cobrada pelo próprio SE. A camada interna não tirava a dependência do spike (auditoria 3, A1); o slot do PIN passou a usar uma chave do SE com senha derivada do PIN (docs/seguranca.md §2, formato 2). | 81df923, auditoria 3 |
 | D1, revelar, exportar, remover | Feito: PIN obrigatório (`requirePIN`), Face ID não basta | 81df923 |
 | D2, envelope | Feito: piso de 256 MiB no próprio `VaultFile.create`, senha com 60 bits no `Envelope.seal`, 6 palavras sorteadas como padrão | fabf0ba |
 | D3, voz | Feito: voz no envelope, PIN para mudar, pausa após 3 desafios, sem cotação pede voz, comparação em tempo constante | bb9d768 |

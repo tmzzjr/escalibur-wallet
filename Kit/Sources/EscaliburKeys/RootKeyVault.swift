@@ -6,11 +6,18 @@ import LocalAuthentication
 /// A chave raiz (RK) e os dois caminhos que a destrancam: PIN e biometria.
 ///
 /// ```
-/// PIN ─Argon2id─► AP ─┬─(senha de aplicativo)─► item rk.pin
+/// PIN ─Argon2id─► AP ─┬─(senha de aplicativo do item)─► item rk.pin
+///                     ├─HKDF─► senha da chave do PIN no SE
 ///                     └─HKDF─► K_pin
-/// item rk.pin = embrulho(K_dev, ChaChaPoly(K_pin, RK)) ─SE─► ─K_pin─► RK
+/// item rk.pin = embrulho(chave do PIN no SE, ChaChaPoly(K_pin, RK)) ─SE+senha─► ─K_pin─► RK
 /// Face ID (decisao no SEP) ─► item rk.bio = embrulho(K_bio, RK) ─SE─► RK
 /// ```
+///
+/// Formato 2 do slot (auditoria 3, A1): a chave do SE que embrulha o slot tem senha de
+/// aplicativo derivada do PIN, entao o SE so desembrulha com o PIN certo. Quem tirar uma
+/// copia do slot nao consegue mais testar PINs fora do aparelho depois de uma unica
+/// chamada ao SE: cada chute passa pelo SE deste iPhone, mais um Argon2id. O formato 1
+/// (chave do aparelho sem senha) migra no primeiro PIN certo.
 ///
 /// **Nao existe verificador de PIN gravado em lugar nenhum.** O PIN errado e recusado
 /// pelo chaveiro, que nao devolve o item sem a senha de aplicativo certa, e de novo
@@ -51,6 +58,26 @@ public final class RootKeyVault: @unchecked Sendable {
         static let wipeAfterErrors = "pin.apagar"
         static let pinBoot = "pin.boot"
         static let pendingSuffix = ".novo"
+    }
+
+    /// O registro de custo do slot: sal (16), memoria (4), passadas (4), faixas (1) e, no
+    /// formato 2, a versao (1).
+    enum SlotFormat {
+        static let legacyLength = 25
+        static let version: UInt8 = 2
+        static let length = 26
+        static let passwordInfo = Data("escalibur-wallet/v2/kpin.senha".utf8)
+    }
+
+    /// A chave do SE de cada slot do PIN no formato 2.
+    static func wrapSlot(_ suffix: String) -> WrapSlot { suffix.isEmpty ? .pin : .pinPending }
+
+    /// A senha de aplicativo da chave do PIN no SE: derivada do AP, separada da chave da
+    /// camada interna pelo `info`.
+    static func devicePassword(ap: SecureBytes, salt: [UInt8]) -> Data {
+        let material = ap.withUnsafeBytes { SymmetricKey(data: $0) }
+        let key = HKDF<SHA256>.deriveKey(inputKeyMaterial: material, salt: salt, info: SlotFormat.passwordInfo, outputByteCount: 32)
+        return key.withUnsafeBytes { Data($0) }
     }
 
     /// Camada interna do slot do PIN: versao, nonce (12), RK cifrada (32), tag (16).
@@ -106,7 +133,6 @@ public final class RootKeyVault: @unchecked Sendable {
 
         let rk = try SecureBytes.random(count: 32)
         do {
-            try wrapper.createKey(.device)
             try store.add(AttemptRecord.zero.encoded, account: Account.attempts, protection: .standard, context: nil)
             try writePINSlot(rk: rk, pin: pin, kdf: pinParameters, suffix: "")
             try confirm(pin: pin, suffix: "", matches: rk)
@@ -121,6 +147,8 @@ public final class RootKeyVault: @unchecked Sendable {
 
     private func discardOrphans() throws {
         wrapper.deleteKey(.device)
+        wrapper.deleteKey(.pin)
+        wrapper.deleteKey(.pinPending)
         wrapper.deleteKey(.biometry)
         do { try store.deleteAll() } catch { throw Failure.storage }
     }
@@ -177,7 +205,42 @@ public final class RootKeyVault: @unchecked Sendable {
                 try? promotePendingLocked(rk: opened.rk, pin: pin)
             }
         }
+        // Slot no formato 1: passa para o 2 agora que o PIN certo esta na mao. Falha aqui
+        // nao tranca ninguem: antes do ponto sem volta o slot antigo continua o unico.
+        if slotVersion(suffix: "") == 1 {
+            try? migrateLocked(rk: opened.rk, pin: pin)
+        } else {
+            dropLegacyKeyIfDone()
+        }
         return opened.rk
+    }
+
+    /// Com o principal no formato 2 e nenhuma troca pendente, a chave do aparelho antiga
+    /// nao abre mais nada: sai.
+    private func dropLegacyKeyIfDone() {
+        guard slotVersion(suffix: "") == 2, store.probe(Account.rootByPIN + Account.pendingSuffix) == .absent,
+              wrapper.hasKey(.device) else { return }
+        wrapper.deleteKey(.device)
+    }
+
+    /// O formato do slot principal do PIN (1 ou 2), para a tela e os testes. So le.
+    public var pinSlotFormat: Int? { slotVersion(suffix: "") }
+
+    /// O formato do slot: 1 (chave do aparelho sem senha), 2 (chave do PIN com senha) ou
+    /// nil (sem slot, registro ilegivel).
+    func slotVersion(suffix: String) -> Int? {
+        guard let record = try? store.read(Account.pinKDF + suffix, context: nil) else { return nil }
+        if record.count == SlotFormat.legacyLength { return 1 }
+        if record.count == SlotFormat.length, record.last == SlotFormat.version { return 2 }
+        return nil
+    }
+
+    /// Formato 1 para 2 com o mesmo PIN, pelo mesmo caminho atomico da troca de PIN: o
+    /// slot novo e gravado e conferido como pendente, o antigo so sai depois, e a chave
+    /// do aparelho antiga so e apagada com o principal novo conferido.
+    private func migrateLocked(rk: SecureBytes, pin: SecureBytes) throws {
+        try replacePINLocked(rk: rk, newPIN: pin)
+        dropLegacyKeyIfDone()
     }
 
     /// Destranca pelo Face ID. Bloqueia a thread enquanto o sistema pergunta: chamar
@@ -300,6 +363,11 @@ public final class RootKeyVault: @unchecked Sendable {
     /// conclui. Em nenhum instante o dono fica sem um slot que abre.
     public func changePIN(rk: SecureBytes, newPIN: SecureBytes) throws {
         lock.lock(); defer { lock.unlock() }
+        try replacePINLocked(rk: rk, newPIN: newPIN)
+        dropLegacyKeyIfDone()
+    }
+
+    private func replacePINLocked(rk: SecureBytes, newPIN: SecureBytes) throws {
         guard Self.isWellFormed(newPIN) else { throw Failure.malformedPIN }
         let pendingAccount = Account.rootByPIN + Account.pendingSuffix
         // Uma troca interrompida se resolve no proximo desbloqueio, nao aqui.
@@ -337,6 +405,9 @@ public final class RootKeyVault: @unchecked Sendable {
     private func deleteSlot(suffix: String) {
         try? store.delete(Account.rootByPIN + suffix)
         try? store.delete(Account.pinKDF + suffix)
+        // A chave do SE do slot pendente vai junto; a do principal, nunca aqui: so a
+        // gravacao de um principal novo a substitui.
+        if !suffix.isEmpty { wrapper.deleteKey(.pinPending) }
     }
 
     private func confirm(pin: SecureBytes, suffix: String, matches rk: SecureBytes) throws {
@@ -380,6 +451,8 @@ public final class RootKeyVault: @unchecked Sendable {
 
     private func wipeAllLocked() {
         wrapper.deleteKey(.device)
+        wrapper.deleteKey(.pin)
+        wrapper.deleteKey(.pinPending)
         wrapper.deleteKey(.biometry)
         try? store.delete(Account.rootByPIN)
         try? store.delete(Account.rootByPIN + Account.pendingSuffix)
@@ -428,25 +501,59 @@ public final class RootKeyVault: @unchecked Sendable {
 
         let inner = try Self.sealInner(rk, ap: ap, salt: salt)
         defer { inner.wipe() }
-        let blob = try wrapper.wrap(inner, slot: .device)
+        // Formato 2: a chave do SE deste slot so desembrulha com a senha derivada do PIN.
+        let slot = Self.wrapSlot(suffix)
+        try wrapper.createKey(slot, password: Self.devicePassword(ap: ap, salt: salt))
+        let blob: Data
+        do {
+            blob = try wrapper.wrap(inner, slot: slot)
+        } catch {
+            wrapper.deleteKey(slot)
+            throw error
+        }
 
         var kdfRecord = salt
         kdfRecord += kdf.memoryKiB.bigEndianByteArray + kdf.passes.bigEndianByteArray + [kdf.lanes]
+        kdfRecord.append(SlotFormat.version)
         try? store.delete(Account.pinKDF + suffix)
-        try store.add(Data(kdfRecord), account: Account.pinKDF + suffix, protection: .standard, context: nil)
         do {
+            try store.add(Data(kdfRecord), account: Account.pinKDF + suffix, protection: .standard, context: nil)
             let context = try store.applicationPasswordContext(ap)
             try store.add(blob, account: Account.rootByPIN + suffix, protection: .applicationPassword, context: context)
         } catch {
             try? store.delete(Account.pinKDF + suffix)
+            wrapper.deleteKey(slot)
             throw error
         }
     }
 
+    /// So para os testes da migracao: grava um slot no formato 1 (chave do aparelho sem
+    /// senha), como as versoes anteriores gravavam.
+    func writeLegacyPINSlot(rk: SecureBytes, pin: SecureBytes, kdf: KDFParameters) throws {
+        if !wrapper.hasKey(.device) { try wrapper.createKey(.device) }
+        let saltBytes = try SecureBytes.random(count: VaultFormat.saltLength)
+        let salt = saltBytes.withUnsafeBytes { Array($0) }
+        let ap = try KeyDerivation.deriveMasterKey(password: pin, salt: salt, parameters: kdf)
+        defer { ap.wipe() }
+        let inner = try Self.sealInner(rk, ap: ap, salt: salt)
+        defer { inner.wipe() }
+        let blob = try wrapper.wrap(inner, slot: .device)
+        var kdfRecord = salt
+        kdfRecord += kdf.memoryKiB.bigEndianByteArray + kdf.passes.bigEndianByteArray + [kdf.lanes]
+        try store.add(Data(kdfRecord), account: Account.pinKDF, protection: .standard, context: nil)
+        try store.add(blob, account: Account.rootByPIN, protection: .applicationPassword, context: store.applicationPasswordContext(ap))
+        if store.probe(Account.attempts) == .absent {
+            try store.add(AttemptRecord.zero.encoded, account: Account.attempts, protection: .standard, context: nil)
+        }
+    }
+
     private func readPINSlot(pin: SecureBytes, suffix: String) throws -> SecureBytes {
-        guard let record = try store.read(Account.pinKDF + suffix, context: nil), record.count == 25 else {
+        guard let record = try store.read(Account.pinKDF + suffix, context: nil),
+              record.count == SlotFormat.legacyLength || (record.count == SlotFormat.length && record.last == SlotFormat.version)
+        else {
             throw Failure.storage
         }
+        let version = record.count == SlotFormat.length ? 2 : 1
         let bytes = [UInt8](record)
         let salt = Array(bytes[0..<16])
         let memory = bytes[16..<20].reduce(UInt32(0)) { $0 << 8 | UInt32($1) }
@@ -464,7 +571,16 @@ public final class RootKeyVault: @unchecked Sendable {
             throw Failure.wrongPIN(remainingBeforeWipe: nil)
         }
         guard let blob else { throw Failure.notSetUp }
-        let inner = try wrapper.unwrap(blob, slot: .device, reason: nil)
+        let inner: SecureBytes
+        if version == 2 {
+            do {
+                inner = try wrapper.unwrap(blob, slot: Self.wrapSlot(suffix), password: Self.devicePassword(ap: ap, salt: salt))
+            } catch EnclaveError.wrongPassword {
+                throw Failure.wrongPIN(remainingBeforeWipe: nil)
+            }
+        } else {
+            inner = try wrapper.unwrap(blob, slot: .device, reason: nil)
+        }
         defer { inner.wipe() }
         return try Self.openInner(inner, ap: ap, salt: salt)
     }

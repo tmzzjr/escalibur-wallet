@@ -74,8 +74,32 @@ final class MemoryStore: SecretStore, @unchecked Sendable {
 /// recusado (cancelar, rosto nao reconhecido, bloqueio temporario do sistema).
 final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
     private var keys: [WrapSlot: P256.KeyAgreement.PrivateKey] = [:]
+    /// A senha de aplicativo de cada chave do PIN, conferida no desembrulho como o SE faz.
+    private var passwords: [WrapSlot: Data] = [:]
     private let lock = NSLock()
     var refuseBiometry = false
+    /// Faz a criacao da chave deste slot falhar (para o teste da migracao interrompida).
+    var failCreating: WrapSlot?
+
+    func createKey(_ slot: WrapSlot, password: Data) throws {
+        lock.lock(); defer { lock.unlock() }
+        if slot == failCreating { throw EnclaveError.unavailable }
+        keys[slot] = P256.KeyAgreement.PrivateKey()
+        passwords[slot] = password
+    }
+
+    func unwrap(_ blob: Data, slot: WrapSlot, password: Data) throws -> SecureBytes {
+        lock.lock()
+        guard keys[slot] != nil else { lock.unlock(); throw EnclaveError.keyMissing }
+        guard passwords[slot] == password else { lock.unlock(); throw EnclaveError.wrongPassword }
+        lock.unlock()
+        return try unwrap(blob, slot: slot, reason: nil)
+    }
+
+    func password(_ slot: WrapSlot) -> Data? {
+        lock.lock(); defer { lock.unlock() }
+        return passwords[slot]
+    }
 
     func createKey(_ slot: WrapSlot) throws {
         lock.lock(); defer { lock.unlock() }
@@ -91,6 +115,7 @@ final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
     func deleteKey(_ slot: WrapSlot) {
         lock.lock(); defer { lock.unlock() }
         keys[slot] = nil
+        passwords[slot] = nil
     }
 
     func wrap(_ secret: SecureBytes, slot: WrapSlot) throws -> Data {

@@ -6,9 +6,14 @@ import Security
 
 /// Chaves de hardware que embrulham a chave raiz (RK).
 ///
-/// Duas chaves P-256 no Secure Enclave:
-/// - `K_dev`: so `.privateKeyUsage`. Embrulha a RK para o caminho do PIN. Nao pede
-///   presenca, porque quem pede o PIN e o item de chaveiro com senha de aplicativo.
+/// Chaves P-256 no Secure Enclave:
+/// - `K_pin` (e `K_pin` da troca de PIN em andamento): `.privateKeyUsage` +
+///   `.applicationPassword`, com a senha derivada do PIN. O SE so desembrulha com ela:
+///   cada chute de PIN passa por este aparelho, um de cada vez (auditoria 3, A1;
+///   conferido num iPhone 13 Pro Max em 10/10/2026: a senha errada e recusada pelo
+///   proprio SE, 22 ms por tentativa).
+/// - `K_dev`: so `.privateKeyUsage`. A chave do PIN das versoes anteriores; e trocada
+///   pela `K_pin` no primeiro PIN certo e apagada.
 /// - `K_bio`: `.privateKeyUsage` + `.biometryCurrentSet`. Embrulha a RK para o
 ///   caminho do Face ID. A decisao de liberar e do SEP, nao de um booleano no app, e
 ///   cadastrar um rosto novo destroi a chave em vez de abri-la.
@@ -22,11 +27,20 @@ public protocol KeyWrapper: Sendable {
     /// Abre um embrulho. No slot biometrico, o sistema mostra o Face ID com
     /// `reason`; a chamada bloqueia a thread ate a decisao, entao nunca no MainActor.
     func unwrap(_ blob: Data, slot: WrapSlot, reason: String?) throws -> SecureBytes
+    /// Cria a chave do slot do PIN com senha de aplicativo. Substitui a que houver no
+    /// mesmo slot: o slot do PIN so e gravado quando nao existe.
+    func createKey(_ slot: WrapSlot, password: Data) throws
+    /// Desembrulha com a senha de aplicativo. Senha errada: `EnclaveError.wrongPassword`.
+    func unwrap(_ blob: Data, slot: WrapSlot, password: Data) throws -> SecureBytes
 }
 
 public enum WrapSlot: String, Sendable, CaseIterable {
     case device = "kdev"
     case biometry = "kbio"
+    /// A chave do slot principal do PIN, com senha de aplicativo.
+    case pin = "kpin"
+    /// A do slot da troca de PIN em andamento.
+    case pinPending = "kpin.novo"
 }
 
 public enum EnclaveError: Error, Equatable, Sendable {
@@ -36,6 +50,8 @@ public enum EnclaveError: Error, Equatable, Sendable {
     /// o RootKeyVault que decide, comparando o estado gravado.
     case cancelled
     case failed(String)
+    /// O SE recusou a senha de aplicativo: o PIN nao e este.
+    case wrongPassword
 }
 
 /// O Secure Enclave de verdade.
@@ -53,6 +69,7 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
         // A chave do aparelho nunca e substituida em silencio: ela e o que abre a RK
         // de todas as carteiras. So a da biometria e recriada ao religar.
         if slot == .device, hasKey(.device) { throw EnclaveError.failed("chave do aparelho ja existe") }
+        guard slot == .device || slot == .biometry else { throw EnclaveError.failed("o slot do PIN pede senha") }
         deleteKey(slot)
         let flags: SecAccessControlCreateFlags = slot == .device
             ? [.privateKeyUsage]
@@ -137,6 +154,58 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
             // mudou". Quem decide se o cadastro mudou e o RootKeyVault, pelo estado.
             if nsError?.domain == LAErrorDomain || nsError?.code == Int(errSecUserCanceled) || nsError?.code == Int(errSecAuthFailed) {
                 throw EnclaveError.cancelled
+            }
+            throw EnclaveError.failed("desembrulho")
+        }
+        return SecureBytes.consuming(plain)
+    }
+}
+
+extension SecureEnclaveWrapper {
+    public func createKey(_ slot: WrapSlot, password: Data) throws {
+        guard slot == .pin || slot == .pinPending else { throw EnclaveError.failed("senha so nos slots do PIN") }
+        deleteKey(slot)
+        let context = LAContext()
+        guard context.setCredential(password, type: .applicationPassword) else { throw EnclaveError.failed("credencial") }
+        var error: Unmanaged<CFError>?
+        guard let access = SecAccessControlCreateWithFlags(nil, KeychainStore.accessibility, [.privateKeyUsage, .applicationPassword], &error) else {
+            throw EnclaveError.failed("controle de acesso")
+        }
+        let attributes: [String: Any] = [
+            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecAttrKeySizeInBits as String: 256,
+            kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
+            kSecUseAuthenticationContext as String: context,
+            kSecPrivateKeyAttrs as String: [
+                kSecAttrIsPermanent as String: true,
+                kSecAttrApplicationTag as String: Data(("com.thomazjr.escalibur.wallet." + slot.rawValue).utf8),
+                kSecAttrAccessControl as String: access,
+            ],
+        ]
+        guard SecKeyCreateRandomKey(attributes as CFDictionary, &error) != nil else { throw EnclaveError.unavailable }
+    }
+
+    public func unwrap(_ blob: Data, slot: WrapSlot, password: Data) throws -> SecureBytes {
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        guard context.setCredential(password, type: .applicationPassword) else { throw EnclaveError.failed("credencial") }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: Data(("com.thomazjr.escalibur.wallet." + slot.rawValue).utf8),
+            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecReturnRef as String: true,
+            kSecUseAuthenticationContext as String: context,
+        ]
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess, let item else { throw EnclaveError.keyMissing }
+        let key = item as! SecKey  // swiftlint:disable:this force_cast
+        var error: Unmanaged<CFError>?
+        guard let plain = SecKeyCreateDecryptedData(key, .eciesEncryptionCofactorVariableIVX963SHA256AESGCM, blob as CFData, &error) else {
+            let nsError = (error?.takeRetainedValue() as Error?).map { $0 as NSError }
+            // A senha errada volta do proprio SE como erro do CryptoTokenKit (no iPhone,
+            // "dado corrompido": a senha entra na chave) ou como falha de autenticacao.
+            if nsError?.domain == "CryptoTokenKit" || nsError?.code == Int(errSecAuthFailed) || nsError?.domain == LAErrorDomain {
+                throw EnclaveError.wrongPassword
             }
             throw EnclaveError.failed("desembrulho")
         }

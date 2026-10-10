@@ -238,6 +238,11 @@ struct RootKeyVaultTests {
         let (vault, store, wrapper) = makeVault()
         _ = try vault.setUp(pin: secure("482916"))
         #expect(throws: RootKeyVault.Failure.alreadySetUp) { try vault.setUp(pin: secure("730584")) }
+        // Formato 2 (auditoria 3, A1): o cadastro nao cria mais a chave antiga do
+        // aparelho, e a do PIN tem senha. A trava da antiga continua: uma vez criada, ela
+        // nunca e substituida em silencio.
+        #expect(!wrapper.hasKey(.device) && wrapper.hasKey(.pin))
+        try wrapper.createKey(.device)
         #expect(throws: EnclaveError.self) { try wrapper.createKey(.device) }
 
         let (mute, muteStore, _) = makeVault()

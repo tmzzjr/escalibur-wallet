@@ -118,6 +118,14 @@ enum DebugDemo {
             try? (lines.joined(separator: "\n") + "\n").data(using: .utf8)?.write(to: url, options: .atomic)
             return
         }
+        // `-estado-pin`: o formato do slot do PIN, so lido (sem PIN, sem demo, sem gastar
+        // tentativa), para conferir a migracao no aparelho e no teste de atualizacao.
+        defer {
+            if ProcessInfo.processInfo.arguments.contains("-estado-pin") {
+                let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("estado-pin.txt")
+                try? "\(KeyServices.root.pinSlotFormat.map(String.init) ?? "nenhum")\n".data(using: .utf8)?.write(to: url, options: .atomic)
+            }
+        }
         guard enabled else { return }
         do {
             if session.phase == .onboarding {

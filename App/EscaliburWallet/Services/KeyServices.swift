@@ -121,7 +121,26 @@ final class SimulatorWrapper: KeyWrapper, @unchecked Sendable {
 
     func hasKey(_ slot: WrapSlot) -> Bool { key(slot) != nil }
 
-    func deleteKey(_ slot: WrapSlot) { try? store.delete("sim.\(slot.rawValue)") }
+    func deleteKey(_ slot: WrapSlot) {
+        try? store.delete("sim.\(slot.rawValue)")
+        try? store.delete("sim.\(slot.rawValue).senha")
+    }
+
+    /// A senha de aplicativo, simulada: o hash dela fica junto da chave e e conferido no
+    /// desembrulho, como o SE confere a senha de verdade.
+    func createKey(_ slot: WrapSlot, password: Data) throws {
+        deleteKey(slot)
+        try store.add(P256.KeyAgreement.PrivateKey().rawRepresentation, account: "sim.\(slot.rawValue)", protection: .standard, context: nil)
+        try store.add(Data(SHA256.hash(data: password)), account: "sim.\(slot.rawValue).senha", protection: .standard, context: nil)
+    }
+
+    func unwrap(_ blob: Data, slot: WrapSlot, password: Data) throws -> SecureBytes {
+        guard key(slot) != nil else { throw EnclaveError.keyMissing }
+        guard let saved = try? store.read("sim.\(slot.rawValue).senha", context: nil), saved == Data(SHA256.hash(data: password)) else {
+            throw EnclaveError.wrongPassword
+        }
+        return try unwrap(blob, slot: slot, reason: nil)
+    }
 
     func wrap(_ secret: SecureBytes, slot: WrapSlot) throws -> Data {
         guard let key = key(slot) else { throw EnclaveError.keyMissing }
