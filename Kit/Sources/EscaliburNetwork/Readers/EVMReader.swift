@@ -335,6 +335,76 @@ public actor EVMReader {
         return known.isNull ? .notFound : .pending
     }
 
+    /// O resultado de conferir na rede um recebimento que o indexador mostrou.
+    public enum IncomingCheck: Sendable, Equatable {
+        /// Dois RPCs tem o mesmo recibo de sucesso, com o valor chegando a esta conta.
+        case confirmed(confirmations: UInt64)
+        /// Ainda sem recibo nos RPCs (o indexador pode estar a frente, ou inventando).
+        case notFound
+        /// O recibo existe, mas nao diz o que o indexador disse (falhou, outro valor,
+        /// outro destino).
+        case mismatch
+        /// Valor que chega por transacao interna: o recibo nao tem como mostrar.
+        case unverifiable
+    }
+
+    /// Confere em dois RPCs um recebimento do historico (auditoria 3, M2): o indexador
+    /// e um so, e um indexador comprometido poderia mostrar "+5.000 USDT, confirmada"
+    /// que nunca chegou. Token: o recibo tem de ter o `Transfer` do contrato para esta
+    /// conta com o valor exato. Moeda nativa: a transacao vai para esta conta com o valor
+    /// exato; a que chega por transacao interna nao aparece no recibo e fica sem conferir.
+    public func verifyIncoming(chain: Chain, hash: String, owner: EVMAddress, contract: EVMAddress?, amount: BigUInt) async throws -> IncomingCheck {
+        guard let bytes = Hex.decode(hash), bytes.count == 32, hash.hasPrefix("0x") else { throw ReaderError.invalidInput("hash") }
+        let (pool, providers) = try await eligible(chain)
+        let transport = self.transport
+        struct Seen: Sendable, Equatable {
+            let receipt: Receipt?
+            let delivered: Bool
+        }
+        let seen = try await Quorum.agree(providers, pool: pool, field: "incoming") { provider -> Seen in
+            try await self.verify(provider, chain: chain)
+            let raw = try await Self.call(transport, provider.baseURL, "eth_getTransactionReceipt", [.string(hash)])
+            guard let receipt = try Self.parseReceipt(raw) else { return Seen(receipt: nil, delivered: false) }
+            let delivered: Bool
+            if let contract {
+                delivered = Self.receiptTransfers(raw, contract: contract, to: owner, amount: amount)
+            } else {
+                let tx = try await Self.call(transport, provider.baseURL, "eth_getTransactionByHash", [.string(hash)])
+                let to = try? tx.optionalField("to").map { try Self.address($0, "tx.to") } ?? nil
+                let value = try? tx.field("value", "tx").quantity("tx.value")
+                delivered = to == owner && value == amount
+            }
+            return Seen(receipt: receipt, delivered: delivered)
+        }
+        guard let receipt = seen.receipt else { return .notFound }
+        guard receipt.success else { return .mismatch }
+        guard seen.delivered else { return contract == nil ? .unverifiable : .mismatch }
+        let head = try await Quorum.first(providers, pool: pool) { provider in
+            try await Self.call(transport, provider.baseURL, "eth_blockNumber", []).quantity("eth_blockNumber")
+        }
+        let confirmations = head >= BigUInt(receipt.block) ? (head - BigUInt(receipt.block)).uint64.map { $0 + 1 } ?? 0 : 0
+        return .confirmed(confirmations: confirmations)
+    }
+
+    /// `Transfer(address,address,uint256)`.
+    static let transferTopic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+
+    /// O recibo tem o `Transfer` do contrato para a conta, com o valor exato?
+    static func receiptTransfers(_ receipt: StrictJSON, contract: EVMAddress, to owner: EVMAddress, amount: BigUInt) -> Bool {
+        guard let logs = try? receipt.field("logs", "receipt").array("receipt.logs") else { return false }
+        let ownerTopic = "0x" + String(repeating: "0", count: 24) + Hex.encode(owner.bytes)
+        return logs.contains { log in
+            guard let address = try? Self.address(log.field("address", "log"), "log.address"), address == contract,
+                  let topics = try? log.field("topics", "log").array("log.topics"), topics.count == 3,
+                  (try? topics[0].string("topic0").lowercased()) == transferTopic,
+                  (try? topics[2].string("topic2").lowercased()) == ownerTopic.lowercased(),
+                  let data = try? log.field("data", "log").hexData("log.data"), data.count == 32
+            else { return false }
+            return BigUInt(bigEndian: data) == amount
+        }
+    }
+
+    // MARK: Historico
     // MARK: Historico
 
     /// Os ultimos movimentos da conta na rede, pelo indexador publico (Blockscout; na

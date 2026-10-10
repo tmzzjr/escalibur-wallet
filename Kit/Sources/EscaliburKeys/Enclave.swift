@@ -158,3 +158,98 @@ extension SecureBytes {
         return out
     }
 }
+
+#if DEBUG
+/// So no build de teste: o experimento do MUST 1 (auditoria 1) e do A1 (auditoria 3).
+/// Uma chave descartavel no Secure Enclave com `.privateKeyUsage` e
+/// `.applicationPassword`, que nunca toca as chaves da carteira (tag propria, apagada no
+/// fim). Confere no aparelho de verdade se o SE abre com a senha certa e recusa a
+/// errada e a falta dela, sem pedir nada na tela, e quanto custa cada tentativa.
+public enum EnclaveSpike {
+    static let tag = Data("com.thomazjr.escalibur.wallet.experimento".utf8)
+    static let algorithm = SecKeyAlgorithm.eciesEncryptionCofactorVariableIVX963SHA256AESGCM
+
+    public static func run() -> [String] {
+        var log: [String] = ["Secure Enclave disponivel: \(SecureEnclave.isAvailable)"]
+        delete()
+        defer { delete() }
+        let password = Data("senha-certa-do-experimento".utf8)
+        let creation = LAContext()
+        creation.setCredential(password, type: .applicationPassword)
+        var error: Unmanaged<CFError>?
+        guard let access = SecAccessControlCreateWithFlags(nil, KeychainStore.accessibility, [.privateKeyUsage, .applicationPassword], &error) else {
+            log.append("controle de acesso: recusado (\(describe(error)))")
+            return log
+        }
+        let attributes: [String: Any] = [
+            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecAttrKeySizeInBits as String: 256,
+            kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
+            kSecUseAuthenticationContext as String: creation,
+            kSecPrivateKeyAttrs as String: [
+                kSecAttrIsPermanent as String: true,
+                kSecAttrApplicationTag as String: tag,
+                kSecAttrAccessControl as String: access,
+            ],
+        ]
+        guard let created = SecKeyCreateRandomKey(attributes as CFDictionary, &error) else {
+            log.append("criar a chave: recusado (\(describe(error)))")
+            return log
+        }
+        log.append("criar a chave: ok")
+        guard let publicKey = SecKeyCopyPublicKey(created),
+              let blob = SecKeyCreateEncryptedData(publicKey, algorithm, Data("segredo do experimento".utf8) as CFData, &error) as Data?
+        else {
+            log.append("embrulhar: falhou (\(describe(error)))")
+            return log
+        }
+        log.append(attempt("senha certa", credential: password))
+        log.append(attempt("senha errada", credential: Data("senha-errada".utf8)))
+        log.append(attempt("sem senha", credential: nil))
+        let start = Date()
+        var refused = 0
+        for index in 0..<20 where !attempt("errada \(index)", credential: Data("errada-\(index)".utf8)).hasSuffix("abriu") { refused += 1 }
+        log.append("20 erradas seguidas: \(refused) recusadas, \(String(format: "%.0f", Date().timeIntervalSince(start) * 1000 / 20)) ms cada")
+        log.append(attempt("senha certa depois das 20 erradas", credential: password))
+        _ = blob
+        return log
+
+        func attempt(_ label: String, credential: Data?) -> String {
+            let context = LAContext()
+            context.interactionNotAllowed = true
+            if let credential { context.setCredential(credential, type: .applicationPassword) }
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassKey,
+                kSecAttrApplicationTag as String: tag,
+                kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+                kSecReturnRef as String: true,
+                kSecUseAuthenticationContext as String: context,
+            ]
+            var item: CFTypeRef?
+            let status = SecItemCopyMatching(query as CFDictionary, &item)
+            guard status == errSecSuccess, let item else { return "\(label): chave nao encontrada (\(status))" }
+            let key = item as! SecKey  // swiftlint:disable:this force_cast
+            var failure: Unmanaged<CFError>?
+            if let plain = SecKeyCreateDecryptedData(key, algorithm, blob as CFData, &failure) as Data? {
+                return "\(label): \(plain == Data("segredo do experimento".utf8) ? "abriu" : "abriu com conteudo errado")"
+            }
+            return "\(label): recusou (\(describe(failure)))"
+        }
+    }
+
+    static func delete() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: tag,
+            kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+
+    static func describe(_ error: Unmanaged<CFError>?) -> String {
+        guard let error = error?.takeRetainedValue() else { return "sem erro" }
+        let ns = error as Error as NSError
+        return "\(ns.domain) \(ns.code)"
+    }
+}
+#endif

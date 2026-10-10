@@ -109,6 +109,15 @@ enum DebugDemo {
 
     @MainActor
     static func prepare(session: AppSession, router: Router) async {
+        // `-experimento-se`: o experimento da chave do Secure Enclave com senha de
+        // aplicativo, sem demo, sem PIN e sem tocar o cofre. O resultado vai para
+        // Documents/experimento-se.txt, que se le pelo devicectl.
+        if ProcessInfo.processInfo.arguments.contains("-experimento-se") {
+            let lines = await Task.detached { EnclaveSpike.run() }.value
+            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("experimento-se.txt")
+            try? (lines.joined(separator: "\n") + "\n").data(using: .utf8)?.write(to: url, options: .atomic)
+            return
+        }
         guard enabled else { return }
         do {
             if session.phase == .onboarding {

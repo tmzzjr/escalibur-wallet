@@ -388,7 +388,17 @@ struct ActivityRow: View {
 /// H2: detalhe da transacao.
 struct ActivityDetailView: View {
     @Environment(ToastCenter.self) private var toasts
+    @Environment(AppSession.self) private var session
     let entry: ActivityEntry
+    /// Recebimento EVM conferido em dois RPCs (auditoria 3, M2). Nil: ainda nao.
+    @State private var check: Check?
+
+    enum Check: Equatable { case checking, confirmed(UInt64), notFound, mismatch, unverifiable, failed }
+
+    /// Recebimento numa rede EVM, que o indexador mostrou: confere na rede.
+    private var verifiable: Bool {
+        entry.direction == .received && entry.chain?.family == .evm && entry.status == .confirmed
+    }
 
     var body: some View {
         ScrollView {
@@ -406,6 +416,7 @@ struct ActivityDetailView: View {
                         .typeStyle(.figure).foregroundStyle(Palette.ink)
                 }
                 status
+                    .task { await verify() }
                 VStack(alignment: .leading, spacing: Space.xs) {
                     if let counterparty = entry.counterparty {
                         Text(entry.direction == .received ? "De" : "Para").typeStyle(.note).foregroundStyle(Palette.inkSoft)
@@ -447,10 +458,48 @@ struct ActivityDetailView: View {
 
     @ViewBuilder
     private var status: some View {
-        switch entry.status {
-        case .pending(let detail): StatusBadge(kind: .pending, text: detail ?? "Pendente")
-        case .confirmed: StatusBadge(kind: .done, text: "Confirmada")
-        case .failed(let reason): StatusBadge(kind: .failed, text: reason ?? "Falhou")
+        if verifiable {
+            // O indexador e um so: "Confirmada" so depois de dois RPCs mostrarem o valor
+            // chegando a esta conta.
+            switch check {
+            case .confirmed(let confirmations):
+                StatusBadge(kind: .done, text: confirmations > 1 ? "Conferida na rede, \(Fmt.grouped(Double(confirmations), fractionDigits: 0)) confirmações" : "Conferida na rede")
+            case .notFound:
+                StatusBadge(kind: .pending, text: "Segundo o indexador. A rede ainda não mostra esta transação")
+            case .mismatch:
+                StatusBadge(kind: .failed, text: "A rede não confirma este recebimento")
+            case .unverifiable:
+                StatusBadge(kind: .pending, text: "Segundo o indexador. Chegou por transação interna, que o recibo não mostra")
+            case .failed:
+                StatusBadge(kind: .pending, text: "Segundo o indexador. Não deu para conferir na rede agora")
+            case .checking, nil:
+                StatusBadge(kind: .pending, text: "Segundo o indexador. Conferindo na rede")
+            }
+        } else {
+            switch entry.status {
+            case .pending(let detail): StatusBadge(kind: .pending, text: detail ?? "Pendente")
+            case .confirmed: StatusBadge(kind: .done, text: "Confirmada")
+            case .failed(let reason): StatusBadge(kind: .failed, text: reason ?? "Falhou")
+            }
+        }
+    }
+
+    private func verify() async {
+        guard verifiable, check == nil, let chain = entry.chain,
+              let text = session.selectedWallet?.account(chain)?.address, let owner = try? EVMAddress(text) else { return }
+        check = .checking
+        var contract: EVMAddress?
+        if case .token(let address) = entry.asset?.kind { contract = try? EVMAddress(address.lowercased()) }
+        if entry.asset?.kind != .native, contract == nil { check = .unverifiable; return }
+        let result = await Task {
+            try? await EVMReader.shared.verifyIncoming(chain: chain, hash: entry.hash, owner: owner, contract: contract, amount: entry.amount)
+        }.value
+        switch result {
+        case .confirmed(let confirmations): check = .confirmed(confirmations)
+        case .notFound: check = .notFound
+        case .mismatch: check = .mismatch
+        case .unverifiable: check = .unverifiable
+        case nil: check = .failed
         }
     }
 
