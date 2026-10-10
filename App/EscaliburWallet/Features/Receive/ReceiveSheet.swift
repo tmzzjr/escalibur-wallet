@@ -279,6 +279,15 @@ struct ReceiveSheet: View {
                 Text("Receber \(asset.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
                 networkLine(asset: asset, chain: chain, siblings: siblings, key: key).padding(.top, Space.xs)
 
+                if wallet?.isWatchOnly == true {
+                    // Golpe comum: alguem pede para "observar" o endereco dele e depositar ali.
+                    // O app nao tem a chave deste endereco (auditoria 3, B3).
+                    Banner(kind: .caution, title: "Carteira só de observação",
+                           message: "Este app não tem a chave deste endereço: o que chegar aqui não sai por este app. Se alguém pediu para você observar um endereço e depositar nele, é golpe.")
+                        .padding(.top, Space.md)
+                        .accessibilityIdentifier("receber-observacao")
+                }
+
                 qrPlate(address: address, chain: chain).padding(.top, Space.lg)
 
                 AddressBlocks(address: address).padding(.top, Space.base)

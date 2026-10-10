@@ -29,6 +29,12 @@ final class SendModel {
     /// Para quem esta carteira ja pagou, lido do historico da rede: o endereco
     /// envenenado chega como recebido, entao so os enviados contam.
     var historyRecipients: [String] = []
+    /// O historico da rede nao pode ser lido (indexador fora ou recusando o app): sem ele,
+    /// o envenenamento de endereco nao tem com o que comparar (auditoria 3, B1).
+    var historyUnavailable = false
+    /// Primeiro envio sem historico para comparar: os 6 do meio que o dono digita.
+    var blindSegment: AddressPoisoning.Segment?
+    var blindCheck = ""
     var isFirstSend = false
     var tagText = ""
     var skippedTag = false
@@ -87,6 +93,10 @@ final class SendModel {
     /// do meio onde o destino difere do conhecido, lendo-o em vez de reconhecer as
     /// pontas.
     var lookalikeCleared: Bool {
+        if let segment = blindSegment, let address = destination?.address {
+            let typed = blindCheck.trimmingCharacters(in: .whitespaces).lowercased()
+            guard typed.count == segment.length, typed == segment.text(in: address).lowercased() else { return false }
+        }
         guard lookalike != nil, let address = destination?.address else { return true }
         guard let segment = lookalikeSegment else { return false }
         let typed = lookalikeCheck.trimmingCharacters(in: .whitespaces).lowercased()
@@ -355,6 +365,24 @@ struct SendStages: View {
                         .accessibilityIdentifier("conferir-trecho-endereco")
                 }
 
+                if model.lookalike == nil, let segment = model.blindSegment, let destination = model.destination {
+                    Banner(kind: .neutral, title: "Primeiro envio para este endereço",
+                           message: "O histórico desta rede não pôde ser lido agora, então o app não consegue comparar com os endereços que você já usou. Confira o endereço com quem vai receber.")
+                        .padding(.top, Space.md)
+                    comparedAddress("Você colou", destination.address, segment).padding(.top, Space.sm)
+                    Text("Para seguir, digite os 6 caracteres marcados.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
+                        .fixedSize(horizontal: false, vertical: true)
+                    TextField("", text: $model.blindCheck, prompt: Text("6 marcados").foregroundColor(Palette.inkDead))
+                        .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .padding(Space.sm)
+                        .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(Palette.body))
+                        .frame(maxWidth: 180, alignment: .leading)
+                        .padding(.top, Space.xs)
+                        .accessibilityIdentifier("conferir-meio-endereco")
+                }
+
                 networkConfirmation
                 contacts.padding(.top, Space.lg)
             }
@@ -506,9 +534,15 @@ struct SendStages: View {
     /// Para quem esta carteira ja pagou nesta rede, do historico da propria rede.
     /// Melhor esforco: sem historico, a lista fica com o que o app guardou.
     private func loadHistoryRecipients() async {
-        guard let chain = model.chain, let account = model.wallet.account(chain),
-              let source = ActivitySources.source(for: chain) else { return }
-        guard let entries = try? await source.history(chain: chain, account: account, usage: model.wallet.utxoUsage[chain.id]) else { return }
+        guard let chain = model.chain, let account = model.wallet.account(chain) else { return }
+        guard let source = ActivitySources.source(for: chain),
+              let entries = try? await source.history(chain: chain, account: account, usage: model.wallet.utxoUsage[chain.id])
+        else {
+            model.historyUnavailable = true
+            if model.destination != nil { validate() }
+            return
+        }
+        model.historyUnavailable = false
         let paid = entries.compactMap { entry -> String? in
             guard entry.direction == .sent, entry.status == .confirmed, !entry.suspicious else { return nil }
             return entry.counterparty
@@ -538,6 +572,7 @@ struct SendStages: View {
         model.lookalike = nil
         model.lookalikeSegment = nil
         model.lookalikeCheck = ""
+        model.blindSegment = nil
         model.networkSuggestion = nil
         model.networkConfirmed = false
         if let link = model.linkProblem {
@@ -565,6 +600,12 @@ struct SendStages: View {
             let wallets = session.metadata.wallets.compactMap { $0.account(chain)?.address }
             model.lookalike = AddressPoisoning.lookalike(destination.address, among: sent + contacts + wallets + model.historyRecipients, chain: chain)
             model.lookalikeSegment = model.lookalike.flatMap { AddressPoisoning.differingSegment(destination.address, from: $0, chain: chain) }
+            // Sem historico da rede, o primeiro envio para endereco que nao e contato nem
+            // carteira deste iPhone pede o meio do endereco digitado.
+            if model.lookalike == nil, model.isFirstSend, model.historyUnavailable,
+               !contacts.contains(destination.address), !wallets.contains(destination.address) {
+                model.blindSegment = AddressPoisoning.middleSegment(destination.address)
+            }
         case .failure(let problem):
             model.destinationProblem = Self.message(problem, chain: chain)
             if case .otherNetwork(let other) = problem { model.networkSuggestion = networkSuggestion(for: other) }

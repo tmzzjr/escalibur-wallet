@@ -234,11 +234,11 @@ public final class RootKeyVault: @unchecked Sendable {
     /// O PIN foi digitado neste boot? Depois de reiniciar, o Face ID espera o PIN.
     public var pinEnteredThisBoot: Bool {
         guard let saved = try? store.read(Account.pinBoot, context: nil) else { return false }
-        return PINPolicy.isSameBoot([UInt8](saved), PINPolicy.bootSession)
+        return PINPolicy.pinRecordValid([UInt8](saved), boot: PINPolicy.bootSession, uptime: PINPolicy.uptime)
     }
 
     private func recordPINThisBoot() {
-        let current = Data(PINPolicy.bootSession)
+        let current = Data(PINPolicy.pinRecord(boot: PINPolicy.bootSession, uptime: PINPolicy.uptime))
         if (try? store.update(current, account: Account.pinBoot)) == nil {
             try? store.add(current, account: Account.pinBoot, protection: .standard, context: nil)
         }

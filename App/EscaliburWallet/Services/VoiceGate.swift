@@ -26,7 +26,9 @@ final class VoiceGate {
     static let shared = VoiceGate()
 
     /// `send(fiat:)` com nil quando nao ha cotacao: sem saber o valor, a voz e pedida.
-    enum Action { case reveal, envelope, send(fiat: Double?) }
+    /// `settings`: mudar, regravar ou desligar a propria voz (auditoria 3, A2). Pede a
+    /// frase sempre que ela estiver ligada, sem olhar as outras opcoes.
+    enum Action { case reveal, envelope, send(fiat: Double?), settings }
 
     struct Challenge: Identifiable {
         let id = UUID()
@@ -48,13 +50,36 @@ final class VoiceGate {
     /// O ultimo envio pedido passou pela frase? Decide se a transmissao conta na
     /// sequencia de envios sem voz.
     private var lastSendUsedVoice = true
+    /// O valor do ultimo envio pedido, para o limite acumulado.
+    private var pendingSendFiat: Double?
 
     /// Um envio ou troca foi transmitido (ou pode ter sido): sem a frase, conta na
     /// sequencia; com ela, a sequencia ja zerou na conferencia.
     func noteSendTransmitted(session: AppSession) {
         guard session.metadata.settings.voice.enabled, !lastSendUsedVoice else { return }
-        session.metadata.settings.voice.sendsWithoutVoice = (session.metadata.settings.voice.sendsWithoutVoice ?? 0) + 1
+        var voice = session.metadata.settings.voice
+        voice.sendsWithoutVoice = (voice.sendsWithoutVoice ?? 0) + 1
+        let now = Date.now
+        let entry = VoiceSend(at: now, uptime: PINPolicy.uptime, boot: Hex.encode(PINPolicy.bootSession), fiat: pendingSendFiat ?? 0)
+        voice.recentSends = Self.recent(voice.recentSends ?? [], now: now) + [entry]
+        session.metadata.settings.voice = voice
         try? session.persist()
+    }
+
+    /// Os envios sem a frase das ultimas 24 h. No mesmo boot vale o relogio monotono
+    /// (adiantar a hora nao apaga nada); de outro boot, o de parede. Hora andando para
+    /// tras nunca apaga.
+    static func recent(_ sends: [VoiceSend], now: Date, uptime: TimeInterval = PINPolicy.uptime,
+                       boot: [UInt8] = PINPolicy.bootSession) -> [VoiceSend] {
+        sends.filter { send in
+            if PINPolicy.isSameBoot(Hex.decode(send.boot) ?? [], boot) { return uptime - send.uptime < 86_400 }
+            return now.timeIntervalSince(send.at) < 86_400
+        }
+    }
+
+    /// Quanto ja saiu sem a frase nas ultimas 24 h.
+    static func recentTotal(_ settings: VoiceSettings, now: Date = .now) -> Double {
+        recent(settings.recentSends ?? [], now: now).reduce(0) { $0 + $1.fiat }
     }
 
     /// So para dobrar acentos e caixa na forma canonica; a frase pode ser em qualquer
@@ -87,12 +112,41 @@ final class VoiceGate {
     /// O envio pede a frase? Com o pedido em envios desligado, nunca. Sem cotacao, o
     /// valor e desconhecido e pede (falha fechada). Abaixo do valor, so quando a
     /// sequencia de envios sem a frase chegou ao limite.
-    static func sendNeedsVoice(fiat: Double?, settings: VoiceSettings) -> Bool {
+    ///
+    /// O limite e acumulado em 24 h: conta o que ja saiu sem a frase no periodo, para
+    /// vinte envios de R$ 4.999 nao passarem um a um (auditoria 3, A2). E vale na moeda
+    /// em que foi escolhido: com a moeda do app trocada, todo envio pede a frase.
+    static func sendNeedsVoice(fiat: Double?, settings: VoiceSettings, currency: String, now: Date = .now) -> Bool {
         guard let limit = settings.onSendAboveFiat else { return false }
-        guard let fiat else { return true }
+        guard (settings.limitCurrency ?? "brl") == currency, let fiat else { return true }
         let streakFull = settings.maxSendsWithoutVoice.map { (settings.sendsWithoutVoice ?? 0) >= $0 } ?? false
-        return fiat >= limit || streakFull
+        return fiat + recentTotal(settings, now: now) >= limit || streakFull
     }
+
+    /// "Esqueci a frase": quanto falta para os ajustes da voz abrirem so com o PIN. Nil:
+    /// nao ha pedido. De outro boot o relogio recomecou: a espera recomeca cheia.
+    func resetRemaining(_ session: AppSession) -> TimeInterval? {
+        var voice = session.metadata.settings.voice
+        guard let deadline = voice.resetUptimeDeadline else { return nil }
+        if !PINPolicy.isSameBoot(voice.resetBoot.flatMap(Hex.decode) ?? [], PINPolicy.bootSession) {
+            voice.resetUptimeDeadline = PINPolicy.uptime + Self.resetWait
+            voice.resetBoot = Hex.encode(PINPolicy.bootSession)
+            session.metadata.settings.voice = voice
+            try? session.persist()
+            return Self.resetWait
+        }
+        return max(0, deadline - PINPolicy.uptime)
+    }
+
+    func requestReset(_ session: AppSession) {
+        session.metadata.settings.voice.resetUptimeDeadline = PINPolicy.uptime + Self.resetWait
+        session.metadata.settings.voice.resetBoot = Hex.encode(PINPolicy.bootSession)
+        session.metadata.settings.voice.resetRequestedAt = .now
+        try? session.persist()
+    }
+
+    /// A espera de quem esqueceu a frase para mexer nos ajustes da voz so com o PIN.
+    static let resetWait: TimeInterval = 72 * 3600
 
     /// Precisa de voz para esta acao? Se sim, pede; se nao, deixa passar.
     func confirm(_ action: Action, session: AppSession) async -> Bool {
@@ -102,8 +156,11 @@ final class VoiceGate {
         case .reveal: guard settings.onReveal else { return true }
         case .envelope: guard settings.onEnvelope else { return true }
         case .send(let fiat):
-            lastSendUsedVoice = Self.sendNeedsVoice(fiat: fiat, settings: settings)
+            pendingSendFiat = fiat
+            lastSendUsedVoice = Self.sendNeedsVoice(fiat: fiat, settings: settings, currency: session.metadata.settings.currency)
             guard lastSendUsedVoice else { return true }
+        case .settings:
+            break
         }
         let remaining = lockRemaining(session)
         let locked = remaining > 0 ? Date.now.addingTimeInterval(remaining) : nil
@@ -126,6 +183,7 @@ final class VoiceGate {
         if passed {
             session.metadata.settings.voice.clearLock()
             session.metadata.settings.voice.sendsWithoutVoice = nil
+            session.metadata.settings.voice.recentSends = nil
             try? session.persist()
         } else if exhausted {
             let failures = (session.metadata.settings.voice.failedChallenges ?? 0) + 1

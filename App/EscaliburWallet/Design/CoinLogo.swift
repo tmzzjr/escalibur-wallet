@@ -1,7 +1,9 @@
 import EscaliburChains
 import EscaliburNetwork
 import SwiftUI
+import ImageIO
 import UIKit
+import UniformTypeIdentifiers
 
 /// O logo de uma moeda, embarcado no app, com o selo da rede quando o ativo nao
 /// esta na rede nativa dele (USDC na Base leva selo; ETH na Ethereum nao).
@@ -47,11 +49,11 @@ struct CoinLogo: View {
             if let logoAsset {
                 guard bundled == nil, let url = await TokenLogoResolver.shared.logo(for: logoAsset),
                       let data = await ImageLoader.shared.data(for: url) else { return }
-                remote = UIImage(data: data)
+                remote = SafeImage.decode(data)
                 return
             }
             guard !unverified, bundled == nil, let remoteURL, let data = await ImageLoader.shared.data(for: remoteURL) else { return }
-            remote = UIImage(data: data)
+            remote = SafeImage.decode(data)
         }
     }
 
@@ -133,5 +135,34 @@ struct NetworkBadge: View {
         }
         .frame(width: size, height: size)
         .overlay(Circle().stroke(ring, lineWidth: 2))
+    }
+}
+
+/// Abre uma logo baixada da internet sem confiar nela: o decodificador de imagem roda
+/// no mesmo processo que assina (auditoria 3, B4). So PNG ou JPEG pelo tipo que o ImageIO
+/// le no arquivo (nao so os bytes magicos), uma imagem so, ate 2048 px de lado, e reduzida
+/// para no maximo 256 px antes de virar imagem na tela.
+enum SafeImage {
+    static let maxSide = 2048
+    static let maxPixel = 256
+
+    static func decode(_ data: Data) -> UIImage? {
+        let noCache = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, noCache),
+              CGImageSourceGetCount(source) == 1,
+              let type = CGImageSourceGetType(source) as String?,
+              type == UTType.png.identifier || type == UTType.jpeg.identifier,
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, noCache) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? Int, let height = properties[kCGImagePropertyPixelHeight] as? Int,
+              width > 0, height > 0, width <= maxSide, height <= maxSide
+        else { return nil }
+        let options = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixel,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+        ] as CFDictionary
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else { return nil }
+        return UIImage(cgImage: image)
     }
 }

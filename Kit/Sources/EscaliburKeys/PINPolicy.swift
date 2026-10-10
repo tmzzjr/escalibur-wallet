@@ -88,6 +88,25 @@ public enum PINPolicy {
     /// Sem identidade de boot, cada leitura parece um boot novo: a espera recomeca
     /// cheia. Falha para o lado do dono esperar mais, nunca menos.
     public static let unknownBoot = [UInt8](repeating: 0, count: 16)
+
+    /// O registro de "PIN digitado neste boot": a identidade do boot e o tempo desde o
+    /// boot naquele instante (24 bytes).
+    ///
+    /// So o instante do boot (`kern.boottime`) deixava uma brecha: depois de reiniciar,
+    /// quem acertasse a hora a mao para o boot antigo cair dentro da folga religava o Face
+    /// ID sem o PIN (auditoria 3, B2). O tempo desde o boot recomeca do zero ao reiniciar
+    /// e nao anda com o relogio: o registro so vale se o de agora for maior.
+    public static func pinRecord(boot: [UInt8], uptime: TimeInterval) -> [UInt8] {
+        boot + withUnsafeBytes(of: uptime.bitPattern.bigEndian) { Array($0) }
+    }
+
+    /// Registro antigo, de so 16 bytes, nao vale: o PIN e pedido uma vez.
+    public static func pinRecordValid(_ saved: [UInt8], boot: [UInt8], uptime: TimeInterval) -> Bool {
+        guard saved.count == 24 else { return false }
+        let recordedUptime = TimeInterval(bitPattern: saved.suffix(8).reduce(UInt64(0)) { $0 << 8 | UInt64($1) })
+        guard recordedUptime.isFinite, recordedUptime >= 0 else { return false }
+        return isSameBoot(Array(saved.prefix(16)), boot) && uptime >= recordedUptime
+    }
 }
 
 /// O registro de tentativas, gravado no chaveiro.

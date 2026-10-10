@@ -107,6 +107,9 @@ struct CaptureGuard: ViewModifier {
             }
         }
         .onAppear { captured = Self.anyScreenCaptured }
+        // A captura so da cena (iOS 17) muda um trait, sem notificacao: o sensor avisa na
+        // hora (auditoria 3, B6).
+        .background(SceneCaptureProbe { captured = Self.anyScreenCaptured })
         .onReceive(NotificationCenter.default.publisher(for: UIScreen.capturedDidChangeNotification)) { _ in
             captured = Self.anyScreenCaptured
         }
@@ -127,4 +130,40 @@ struct CaptureGuard: ViewModifier {
 extension View {
     /// Aplicar em toda tela que possa mostrar palavras da frase ou segredo.
     func guardedAgainstCapture() -> some View { modifier(CaptureGuard()) }
+}
+
+/// Uma vista invisivel que avisa quando a captura da cena comeca ou para.
+private struct SceneCaptureProbe: UIViewRepresentable {
+    let onChange: @MainActor () -> Void
+
+    func makeUIView(context: Context) -> ProbeView {
+        let view = ProbeView()
+        view.onChange = onChange
+        return view
+    }
+
+    func updateUIView(_ view: ProbeView, context: Context) {
+        view.onChange = onChange
+    }
+
+    final class ProbeView: UIView {
+        var onChange: (@MainActor () -> Void)?
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            isUserInteractionEnabled = false
+            isAccessibilityElement = false
+            registerForTraitChanges([UITraitSceneCaptureState.self]) { (view: ProbeView, _: UITraitCollection) in
+                view.onChange?()
+            }
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) { nil }
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            onChange?()
+        }
+    }
 }

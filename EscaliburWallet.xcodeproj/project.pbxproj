@@ -72,6 +72,7 @@
 		8A3A9028D49AF27A483E090C /* EscaliburNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = C09378074DCB9273C75F8FA1 /* EscaliburNetwork */; };
 		8AD9BAAFA95723925CCB3A6D /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10914896D99BB58942178E3 /* Router.swift */; };
 		8C41E86F595FADDBED53F5FB /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */; };
+		8F32662D8ED021AC24DF8FBA /* SafeImageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15BD461E4847F65BD1B64982 /* SafeImageTests.swift */; };
 		90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E9C686393C93E1E34895B /* PlatformGuards.swift */; };
 		9199129964B9661C2FF62FDF /* MetadataCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */; };
 		91F8E34E141C393E6B6C5CE6 /* AddWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634FB486C1AC19A1DC738122 /* AddWalletView.swift */; };
@@ -157,6 +158,7 @@
 		1230FF61D7222514EB7DF821 /* ActivityExplorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityExplorerTests.swift; sourceTree = "<group>"; };
 		1292233C35D3175EC36E4F70 /* EscaliburWallet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EscaliburWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		15276BF5A254093B41A55B40 /* NewWalletFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewWalletFlow.swift; sourceTree = "<group>"; };
+		15BD461E4847F65BD1B64982 /* SafeImageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeImageTests.swift; sourceTree = "<group>"; };
 		1722E329135DB398B784E8C8 /* KeyServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyServices.swift; sourceTree = "<group>"; };
 		178D0EBBB2AA6CB89DC6772B /* PlanReviewViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanReviewViews.swift; sourceTree = "<group>"; };
 		17A71DEB35D1AAC25A23037D /* AllocationDonut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllocationDonut.swift; sourceTree = "<group>"; };
@@ -570,6 +572,7 @@
 				257E1C63C5F4FC66E542B13F /* ImportPipelineTests.swift */,
 				4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */,
 				923ECBE19CCD67EE592B54AA /* PriceAlertTextTests.swift */,
+				15BD461E4847F65BD1B64982 /* SafeImageTests.swift */,
 				B27717125F1CAF51E389386B /* SlippageScaleTests.swift */,
 				D66AC658150B36FCB6F00AF3 /* StandbyCoverRenderTests.swift */,
 				583CEAB70FAC5559D62D44C2 /* VoiceRulesTests.swift */,
@@ -777,6 +780,7 @@
 				F31E9A19BDD8A75BEFD422B9 /* ImportPipelineTests.swift in Sources */,
 				9199129964B9661C2FF62FDF /* MetadataCompatibilityTests.swift in Sources */,
 				3E25AAAF8F41385BA8FCFC03 /* PriceAlertTextTests.swift in Sources */,
+				8F32662D8ED021AC24DF8FBA /* SafeImageTests.swift in Sources */,
 				67C3581CF252367C1BEC66F8 /* SlippageScaleTests.swift in Sources */,
 				36B41043E66CFB6CC7CE2FA9 /* StandbyCoverRenderTests.swift in Sources */,
 				C161D64ADC82BE5B6E0E806D /* VoiceRulesTests.swift in Sources */,

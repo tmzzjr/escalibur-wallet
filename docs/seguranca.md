@@ -569,7 +569,7 @@ Limites:
 - Links para abrir.
 - Configuração ou flags que mudem segurança (não existe nenhuma).
 - "Atualize para a versão X".
-- Imagem fora de PNG ou JPEG base, ou maior que 64 KB. Logos dos tokens listados vão embutidos no app, e SVG, WebP e GIF são recusados, porque decodificação de imagem é superfície de exploit dentro do processo que assina.
+- Imagem fora de PNG ou JPEG base, ou maior que 160 KB (as logos da Trust Wallet têm 256 px e passam de 70 KB). Logos dos tokens listados vão embutidos no app, e SVG, WebP e GIF são recusados, porque decodificação de imagem é superfície de exploit dentro do processo que assina. A logo baixada abre pelo ImageIO só se o tipo lido no arquivo for PNG ou JPEG, com uma imagem só e até 2048 px de lado, e já reduzida a 256 px (`SafeImage`, auditoria 3, B4).
 - Preço: serve para exibir e para checagem de sanidade, nunca sozinho para calcular `minOut`.
 
 ### 5.5 Consenso entre provedores

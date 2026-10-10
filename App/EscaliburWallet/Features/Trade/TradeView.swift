@@ -160,17 +160,17 @@ struct TradeView: View {
     }
 
     private var quoteKey: String {
-        "\(model.chain.id)|\(model.sell?.id ?? "")|\(model.buy?.id ?? "")|\(model.amountText)|\(slippage(withImpact: false))|\(router.tradeMode == .now)"
+        "\(model.chain.id)|\(model.sell?.id ?? "")|\(model.buy?.id ?? "")|\(model.amountText)|\(slippage())|\(router.tradeMode == .now)"
     }
 
-    /// A tolerancia do pedido: a automatica (o par e o dia; na revisao, tambem o impacto
-    /// da cotacao) ou a escolhida no controle. A cotacao usa a sem impacto, para a
-    /// propria cotacao nao mudar a chave e recotar sem fim.
-    private func slippage(withImpact: Bool) -> Int {
+    /// A tolerancia do pedido: a automatica (o par, o dia e a rede) ou a escolhida no
+    /// controle. O impacto que a API do agregador informa nunca entra: uma API
+    /// comprometida inflaria o impacto para alargar o proprio teto de perda (auditoria 3,
+    /// M1). Ele so aparece como aviso na cotacao.
+    private func slippage() -> Int {
         guard model.automaticSlippage, let sell = model.sell, let buy = model.buy else { return model.slippageBps }
         let changes = [sell, buy].compactMap { $0.coingeckoID.flatMap { portfolio.quotes[$0]?.change24h } }.map(abs)
-        let impact = withImpact ? model.quote?.priceImpactPercent.map { Int(($0 * 100).rounded()) } : nil
-        return AutoSlippage.basisPoints(sell: sell, buy: buy, chainID: model.chain.id, volatilityPercent: changes.max(), priceImpactBps: impact)
+        return AutoSlippage.basisPoints(sell: sell, buy: buy, chainID: model.chain.id, volatilityPercent: changes.max())
     }
 
     // MARK: Cabecalho
@@ -206,7 +206,7 @@ struct TradeView: View {
                     }
             }
 
-            SlippageSlider(basisPoints: $model.slippageBps, automatic: $model.automaticSlippage, autoValue: slippage(withImpact: true))
+            SlippageSlider(basisPoints: $model.slippageBps, automatic: $model.automaticSlippage, autoValue: slippage())
                 .padding(.top, Space.lg)
             quoteLines.padding(.top, Space.lg)
         }
@@ -476,7 +476,7 @@ struct TradeView: View {
         case .now:
             guard let quote = model.quote else { return }
             let request = TradeRequest(walletID: wallet.id, chain: model.chain, account: account, sell: sell, buy: buy,
-                                       amountIn: amount, slippageBasisPoints: slippage(withImpact: true))
+                                       amountIn: amount, slippageBasisPoints: slippage())
             reviewing = TradeReviewFlow.Item(kind: .swap(request, quote), chain: model.chain, fiat: fiat)
         case .limit:
             guard let minimum = limitMinimumOut else { return }
@@ -597,7 +597,7 @@ struct TradeView: View {
             model.error = nil
             do {
                 let request = TradeRequest(walletID: wallet.id, chain: model.chain, account: account, sell: sell, buy: buy,
-                                           amountIn: amount, slippageBasisPoints: slippage(withImpact: false))
+                                           amountIn: amount, slippageBasisPoints: slippage())
                 model.quote = try await engine.quote(request)
             } catch {
                 model.quote = nil

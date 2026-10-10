@@ -43,6 +43,14 @@ public enum AddressPoisoning {
         }
     }
 
+    /// Os `length` caracteres do meio do endereco: o que o dono le e digita quando nao ha
+    /// com o que comparar (historico da rede ilegivel, auditoria 3, B1).
+    public static func middleSegment(_ address: String, length: Int = 6) -> Segment? {
+        let count = address.count
+        guard count >= length + 4 else { return nil }
+        return Segment(start: (count - length) / 2, length: length)
+    }
+
     /// Onde `address` comeca a diferir de `other`: os `length` caracteres a partir da
     /// primeira diferenca depois do prefixo da rede. E o trecho que o desafio pede:
     /// as pontas o atacante copia, o meio ele nao consegue (auditoria 2, M2).

@@ -1,3 +1,5 @@
+import EscaliburCore
+import EscaliburKeys
 import Foundation
 import Testing
 @testable import EscaliburWallet
@@ -15,24 +17,46 @@ struct VoiceRulesTests {
     }
 
     @Test func valueChosenByOwner() {
-        #expect(!VoiceGate.sendNeedsVoice(fiat: 999, settings: settings()))
-        #expect(VoiceGate.sendNeedsVoice(fiat: 1_000, settings: settings()))
-        #expect(VoiceGate.sendNeedsVoice(fiat: 25_000, settings: settings(limit: 20_000)))
+        #expect(!VoiceGate.sendNeedsVoice(fiat: 999, settings: settings(), currency: "brl"))
+        #expect(VoiceGate.sendNeedsVoice(fiat: 1_000, settings: settings(), currency: "brl"))
+        #expect(VoiceGate.sendNeedsVoice(fiat: 25_000, settings: settings(limit: 20_000), currency: "brl"))
     }
 
     @Test func unknownValueAsks() {
-        #expect(VoiceGate.sendNeedsVoice(fiat: nil, settings: settings()))
+        #expect(VoiceGate.sendNeedsVoice(fiat: nil, settings: settings(), currency: "brl"))
     }
 
     @Test func sendsOffNeverAsk() {
-        #expect(!VoiceGate.sendNeedsVoice(fiat: 1_000_000, settings: settings(limit: nil)))
-        #expect(!VoiceGate.sendNeedsVoice(fiat: nil, settings: settings(limit: nil, max: 1, done: 5)))
+        #expect(!VoiceGate.sendNeedsVoice(fiat: 1_000_000, settings: settings(limit: nil), currency: "brl"))
+        #expect(!VoiceGate.sendNeedsVoice(fiat: nil, settings: settings(limit: nil, max: 1, done: 5), currency: "brl"))
     }
 
     @Test func streakOfSmallSendsAsksAtTheLimit() {
-        #expect(!VoiceGate.sendNeedsVoice(fiat: 10, settings: settings(max: 3, done: 2)))
-        #expect(VoiceGate.sendNeedsVoice(fiat: 10, settings: settings(max: 3, done: 3)))
-        #expect(!VoiceGate.sendNeedsVoice(fiat: 10, settings: settings(max: 3, done: nil)))
+        #expect(!VoiceGate.sendNeedsVoice(fiat: 10, settings: settings(max: 3, done: 2), currency: "brl"))
+        #expect(VoiceGate.sendNeedsVoice(fiat: 10, settings: settings(max: 3, done: 3), currency: "brl"))
+        #expect(!VoiceGate.sendNeedsVoice(fiat: 10, settings: settings(max: 3, done: nil), currency: "brl"))
+    }
+
+    @Test func limitAddsUpOverTheDay() {
+        var voice = settings(limit: 5_000)
+        voice.recentSends = [
+            VoiceSend(at: .now.addingTimeInterval(-3_600), uptime: PINPolicy.uptime - 3_600, boot: Hex.encode(PINPolicy.bootSession), fiat: 4_000),
+        ]
+        #expect(!VoiceGate.sendNeedsVoice(fiat: 900, settings: voice, currency: "brl"))
+        #expect(VoiceGate.sendNeedsVoice(fiat: 1_000, settings: voice, currency: "brl"))
+        // Mais de 24 h no relogio monotono: nao conta mais.
+        voice.recentSends = [
+            VoiceSend(at: .now.addingTimeInterval(-90_000), uptime: PINPolicy.uptime - 90_000, boot: Hex.encode(PINPolicy.bootSession), fiat: 4_000),
+        ]
+        #expect(!VoiceGate.sendNeedsVoice(fiat: 1_000, settings: voice, currency: "brl"))
+    }
+
+    @Test func limitIsInTheCurrencyItWasSet() {
+        var voice = settings(limit: 5_000)
+        voice.limitCurrency = "brl"
+        #expect(!VoiceGate.sendNeedsVoice(fiat: 100, settings: voice, currency: "brl"))
+        // A moeda do app mudou para dolar: o limite de 5.000 nao vale 5.000 dolares.
+        #expect(VoiceGate.sendNeedsVoice(fiat: 100, settings: voice, currency: "usd"))
     }
 
     @Test func oldMetadataStillOpens() throws {

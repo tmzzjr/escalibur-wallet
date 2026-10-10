@@ -133,11 +133,29 @@ struct VoiceSettings: Codable, Equatable {
     var sendsWithoutVoice: Int?
 
     var phraseLanguage: VoiceLanguage { language ?? .portuguese }
+    /// A moeda em que o valor do limite foi escolhido ("brl", "usd"). Nil: a moeda
+    /// padrao, o real. Se a moeda do app mudar, todo envio pede a frase ate o dono
+    /// conferir o valor de novo (auditoria 3, A2: trocar real por dolar multiplicava o
+    /// limite por 5).
+    var limitCurrency: String?
+    /// Envios que sairam sem a frase, para o limite acumulado de 24 h.
+    var recentSends: [VoiceSend]?
+    /// "Esqueci a frase": o pedido de mexer nos ajustes so com o PIN, valido depois de
+    /// 72 h no relogio monotono deste boot.
+    var resetUptimeDeadline: TimeInterval?
+    var resetBoot: String?
+    var resetRequestedAt: Date?
 
     mutating func startLock(seconds: TimeInterval) {
         lockedUntil = Date.now.addingTimeInterval(seconds)
         lockUptimeDeadline = PINPolicy.uptime + seconds
         lockBoot = Hex.encode(PINPolicy.bootSession)
+    }
+
+    mutating func clearResetRequest() {
+        resetUptimeDeadline = nil
+        resetBoot = nil
+        resetRequestedAt = nil
     }
 
     mutating func clearLock() {
@@ -146,6 +164,15 @@ struct VoiceSettings: Codable, Equatable {
         lockUptimeDeadline = nil
         lockBoot = nil
     }
+}
+
+/// Um envio sem a frase de voz: quando (relogio de parede e monotono, com o boot) e
+/// quanto, na moeda do limite.
+struct VoiceSend: Codable, Equatable {
+    let at: Date
+    let uptime: TimeInterval
+    let boot: String
+    let fiat: Double
 }
 
 /// O arquivo de metadados, cifrado.

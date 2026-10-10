@@ -11,9 +11,12 @@ import Foundation
 ///     contra outra grande: 0,3%;
 ///   - o resto, liquidez rasa: 1%.
 /// Em cima disso, folga pelo dia agitado (a maior variacao de 24 h das duas pontas, 2
-/// pontos-base por ponto percentual, ate 0,5%), pelo pool raso (impacto acima de 1%
-/// soma um quarto do impacto, ate 1%) e pela Ethereum, que leva mais tempo ate o bloco
-/// (0,1%). O resultado fica entre 0,1% e 3%, a mesma faixa do controle manual.
+/// pontos-base por ponto percentual, ate 0,5%) e pela Ethereum, que leva mais tempo ate
+/// o bloco (0,1%). O resultado fica entre 0,1% e 3%, a mesma faixa do controle manual.
+///
+/// `priceImpactBps` so pode vir de conta local (cotacao contra o preco de referencia da
+/// carteira), nunca do numero que a API do agregador informa: a API alargaria o proprio
+/// teto de perda (auditoria 3, M1). O app hoje nao passa impacto nenhum.
 ///
 /// A conferencia que importa nao muda: o minimo garantido sai da cotacao e da tolerancia
 /// e e conferido na transacao antes de assinar (docs/seguranca.md §5.4).

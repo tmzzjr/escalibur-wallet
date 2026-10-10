@@ -34,6 +34,10 @@ struct VoiceSettingsView: View {
     @State private var testResult: String?
     /// Lingua escolhida com uma frase ja gravada: espera a confirmacao para gravar outra.
     @State private var pendingLanguage: VoiceLanguage?
+    /// O PIN passou e a voz esta ligada: falta a frase para mexer nos ajustes.
+    @State private var phraseNeeded = false
+    @State private var resetLeft: TimeInterval?
+    @State private var confirmReset = false
     @FocusState private var editing: Bool
 
     private enum Step { case speak, review, confirm }
@@ -69,7 +73,7 @@ struct VoiceSettingsView: View {
                 .padding(.horizontal, Space.gutter)
 
                 if !authorized {
-                    EmptyView()
+                    if phraseNeeded { phraseGate } else { EmptyView() }
                 } else if !VoiceGate.isSupported {
                     Text("Este iPhone não reconhece fala sem internet, nem em português nem em inglês, então a confirmação por voz não está disponível.")
                         .typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.md).padding(.horizontal, Space.gutter)
@@ -89,10 +93,71 @@ struct VoiceSettingsView: View {
         .task {
             guard !authorized else { return }
             let ok = (try? await auth.perform(session, reason: "Mudar a confirmação por voz", requirePIN: true, { _ in true })) == true
-            if ok { authorized = true } else { dismiss() }
+            guard ok else { dismiss(); return }
+            await requirePhrase()
+        }
+        .alert("Esqueceu a frase?", isPresented: $confirmReset) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Pedir a troca") {
+                VoiceGate.shared.requestReset(session)
+                resetLeft = VoiceGate.shared.resetRemaining(session)
+            }
+        } message: {
+            Text("Os ajustes da voz abrem só com o PIN depois de 72 horas. Até lá, a voz continua pedindo a frase. Reiniciar o iPhone recomeça a espera.")
         }
     }
 
+
+    /// Com a voz ligada, mexer nela pede a frase alem do PIN: quem so viu o PIN nao
+    /// desliga a voz para depois ver a senha da carteira (auditoria 3, A2). Quem
+    /// esqueceu a frase pede a troca e espera 72 h.
+    private func requirePhrase() async {
+        guard settings.enabled, session.metadata.voicePhraseHash != nil else {
+            authorized = true
+            return
+        }
+        resetLeft = VoiceGate.shared.resetRemaining(session)
+        if let left = resetLeft, left <= 0 {
+            session.metadata.settings.voice.clearResetRequest()
+            save()
+            authorized = true
+            return
+        }
+        if await VoiceGate.shared.confirm(.settings, session: session) {
+            session.metadata.settings.voice.clearResetRequest()
+            save()
+            phraseNeeded = false
+            authorized = true
+        } else {
+            phraseNeeded = true
+        }
+    }
+
+    private var phraseGate: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Text("Para mudar ou desligar a confirmação por voz, fale a sua frase. Só o PIN não basta: quem viu o PIN não pode tirar a voz.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            if let left = resetLeft, left > 0 {
+                Banner(kind: .neutral, title: "Troca pedida",
+                       message: "Em \(Self.hours(left)), os ajustes da voz abrem só com o PIN. Reiniciar o iPhone recomeça a espera.")
+            }
+            PrimaryButton(title: "Falar a frase") { Task { await requirePhrase() } }
+                .padding(.top, Space.sm)
+            if resetLeft == nil {
+                TertiaryButton(title: "Esqueci a frase") { confirmReset = true }
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.horizontal, Space.gutter)
+        .padding(.top, Space.md)
+        .accessibilityIdentifier("voz-pede-frase")
+    }
+
+    static func hours(_ seconds: TimeInterval) -> String {
+        let hours = Int((seconds / 3600).rounded(.up))
+        return hours <= 1 ? "cerca de 1 hora" : "cerca de \(hours) horas"
+    }
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -365,7 +430,13 @@ struct VoiceSettingsView: View {
                 : "Ainda não conferiu. Se o iPhone escreve uma palavra de outro jeito, toque em Mudar a frase e deixe como ele escreveu."
             return
         }
-        let salt = Hex.encode((try? SecureBytes.random(count: 16).withUnsafeBytes { Array($0) }) ?? [])
+        // Sem sal aleatorio, nada e gravado: um sal vazio faria a frase valer igual em
+        // qualquer aparelho (auditoria 3, B5).
+        guard let saltBytes = try? SecureBytes.random(count: 16).withUnsafeBytes({ Array($0) }), saltBytes.count == 16 else {
+            message = "Não foi possível gravar a frase agora. Tente de novo."
+            return
+        }
+        let salt = Hex.encode(saltBytes)
         session.metadata.voicePhraseSalt = salt
         session.metadata.voicePhraseHash = VoiceGate.digest(draft, salt: salt)
         session.metadata.settings.voice.enabled = true
@@ -402,6 +473,7 @@ struct VoiceSettingsView: View {
                 toggle("Pedir para lacrar envelope", \.onEnvelope)
                 Toggle(isOn: Binding(get: { settings.onSendAboveFiat != nil }, set: { on in
                     session.metadata.settings.voice.onSendAboveFiat = on ? 5000 : nil
+                    session.metadata.settings.voice.limitCurrency = on ? session.metadata.settings.currency : nil
                     if !on { session.metadata.settings.voice.maxSendsWithoutVoice = nil }
                     save()
                 })) {
@@ -411,9 +483,21 @@ struct VoiceSettingsView: View {
                 if let limit = settings.onSendAboveFiat {
                     VoiceLimitField(value: limit, currency: session.currency) { value in
                         session.metadata.settings.voice.onSendAboveFiat = value
+                        session.metadata.settings.voice.limitCurrency = session.metadata.settings.currency
                         save()
                     }
-                    .padding(.horizontal, Space.md).padding(.bottom, Space.sm)
+                    .padding(.horizontal, Space.md)
+                    Text(limitLine(limit))
+                        .typeStyle(.note).foregroundStyle(limitCurrencyChanged ? Palette.caution : Palette.inkSoft)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, Space.md).padding(.top, Space.xs).padding(.bottom, Space.sm)
+                    if limitCurrencyChanged {
+                        TertiaryButton(title: "Usar este valor em \(session.currency.symbol)") {
+                            session.metadata.settings.voice.limitCurrency = session.metadata.settings.currency
+                            save()
+                        }
+                        .padding(.horizontal, Space.md)
+                    }
                     Toggle(isOn: Binding(get: { settings.maxSendsWithoutVoice != nil }, set: { on in
                         session.metadata.settings.voice.maxSendsWithoutVoice = on ? 3 : nil
                         session.metadata.settings.voice.sendsWithoutVoice = nil
@@ -493,6 +577,21 @@ struct VoiceSettingsView: View {
             }
             .padding(.horizontal, Space.gutter)
         }
+    }
+
+    private var limitCurrencyChanged: Bool {
+        (settings.limitCurrency ?? "brl") != session.metadata.settings.currency
+    }
+
+    /// O limite e a soma das ultimas 24 h, e quanto ja saiu sem a frase.
+    private func limitLine(_ limit: Double) -> String {
+        if limitCurrencyChanged {
+            return "A moeda do app mudou. Até você conferir o valor, todo envio pede a frase."
+        }
+        let spent = VoiceGate.recentTotal(settings)
+        let base = "Conta a soma dos envios sem a frase nas últimas 24 horas."
+        guard spent > 0 else { return base }
+        return base + " Já saíram \(Fmt.fiat(spent, session.currency)) de \(Fmt.fiat(limit, session.currency))."
     }
 
     /// Quantos envios ja sairam sem a frase, e o que acontece no proximo.
