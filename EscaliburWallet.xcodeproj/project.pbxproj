@@ -103,6 +103,7 @@
 		CE372781780EEF980A965AD3 /* CustomTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7A7441A95891CC1A307A355 /* CustomTokenTests.swift */; };
 		CE83B0D99CF75C35C220FAB4 /* RevealFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529FF2FD620686A71B265A06 /* RevealFlow.swift */; };
 		CEB6F2EDD5952E9EF8FB6517 /* ImportPhraseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6269216B260E5FA27BB51E6 /* ImportPhraseTests.swift */; };
+		CF9F28B7885A6F727EAFFFD5 /* OrderProgressViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64EDC4BD05696FA0BB3FB2BA /* OrderProgressViews.swift */; };
 		D9993FE2FD6DDDCA4F84E8C6 /* PriceChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */; };
 		D9BE60229797504784BC6F97 /* KeyServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1722E329135DB398B784E8C8 /* KeyServices.swift */; };
 		DA717CEE0E76AEF1F0CBCE9A /* LEIA-ME.txt in Resources */ = {isa = PBXBuildFile; fileRef = 445327A094057374455F9FD5 /* LEIA-ME.txt */; };
@@ -191,6 +192,7 @@
 		6095C38283534AF48C451BC4 /* VoiceFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceFlowTests.swift; sourceTree = "<group>"; };
 		609FB55F39FC297CF3C80DE8 /* Kit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Kit; path = Kit; sourceTree = SOURCE_ROOT; };
 		634FB486C1AC19A1DC738122 /* AddWalletView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddWalletView.swift; sourceTree = "<group>"; };
+		64EDC4BD05696FA0BB3FB2BA /* OrderProgressViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderProgressViews.swift; sourceTree = "<group>"; };
 		6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalDocumentView.swift; sourceTree = "<group>"; };
 		71977F38FE1026DDFD0C189A /* DebugDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDemo.swift; sourceTree = "<group>"; };
 		72C75178B68BC09E156440A1 /* CoinActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinActions.swift; sourceTree = "<group>"; };
@@ -363,6 +365,7 @@
 			isa = PBXGroup;
 			children = (
 				5A61DBAE7E399CA79C1BFD46 /* OpenOrdersView.swift */,
+				64EDC4BD05696FA0BB3FB2BA /* OrderProgressViews.swift */,
 				CED594CB5884DB17FE81B8D4 /* TradeComponents.swift */,
 				9DD76B5A4D8E49D97000A77E /* TradeReviewFlow.swift */,
 				E34BAC1217309C0064F23CE7 /* TradeView.swift */,
@@ -829,6 +832,7 @@
 				8C41E86F595FADDBED53F5FB /* OnboardingFlow.swift in Sources */,
 				32C85CC66E71ADDE142F2B2C /* OpenEnvelopeFlow.swift in Sources */,
 				A86F60C8E0ACDA0DB1C3F8B4 /* OpenOrdersView.swift in Sources */,
+				CF9F28B7885A6F727EAFFFD5 /* OrderProgressViews.swift in Sources */,
 				1D531EE18959F349F80372D4 /* OtherTokens.swift in Sources */,
 				39A4945DC4DAEFEDE0DBEB1F /* PINPad.swift in Sources */,
 				9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */,

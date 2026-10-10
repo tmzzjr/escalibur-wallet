@@ -16,6 +16,8 @@ final class TradeModel {
     var slippageBps = 50
     var automaticSlippage = true
     var quote: TradeQuote?
+    /// O dono escolheu a troca em partes (so existe quando a cotacao oferece).
+    var inParts = false
     var quoting = false
     var error: String?
     var nextRefresh = 15
@@ -47,8 +49,15 @@ final class TradeModel {
         sell = .native(chain)
         buy = TokenRegistry.tokens.first { $0.chainID == chain.id && $0.isStablecoin }
         quote = nil
+        inParts = false
         error = nil
         amountText = ""
+    }
+
+    /// O que a tela mostra em "Voce recebe": o minimo garantido da execucao escolhida,
+    /// gravado na transacao ou na ordem assinada. Chega ele ou mais.
+    var shownMinimum: BigUInt? {
+        quote.map { $0.minimumOut(inParts: inParts && $0.parts != nil) }
     }
 }
 
@@ -118,6 +127,15 @@ struct TradeView: View {
         .onAppear {
             if model.sell == nil, let first = tradeChains.first { model.reset(to: first) }
             applyPreset()
+            #if DEBUG
+            // `-tela trocar-grande`: uma venda grande de ETH por USDC na Ethereum, com
+            // cotacao ao vivo, para conferir a troca pela CoW e a opcao em partes.
+            if DebugDemo.screen == "trocar-grande", model.amountText.isEmpty {
+                model.reset(to: .ethereum)
+                model.buy = TokenRegistry.tokens.first { $0.chainID == "ethereum" && $0.symbol == "USDC" }
+                model.amountText = "8000"
+            }
+            #endif
         }
         .onChange(of: router.tradePreset?.asset.id) { _, _ in applyPreset() }
         .sheet(item: $picking) { side in
@@ -189,7 +207,7 @@ struct TradeView: View {
                           fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
                           onPick: { picking = .sell }, onFraction: fractionAction)
                 AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(receiveText), balance: balance(model.buy),
-                          fiat: fiat(model.quote?.expectedOut, model.buy), editable: false, over: false,
+                          fiat: fiat(model.shownMinimum, model.buy), editable: false, over: false,
                           loading: model.quoting && model.quote == nil && model.amountIn != nil,
                           onPick: { picking = .buy }, onFraction: nil)
                     .overlay(alignment: .top) {
@@ -206,15 +224,32 @@ struct TradeView: View {
                     }
             }
 
+            if let quote = model.quote, let parts = quote.parts, let buy = model.buy {
+                ExecutionChoice(quote: quote, parts: parts, buy: buy, inParts: $model.inParts)
+                    .padding(.top, Space.md)
+                    .transition(.opacity)
+            }
             SlippageSlider(basisPoints: $model.slippageBps, automatic: $model.automaticSlippage, autoValue: slippage())
                 .padding(.top, Space.lg)
             quoteLines.padding(.top, Space.lg)
+            if engine?.supportsLimitOrders == true, model.chain.family == .evm {
+                OpenOrdersSection(chain: model.chain, refresh: ordersRefresh, hidesWhenEmpty: true).padding(.top, Space.lg)
+            }
         }
     }
 
     private var receiveText: String {
-        guard let quote = model.quote, let buy = model.buy else { return "" }
-        return Fmt.plainDecimal(quote.expectedOut, decimals: buy.decimals)
+        guard let minimum = model.shownMinimum, let buy = model.buy else { return "" }
+        return Fmt.plainDecimal(minimum, decimals: buy.decimals)
+    }
+
+    private var routeText: String {
+        guard let quote = model.quote else { return "" }
+        if model.inParts, quote.parts != nil { return "Em partes pela CoW, conforme chega liquidez" }
+        if quote.execution == .order { return "Leilão da CoW, o melhor entre \(quote.providersCompared)" }
+        return quote.legs.count > 1
+            ? "Dividida entre \(quote.legs.count) provedores para você receber mais"
+            : "\(quote.legs.first?.provider ?? ""), o melhor entre \(quote.providersCompared)"
     }
 
     @ViewBuilder
@@ -233,9 +268,7 @@ struct TradeView: View {
                                     .overlay(Circle().stroke(Palette.void, lineWidth: 2))
                             }
                         }
-                        Text(quote.legs.count > 1
-                             ? "Dividida entre \(quote.legs.count) provedores para você receber mais"
-                             : "\(quote.legs.first?.provider ?? ""), o melhor entre \(quote.providersCompared)")
+                        Text(routeText)
                             .typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
                         Spacer(minLength: 4)
                         Text("Ver rota").typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.ink)
@@ -253,7 +286,13 @@ struct TradeView: View {
                 }
                 .buttonStyle(.plain)
                 if model.showDetails {
-                    detail("Você recebe no mínimo", Fmt.crypto(quote.minimumOut, decimals: buy.decimals, symbol: buy.symbol, style: .full))
+                    let inParts = model.inParts && quote.parts != nil
+                    detail("Garantido", Fmt.crypto(model.shownMinimum ?? quote.minimumOut, decimals: buy.decimals, symbol: buy.symbol, style: .full))
+                    detail("Cotação do provedor", Fmt.crypto(inParts ? quote.parts?.expectedOut ?? quote.expectedOut : quote.expectedOut,
+                                                             decimals: buy.decimals, symbol: buy.symbol, style: .full))
+                    if quote.execution == .order || inParts {
+                        detail("Prazo da ordem", inParts ? "1 hora" : "30 minutos")
+                    }
                     if let impact = quote.priceImpactPercent { detail("Impacto no preço", "\(Fmt.grouped(impact, fractionDigits: 2))%") }
                     if model.chain == .ethereum, session.metadata.settings.mevProtection { detail("Proteção contra robôs", "ligada") }
                 }
@@ -295,9 +334,10 @@ struct TradeView: View {
         }
     }
 
+    /// O preco pelo garantido: o mesmo numero de "Voce recebe".
     private func rateText(_ quote: TradeQuote, sell: Asset, buy: Asset) -> String {
         let inAmount = Fmt.double(quote.amountIn, decimals: sell.decimals)
-        let outAmount = Fmt.double(quote.expectedOut, decimals: buy.decimals)
+        let outAmount = Fmt.double(model.shownMinimum ?? quote.minimumOut, decimals: buy.decimals)
         guard inAmount > 0, outAmount > 0 else { return "" }
         if model.invertedRate {
             return "1 \(buy.symbol) = \(Fmt.grouped(inAmount / outAmount, fractionDigits: 6, trimZeros: true)) \(sell.symbol)"
@@ -476,7 +516,7 @@ struct TradeView: View {
         case .now:
             guard let quote = model.quote else { return }
             let request = TradeRequest(walletID: wallet.id, chain: model.chain, account: account, sell: sell, buy: buy,
-                                       amountIn: amount, slippageBasisPoints: slippage())
+                                       amountIn: amount, slippageBasisPoints: slippage(), inParts: model.inParts && quote.parts != nil)
             reviewing = TradeReviewFlow.Item(kind: .swap(request, quote), chain: model.chain, fiat: fiat)
         case .limit:
             guard let minimum = limitMinimumOut else { return }
@@ -528,6 +568,7 @@ struct TradeView: View {
             return "Revisar ordem"
         }
         if model.quoting && model.quote == nil { return "Buscando o melhor preço" }
+        if model.inParts, model.quote?.parts != nil { return "Revisar troca em partes" }
         if PriceImpact.level(model.quote?.priceImpactPercent) == .blocked { return "Impacto no preço alto demais" }
         return model.quote?.needsApproval == true ? "Autorizar \(model.sell?.symbol ?? "") e trocar" : "Revisar troca"
     }
@@ -535,6 +576,8 @@ struct TradeView: View {
     private var primaryEnabled: Bool {
         guard engine != nil, let amount = model.amountIn, !amount.isZero, !over else { return false }
         if router.tradeMode == .limit { return engine?.supportsLimitOrders == true && limitMinimumOut != nil && limitPriceConfirmed }
+        // Em partes, cada parte sai por um preco melhor que o da ordem inteira.
+        if model.inParts, model.quote?.parts != nil { return true }
         switch PriceImpact.level(model.quote?.priceImpactPercent) {
         case .blocked: return false
         case .confirm: return model.acceptedHighImpact
@@ -598,7 +641,9 @@ struct TradeView: View {
             do {
                 let request = TradeRequest(walletID: wallet.id, chain: model.chain, account: account, sell: sell, buy: buy,
                                            amountIn: amount, slippageBasisPoints: slippage())
-                model.quote = try await engine.quote(request)
+                let fresh = try await engine.quote(request)
+                if fresh.parts == nil { model.inParts = false }
+                model.quote = fresh
             } catch {
                 model.quote = nil
                 model.error = (error as? LocalizedError)?.errorDescription
@@ -756,6 +801,15 @@ struct RouteSheet: View {
     let quote: TradeQuote
     @Environment(\.dismiss) private var dismiss
 
+    private var explanation: String {
+        if quote.execution == .order {
+            return "Uma ordem assinada no leilão da CoW: os solvers disputam com a liquidez das corretoras descentralizadas e dos formadores de mercado. Se não couber de uma vez, ela é preenchida em partes, cada uma pelo mínimo garantido ou mais. O que não sair em 30 minutos continua na sua carteira, sem custo."
+        }
+        return quote.legs.count > 1
+            ? "São \(quote.legs.count) transações, uma por provedor, confirmadas com um único \(KeyServices.biometryName). Cada parte é independente: se uma não passar, você fica com o que foi trocado, e o saldo daquela parte continua na sua carteira."
+            : "Tudo acontece numa transação só. Ou executa inteira, ou nada sai da sua carteira."
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SheetHeader(title: quote.legs.count > 1 ? "Como a sua ordem foi dividida" : "Rota da troca") { dismiss() }
@@ -768,9 +822,7 @@ struct RouteSheet: View {
                         Text(Fmt.crypto(leg.expectedOut, decimals: quote.buy.decimals, symbol: quote.buy.symbol)).typeStyle(.note).foregroundStyle(Palette.ink)
                     }
                 }
-                Text(quote.legs.count > 1
-                     ? "São \(quote.legs.count) transações, uma por provedor, confirmadas com um único \(KeyServices.biometryName). Cada parte é independente: se uma não passar, você fica com o que foi trocado, e o saldo daquela parte continua na sua carteira."
-                     : "Tudo acontece numa transação só. Ou executa inteira, ou nada sai da sua carteira.")
+                Text(explanation)
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true).padding(.top, Space.xs)
                 if !quote.alternatives.isEmpty {
                     Text("Outras cotações").typeStyle(.heading).foregroundStyle(Palette.ink).padding(.top, Space.md)

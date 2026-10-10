@@ -435,6 +435,11 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
   - Cancelar de verdade é `cancelOrder(makerTraits, orderHash)` ou `increaseEpoch` na cadeia, ou revogar a aprovação.
   - Um registro local das ordens abertas fica nos metadados.
 - **Combinação de provedores**: nunca assinar duas ordens off-chain que gastem o mesmo saldo. Uma ordem antiga e esquecida executa quando o saldo volta. No máximo uma ordem aberta por `makerAsset` por chain, a não ser que o dono confirme que a soma cabe no saldo e que a aprovação cobre só essa soma.
+- **Troca imediata e em partes pela CoW** (v1, 10/10/2026). A mesma ordem EIP-712 da ordem limite, com as mesmas regras (destinatário = dono, taxa zero, venda, saldo ERC-20, appData compilado, autorização exata ao VaultRelayer, uma ordem aberta por token vendido):
+  - O `buyAmount` assinado é exatamente o mínimo que a tela mostrou, tirado da cotação da CoW menos a tolerância do dono, e não é recotado no plano: o plano assina o número que o dono viu, ou recusa se a cotação venceu (60 s).
+  - A cotação da CoW só vale ancorada: no máximo 5% do preço de referência, para pior ou para melhor; sem referência, junto de outra cotação e no máximo 5% acima da melhor estimativa dos agregadores. Cotação inflada não rouba nada (a ordem só não executa), mas tomaria o lugar de uma troca que executa.
+  - Validade fixa e conferida na regra da mensagem tipada: 30 minutos (de uma vez) ou 1 hora (em partes). Execução parcial: cada parte sai pelo preço garantido ou melhor; o que não sair continua na carteira.
+  - A conferência da tela (`PlanIntentCheck`) compara o mínimo do plano com o mínimo da execução escolhida.
 - **XRPL `OfferCreate`**:
   - `Account == self`; `TakerGets` e `TakerPays` com moeda e emissor da lista compilada. Emissor falso de "USD" é golpe comum.
   - Flags só entre `tfSell`, `tfImmediateOrCancel`, `tfFillOrKill`, `tfPassive`. `Expiration` preenchido na troca; na ordem, opcional (sem ele, até o dono cancelar).

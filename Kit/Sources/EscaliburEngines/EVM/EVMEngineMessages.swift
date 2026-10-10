@@ -12,7 +12,7 @@ import Foundation
 
 /// Em que ponto o erro aconteceu: decide a frase quando o erro nao tem uma propria.
 enum EVMEngineOperation: Sendable {
-    case destination, spendable, sendPlan, broadcast, history, quote, tradePlan, submit, limitOrder, cancellation
+    case destination, spendable, sendPlan, broadcast, history, quote, tradePlan, submit, limitOrder, cancellation, orderProgress
 }
 
 enum EVMEngineMessages {
@@ -36,6 +36,7 @@ enum EVMEngineMessages {
         case .submit: return "A transmissão não foi concluída. Confira a Atividade antes de tentar de novo."
         case .limitOrder: return "Não foi possível preparar a ordem limite agora. Nada foi assinado."
         case .cancellation: return "Não foi possível cancelar a ordem agora. Tente de novo em instantes."
+        case .orderProgress: return "Não foi possível ler o andamento da ordem agora."
         }
     }
 

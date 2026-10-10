@@ -23,9 +23,13 @@ protocol EVMTradeChainReading: Sendable {
 
 extension TradeStateReader: EVMTradeChainReading {}
 
-/// A API da CoW (`CoWClient`): registro do appData, envio da ordem assinada (com o UID
-/// conferido), soma das ordens abertas e cancelamento fora da cadeia.
+/// A API da CoW (`CoWClient`): cotacao da troca imediata, registro do appData, envio da
+/// ordem assinada (com o UID conferido), andamento de uma ordem, soma das ordens abertas
+/// e cancelamento fora da cadeia.
 protocol EVMCoWService: Sendable {
+    func quote(sellToken: EVMAddress, buyToken: EVMAddress, sellAmount: BigUInt, owner: EVMAddress, chain: Chain,
+               appData: CoWAppData) async throws -> CoWQuote
+    func order(uid: [UInt8], chain: Chain, expected: CoWOrder?) async throws -> CoWOrderStatus
     func registerAppData(_ appData: CoWAppData, chain: Chain) async throws
     func submit(_ plan: CoWLimitOrderPlan, signature: SignedTransaction) async throws -> [UInt8]
     func openSellTotal(owner: EVMAddress, sellToken: EVMAddress, chain: Chain) async throws -> BigUInt

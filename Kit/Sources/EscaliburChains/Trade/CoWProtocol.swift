@@ -54,6 +54,12 @@ public enum CoWProtocol {
     /// em 26/09/2026). Um dia a menos que isso cobre a diferenca de relogio e o tempo ate
     /// a autorizacao confirmar. A revisao diz a data em que a ordem vence.
     public static let untilCancelledValidity: TimeInterval = 364 * 24 * 60 * 60
+    /// Troca imediata pela CoW: a ordem vale 30 minutos. Os solvers disputam no leilao
+    /// seguinte; o que a liquidez nao cobrir de uma vez vai sendo preenchido ate la, e o
+    /// que sobrar no fim continua na carteira.
+    public static let instantValidity: TimeInterval = 30 * 60
+    /// Troca em partes (ordem grande, preco melhor que o de uma vez so): 1 hora.
+    public static let partsValidity: TimeInterval = 60 * 60
     public static let uidLength = 56
 
     static let networks: [UInt64: String] = [

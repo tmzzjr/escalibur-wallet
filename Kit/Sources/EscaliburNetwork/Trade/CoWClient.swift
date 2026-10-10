@@ -5,6 +5,10 @@ import Foundation
 // A API da CoW (`api.cow.fi/{rede}/api/v1`), sem key. Formato conferido no openapi.yml do
 // cowprotocol/services e ao vivo em 26/09/2026.
 //
+// - `POST /quote` cota uma venda (`sellAmountBeforeFee`): a resposta traz o vendido
+//   depois da taxa de rede, a taxa e o `buyAmount` ja sem a taxa de rede e sem a taxa
+//   da CoW (`protocolFeeBps`). A ordem assina o valor cheio e um minimo tirado desse
+//   `buyAmount` (cow-sdk, getQuoteAmountsAndCosts, conferido em 10/10/2026).
 // - `PUT /app_data/{hash}` registra o documento do appData (idempotente).
 // - `POST /orders` envia a ordem assinada; a resposta e o UID, que tem de ser o que a
 //   carteira calculou (o UID carrega o digesto: UID diferente e ordem diferente).
@@ -52,6 +56,20 @@ public struct CoWOrderStatus: Sendable, Equatable {
     }
 }
 
+/// A cotacao de uma venda pela CoW, conferida contra o pedido.
+public struct CoWQuote: Sendable, Equatable {
+    /// O que a ordem vende: o valor cheio pedido (a taxa de rede sai do preco).
+    public let sellAmount: BigUInt
+    /// Quanto a CoW cota pelo valor cheio, ja sem a taxa de rede e sem a taxa da CoW.
+    public let buyAmount: BigUInt
+    /// A taxa de rede estimada, no token vendido (so para mostrar).
+    public let feeAmount: BigUInt
+    /// A taxa da CoW sobre o volume, em bps, quando a API informa.
+    public let protocolFeeBps: Int?
+    /// A CoW simulou a cotacao contra o estado da cadeia.
+    public let verified: Bool
+}
+
 public struct CoWClient: Sendable {
     let client: HTTPClient
     let base: URL
@@ -67,6 +85,62 @@ public struct CoWClient: Sendable {
     }
 
     static func hex(_ bytes: [UInt8]) -> String { Hex.encode(bytes, prefix: true) }
+
+    // MARK: Cotacao
+
+    struct QuoteRequest: Encodable {
+        let sellToken, buyToken, from, receiver: String
+        let kind = "sell"
+        let sellAmountBeforeFee: String
+        let signingScheme = "eip712"
+        let priceQuality = "optimal"
+        let appData: String
+        let appDataHash: String
+    }
+
+    struct QuoteResponse: Decodable {
+        struct Quote: Decodable {
+            let sellToken, buyToken: String
+            let receiver: String?
+            let sellAmount, buyAmount, feeAmount: String
+            let kind: String
+        }
+        let quote: Quote
+        let verified: Bool?
+        let protocolFeeBps: String?
+    }
+
+    /// `POST /quote` de uma venda de `sellAmount`. Confere que a resposta e a venda pedida
+    /// (tokens, destinatario, tipo) e que vendido mais taxa da exatamente o valor cheio.
+    public func quote(
+        sellToken: EVMAddress, buyToken: EVMAddress, sellAmount: BigUInt, owner: EVMAddress, chain: Chain, appData: CoWAppData
+    ) async throws -> CoWQuote {
+        let request = QuoteRequest(
+            sellToken: TradeWire.lower(sellToken), buyToken: TradeWire.lower(buyToken), from: TradeWire.lower(owner),
+            receiver: TradeWire.lower(owner), sellAmountBeforeFee: sellAmount.decimalString, appData: appData.json,
+            appDataHash: appData.hashHex
+        )
+        let data = try await client.post(try api(chain).appendingPathComponent("quote"), json: try JSONEncoder().encode(request), timeout: 8)
+        return try Self.quote(data, sellToken: sellToken, buyToken: buyToken, sellAmount: sellAmount, owner: owner)
+    }
+
+    static func quote(_ data: Data, sellToken: EVMAddress, buyToken: EVMAddress, sellAmount: BigUInt, owner: EVMAddress) throws -> CoWQuote {
+        let response: QuoteResponse
+        do { response = try JSONDecoder().decode(QuoteResponse.self, from: data) } catch { throw CoWClientError.badResponse("cotação") }
+        let quote = response.quote
+        func same(_ text: String?, _ address: EVMAddress) -> Bool {
+            guard let text, text.hasPrefix("0x"), let bytes = Hex.decode(String(text.dropFirst(2))) else { return false }
+            return EVMAddress(bytes: bytes) == address
+        }
+        guard same(quote.sellToken, sellToken), same(quote.buyToken, buyToken), same(quote.receiver ?? TradeWire.lower(owner), owner),
+              quote.kind == "sell",
+              let sold = BigUInt(decimal: quote.sellAmount), let bought = BigUInt(decimal: quote.buyAmount),
+              let fee = BigUInt(decimal: quote.feeAmount), sold + fee == sellAmount, !bought.isZero
+        else { throw CoWClientError.orderMismatch }
+        let protocolFee = response.protocolFeeBps.flatMap { Int($0) }.flatMap { (0...100).contains($0) ? $0 : nil }
+        return CoWQuote(sellAmount: sellAmount, buyAmount: bought, feeAmount: fee, protocolFeeBps: protocolFee,
+                        verified: response.verified ?? false)
+    }
 
     // MARK: appData
 

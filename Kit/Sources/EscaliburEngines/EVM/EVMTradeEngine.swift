@@ -62,8 +62,37 @@ public struct EVMTradeEngine: TradeEngine {
     func makeQuote(_ request: TradeRequest) async throws -> TradeQuote {
         let context = try EVMTradeContext(request, chain: chain)
         let market = try await EVMTradeMarket.read(context, services: services)
+        async let cowRound = cowCandidate(context, market: market)
         let set = await services.aggregator.quote(context.intent, market: market.reference, costs: market.costs)
-        guard !set.ranked.isEmpty else { throw Self.emptyRound(set.failures) }
+        let cow = await cowRound
+
+        // Os agregadores: a melhor cotacao ancorada, ou a divisao entre eles.
+        var single: (quote: TradeQuote, net: TradeSignedAmount, ranked: [TradeCandidate])?
+        var failure: Error = Self.emptyRound(set.failures)
+        if !set.ranked.isEmpty {
+            do {
+                single = try await aggregatorQuote(set, context: context, market: market, request: request)
+            } catch {
+                failure = error
+            }
+        }
+
+        // A CoW leva quando garante mais, liquido, que a melhor dos agregadores.
+        let anchoredCoW = cow.flatMap { Self.cowAnchored($0, aggregatorExpected: set.ranked.map(\.quote.expectedOut)) ? $0 : nil }
+        if let cow = anchoredCoW, single.map({ cow.net > $0.net }) ?? true {
+            let ranked = single?.ranked ?? TradeRanking.rank(set.ranked.map(\.quote), costs: market.costs)
+            return Self.cowQuote(request, candidate: cow, ranked: ranked)
+        }
+        guard let single else { throw failure }
+        // A CoW perdeu a troca de uma vez, mas a troca em partes dela continua como opcao
+        // quando garante mais que a escolhida.
+        return single.quote.adding(cow: anchoredCoW)
+    }
+
+    /// A melhor troca pelos agregadores, com o liquido do garantido e o ranking.
+    func aggregatorQuote(
+        _ set: TradeQuoteSet, context: EVMTradeContext, market: EVMTradeMarket, request: TradeRequest
+    ) async throws -> (quote: TradeQuote, net: TradeSignedAmount, ranked: [TradeCandidate]) {
         // O minimo ancorado fora do provedor: preco de referencia, ou duas cotacoes e a maior
         // estimativa entre elas. Todas aparecem como alternativa; so as ancoradas podem ser
         // a escolhida.
@@ -82,9 +111,16 @@ public struct EVMTradeEngine: TradeEngine {
            let resolved = await resolve(split, against: best, market: market, costs: costs) {
             legs = resolved
         }
-        return EVMTradeQuoteMapping.quote(
+        let quote = EVMTradeQuoteMapping.quote(
             sell: request.sell, buy: request.buy, amountIn: request.amountIn, legs: legs, ranked: ranked, allowances: allowances
         )
+        var guaranteed = BigUInt()
+        var cost = BigUInt()
+        for leg in legs {
+            guaranteed = guaranteed + leg.quote.guaranteedOut
+            cost = cost + TradeRanking.cost(of: leg.quote, costs: costs).inBuy
+        }
+        return (quote, .difference(guaranteed, cost), ranked)
     }
 
     /// Nenhuma cotacao valida: se houve resposta e todas foram recusadas pela validacao, a
@@ -163,6 +199,7 @@ public struct EVMTradeEngine: TradeEngine {
     }
 
     func makePlan(_ request: TradeRequest, quote: TradeQuote) async throws -> SigningPlan {
+        if request.inParts || quote.execution == .order { return try await makeCoWSwapPlan(request, quote: quote) }
         let context = try EVMTradeContext(request, chain: chain)
         let intent = context.intent
         guard quote.sell == request.sell, quote.buy == request.buy, quote.amountIn == request.amountIn else {
@@ -374,7 +411,10 @@ public struct EVMTradeEngine: TradeEngine {
         do {
             guard plan.chain.id == chain.id else { throw EVMEngineFailure.wrongChain }
             switch plan.review.kind {
-            case .swap: return try await submitSwap(signed, plan: plan)
+            case .swap:
+                // A troca pela CoW e uma ordem assinada: vai como a ordem limite.
+                if plan.transactions.last is EIP712ValidatedMessage { return [try await submitLimitOrder(signed, plan: plan)] }
+                return try await submitSwap(signed, plan: plan)
             case .limitOrder: return [try await submitLimitOrder(signed, plan: plan)]
             case .cancelOrder: return try await submitCancellation(signed, plan: plan)
             default: throw EVMEngineFailure.batchMismatch
@@ -454,7 +494,7 @@ public struct EVMTradeEngine: TradeEngine {
                 sellAssetID: assetID(status.sellToken, chain: chain), buyAssetID: assetID(status.buyToken, chain: chain),
                 remainingSell: remaining, minimumBuy: minimum,
                 expiresAt: Date(timeIntervalSince1970: TimeInterval(status.validTo)), sources: 1,
-                cancellations: [.offchain, .onchain]
+                cancellations: [.offchain, .onchain], totalSell: status.sellAmount, receivedBuy: status.executedBuyAmount
             )
         }
     }

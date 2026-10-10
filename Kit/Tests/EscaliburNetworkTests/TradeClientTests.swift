@@ -336,3 +336,39 @@ struct TradeCoWClientTests {
         #expect(try CoWClient.openOrders(data, owner: try EVMAddress("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"), now: before).isEmpty)
     }
 }
+
+@Suite("Troca: cotacao da CoW")
+struct TradeCoWQuoteTests {
+    typealias S = TradeNetworkSupport
+    static let eth = try! EVMAddress("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE")
+
+    @Test("Resposta real (100 USDC por ETH na Base): vende o valor cheio, cotado ja sem as taxas")
+    func parses() throws {
+        let quote = try CoWClient.quote(try S.fixture("cow-quote-base-usdc-eth"), sellToken: S.baseUSDC.contract, buyToken: Self.eth,
+                                        sellAmount: 100_000_000, owner: S.owner)
+        #expect(quote.sellAmount == 100_000_000)
+        #expect(quote.buyAmount == BigUInt(decimal: "39923262629304184"))
+        #expect(quote.feeAmount == 1_881)
+        #expect(quote.protocolFeeBps == 2)
+        #expect(!quote.verified)
+    }
+
+    @Test("Outro token, outro valor ou outro destinatario: recusa")
+    func mismatches() throws {
+        let data = try S.fixture("cow-quote-base-usdc-eth")
+        let other = try EVMAddress("0x4200000000000000000000000000000000000006")
+        #expect(throws: CoWClientError.orderMismatch) {
+            _ = try CoWClient.quote(data, sellToken: S.baseUSDC.contract, buyToken: other, sellAmount: 100_000_000, owner: S.owner)
+        }
+        #expect(throws: CoWClientError.orderMismatch) {
+            _ = try CoWClient.quote(data, sellToken: S.baseUSDC.contract, buyToken: Self.eth, sellAmount: 100_000_001, owner: S.owner)
+        }
+        #expect(throws: CoWClientError.orderMismatch) {
+            _ = try CoWClient.quote(data, sellToken: S.baseUSDC.contract, buyToken: Self.eth, sellAmount: 100_000_000, owner: other)
+        }
+        let buyKind = Data(String(decoding: data, as: UTF8.self).replacingOccurrences(of: "\"kind\":\"sell\"", with: "\"kind\":\"buy\"").utf8)
+        #expect(throws: CoWClientError.orderMismatch) {
+            _ = try CoWClient.quote(buyKind, sellToken: S.baseUSDC.contract, buyToken: Self.eth, sellAmount: 100_000_000, owner: S.owner)
+        }
+    }
+}

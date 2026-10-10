@@ -37,8 +37,19 @@ public enum CoWRefusal: Error, Equatable, Sendable {
     case plan(EVMPlanError)
 }
 
-/// A intencao da ordem limite: vender `sellAmount` recebendo pelo menos o preco-alvo.
+/// A intencao da ordem: vender `sellAmount` recebendo pelo menos o preco-alvo.
+///
+/// A mesma ordem assinada serve para tres usos, que mudam so o prazo e o que a revisao
+/// diz:
+///   - `limit`: a ordem limite que o dono escreveu, de 1 hora a 30 dias ou "ate cancelar";
+///   - `instant`: a troca imediata pela CoW, com o minimo garantido que a tela mostrou,
+///     valendo 30 minutos;
+///   - `parts`: a troca grande em partes, por um preco melhor que o de uma vez so,
+///     preenchida conforme chega liquidez, valendo 1 hora.
+/// Nos tres, execucao parcial: cada parte sai pelo preco garantido ou melhor.
 public struct CoWLimitOrderIntent: Sendable, Equatable {
+    public enum Style: Sendable, Equatable { case limit, instant, parts }
+
     public let owner: EVMAddress
     public let sell: TradeAsset
     public let buy: TradeAsset
@@ -46,14 +57,22 @@ public struct CoWLimitOrderIntent: Sendable, Equatable {
     public let price: CoWLimitPrice
     public let validFor: TimeInterval
     public let partiallyFillable: Bool
+    public let style: Style
 
     public init(owner: EVMAddress, sell: TradeAsset, buy: TradeAsset, sellAmount: BigUInt, price: CoWLimitPrice,
-                validFor: TimeInterval = CoWProtocol.defaultValidity, partiallyFillable: Bool = true) throws {
+                validFor: TimeInterval = CoWProtocol.defaultValidity, partiallyFillable: Bool = true, style: Style = .limit) throws {
         guard CoWProtocol.supports(sell.chain), buy.chain.id == sell.chain.id else { throw CoWRefusal.unsupportedChain }
         guard sell != buy else { throw CoWRefusal.sameToken }
         guard !sellAmount.isZero else { throw TradeRefusal.zeroAmount }
-        guard validFor == CoWProtocol.untilCancelledValidity || (validFor >= CoWProtocol.minValidity && validFor <= CoWProtocol.maxValidity) else {
-            throw CoWRefusal.validityOutOfRange
+        switch style {
+        case .limit:
+            guard validFor == CoWProtocol.untilCancelledValidity || (validFor >= CoWProtocol.minValidity && validFor <= CoWProtocol.maxValidity) else {
+                throw CoWRefusal.validityOutOfRange
+            }
+        case .instant:
+            guard validFor == CoWProtocol.instantValidity else { throw CoWRefusal.validityOutOfRange }
+        case .parts:
+            guard validFor == CoWProtocol.partsValidity else { throw CoWRefusal.validityOutOfRange }
         }
         self.owner = owner
         self.sell = sell
@@ -62,12 +81,13 @@ public struct CoWLimitOrderIntent: Sendable, Equatable {
         self.price = price
         self.validFor = validFor
         self.partiallyFillable = partiallyFillable
+        self.style = style
     }
 
     public var chain: Chain { sell.chain }
 
     /// O dono pediu "ate cancelar": a ordem vale o maximo pratico da CoW.
-    public var isUntilCancelled: Bool { validFor == CoWProtocol.untilCancelledValidity }
+    public var isUntilCancelled: Bool { style == .limit && validFor == CoWProtocol.untilCancelledValidity }
 
     /// O token que a ordem vende de fato: o embrulhado, se o dono vende o nativo.
     public var orderSellToken: EVMToken? {
@@ -209,9 +229,12 @@ public enum CoWPlanner {
         let uid = message.digest + account.address.bytes + withUnsafeBytes(of: validTo.bigEndian) { Array($0) }
 
         let current = state.sellToken.allowance ?? 0
-        let review = orderReview(intent: intent, order: order, sellToken: sellToken, feeQuotes: feeQuotes,
-                                 approvalTotal: approvalTotal, needsApproval: current != approvalTotal,
-                                 reducing: current > approvalTotal, wrapping: wrapping, stacked: !open.isZero)
+        let review = intent.style == .limit
+            ? orderReview(intent: intent, order: order, sellToken: sellToken, feeQuotes: feeQuotes,
+                          approvalTotal: approvalTotal, needsApproval: current != approvalTotal,
+                          reducing: current > approvalTotal, wrapping: wrapping, stacked: !open.isZero)
+            : swapReview(intent: intent, order: order, sellToken: sellToken, feeQuotes: feeQuotes, approvalTotal: approvalTotal,
+                         needsApproval: current != approvalTotal, reducing: current > approvalTotal, wrapping: wrapping)
         let plan = SigningPlan(walletID: walletID, chain: chain, review: review, transactions: transactions, createdAt: now)
         return CoWLimitOrderPlan(signingPlan: plan, order: order, owner: account.address, uid: uid, appData: appData)
     }
@@ -220,12 +243,14 @@ public enum CoWPlanner {
     /// a ordem montada (destinatario = dono, taxa zero, venda, saldo ERC-20, appData
     /// nosso, prazo dentro da janela).
     static func orderRule(chain: Chain, order: CoWOrder, now: Date) -> EIP712Rule {
-        // O prazo e o que o dono escolheu (1 hora a 30 dias) ou exatamente o "ate
-        // cancelar" (o maximo pratico da CoW); nada entre um e outro.
+        // O prazo e o que o dono escolheu (1 hora a 30 dias), exatamente o "ate
+        // cancelar" (o maximo pratico da CoW) ou os 30 minutos da troca imediata; nada
+        // entre um e outro.
         let base = now.timeIntervalSince1970
         let windows = [
             (base + CoWProtocol.minValidity - 60)...(base + CoWProtocol.maxValidity + 60),
             (base + CoWProtocol.untilCancelledValidity - 60)...(base + CoWProtocol.untilCancelledValidity + 60),
+            (base + CoWProtocol.instantValidity - 60)...(base + CoWProtocol.instantValidity + 60),
         ]
         return EIP712Rule(
             chain: chain, verifyingContract: CoWProtocol.settlement, primaryType: "Order",
@@ -357,6 +382,63 @@ public enum CoWPlanner {
     }
 
     // MARK: Revisao
+
+    /// A troca pela CoW (imediata ou em partes): a mesma ordem assinada, dita como troca.
+    /// O minimo e o `buyAmount` gravado na ordem; as taxas da rede da troca e da CoW ja
+    /// sairam dele, porque ele nasce da cotacao da CoW, que vem liquida das duas.
+    static func swapReview(
+        intent: CoWLimitOrderIntent, order: CoWOrder, sellToken: EVMToken, feeQuotes: [EVMFeeQuote],
+        approvalTotal: BigUInt, needsApproval: Bool, reducing: Bool, wrapping: Bool
+    ) -> PlanReview {
+        let chain = intent.chain
+        let native = TradeAsset.native(chain)
+        let minutes = Int(intent.validFor / 60)
+        var lines: [PlanReview.Line] = [
+            .init("Rede", chain.name),
+            .init("Sai", TradeText.amount(intent.sellAmount, intent.sell)),
+            .init("Entra, no mínimo", TradeText.amount(order.buyAmount, intent.buy)),
+            .init("Como", intent.style == .parts
+                ? "Ordem na CoW preenchida em partes, conforme chega liquidez neste preço. Cada parte sai pelo mínimo ou mais."
+                : "Leilão da CoW: os solvers disputam a ordem com a liquidez das corretoras descentralizadas e dos formadores de mercado. Se não couber de uma vez, ela é preenchida em partes, cada uma pelo mínimo ou mais."),
+            .init("Prazo", "\(minutes) minutos. O que não for preenchido até lá continua na sua carteira, sem custo"),
+            .init("Destinatário", order.receiver.checksummed, verbatim: true),
+            .init("Contrato da CoW", CoWProtocol.settlement.checksummed, verbatim: true),
+        ]
+        if wrapping {
+            lines.append(.init("Antes", "Converter \(TradeText.amount(intent.sellAmount, intent.sell)) em \(sellToken.symbol): a ordem vende \(sellToken.symbol)"))
+        }
+        if needsApproval {
+            lines.append(.init("Autorização", "Exata: \(EVMText.amount(approvalTotal, decimals: Int(sellToken.decimals), symbol: sellToken.symbol)), nunca ilimitada"))
+            lines.append(.init("Autorizado a gastar", CoWProtocol.vaultRelayer.checksummed, verbatim: true))
+            if reducing {
+                lines.append(.init("Autorização atual", "Maior que esta troca. Ela é reduzida para o valor exato, e nenhuma ordem assinada antes consegue usar a diferença"))
+            }
+        } else {
+            lines.append(.init("Autorização", "Já existe e é exatamente o valor da troca"))
+        }
+        if !feeQuotes.isEmpty {
+            let expected = feeQuotes.reduce(BigUInt()) { $0 + $1.expectedCost }
+            let maximum = feeQuotes.reduce(BigUInt()) { $0 + $1.maxCost }
+            lines.append(.init("Taxa da rede (estimada)", TradeText.amount(expected, native)))
+            lines.append(.init("Taxa da rede (máxima)", TradeText.amount(maximum, native)))
+        }
+        lines += [
+            .init("Taxa da CoW", "Já descontada do mínimo, junto com a taxa da rede da troca"),
+            .init("Taxa da Escalibur", "Sem taxa da Escalibur"),
+            .init("Envio", feeQuotes.isEmpty
+                ? "A ordem assinada vai direto para a CoW"
+                : "A ordem assinada vai para a CoW depois que as transações acima confirmarem"),
+            .init("Cancelar", "Enquanto não terminar, em Ordens abertas: pedido à CoW, grátis mas sem garantia, ou na rede, garantido, pagando taxa"),
+        ]
+        let title = intent.style == .parts
+            ? "Trocar \(TradeText.amount(order.sellAmount, intent.sell)) por \(intent.buy.symbol) em partes"
+            : "Trocar \(TradeText.amount(order.sellAmount, intent.sell)) por \(intent.buy.symbol)"
+        return PlanReview(
+            kind: .swap, title: title, lines: lines, transactionCount: feeQuotes.count + 1,
+            outgoing: intent.sell.movement(order.sellAmount), incomingMinimum: intent.buy.movement(order.buyAmount),
+            beneficiary: order.receiver.checksummed
+        )
+    }
 
     static func orderReview(
         intent: CoWLimitOrderIntent, order: CoWOrder, sellToken: EVMToken, feeQuotes: [EVMFeeQuote],

@@ -1,6 +1,8 @@
 #if DEBUG
 import AVFoundation
+import EscaliburChains
 import EscaliburCore
+import EscaliburEngines
 import EscaliburKeys
 import SwiftUI
 
@@ -156,7 +158,7 @@ enum DebugDemo {
             case "moeda":
                 router.tab = .market
                 router.pendingCoinID = "bitcoin"
-            case "trocar": router.tab = .trade
+            case "trocar", "trocar-grande": router.tab = .trade
             case "atividade": router.tab = .activity
             case "ajustes": router.tab = .settings
             case "enviar": router.present(.send(nil))
@@ -179,6 +181,7 @@ struct DemoEnvelopes: ViewModifier {
     @State private var newWallet: DemoNewWallet?
     @State private var voice = false
     @State private var alerts = false
+    @State private var progress = false
     @State private var shown = false
 
     func body(content: Content) -> some View {
@@ -187,6 +190,9 @@ struct DemoEnvelopes: ViewModifier {
             .fullScreenCover(isPresented: $voice) { NavigationStack { VoiceSettingsView() } }
             // `-tela alertas`: Ajustes, Alertas de preco.
             .fullScreenCover(isPresented: $alerts) { NavigationStack { PriceAlertsView() } }
+            // `-tela andamento`: o anel de uma troca pela CoW em 45%, e o anel das
+            // ordens abertas nos estados de ponta.
+            .fullScreenCover(isPresented: $progress) { DemoOrderProgress() }
             .fullScreenCover(item: $sealing) { wallet in SealEnvelopeFlow(wallet: wallet) { sealing = nil } }
             .fullScreenCover(isPresented: $opening) { OpenEnvelopeFlow(initialURL: DebugDemo.envelopeURL) { opening = false } }
             .fullScreenCover(item: $newWallet) { screen in
@@ -204,6 +210,7 @@ struct DemoEnvelopes: ViewModifier {
                 if DebugDemo.screen == "abrir" { opening = true }
                 if DebugDemo.screen == "voz" { voice = true }
                 if DebugDemo.screen == "alertas" { alerts = true }
+                if DebugDemo.screen == "andamento" { progress = true }
                 newWallet = DebugDemo.screen.flatMap(DemoNewWallet.init(rawValue:))
             }
     }
@@ -213,5 +220,33 @@ struct DemoEnvelopes: ViewModifier {
 enum DemoNewWallet: String, Identifiable {
     case adicionar, criar, seguranca, observar
     var id: String { rawValue }
+}
+/// O andamento de uma ordem sem rede, para conferir o desenho.
+struct DemoOrderProgress: View {
+    @Environment(AppSession.self) private var session
+
+    var body: some View {
+        let usdc = TokenRegistry.tokens.first { $0.chainID == "ethereum" && $0.symbol == "USDC" }
+        let progress = OrderProgress(
+            id: "0x00", state: .open, totalSell: BigUInt(8_000) * BigUInt.power(of: 10, 18),
+            soldSell: BigUInt(3_600) * BigUInt.power(of: 10, 18), receivedBuy: BigUInt(8_971_000) * BigUInt.power(of: 10, 6),
+            minimumBuy: BigUInt(19_927_226) * BigUInt.power(of: 10, 6), expiresAt: Date().addingTimeInterval(2_400)
+        )
+        VStack(spacing: 0) {
+            Spacer()
+            if let account = session.selectedWallet?.account(.ethereum) {
+                OrderProgressPanel(kind: .swap, chain: .ethereum, orderID: "0x00", account: account, sell: .native(.ethereum), buy: usdc,
+                                   preview: progress)
+            }
+            Spacer()
+            HStack(spacing: Space.lg) {
+                ForEach([0, 0.004, 0.45, 1], id: \.self) { fraction in FillRing(fraction: fraction, size: 44) }
+            }
+            .padding(.bottom, Space.xl)
+        }
+        .padding(.horizontal, Space.gutter)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.void.ignoresSafeArea())
+    }
 }
 #endif

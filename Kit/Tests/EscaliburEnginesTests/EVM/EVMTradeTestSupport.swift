@@ -166,8 +166,29 @@ actor FakeCoW: EVMCoWService {
     private(set) var submitted: [[UInt8]] = []
     private(set) var cancelled: [(uids: [[UInt8]], owner: EVMAddress)] = []
 
-    init(openTotal: BigUInt = 0) {
+    /// A cotacao da CoW por valor vendido. Sem entrada, a CoW nao cota (o padrao: os
+    /// testes da troca pelos agregadores nao a veem).
+    var quotes: [BigUInt: BigUInt] = [:]
+    private(set) var quoted: [BigUInt] = []
+    var statuses: [[UInt8]: CoWOrderStatus] = [:]
+
+    init(openTotal: BigUInt = 0, quotes: [BigUInt: BigUInt] = [:]) {
         self.openTotal = openTotal
+        self.quotes = quotes
+    }
+
+    func quote(sellToken: EVMAddress, buyToken: EVMAddress, sellAmount: BigUInt, owner: EVMAddress, chain: Chain,
+               appData: CoWAppData) async throws -> CoWQuote {
+        quoted.append(sellAmount)
+        guard let bought = quotes[sellAmount] else { throw CoWClientError.badResponse("cotação") }
+        return CoWQuote(sellAmount: sellAmount, buyAmount: bought, feeAmount: 1_881, protocolFeeBps: 2, verified: true)
+    }
+
+    func setStatus(_ status: CoWOrderStatus) { statuses[status.uid] = status }
+
+    func order(uid: [UInt8], chain: Chain, expected: CoWOrder?) async throws -> CoWOrderStatus {
+        guard let status = statuses[uid] else { throw CoWClientError.badResponse("ordem") }
+        return status
     }
 
     func registerAppData(_ appData: CoWAppData, chain: Chain) async throws {

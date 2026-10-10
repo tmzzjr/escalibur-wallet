@@ -510,6 +510,20 @@ Os agregadores já dividem entre DEXes internamente.
 - `TrustSet` → pagamento (XRPL).
 - Criação de ATA dentro do tx (Solana).
 
+**Ordem grande pela CoW (v1, código, 10/10/2026).** Os agregadores dividem entre pools, mas enxergam quase os mesmos pools: quando a liquidez da rede acaba, acaba para todos juntos (US$ 1 mi e US$ 20 mi de LINK na Base renderam o mesmo LINK na KyberSwap). A liquidez a mais vem dos formadores de mercado, e o caminho sem custódia até eles é o leilão da CoW. Medido em 10/10/2026, vendendo ETH por USDC na Ethereum, contra o preço de referência:
+
+| Venda | CoW | KyberSwap | Velora |
+|---|---|---|---|
+| US$ 1 mi | 0,13% | 0,21% | 0,29% |
+| US$ 5 mi | 0,18% | não medido | 0,65% |
+| US$ 20 mi | 0,61% | 1,35% | 2,09% |
+
+- **Troca imediata pela CoW** (`EVMCoWSwap.swift`). A CoW entra na rodada da troca imediata como mais um provedor. O mínimo é o `buyAmount` da cotação dela (já sem a taxa de rede e sem a da CoW) menos a tolerância, gravado na ordem assinada: a tela mostra exatamente esse número em "Você recebe", e chega ele ou mais. Execução parcial ligada, validade de 30 minutos; o que não sair fica na carteira, sem custo. Ganha dos agregadores quando o líquido do garantido é maior (a CoW só desconta autorização e embrulho do nativo: a taxa de rede da troca já saiu da cotação).
+- **Âncora.** Com preço de referência, a cotação da CoW fica a no máximo 5% dele, para pior ou para melhor (melhor demais é cotação inflada, que ganharia a disputa para nunca executar). Sem referência, só junto de outra cotação dos agregadores e no máximo 5% acima da melhor estimativa deles. Com ordem aberta vendendo o mesmo token (§3.4, uma por token), a CoW fica de fora.
+- **Em partes.** Quando a cotação cheia da CoW perde mais de 0,3% para a referência, a rodada cota também 25% do valor. Se esse preço, aplicado ao valor inteiro, garantir pelo menos 0,2% a mais que a troca de uma vez, a tela oferece "Em partes": a mesma ordem, com esse mínimo, valendo 1 hora. A cada leilão os solvers preenchem o que cabe no preço, e entre um leilão e outro os arbitradores devolvem a liquidez aos pools.
+- **Andamento.** `TradeEngine.orderProgress(id:account:)` lê `GET /api/v1/orders/{uid}` (vendido, recebido, estado). A tela da troca acompanha a cada 3 s com um anel até terminar; as ordens abertas releem a cada 5 s, com o anel de cada uma, e a que sai da lista fica com o resultado final.
+- A ordem limite já nasce com execução parcial: preenche conforme chega liquidez no preço do dono, e mostra o mesmo anel.
+
 ### 3.4 Ordens limite
 
 | Rede | Protocolo | O que se assina | Cancelar | Expiração | Taxa do integrador |

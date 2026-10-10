@@ -245,3 +245,15 @@ struct TradeLiveTests {
         }
     }
 }
+
+@Suite("CoW ao vivo", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_REDE"] == "1"))
+struct CoWQuoteLiveTests {
+    @Test("Cotacao da CoW: 100 USDC por ETH na Base, conferida contra o pedido")
+    func quote() async throws {
+        let quote = try await CoWClient().quote(
+            sellToken: TradeNetworkSupport.baseUSDC.contract, buyToken: try EVMAddress("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"),
+            sellAmount: 100_000_000, owner: TradeNetworkSupport.owner, chain: .base, appData: .limitOrder
+        )
+        #expect(quote.sellAmount == 100_000_000 && !quote.buyAmount.isZero && quote.feeAmount < 100_000_000)
+    }
+}

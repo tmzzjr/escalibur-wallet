@@ -2,10 +2,37 @@ import EscaliburChains
 import EscaliburCore
 import Foundation
 
-/// A cotacao que a tela mostra, ja validada pelo motor da rede. O que a tela chama
-/// de "voce recebe no minimo" e o `minOut` decodificado da transacao, garantido na
-/// cadeia, e nao o valor que o provedor anuncia.
+/// A cotacao que a tela mostra, ja validada pelo motor da rede. O que a tela mostra em
+/// "Voce recebe" e o `minimumOut`: o minimo decodificado da transacao, ou o gravado na
+/// ordem assinada, garantido na cadeia. Chega ele ou mais, nunca menos.
 public struct TradeQuote: Sendable, Equatable {
+    /// Como a troca executa.
+    public enum Execution: Sendable, Equatable {
+        /// Transacoes dos agregadores, cada uma com o minimo gravado.
+        case transactions
+        /// Uma ordem assinada no leilao da CoW, preenchida de uma vez ou em partes, cada
+        /// parte pelo minimo ou mais. Nao gasta taxa de rede na troca; vale 30 minutos.
+        case order
+    }
+
+    /// A troca grande em partes: o mesmo valor por um preco melhor que o de uma vez so,
+    /// preenchido conforme chega liquidez. O preco e o que a CoW cota para uma fracao do
+    /// valor, e o minimo e garantido na ordem assinada.
+    public struct Parts: Sendable, Equatable {
+        public let expectedOut: BigUInt
+        public let minimumOut: BigUInt
+        /// A fracao do valor que a cotacao usada no preco cobriu, em bps.
+        public let sampleShareBps: Int
+        public let validFor: TimeInterval
+
+        public init(expectedOut: BigUInt, minimumOut: BigUInt, sampleShareBps: Int, validFor: TimeInterval) {
+            self.expectedOut = expectedOut
+            self.minimumOut = minimumOut
+            self.sampleShareBps = sampleShareBps
+            self.validFor = validFor
+        }
+    }
+
     public struct Leg: Sendable, Equatable {
         public let provider: String
         public let fraction: Double
@@ -43,11 +70,15 @@ public struct TradeQuote: Sendable, Equatable {
     public let providersCompared: Int
     public let needsApproval: Bool
     public let expiresAt: Date
+    public let execution: Execution
+    /// So em ordem grande, quando dividir no tempo rende um minimo melhor.
+    public let parts: Parts?
 
     public init(
         sell: Asset, buy: Asset, amountIn: BigUInt, expectedOut: BigUInt, minimumOut: BigUInt,
         priceImpactPercent: Double?, networkFeeFiat: Double?, providerFeeNote: String?, legs: [Leg],
-        alternatives: [Alternative], providersCompared: Int, needsApproval: Bool, expiresAt: Date
+        alternatives: [Alternative], providersCompared: Int, needsApproval: Bool, expiresAt: Date,
+        execution: Execution = .transactions, parts: Parts? = nil
     ) {
         self.sell = sell
         self.buy = buy
@@ -62,6 +93,13 @@ public struct TradeQuote: Sendable, Equatable {
         self.providersCompared = providersCompared
         self.needsApproval = needsApproval
         self.expiresAt = expiresAt
+        self.execution = execution
+        self.parts = parts
+    }
+
+    /// O minimo garantido da execucao escolhida.
+    public func minimumOut(inParts: Bool) -> BigUInt {
+        inParts ? parts?.minimumOut ?? minimumOut : minimumOut
     }
 }
 
@@ -75,10 +113,12 @@ public struct TradeRequest: Sendable {
     public let slippageBasisPoints: Int
     /// EVM: a fila local de transacoes desta conta ainda em transito (`PendingNonceQueue`).
     public let nonceQueue: PendingNonceQueue?
+    /// O dono escolheu a troca em partes (`TradeQuote.parts`).
+    public let inParts: Bool
 
     public init(
         walletID: UUID, chain: Chain, account: DerivedAccount, sell: Asset, buy: Asset, amountIn: BigUInt, slippageBasisPoints: Int,
-        nonceQueue: PendingNonceQueue? = nil
+        nonceQueue: PendingNonceQueue? = nil, inParts: Bool = false
     ) {
         self.walletID = walletID
         self.chain = chain
@@ -88,6 +128,7 @@ public struct TradeRequest: Sendable {
         self.amountIn = amountIn
         self.slippageBasisPoints = slippageBasisPoints
         self.nonceQueue = nonceQueue
+        self.inParts = inParts
     }
 }
 
@@ -154,10 +195,14 @@ public struct OpenOrder: Sendable, Equatable, Identifiable {
     public let sources: Int
     /// Os jeitos de cancelar esta ordem, do preferido para o outro.
     public let cancellations: [Cancellation]
+    /// O valor inteiro que a ordem vende e o que ja entrou, onde o protocolo diz (CoW).
+    /// Sem eles, a tela nao mostra andamento.
+    public let totalSell: BigUInt?
+    public let receivedBuy: BigUInt?
 
     public init(
         id: String, chain: Chain, sellAssetID: String, buyAssetID: String, remainingSell: BigUInt, minimumBuy: BigUInt,
-        expiresAt: Date?, sources: Int, cancellations: [Cancellation]
+        expiresAt: Date?, sources: Int, cancellations: [Cancellation], totalSell: BigUInt? = nil, receivedBuy: BigUInt? = nil
     ) {
         self.id = id
         self.chain = chain
@@ -170,11 +215,68 @@ public struct OpenOrder: Sendable, Equatable, Identifiable {
         self.expiresAt = expiresAt
         self.sources = sources
         self.cancellations = cancellations
+        self.totalSell = totalSell
+        self.receivedBuy = receivedBuy
+    }
+
+    /// Quanto da ordem ja foi preenchido, de 0 a 1. nil onde o total nao e conhecido.
+    public var filledFraction: Double? {
+        guard let totalSell, !totalSell.isZero else { return nil }
+        let sold = totalSell.subtractingReportingUnderflow(remainingSell) ?? 0
+        return OrderProgress.fraction(sold, of: totalSell)
     }
 
     static func listed(_ id: String, chain: Chain) -> Asset? {
         TokenRegistry.assets(on: chain).first { $0.id == id }
     }
+}
+
+/// O andamento de uma ordem: quanto ja foi vendido e recebido, lido da rede.
+public struct OrderProgress: Sendable, Equatable {
+    public enum State: Sendable, Equatable {
+        /// Aberta: esperando o preco ou sendo preenchida.
+        case open
+        /// Preenchida por inteiro.
+        case filled
+        /// O prazo passou; o que nao foi preenchido continua na carteira.
+        case expired
+        /// Cancelada; o que nao foi preenchido continua na carteira.
+        case cancelled
+    }
+
+    public let id: String
+    public let state: State
+    public let totalSell: BigUInt
+    public let soldSell: BigUInt
+    public let receivedBuy: BigUInt
+    /// O minimo que a ordem inteira garante.
+    public let minimumBuy: BigUInt
+    public let expiresAt: Date?
+
+    public init(id: String, state: State, totalSell: BigUInt, soldSell: BigUInt, receivedBuy: BigUInt, minimumBuy: BigUInt, expiresAt: Date?) {
+        self.id = id
+        self.state = state
+        self.totalSell = totalSell
+        self.soldSell = soldSell
+        self.receivedBuy = receivedBuy
+        self.minimumBuy = minimumBuy
+        self.expiresAt = expiresAt
+    }
+
+    /// De 0 a 1, pelo que ja foi vendido.
+    public var fraction: Double {
+        state == .filled ? 1 : Self.fraction(soldSell, of: totalSell)
+    }
+
+    /// `part / total` em ponto flutuante, sem estourar com valores de 18 casas.
+    static func fraction(_ part: BigUInt, of total: BigUInt) -> Double {
+        guard !total.isZero else { return 0 }
+        let scaled = (min(part, total) * BigUInt(1_000_000) / total).uint64 ?? 0
+        return Double(scaled) / 1_000_000
+    }
+
+    /// Terminou, por qualquer motivo: nao muda mais.
+    public var isFinal: Bool { state != .open }
 }
 
 /// O motor de troca de uma rede: cotar entre provedores, montar o plano validado,
@@ -198,6 +300,9 @@ public protocol TradeEngine: Sendable {
     func planCancel(
         _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
     ) async throws -> SigningPlan
+    /// O andamento de uma ordem desta conta (o id que `submit` devolveu). Onde a rede nao
+    /// tem ordem com andamento, `SendEngineError.unavailable`.
+    func orderProgress(id: String, account: DerivedAccount) async throws -> OrderProgress
 }
 
 extension TradeEngine {
@@ -209,6 +314,10 @@ extension TradeEngine {
         _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
     ) async throws -> SigningPlan {
         throw SendEngineError.unavailable("Ordens limite ainda não estão disponíveis nesta rede.")
+    }
+
+    public func orderProgress(id: String, account: DerivedAccount) async throws -> OrderProgress {
+        throw SendEngineError.unavailable("O andamento da ordem não está disponível nesta rede.")
     }
 
     /// Cancela pelo jeito escolhido, sem fila local.

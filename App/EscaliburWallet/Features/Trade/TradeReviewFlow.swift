@@ -161,7 +161,34 @@ struct TradeReviewFlow: View {
         }
     }
 
+    /// A troca pela CoW e a ordem limite da CoW: o id devolvido e o UID da ordem, e a tela
+    /// acompanha o preenchimento.
+    private var followedOrder: (id: String, kind: OrderProgressPanel.Kind, account: DerivedAccount)? {
+        guard let plan, plan.transactions.last is EIP712ValidatedMessage, let id = ids.first,
+              let account = session.selectedWallet?.account(item.chain) else { return nil }
+        switch item.kind {
+        case .swap: return (id, .swap, account)
+        case .limit: return (id, .limit, account)
+        case .cancel: return nil
+        }
+    }
+
+    @ViewBuilder
     private var done: some View {
+        if let order = followedOrder {
+            VStack(spacing: 0) {
+                Spacer()
+                OrderProgressPanel(kind: order.kind, chain: item.chain, orderID: order.id, account: order.account,
+                                   sell: assets.sell, buy: assets.buy)
+                Spacer()
+                PrimaryButton(title: "Concluir") { onClose(true) }.padding(.top, Space.sm).padding(.bottom, Space.xs)
+            }
+        } else {
+            plainDone
+        }
+    }
+
+    private var plainDone: some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer()
             Image(systemName: "checkmark.circle.fill").font(.system(size: 44)).foregroundStyle(Palette.up)
@@ -219,7 +246,8 @@ struct TradeReviewFlow: View {
             switch item.kind {
             case .swap(let r, let quote):
                 let request = TradeRequest(walletID: r.walletID, chain: r.chain, account: r.account, sell: r.sell, buy: r.buy,
-                                           amountIn: r.amountIn, slippageBasisPoints: r.slippageBasisPoints, nonceQueue: queue)
+                                           amountIn: r.amountIn, slippageBasisPoints: r.slippageBasisPoints, nonceQueue: queue,
+                                           inParts: r.inParts)
                 built = try await engine.plan(request, quote: quote)
             case .limit(let r):
                 let request = LimitOrderRequest(walletID: r.walletID, chain: r.chain, account: r.account, sell: r.sell, buy: r.buy,
@@ -253,7 +281,8 @@ struct TradeReviewFlow: View {
             case .swap(let request, let quote):
                 guard plan.review.kind == .swap else { return false }
                 try PlanIntentCheck.trade(plan.review, sell: request.sell, amountIn: request.amountIn, buy: request.buy,
-                                          minimumOut: quote.minimumOut, owner: request.account.address, chain: item.chain)
+                                          minimumOut: quote.minimumOut(inParts: request.inParts), owner: request.account.address,
+                                          chain: item.chain)
             case .limit(let request):
                 guard plan.review.kind == .limitOrder else { return false }
                 try PlanIntentCheck.trade(plan.review, sell: request.sell, amountIn: request.amountIn, buy: request.buy,
