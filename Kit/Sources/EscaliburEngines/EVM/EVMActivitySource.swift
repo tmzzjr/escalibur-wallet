@@ -33,9 +33,21 @@ public struct EVMActivitySource: ActivitySource {
             let owner = try EVMEngineSupport.account(account, chain: chain).address
             let page = try await reader.history(chain: chain, address: owner)
             return EVMActivityScreen.entries(page, owner: owner, chain: chain)
+        } catch HTTPClient.Failure.status(403) {
+            // O indexador recusa o app (a protecao anti-robo da Cloudflare passou a
+            // barrar pedidos que nao sao de navegador no Blockscout da Arbitrum, da Base
+            // e da Polygon, conferido em 10/10/2026). Tentar de novo nao muda; a tela
+            // manda para o explorador, como nas redes sem indexador.
+            throw SendEngineError.unavailable(Self.blockedReason(self.chain))
         } catch {
             throw EVMEngineMessages.userFacing(error, .history, chain: self.chain)
         }
+    }
+}
+
+extension EVMActivitySource {
+    static func blockedReason(_ chain: Chain) -> String {
+        "O indexador público da \(chain.name) está recusando pedidos de aplicativos agora. O histórico dela fica no explorador."
     }
 }
 

@@ -17,6 +17,9 @@ struct PortfolioRow: Identifiable, Hashable {
     let positions: [Holding]
     let price: Double?
     let change24h: Double?
+    /// Token fora da lista que o CoinGecko lista com o contrato exato: nome, simbolo e
+    /// logo de la, sem o selo de nao verificado. Reconhecido nao e verificado: sem troca.
+    var recognized: TokenIdentity? = nil
 
     var decimals: Int { positions.first?.asset.decimals ?? 0 }
     var chains: [Chain] { positions.compactMap(\.asset.chain) }
@@ -34,6 +37,10 @@ struct PortfolioRow: Identifiable, Hashable {
     /// `.custom` numa moeda que o dono adicionou; nil na lista conferida e nas nativas.
     var origin: Asset.Origin? { positions.first?.asset.origin }
     var isCustom: Bool { origin == .custom }
+    /// Da lista conferida da Escalibur (ou moeda nativa): so ela tem troca.
+    var isCurated: Bool { positions.allSatisfy { $0.asset.isVerified } }
+    /// O ativo cuja logo vem pelo contrato: moeda custom ou reconhecida.
+    var contractLogoAsset: Asset? { isCustom || recognized != nil ? positions.first?.asset : nil }
 }
 
 /// Um token fora da lista e das moedas custom, para "Outros tokens" e "Mostrar
@@ -94,6 +101,7 @@ final class Portfolio {
             return
         }
         sessionCustomIDs = session.metadata.customTokens.map(\.id)
+        recognizedTokens = session.metadata.recognizedTokens ?? [:]
         if force, walletID == wallet.id {
             recompute(wallet)
             return
@@ -143,6 +151,8 @@ final class Portfolio {
     }
 
     private var pendingRefresh = false
+    /// Os reconhecimentos guardados nos metadados, para montar as linhas.
+    private var recognizedTokens: [String: TokenIdentity] = [:]
 
     /// A ultima leitura boa da rede nao tinha saldo nem token nenhum.
     static func knownEmpty(_ balance: ChainBalance?) -> Bool {
@@ -253,6 +263,7 @@ final class Portfolio {
             tokenQuotes.merge(found) { $1 }
             recompute(wallet)
         }
+        await recognize(wallet, session: session)
 
         session.metadata.balanceCache[wallet.id] = balances
         var cache = quotes
@@ -350,7 +361,7 @@ final class Portfolio {
                 grouped[key, default: []].append(holding)
             }
         }
-        allRows = order.compactMap { key in
+        let curatedRows = order.compactMap { key -> PortfolioRow? in
             guard let holdings = grouped[key], let first = holdings.first?.asset else { return nil }
             let quote = first.coingeckoID.map { quotes[$0] } ?? tokenQuotes[first.id]
             return PortfolioRow(
@@ -358,14 +369,42 @@ final class Portfolio {
                 isStablecoin: first.isStablecoin, positions: holdings, price: quote?.price, change24h: quote?.change24h
             )
         }
-        .sorted { ($0.fiatValue ?? 0) > ($1.fiatValue ?? 0) }
-        rows = allRows.filter { !wallet.hiddenAssetIDs.contains($0.id) }
 
         let tokens = unlisted.map { holding in
             let quote = holding.isSuspicious ? nil : tokenQuotes[holding.asset.id]
             return OtherToken(holding: holding, price: quote?.price, change24h: quote?.change24h)
         }
-        allOthers = tokens.filter { !$0.isSuspicious && !custom.contains($0.id) }
+        // Reconhecidos pelo CoinGecko pelo contrato exato viram linha de Ativos, juntos so
+        // entre si (chave "rec:" e o id), nunca com uma linha da lista conferida. Suspeito
+        // continua suspeito, reconhecido ou nao.
+        var recognizedGroups: [String: (identity: TokenIdentity, tokens: [OtherToken])] = [:]
+        var recognizedOrder: [String] = []
+        var plain: [OtherToken] = []
+        for token in tokens where !token.isSuspicious && !custom.contains(token.id) {
+            if let identity = recognizedTokens[token.id], TokenRecognitionRules.isValid(identity, for: token.asset, now: identity.checkedAt) {
+                let key = "rec:" + identity.coingeckoID
+                if recognizedGroups[key] == nil {
+                    recognizedOrder.append(key)
+                    recognizedGroups[key] = (identity, [])
+                }
+                recognizedGroups[key]?.tokens.append(token)
+            } else {
+                plain.append(token)
+            }
+        }
+        let recognizedRows = recognizedOrder.compactMap { key -> PortfolioRow? in
+            guard let group = recognizedGroups[key] else { return nil }
+            let priced = group.tokens.first { $0.price != nil }
+            return PortfolioRow(
+                id: key, symbol: group.identity.symbol, name: group.identity.name, coingeckoID: nil, isStablecoin: false,
+                positions: group.tokens.map { Holding(asset: $0.asset, amount: $0.holding.amount) },
+                price: priced?.price, change24h: priced?.change24h, recognized: group.identity
+            )
+        }
+        allRows = (curatedRows + recognizedRows).sorted { ($0.fiatValue ?? 0) > ($1.fiatValue ?? 0) }
+        rows = allRows.filter { !wallet.hiddenAssetIDs.contains($0.id) }
+
+        allOthers = plain
             .sorted { (($0.fiatValue ?? 0), $1.asset.symbol.lowercased()) > (($1.fiatValue ?? 0), $0.asset.symbol.lowercased()) }
         // Escondido em Gerenciar ativos: some da Carteira e do total, como os da lista.
         others = allOthers.filter { !wallet.hiddenAssetIDs.contains($0.id) }
@@ -387,6 +426,47 @@ final class Portfolio {
     private var sessionCustomIDs: [String] = []
 
     /// Chamado quando o dono adiciona ou remove uma moeda custom.
+    /// Pergunta ao CoinGecko pelos tokens fora da lista, sem suspeita, que ainda nao tem
+    /// resposta de menos de 7 dias: no maximo 8 por leitura, um a cada 1,5 s (a cota sem
+    /// chave e a mesma do Mercado). "Nao listado" tira o reconhecimento na hora; sem
+    /// resposta, fica o que havia, e nada e promovido.
+    private func recognize(_ wallet: WalletMeta, session: AppSession) async {
+        let now = Date.now
+        var known = session.metadata.recognizedTokens ?? [:]
+        var misses = session.metadata.unrecognizedChecks ?? [:]
+        let custom = Set(session.metadata.customTokens.map(\.id))
+        let assets = Chain.all.compactMap { balances[$0.id]?.unlisted }.flatMap { $0 }
+            .filter { !$0.isSuspicious && !custom.contains($0.asset.id) }.map(\.asset)
+        let pending = assets.filter { asset in
+            if let identity = known[asset.id] { return !TokenRecognitionRules.isValid(identity, for: asset, now: now) }
+            if let checked = misses[asset.id] { return now.timeIntervalSince(checked) >= TokenRecognitionRules.lifetime }
+            return true
+        }
+        guard !pending.isEmpty else { return }
+        var changed = false
+        for (index, asset) in pending.prefix(8).enumerated() {
+            if index > 0 { try? await Task.sleep(for: .milliseconds(1500)) }
+            do {
+                if let identity = try await MarketService.shared.tokenIdentity(asset, now: now) {
+                    known[asset.id] = identity
+                    misses[asset.id] = nil
+                } else {
+                    known[asset.id] = nil
+                    misses[asset.id] = now
+                }
+                changed = true
+            } catch {
+                continue
+            }
+        }
+        guard changed, walletID == wallet.id else { return }
+        session.metadata.recognizedTokens = known
+        session.metadata.unrecognizedChecks = misses
+        try? session.persist()
+        recognizedTokens = known
+        recompute(wallet)
+    }
+
     /// Le uma rede so, agora, fora da leitura geral: a moeda custom recem adicionada
     /// aparece em segundos, sem esperar terminar a leitura de todas as redes que estiver
     /// em andamento (com as novas tentativas, passava de um minuto). Tarefa propria, que

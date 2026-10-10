@@ -35,18 +35,13 @@ final class PlatformGuards: NSObject, UIApplicationDelegate {
     @MainActor
     private static func cover() {
         for window in allWindows where window.viewWithTag(coverTag) == nil {
-            // A tela inteira no rosa da marca, com a espada do icone no centro: o selo e
-            // o proprio icone, e no mesmo rosa so a espada aparece.
-            let cover = UIView(frame: window.bounds)
+            // A tela inteira no rosa da marca, com o icone do app no centro (`StandbyCover`).
+            let host = UIHostingController(rootView: StandbyCover())
+            let cover = host.view!
+            cover.frame = window.bounds
             cover.backgroundColor = UIColor(Palette.brand)
             cover.tag = coverTag
             cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            let badge = UIHostingController(rootView: WalletBadge(size: 132)).view!
-            badge.backgroundColor = .clear
-            badge.frame = CGRect(x: 0, y: 0, width: 132, height: 132)
-            badge.center = cover.center
-            badge.autoresizingMask = [.flexibleTopMargin, .flexibleBottomMargin, .flexibleLeftMargin, .flexibleRightMargin]
-            cover.addSubview(badge)
             window.addSubview(cover)
         }
     }
@@ -59,6 +54,24 @@ final class PlatformGuards: NSObject, UIApplicationDelegate {
     @MainActor
     private static var allWindows: [UIWindow] {
         UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
+    }
+}
+
+/// A capa do seletor de apps: o rosa da marca e o icone do app no centro, com a borda
+/// e a sombra do icone. So a espada, solta no rosa, terminava num corte seco onde o
+/// icone acaba (relatado no iPhone); com o contorno do icone, o corte e a borda dele.
+struct StandbyCover: View {
+    var body: some View {
+        ZStack {
+            Palette.brand.ignoresSafeArea()
+            WalletBadge(size: 120)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 120 * 0.2237, style: .continuous)
+                        .stroke(Color.white.opacity(0.28), lineWidth: 1)
+                )
+                .shadow(color: Color(hex: 0x5C0030).opacity(0.45), radius: 28, y: 12)
+        }
+        .accessibilityHidden(true)
     }
 }
 

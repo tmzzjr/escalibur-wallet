@@ -38,6 +38,12 @@ struct Metadata: Codable, Equatable {
     var customAssets: [Asset]?
 
     var customTokens: [Asset] { customAssets ?? [] }
+    /// Tokens fora da lista que o CoinGecko lista com o contrato exato
+    /// (`TokenRecognitionRules`), por `Asset.id`. Opcional para os metadados antigos.
+    var recognizedTokens: [String: TokenIdentity]?
+    /// Quando cada token fora da lista foi conferido e o CoinGecko nao reconheceu: nao
+    /// pergunta de novo antes de 7 dias.
+    var unrecognizedChecks: [String: Date]?
 
     var selectedWallet: WalletMeta? {
         wallets.first { $0.id == selectedWalletID } ?? wallets.first

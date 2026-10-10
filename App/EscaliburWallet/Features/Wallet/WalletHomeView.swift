@@ -245,7 +245,8 @@ struct WalletHomeView: View {
             LazyVStack(spacing: 0) {
                 ForEach(portfolio.rows) { row in
                     NavigationLink(value: row) {
-                        AssetRowView(row: row, currency: session.currency, hidden: hide)
+                        AssetRowView(row: row, currency: session.currency, hidden: hide,
+                                     unit: unit, rate: portfolio.convert(1, to: unit, base: session.currency))
                     }
                     .buttonStyle(RowStyle())
                 }
@@ -400,6 +401,13 @@ struct AssetRowView: View {
     let row: PortfolioRow
     let currency: Fmt.Currency
     var hidden: Bool = false
+    /// A unidade escolhida no total (R$, US$, € ou ₿), e quanto vale 1 da moeda do app
+    /// nela. Sem a cotacao de referencia, a linha fica na moeda do app.
+    var unit: Fmt.DisplayUnit? = nil
+    var rate: Double? = nil
+
+    private var shownUnit: Fmt.DisplayUnit { rate != nil ? (unit ?? Fmt.DisplayUnit(currency)) : Fmt.DisplayUnit(currency) }
+    private func shown(_ value: Double) -> Double { value * (rate ?? 1) }
     @Environment(\.dynamicTypeSize) private var dynamicType
 
     var body: some View {
@@ -450,14 +458,14 @@ struct AssetRowView: View {
             coingeckoID: row.coingeckoID, symbol: row.symbol, size: 40,
             network: row.positions.count == 1 ? row.positions.first?.asset.chain : nil,
             networkCount: row.positions.count, unverified: row.origin != nil,
-            logoAsset: row.isCustom ? row.positions.first?.asset : nil
+            logoAsset: row.contractLogoAsset
         )
     }
 
     @ViewBuilder
     private var priceAndChange: some View {
         if let price = row.price {
-            Text(Fmt.price(price, currency)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            Text(Fmt.price(shown(price), unit: shownUnit)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 .lineLimit(1).minimumScaleFactor(0.7)
         }
         if let change = row.change24h {
@@ -468,7 +476,7 @@ struct AssetRowView: View {
     }
 
     private var fiatValue: some View {
-        Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.fiat($0, currency) } ?? "sem preço"))
+        Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.value(shown($0), unit: shownUnit) } ?? "sem preço"))
             .typeStyle(.row).foregroundStyle(Palette.ink)
             .lineLimit(1).minimumScaleFactor(0.6)
     }

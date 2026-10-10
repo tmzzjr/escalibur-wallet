@@ -261,7 +261,7 @@ struct ManageAssetsView: View {
                             )) {
                                 HStack(spacing: Space.sm) {
                                     CoinLogo(coingeckoID: row.coingeckoID, symbol: row.symbol, size: 28, ringColor: Palette.body, unverified: row.origin != nil,
-                                             logoAsset: row.isCustom ? row.positions.first?.asset : nil)
+                                             logoAsset: row.contractLogoAsset)
                                     Text(verbatim: row.symbol).typeStyle(.body).foregroundStyle(Palette.ink)
                                     if row.isCustom { TokenBadge(.custom) }
                                 }

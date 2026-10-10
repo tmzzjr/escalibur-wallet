@@ -30,6 +30,27 @@ struct EVMActivityTests {
         }])
     }
 
+    @Test("Indexador que recusa o app (403 da protecao anti-robo) vira historico indisponivel, nao falha a tentar de novo")
+    func blockedIndexer() async throws {
+        let transport = EVMFixtureTransport([{ _ in throw HTTPClient.Failure.status(403) }])
+        do {
+            _ = try await Self.source(transport).history(chain: .base, account: A.binance8(on: .base), usage: nil)
+            Issue.record("deveria recusar")
+        } catch SendEngineError.unavailable(let reason) {
+            #expect(reason.contains("Base") && reason.contains("explorador"))
+        }
+        // Outro erro de rede continua sendo falha passageira.
+        let offline = EVMFixtureTransport([{ _ in throw HTTPClient.Failure.timeout }])
+        await #expect(throws: SendEngineError.self) {
+            _ = try await Self.source(offline).history(chain: .base, account: A.binance8(on: .base), usage: nil)
+        }
+        do {
+            _ = try await Self.source(offline).history(chain: .base, account: A.binance8(on: .base), usage: nil)
+        } catch SendEngineError.unavailable {
+            Issue.record("timeout nao e indisponivel")
+        } catch {}
+    }
+
     @Test("Pagina real da Base: tokens de golpe e po ficam de fora, o recebimento real e as chamadas do dono aparecem")
     func recordedPage() async throws {
         let transport = try Self.blockscout()

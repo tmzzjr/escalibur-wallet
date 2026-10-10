@@ -134,6 +134,8 @@ public actor MarketService {
     /// Preco por contrato (moeda custom e token fora da lista), por moeda e por
     /// `Asset.id`. `nil` guardado: a fonte respondeu e nao tem preco para o contrato.
     private var tokenPrices: [String: [String: (at: Date, quote: Quote?)]] = [:]
+    /// A ficha do CoinGecko por `Asset.id`; `.some(nil)`: nao listado.
+    private var contractCoins: [String: ContractCoin?] = [:]
     /// Contrato para id do CoinPaprika, por plataforma: a reserva do preco por contrato.
     private var paprikaContracts: [String: (at: Date, ids: [String: String])] = [:]
 
@@ -436,24 +438,56 @@ public actor MarketService {
         return try? await (paprikaTokenQuote(paprikaPlatform, contract: contract, currency: currency), ())
     }
 
-    /// A imagem da moeda que o CoinGecko lista com este contrato (`/coins/{plataforma}/
-    /// contract/{contrato}`), so se ela estiver num host de imagem do CoinGecko. `nil`: o
-    /// CoinGecko respondeu e nao lista o contrato (ou a imagem nao serve). Erro: nao
-    /// respondeu (429, sem rede), e vale perguntar de novo depois.
-    public func tokenImage(_ asset: Asset) async throws -> URL? {
+    /// A ficha que o CoinGecko tem do contrato (`/coins/{plataforma}/contract/{contrato}`):
+    /// so os campos que a carteira usa. Uma consulta por contrato por abertura do app,
+    /// para a logo e o reconhecimento.
+    struct ContractCoin: Decodable, Sendable {
+        struct Images: Decodable, Sendable { let large: String?; let small: String? }
+        struct Detail: Decodable, Sendable { let decimal_place: Int?; let contract_address: String? }
+        let id: String?
+        let symbol: String?
+        let name: String?
+        let image: Images?
+        let platforms: [String: String?]?
+        let detail_platforms: [String: Detail]?
+        let preview_listing: Bool?
+        let public_notice: String?
+    }
+
+    /// `nil`: o CoinGecko respondeu e nao lista o contrato. Erro: nao respondeu (429, sem
+    /// rede), e vale perguntar de novo depois. A resposta fica na memoria ate o app fechar.
+    func contractCoin(_ asset: Asset) async throws -> ContractCoin? {
         guard case .token(let contract) = asset.kind, let platform = Self.tokenPlatforms[asset.chainID] else { return nil }
-        struct Coin: Decodable {
-            struct Images: Decodable { let large: String?; let small: String? }
-            let image: Images?
-        }
+        if let cached = contractCoins[asset.id] { return cached }
         let url = Self.url(Self.gecko, "coins/\(platform.gecko)/contract/\(contract)")
         do {
-            let coin = try await fromGecko { try await self.get(Coin.self, url) }
-            let link = (coin.image?.large ?? coin.image?.small).flatMap(URL.init(string:))
-            return link.flatMap { ImageLoader.isAllowed($0) ? $0 : nil }
+            let coin = try await fromGecko { try await self.get(ContractCoin.self, url) }
+            contractCoins[asset.id] = .some(coin)
+            return coin
         } catch HTTPClient.Failure.status(404) {
+            contractCoins[asset.id] = .some(nil)
             return nil
         }
+    }
+
+    /// A imagem da moeda que o CoinGecko lista com este contrato, so se ela estiver num
+    /// host de imagem do CoinGecko. `nil`: nao listado (ou a imagem nao serve).
+    public func tokenImage(_ asset: Asset) async throws -> URL? {
+        guard let coin = try await contractCoin(asset) else { return nil }
+        let link = (coin.image?.large ?? coin.image?.small).flatMap(URL.init(string:))
+        return link.flatMap { ImageLoader.isAllowed($0) ? $0 : nil }
+    }
+
+    /// O reconhecimento do contrato pelo CoinGecko, ja conferido por
+    /// `TokenRecognitionRules`. `nil`: nao listado, ou listado sem passar nas regras.
+    public func tokenIdentity(_ asset: Asset, now: Date = .now) async throws -> TokenIdentity? {
+        guard let coin = try await contractCoin(asset), let platform = Self.tokenPlatforms[asset.chainID]?.gecko else { return nil }
+        return TokenRecognitionRules.identity(
+            asset: asset, platform: platform, id: coin.id, symbol: coin.symbol, name: coin.name,
+            listedContract: coin.platforms?[platform] ?? nil, listedDecimals: coin.detail_platforms?[platform]?.decimal_place,
+            previewListing: coin.preview_listing, publicNotice: coin.public_notice,
+            image: (coin.image?.large ?? coin.image?.small).flatMap(URL.init(string:)), now: now
+        )
     }
 
     private func geckoTokenQuote(_ platform: String, contract: String, currency: String) async throws -> Quote? {

@@ -192,7 +192,7 @@ struct SendAssetPicker: View {
                             } label: {
                                 HStack(spacing: Space.sm) {
                                     CoinLogo(coingeckoID: holding.asset.coingeckoID, symbol: holding.asset.symbol, size: 40, network: holding.asset.chain,
-                                             unverified: !holding.asset.isVerified)
+                                             unverified: !holding.asset.isVerified, logoAsset: holding.asset.isVerified ? nil : holding.asset)
                                     VStack(alignment: .leading, spacing: 2) {
                                         HStack(spacing: 6) {
                                             Text(verbatim: holding.asset.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
@@ -287,7 +287,7 @@ struct SendStages: View {
         HStack(spacing: Space.sm) {
             if let holding = model.holding {
                 CoinLogo(coingeckoID: holding.asset.coingeckoID, symbol: holding.asset.symbol, size: 32, network: holding.asset.chain,
-                         unverified: !holding.asset.isVerified)
+                         unverified: !holding.asset.isVerified, logoAsset: holding.asset.isVerified ? nil : holding.asset)
             }
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {

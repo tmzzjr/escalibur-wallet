@@ -6,11 +6,15 @@ public struct WatchedCoin: Codable, Sendable, Hashable, Identifiable {
     public let id: String
     public let symbol: String
     public let name: String
+    /// A logo da moeda na lista de mercado (host de imagens do CoinGecko), para as
+    /// moedas sem logo embarcado. Opcional: a lista gravada antes dela abre igual.
+    public let image: URL?
 
-    public init(id: String, symbol: String, name: String) {
+    public init(id: String, symbol: String, name: String, image: URL? = nil) {
         self.id = id
         self.symbol = symbol
         self.name = name
+        self.image = image
     }
 }
 

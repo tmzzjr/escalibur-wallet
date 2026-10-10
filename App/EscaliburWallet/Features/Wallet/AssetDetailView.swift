@@ -20,7 +20,7 @@ struct AssetDetailView: View {
     private var primaryChain: Chain? { row.positions.first?.asset.chain }
     /// Moeda custom nao entra na troca: a lista de pares e a sanidade de preco sao da
     /// lista conferida.
-    private var canTrade: Bool { !row.isCustom && primaryChain.flatMap { TradeEngines.engine(for: $0) } != nil }
+    private var canTrade: Bool { row.isCurated && primaryChain.flatMap { TradeEngines.engine(for: $0) } != nil }
 
     var body: some View {
         ScrollView {
@@ -28,6 +28,15 @@ struct AssetDetailView: View {
                 position.padding(.horizontal, Space.gutter)
                 if row.isCustom, let asset = row.positions.first?.asset {
                     customDetails(asset).padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+                } else if let identity = row.recognized {
+                    // Reconhecida pelo CoinGecko: o grafico de la, o aviso de que nao e da
+                    // lista conferida e o contrato inteiro de cada rede.
+                    MarketChartSection(
+                        coingeckoID: identity.coingeckoID, symbol: row.symbol, name: row.name,
+                        livePrice: row.price, liveChange: row.change24h, isStable: false, priceAsFigure: false
+                    )
+                    .padding(.top, Space.lg)
+                    recognizedDetails.padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                 } else {
                     MarketChartSection(
                         coingeckoID: row.coingeckoID, symbol: row.symbol, name: row.name,
@@ -48,7 +57,7 @@ struct AssetDetailView: View {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 6) {
                     CoinLogo(coingeckoID: row.coingeckoID, symbol: row.symbol, size: 20, unverified: row.origin != nil,
-                             logoAsset: row.isCustom ? row.positions.first?.asset : nil)
+                             logoAsset: row.contractLogoAsset)
                     Text(verbatim: row.name).typeStyle(.action).foregroundStyle(Palette.ink)
                     if row.isCustom { TokenBadge(.custom) }
                 }
@@ -91,6 +100,18 @@ struct AssetDetailView: View {
             }
             TertiaryButton(title: "Remover moeda custom") { removing = true }
                 .accessibilityIdentifier("remover-moeda-custom")
+        }
+    }
+
+    /// Moeda reconhecida: listada no CoinGecko com o contrato exato, fora da lista
+    /// conferida. Mostra de onde vem o nome e o contrato inteiro de cada rede.
+    private var recognizedDetails: some View {
+        VStack(alignment: .leading, spacing: Space.md) {
+            Banner(kind: .neutral, title: "Listada no CoinGecko, não conferida pela Escalibur",
+                   message: "O nome, o símbolo e a logo vêm do CoinGecko, que lista este contrato. A troca fica só para as moedas da lista conferida. Ao enviar, confira o contrato inteiro.")
+            ForEach(row.positions, id: \.asset.id) { holding in
+                ContractPanel(asset: holding.asset)
+            }
         }
     }
 

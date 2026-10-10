@@ -67,9 +67,36 @@ enum Fmt {
         return "\(sign)\(currency.symbol)\(nbsp)\(body)"
     }
 
+    /// Um valor na unidade escolhida no total da Carteira: R$, US$, € com centavos e
+    /// "< R$ 0,01" abaixo disso; ₿ com ate 8 casas.
+    static func value(_ value: Double, unit: DisplayUnit) -> String {
+        guard value.isFinite else { return "\(unit.symbol)\(nbsp)0" }
+        if unit == .btc {
+            let magnitude = abs(value)
+            if magnitude > 0, magnitude < 0.00000001 { return "< \(unit.symbol)\(nbsp)0,00000001" }
+            return "\(value < 0 ? minus : "")\(unit.symbol)\(nbsp)\(grouped(magnitude, fractionDigits: 8, trimZeros: true))"
+        }
+        let magnitude = abs(value)
+        if magnitude > 0, magnitude < 0.01 { return "< \(unit.symbol)\(nbsp)0,01" }
+        return "\(value < 0 ? minus : "")\(unit.symbol)\(nbsp)\(grouped(magnitude, fractionDigits: 2))"
+    }
+
+    /// Preco unitario na unidade escolhida no total, com as casas pela faixa.
+    static func price(_ value: Double, unit: DisplayUnit) -> String {
+        guard unit != .btc else {
+            guard value.isFinite, value > 0 else { return "\(unit.symbol)\(nbsp)0" }
+            return value >= 0.00000001 ? "\(unit.symbol)\(nbsp)\(grouped(value, fractionDigits: 8, trimZeros: true))" : "\(unit.symbol)\(nbsp)\(subscriptZeros(value))"
+        }
+        return priceBody(value, symbol: unit.symbol)
+    }
+
     /// Preco unitario com casas pela faixa, e zeros em subscrito abaixo de 0,0001.
     static func price(_ value: Double, _ currency: Currency = .brl) -> String {
-        guard value.isFinite, value > 0 else { return "\(currency.symbol)\(nbsp)0,00" }
+        priceBody(value, symbol: currency.symbol)
+    }
+
+    private static func priceBody(_ value: Double, symbol: String) -> String {
+        guard value.isFinite, value > 0 else { return "\(symbol)\(nbsp)0,00" }
         let body: String
         switch value {
         case 1...: body = grouped(value, fractionDigits: 2)
@@ -77,7 +104,7 @@ enum Fmt {
         case 0.0001..<0.01: body = grouped(value, fractionDigits: 6)
         default: body = subscriptZeros(value)
         }
-        return "\(currency.symbol)\(nbsp)\(body)"
+        return "\(symbol)\(nbsp)\(body)"
     }
 
     /// "+2,31%". Zero sai sem sinal. A partir de 1.000%, sem casas.

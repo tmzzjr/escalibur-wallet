@@ -134,7 +134,7 @@ struct PriceAlertsView: View {
             SettingsSection(title: file.coins.isEmpty ? "Moedas" : "Moedas, \(coinCount)") {
                 ForEach(file.coins) { coin in
                     HStack(spacing: Space.sm) {
-                        CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 32, ringColor: Palette.body)
+                        CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 32, remoteURL: image(coin), ringColor: Palette.body)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(verbatim: coin.name).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
                             Text(verbatim: coin.symbol.uppercased()).typeStyle(.note).foregroundStyle(Palette.inkSoft)
@@ -167,7 +167,7 @@ struct PriceAlertsView: View {
                         ForEach(suggestions) { coin in
                             Button { toggle(coin) } label: {
                                 HStack(spacing: 6) {
-                                    CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 20, ringColor: Palette.body)
+                                    CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 20, remoteURL: image(coin), ringColor: Palette.body)
                                     Text(verbatim: coin.symbol.uppercased()).typeStyle(.label).foregroundStyle(Palette.ink)
                                     Image(systemName: "plus").font(.system(size: 11, weight: .bold)).foregroundStyle(Palette.inkSoft)
                                 }
@@ -197,9 +197,15 @@ struct PriceAlertsView: View {
             out.append(WatchedCoin(id: id, symbol: row.symbol, name: row.name))
         }
         for id in session.metadata.settings.favoriteCoins ?? [] where !watched.contains(id) && !out.contains(where: { $0.id == id }) {
-            if let coin = market.first(where: { $0.id == id }) { out.append(WatchedCoin(id: coin.id, symbol: coin.symbol, name: coin.name)) }
+            if let coin = market.first(where: { $0.id == id }) { out.append(WatchedCoin(id: coin.id, symbol: coin.symbol, name: coin.name, image: coin.imageURL)) }
         }
         return Array(out.prefix(10))
+    }
+
+    /// A logo de uma moeda da lista: a gravada com ela ou, nas antigas, a da lista do
+    /// Mercado.
+    private func image(_ coin: WatchedCoin) -> URL? {
+        coin.image ?? market.first { $0.id == coin.id }?.imageURL
     }
 
     private var exampleLevel: String {
@@ -302,7 +308,7 @@ private struct AddAlertCoinSheet: View {
                             Button {
                                 guard on || watched.count < PriceAlertFile.maxCoins else { return }
                                 if on { watched.remove(coin.id) } else { watched.insert(coin.id) }
-                                onToggle(WatchedCoin(id: coin.id, symbol: coin.symbol, name: coin.name))
+                                onToggle(WatchedCoin(id: coin.id, symbol: coin.symbol, name: coin.name, image: coin.imageURL))
                             } label: {
                                 HStack(spacing: Space.sm) {
                                     CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 36, remoteURL: coin.imageURL)
@@ -374,7 +380,7 @@ struct PriceAlertBell: View {
     }
 
     private func toggle() async {
-        let watched = WatchedCoin(id: coin.id, symbol: coin.symbol, name: coin.name)
+        let watched = WatchedCoin(id: coin.id, symbol: coin.symbol, name: coin.name, image: coin.imageURL)
         if watching {
             await PriceAlertCenter.shared.update { $0.coins.removeAll { $0.id == watched.id } }
             watching = false
