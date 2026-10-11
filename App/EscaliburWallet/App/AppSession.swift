@@ -334,7 +334,10 @@ final class AppSession {
         KeyServices.root.wipeAll()
         MetadataStore.deleteFile()
         PriceAlertStore.erase()
-        Task { await PriceAlertCenter.shared.erase() }
+        Task {
+            await ReceiptWatchCenter.shared.disable()
+            await PriceAlertCenter.shared.erase()
+        }
         indexKey = nil
         metadata = Metadata()
         phase = .onboarding

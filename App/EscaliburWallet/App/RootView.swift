@@ -33,6 +33,7 @@ struct RootView: View {
             switch phase {
             case .active:
                 Task { await PriceAlertCenter.shared.check() }
+                Task { await ReceiptWatchCenter.shared.check() }
                 Task { await LimitRenewalCenter.shared.refresh(session: session) }
             case .background: Task { await PriceAlertCenter.shared.reschedule() }
             default: break
@@ -41,6 +42,12 @@ struct RootView: View {
         // O toque num alerta espera o app destravar e entao abre a moeda no Mercado.
         .onChange(of: inbox.request) { routeNotification() }
         .onChange(of: session.phase) { routeNotification() }
+        // O aviso de recebimento confere as contas de agora (carteira nova, rede ligada ou
+        // desligada, endereco UTXO novo).
+        .task(id: session.phase == .unlocked ? ReceiptAccounts.signature(session) : nil) {
+            guard session.phase == .unlocked else { return }
+            await ReceiptWatchCenter.shared.sync(accounts: ReceiptAccounts.all(session))
+        }
         // Os alertas falam na moeda escolhida em Ativos (com bitcoin, em dolar); trocar
         // a moeda zera a base de cada um.
         .task(id: session.phase == .unlocked ? session.metadata.settings.alertCurrency : nil) {
@@ -70,6 +77,10 @@ struct RootView: View {
     private func routeNotification() {
         guard session.phase == .unlocked, let request = inbox.request else { return }
         inbox.request = nil
+        if request.receipt {
+            router.tab = .activity
+            return
+        }
         if request.orderID != nil {
             router.tradeMode = .limit
             router.tab = .trade

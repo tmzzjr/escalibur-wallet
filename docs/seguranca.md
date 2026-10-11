@@ -182,6 +182,9 @@ Itens de chaveiro (`kSecClassGenericPassword`):
 Arquivos:
 - `Library/Application Support/Carteira/metadados.bin` com `NSFileProtectionComplete` (entitlement `com.apple.developer.default-data-protection`, como no Escalibur).
 - `isExcludedFromBackup = true`, conferido com `resourceValues` como o `VaultStore` já faz.
+- Exceções com a proteção até o primeiro desbloqueio (classe C), porque a checagem em segundo plano roda com o iPhone bloqueado, e o `verificar.sh` confere que só elas existem e que nenhuma toca cofre, chaveiro ou metadados:
+  - `Alertas/alertas.json`: as moedas escolhidas para alerta de preço e o último preço visto. Nada de saldo nem endereço.
+  - `Recebimentos/recebimentos.json` (aviso de recebimento, desligado por padrão): os endereços públicos das contas e o último saldo visto de cada ativo. Nenhuma chave, frase ou nome de carteira. Quem ligar troca a confidencialidade dos endereços com o iPhone bloqueado depois do primeiro desbloqueio pelo aviso sem servidor; o botão diz isso, e desligar apaga o arquivo. Os endereços chegam do app destravado (`ReceiptAccounts`); o arquivo do aviso nunca abre os metadados.
 
 Pré-condições para criar ou importar carteira:
 - `LAContext().canEvaluatePolicy(.deviceOwnerAuthentication)` verdadeiro, ou seja, o aparelho tem código.

@@ -30,9 +30,12 @@ struct EscaliburWalletApp: App {
                 .preferredColorScheme(.dark)
                 .tint(Palette.ink)
         }
-        // Alertas de preco: o iOS acorda o app de tempos em tempos, quando ele quer.
+        // Alertas de preco e aviso de recebimento: o iOS acorda o app de tempos em
+        // tempos, quando ele quer. A proxima vez entra na agenda antes de conferir.
         .backgroundTask(.appRefresh(PriceAlertCenter.taskID)) {
+            BackgroundCheck.reschedule()
             await PriceAlertCenter.shared.backgroundRun()
+            await ReceiptWatchCenter.shared.backgroundRun()
         }
     }
 }

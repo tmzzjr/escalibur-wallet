@@ -5,9 +5,16 @@ import EscaliburKeys
 import EscaliburNetwork
 import SwiftUI
 
+/// O historico da carteira escolhida, compartilhado: a leitura comeca logo depois de
+/// destravar (`WalletHomeView`), e a aba so mostra o que ja chegou.
+///
+/// Abre com o ultimo historico guardado (`CachedActivity`) e troca rede por rede conforme
+/// cada uma responde. Rede que falhou agora fica com o que estava guardado, com o aviso.
 @MainActor
 @Observable
 final class ActivityFeed {
+    static let shared = ActivityFeed()
+
     private(set) var entries: [ActivityEntry] = []
     /// Redes que falharam agora (rede fora do ar, limite do provedor): vale tentar de novo.
     private(set) var failed: [Chain] = []
@@ -36,8 +43,9 @@ final class ActivityFeed {
     /// Cada rede entra na tela assim que responde, em vez de todas esperarem a mais
     /// lenta (uma varredura UTXO, um provedor no limite). Na primeira leitura a lista vai
     /// crescendo; ao atualizar uma lista que ja existe, ela so troca no fim, sem piscar.
-    func load(_ wallet: WalletMeta?, disabled: Set<String>) async {
+    func load(_ wallet: WalletMeta?, disabled: Set<String>, session: AppSession) async {
         guard let wallet else { return }
+        if shownWalletID != wallet.id { showCached(wallet, session: session) }
         // Leitura em andamento da mesma carteira: espera por ela em vez de comecar outra.
         if let current, currentWalletID == wallet.id {
             await current.value
@@ -49,7 +57,7 @@ final class ActivityFeed {
         // Ethereum pelo Blockscout) viravam "nao foi possivel ler" (print do iPhone).
         generation += 1
         let mine = generation
-        let job = Task { await run(wallet, disabled: disabled, generation: mine) }
+        let job = Task { await run(wallet, disabled: disabled, generation: mine, session: session) }
         current = job
         currentWalletID = wallet.id
         await job.value
@@ -63,12 +71,24 @@ final class ActivityFeed {
     private var currentWalletID: UUID?
     /// A leitura valida: uma de carteira trocada no meio termina sem mexer na tela.
     private var generation = 0
+    /// A carteira cujo historico esta na tela, e ele por rede.
+    private var shownWalletID: UUID?
+    private var byChain: [String: [ActivityEntry]] = [:]
 
-    private func run(_ wallet: WalletMeta, disabled: Set<String>, generation mine: Int) async {
+    /// O historico guardado da carteira, na tela antes de qualquer rede responder.
+    private func showCached(_ wallet: WalletMeta, session: AppSession) {
+        shownWalletID = wallet.id
+        let cached = (session.metadata.activityCache?[wallet.id] ?? []).compactMap(\.entry)
+        byChain = Dictionary(grouping: cached, by: \.chainID)
+        failed = []
+        unavailable = []
+        loadedOnce = !cached.isEmpty
+        publish(failures: [], missing: [])
+    }
+
+    private func run(_ wallet: WalletMeta, disabled: Set<String>, generation mine: Int, session: AppSession) async {
         loading = true
         defer { if generation == mine { loading = false; remaining = 0 } }
-        let progressive = entries.isEmpty
-        var collected: [ActivityEntry] = []
         var failures: [Chain] = []
         var missing: [(chain: Chain, reason: String)] = []
         let jobs: [(Chain, DerivedAccount, any ActivitySource, UTXOUsage?)] = wallet.accounts.compactMap { account in
@@ -76,6 +96,9 @@ final class ActivityFeed {
                   let source = ActivitySources.source(for: chain) else { return nil }
             return (chain, account, source, wallet.utxoUsage[chain.id])
         }
+        // Rede desligada ou sem conta sai da tela.
+        let active = Set(jobs.map(\.0.id))
+        byChain = byChain.filter { active.contains($0.key) }
         var pending = jobs
         for attempt in 0...Self.retryDelays.count {
             if attempt > 0 { try? await Task.sleep(for: Self.retryDelays[attempt - 1]) }
@@ -88,20 +111,29 @@ final class ActivityFeed {
                 }
                 for await (chain, outcome) in group {
                     remaining -= 1
+                    guard generation == mine else { continue }
                     switch outcome {
-                    case .items(let items): collected += items
-                    case .unavailable(let reason): missing.append((chain, reason))
+                    case .items(let items): byChain[chain.id] = items
+                    case .unavailable(let reason):
+                        byChain[chain.id] = nil
+                        missing.append((chain, reason))
+                    // Falhou agora: fica o que estava guardado dessa rede.
                     case .failed: failures.append(chain)
                     }
-                    if progressive, generation == mine { publish(collected, failures, missing) }
+                    publish(failures: failures, missing: missing)
                 }
             }
             pending = jobs.filter { job in failures.contains { $0.id == job.0.id } }
             if pending.isEmpty { break }
         }
         guard !Task.isCancelled, generation == mine else { return }
-        publish(collected, failures, missing)
+        publish(failures: failures, missing: missing)
         loadedOnce = true
+        let all = byChain.values.flatMap { $0 }.sorted { $0.date > $1.date }.prefix(CachedActivity.limit)
+        var cache = session.metadata.activityCache ?? [:]
+        cache[wallet.id] = all.map(CachedActivity.init)
+        session.metadata.activityCache = cache
+        try? session.persist()
     }
 
     nonisolated private static func read(_ source: any ActivitySource, chain: Chain, account: DerivedAccount, usage: UTXOUsage?) async -> Outcome {
@@ -114,7 +146,8 @@ final class ActivityFeed {
         }
     }
 
-    private func publish(_ collected: [ActivityEntry], _ failures: [Chain], _ missing: [(chain: Chain, reason: String)]) {
+    private func publish(failures: [Chain], missing: [(chain: Chain, reason: String)]) {
+        let collected = byChain.values.flatMap { $0 }
         suspiciousCount = collected.filter(\.suspicious).count
         entries = collected.filter { !$0.suspicious }.sorted { $0.date > $1.date }
         failed = failures.sorted { $0.name < $1.name }
@@ -128,7 +161,7 @@ struct ActivityView: View {
     @Environment(Router.self) private var router
     @Environment(Portfolio.self) private var portfolio
     @Environment(\.openURL) private var openURL
-    @State private var feed = ActivityFeed()
+    private var feed: ActivityFeed { .shared }
     @State private var receiving = false
     /// Quantas movimentacoes ja concluidas aparecem: 20 por vez, mais 20 ao chegar no fim.
     @State private var visibleCount = 20
@@ -277,7 +310,7 @@ struct ActivityView: View {
     }
 
     private func reload() async {
-        await feed.load(session.selectedWallet, disabled: session.metadata.settings.disabledChainIDs)
+        await feed.load(session.selectedWallet, disabled: session.metadata.settings.disabledChainIDs, session: session)
     }
 
     private func section(_ title: String, _ items: [ActivityEntry]) -> some View {

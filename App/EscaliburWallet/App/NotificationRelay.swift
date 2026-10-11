@@ -25,6 +25,10 @@ final class NotificationRelay: NSObject, UNUserNotificationCenterDelegate, Senda
                 identifier: LimitRenewalCenter.category, actions: [], intentIdentifiers: [],
                 hiddenPreviewsBodyPlaceholder: "Ordem limite", options: []
             ),
+            UNNotificationCategory(
+                identifier: ReceiptWatchCenter.category, actions: [], intentIdentifiers: [],
+                hiddenPreviewsBodyPlaceholder: "Recebimento", options: []
+            ),
         ])
     }
 
@@ -36,7 +40,8 @@ final class NotificationRelay: NSObject, UNUserNotificationCenterDelegate, Senda
         let info = response.notification.request.content.userInfo
         let coin = info["moeda"] as? String
         let order = info["ordem"] as? String
-        await MainActor.run { NotificationInbox.shared.request = .init(coinID: coin, orderID: order) }
+        let receipt = info["recebimento"] as? Bool ?? false
+        await MainActor.run { NotificationInbox.shared.request = .init(coinID: coin, orderID: order, receipt: receipt) }
     }
 }
 
@@ -51,6 +56,8 @@ final class NotificationInbox {
         let coinID: String?
         /// O fim do prazo de uma ordem limite: abre Trocar, na ordem limite.
         var orderID: String? = nil
+        /// Moeda recebida: abre a Atividade.
+        var receipt = false
     }
 
     var request: Request?

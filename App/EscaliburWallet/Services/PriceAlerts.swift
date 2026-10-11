@@ -114,14 +114,13 @@ actor PriceAlertCenter {
         value.memory = value.memory.filter { id, _ in value.watches(id) }
         current = value
         try? PriceAlertStore.save(value)
-        if value.enabled, !value.coins.isEmpty { Self.schedule() } else { Self.cancelSchedule() }
+        BackgroundCheck.reschedule()
         return value
     }
 
     /// Na ida para o segundo plano: garante a proxima checagem na agenda.
     func reschedule() {
-        let value = file()
-        if value.enabled, !value.coins.isEmpty { Self.schedule() }
+        BackgroundCheck.reschedule()
     }
 
     /// A moeda do app mudou: os precos guardados eram de outra moeda e viram base nova.

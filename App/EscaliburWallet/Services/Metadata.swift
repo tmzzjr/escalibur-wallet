@@ -47,6 +47,9 @@ struct Metadata: Codable, Equatable {
     /// Ordens limite que o dono pediu para refazer quando vencerem (`LimitRenewal`).
     /// Opcional para os metadados gravados antes deste campo abrirem.
     var limitRenewals: [LimitRenewal]?
+    /// O ultimo historico lido de cada carteira (`CachedActivity`), para a Atividade abrir
+    /// na hora. Opcional para os metadados gravados antes deste campo abrirem.
+    var activityCache: [UUID: [CachedActivity]]?
 
     var selectedWallet: WalletMeta? {
         wallets.first { $0.id == selectedWalletID } ?? wallets.first

@@ -8,6 +8,7 @@ struct SettingsView: View {
     @Environment(AppSession.self) private var session
     @State private var openingEnvelope = false
     @State private var alerts: PriceAlertFile?
+    @State private var receipts: ReceiptWatchFile?
 
     private var alertsValue: String? {
         guard let alerts else { return nil }
@@ -49,6 +50,11 @@ struct SettingsView: View {
                             SettingsRow(icon: "bell", title: "Alertas de preço", value: alertsValue)
                         }
                         .accessibilityIdentifier("ajustes-alertas")
+                        NavigationLink { ReceiptWatchView() } label: {
+                            SettingsRow(icon: "arrow.down.circle", title: "Aviso de recebimento",
+                                        value: receipts.map { $0.enabled ? "Ligado" : "Desligado" })
+                        }
+                        .accessibilityIdentifier("ajustes-recebimento")
                     }
 
                     SettingsSection(title: "Sobre") {
@@ -62,7 +68,10 @@ struct SettingsView: View {
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .statusBarBackdrop()
-            .onAppear { Task { alerts = await PriceAlertCenter.shared.file() } }
+            .onAppear {
+                Task { alerts = await PriceAlertCenter.shared.file() }
+                Task { receipts = await ReceiptWatchCenter.shared.file() }
+            }
         }
         .fullScreenCover(isPresented: $openingEnvelope) {
             OpenEnvelopeFlow(initialURL: nil) { openingEnvelope = false }

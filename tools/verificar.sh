@@ -219,11 +219,15 @@ grep -q 'NSFileProtectionComplete' "$APP/Resources/EscaliburWallet.entitlements"
 grep -q 'sceneCaptureState' "$APP/App/PlatformGuards.swift" && grep -q 'isCaptured' "$APP/App/PlatformGuards.swift" \
     && ok "tela sensivel some com gravacao, espelhamento ou captura da cena" || aviso "defesa contra captura de tela incompleta"
 grep -q 'isExcludedFromBackup = true' "$APP/Services/Metadata.swift" && ok "metadados fora do backup do iCloud" || aviso "metadados podem ir para o backup"
-# Protecao mais fraca que a Complete: so o marcador de instalacao e o arquivo dos
-# alertas de preco, que precisa abrir com o iPhone bloqueado e nao diz o que a carteira tem.
+# Protecao mais fraca que a Complete: so o marcador de instalacao, o arquivo dos
+# alertas de preco (nao diz o que a carteira tem) e o do aviso de recebimento (so os
+# enderecos publicos, e so com o dono ligando), que precisam abrir com o iPhone bloqueado.
 achados=$(procurar 'UntilFirstUserAuthentication|completeUnlessOpen|CompleteUnlessOpen|FileProtectionType\.none|noFileProtection' "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET" "$ENG" \
-    | grep -vE "^$APP/(Services/KeyServices|Services/PriceAlerts)\.swift:")
-[ -n "$achados" ] && { aviso "protecao de arquivo mais fraca fora das duas excecoes"; echo "$achados"; } || ok "protecao abaixo da Complete so no marcador de instalacao e nos alertas de preco"
+    | grep -vE "^$APP/(Services/KeyServices|Services/PriceAlerts|Services/ReceiptWatch)\.swift:")
+[ -n "$achados" ] && { aviso "protecao de arquivo mais fraca fora das tres excecoes"; echo "$achados"; } || ok "protecao abaixo da Complete so no marcador de instalacao, nos alertas de preco e no aviso de recebimento"
+recebimento="$APP/Services/ReceiptWatch.swift"
+achados=$(grep -nE 'import (EscaliburKeys|Security|LocalAuthentication)|KeyServices|RootKeyVault|SecretStore|MetadataStore|SecureBytes|AppSession|Portfolio|WalletMeta|privateKey|mnemonic' "$recebimento" 2>/dev/null | grep -vE '^[0-9]+:[[:space:]]*//')
+[ -n "$achados" ] && { aviso "o aviso de recebimento toca cofre, chaveiro ou metadados"; echo "$achados"; } || ok "o aviso de recebimento (segundo plano) so le enderecos publicos e saldo, sem cofre, chaveiro nem metadados"
 alertas="$APP/Services/PriceAlerts.swift"
 achados=$(grep -nE 'import (EscaliburKeys|Security|LocalAuthentication)|KeyServices|RootKeyVault|SecretStore|MetadataStore|SecureBytes|AppSession|Portfolio|balance' "$alertas" 2>/dev/null | grep -vE '^[0-9]+:[[:space:]]*//')
 [ -n "$achados" ] && { aviso "os alertas de preco tocam cofre, chaveiro, metadados ou saldo"; echo "$achados"; } || ok "os alertas de preco (segundo plano) nao tocam cofre, chaveiro, metadados nem saldo"

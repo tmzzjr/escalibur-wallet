@@ -21,6 +21,8 @@ Para mostrar saldos, preços e histórico, e para enviar e trocar, o app fala di
 
 Com os alertas de preço ligados, o iPhone consulta de tempos em tempos, também com o app fechado, o preço das moedas marcadas no CoinGecko e no CoinPaprika. Os dois veem o IP e a lista dessas moedas, nada mais.
 
+Com o aviso de recebimento ligado (vem desligado), o iPhone confere de tempos em tempos, também com o app fechado, o saldo das suas contas nos mesmos serviços de cada rede que o app já usa. Para isso, os endereços públicos das contas ficam num arquivo à parte no iPhone, legível depois do primeiro desbloqueio, fora dos dados cifrados da carteira. Nenhuma chave entra nele, e desligar o aviso apaga o arquivo.
+
 Para a busca de Receber achar qualquer moeda, o texto que você digita vai ao CoinGecko, e, quando você toca numa moeda, o app pergunta em que redes ela existe. O CoinGecko vê o IP e o que foi buscado, sem endereço nem saldo.
 
 A lista abaixo é completa: o app não consegue falar com nenhum outro endereço, e o código confere isso a cada versão.
