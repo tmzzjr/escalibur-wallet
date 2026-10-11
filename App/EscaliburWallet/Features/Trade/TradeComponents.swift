@@ -1,5 +1,6 @@
 import EscaliburEngines
 import EscaliburChains
+import EscaliburCore
 import SwiftUI
 
 /// O logo de quem executa a troca. Com logo embarcado (tools/baixar-logos.py), o logo;
@@ -316,44 +317,84 @@ struct SlippageSlider: View {
 
 /// Enquanto a troca e montada ou enviada: a moeda que sai, a que entra, e um ponto
 /// correndo entre as duas pelo caminho tracejado.
+///
+/// O movimento sai de um relogio de quadros (`TimelineView`), e nao de uma animacao
+/// implicita: a animacao que repete para sempre, ligada no `onAppear`, pegava carona na
+/// transicao da tela e fazia o desenho inteiro deslizar e pular.
 struct SwapProcessingIndicator: View {
     let sell: Asset?
     let buy: Asset?
-    @State private var progress: CGFloat = 0
-    @State private var pulse = false
 
     var body: some View {
-        HStack(spacing: 0) {
-            logo(sell)
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Path { path in
-                        path.move(to: CGPoint(x: 0, y: geometry.size.height / 2))
-                        path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height / 2))
+        TimelineView(.animation) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            let cycle = time.truncatingRemainder(dividingBy: 1.2) / 1.2
+            // Sai devagar, corre no meio e chega devagar.
+            let progress = CGFloat(0.5 - cos(cycle * .pi) / 2)
+            let pulse = CGFloat(1 + 0.04 * sin(time * 2 * .pi / 1.8))
+            HStack(spacing: 0) {
+                logo(sell).scaleEffect(pulse)
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Path { path in
+                            path.move(to: CGPoint(x: 0, y: geometry.size.height / 2))
+                            path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height / 2))
+                        }
+                        .stroke(Palette.edgeStrong, style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [2, 6]))
+                        Circle()
+                            .fill(Palette.accent)
+                            .frame(width: 10, height: 10)
+                            .offset(x: progress * (geometry.size.width - 10))
                     }
-                    .stroke(Palette.edgeStrong, style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [2, 6]))
-                    Circle()
-                        .fill(Palette.purple)
-                        .frame(width: 10, height: 10)
-                        .offset(x: progress * (geometry.size.width - 10))
+                    .frame(maxHeight: .infinity)
                 }
-                .frame(maxHeight: .infinity)
+                .frame(height: 44)
+                .padding(.horizontal, Space.sm)
+                logo(buy).scaleEffect(2 - pulse)
             }
-            .frame(height: 44)
-            .padding(.horizontal, Space.sm)
-            logo(buy)
         }
         .frame(maxWidth: 260)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: false)) { progress = 1 }
-            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { pulse = true }
-        }
         .accessibilityHidden(true)
     }
 
     private func logo(_ asset: Asset?) -> some View {
-        CoinLogo(coingeckoID: asset?.coingeckoID, symbol: asset?.symbol ?? "", size: 44, network: asset?.chain)
-            .scaleEffect(pulse ? 1.04 : 0.96)
+        let unverified = asset?.origin != nil
+        return CoinLogo(coingeckoID: asset?.coingeckoID, symbol: asset?.symbol ?? "", size: 44, network: asset?.chain,
+                        unverified: unverified, logoAsset: unverified ? asset : nil)
+    }
+}
+
+/// A troca na revisao: a moeda que sai, uma seta, a que entra, com os valores do plano.
+struct TradeDirectionHeader: View {
+    let sell: Asset?
+    let buy: Asset?
+    let sellAmount: BigUInt?
+    let buyMinimum: BigUInt?
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Space.sm) {
+            side(sell, amount: sellAmount, prefix: "")
+            Image(systemName: "arrow.right")
+                .font(.system(size: 18, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                .frame(width: 36, height: 52)
+            side(buy, amount: buyMinimum, prefix: "no mínimo ")
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func side(_ asset: Asset?, amount: BigUInt?, prefix: String) -> some View {
+        let unverified = asset?.origin != nil
+        return VStack(spacing: Space.xs) {
+            CoinLogo(coingeckoID: asset?.coingeckoID, symbol: asset?.symbol ?? "", size: 52, network: asset?.chain,
+                     unverified: unverified, logoAsset: unverified ? asset : nil)
+            if let asset, let amount {
+                Text(prefix + Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol))
+                    .typeStyle(.note).foregroundStyle(Palette.ink).multilineTextAlignment(.center)
+                    .lineLimit(2).minimumScaleFactor(0.7)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 

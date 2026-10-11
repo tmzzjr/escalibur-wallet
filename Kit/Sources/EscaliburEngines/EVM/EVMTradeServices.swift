@@ -52,8 +52,9 @@ struct EVMConfirmationPolicy: Sendable {
     let interval: Duration
     let attempts: Int
 
-    /// Ate cerca de cinco minutos, perguntando a cada 3 segundos.
-    static let standard = EVMConfirmationPolicy(interval: .seconds(3), attempts: 100)
+    /// Ate cerca de cinco minutos, perguntando a cada 1,5 segundo: nas redes de bloco
+    /// rapido a autorizacao confirma em poucos segundos, e a ordem nao deve esperar mais.
+    static let standard = EVMConfirmationPolicy(interval: .milliseconds(1_500), attempts: 200)
 }
 
 /// As ordens limite planejadas e ainda nao enviadas, pelo id do `SigningPlan`.

@@ -53,6 +53,9 @@ struct Metadata: Codable, Equatable {
     /// O endereco da logo de cada token fora da lista ja achada (`TokenLogoResolver`),
     /// por `Asset.id`: na abertura seguinte ela aparece na hora, sem a fila do CoinGecko.
     var tokenLogos: [String: URL]?
+    /// Tokens fora da lista usados numa ordem ou troca (`TradedAssets`): as ordens abertas
+    /// mostram nome, casas e logo deles mesmo depois que saem do saldo.
+    var tradedAssets: [Asset]?
 
     var selectedWallet: WalletMeta? {
         wallets.first { $0.id == selectedWalletID } ?? wallets.first

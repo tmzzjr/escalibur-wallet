@@ -296,7 +296,7 @@ struct TradeView: View {
                 .buttonStyle(.plain)
                 Text(feeText(quote)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 if let unverified = [sell, buy].first(where: { $0.origin != nil }) {
-                    Text("\(unverified.symbol) não é verificado pela Escalibur. A troca é simulada em duas fontes antes de você assinar, mas há token que deixa comprar e não deixa vender.")
+                    Text("\(unverified.symbol) não está na lista verificada da Escalibur. Qualquer pessoa cria um token com qualquer nome, e alguns deixam comprar mas não deixam vender. Confira o contrato antes.")
                         .typeStyle(.note).foregroundStyle(Palette.caution).fixedSize(horizontal: false, vertical: true)
                 }
                 impactLine(quote)

@@ -6,10 +6,30 @@ import SwiftUI
 /// usam a mesma placa: a revisao mostra o plano, nunca a intencao.
 struct PlanVerbatimPlate: View {
     let review: PlanReview
+    /// Na troca e na ordem, os enderecos (destinatario, que e a propria conta, contratos e
+    /// quem fica autorizado) ficam atras de um toque. No envio, o destino fica sempre a
+    /// vista: e o que a pessoa confere antes de assinar.
+    var collapsible = false
+    @State private var expanded = false
 
     var body: some View {
         let lines = review.lines.filter(\.verbatim)
-        if !lines.isEmpty {
+        if !lines.isEmpty, collapsible, !expanded {
+            Button { withAnimation(Motion.fade) { expanded = true } } label: {
+                HStack(spacing: Space.sm) {
+                    Image(systemName: "doc.text.magnifyingglass").font(.system(size: 15, weight: .medium)).foregroundStyle(Palette.inkSoft)
+                    Text(lines.count == 1 ? "Ver o endereço" : "Ver endereços e contratos (\(lines.count))")
+                        .typeStyle(.row).foregroundStyle(Palette.ink)
+                    Spacer()
+                    Image(systemName: "chevron.down").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                }
+                .padding(.horizontal, Space.md).frame(minHeight: Height.row)
+                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("revisao-enderecos")
+        } else if !lines.isEmpty {
             VStack(alignment: .leading, spacing: Space.sm) {
                 ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
                     VStack(alignment: .leading, spacing: Space.xs) {
@@ -27,6 +47,7 @@ struct PlanVerbatimPlate: View {
             .padding(Space.base)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(LacquerPlate(cut: 20).fill(Palette.live))
+            .onTapGesture { if collapsible { withAnimation(Motion.fade) { expanded = false } } }
         }
     }
 

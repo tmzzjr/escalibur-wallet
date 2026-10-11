@@ -124,12 +124,17 @@ struct TradeReviewFlow: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 if let plan {
+                    if !isCancel {
+                        TradeDirectionHeader(sell: assets.sell, buy: assets.buy, sellAmount: plan.review.outgoing?.amount,
+                                             buyMinimum: plan.review.incomingMinimum?.amount)
+                            .padding(.bottom, Space.lg)
+                    }
                     Text(plan.review.title).typeStyle(.title).foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     if let fiat {
                         Text("cerca de \(Fmt.fiat(fiat, session.currency))").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, 2)
                     }
-                    PlanVerbatimPlate(review: plan.review).padding(.top, Space.lg)
+                    PlanVerbatimPlate(review: plan.review, collapsible: true).padding(.top, Space.lg)
                     PlanDetailLines(review: plan.review, extra: [("De", session.selectedWallet?.name ?? "")]
                         + (item.renewLimit ? [("Quando vencer", "O app avisa e pergunta se refaz, com o mesmo preço")] : []))
                         .padding(.top, Space.lg)
@@ -147,7 +152,9 @@ struct TradeReviewFlow: View {
             .padding(.bottom, Space.lg)
         }
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: plan?.review.title ?? "Confirmar") { Task { await confirm() } }
+            PrimaryButton(title: text(swap: "Confirmar troca", limit: "Criar ordem limite", cancel: "Cancelar a ordem")) {
+                Task { await confirm() }
+            }
                 .padding(.top, Space.sm)
                 .padding(.bottom, Space.xs)
                 .background(Palette.void)
@@ -160,22 +167,21 @@ struct TradeReviewFlow: View {
             SwapProcessingIndicator(sell: assets.sell, buy: assets.buy).frame(maxWidth: .infinity)
             Text(text(swap: "Enviando a troca", limit: "Enviando a ordem", cancel: "Enviando o cancelamento")).typeStyle(.title).foregroundStyle(Palette.ink)
                 .frame(maxWidth: .infinity).padding(.top, Space.lg)
-            Text("Não feche o app até terminar.").typeStyle(.body).foregroundStyle(Palette.inkSoft)
+            Text(sendingNote).typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
             Spacer()
         }
     }
 
-    /// A troca pela CoW e a ordem limite da CoW: o id devolvido e o UID da ordem, e a tela
-    /// acompanha o preenchimento.
+    /// A troca pela CoW: o id devolvido e o UID da ordem, e a tela acompanha o
+    /// preenchimento. A ordem limite nao: ela espera o preco, e o andamento fica em Ordens
+    /// abertas (pedido do dono, 11/10/2026).
     private var followedOrder: (id: String, kind: OrderProgressPanel.Kind, account: DerivedAccount)? {
         guard let plan, plan.transactions.last is EIP712ValidatedMessage, let id = ids.first,
               let account = session.selectedWallet?.account(item.chain) else { return nil }
-        switch item.kind {
-        case .swap: return (id, .swap, account)
-        case .limit: return (id, .limit, account)
-        case .cancel: return nil
-        }
+        if case .swap = item.kind { return (id, .swap, account) }
+        return nil
     }
 
     @ViewBuilder
@@ -213,6 +219,15 @@ struct TradeReviewFlow: View {
             PrimaryButton(title: "Concluir") { onClose(true) }.padding(.top, Space.sm).padding(.bottom, Space.xs)
         }
         .sensoryFeedback(.success, trigger: stage == .done)
+    }
+
+    /// Ordem da CoW com autorizacao antes: a CoW so aceita a ordem depois que a
+    /// autorizacao confirma na rede, e a espera e essa.
+    private var sendingNote: String {
+        guard let plan, plan.transactions.last is EIP712ValidatedMessage, plan.transactions.count > 1 else {
+            return "Não feche o app até terminar."
+        }
+        return "A autorização vai primeiro. A ordem segue para a CoW assim que ela confirmar na \(item.chain.name). Não feche o app até terminar."
     }
 
     // MARK: Acoes
@@ -350,6 +365,11 @@ struct TradeReviewFlow: View {
             if !isCancel { VoiceGate.shared.noteSendTransmitted(session: session) }
             ids = try await engine.submit(signed, plan: plan)
             unsureSigned = nil
+            switch item.kind {
+            case .swap(let request, _): TradedAssets.remember([request.sell, request.buy], session: session)
+            case .limit(let request): TradedAssets.remember([request.sell, request.buy], session: session)
+            case .cancel: break
+            }
             if case .limit(let request) = item.kind, let orderID = ids.first {
                 if let old = item.replacesRenewal { LimitRenewalCenter.shared.forget(old, session: session) }
                 if item.renewLimit { LimitRenewalCenter.shared.register(orderID: orderID, request: request, session: session) }

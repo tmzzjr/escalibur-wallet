@@ -201,6 +201,7 @@ struct DemoEnvelopes: ViewModifier {
     @State private var voice = false
     @State private var alerts = false
     @State private var progress = false
+    @State private var reviewPreview = false
     @State private var shown = false
 
     func body(content: Content) -> some View {
@@ -212,6 +213,8 @@ struct DemoEnvelopes: ViewModifier {
             // `-tela andamento`: o anel de uma troca pela CoW em 45%, e o anel das
             // ordens abertas nos estados de ponta.
             .fullScreenCover(isPresented: $progress) { DemoOrderProgress() }
+            // `-tela revisao`: a revisao de uma ordem limite de exemplo, sem rede.
+            .fullScreenCover(isPresented: $reviewPreview) { DemoReviewPreview() }
             .fullScreenCover(item: $sealing) { wallet in SealEnvelopeFlow(wallet: wallet) { sealing = nil } }
             .fullScreenCover(isPresented: $opening) { OpenEnvelopeFlow(initialURL: DebugDemo.envelopeURL) { opening = false } }
             .fullScreenCover(item: $newWallet) { screen in
@@ -230,6 +233,7 @@ struct DemoEnvelopes: ViewModifier {
                 if DebugDemo.screen == "voz" { voice = true }
                 if DebugDemo.screen == "alertas" { alerts = true }
                 if DebugDemo.screen == "andamento" { progress = true }
+                if DebugDemo.screen == "revisao" { reviewPreview = true }
                 newWallet = DebugDemo.screen.flatMap(DemoNewWallet.init(rawValue:))
             }
     }
@@ -265,6 +269,39 @@ struct DemoOrderProgress: View {
         }
         .padding(.horizontal, Space.gutter)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.void.ignoresSafeArea())
+    }
+}
+/// A revisao de uma ordem limite de exemplo: as moedas com a seta, o titulo, o cartao
+/// dos enderecos fechado e o botao curto.
+struct DemoReviewPreview: View {
+    var body: some View {
+        let usdc = TokenRegistry.tokens.first { $0.chainID == "base" && $0.symbol == "USDC" }
+        let review = PlanReview(
+            kind: .limitOrder, title: "Ordem limite: vender 1 ETH por USDC",
+            lines: [
+                .init("Rede", "Base"), .init("Vende", "1 ETH"), .init("Recebe, no mínimo", "2.600 USDC"),
+                .init("Destinatário", "0x9d8A62f656a8d1615C1294fd71e9CFb3E4855A4F", verbatim: true),
+                .init("Contrato da CoW", "0x9008D19f58AAbD9eD0D60971565AA8510560ab41", verbatim: true),
+                .init("Autorizado a gastar", "0xC92E8bdf79f0507f65a392b0ab4667716BFE0110", verbatim: true),
+                .init("Taxa da Escalibur", "Sem taxa da Escalibur"),
+            ],
+            transactionCount: 2
+        )
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                TradeDirectionHeader(sell: .native(.base), buy: usdc, sellAmount: BigUInt.power(of: 10, 18),
+                                     buyMinimum: BigUInt(2_600) * BigUInt.power(of: 10, 6))
+                    .padding(.bottom, Space.lg)
+                Text(review.title).typeStyle(.title).foregroundStyle(Palette.ink)
+                PlanVerbatimPlate(review: review, collapsible: true).padding(.top, Space.lg)
+                PlanDetailLines(review: review).padding(.top, Space.lg)
+            }
+            .padding(.horizontal, Space.gutter).padding(.top, Space.xl)
+        }
+        .safeAreaInset(edge: .bottom) {
+            PrimaryButton(title: "Criar ordem limite") {}.padding(.horizontal, Space.gutter).padding(.bottom, Space.xs)
+        }
         .background(Palette.void.ignoresSafeArea())
     }
 }
