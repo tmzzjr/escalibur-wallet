@@ -403,13 +403,20 @@ public actor TradeStateReader {
 
     /// O estado do cancelamento na cadeia de uma ordem da CoW: `invalidateOrder(uid)` no
     /// GPv2Settlement, com o gas medido da chamada exata e a taxa L1 dela.
+    /// O gas do `invalidateOrder`, a taxa L1 e o estado da conta, lidos ao mesmo tempo:
+    /// um depois do outro, cada um em duas fontes, deixavam o cancelamento varios
+    /// segundos na tela de espera.
     public func readCancellation(chain: Chain, owner: EVMAddress, uid: [UInt8], localNextNonce: UInt64? = nil) async throws -> EVMNetworkState {
         let data = try CoWProtocol.invalidateOrderCall(uid: uid)
-        let gas = try await gasUsed(chain: chain, calls: [.init(from: owner, to: CoWProtocol.settlement, value: 0, data: data)]).first ?? 0
-        let l1Gas = try await arbitrumL1Gas(chain: chain, to: CoWProtocol.settlement, data: data)
-        return try await network(
-            chain: chain, owner: owner, localNextNonce: localNextNonce, gasEstimate: gas + l1Gas,
-            l1DataFee: try await l1DataFee(chain: chain, calldataSize: data.count), destinationHasCode: true
+        async let gas = gasUsed(chain: chain, calls: [.init(from: owner, to: CoWProtocol.settlement, value: 0, data: data)])
+        async let l1Gas = arbitrumL1Gas(chain: chain, to: CoWProtocol.settlement, data: data)
+        async let l1Fee = l1DataFee(chain: chain, calldataSize: data.count)
+        async let account = network(chain: chain, owner: owner, localNextNonce: localNextNonce, destinationHasCode: true)
+        let base = try await account
+        return EVMNetworkState(
+            chain: base.chain, pendingNonces: base.pendingNonces, localNextNonce: base.localNextNonce, baseFeePerGas: base.baseFeePerGas,
+            priorityFees: base.priorityFees, gasEstimate: (try await gas.first ?? 0) + (try await l1Gas), l1DataFee: try await l1Fee,
+            nativeBalance: base.nativeBalance, destinationHasCode: true
         )
     }
 

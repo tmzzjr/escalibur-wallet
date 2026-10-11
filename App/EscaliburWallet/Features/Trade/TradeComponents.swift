@@ -315,52 +315,93 @@ struct SlippageSlider: View {
     }
 }
 
-/// Enquanto a troca e montada ou enviada: a moeda que sai, a que entra, e um ponto
-/// correndo entre as duas pelo caminho tracejado.
+/// Enquanto a troca (ou o cancelamento) e montada ou enviada: as duas moedas nas pontas
+/// de um arco, e um cometa rosa com rastro correndo de uma para a outra. Quando ele chega,
+/// uma onda sai da moeda de destino. No cancelamento o cometa volta para a moeda vendida
+/// (o valor fica na carteira) e a outra fica apagada.
 ///
-/// O movimento sai de um relogio de quadros (`TimelineView`), e nao de uma animacao
-/// implicita: a animacao que repete para sempre, ligada no `onAppear`, pegava carona na
-/// transicao da tela e fazia o desenho inteiro deslizar e pular.
+/// Tudo sai de um relogio de quadros (`TimelineView` com `Canvas`), sem animacao
+/// implicita: a que repete para sempre, ligada no `onAppear`, pegava carona na transicao
+/// da tela e fazia o desenho inteiro deslizar. Cores chapadas, sem brilho.
 struct SwapProcessingIndicator: View {
     let sell: Asset?
     let buy: Asset?
+    var cancelling = false
+
+    static let period = 1.6
+    static let logoSize: CGFloat = 56
 
     var body: some View {
         TimelineView(.animation) { context in
             let time = context.date.timeIntervalSinceReferenceDate
-            let cycle = time.truncatingRemainder(dividingBy: 1.2) / 1.2
-            // Sai devagar, corre no meio e chega devagar.
-            let progress = CGFloat(0.5 - cos(cycle * .pi) / 2)
-            let pulse = CGFloat(1 + 0.04 * sin(time * 2 * .pi / 1.8))
-            HStack(spacing: 0) {
-                logo(sell).scaleEffect(pulse)
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        Path { path in
-                            path.move(to: CGPoint(x: 0, y: geometry.size.height / 2))
-                            path.addLine(to: CGPoint(x: geometry.size.width, y: geometry.size.height / 2))
-                        }
-                        .stroke(Palette.edgeStrong, style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [2, 6]))
-                        Circle()
-                            .fill(Palette.accent)
-                            .frame(width: 10, height: 10)
-                            .offset(x: progress * (geometry.size.width - 10))
+            let cycle = time.truncatingRemainder(dividingBy: Self.period) / Self.period
+            GeometryReader { geometry in
+                let size = geometry.size
+                let inset = Self.logoSize / 2
+                let start = CGPoint(x: inset, y: size.height - inset)
+                let end = CGPoint(x: size.width - inset, y: size.height - inset)
+                let control = CGPoint(x: size.width / 2, y: -size.height * 0.25)
+                ZStack {
+                    Canvas { context, _ in
+                        var arc = Path()
+                        arc.move(to: start)
+                        arc.addQuadCurve(to: end, control: control)
+                        context.stroke(arc, with: .color(Palette.edgeStrong), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [3, 6]))
+                        Self.drawComet(context, cycle: cycle, start: start, control: control, end: end, cancelling: cancelling)
                     }
-                    .frame(maxHeight: .infinity)
+                    logo(sell)
+                        .scaleEffect(1 + 0.03 * CGFloat(sin(time * 2 * .pi / 2.2)))
+                        .position(start)
+                    logo(buy)
+                        .scaleEffect(1 + 0.03 * CGFloat(sin(time * 2 * .pi / 2.2 + .pi)))
+                        .opacity(cancelling ? 0.35 : 1)
+                        .position(end)
                 }
-                .frame(height: 44)
-                .padding(.horizontal, Space.sm)
-                logo(buy).scaleEffect(2 - pulse)
             }
         }
-        .frame(maxWidth: 260)
+        .frame(width: 280, height: 132)
         .accessibilityHidden(true)
+    }
+
+    /// Ponto do arco em `t` (0 na moeda vendida, 1 na comprada).
+    static func point(_ t: Double, _ start: CGPoint, _ control: CGPoint, _ end: CGPoint) -> CGPoint {
+        let u = 1 - t
+        return CGPoint(x: u * u * start.x + 2 * u * t * control.x + t * t * end.x,
+                       y: u * u * start.y + 2 * u * t * control.y + t * t * end.y)
+    }
+
+    /// Sai devagar, corre no meio, chega devagar.
+    static func ease(_ x: Double) -> Double { x * x * (3 - 2 * x) }
+
+    static func drawComet(_ context: GraphicsContext, cycle: Double, start: CGPoint, control: CGPoint, end: CGPoint, cancelling: Bool) {
+        // O cometa corre nos primeiros 80% do ciclo; a onda ocupa o resto.
+        let travel = min(1, cycle / 0.8)
+        // Na troca, da moeda vendida para a comprada; no cancelamento, do meio do
+        // caminho de volta para a vendida.
+        let head = cancelling ? 0.7 * (1 - ease(travel)) : ease(travel)
+        let direction = cancelling ? 1.0 : -1.0
+        if cycle < 0.8 {
+            for k in 0..<14 {
+                let t = head + direction * Double(k) * 0.022
+                guard (0...1).contains(t) else { continue }
+                let center = point(t, start, control, end)
+                let radius = max(1, 5.5 - CGFloat(k) * 0.35)
+                let rect = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+                context.fill(Path(ellipseIn: rect), with: .color(Palette.accent.opacity(1 - Double(k) / 14)))
+            }
+        } else {
+            let wave = (cycle - 0.8) / 0.2
+            let target = cancelling ? start : end
+            let radius = logoSize / 2 + 2 + CGFloat(wave) * 16
+            let rect = CGRect(x: target.x - radius, y: target.y - radius, width: radius * 2, height: radius * 2)
+            context.stroke(Path(ellipseIn: rect), with: .color(Palette.accent.opacity(1 - wave)), lineWidth: 2)
+        }
     }
 
     private func logo(_ asset: Asset?) -> some View {
         let unverified = asset?.origin != nil
-        return CoinLogo(coingeckoID: asset?.coingeckoID, symbol: asset?.symbol ?? "", size: 44, network: asset?.chain,
-                        unverified: unverified, logoAsset: unverified ? asset : nil)
+        return CoinLogo(coingeckoID: asset?.coingeckoID, symbol: asset?.symbol ?? "", size: Self.logoSize, network: asset?.chain,
+                        ringColor: Palette.void, unverified: unverified, logoAsset: unverified ? asset : nil)
     }
 }
 

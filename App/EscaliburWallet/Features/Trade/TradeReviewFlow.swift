@@ -62,7 +62,10 @@ struct TradeReviewFlow: View {
         switch item.kind {
         case .swap(let request, _): return (request.sell, request.buy)
         case .limit(let request): return (request.sell, request.buy)
-        case .cancel(let order, _): return (order.sell, order.buy)
+        case .cancel(let order, _):
+            // A ordem pode ser de token fora da lista: o que a carteira conhece dele.
+            return (TradedAssets.resolve(order.sellAssetID, listed: order.sell, chain: order.chain, session: session, portfolio: portfolio),
+                    TradedAssets.resolve(order.buyAssetID, listed: order.buy, chain: order.chain, session: session, portfolio: portfolio))
         }
     }
 
@@ -109,7 +112,7 @@ struct TradeReviewFlow: View {
                     .padding(.bottom, Space.xs)
             } else {
                 Spacer()
-                SwapProcessingIndicator(sell: assets.sell, buy: assets.buy).frame(maxWidth: .infinity)
+                SwapProcessingIndicator(sell: assets.sell, buy: assets.buy, cancelling: isCancel).frame(maxWidth: .infinity)
                 Text(text(swap: "Recotando e simulando a troca antes de mostrar.", limit: "Montando a ordem e conferindo os dados da rede.",
                           cancel: "Montando o cancelamento e conferindo a ordem na rede."))
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft)
@@ -164,7 +167,7 @@ struct TradeReviewFlow: View {
     private var sending: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             Spacer()
-            SwapProcessingIndicator(sell: assets.sell, buy: assets.buy).frame(maxWidth: .infinity)
+            SwapProcessingIndicator(sell: assets.sell, buy: assets.buy, cancelling: isCancel).frame(maxWidth: .infinity)
             Text(text(swap: "Enviando a troca", limit: "Enviando a ordem", cancel: "Enviando o cancelamento")).typeStyle(.title).foregroundStyle(Palette.ink)
                 .frame(maxWidth: .infinity).padding(.top, Space.lg)
             Text(sendingNote).typeStyle(.body).foregroundStyle(Palette.inkSoft)

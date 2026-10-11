@@ -202,6 +202,7 @@ struct DemoEnvelopes: ViewModifier {
     @State private var alerts = false
     @State private var progress = false
     @State private var reviewPreview = false
+    @State private var animationPreview = false
     @State private var shown = false
 
     func body(content: Content) -> some View {
@@ -215,6 +216,20 @@ struct DemoEnvelopes: ViewModifier {
             .fullScreenCover(isPresented: $progress) { DemoOrderProgress() }
             // `-tela revisao`: a revisao de uma ordem limite de exemplo, sem rede.
             .fullScreenCover(isPresented: $reviewPreview) { DemoReviewPreview() }
+            // `-tela animacao`: a animacao da troca e a do cancelamento.
+            .fullScreenCover(isPresented: $animationPreview) {
+                VStack(spacing: Space.xl) {
+                    Spacer()
+                    SwapProcessingIndicator(sell: .native(.base), buy: TokenRegistry.tokens.first { $0.chainID == "base" && $0.symbol == "USDC" })
+                    Text("Enviando a troca").typeStyle(.title).foregroundStyle(Palette.ink)
+                    SwapProcessingIndicator(sell: .native(.base), buy: TokenRegistry.tokens.first { $0.chainID == "base" && $0.symbol == "USDC" },
+                                            cancelling: true)
+                    Text("Enviando o cancelamento").typeStyle(.title).foregroundStyle(Palette.ink)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .background(Palette.void.ignoresSafeArea())
+            }
             .fullScreenCover(item: $sealing) { wallet in SealEnvelopeFlow(wallet: wallet) { sealing = nil } }
             .fullScreenCover(isPresented: $opening) { OpenEnvelopeFlow(initialURL: DebugDemo.envelopeURL) { opening = false } }
             .fullScreenCover(item: $newWallet) { screen in
@@ -234,6 +249,7 @@ struct DemoEnvelopes: ViewModifier {
                 if DebugDemo.screen == "alertas" { alerts = true }
                 if DebugDemo.screen == "andamento" { progress = true }
                 if DebugDemo.screen == "revisao" { reviewPreview = true }
+                if DebugDemo.screen == "animacao" { animationPreview = true }
                 newWallet = DebugDemo.screen.flatMap(DemoNewWallet.init(rawValue:))
             }
     }

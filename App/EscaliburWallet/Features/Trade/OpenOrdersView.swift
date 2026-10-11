@@ -3,17 +3,17 @@ import EscaliburCore
 import EscaliburEngines
 import SwiftUI
 
-/// As ordens limite abertas desta carteira numa rede, lidas da rede, ali mesmo na tela
-/// da ordem limite, e o cancelamento (auditoria 2, A3). O cancelamento passa pela mesma
+/// As ordens limite abertas desta carteira em todas as redes com ordem limite, lidas da
+/// rede, ali mesmo na tela da troca, e o cancelamento (auditoria 2, A3). Nao depende da
+/// rede escolhida em cima (pedido do dono, 11/10/2026). O cancelamento passa pela mesma
 /// revisao, PIN e assinatura de qualquer plano.
 ///
-/// A lista rele a cada 5 segundos enquanto esta na tela: o anel de cada ordem mostra
+/// A lista rele a cada 6 segundos enquanto esta na tela: o anel de cada ordem mostra
 /// quanto ja foi preenchido. A ordem que some da lista (executou, venceu ou foi
 /// cancelada) fica com o resultado final ate a tela fechar.
 struct OpenOrdersSection: View {
     @Environment(AppSession.self) private var session
     @Environment(Portfolio.self) private var portfolio
-    let chain: Chain
     /// Muda quando uma ordem foi criada ou cancelada fora daqui: a lista rele.
     var refresh: Int = 0
     /// Na troca imediata: a secao so aparece quando ha ordem (a troca pela CoW e uma
@@ -31,11 +31,21 @@ struct OpenOrdersSection: View {
         var id: String { order.id }
     }
 
-    static let pollInterval: Duration = .seconds(5)
+    static let pollInterval: Duration = .seconds(6)
     @State private var choosing: OpenOrder?
     @State private var reviewing: TradeReviewFlow.Item?
+    /// Redes que nao responderam na ultima leitura (as outras continuam na lista).
+    @State private var unread: [Chain] = []
 
-    private var engine: (any TradeEngine)? { TradeEngines.engine(for: chain) }
+    /// As redes com ordem limite em que a carteira tem conta, ligadas em Ajustes.
+    private var chains: [Chain] {
+        let disabled = session.metadata.settings.disabledChainIDs
+        return TradeEngines.chains.filter { chain in
+            !disabled.contains(chain.id) && session.selectedWallet?.account(chain) != nil
+                && TradeEngines.engine(for: chain)?.supportsLimitOrders == true
+        }
+    }
+
     private var canSign: Bool { session.selectedWallet?.isWatchOnly == false }
 
     private var hasRows: Bool {
@@ -50,7 +60,7 @@ struct OpenOrdersSection: View {
                 content
             }
         }
-        .task(id: "\(chain.id)-\(refresh)") {
+        .task(id: "\(session.selectedWallet?.id.uuidString ?? "")-\(refresh)") {
             await reload(initial: true)
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.pollInterval)
@@ -62,7 +72,7 @@ struct OpenOrdersSection: View {
                             titleVisibility: .visible, presenting: choosing) { order in
             if let via = Self.safest(order.cancellations) {
                 Button("Cancelar a ordem", role: .destructive) {
-                    reviewing = TradeReviewFlow.Item(kind: .cancel(order, via), chain: chain, fiat: nil)
+                    reviewing = TradeReviewFlow.Item(kind: .cancel(order, via), chain: order.chain, fiat: nil)
                 }
             }
             Button("Manter a ordem", role: .cancel) {}
@@ -92,13 +102,15 @@ struct OpenOrdersSection: View {
                 TertiaryButton(title: "Tentar de novo") { Task { await reload() } }
             }
         case .loaded(let orders) where orders.isEmpty && finished.isEmpty:
-            Text("Nenhuma ordem aberta \(chain.id == "xrpl" ? "no" : "na") \(chain.name). A que você criar aparece aqui até executar, vencer ou você cancelar.")
+            Text("Nenhuma ordem aberta. A que você criar, em qualquer rede, aparece aqui até executar, vencer ou você cancelar.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+            unreadNote
         case .loaded(let orders):
             VStack(spacing: 0) {
                 ForEach(orders) { order in row(order) }
                 ForEach(finished) { item in finishedRow(item) }
             }
+            unreadNote
             if orders.isEmpty {
                 EmptyView()
             } else if !canSign {
@@ -110,12 +122,20 @@ struct OpenOrdersSection: View {
         }
     }
 
-    private func assets(_ order: OpenOrder) -> (sell: Asset?, buy: Asset?) {
-        (TradedAssets.resolve(order.sellAssetID, listed: order.sell, chain: chain, session: session, portfolio: portfolio),
-         TradedAssets.resolve(order.buyAssetID, listed: order.buy, chain: chain, session: session, portfolio: portfolio))
+    @ViewBuilder
+    private var unreadNote: some View {
+        if !unread.isEmpty {
+            Text("Sem resposta agora: \(unread.map(\.name).joined(separator: ", ")). A lista tenta de novo sozinha.")
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+        }
     }
 
-    private func logo(_ asset: Asset?) -> some View {
+    private func assets(_ order: OpenOrder) -> (sell: Asset?, buy: Asset?) {
+        (TradedAssets.resolve(order.sellAssetID, listed: order.sell, chain: order.chain, session: session, portfolio: portfolio),
+         TradedAssets.resolve(order.buyAssetID, listed: order.buy, chain: order.chain, session: session, portfolio: portfolio))
+    }
+
+    private func logo(_ asset: Asset?, chain: Chain) -> some View {
         let unverified = asset?.origin != nil
         return CoinLogo(coingeckoID: asset?.coingeckoID, symbol: asset?.symbol ?? "?", size: 36, network: chain,
                         unverified: unverified, logoAsset: unverified ? asset : nil)
@@ -136,9 +156,9 @@ struct OpenOrdersSection: View {
         let (sell, buy) = assets(order)
         return Button { choosing = order } label: {
             HStack(spacing: Space.sm) {
-                logo(sell)
+                logo(sell, chain: order.chain)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Vende \(Self.amount(order.totalSell ?? order.remainingSell, sell))").typeStyle(.row).foregroundStyle(Palette.ink)
+                    Text("Vende \(Self.amount(order.totalSell ?? order.remainingSell, sell)) na \(order.chain.name)").typeStyle(.row).foregroundStyle(Palette.ink)
                     if let received = order.receivedBuy, !received.isZero {
                         Text("Recebido \(Self.amount(received, buy)), falta vender \(Self.amount(order.remainingSell, sell))")
                             .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
@@ -180,7 +200,7 @@ struct OpenOrdersSection: View {
         case .open: outcome = ""
         }
         return HStack(spacing: Space.sm) {
-            logo(sell)
+            logo(sell, chain: order.chain)
             VStack(alignment: .leading, spacing: 2) {
                 Text("Vende \(Self.amount(progress.totalSell, sell))").typeStyle(.row).foregroundStyle(Palette.ink)
                 Text(outcome).typeStyle(.note).foregroundStyle(progress.state == .filled ? Palette.up : Palette.inkSoft)
@@ -197,9 +217,10 @@ struct OpenOrdersSection: View {
     /// `initial`: a primeira leitura mostra o carregando e o erro. As seguintes so
     /// trocam a lista quando a leitura volta; falha no meio mantem a lista que havia.
     private func reload(initial: Bool = true) async {
-        guard let engine, let account = session.selectedWallet?.account(chain) else {
-            load = .failed("Esta carteira não tem conta nesta rede.")
-            return
+        guard let wallet = session.selectedWallet else { return }
+        let targets: [(Chain, any TradeEngine, DerivedAccount)] = chains.compactMap { chain in
+            guard let engine = TradeEngines.engine(for: chain), let account = wallet.account(chain) else { return nil }
+            return (chain, engine, account)
         }
         if initial {
             load = .loading
@@ -207,21 +228,38 @@ struct OpenOrdersSection: View {
         }
         let before: [OpenOrder]
         if case .loaded(let orders) = load { before = orders } else { before = [] }
-        do {
-            let orders = try await engine.openOrders(account: account)
-            // A que saiu da lista terminou: le o andamento final para mostrar o resultado.
-            let current = Set(orders.map(\.id))
-            for order in before where !current.contains(order.id) && !finished.contains(where: { $0.id == order.id }) {
-                if let progress = try? await engine.orderProgress(id: order.id, account: account), progress.isFinal {
-                    finished.append(FinishedOrder(order: order, progress: progress))
-                }
+        // Todas as redes ao mesmo tempo; a que nao responde nao segura as outras.
+        let results = await withTaskGroup(of: (Chain, [OpenOrder]?).self) { group in
+            for (chain, engine, account) in targets {
+                group.addTask { (chain, try? await engine.openOrders(account: account)) }
             }
-            load = .loaded(orders)
-        } catch {
-            if initial {
-                load = .failed((error as? LocalizedError)?.errorDescription ?? "Não foi possível ler as ordens agora. Tente de novo.")
+            var out: [(Chain, [OpenOrder]?)] = []
+            for await result in group { out.append(result) }
+            return out
+        }
+        let answered = results.compactMap { chain, orders in orders.map { (chain, $0) } }
+        let failedChains = results.filter { $0.1 == nil }.map(\.0)
+        guard !answered.isEmpty || targets.isEmpty else {
+            if initial { load = .failed("Não foi possível ler as ordens agora. Tente de novo.") }
+            return
+        }
+        let order = Dictionary(Chain.all.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var orders = answered.flatMap(\.1)
+        // Uma rede que nao respondeu agora fica com o que mostrava.
+        let failedIDs = Set(failedChains.map(\.id))
+        orders += before.filter { failedIDs.contains($0.chain.id) }
+        orders.sort { (order[$0.chain.id] ?? .max, $0.expiresAt ?? .distantFuture) < (order[$1.chain.id] ?? .max, $1.expiresAt ?? .distantFuture) }
+        // A que saiu da lista (numa rede que respondeu) terminou: le o andamento final.
+        let current = Set(orders.map(\.id))
+        let answeredIDs = Set(answered.map(\.0.id))
+        for gone in before where answeredIDs.contains(gone.chain.id) && !current.contains(gone.id) && !finished.contains(where: { $0.id == gone.id }) {
+            guard let engine = TradeEngines.engine(for: gone.chain), let account = wallet.account(gone.chain) else { continue }
+            if let progress = try? await engine.orderProgress(id: gone.id, account: account), progress.isFinal {
+                finished.append(FinishedOrder(order: gone, progress: progress))
             }
         }
+        unread = failedChains.sorted { (order[$0.id] ?? .max) < (order[$1.id] ?? .max) }
+        load = .loaded(orders)
     }
 
     // MARK: Textos

@@ -251,9 +251,7 @@ struct TradeView: View {
             SlippageSlider(basisPoints: $model.slippageBps, automatic: $model.automaticSlippage, autoValue: slippage())
                 .padding(.top, Space.lg)
             quoteLines.padding(.top, Space.lg)
-            if engine?.supportsLimitOrders == true, model.chain.family == .evm {
-                OpenOrdersSection(chain: model.chain, refresh: ordersRefresh, hidesWhenEmpty: true).padding(.top, Space.lg)
-            }
+            OpenOrdersSection(refresh: ordersRefresh, hidesWhenEmpty: true).padding(.top, Space.lg)
         }
     }
 
@@ -427,9 +425,7 @@ struct TradeView: View {
             if let engine {
                 Text(engine.limitCustodyNote).typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
-                if engine.supportsLimitOrders {
-                    OpenOrdersSection(chain: model.chain, refresh: ordersRefresh).padding(.top, Space.lg)
-                }
+                OpenOrdersSection(refresh: ordersRefresh).padding(.top, Space.lg)
             }
         }
     }
