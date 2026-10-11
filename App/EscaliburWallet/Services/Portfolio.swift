@@ -102,6 +102,15 @@ final class Portfolio {
         }
         sessionCustomIDs = session.metadata.customTokens.map(\.id)
         recognizedTokens = session.metadata.recognizedTokens ?? [:]
+        // As logos ja conhecidas entram antes de a tela pedir: aparecem na hora.
+        let known = session.metadata.tokenLogos ?? [:]
+        let recognizedImages = recognizedTokens.values.compactMap { identity in identity.image.map { (identity.assetID, $0) } }
+        let cachedLogos = (session.metadata.balanceCache[wallet.id] ?? [:]).values.flatMap { $0.unlisted ?? [] }
+            .compactMap { item in item.logo.map { (item.asset.id, $0) } }
+        Task {
+            await TokenLogoResolver.shared.seed(known)
+            for (id, url) in recognizedImages + cachedLogos { await TokenLogoResolver.shared.remember(url, for: id) }
+        }
         if force, walletID == wallet.id {
             recompute(wallet)
             return
@@ -139,6 +148,8 @@ final class Portfolio {
         // faltavam, e cada rede ainda sem resposta virava "nao foi possivel ler o saldo"
         // (relatado no iPhone com Litecoin, BNB Chain e Ethereum).
         let job = Task {
+            // As logos achadas desde a ultima leitura ficam guardadas para a proxima abertura.
+            await saveLogos(session: session)
             await read(wallet, session: session)
             while pendingRefresh, walletID == wallet.id {
                 pendingRefresh = false
@@ -146,6 +157,7 @@ final class Portfolio {
             }
             pendingRefresh = false
             loading = false
+            await saveLogos(session: session)
         }
         await job.value
     }
@@ -158,6 +170,25 @@ final class Portfolio {
     static func knownEmpty(_ balance: ChainBalance?) -> Bool {
         guard let balance else { return false }
         return balance.holdings.allSatisfy { $0.amount.isZero } && (balance.unlisted ?? []).isEmpty
+    }
+
+    /// A logo que veio junto com o token na lista do CoinGecko: na fila do resolvedor
+    /// antes de a linha aparecer.
+    private static func rememberLogos(_ balance: ChainBalance) async {
+        for item in balance.unlisted ?? [] {
+            if let logo = item.logo { await TokenLogoResolver.shared.remember(logo, for: item.asset.id) }
+        }
+    }
+
+    /// Guarda as logos achadas dos tokens que a carteira tem, para a proxima abertura.
+    private func saveLogos(session: AppSession) async {
+        let held = Set(balances.values.flatMap { ($0.unlisted ?? []).map(\.asset.id) + $0.holdings.map(\.asset.id) })
+        let known = await TokenLogoResolver.shared.known().filter { held.contains($0.key) }
+        var merged = (session.metadata.tokenLogos ?? [:]).filter { held.contains($0.key) }
+        merged.merge(known) { _, new in new }
+        guard merged != (session.metadata.tokenLogos ?? [:]) else { return }
+        session.metadata.tokenLogos = merged
+        try? session.persist()
     }
 
     private func read(_ wallet: WalletMeta, session: AppSession) async {
@@ -198,6 +229,7 @@ final class Portfolio {
             // segura as outras.
             for await (chain, balance) in group {
                 if let balance {
+                    await Self.rememberLogos(balance)
                     fresh[chain.id] = balance
                     if walletID == wallet.id {
                         balances[chain.id] = balance
@@ -225,6 +257,7 @@ final class Portfolio {
                 }
                 for await (chain, balance) in group {
                     if let balance {
+                        await Self.rememberLogos(balance)
                         fresh[chain.id] = balance
                         if walletID == wallet.id {
                             balances[chain.id] = balance

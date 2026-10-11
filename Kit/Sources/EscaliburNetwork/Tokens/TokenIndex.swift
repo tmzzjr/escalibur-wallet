@@ -12,6 +12,9 @@ struct IndexedToken: Sendable, Equatable {
     let decimals: Int?
     /// O indexador marcou como golpe (`reputation: "scam"` do Blockscout).
     let flagged: Bool
+    /// A logo que a lista de tokens do CoinGecko da para o contrato (`TokenListScan`), no
+    /// host de imagens do CoinGecko. Nunca a que o token declara.
+    var logo: URL? = nil
 }
 
 /// Os indexadores publicos sem chave que dizem quais ERC-20 uma conta tem.

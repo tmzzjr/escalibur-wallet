@@ -41,6 +41,7 @@ enum TokenListScan {
                 let name: String?
                 let symbol: String?
                 let decimals: Int?
+                let logoURI: String?
             }
             let tokens: [Token]
         }
@@ -52,7 +53,17 @@ enum TokenListScan {
                   seen.insert(address.checksummed.lowercased()).inserted
             else { return nil }
             let decimals = token.decimals.flatMap { (0...36).contains($0) ? $0 : nil }
-            return IndexedToken(contract: address, name: token.name ?? "", symbol: token.symbol ?? "", decimals: decimals, flagged: false)
+            return IndexedToken(contract: address, name: token.name ?? "", symbol: token.symbol ?? "", decimals: decimals, flagged: false,
+                                logo: logo(token.logoURI))
         }
+    }
+
+    /// A logo da lista, no tamanho grande (a lista aponta para a miniatura de 25 px, que
+    /// fica borrada no circulo de 40 pt), e so no host de imagens do CoinGecko.
+    static func logo(_ text: String?) -> URL? {
+        guard let text, let url = URL(string: text.replacingOccurrences(of: "/thumb/", with: "/large/")),
+              url.host == "assets.coingecko.com" || url.host == "coin-images.coingecko.com", ImageLoader.isAllowed(url)
+        else { return nil }
+        return url
     }
 }

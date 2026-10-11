@@ -23,11 +23,15 @@ public struct UnlistedHolding: Sendable, Codable, Hashable {
     public let asset: Asset
     public let amount: BigUInt
     public let reasons: [TokenSafety.Reason]
+    /// A logo do contrato pela lista de tokens do CoinGecko, quando foi ela que achou o
+    /// token (`TokenListScan`). Opcional para o cache gravado antes.
+    public let logo: URL?
 
-    public init(asset: Asset, amount: BigUInt, reasons: [TokenSafety.Reason]) {
+    public init(asset: Asset, amount: BigUInt, reasons: [TokenSafety.Reason], logo: URL? = nil) {
         self.asset = asset
         self.amount = amount
         self.reasons = reasons
+        self.logo = logo
     }
 
     public var isSuspicious: Bool { !reasons.isEmpty }
@@ -36,7 +40,7 @@ public struct UnlistedHolding: Sendable, Codable, Hashable {
     /// tela recebe o texto limpo.
     static func make(
         chain: Chain, kind: Asset.Kind, symbol rawSymbol: String, name rawName: String, decimals: Int, amount: BigUInt,
-        flagged: Bool = false
+        flagged: Bool = false, logo: URL? = nil
     ) -> UnlistedHolding {
         let reasons = TokenSafety.reasons(
             symbol: rawSymbol, name: rawName, chainID: chain.id, kind: kind, amount: amount, decimals: decimals,
@@ -49,7 +53,8 @@ public struct UnlistedHolding: Sendable, Codable, Hashable {
             chainID: chain.id, kind: kind, symbol: shownSymbol, name: name.isEmpty ? shownSymbol : name,
             decimals: decimals, coingeckoID: nil, isStablecoin: false, origin: .discovered
         )
-        return UnlistedHolding(asset: asset, amount: amount, reasons: reasons)
+        // Suspeito nunca ganha logo: a logo e parte da isca.
+        return UnlistedHolding(asset: asset, amount: amount, reasons: reasons, logo: reasons.isEmpty ? logo : nil)
     }
 
     /// Primeiro os que nao levantam suspeita, depois pelo simbolo.
@@ -231,7 +236,7 @@ public actor BalanceService {
             let decimals = onChain.flatMap(\.uint64).flatMap { $0 <= 36 ? Int($0) : nil } ?? entry.token.decimals ?? 0
             return .make(
                 chain: chain, kind: .token(contract: entry.token.contract.checksummed), symbol: entry.token.symbol, name: entry.token.name,
-                decimals: decimals, amount: entry.amount, flagged: entry.token.flagged
+                decimals: decimals, amount: entry.amount, flagged: entry.token.flagged, logo: entry.token.logo
             )
         }
         return ChainBalance(

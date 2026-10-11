@@ -58,7 +58,7 @@ final class PlatformGuards: NSObject, UIApplicationDelegate {
 }
 
 /// A capa do seletor de apps: o rosa da marca e o icone do app no centro, com a borda
-/// e a sombra do icone. So a espada, solta no rosa, terminava num corte seco onde o
+/// do icone, sem sombra. So a espada, solta no rosa, terminava num corte seco onde o
 /// icone acaba (relatado no iPhone); com o contorno do icone, o corte e a borda dele.
 struct StandbyCover: View {
     var body: some View {
@@ -69,7 +69,6 @@ struct StandbyCover: View {
                     RoundedRectangle(cornerRadius: 120 * 0.2237, style: .continuous)
                         .stroke(Color.white.opacity(0.28), lineWidth: 1)
                 )
-                .shadow(color: Color(hex: 0x5C0030).opacity(0.45), radius: 28, y: 12)
         }
         .accessibilityHidden(true)
     }

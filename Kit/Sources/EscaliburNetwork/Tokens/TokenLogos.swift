@@ -75,8 +75,11 @@ public enum TokenLogos {
 /// das duas fontes fica com as letras do simbolo.
 ///
 /// As perguntas ao CoinGecko saem uma a cada 3 s: sem chave, ele corta a rajada, e a
-/// mesma cota serve o Mercado.
-/// O resultado fica so na memoria; "nao listado" vale ate o app fechar.
+/// mesma cota serve o Mercado. Por isso o app passa o que ja sabe antes de a tela pedir
+/// (`remember`, `seed`): a logo que veio junto com o token na lista do CoinGecko, a do
+/// token reconhecido e as achadas em aberturas anteriores, guardadas pelo app. Essas
+/// aparecem na hora, sem fila.
+/// "Nao listado" fica so na memoria e vale ate o app fechar.
 public actor TokenLogoResolver {
     public static let shared = TokenLogoResolver()
 
@@ -90,6 +93,22 @@ public actor TokenLogoResolver {
         self.market = market
     }
 
+    /// Uma logo ja conhecida para o ativo: sem consulta.
+    public func remember(_ url: URL, for assetID: String) {
+        guard ImageLoader.isAllowed(url) else { return }
+        resolved[assetID] = .some(url)
+    }
+
+    /// As logos achadas em aberturas anteriores.
+    public func seed(_ known: [String: URL]) {
+        for (id, url) in known where resolved[id] == nil && ImageLoader.isAllowed(url) { resolved[id] = .some(url) }
+    }
+
+    /// As logos achadas ate agora, para o app guardar.
+    public func known() -> [String: URL] {
+        resolved.compactMapValues { $0 }
+    }
+
     public func logo(for asset: Asset) async -> URL? {
         if let done = resolved[asset.id] { return done }
         if let task = running[asset.id] { return await task.value }
@@ -101,11 +120,15 @@ public actor TokenLogoResolver {
     }
 
     private func lookup(_ asset: Asset) async -> URL? {
+        if let known = resolved[asset.id] { return known }
         if let trust = TokenLogos.url(for: asset), await ImageLoader.shared.data(for: trust) != nil {
             resolved[asset.id] = trust
             return trust
         }
+        // O app pode ter passado a logo enquanto esta busca comecava: vale a dele.
+        if let known = resolved[asset.id] { return known }
         await waitTurn()
+        if let known = resolved[asset.id] { return known }
         do {
             let found = try await market.tokenImage(asset)
             resolved[asset.id] = .some(found)

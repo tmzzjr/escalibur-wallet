@@ -1,4 +1,5 @@
 import EscaliburChains
+import EscaliburCore
 import Foundation
 import Testing
 @testable import EscaliburNetwork
@@ -49,5 +50,46 @@ struct TokenLogosTests {
         #expect(!ImageLoader.isAllowed(URL(string: Self.root + "ethereum/info/logo.svg")!))
         #expect(!ImageLoader.isAllowed(URL(string: "http://raw.githubusercontent.com/trustwallet/assets/master/blockchains/x/logo.png")!))
         #expect(ImageLoader.isAllowed(URL(string: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png")!))
+    }
+}
+
+@Suite("Logo que vem com o token")
+struct TokenListLogoTests {
+    @Test("A lista do CoinGecko traz a logo grande, so no host de imagens do CoinGecko")
+    func listLogo() throws {
+        let json = #"""
+        {"tokens":[
+          {"chainId":56,"address":"0x64da67a12a46f1ddf337393e2da12ed0a507ad3d","name":"BNB Frog Inu","symbol":"BNBFROG","decimals":18,
+           "logoURI":"https://assets.coingecko.com/coins/images/12345/thumb/frog.png?1700000000"},
+          {"chainId":56,"address":"0x0000000000000000000000000000000000000001","name":"Outro","symbol":"OUT","decimals":18,
+           "logoURI":"https://atacante.example/logo.png"}
+        ]}
+        """#
+        let tokens = try TokenListScan.parse(Data(json.utf8), chain: .bnb)
+        #expect(tokens[0].logo?.absoluteString == "https://assets.coingecko.com/coins/images/12345/large/frog.png?1700000000")
+        #expect(tokens[1].logo == nil)
+    }
+
+    @Test("Token suspeito nao ganha logo, mesmo com ela na lista")
+    func suspiciousHasNoLogo() throws {
+        let logo = try #require(URL(string: "https://assets.coingecko.com/coins/images/1/large/x.png"))
+        let kind = Asset.Kind.token(contract: "0x64DA67A12a46F1DDF337393E2DA12eD0A507AD3D")
+        let clean = UnlistedHolding.make(chain: .bnb, kind: kind, symbol: "BNBFROG", name: "BNB Frog Inu", decimals: 18,
+                                         amount: BigUInt.power(of: 10, 20), logo: logo)
+        #expect(clean.logo == logo)
+        let bait = UnlistedHolding.make(chain: .bnb, kind: kind, symbol: "FROG", name: "Claim at frog-drop.com", decimals: 18,
+                                        amount: BigUInt.power(of: 10, 20), logo: logo)
+        #expect(bait.logo == nil)
+    }
+
+    @Test("Logo ja conhecida sai na hora, sem consulta")
+    func remembered() async throws {
+        let resolver = TokenLogoResolver()
+        let asset = Asset(chainID: "bnb", kind: .token(contract: "0x64DA67A12a46F1DDF337393E2DA12eD0A507AD3D"), symbol: "BNBFROG",
+                          name: "BNB Frog Inu", decimals: 18, coingeckoID: nil, isStablecoin: false, origin: .discovered)
+        let logo = try #require(URL(string: "https://assets.coingecko.com/coins/images/1/large/x.png"))
+        await resolver.remember(logo, for: asset.id)
+        #expect(await resolver.logo(for: asset) == logo)
+        #expect(await resolver.known()[asset.id] == logo)
     }
 }

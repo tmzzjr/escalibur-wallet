@@ -193,6 +193,9 @@ struct TokenListScanLiveTests {
         let frog = "0x64da67a12a46f1ddf337393e2da12ed0a507ad3d"
         let found = balance.unlisted?.contains { if case .token(let contract) = $0.asset.kind { return contract.lowercased() == frog } else { return false } }
         #expect(found == true)
+        let frogLogo = balance.unlisted?.first { if case .token(let contract) = $0.asset.kind { return contract.lowercased() == frog } else { return false } }?.logo
+        #expect(frogLogo?.host == "assets.coingecko.com")
+        print("logo da BNB Frog: \(frogLogo?.absoluteString ?? "nenhuma")")
         // A segunda leitura nao varre de novo: so relê os que tinham saldo.
         let again = Date()
         _ = try await service.balance(chain: .bnb, addresses: ["0x882000956f71472411bf271e268d75db61c27d8b"])
