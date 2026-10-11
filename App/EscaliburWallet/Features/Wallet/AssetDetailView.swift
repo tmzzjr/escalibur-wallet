@@ -20,7 +20,7 @@ struct AssetDetailView: View {
     private var primaryChain: Chain? { row.positions.first?.asset.chain }
     /// Moeda custom nao entra na troca: a lista de pares e a sanidade de preco sao da
     /// lista conferida.
-    private var canTrade: Bool { row.isCurated && primaryChain.flatMap { TradeEngines.engine(for: $0) } != nil }
+    private var canTrade: Bool { !row.positions.isEmpty && row.positions.allSatisfy { TradeAccess.allows($0.asset) } }
 
     var body: some View {
         ScrollView {

@@ -278,3 +278,35 @@ struct EVMCoWSwapTests {
         #expect(order.filledFraction == 0.25)
     }
 }
+
+@Suite("Troca de token fora da lista")
+struct EVMUnlistedTradeTests {
+    static let frog = Asset(chainID: "bnb", kind: .token(contract: "0x64da67a12a46f1ddf337393e2da12ed0a507ad3d"), symbol: "BNBFROG",
+                            name: "BNB Frog Inu", decimals: 18, coingeckoID: nil, isStablecoin: false, origin: .discovered)
+
+    @Test("Token que a carteira tem e moeda adicionada entram na troca; no envio, so a adicionada")
+    func resolve() throws {
+        #expect(throws: EVMEngineFailure.assetNotListed) { _ = try EVMEngineSupport.resolve(Self.frog, on: .bnb) }
+        #expect(throws: EVMEngineFailure.assetNotListed) { _ = try EVMEngineSupport.resolve(Self.frog, on: .bnb, allowCustom: true) }
+        guard case .token(let token) = try EVMEngineSupport.resolve(Self.frog, on: .bnb, allowUnlisted: true) else {
+            Issue.record("token")
+            return
+        }
+        #expect(token.decimals == 18 && token.symbol == "BNBFROG")
+        // Outra rede: recusa.
+        #expect(throws: EVMEngineFailure.assetNotListed) { _ = try EVMEngineSupport.resolve(Self.frog, on: .base, allowUnlisted: true) }
+    }
+}
+
+@Suite("Troca de token fora da lista ao vivo", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_REDE"] == "1"))
+struct EVMUnlistedTradeLiveTests {
+    @Test("BNB Frog Inu por BNB na BNB Chain: os provedores cotam")
+    func quote() async throws {
+        let engine = try #require(EVMTradeEngine(chain: .bnb))
+        let request = TradeRequest(walletID: UUID(), chain: .bnb, account: try EVMTestAccounts.testAccount(on: .bnb), sell: EVMUnlistedTradeTests.frog,
+                                   buy: .native(.bnb), amountIn: BigUInt.power(of: 10, 18) * BigUInt(1_000_000), slippageBasisPoints: 100)
+        let quote = try await engine.quote(request)
+        print("BNBFROG -> BNB: \(quote.legs.map(\.provider)) garantido \(quote.minimumOut) comparados \(quote.providersCompared)")
+        #expect(!quote.minimumOut.isZero)
+    }
+}

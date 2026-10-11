@@ -3,8 +3,8 @@ import EscaliburCore
 import EscaliburEngines
 import SwiftUI
 
-/// O anel de preenchimento de uma ordem: quanto ja saiu, de 0 a 100%. A cor de
-/// estado (lima) so marca o que ja foi preenchido.
+/// O anel de preenchimento de uma ordem: quanto ja saiu, de 0 a 100%. A cor do app
+/// so marca o que ja foi preenchido.
 struct FillRing: View {
     let fraction: Double
     var size: CGFloat = 36
@@ -25,7 +25,7 @@ struct FillRing: View {
             Circle().stroke(Palette.rail, lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: max(0, min(1, fraction)))
-                .stroke(Palette.up, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(Palette.accent, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.easeOut(duration: 0.6), value: fraction)
             if showsLabel {

@@ -66,9 +66,9 @@ struct ActivityEmptyArt: View {
                     .opacity(1 - confirmed)
                 Image(systemName: "checkmark")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Palette.onLime)
+                    .foregroundStyle(Palette.onAccent)
                     .frame(width: 22, height: 22)
-                    .background(Circle().fill(Palette.lime))
+                    .background(Circle().fill(Palette.accent))
                     .scaleEffect(BackupFirstArt.easeOutBack(confirmed))
             }
             .frame(width: 24, height: 24)

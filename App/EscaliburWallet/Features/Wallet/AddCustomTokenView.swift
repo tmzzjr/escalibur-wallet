@@ -150,7 +150,8 @@ struct AddCustomTokenView: View {
         case .issued(let presetCode, let presetIssuer):
             code = presetCode
             issuer = presetIssuer
-        case .native: break
+        // So a rede (vindo da troca): o dono cola o contrato.
+        case .native: return
         }
         Task { await read() }
     }

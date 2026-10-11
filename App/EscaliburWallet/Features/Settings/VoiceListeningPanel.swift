@@ -47,7 +47,7 @@ struct VoiceListeningPanel: View {
                 Image(systemName: "checkmark.circle.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
                 Text("Frase conferida").foregroundStyle(Palette.ink)
             } else if listener.listening {
-                Circle().fill(Palette.lime).frame(width: 8, height: 8)
+                Circle().fill(Palette.accent).frame(width: 8, height: 8)
                 Text("Ouvindo").foregroundStyle(Palette.ink)
             } else if listener.busy {
                 Text("Conferindo o que ouvi").foregroundStyle(Palette.inkSoft)

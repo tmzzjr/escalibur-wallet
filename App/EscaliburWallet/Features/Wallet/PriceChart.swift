@@ -36,7 +36,7 @@ struct PriceChart: View {
 
     private var trend: Color {
         guard let first = points.first?.price, let last = points.last?.price else { return Palette.inkSoft }
-        if last > first { return Palette.lime }
+        if last > first { return Palette.up }
         if last < first { return Palette.down }
         return Palette.inkSoft
     }

@@ -68,6 +68,7 @@ enum EVMEngineMessages {
         case .accountMismatch: return "A conta desta rede não confere com a chave da carteira. Nada foi assinado."
         case .assetNotListed: return "Este ativo não está na lista de tokens verificados da \(chain.name)."
         case .customDecimalsChanged: return "As casas decimais deste token na rede não são mais as que foram salvas. Remova a moeda e adicione de novo antes de enviar."
+        case .unlistedDecimalsChanged: return "As casas decimais deste token na rede não conferem com as que a carteira mostrou. Atualize o saldo e tente de novo. Nada foi assinado."
         case .tagNotSupported: return "A rede \(chain.name) não usa tag nem memo. Envie só com o endereço."
         case .recipientMismatch: return "O envio montado não confere com o destino digitado. Nada foi assinado."
         case .transferReturnedFalse: return "O contrato do token recusaria esta transferência. Nada foi assinado."

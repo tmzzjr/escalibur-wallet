@@ -312,7 +312,7 @@ struct SecuritySettingsView: View {
                             Text("\(KeyServices.biometryName)").typeStyle(.body).foregroundStyle(KeyServices.biometryAvailable ? Palette.ink : Palette.inkMuted)
                         }
                     }
-                    .tint(Palette.lime)
+                    .tint(Palette.accent)
                     .disabled(!KeyServices.biometryAvailable)
                     .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     NavigationLink { VoiceSettingsView() } label: {
@@ -649,7 +649,7 @@ struct NetworksSettingsView: View {
                                 Text(chain.name).typeStyle(.body).foregroundStyle(Palette.ink)
                             }
                         }
-                        .tint(Palette.lime)
+                        .tint(Palette.accent)
                         .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     }
                 }

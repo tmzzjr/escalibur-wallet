@@ -163,7 +163,7 @@ struct ImportPhraseView: View {
                         Toggle(isOn: $usesPassphrase) {
                             Text("Esta carteira usa passphrase").typeStyle(.body).foregroundStyle(Palette.ink)
                         }
-                        .tint(Palette.lime)
+                        .tint(Palette.accent)
                         if usesPassphrase {
                             Text("Com a passphrase errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes.")
                                 .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)

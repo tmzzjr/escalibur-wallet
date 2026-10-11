@@ -153,7 +153,7 @@ struct MainTabs: View {
                 .tabItem { Label("Ajustes", systemImage: "gearshape") }
                 .tag(Router.Tab.settings)
         }
-        .tint(Palette.lime)
+        .tint(Palette.accent)
         .modifier(LimitRenewalPrompts())
         .fullScreenCover(item: Bindable(router).flow) { flow in
             switch flow {

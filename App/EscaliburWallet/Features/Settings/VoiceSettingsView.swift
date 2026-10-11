@@ -479,7 +479,7 @@ struct VoiceSettingsView: View {
                 })) {
                     Text("Pedir em envios e trocas").typeStyle(.body).foregroundStyle(Palette.ink)
                 }
-                .tint(Palette.lime).padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
+                .tint(Palette.accent).padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                 if let limit = settings.onSendAboveFiat {
                     VoiceLimitField(value: limit, currency: session.currency) { value in
                         session.metadata.settings.voice.onSendAboveFiat = value
@@ -509,7 +509,7 @@ struct VoiceSettingsView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    .tint(Palette.lime).padding(.horizontal, Space.md).frame(minHeight: Height.row)
+                    .tint(Palette.accent).padding(.horizontal, Space.md).frame(minHeight: Height.row)
                     if let max = settings.maxSendsWithoutVoice {
                         Stepper(value: Binding(get: { max }, set: { value in
                             session.metadata.settings.voice.maxSendsWithoutVoice = value
@@ -609,7 +609,7 @@ struct VoiceSettingsView: View {
         })) {
             Text(title).typeStyle(.body).foregroundStyle(Palette.ink)
         }
-        .tint(Palette.lime).padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
+        .tint(Palette.accent).padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
     }
 
     /// Ensaio da conferencia, sem contar tentativa nem pausar a voz.

@@ -24,6 +24,8 @@ enum EVMEngineFailure: Error, Equatable, Sendable {
     case assetNotListed
     /// Moeda custom cujas casas decimais na rede nao sao mais as salvas.
     case customDecimalsChanged
+    /// Token fora da lista na troca: as casas na rede nao sao as que a carteira mostrou.
+    case unlistedDecimalsChanged
     /// Tag, memo ou comentario num envio EVM, que nao tem esse campo.
     case tagNotSupported
     /// O plano saiu com um destinatario diferente do pedido.
@@ -103,7 +105,10 @@ enum EVMEngineSupport {
     /// o contrato e as casas salvas. O motor rele as casas na rede, em dois provedores,
     /// antes de montar (`EVMSendEngine`), e a revisao leva o aviso de nao verificado.
     /// Contrato da lista nunca vira custom: com o mesmo contrato, vale a lista.
-    static func resolve(_ asset: Asset, on chain: Chain, allowCustom: Bool = false) throws -> EVMResolvedAsset {
+    /// `allowCustom`: a moeda que o dono adicionou (envio). `allowUnlisted`: tambem o
+    /// token fora da lista que a carteira tem (troca e ordem limite); as casas dele sao
+    /// conferidas na rede, em dois provedores, antes de qualquer plano.
+    static func resolve(_ asset: Asset, on chain: Chain, allowCustom: Bool = false, allowUnlisted: Bool = false) throws -> EVMResolvedAsset {
         guard asset.chainID == chain.id else { throw EVMEngineFailure.assetNotListed }
         switch asset.kind {
         case .native:
@@ -116,7 +121,7 @@ enum EVMEngineSupport {
                 else { throw EVMEngineFailure.assetNotListed }
                 return .token(EVMToken(chain: chain, contract: address, symbol: listed.symbol, decimals: decimals))
             }
-            guard allowCustom, asset.isCustom, let address = try? EVMAddress(contract),
+            guard (allowCustom && asset.isCustom) || (allowUnlisted && asset.origin != nil), let address = try? EVMAddress(contract),
                   let decimals = UInt8(exactly: asset.decimals), decimals <= 36
             else { throw EVMEngineFailure.assetNotListed }
             let symbol = TokenSafety.clean(asset.symbol, limit: TokenSafety.symbolLimit)

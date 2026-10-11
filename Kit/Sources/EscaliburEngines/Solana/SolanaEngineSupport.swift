@@ -56,7 +56,7 @@ enum SolanaEngineAsset: Equatable {
         return false
     }
 
-    init(_ asset: Asset, allowCustom: Bool = false) throws {
+    init(_ asset: Asset, allowCustom: Bool = false, allowUnlisted: Bool = false) throws {
         guard asset.chainID == Chain.solana.id else { throw SolanaEngineProblem.assetNotSupported }
         switch asset.kind {
         case .native:
@@ -72,7 +72,10 @@ enum SolanaEngineAsset: Equatable {
                 self = .token(mint: mint, listed: listed)
                 return
             }
-            guard allowCustom, asset.isCustom, let mint = try? SolanaPublicKey(base58: contract), mint.base58 == contract,
+            // Moeda custom (envio); na troca, tambem o token fora da lista que a carteira
+            // tem: as casas sao conferidas no mint lido da rede (`verifiedAsset`).
+            guard (allowCustom && asset.isCustom) || (allowUnlisted && asset.origin != nil),
+                  let mint = try? SolanaPublicKey(base58: contract), mint.base58 == contract,
                   (0...36).contains(asset.decimals), SolanaProgram(id: mint) == nil, mint != SolanaWrappedSOL.mint
             else { throw SolanaEngineProblem.assetNotSupported }
             self = .token(mint: mint, listed: asset)

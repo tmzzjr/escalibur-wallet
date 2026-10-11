@@ -22,8 +22,8 @@ struct EVMTradeContext {
         guard request.chain.id == chain.id else { throw EVMEngineFailure.wrongChain }
         self.chain = chain
         account = try EVMEngineSupport.account(request.account, chain: chain)
-        sell = try EVMEngineSupport.resolve(request.sell, on: chain)
-        buy = try EVMEngineSupport.resolve(request.buy, on: chain)
+        sell = try EVMEngineSupport.resolve(request.sell, on: chain, allowUnlisted: true)
+        buy = try EVMEngineSupport.resolve(request.buy, on: chain, allowUnlisted: true)
         guard let slippage = UInt32(exactly: request.slippageBasisPoints) else { throw TradeRefusal.slippageOutOfRange(0) }
         intent = try TradeIntent(
             owner: account.address, sell: sell.tradeAsset(on: chain), buy: buy.tradeAsset(on: chain),

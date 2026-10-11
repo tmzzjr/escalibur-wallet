@@ -1,3 +1,4 @@
+import EscaliburEngines
 import EscaliburChains
 import SwiftUI
 
@@ -353,5 +354,20 @@ struct SwapProcessingIndicator: View {
     private func logo(_ asset: Asset?) -> some View {
         CoinLogo(coingeckoID: asset?.coingeckoID, symbol: asset?.symbol ?? "", size: 44, network: asset?.chain)
             .scaleEffect(pulse ? 1.04 : 0.96)
+    }
+}
+
+/// O que pode ir para a troca. A lista conferida, em toda rede com troca; e, nas redes
+/// EVM e na Solana, o token fora da lista que a carteira tem (sem suspeita) e a moeda
+/// que o dono adicionou: se os provedores tem rota, a troca existe. O motor confere as
+/// casas na rede e simula em duas fontes antes de qualquer assinatura.
+enum TradeAccess {
+    static func supportsUnlisted(_ chain: Chain) -> Bool {
+        (chain.family == .evm || chain.family == .solana) && TradeEngines.engine(for: chain) != nil
+    }
+
+    static func allows(_ asset: Asset) -> Bool {
+        guard let chain = asset.chain, TradeEngines.engine(for: chain) != nil else { return false }
+        return asset.origin == nil || supportsUnlisted(chain)
     }
 }

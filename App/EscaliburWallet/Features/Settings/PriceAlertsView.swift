@@ -23,7 +23,7 @@ struct PriceAlertsView: View {
                     Toggle(isOn: Binding(get: { file.enabled }, set: { setEnabled($0) })) {
                         rowLabel("bell", "Avisar sobre preços")
                     }
-                    .tint(Palette.lime)
+                    .tint(Palette.accent)
                     .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     .accessibilityIdentifier("alertas-ligar")
                 }
@@ -95,12 +95,12 @@ struct PriceAlertsView: View {
             Toggle(isOn: Binding(get: { file.roundNumbers }, set: { on in apply { $0.roundNumbers = on } })) {
                 rowLabel("number", "Números redondos", "Ex.: Bitcoin passou de \(exampleLevel)")
             }
-            .tint(Palette.lime)
+            .tint(Palette.accent)
             .padding(.horizontal, Space.md).frame(minHeight: Height.row)
             Toggle(isOn: Binding(get: { file.moveThreshold != nil }, set: { on in apply { $0.moveThreshold = on ? 10 : nil } })) {
                 rowLabel("arrow.up.arrow.down", "Alta ou queda forte", "Variação em 24 h acima do limite")
             }
-            .tint(Palette.lime)
+            .tint(Palette.accent)
             .padding(.horizontal, Space.md).frame(minHeight: Height.row)
             if let threshold = file.moveThreshold {
                 Segmented(
@@ -319,7 +319,7 @@ private struct AddAlertCoinSheet: View {
                                     Spacer()
                                     Image(systemName: on ? "checkmark.circle.fill" : "circle")
                                         .font(.system(size: 22, weight: .regular))
-                                        .foregroundStyle(on ? Palette.lime : Palette.edgeStrong)
+                                        .foregroundStyle(on ? Palette.accent : Palette.edgeStrong)
                                         .contentTransition(.symbolEffect(.replace))
                                 }
                                 .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)

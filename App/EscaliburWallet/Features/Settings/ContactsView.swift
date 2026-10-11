@@ -266,7 +266,7 @@ struct ManageAssetsView: View {
                                     if row.isCustom { TokenBadge(.custom) }
                                 }
                             }
-                            .tint(Palette.lime)
+                            .tint(Palette.accent)
                             .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                         }
                     }
@@ -301,7 +301,7 @@ struct ManageAssetsView: View {
                                     }
                                 }
                             }
-                            .tint(Palette.lime)
+                            .tint(Palette.accent)
                             .padding(.horizontal, Space.md).frame(minHeight: Height.row)
                         }
                     }

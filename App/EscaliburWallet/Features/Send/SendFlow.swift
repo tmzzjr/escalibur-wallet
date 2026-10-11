@@ -491,7 +491,7 @@ struct SendStages: View {
                         .typeStyle(.note).foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .tint(Palette.lime)
+                .tint(Palette.accent)
                 .accessibilityIdentifier("confirmar-rede")
             }
             .padding(Space.md)

@@ -199,6 +199,7 @@ public struct EVMTradeEngine: TradeEngine {
     }
 
     func makePlan(_ request: TradeRequest, quote: TradeQuote) async throws -> SigningPlan {
+        try await checkUnlistedDecimals([request.sell, request.buy])
         if request.inParts || quote.execution == .order { return try await makeCoWSwapPlan(request, quote: quote) }
         let context = try EVMTradeContext(request, chain: chain)
         let intent = context.intent
@@ -259,6 +260,18 @@ public struct EVMTradeEngine: TradeEngine {
         // A revisao da divisao e escrita pelo compositor de EscaliburChains, a partir das
         // pernas e das cotacoes validadas; o motor nao escreve titulo nem linha.
         return try TradePlanner.combineSplit(plans, quotes: requoted.map(\.quote))
+    }
+
+    /// Token fora da lista (o que a carteira tem, ou a moeda adicionada): as casas que a
+    /// tela usou para o valor tem de ser as da rede agora, em dois provedores. O minimo
+    /// garantido e em unidades cruas e nao depende delas; o valor digitado e o que a tela
+    /// mostra, sim.
+    func checkUnlistedDecimals(_ assets: [Asset]) async throws {
+        for asset in assets where asset.origin != nil {
+            guard case .token(let contract) = asset.kind, let address = try? EVMAddress(contract) else { continue }
+            let onChain = try await services.reader.tokenDecimals(chain: chain, contract: address)
+            guard onChain == asset.decimals else { throw EVMEngineFailure.unlistedDecimalsChanged }
+        }
     }
 
     /// As pernas da cotacao mostrada: provedor conhecido, sem repeticao, valores que
@@ -345,8 +358,9 @@ public struct EVMTradeEngine: TradeEngine {
         guard request.chain.id == chain.id else { throw EVMEngineFailure.wrongChain }
         guard supportsLimitOrders else { throw EVMEngineFailure.limitOrdersUnavailable }
         let account = try EVMEngineSupport.account(request.account, chain: chain)
-        let sell = try EVMEngineSupport.resolve(request.sell, on: chain).tradeAsset(on: chain)
-        let buy = try EVMEngineSupport.resolve(request.buy, on: chain).tradeAsset(on: chain)
+        let sell = try EVMEngineSupport.resolve(request.sell, on: chain, allowUnlisted: true).tradeAsset(on: chain)
+        let buy = try EVMEngineSupport.resolve(request.buy, on: chain, allowUnlisted: true).tradeAsset(on: chain)
+        try await checkUnlistedDecimals([request.sell, request.buy])
         guard !request.minimumOut.isZero else { throw CoWRefusal.zeroBuyAmount }
         guard !request.amountIn.isZero else { throw TradeRefusal.zeroAmount }
 

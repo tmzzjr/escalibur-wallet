@@ -278,6 +278,10 @@ struct TradeView: View {
                 }
                 .buttonStyle(.plain)
                 Text(feeText(quote)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                if let unverified = [sell, buy].first(where: { $0.origin != nil }) {
+                    Text("\(unverified.symbol) não é verificado pela Escalibur. A troca é simulada em duas fontes antes de você assinar, mas há token que deixa comprar e não deixa vender.")
+                        .typeStyle(.note).foregroundStyle(Palette.caution).fixedSize(horizontal: false, vertical: true)
+                }
                 impactLine(quote)
                 Button { withAnimation(Motion.flip) { model.showDetails.toggle() } } label: {
                     HStack(spacing: 4) {
@@ -417,7 +421,7 @@ struct TradeView: View {
             })) {
                 Text("Refazer quando vencer").typeStyle(.row).foregroundStyle(Palette.ink)
             }
-            .tint(Palette.lime)
+            .tint(Palette.accent)
             .accessibilityIdentifier("refazer-ordem")
             Text("Quando o prazo acabar, o iPhone avisa e o app pergunta se refaz com o mesmo preço. Refazer pede o seu Face ID ou PIN: sem você, ninguém assina uma ordem nova com a sua chave.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
@@ -770,18 +774,40 @@ struct AmountBox: View {
     }
 }
 
-/// T2: escolher token dentro da rede.
+/// T2: escolher token dentro da rede. A lista conferida e, nas redes EVM e na Solana, os
+/// tokens fora dela que a carteira tem (sem suspeita) e as moedas que o dono adicionou,
+/// mais o caminho para adicionar uma pelo contrato.
 struct TokenPickerSheet: View {
     @Environment(Portfolio.self) private var portfolio
+    @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     let chain: Chain
     let exclude: Asset?
     let onPick: (Asset) -> Void
     @State private var query = ""
+    @State private var adding = false
+
+    /// Fora da lista: as moedas adicionadas e os tokens que a carteira tem, sem suspeita.
+    private var unlisted: [Asset] {
+        guard TradeAccess.supportsUnlisted(chain) else { return [] }
+        let custom = session.metadata.customTokens.filter { $0.chainID == chain.id }
+        let held = (portfolio.balance(chain)?.unlisted ?? []).filter { !$0.isSuspicious }.map(\.asset)
+        var seen = Set<String>()
+        return (custom + held).filter { seen.insert($0.id).inserted }
+    }
+
+    private func amount(_ asset: Asset) -> BigUInt? {
+        if let held = portfolio.balance(chain)?.holdings.first(where: { $0.asset.id == asset.id })?.amount { return held }
+        return portfolio.balance(chain)?.unlisted?.first { $0.asset.id == asset.id }?.amount
+    }
+
+    private func matches(_ asset: Asset) -> Bool {
+        query.isEmpty || asset.symbol.localizedCaseInsensitiveContains(query) || asset.name.localizedCaseInsensitiveContains(query)
+    }
 
     var body: some View {
-        let all = TokenRegistry.assets(on: chain).filter { $0.id != exclude?.id }
-        let shown = query.isEmpty ? all : all.filter { $0.symbol.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query) }
+        let verified = TokenRegistry.assets(on: chain).filter { $0.id != exclude?.id && matches($0) }
+        let others = unlisted.filter { $0.id != exclude?.id && matches($0) }
         VStack(alignment: .leading, spacing: 0) {
             SheetHeader(title: "Escolher token") { dismiss() }
             TextField("", text: $query, prompt: Text("Buscar por nome").foregroundColor(Palette.inkDead))
@@ -790,31 +816,71 @@ struct TokenPickerSheet: View {
                 .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
                 .padding(.horizontal, Space.gutter).padding(.top, Space.md)
             ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(shown) { asset in
-                        Button { onPick(asset) } label: {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    if !others.isEmpty {
+                        section("Fora da lista verificada")
+                        ForEach(others) { row($0) }
+                        section("Verificadas")
+                    }
+                    ForEach(verified) { row($0) }
+                    if TradeAccess.supportsUnlisted(chain) {
+                        Button { adding = true } label: {
                             HStack(spacing: Space.sm) {
-                                CoinLogo(coingeckoID: asset.coingeckoID, symbol: asset.symbol, size: 36, network: asset.chain, ringColor: Palette.body)
+                                Image(systemName: "plus").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
+                                    .frame(width: 36, height: 36).background(Circle().fill(Palette.control))
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(asset.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
-                                    Text(asset.name).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                                    Text("Adicionar moeda pelo contrato").typeStyle(.row).foregroundStyle(Palette.ink)
+                                    Text("Qualquer token que os provedores trocam na \(chain.name)").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                                 }
                                 Spacer()
-                                if let amount = portfolio.balance(chain)?.holdings.first(where: { $0.asset.id == asset.id })?.amount, !amount.isZero {
-                                    Text(Fmt.crypto(amount, decimals: asset.decimals)).typeStyle(.note).foregroundStyle(Palette.ink)
-                                }
                             }
                             .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
                         }
                         .buttonStyle(RowStyle(surface: .body))
+                        .accessibilityIdentifier("troca-adicionar-moeda")
                     }
                 }
                 .padding(.top, Space.xs)
+                .padding(.bottom, Space.lg)
             }
         }
         .presentationDetents([.large])
         .presentationBackground(Palette.body)
         .presentationCornerRadius(Radius.sheet)
+        .sheet(isPresented: $adding) {
+            NavigationStack {
+                AddCustomTokenView(preset: AddCustomTokenView.Preset(chain: chain, kind: .native)) { adding = false }
+            }
+            .presentationBackground(Palette.void)
+        }
+    }
+
+    private func section(_ title: String) -> some View {
+        Text(title).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            .padding(.horizontal, Space.gutter).padding(.top, Space.md).padding(.bottom, Space.xxs)
+    }
+
+    private func row(_ asset: Asset) -> some View {
+        let unverified = asset.origin != nil
+        return Button { onPick(asset) } label: {
+            HStack(spacing: Space.sm) {
+                CoinLogo(coingeckoID: asset.coingeckoID, symbol: asset.symbol, size: 36, network: asset.chain, ringColor: Palette.body,
+                         unverified: unverified, logoAsset: unverified ? asset : nil)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(verbatim: asset.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                        if unverified { TokenBadge(asset.isCustom ? .custom : .unverified) }
+                    }
+                    Text(verbatim: asset.name).typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
+                }
+                Spacer()
+                if let amount = amount(asset), !amount.isZero {
+                    Text(Fmt.crypto(amount, decimals: asset.decimals)).typeStyle(.note).foregroundStyle(Palette.ink)
+                }
+            }
+            .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
+        }
+        .buttonStyle(RowStyle(surface: .body))
     }
 }
 

@@ -735,10 +735,10 @@ struct AddressBlocks: View {
         let soft = onPlate ? Palette.plateMuted : Palette.inkSoft
         return FlowText(blocks: blocks) { index, block in
             if highlighted.contains(index) {
-                // Marca-texto: letra escura em lima, na placa clara e no fundo escuro.
+                // Marca-texto: letra branca no rosa do app, na placa clara e no fundo escuro.
                 var text = AttributedString(block)
-                text.backgroundColor = Palette.lime
-                text.foregroundColor = Palette.onLime
+                text.backgroundColor = Palette.accent
+                text.foregroundColor = Palette.onAccent
                 return Text(text).font(TypeStyle.mono.font).fontWeight(.bold)
             }
             return Text(verbatim: block).font(TypeStyle.mono.font).foregroundColor(soft)

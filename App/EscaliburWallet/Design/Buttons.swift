@@ -13,7 +13,7 @@ struct PrimaryButton: View {
         Button(action: { if enabled && !loading { action() } }) {
             ZStack {
                 if loading {
-                    ProgressView().tint(Palette.onLime)
+                    ProgressView().tint(Palette.onAccent)
                 } else {
                     Text(title).typeStyle(.action)
                 }
@@ -34,10 +34,10 @@ struct PrimaryStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             // Desligado continua legivel (4,8:1): o texto diz o que falta.
-            .foregroundStyle(enabled ? Palette.onLime : Palette.inkMuted)
+            .foregroundStyle(enabled ? Palette.onAccent : Palette.inkMuted)
             .background(
                 Capsule(style: .continuous)
-                    .fill(enabled ? (configuration.isPressed ? Palette.limePress : Palette.lime) : Palette.rail)
+                    .fill(enabled ? (configuration.isPressed ? Palette.accentPress : Palette.accent) : Palette.rail)
             )
             .scaleEffect(configuration.isPressed && enabled ? 0.985 : 1)
             .animation(Motion.press, value: configuration.isPressed)
@@ -208,8 +208,8 @@ struct AccentButton: View {
 struct AccentStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(Palette.onLime)
-            .background(Capsule(style: .continuous).fill(Palette.lime.opacity(configuration.isPressed ? 0.8 : 1)))
+            .foregroundStyle(Palette.onAccent)
+            .background(Capsule(style: .continuous).fill(Palette.accent.opacity(configuration.isPressed ? 0.8 : 1)))
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .animation(Motion.press, value: configuration.isPressed)
     }

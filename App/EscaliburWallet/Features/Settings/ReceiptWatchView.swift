@@ -59,7 +59,7 @@ struct ReceiptWatchView: View {
                     Toggle(isOn: Binding(get: { file.enabled }, set: { setEnabled($0) })) {
                         label("bell", "Avisar quando chegar moeda")
                     }
-                    .tint(Palette.lime)
+                    .tint(Palette.accent)
                     .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     .accessibilityIdentifier("recebimento-ligar")
                     if file.enabled {
@@ -69,7 +69,7 @@ struct ReceiptWatchView: View {
                         })) {
                             label("eye", "Valor e moeda no aviso", file.showDetails ? "Ex.: Recebeu 100 USDT, na Tron" : "A tela bloqueada só diz que entrou moeda")
                         }
-                        .tint(Palette.lime)
+                        .tint(Palette.accent)
                         .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     }
                 }

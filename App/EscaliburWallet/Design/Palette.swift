@@ -44,6 +44,12 @@ enum Palette {
     static let lime = Color(hex: 0xC4F135)
     static let limePress = Color(hex: 0xA8D21F)
     static let onLime = Color(hex: 0x0B0D05)
+    /// A cor do app na acao principal, na aba escolhida, nos interruptores e na
+    /// selecao (decisao do dono, 11/10/2026: o rosa no lugar do lima, que fica so para
+    /// alta e ganho). Texto branco por cima.
+    static let accent = Color(hex: 0xFF007B)
+    static let accentPress = Color(hex: 0xD10065)
+    static let onAccent = Color.white
     static let cautionTint = Color(hex: 0x2C210F)
 
     // A placa clara: so onde se confere caractere por caractere.

@@ -112,12 +112,14 @@ struct OtherTokenRow: View {
 }
 
 /// Tocar num token fora da lista: o contrato inteiro e o aviso de que qualquer um cria
-/// token com qualquer nome. Sem enviar e sem trocar daqui; o caminho para enviar e
-/// adicionar como moeda custom, que le o token de novo na rede.
+/// token com qualquer nome. Sem enviar daqui (o caminho para enviar e adicionar como
+/// moeda custom, que le o token de novo na rede). Trocar, sim, nas redes EVM e na
+/// Solana, se nao for suspeito: o motor confere as casas e simula antes de assinar.
 struct OtherTokenDetailView: View {
     @Environment(AppSession.self) private var session
     @Environment(Portfolio.self) private var portfolio
     @Environment(ToastCenter.self) private var toasts
+    @Environment(Router.self) private var router
     let holding: UnlistedHolding
     @State private var adding = false
 
@@ -169,6 +171,14 @@ struct OtherTokenDetailView: View {
                 }
 
                 ContractPanel(asset: asset).padding(.top, Space.lg)
+
+                if !holding.isSuspicious, TradeAccess.allows(asset), session.selectedWallet?.isWatchOnly != true {
+                    PrimaryButton(title: "Trocar \(asset.symbol)") {
+                        router.tradePreset = (asset, true)
+                        router.tab = .trade
+                    }
+                    .padding(.top, Space.lg)
+                }
 
                 if !holding.isSuspicious, let chain, CustomToken.supports(chain) {
                     VStack(alignment: .leading, spacing: Space.xs) {

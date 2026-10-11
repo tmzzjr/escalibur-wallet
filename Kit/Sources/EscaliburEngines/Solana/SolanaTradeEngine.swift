@@ -77,14 +77,16 @@ struct SolanaTradeEngine: TradeEngine {
     }
 
     /// O lado da troca lido da rede, conferido contra a lista: token da lista com
-    /// outras casas na rede e recusado (a revisao mostraria outro valor).
+    /// outras casas na rede e recusado (a revisao mostraria outro valor). Token fora da
+    /// lista que a carteira tem passa com as casas lidas no mint; as extensoes perigosas
+    /// do Token-2022 continuam recusadas pelo planejador.
     func verifiedAsset(_ asset: SolanaEngineAsset) async throws -> SolanaSwapAsset {
         switch asset {
         case .sol:
             return .sol
         case .token(let mint, let listed):
             let read = try await network.swapAsset(mint: mint)
-            guard read.mint == mint, !read.isNativeSOL, read.isVerified, Int(read.decimals) == listed.decimals else {
+            guard read.mint == mint, !read.isNativeSOL, read.isVerified || listed.origin != nil, Int(read.decimals) == listed.decimals else {
                 throw SolanaEngineProblem.tokenNotVerified
             }
             return read
@@ -222,8 +224,8 @@ struct SolanaSwapRequest {
     init(_ request: TradeRequest) throws {
         try SolanaEngineGuard.chain(request.chain)
         owner = try SolanaEngineGuard.owner(request.account)
-        sell = try SolanaEngineAsset(request.sell)
-        buy = try SolanaEngineAsset(request.buy)
+        sell = try SolanaEngineAsset(request.sell, allowUnlisted: true)
+        buy = try SolanaEngineAsset(request.buy, allowUnlisted: true)
         guard sell != buy else { throw SolanaSwapError.sameAsset }
         guard !request.amountIn.isZero else { throw SolanaSwapError.zeroAmount }
         guard let amount = request.amountIn.uint64 else { throw SolanaEngineProblem.amountOutOfRange }

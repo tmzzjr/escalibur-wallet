@@ -130,7 +130,7 @@ struct LimitRenewalSheet: View {
                     Toggle(isOn: $keepRenewing) {
                         Text("Perguntar de novo quando vencer").typeStyle(.row).foregroundStyle(Palette.ink)
                     }
-                    .tint(Palette.lime)
+                    .tint(Palette.accent)
                     .padding(.top, Space.lg)
                     Text("Refazer pede o seu Face ID ou PIN: sem você, ninguém assina uma ordem nova com a sua chave.")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)

@@ -34,7 +34,7 @@ struct SwordInStone: View {
                 // A parte da lamina abaixo da entrada esta dentro da pedra.
                 .mask(alignment: .top) { Rectangle().frame(height: entry.y) }
                 Ellipse()
-                    .stroke(Palette.lime, lineWidth: 2)
+                    .stroke(Palette.accent, lineWidth: 2)
                     .frame(width: size.width * 0.16, height: size.height * 0.035)
                     .scaleEffect(ringOut ? 2.6 : 0.4)
                     .opacity(ringOut ? 0 : (landed && !reduceMotion ? 1 : 0))
