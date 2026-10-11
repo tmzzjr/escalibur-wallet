@@ -1,0 +1,14 @@
+[
+{"id":"bonk","symbol":"bonk","name":"Bonk","platforms":{"solana":"DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263","neon-evm":"0xd4b6520f7fb78e1ee75639f3376c581a71bcdb0e","ethereum":"0x1151cb3d861920e07a38e03eead12c32178567f6","binance-smart-chain":"0xa697e272a73744b343528c3bc4702f2565b2f422","aptos":"0x2a90fae71afc7460ee42b20ee49a9c9b29272905ad71fef92fbd8b3905a24b56"}},
+{"id":"toshi","symbol":"toshi","name":"Toshi","platforms":{"base":"0xac1bd2486aaf3b5c0fc3fd868558b082a531b2b4","binance-smart-chain":"0x6a2608dabe09bc1128eec7275b92dfb939d5db3f"}},
+{"id":"notcoin","symbol":"not","name":"Notcoin","platforms":{"the-open-network":"EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT"}},
+{"id":"sun-token","symbol":"sun","name":"Sun Token","platforms":{"tron":"TSSMHYeV2uE9qYH95DqyoCuNCzEL1NvU3S"}},
+{"id":"pepe","symbol":"pepe","name":"Pepe","platforms":{"ethereum":"0x6982508145454ce325ddbe47a25d4ec3d2311933","binance-smart-chain":"0x25d887ce7a35172c62febfd67a1856f20faebb00","arbitrum-one":"0x25d887ce7a35172c62febfd67a1856f20faebb00"}},
+{"id":"tether","symbol":"usdt","name":"Tether","platforms":{"ethereum":"0xdac17f958d2ee523a2206206994597c13d831ec7","tron":"TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t","kava":"0x919c1c267bc06a7039e03fcc2ef738525769109c"}},
+{"id":"bridged-usdt-impostor","symbol":"usdt","name":"Bridged USDT","platforms":{"base":"0x1111111111111111111111111111111111111111"}},
+{"id":"claim-token","symbol":"rwd","name":"Claim at rewards-site.com","platforms":{"ethereum":"0x2222222222222222222222222222222222222222"}},
+{"id":"hedera-hashgraph","symbol":"hbar","name":"Hedera","platforms":{}},
+{"id":"sui-only","symbol":"suix","name":"Sui Only Coin","platforms":{"sui":"0x2::suix::SUIX"}},
+{"id":"bad-contract","symbol":"bad","name":"Bad Contract","platforms":{"ethereum":"not-an-address","base":null}},
+{"id":"toshi-the-cat","symbol":"toshicat","name":"Toshi the Cat","platforms":{"base":"0x3333333333333333333333333333333333333333"}}
+]

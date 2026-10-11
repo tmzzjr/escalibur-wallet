@@ -23,6 +23,9 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
     public static let shared = HTTPClient()
 
     static let maxResponseBytes = 4 * 1024 * 1024
+    /// O teto de uma leitura que pede mais que o padrao: a lista completa de moedas do
+    /// CoinGecko (`CoinCatalog`), com 4 MB em 10/10/2026 e crescendo.
+    public static let largeResponseBytes = 16 * 1024 * 1024
     static let userAgent = "EscaliburWallet"
 
     /// So para os testes: um `URLProtocol` no lugar da rede.
@@ -70,11 +73,12 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
 
     // MARK: Requisicoes
 
-    public func get(_ url: URL, headers: [String: String] = [:], timeout: TimeInterval = 10) async throws -> Data {
+    /// `maxBytes`: o teto do corpo; acima do padrao, so ate `largeResponseBytes`.
+    public func get(_ url: URL, headers: [String: String] = [:], timeout: TimeInterval = 10, maxBytes: Int? = nil) async throws -> Data {
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.httpMethod = "GET"
         headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
-        return try await perform(request)
+        return try await perform(request, limit: min(maxBytes ?? Self.maxResponseBytes, Self.largeResponseBytes))
     }
 
     public func post(_ url: URL, json body: Data, headers: [String: String] = [:], timeout: TimeInterval = 10) async throws -> Data {
@@ -115,7 +119,7 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
     /// Uma tarefa de dados com o delegado da sessao, e nao `bytes(for:)`: em algumas
     /// versoes do macOS (a do runner do CI) o fluxo de `bytes(for:)` parava de entregar
     /// o corpo, e o delegado classico mede cada pedaco igual em todas.
-    private func perform(_ request: URLRequest) async throws -> Data {
+    private func perform(_ request: URLRequest, limit: Int = HTTPClient.maxResponseBytes) async throws -> Data {
         guard request.url?.scheme == "https", let host = request.url?.host, allowedHosts.contains(host) else {
             throw Failure.hostNotAllowed
         }
@@ -123,7 +127,7 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
         do {
             return try await withTaskCancellationHandler {
                 try await withCheckedThrowingContinuation { continuation in
-                    lock.withLock { transfers[ObjectIdentifier(task)] = Transfer(continuation) }
+                    lock.withLock { transfers[ObjectIdentifier(task)] = Transfer(continuation, limit: limit) }
                     task.resume()
                 }
             } onCancel: {
@@ -139,8 +143,12 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
         var data = Data()
         var failure: Failure?
         let continuation: CheckedContinuation<Data, Error>
+        let limit: Int
 
-        init(_ continuation: CheckedContinuation<Data, Error>) { self.continuation = continuation }
+        init(_ continuation: CheckedContinuation<Data, Error>, limit: Int) {
+            self.continuation = continuation
+            self.limit = limit
+        }
     }
 
     private let lock = NSLock()
@@ -181,7 +189,7 @@ extension HTTPClient: URLSessionDataDelegate {
         if let http = response as? HTTPURLResponse {
             if (300..<400).contains(http.statusCode) { refusal = .redirectRefused }
             else if !(200..<300).contains(http.statusCode) { refusal = .status(http.statusCode) }
-            else if http.expectedContentLength > Int64(Self.maxResponseBytes) { refusal = .tooLarge }
+            else if http.expectedContentLength > Int64(transfer.limit) { refusal = .tooLarge }
             else { refusal = nil }
         } else {
             refusal = .invalidResponse
@@ -200,7 +208,7 @@ extension HTTPClient: URLSessionDataDelegate {
         let over = lock.withLock { () -> Bool in
             guard transfer.failure == nil else { return false }
             transfer.data.append(data)
-            guard transfer.data.count > Self.maxResponseBytes else { return false }
+            guard transfer.data.count > transfer.limit else { return false }
             transfer.failure = .tooLarge
             transfer.data = Data()
             return true

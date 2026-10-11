@@ -21,6 +21,8 @@ Para mostrar saldos, preços e histórico, e para enviar e trocar, o app fala di
 
 Com os alertas de preço ligados, o iPhone consulta de tempos em tempos, também com o app fechado, o preço das moedas marcadas no CoinGecko e no CoinPaprika. Os dois veem o IP e a lista dessas moedas, nada mais.
 
+Para a busca de Receber achar qualquer moeda, o app baixa do CoinGecko, uma vez por dia, a lista completa de moedas, a mesma para todo mundo. A busca acontece no iPhone: o CoinGecko não fica sabendo o que você procurou.
+
 A lista abaixo é completa: o app não consegue falar com nenhum outro endereço, e o código confere isso a cada versão.
 
 - **Preços, gráficos e logos das moedas:** `api.coingecko.com`, `api.coinpaprika.com`, `assets.coingecko.com`, `coin-images.coingecko.com`, `www.okx.com`

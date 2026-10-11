@@ -46,8 +46,22 @@ struct ReceiveSheet: View {
     @State private var backingUp = false
     /// A rede trocada no seletor da tela do endereco, por moeda.
     @State private var chosenNetwork: [String: Asset] = [:]
+    /// Moeda da lista completa que o dono quer ver no saldo: abre o Adicionar moeda.
+    @State private var adding: AddPick?
+
+    struct AddPick: Identifiable {
+        let id = UUID()
+        let preset: AddCustomTokenView.Preset
+    }
+
+    /// Uma moeda da lista completa, e a rede quando ja escolhida.
+    struct CatalogPick: Hashable {
+        let coin: CatalogCoin
+        let network: CatalogCoin.Network?
+    }
 
     private var wallet: WalletMeta? { session.selectedWallet }
+    private var catalog: CoinCatalogStore { .shared }
 
     var body: some View {
         NavigationStack {
@@ -64,7 +78,7 @@ struct ReceiveSheet: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: ReceiveCoin.self) { coin in
                 Group {
-                    if coin.assets.count == 1, let only = coin.assets.first, let chain = only.chain {
+                    if coin.assets.count == 1, extraNetworks(coin).isEmpty, let only = coin.assets.first, let chain = only.chain {
                         addressView(asset: only, chain: chain)
                     } else {
                         networkPicker(coin)
@@ -82,6 +96,24 @@ struct ReceiveSheet: View {
                         .navigationBarTitleDisplayMode(.inline)
                 }
             }
+            .navigationDestination(for: CatalogPick.self) { pick in
+                Group {
+                    let networks = freshNetworks(pick.coin)
+                    if let network = pick.network ?? (networks.count == 1 ? networks.first : nil), let chain = network.chain,
+                       let asset = Self.catalogAsset(pick.coin, network) {
+                        addressContent(asset: asset, chain: chain, siblings: [], key: pick.coin.id, catalogNetwork: network)
+                    } else {
+                        catalogNetworkPicker(pick.coin, networks: networks)
+                    }
+                }
+                .background(Palette.body.ignoresSafeArea())
+                .toolbar(.visible, for: .navigationBar)
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        }
+        .sheet(item: $adding) { pick in
+            NavigationStack { AddCustomTokenView(preset: pick.preset) { adding = nil } }
+                .presentationBackground(Palette.void)
         }
         .presentationBackground(Palette.body)
         .presentationCornerRadius(Radius.sheet)
@@ -123,27 +155,200 @@ struct ReceiveSheet: View {
 
     /// R1: so as moedas. A mesma moeda em redes diferentes (USDT na Tron, na Ethereum,
     /// na Solana) e uma linha so; a rede vem depois, quando a moeda estiver escolhida.
+    ///
+    /// Buscando, aparece qualquer moeda: depois das da carteira e das verificadas, a
+    /// lista completa do CoinGecko (`CoinCatalog`), e no fim as que ainda nao tem rede
+    /// aqui, sem endereco.
     private var chooser: some View {
         let coins = ReceiveCoin.group(receivable)
+        let searching = query.trimmingCharacters(in: .whitespaces).count >= 2
         let filtered = query.isEmpty ? coins : coins.filter { $0.symbol.localizedCaseInsensitiveContains(query) || $0.name.localizedCaseInsensitiveContains(query) }
         let held = Set(Chain.all.compactMap { portfolio.balance($0) }.flatMap(\.holdings).filter { !$0.amount.isZero }.map(\.asset.id))
         let inWallet = filtered.filter { coin in coin.assets.contains { held.contains($0.id) } }
         let others = filtered.filter { coin in !coin.assets.contains { held.contains($0.id) } }
+        let found: (receivable: [CatalogCoin], unsupported: [CatalogCoin]) =
+            searching ? catalogResults(listedIDs: Set(coins.compactMap(\.coingeckoID))) : ([], [])
         return VStack(alignment: .leading, spacing: 0) {
             SheetHeader(title: "Receber") { dismiss() }
-            SearchField(prompt: "Buscar moeda", text: $query, surface: Palette.rail)
+            SearchField(prompt: "Buscar qualquer moeda", text: $query, surface: Palette.rail)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.md)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     if !inWallet.isEmpty {
                         sectionTitle("Na carteira")
                         ForEach(inWallet) { coinRow($0) }
-                        sectionTitle("Todas")
                     }
-                    ForEach(others) { coinRow($0) }
+                    if !others.isEmpty {
+                        if !inWallet.isEmpty || searching { sectionTitle(searching ? "Verificadas" : "Todas") }
+                        ForEach(others) { coinRow($0) }
+                    }
+                    if !found.receivable.isEmpty {
+                        sectionTitle("Mais moedas, fora da lista verificada")
+                        ForEach(found.receivable) { catalogRow($0) }
+                    }
+                    if !found.unsupported.isEmpty {
+                        sectionTitle("Ainda sem rede na Escalibur")
+                        ForEach(found.unsupported) { unsupportedRow($0) }
+                    }
+                    if searching {
+                        searchFooter(empty: filtered.isEmpty && found.receivable.isEmpty && found.unsupported.isEmpty)
+                    }
                 }
                 .padding(.top, Space.xs)
+                .padding(.bottom, Space.lg)
             }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .task { await CoinCatalogStore.shared.ensureLoaded(currency: session.metadata.settings.currency) }
+        #if DEBUG
+        // `-busca <texto>`: a busca ja preenchida, para conferir a lista completa.
+        .onAppear {
+            if query.isEmpty, let index = DebugDemo.arguments.firstIndex(of: "-busca"), DebugDemo.arguments.indices.contains(index + 1) {
+                query = DebugDemo.arguments[index + 1]
+            }
+        }
+        #endif
+    }
+
+    @ViewBuilder
+    private func searchFooter(empty: Bool) -> some View {
+        let text: String? = {
+            if catalog.unavailable { return "A lista completa de moedas não carregou agora. Aparecem só as verificadas; tente de novo em instantes." }
+            if catalog.coins.isEmpty { return "Carregando a lista completa de moedas." }
+            if empty { return "Nenhuma moeda com esse nome ou símbolo." }
+            return nil
+        }()
+        if let text {
+            Text(text).typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+        }
+    }
+
+    // MARK: Lista completa
+
+    /// A moeda da lista completa como ativo da tela do endereco: token fora da lista, so
+    /// para mostrar (o saldo so entra pelo Adicionar moeda, que le a rede). O contrato
+    /// passa pela validacao completa da moeda custom; invalido, ou ja na lista, nil.
+    static func catalogAsset(_ coin: CatalogCoin, _ network: CatalogCoin.Network) -> Asset? {
+        guard let chain = network.chain, case .token(let contract)? = try? CustomToken.kind(chain: chain, address: network.contract) else {
+            return nil
+        }
+        return Asset(chainID: chain.id, kind: .token(contract: contract), symbol: coin.symbol, name: coin.name, decimals: 0,
+                     coingeckoID: coin.id, isStablecoin: false, origin: .discovered)
+    }
+
+    /// As redes da moeda em que esta carteira tem conta e que ainda nao estao nela (pela
+    /// lista ou como moeda custom).
+    private func freshNetworks(_ coin: CatalogCoin) -> [CatalogCoin.Network] {
+        let accounts = Set(wallet?.accounts.map(\.chainID) ?? [])
+        let known = Set(receivable.map(\.id))
+        return coin.networks.filter { network in
+            guard accounts.contains(network.chainID), let asset = Self.catalogAsset(coin, network) else { return false }
+            return !known.contains(asset.id)
+        }
+    }
+
+    /// Redes de fora da lista de uma moeda verificada (o PEPE da lista na Ethereum, e o
+    /// da BNB Chain que o CoinGecko lista).
+    private func extraNetworks(_ coin: ReceiveCoin) -> [CatalogCoin.Network] {
+        guard let id = coin.coingeckoID, !coin.isCustom, let entry = catalog.byID[id] else { return [] }
+        return freshNetworks(entry)
+    }
+
+    private func catalogResults(listedIDs: Set<String>) -> (receivable: [CatalogCoin], unsupported: [CatalogCoin]) {
+        let accounts = Set(wallet?.accounts.map(\.chainID) ?? [])
+        var receivable: [CatalogCoin] = []
+        var unsupported: [CatalogCoin] = []
+        for coin in CoinCatalog.search(catalog.coins, query: query, rank: catalog.rank, limit: 150) where !listedIDs.contains(coin.id) {
+            if !coin.networks.contains(where: { accounts.contains($0.chainID) }) {
+                unsupported.append(coin)
+            } else if !freshNetworks(coin).isEmpty {
+                receivable.append(coin)
+            }
+        }
+        return (Array(receivable.prefix(40)), Array(unsupported.prefix(12)))
+    }
+
+    private func catalogRow(_ coin: CatalogCoin) -> some View {
+        let networks = freshNetworks(coin)
+        let single = networks.count == 1 ? networks.first : nil
+        return NavigationLink(value: CatalogPick(coin: coin, network: single)) {
+            HStack(spacing: Space.sm) {
+                CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 36, network: single?.chain, remoteURL: catalog.images[coin.id],
+                         ringColor: Palette.body, logoAsset: networks.first.flatMap { Self.catalogAsset(coin, $0) })
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                    Text(verbatim: single.flatMap(\.chain).map { "\(coin.name) na \($0.name)" } ?? coin.name)
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
+                }
+                Spacer()
+                if networks.count > 1 {
+                    Text("\(networks.count) redes").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                }
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+            }
+            .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
+        }
+        .buttonStyle(RowStyle(surface: .body))
+    }
+
+    /// Moeda de rede que a Escalibur ainda nao tem: aparece, sem endereco. Mandar para um
+    /// endereco de outra rede perderia o valor.
+    private func unsupportedRow(_ coin: CatalogCoin) -> some View {
+        HStack(spacing: Space.sm) {
+            CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 36, remoteURL: catalog.images[coin.id], ringColor: Palette.body)
+                .opacity(0.5)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: coin.symbol).typeStyle(.row).foregroundStyle(Palette.inkSoft).lineLimit(1)
+                Text(verbatim: coin.name).typeStyle(.note).foregroundStyle(Palette.inkMuted).lineLimit(1)
+            }
+            Spacer()
+            Text(coin.networks.isEmpty ? "Ainda não recebe aqui" : "Ligue a rede em Ajustes")
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).multilineTextAlignment(.trailing)
+        }
+        .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// A rede de uma moeda da lista completa com mais de uma rede.
+    private func catalogNetworkPicker(_ coin: CatalogCoin, networks: [CatalogCoin.Network]) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: Space.sm) {
+                    CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 32, remoteURL: catalog.images[coin.id], ringColor: Palette.body,
+                             logoAsset: networks.first.flatMap { Self.catalogAsset(coin, $0) })
+                    Text("Receber \(coin.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
+                }
+                Text("Escolha a rede. Tem de ser a mesma que quem envia escolher: \(coin.symbol) enviado por outra rede não chega a este endereço.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
+                    .fixedSize(horizontal: false, vertical: true)
+                VStack(spacing: 0) {
+                    ForEach(networks, id: \.self) { network in catalogNetworkRow(coin, network) }
+                }
+                .padding(.top, Space.md)
+            }
+            .padding(.horizontal, Space.gutter)
+            .padding(.top, Space.xs)
+        }
+    }
+
+    @ViewBuilder
+    private func catalogNetworkRow(_ coin: CatalogCoin, _ network: CatalogCoin.Network) -> some View {
+        if let chain = network.chain {
+            NavigationLink(value: CatalogPick(coin: coin, network: network)) {
+                HStack(spacing: Space.sm) {
+                    NetworkBadge(chain: chain, size: 32, ring: Palette.body)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(chain.name).typeStyle(.row).foregroundStyle(Palette.ink)
+                        Text("\(ReceiveCoin.standard(chain)) · não verificado").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                }
+                .frame(minHeight: Height.row)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -211,6 +416,16 @@ struct ReceiveSheet: View {
                     }
                 }
                 .padding(.top, Space.md)
+                let extras = extraNetworks(coin)
+                if !extras.isEmpty, let id = coin.coingeckoID, let entry = catalog.byID[id] {
+                    Text("Fora da lista verificada").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
+                    Text("O CoinGecko lista \(coin.symbol) também nestas redes, com o contrato de cada uma. A Escalibur ainda não conferiu esses contratos.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true).padding(.top, 2)
+                    VStack(spacing: 0) {
+                        ForEach(extras, id: \.self) { network in catalogNetworkRow(entry, network) }
+                    }
+                    .padding(.top, Space.xs)
+                }
             }
             .padding(.horizontal, Space.gutter)
             .padding(.top, Space.xs)
@@ -270,7 +485,10 @@ struct ReceiveSheet: View {
         }
     }
 
-    private func addressContent(asset: Asset, chain: Chain, siblings: [Asset], key: String) -> some View {
+    /// `catalogNetwork`: moeda da lista completa, fora da lista verificada. A tela mostra o
+    /// contrato que quem envia tem de usar e oferece adicionar a moeda ao saldo.
+    private func addressContent(asset: Asset, chain: Chain, siblings: [Asset], key: String,
+                                catalogNetwork: CatalogCoin.Network? = nil) -> some View {
         let address = wallet?.account(chain)?.address ?? ""
         let balance = portfolio.balance(chain)
         return ScrollView {
@@ -294,6 +512,9 @@ struct ReceiveSheet: View {
 
                 warning(chain: chain, asset: asset, exists: balance?.accountExists ?? true)
                     .padding(.top, Space.md)
+                if let catalogNetwork {
+                    catalogBlock(asset: asset, chain: chain, network: catalogNetwork).padding(.top, Space.sm)
+                }
                 if asset.isCustom, let reference = CustomToken.reference(asset.kind) {
                     // Moeda custom: quem envia tem de mandar este contrato, nao outro com o
                     // mesmo simbolo.
@@ -335,6 +556,24 @@ struct ReceiveSheet: View {
             .padding(.bottom, Space.lg)
         }
         .sensoryFeedback(.impact(weight: .light), trigger: toasts.current?.id)
+    }
+
+    /// O contrato da lista completa e o caminho para a moeda aparecer no saldo.
+    private func catalogBlock(asset: Asset, chain: Chain, network: CatalogCoin.Network) -> some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            HStack(spacing: 6) {
+                TokenBadge(.unverified)
+                Text("Quem envia tem de usar exatamente este contrato:")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+            }
+            AddressBlocks(address: CustomToken.reference(asset.kind) ?? network.contract)
+            Text("Contrato listado pelo CoinGecko, fora da lista verificada da Escalibur. Para o saldo aparecer na carteira, adicione a moeda: a carteira lê nome, símbolo e casas na própria rede antes de salvar.")
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+            SecondaryButton(title: "Adicionar \(asset.symbol) à carteira") {
+                adding = AddPick(preset: AddCustomTokenView.Preset(chain: chain, kind: asset.kind))
+            }
+            .padding(.top, Space.xxs)
+        }
     }
 
     private func qrPlate(address: String, chain: Chain) -> some View {

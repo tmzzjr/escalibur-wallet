@@ -545,7 +545,7 @@ Proibições:
 - Redirecionamento: `willPerformHTTPRedirection` devolve `nil`.
 
 Limites:
-- Resposta de até 4 MB, com cancelamento no delegate.
+- Resposta de até 4 MB, com cancelamento no delegate. Uma exceção, pedida na chamada e com teto de 16 MB: a lista completa de moedas do CoinGecko para a busca de Receber (`CoinCatalog`), com 4 MB em 10/10/2026. A lista é pública, baixada uma vez por dia e buscada no aparelho; o contrato de cada moeda passa pela validação da moeda custom antes de virar endereço na tela, e símbolo de stablecoin, de nativa ou da lista só aparece com o id da lista.
 - Timeouts: 10 s por requisição de RPC, 15 s de cotação, 30 s por recurso.
 - Até 2 novas tentativas, com jitter, e só em leitura. Broadcast só reenvia os **mesmos bytes assinados**.
 

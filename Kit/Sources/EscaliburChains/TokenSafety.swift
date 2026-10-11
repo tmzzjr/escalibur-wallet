@@ -48,6 +48,32 @@ public enum TokenSafety {
         return out
     }
 
+    /// So o texto: caractere escondido, link e isca. Para listas publicas (a busca de
+    /// Receber), onde nao ha saldo, rede nem contrato a comparar.
+    public static func textReasons(symbol: String, name: String) -> [Reason] {
+        var out: [Reason] = []
+        let texts = [symbol, name]
+        if texts.contains(where: hasHiddenCharacters) { out.append(.hiddenCharacters) }
+        if texts.contains(where: hasLink) { out.append(.link) }
+        if texts.contains(where: hasBait) { out.append(.bait) }
+        return out
+    }
+
+    /// Simbolo que nenhuma moeda fora da lista usa em lugar nenhum: as stablecoins, as
+    /// nativas e os de todos os tokens da lista, em qualquer rede.
+    public static func isProtectedAnywhere(_ symbol: String) -> Bool {
+        let key = normalizedSymbol(symbol)
+        guard !key.isEmpty else { return false }
+        return protectedEverywhere.contains(key)
+    }
+
+    static let protectedEverywhere: Set<String> = {
+        var out = Set(TokenRegistry.tokens.map { normalizedSymbol($0.symbol) })
+        out.formUnion(Chain.all.map { normalizedSymbol($0.nativeSymbol) })
+        out.formUnion(["USDT", "USDC", "BTC", "ETH", "WETH", "WBTC"])
+        return out
+    }()
+
     /// Redes em que um token chega sem o dono pedir.
     public static func arrivesUnsolicited(_ chain: Chain) -> Bool {
         switch chain.family {
