@@ -24,6 +24,25 @@ struct PriceAlertTextTests {
         #expect(text.body == "Agora US$\(nbsp)1,09.")
     }
 
+    @Test func euro() throws {
+        let text = PriceAlertText.describe(.crossedUp(level: 100_000), coin: bitcoin, quote: try quote(100_250, 1.5), currency: .eur)
+        #expect(text.title == "Bitcoin passou de €\(nbsp)100.000")
+        #expect(text.body == "Agora €\(nbsp)100.250,00, +1,50% em 24 h.")
+    }
+
+    /// A moeda dos alertas segue a escolhida em Ativos; com bitcoin, dolar.
+    @Test func alertCurrencyFollowsAssets() {
+        var settings = Settings()
+        settings.currency = "brl"
+        #expect(settings.alertCurrency == "brl")
+        settings.totalUnit = "eur"
+        #expect(settings.alertCurrency == "eur")
+        settings.totalUnit = "usd"
+        #expect(settings.alertCurrency == "usd")
+        settings.totalUnit = "btc"
+        #expect(settings.alertCurrency == "usd")
+    }
+
     @Test func move() throws {
         let down = PriceAlertText.describe(.moved(change: -12.34), coin: bitcoin, quote: try quote(400_000, -12.34), currency: .brl)
         #expect(down.title == "Bitcoin caiu 12,3% em 24 h")

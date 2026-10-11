@@ -61,7 +61,7 @@ struct PriceAlertsView: View {
         .task {
             file = await PriceAlertCenter.shared.file()
             denied = file.enabled ? await PriceAlertCenter.permissionDenied() : false
-            if let snapshot = try? await MarketService.shared.marketSnapshot(currency: session.metadata.settings.currency) {
+            if let snapshot = try? await MarketService.shared.marketSnapshot(currency: session.metadata.settings.alertCurrency) {
                 market = snapshot.coins
             }
         }
@@ -209,7 +209,7 @@ struct PriceAlertsView: View {
     }
 
     private var exampleLevel: String {
-        let currency = session.currency
+        let currency = Fmt.DisplayUnit(rawValue: session.metadata.settings.alertCurrency) ?? .usd
         let price = market.first { $0.id == "bitcoin" }?.price ?? (currency == .brl ? 600_000 : 110_000)
         return PriceAlertText.level(PriceAlertRules.level(atOrBelow: price), currency)
     }
@@ -241,7 +241,7 @@ struct PriceAlertsView: View {
             apply { $0.enabled = false }
             return
         }
-        let currency = session.metadata.settings.currency
+        let currency = session.metadata.settings.alertCurrency
         Task {
             guard await PriceAlertCenter.requestPermission() else {
                 denied = true
@@ -391,7 +391,7 @@ struct PriceAlertBell: View {
             denied = true
             return
         }
-        let currency = session.metadata.settings.currency
+        let currency = session.metadata.settings.alertCurrency
         let file = await PriceAlertCenter.shared.update { file in
             file.enabled = true
             if file.currency != currency {

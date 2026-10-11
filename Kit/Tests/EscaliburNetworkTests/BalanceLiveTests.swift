@@ -181,3 +181,21 @@ struct TokenRegistryLiveTests {
         }
     }
 }
+
+@Suite("Varredura da lista de tokens ao vivo", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_REDE"] == "1"))
+struct TokenListScanLiveTests {
+    @Test("BNB Chain sem indexador: a lista do CoinGecko acha o BNB Frog Inu de quem recebeu")
+    func bnbFrog() async throws {
+        let service = BalanceService()
+        let started = Date()
+        let balance = try await service.balance(chain: .bnb, addresses: ["0x882000956f71472411bf271e268d75db61c27d8b"])
+        let first = Date().timeIntervalSince(started)
+        let frog = "0x64da67a12a46f1ddf337393e2da12ed0a507ad3d"
+        let found = balance.unlisted?.contains { if case .token(let contract) = $0.asset.kind { return contract.lowercased() == frog } else { return false } }
+        #expect(found == true)
+        // A segunda leitura nao varre de novo: so relê os que tinham saldo.
+        let again = Date()
+        _ = try await service.balance(chain: .bnb, addresses: ["0x882000956f71472411bf271e268d75db61c27d8b"])
+        print("varredura BNB: primeira \(first) s, segunda \(Date().timeIntervalSince(again)) s, \(balance.unlisted?.count ?? 0) fora da lista")
+    }
+}

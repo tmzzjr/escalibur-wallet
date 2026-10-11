@@ -41,11 +41,11 @@ struct RootView: View {
         // O toque num alerta espera o app destravar e entao abre a moeda no Mercado.
         .onChange(of: inbox.request) { routeNotification() }
         .onChange(of: session.phase) { routeNotification() }
-        // Os alertas falam na moeda do app; trocar a moeda zera a base de cada um.
-        .task(id: session.phase == .unlocked ? session.metadata.settings.currency : nil) {
+        // Os alertas falam na moeda escolhida em Ativos (com bitcoin, em dolar); trocar
+        // a moeda zera a base de cada um.
+        .task(id: session.phase == .unlocked ? session.metadata.settings.alertCurrency : nil) {
             guard session.phase == .unlocked else { return }
-            let currency = session.metadata.settings.currency
-            await PriceAlertCenter.shared.syncCurrency(currency)
+            await PriceAlertCenter.shared.syncCurrency(session.metadata.settings.alertCurrency)
         }
         // Travar no meio da primeira carteira derruba o fluxo em tela cheia, mas a
         // carteira ja foi guardada antes das palavras. Ao destravar com carteira, a

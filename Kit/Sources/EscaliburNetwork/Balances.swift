@@ -114,11 +114,16 @@ public actor BalanceService {
     /// Nome, simbolo e casas de TRC-20 fora da lista, lidos uma vez por sessao: tres
     /// chamadas por token, e a TronGrid sem chave corta acima de ~2 por segundo.
     private var tronMetadata: [String: (name: String, symbol: String, decimals: Int)] = [:]
+    /// Redes EVM sem indexador: a lista de tokens do CoinGecko (`TokenListScan`), por
+    /// rede, e a ultima varredura, por rede e dono. Desligado nos testes gravados.
+    private let listScanEnabled: Bool
+    private var tokenLists: [String: (tokens: [IndexedToken], fetchedAt: Date)] = [:]
+    private var listScans: [String: (held: [IndexedToken], scannedAt: Date)] = [:]
 
     public init(client: HTTPClient = .shared) {
         self.init(
             client: client, transport: client, evm: Endpoints.evm, xrpl: Endpoints.xrpl, tokenIndex: Endpoints.evmTokenIndex,
-            solana: Endpoints.solana, tron: Endpoints.tron, ton: Endpoints.ton, stellar: Endpoints.stellar
+            solana: Endpoints.solana, tron: Endpoints.tron, ton: Endpoints.ton, stellar: Endpoints.stellar, listScan: true
         )
     }
 
@@ -126,8 +131,9 @@ public actor BalanceService {
         client: HTTPClient, transport: ReaderTransport, evm: [String: [ProviderPool.Provider]], xrpl: [ProviderPool.Provider],
         tokenIndex: [String: ProviderPool.Provider] = [:], solana: [ProviderPool.Provider] = Endpoints.solana,
         tron: [ProviderPool.Provider] = Endpoints.tron, ton: [ProviderPool.Provider] = Endpoints.ton,
-        stellar: [ProviderPool.Provider] = Endpoints.stellar
+        stellar: [ProviderPool.Provider] = Endpoints.stellar, listScan: Bool = false
     ) {
+        self.listScanEnabled = listScan
         self.client = client
         self.transport = transport
         self.evmProviders = evm
@@ -203,14 +209,14 @@ public actor BalanceService {
             else { continue }
             entries.append((asset, address))
         }
-        let indexed = await discoverEVM(chain, owner: owner, excluding: known)
+        let indexed = await discoverEVM(chain, owner: owner, excluding: known, pool: pool)
         let amounts = await Self.tokenBalances(
             chain: chain, owner: owner, tokens: entries.map(\.contract) + indexed.map(\.contract), pool: pool, transport: transport
         )
         for (entry, amount) in zip(entries, amounts.prefix(entries.count)) {
             if let amount, !amount.isZero { holdings.append(Holding(asset: entry.asset, amount: amount)) }
         }
-        guard tokenIndex[chain.id] != nil else {
+        guard tokenIndex[chain.id] != nil || (listScanEnabled && TokenListScan.url(chain) != nil) else {
             return ChainBalance(chainID: chain.id, holdings: holdings, accountExists: true, unknownTokenCount: 0, fetchedAt: .now)
         }
         let held: [(token: IndexedToken, amount: BigUInt)] = zip(indexed, amounts.dropFirst(entries.count)).compactMap { token, amount in
@@ -235,12 +241,46 @@ public actor BalanceService {
     }
 
     /// Os contratos ERC-20 que o indexador diz que a conta tem, menos os ja conhecidos.
-    /// Indexador fora do ar nao derruba o saldo: a lista e as moedas custom continuam.
-    private func discoverEVM(_ chain: Chain, owner: EVMAddress, excluding known: Set<String>) async -> [IndexedToken] {
-        guard let provider = tokenIndex[chain.id] else { return [] }
+    /// Sem indexador (BNB Chain, X Layer, Sonic), os da lista de tokens do CoinGecko com
+    /// saldo (`TokenListScan`). Indexador ou lista fora do ar nao derruba o saldo: a lista
+    /// conferida e as moedas custom continuam.
+    private func discoverEVM(_ chain: Chain, owner: EVMAddress, excluding known: Set<String>, pool: ProviderPool) async -> [IndexedToken] {
+        guard let provider = tokenIndex[chain.id] else {
+            return await scanTokenList(chain, owner: owner, excluding: known, pool: pool)
+        }
         let found = (try? await TokenIndex.fetch(provider, owner: owner, transport: transport)) ?? []
         var seen = known
         return Array(found.filter { seen.insert($0.contract.checksummed.lowercased()).inserted }.prefix(TokenIndex.maxTokens))
+    }
+
+    /// A varredura inteira no maximo a cada `TokenListScan.scanLifetime`; no intervalo,
+    /// os que tinham saldo (o saldo deles e relido junto com os outros tokens).
+    private func scanTokenList(_ chain: Chain, owner: EVMAddress, excluding known: Set<String>, pool: ProviderPool) async -> [IndexedToken] {
+        guard listScanEnabled, let url = TokenListScan.url(chain) else { return [] }
+        let key = "\(chain.id):\(owner.checksummed.lowercased())"
+        let now = Date()
+        let unknown: ([IndexedToken]) -> [IndexedToken] = { tokens in tokens.filter { !known.contains($0.contract.checksummed.lowercased()) } }
+        if let scan = listScans[key], now.timeIntervalSince(scan.scannedAt) < TokenListScan.scanLifetime, now >= scan.scannedAt {
+            return unknown(scan.held)
+        }
+        if tokenLists[chain.id].map({ now.timeIntervalSince($0.fetchedAt) >= TokenListScan.listLifetime }) ?? true,
+           let data = try? await transport.send(.get(url, timeout: 20)), let parsed = try? TokenListScan.parse(data, chain: chain) {
+            tokenLists[chain.id] = (parsed, now)
+        }
+        guard let tokens = tokenLists[chain.id]?.tokens else { return unknown(listScans[key]?.held ?? []) }
+        let candidates = unknown(tokens)
+        let balances = await Self.uint256Calls(
+            chain: chain, calls: candidates.map { Multicall3.Call(target: $0.contract, data: ERC20.balanceOf(owner: owner)) },
+            pool: pool, transport: transport, batch: TokenListScan.scanBatch
+        )
+        // Varredura sem nenhuma resposta nao apaga a anterior.
+        guard balances.contains(where: { $0 != nil }) else { return unknown(listScans[key]?.held ?? []) }
+        let held = zip(candidates, balances).compactMap { token, amount -> IndexedToken? in
+            guard let amount, !amount.isZero else { return nil }
+            return token
+        }
+        listScans[key] = (Array(held.prefix(TokenIndex.maxTokens)), now)
+        return listScans[key]?.held ?? []
     }
 
     /// O saldo de cada token, na ordem pedida; `nil` onde a leitura falhou. Lote que
@@ -257,7 +297,7 @@ public actor BalanceService {
     /// Chamadas que devolvem um `uint256` (`balanceOf`, `decimals`), em lotes do
     /// Multicall3; sem ele, uma por `eth_call`. `nil` onde a chamada falhou.
     static func uint256Calls(
-        chain: Chain, calls: [Multicall3.Call], pool: ProviderPool, transport: ReaderTransport
+        chain: Chain, calls: [Multicall3.Call], pool: ProviderPool, transport: ReaderTransport, batch size: Int = Multicall3.maxCallsPerBatch
     ) async -> [BigUInt?] {
         guard !calls.isEmpty else { return [] }
         guard Multicall3.isDeployed(on: chain) else {
@@ -274,23 +314,39 @@ public actor BalanceService {
             }
             return out
         }
-        var out: [BigUInt?] = []
-        let batches = stride(from: 0, to: calls.count, by: Multicall3.maxCallsPerBatch).map {
-            Array(calls[$0..<min($0 + Multicall3.maxCallsPerBatch, calls.count)])
-        }
-        for batch in batches {
-            let amounts: [BigUInt?]? = try? await pool.first { provider in
-                let data = try Multicall3.aggregate3(batch)
-                let request: StrictJSON = .object([
-                    "to": .string(Multicall3.address.checksummed), "data": .string(Hex.encode(data, prefix: true)),
-                ])
-                let returned = try await EVMReader.call(transport, provider.baseURL, "eth_call", [request, .string("latest")]).hexData("aggregate3")
-                do { return try Multicall3.decodeBalances(returned, expected: batch.count) } catch { throw ReaderError.malformed(field: "aggregate3") }
+        let step = max(1, size)
+        let batches = stride(from: 0, to: calls.count, by: step).map { Array(calls[$0..<min($0 + step, calls.count)]) }
+        // Ate `parallelBatches` lotes ao mesmo tempo: a varredura da lista de tokens tem
+        // uma dezena deles, e um atras do outro levava quase 20 s na BNB Chain.
+        var results = [[BigUInt?]?](repeating: nil, count: batches.count)
+        await withTaskGroup(of: (Int, [BigUInt?]?).self) { group in
+            var next = 0
+            func launch() {
+                let index = next
+                let batch = batches[index]
+                next += 1
+                group.addTask {
+                    let amounts: [BigUInt?]? = try? await pool.first { provider in
+                        let data = try Multicall3.aggregate3(batch)
+                        let request: StrictJSON = .object([
+                            "to": .string(Multicall3.address.checksummed), "data": .string(Hex.encode(data, prefix: true)),
+                        ])
+                        let returned = try await EVMReader.call(transport, provider.baseURL, "eth_call", [request, .string("latest")]).hexData("aggregate3")
+                        do { return try Multicall3.decodeBalances(returned, expected: batch.count) } catch { throw ReaderError.malformed(field: "aggregate3") }
+                    }
+                    return (index, amounts)
+                }
             }
-            out += amounts ?? Array(repeating: nil, count: batch.count)
+            while next < min(parallelBatches, batches.count) { launch() }
+            for await (index, amounts) in group {
+                results[index] = amounts
+                if next < batches.count { launch() }
+            }
         }
-        return out
+        return zip(batches, results).flatMap { batch, amounts in amounts ?? Array(repeating: nil, count: batch.count) }
     }
+
+    static let parallelBatches = 4
 
     // MARK: UTXO
 

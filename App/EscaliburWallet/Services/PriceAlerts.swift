@@ -190,7 +190,7 @@ actor PriceAlertCenter {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
-        let currency = Fmt.Currency(rawValue: file.currency.uppercased()) ?? .brl
+        let currency = Fmt.DisplayUnit(rawValue: file.currency).flatMap { $0 == .btc ? nil : $0 } ?? .usd
 
         guard file.showDetails else {
             // Discreto: um aviso so, sem moeda e sem valor.
@@ -268,20 +268,20 @@ enum PriceAlertText {
     }
 
     /// "R$ 81.000" no nivel inteiro; "R$ 1,10" e "R$ 0,000012" abaixo disso.
-    static func level(_ value: Double, _ currency: Fmt.Currency) -> String {
+    static func level(_ value: Double, _ currency: Fmt.DisplayUnit) -> String {
         if value >= 1, value == value.rounded() {
             return "\(currency.symbol)\u{00A0}\(Fmt.grouped(value, fractionDigits: 0))"
         }
-        return Fmt.price(value, currency)
+        return Fmt.price(value, unit: currency)
     }
 
     static func percent(_ value: Double) -> String {
         "\(Fmt.grouped(abs(value), fractionDigits: 1))%"
     }
 
-    static func describe(_ event: PriceAlertEvent, coin: WatchedCoin, quote: Quote, currency: Fmt.Currency) -> (title: String, body: String) {
+    static func describe(_ event: PriceAlertEvent, coin: WatchedCoin, quote: Quote, currency: Fmt.DisplayUnit) -> (title: String, body: String) {
         let name = name(coin)
-        let now = "Agora \(Fmt.price(quote.price, currency))"
+        let now = "Agora \(Fmt.price(quote.price, unit: currency))"
         let day = quote.change24h.map { ", \(Fmt.percent($0)) em 24 h." } ?? "."
         switch event {
         case .crossedUp(let mark):

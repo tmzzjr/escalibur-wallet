@@ -100,6 +100,7 @@ enum AllowedHosts {
         "statemint.api.onfinality.io",
         "subquery-history-polkadot-ah-prod.novasama-tech.org",
         "sui-mainnet.nodeinfra.com",
+        "tokens.coingecko.com",
         "tonapi.io",
         "toncenter.com",
         "tron-rpc.publicnode.com",

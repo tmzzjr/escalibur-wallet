@@ -99,6 +99,18 @@ struct Settings: Codable, Equatable {
     var currency: String = "brl"
     /// Unidade do saldo total na tela da carteira (`Fmt.DisplayUnit`). Nil: a moeda do app.
     var totalUnit: String?
+
+    /// A moeda dos alertas de preco: a escolhida em Ativos (real, dolar ou euro). Com o
+    /// bitcoin escolhido, o dolar: um alerta "BTC passou de 1 BTC" nao diz nada.
+    var alertCurrency: String {
+        switch totalUnit.flatMap(Fmt.DisplayUnit.init(rawValue:)) {
+        case .brl?: return "brl"
+        case .usd?: return "usd"
+        case .eur?: return "eur"
+        case .btc?: return "usd"
+        case nil: return ["brl", "usd", "eur"].contains(currency) ? currency : "usd"
+        }
+    }
     /// Moedas marcadas com coracao (ids do CoinGecko), fixadas no topo do Mercado.
     var favoriteCoins: [String]?
     var hideBalances = false
