@@ -38,6 +38,8 @@ final class TradeModel {
     var targetPriceText = ""
     /// Por quanto tempo a ordem limite vale; nil e "ate cancelar".
     var validFor: TimeInterval? = 7 * 86_400
+    /// Refazer a ordem quando vencer: o app avisa e pergunta (`LimitRenewalCenter`).
+    var renewOnExpiry = false
 
     var amountIn: BigUInt? {
         guard let sell else { return nil }
@@ -390,6 +392,9 @@ struct TradeView: View {
                     Text("Na CoW toda ordem tem prazo: sem prazo escolhido, ela vale o máximo que o protocolo aceita, e a revisão mostra a data.")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
                 }
+                if model.validFor != nil, LimitRenewalCenter.supports(model.chain) {
+                    renewToggle.padding(.top, Space.xs)
+                }
             }
             .padding(.top, Space.sm)
             if let engine {
@@ -399,6 +404,23 @@ struct TradeView: View {
                     OpenOrdersSection(chain: model.chain, refresh: ordersRefresh).padding(.top, Space.lg)
                 }
             }
+        }
+    }
+
+    /// Refazer quando vencer. Sem servidor e com a chave so no iPhone, nada assina
+    /// sozinho: o app avisa e pergunta, e refazer pede o Face ID ou o PIN.
+    private var renewToggle: some View {
+        VStack(alignment: .leading, spacing: Space.xxs) {
+            Toggle(isOn: Binding(get: { model.renewOnExpiry }, set: { on in
+                model.renewOnExpiry = on
+                if on { Task { _ = await PriceAlertCenter.requestPermission() } }
+            })) {
+                Text("Refazer quando vencer").typeStyle(.row).foregroundStyle(Palette.ink)
+            }
+            .tint(Palette.lime)
+            .accessibilityIdentifier("refazer-ordem")
+            Text("Quando o prazo acabar, o iPhone avisa e o app pergunta se refaz com o mesmo preço. Refazer pede o seu Face ID ou PIN: sem você, ninguém assina uma ordem nova com a sua chave.")
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -522,7 +544,8 @@ struct TradeView: View {
             guard let minimum = limitMinimumOut else { return }
             let request = LimitOrderRequest(walletID: wallet.id, chain: model.chain, account: account, sell: sell, buy: buy,
                                             amountIn: amount, minimumOut: minimum, validFor: model.validFor)
-            reviewing = TradeReviewFlow.Item(kind: .limit(request), chain: model.chain, fiat: fiat)
+            reviewing = TradeReviewFlow.Item(kind: .limit(request), chain: model.chain, fiat: fiat,
+                                             renewLimit: model.renewOnExpiry && model.validFor != nil && LimitRenewalCenter.supports(model.chain))
         }
     }
 

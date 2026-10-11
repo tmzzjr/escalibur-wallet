@@ -23,9 +23,6 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
     public static let shared = HTTPClient()
 
     static let maxResponseBytes = 4 * 1024 * 1024
-    /// O teto de uma leitura que pede mais que o padrao: a lista completa de moedas do
-    /// CoinGecko (`CoinCatalog`), com 4 MB em 10/10/2026 e crescendo.
-    public static let largeResponseBytes = 16 * 1024 * 1024
     static let userAgent = "EscaliburWallet"
 
     /// So para os testes: um `URLProtocol` no lugar da rede.
@@ -73,12 +70,11 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
 
     // MARK: Requisicoes
 
-    /// `maxBytes`: o teto do corpo; acima do padrao, so ate `largeResponseBytes`.
-    public func get(_ url: URL, headers: [String: String] = [:], timeout: TimeInterval = 10, maxBytes: Int? = nil) async throws -> Data {
+    public func get(_ url: URL, headers: [String: String] = [:], timeout: TimeInterval = 10) async throws -> Data {
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.httpMethod = "GET"
         headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
-        return try await perform(request, limit: min(maxBytes ?? Self.maxResponseBytes, Self.largeResponseBytes))
+        return try await perform(request)
     }
 
     public func post(_ url: URL, json body: Data, headers: [String: String] = [:], timeout: TimeInterval = 10) async throws -> Data {

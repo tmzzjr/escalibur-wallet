@@ -4,71 +4,82 @@ import Foundation
 import Testing
 @testable import EscaliburNetwork
 
-/// A lista completa de moedas da busca de Receber, lida de um recorte real de
-/// `/coins/list?include_platform=true` com alguns casos montados (impostor, isca).
-@Suite("Catalogo de moedas")
+/// A busca de Receber no CoinGecko: respostas reais gravadas de `/search?query=bonk`,
+/// `/coins/bonk` e `/coins/hedera-hashgraph` (11/10/2026), e casos montados (impostor,
+/// isca, id que nao cabe na URL).
+@Suite("Busca de moedas")
 struct CoinCatalogTests {
-    static func coins() throws -> [CatalogCoin] {
-        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/coingecko-coins-list.json")
-        return try CoinCatalog.parse(try Data(contentsOf: url))
+    static func fixture(_ name: String) throws -> Data {
+        try Data(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures/\(name).json"))
     }
 
-    static func coin(_ id: String) throws -> CatalogCoin? { try coins().first { $0.id == id } }
+    @Test("Busca real: a Bonk primeiro, com posicao no mercado e logo do host do CoinGecko")
+    func search() throws {
+        let results = try CoinCatalog.parseSearch(try Self.fixture("coingecko-search-bonk"))
+        let first = try #require(results.first)
+        #expect(first.id == "bonk" && first.symbol == "BONK" && first.name == "Bonk" && first.rank != nil)
+        #expect(first.image?.host == "coin-images.coingecko.com")
+        #expect(results.count > 5)
+    }
 
-    @Test("So redes que recebem token por endereco, contrato na forma da moeda custom")
-    func networks() throws {
-        let bonk = try #require(try Self.coin("bonk"))
-        #expect(bonk.symbol == "BONK" && bonk.name == "Bonk")
-        // Aptos e Neon EVM ficam de fora; a ordem e a das redes da carteira.
+    @Test("Busca: isca, simbolo protegido de outro id, id que nao cabe na URL e repetido ficam de fora")
+    func searchSafety() throws {
+        let json = #"""
+        {"coins":[
+          {"id":"tether","name":"Tether","symbol":"USDT","market_cap_rank":3,"thumb":"https://coin-images.coingecko.com/a.png"},
+          {"id":"usdt-impostor","name":"Bridged USDT","symbol":"USDT","market_cap_rank":null,"thumb":null},
+          {"id":"claim-token","name":"Claim at rewards-site.com","symbol":"RWD","market_cap_rank":null,"thumb":null},
+          {"id":"../../etc","name":"Path","symbol":"PATH","market_cap_rank":null,"thumb":null},
+          {"id":"toshi","name":"Toshi","symbol":"TOSHI","market_cap_rank":500,"thumb":"https://atacante.example/x.png"},
+          {"id":"toshi","name":"Toshi","symbol":"TOSHI","market_cap_rank":500,"thumb":null}
+        ]}
+        """#
+        let results = try CoinCatalog.parseSearch(Data(json.utf8))
+        #expect(results.map(\.id) == ["tether", "toshi"])
+        #expect(results[1].image == nil)
+    }
+
+    @Test("Moeda real (Bonk): so redes que recebem token por endereco, contrato com o formato da rede, aviso publico marcado")
+    func coin() throws {
+        let bonk = try CoinCatalog.parseCoin(try Self.fixture("coingecko-coin-bonk"), id: "bonk")
         let order = Chain.all.map(\.id)
-        #expect(bonk.networks.map(\.chainID) == order.filter { ["ethereum", "bnb", "solana"].contains($0) })
+        #expect(bonk.networks.map(\.chainID) == order.filter { ["ethereum", "bnb", "solana", "arbitrum", "polygon", "unichain"].contains($0) })
         #expect(bonk.networks.first { $0.chainID == "ethereum" }?.contract == "0x1151cb3d861920e07a38e03eead12c32178567f6")
         #expect(bonk.networks.first { $0.chainID == "solana" }?.contract == "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263")
-        #expect(try Self.coin("notcoin")?.networks.map(\.chainID) == ["ton"])
-        #expect(try Self.coin("sun-token")?.networks.map(\.chainID) == ["tron"])
+        // Aptos e Neon EVM ficam de fora; o aviso do CoinGecko sobre o ataque fica marcado.
+        #expect(!bonk.networks.contains { $0.chainID == "aptos" })
+        #expect(bonk.hasNotice)
     }
 
-    @Test("Moeda da lista: so as redes de fora da lista; USDT de outro id, isca e contrato invalido ficam de fora")
-    func safety() throws {
-        let pepe = try #require(try Self.coin("pepe"))
-        #expect(Set(pepe.networks.map(\.chainID)) == ["arbitrum", "bnb"])
-        let tether = try #require(try Self.coin("tether"))
-        #expect(tether.networks.isEmpty)
-        #expect(try Self.coin("bridged-usdt-impostor") == nil)
-        #expect(try Self.coin("claim-token") == nil)
-        #expect(try Self.coin("bad-contract")?.networks.isEmpty == true)
+    @Test("Moeda sem contrato aqui (Hedera): sem rede para receber; outra moeda no lugar recusa")
+    func coinWithoutNetwork() throws {
+        let hedera = try CoinCatalog.parseCoin(try Self.fixture("coingecko-coin-hedera"), id: "hedera-hashgraph")
+        #expect(!hedera.isReceivable)
+        #expect(throws: (any Error).self) { try CoinCatalog.parseCoin(try Self.fixture("coingecko-coin-bonk"), id: "hedera-hashgraph") }
     }
 
-    @Test("Moeda sem rede aqui (Hedera, so na Sui) continua na lista, sem rede para receber")
-    func unsupported() throws {
-        #expect(try Self.coin("hedera-hashgraph")?.isReceivable == false)
-        #expect(try Self.coin("sui-only")?.isReceivable == false)
-    }
-
-    @Test("Busca: simbolo exato, depois prefixo, nome; dentro do grupo, pela posicao no mercado")
-    func search() throws {
-        let coins = try Self.coins()
-        let toshi = CoinCatalog.search(coins, query: "toshi", rank: [:], limit: 10).map(\.id)
-        #expect(toshi == ["toshi", "toshi-the-cat"])
-        #expect(CoinCatalog.search(coins, query: "not", rank: [:], limit: 10).first?.id == "notcoin")
-        #expect(CoinCatalog.search(coins, query: "token", rank: [:], limit: 10).map(\.id) == ["sun-token"])
-        #expect(CoinCatalog.search(coins, query: "t", rank: [:], limit: 10).isEmpty)
-        // Mesmo grupo (nome que contem "o"... prefixo de simbolo "TOSHI"): o rank decide.
-        let ranked = CoinCatalog.search(coins, query: "tosh", rank: ["toshi-the-cat": 5, "toshi": 50], limit: 10).map(\.id)
-        #expect(ranked == ["toshi-the-cat", "toshi"])
+    @Test("Moeda da lista: so as redes de fora da lista; contrato invalido fica de fora")
+    func listedCoin() throws {
+        let json = #"""
+        {"id":"pepe","symbol":"pepe","name":"Pepe","platforms":{
+          "ethereum":"0x6982508145454ce325ddbe47a25d4ec3d2311933",
+          "binance-smart-chain":"0x25d887ce7a35172c62febfd67a1856f20faebb00",
+          "arbitrum-one":"not-an-address","": ""},
+         "public_notice":null,"preview_listing":false}
+        """#
+        let pepe = try CoinCatalog.parseCoin(Data(json.utf8), id: "pepe")
+        #expect(pepe.networks.map(\.chainID) == ["bnb"])
+        #expect(!pepe.hasNotice)
     }
 }
 
-@Suite("Catalogo de moedas ao vivo", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_REDE"] == "1"))
+@Suite("Busca de moedas ao vivo", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_REDE"] == "1"))
 struct CoinCatalogLiveTests {
-    @Test("A lista completa do CoinGecko chega, cabe no teto e tem milhares de moedas que a carteira recebe")
-    func fetch() async throws {
-        let started = Date()
-        let coins = try await CoinCatalog.fetch()
-        let elapsed = Date().timeIntervalSince(started)
-        #expect(coins.count > 15_000)
-        #expect(coins.filter(\.isReceivable).count > 10_000)
-        #expect(coins.contains { $0.id == "bonk" && $0.isReceivable })
-        print("catalogo: \(coins.count) moedas, \(coins.filter(\.isReceivable).count) recebiveis, \(elapsed) s")
+    @Test("Buscar e abrir uma moeda: duas chamadas pequenas")
+    func searchAndOpen() async throws {
+        let results = try await CoinCatalog.search("bonk")
+        #expect(results.first?.id == "bonk")
+        let bonk = try await CoinCatalog.coin(id: "bonk")
+        #expect(bonk.networks.contains { $0.chainID == "solana" })
     }
 }

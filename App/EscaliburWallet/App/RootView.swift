@@ -31,7 +31,9 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             session.scenePhaseChanged(phase)
             switch phase {
-            case .active: Task { await PriceAlertCenter.shared.check() }
+            case .active:
+                Task { await PriceAlertCenter.shared.check() }
+                Task { await LimitRenewalCenter.shared.refresh(session: session) }
             case .background: Task { await PriceAlertCenter.shared.reschedule() }
             default: break
             }
@@ -68,6 +70,12 @@ struct RootView: View {
     private func routeNotification() {
         guard session.phase == .unlocked, let request = inbox.request else { return }
         inbox.request = nil
+        if request.orderID != nil {
+            router.tradeMode = .limit
+            router.tab = .trade
+            Task { await LimitRenewalCenter.shared.refresh(session: session) }
+            return
+        }
         router.tab = .market
         router.pendingCoinID = request.coinID
     }
@@ -135,6 +143,7 @@ struct MainTabs: View {
                 .tag(Router.Tab.settings)
         }
         .tint(Palette.lime)
+        .modifier(LimitRenewalPrompts())
         .fullScreenCover(item: Bindable(router).flow) { flow in
             switch flow {
             case .send(let asset): SendFlow(initialAsset: asset)

@@ -2,8 +2,19 @@ import EscaliburChains
 import EscaliburCore
 import Foundation
 
-/// Uma moeda da lista completa do CoinGecko, com os contratos nas redes em que a
-/// carteira recebe token por endereco.
+/// Uma moeda achada na busca de Receber, ainda sem as redes: so o que a lista mostra.
+public struct CoinSearchResult: Sendable, Hashable, Identifiable {
+    /// O id do CoinGecko.
+    public let id: String
+    public let symbol: String
+    public let name: String
+    /// A posicao no mercado, quando a moeda tem.
+    public let rank: Int?
+    /// A logo pequena, so no host de imagens do CoinGecko.
+    public let image: URL?
+}
+
+/// Uma moeda com as redes em que a carteira recebe ela, lida quando o dono toca nela.
 public struct CatalogCoin: Codable, Sendable, Hashable, Identifiable {
     /// Uma rede em que a carteira recebe esta moeda, com o contrato fora da lista
     /// conferida.
@@ -11,33 +22,37 @@ public struct CatalogCoin: Codable, Sendable, Hashable, Identifiable {
         public let chainID: String
         /// O contrato como o CoinGecko escreve (minusculo na EVM), com o formato da rede
         /// conferido. A validacao completa (checksum, chave da rede) e a da moeda custom,
-        /// `CustomToken.kind`, na hora de mostrar o endereco: as 20 mil moedas da lista
-        /// nao passam todas pelo keccak a cada carga.
+        /// `CustomToken.kind`, na hora de mostrar o endereco.
         public let contract: String
 
         public var chain: Chain? { Chain.find(chainID) }
     }
 
-    /// O id do CoinGecko.
     public let id: String
     public let symbol: String
     public let name: String
-    /// Onde a carteira recebe: EVM, Solana, Tron e TON, contrato valido e fora da lista.
+    /// Onde a carteira recebe: EVM, Solana, Tron e TON, contrato com o formato da rede e
+    /// fora da lista.
     public let networks: [Network]
+    /// O CoinGecko publicou um aviso sobre a moeda (ataque, migracao, golpe) ou ela esta
+    /// em pre-listagem. O texto do aviso nao e mostrado: e de quem escreveu, com link.
+    public let hasNotice: Bool
 
     public var isReceivable: Bool { !networks.isEmpty }
 }
 
-/// A lista completa de moedas do CoinGecko (`/coins/list?include_platform=true`, sem
-/// chave): a busca de Receber acha qualquer moeda, como num app de carteira.
+/// A busca de Receber no CoinGecko, sem chave: so o que o dono digitou, e as redes de uma
+/// moeda so quando ele toca nela.
 ///
-/// - Uma chamada para a lista inteira, a mesma para todo mundo: nao diz nada do dono. A
-///   busca e local.
-/// - So entra em rede onde a carteira recebe token por endereco e mostra o saldo (EVM,
+/// - `GET /search?query=` devolve as moedas que casam com o texto (cerca de 8 KB). O
+///   CoinGecko ve o que foi buscado; a politica de privacidade diz isso.
+/// - `GET /coins/{id}` (sem mercado, tickers nem comunidade) devolve as plataformas com o
+///   contrato de cada uma.
+/// - So entra rede em que a carteira recebe token por endereco e mostra o saldo (EVM,
 ///   Solana, Tron e TON, as redes de moeda custom por contrato). XRP Ledger e Stellar
 ///   pedem linha de confianca; Sui, Cardano, Polkadot, NEAR e Aptos ainda nao mostram
-///   token fora da lista. Moeda so dessas redes, ou de redes que a carteira nao tem,
-///   aparece na busca como ainda sem suporte, sem endereco.
+///   token fora da lista. Moeda so dessas redes, ou de redes que a carteira nao tem, fica
+///   sem endereco.
 /// - O contrato precisa ter o formato da rede, e o que ja esta na lista conferida fica de
 ///   fora: aparece pela lista, com o selo. Antes de virar endereco na tela, passa pela
 ///   validacao completa da moeda custom (`CustomToken.kind`).
@@ -45,14 +60,97 @@ public struct CatalogCoin: Codable, Sendable, Hashable, Identifiable {
 ///   escondido. Simbolo de stablecoin, de nativa ou da lista so com o id da lista: um
 ///   "USDT" de outro id nao aparece.
 public enum CoinCatalog {
-    public static let url = URL(string: "https://api.coingecko.com/api/v3/coins/list?include_platform=true")!
-    /// A lista muda devagar: uma vez por dia basta.
-    public static let lifetime: TimeInterval = 24 * 3600
+    static let base = URL(string: "https://api.coingecko.com/api/v3")!
 
-    public static func fetch(client: HTTPClient = .shared) async throws -> [CatalogCoin] {
-        let data = try await client.get(url, timeout: 30, maxBytes: HTTPClient.largeResponseBytes)
-        return try parse(data)
+    public static func search(_ query: String, client: HTTPClient = .shared) async throws -> [CoinSearchResult] {
+        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard text.count >= 2, text.count <= 60 else { return [] }
+        var components = URLComponents(url: base.appendingPathComponent("search"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "query", value: text)]
+        guard let url = components.url else { return [] }
+        return try parseSearch(try await client.get(url, timeout: 10))
     }
+
+    public static func coin(id: String, client: HTTPClient = .shared) async throws -> CatalogCoin {
+        guard isValidID(id) else { throw HTTPClient.Failure.decoding("moeda") }
+        var components = URLComponents(url: base.appendingPathComponent("coins/\(id)"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            "localization", "tickers", "market_data", "community_data", "developer_data", "sparkline",
+        ].map { URLQueryItem(name: $0, value: "false") }
+        guard let url = components.url else { throw HTTPClient.Failure.decoding("moeda") }
+        return try parseCoin(try await client.get(url, timeout: 10), id: id)
+    }
+
+    /// O id vai no caminho da URL: so letras minusculas, digitos e hifen.
+    static func isValidID(_ id: String) -> Bool {
+        !id.isEmpty && id.count <= 120
+            && id.unicodeScalars.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "-" }
+    }
+
+    // MARK: Leitura
+
+    static func parseSearch(_ data: Data) throws -> [CoinSearchResult] {
+        struct Response: Decodable {
+            struct Coin: Decodable {
+                let id: String
+                let name: String
+                let symbol: String
+                let market_cap_rank: Int?
+                let thumb: String?
+            }
+            let coins: [Coin]
+        }
+        let response: Response
+        do { response = try JSONDecoder().decode(Response.self, from: data) } catch { throw HTTPClient.Failure.decoding("busca") }
+        var seen = Set<String>()
+        return response.coins.prefix(60).compactMap { coin -> CoinSearchResult? in
+            guard isValidID(coin.id), seen.insert(coin.id).inserted,
+                  let (symbol, name) = acceptable(id: coin.id, symbol: coin.symbol, name: coin.name)
+            else { return nil }
+            let image = coin.thumb.flatMap(URL.init(string:)).flatMap { ImageLoader.isAllowed($0) ? $0 : nil }
+            return CoinSearchResult(id: coin.id, symbol: symbol, name: name, rank: coin.market_cap_rank, image: image)
+        }
+    }
+
+    static func parseCoin(_ data: Data, id: String) throws -> CatalogCoin {
+        struct Response: Decodable {
+            let id: String
+            let symbol: String
+            let name: String
+            let platforms: [String: String?]?
+            let public_notice: String?
+            let preview_listing: Bool?
+        }
+        let response: Response
+        do { response = try JSONDecoder().decode(Response.self, from: data) } catch { throw HTTPClient.Failure.decoding("moeda") }
+        guard response.id == id, let (symbol, name) = acceptable(id: id, symbol: response.symbol, name: response.name) else {
+            throw HTTPClient.Failure.decoding("moeda")
+        }
+        let order = Dictionary(Chain.all.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var networks: [CatalogCoin.Network] = []
+        for (platform, contract) in (response.platforms ?? [:]).sorted(by: { $0.key < $1.key }) {
+            guard let contract, let chain = chains[platform], let shaped = shape(contract, chain: chain),
+                  !listedContracts.contains("\(chain.id):\(shaped)"), !networks.contains(where: { $0.chainID == chain.id })
+            else { continue }
+            networks.append(.init(chainID: chain.id, contract: shaped))
+        }
+        networks.sort { (order[$0.chainID] ?? .max) < (order[$1.chainID] ?? .max) }
+        let notice = !(response.public_notice ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || response.preview_listing == true
+        return CatalogCoin(id: id, symbol: symbol, name: name, networks: networks, hasNotice: notice)
+    }
+
+    /// Simbolo e nome limpos, ou nil: texto com link, isca ou caractere escondido, ou
+    /// simbolo protegido com id fora da lista.
+    static func acceptable(id: String, symbol rawSymbol: String, name rawName: String) -> (String, String)? {
+        let symbol = TokenSafety.clean(rawSymbol.uppercased(), limit: TokenSafety.symbolLimit)
+        let name = TokenSafety.clean(rawName, limit: TokenSafety.nameLimit)
+        guard !symbol.isEmpty, !name.isEmpty, TokenSafety.textReasons(symbol: rawSymbol, name: rawName).isEmpty else { return nil }
+        guard listedIDs.contains(id) || !TokenSafety.isProtectedAnywhere(symbol) else { return nil }
+        return (symbol, name)
+    }
+
+    static let listedIDs = Set(TokenRegistry.tokens.compactMap(\.coingeckoID) + Chain.all.map(\.coingeckoID))
 
     /// A plataforma do CoinGecko de cada rede que recebe token por endereco.
     static let chains: [String: Chain] = {
@@ -74,7 +172,7 @@ public enum CoinCatalog {
     static let base64url = Set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
     static let hex = Set("0123456789abcdef")
 
-    /// O formato do contrato na rede, sem checksum: barato para 30 mil contratos.
+    /// O formato do contrato na rede, sem checksum.
     static func shape(_ raw: String, chain: Chain) -> String? {
         let text = raw.trimmingCharacters(in: .whitespaces)
         switch chain.family {
@@ -95,71 +193,5 @@ public enum CoinCatalog {
         default:
             return nil
         }
-    }
-
-    static func parse(_ data: Data) throws -> [CatalogCoin] {
-        struct Raw: Decodable {
-            let id: String
-            let symbol: String
-            let name: String
-            let platforms: [String: String?]?
-        }
-        let raws: [Raw]
-        do { raws = try JSONDecoder().decode([Raw].self, from: data) } catch { throw HTTPClient.Failure.decoding("lista de moedas") }
-        let listedIDs = Set(TokenRegistry.tokens.compactMap(\.coingeckoID) + Chain.all.map(\.coingeckoID))
-        let order = Dictionary(Chain.all.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
-        return raws.compactMap { raw -> CatalogCoin? in
-            guard !raw.id.isEmpty, raw.id.count <= 120 else { return nil }
-            let symbol = TokenSafety.clean(raw.symbol.uppercased(), limit: TokenSafety.symbolLimit)
-            let name = TokenSafety.clean(raw.name, limit: TokenSafety.nameLimit)
-            guard !symbol.isEmpty, !name.isEmpty, TokenSafety.textReasons(symbol: raw.symbol, name: raw.name).isEmpty else { return nil }
-            let listed = listedIDs.contains(raw.id)
-            guard listed || !TokenSafety.isProtectedAnywhere(symbol) else { return nil }
-            var networks: [CatalogCoin.Network] = []
-            for (platform, contract) in (raw.platforms ?? [:]).sorted(by: { $0.key < $1.key }) {
-                guard let contract, let chain = chains[platform], let shaped = shape(contract, chain: chain),
-                      !listedContracts.contains("\(chain.id):\(shaped)")
-                else { continue }
-                networks.append(.init(chainID: chain.id, contract: shaped))
-            }
-            networks.sort { (order[$0.chainID] ?? .max) < (order[$1.chainID] ?? .max) }
-            return CatalogCoin(id: raw.id, symbol: symbol, name: name, networks: networks)
-        }
-    }
-
-    /// As moedas que casam com a busca, das mais provaveis para as menos: simbolo exato,
-    /// simbolo que comeca com o texto, nome que comeca, nome que contem; dentro de cada
-    /// grupo, pela posicao no mercado (`rank`, menor primeiro) e pelo nome mais curto.
-    public static func search(_ coins: [CatalogCoin], query: String, rank: [String: Int], limit: Int) -> [CatalogCoin] {
-        let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard text.count >= 2 else { return [] }
-        let upper = text.uppercased()
-        let lower = text.lowercased()
-        var scored: [(score: Int, rank: Int, length: Int, coin: CatalogCoin)] = []
-        for coin in coins {
-            let score: Int
-            if coin.symbol == upper {
-                score = 0
-            } else if coin.symbol.hasPrefix(upper) {
-                score = 1
-            } else {
-                let name = coin.name.lowercased()
-                if name.hasPrefix(lower) {
-                    score = 2
-                } else if name.contains(lower) || coin.id.contains(lower) {
-                    score = 3
-                } else {
-                    continue
-                }
-            }
-            scored.append((score, rank[coin.id] ?? .max, coin.name.count, coin))
-        }
-        scored.sort { a, b in
-            if a.score != b.score { return a.score < b.score }
-            if a.rank != b.rank { return a.rank < b.rank }
-            if a.length != b.length { return a.length < b.length }
-            return a.coin.id < b.coin.id
-        }
-        return scored.prefix(limit).map(\.coin)
     }
 }

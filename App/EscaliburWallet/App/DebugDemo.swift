@@ -159,6 +159,22 @@ enum DebugDemo {
                 router.tab = .market
                 router.pendingCoinID = "bitcoin"
             case "trocar", "trocar-grande": router.tab = .trade
+            // `-tela refazer`: a pergunta de refazer uma ordem limite vencida (ETH por
+            // USDC na Base, 40% ja tinha saido), sem rede.
+            case "refazer":
+                router.tab = .trade
+                router.tradeMode = .limit
+                if let wallet = session.selectedWallet, let usdc = TokenRegistry.tokens.first(where: { $0.chainID == "base" && $0.symbol == "USDC" }) {
+                    let record = LimitRenewal(
+                        orderID: "0x00", walletID: wallet.id, chainID: "base", sellAssetID: Asset.native(.base).id, buyAssetID: usdc.id,
+                        amountIn: BigUInt(1) * BigUInt.power(of: 10, 18), minimumOut: BigUInt(2_000) * BigUInt.power(of: 10, 6),
+                        validFor: 604_800, expiresAt: Date()
+                    )
+                    LimitRenewalCenter.shared.preview(DueRenewal(
+                        record: record, chain: .base, sell: .native(.base), buy: usdc,
+                        amountIn: BigUInt(6) * BigUInt.power(of: 10, 17), minimumOut: BigUInt(1_200) * BigUInt.power(of: 10, 6), filledFraction: 0.4
+                    ))
+                }
             case "atividade": router.tab = .activity
             case "ajustes": router.tab = .settings
             case "enviar": router.present(.send(nil))

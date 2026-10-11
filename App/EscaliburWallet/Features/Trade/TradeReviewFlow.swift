@@ -23,6 +23,10 @@ struct TradeReviewFlow: View {
         let chain: Chain
         /// Valor vendido em moeda do dono, para a camada de voz; nil sem cotacao.
         let fiat: Double?
+        /// Ordem limite: refazer quando vencer (`LimitRenewalCenter`).
+        var renewLimit = false
+        /// Refazendo uma ordem vencida: o id dela, que sai da lista quando a nova sai.
+        var replacesRenewal: String? = nil
     }
 
     @Environment(AppSession.self) private var session
@@ -126,7 +130,8 @@ struct TradeReviewFlow: View {
                         Text("cerca de \(Fmt.fiat(fiat, session.currency))").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, 2)
                     }
                     PlanVerbatimPlate(review: plan.review).padding(.top, Space.lg)
-                    PlanDetailLines(review: plan.review, extra: [("De", session.selectedWallet?.name ?? "")])
+                    PlanDetailLines(review: plan.review, extra: [("De", session.selectedWallet?.name ?? "")]
+                        + (item.renewLimit ? [("Quando vencer", "O app avisa e pergunta se refaz, com o mesmo preço")] : []))
                         .padding(.top, Space.lg)
                     if plan.review.transactionCount > 1 {
                         Banner(kind: .neutral, title: "Você vai assinar \(plan.review.transactionCount) transações de uma vez",
@@ -345,6 +350,10 @@ struct TradeReviewFlow: View {
             if !isCancel { VoiceGate.shared.noteSendTransmitted(session: session) }
             ids = try await engine.submit(signed, plan: plan)
             unsureSigned = nil
+            if case .limit(let request) = item.kind, let orderID = ids.first {
+                if let old = item.replacesRenewal { LimitRenewalCenter.shared.forget(old, session: session) }
+                if item.renewLimit { LimitRenewalCenter.shared.register(orderID: orderID, request: request, session: session) }
+            }
             stage = .done
             portfolio.show(session.selectedWallet, session: session, force: true)
         } catch {

@@ -64,7 +64,6 @@ struct WalletHomeView: View {
         }
         .task(id: wallet?.id) {
             portfolio.show(wallet, session: session)
-            CoinCatalogStore.shared.prefetch(currency: session.metadata.settings.currency)
             await portfolio.refresh(wallet, session: session)
             #if DEBUG
             if DebugDemo.screen == "detalhe", let first = portfolio.rows.first { router.walletPath.append(first) }

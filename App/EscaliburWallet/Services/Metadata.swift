@@ -44,6 +44,9 @@ struct Metadata: Codable, Equatable {
     /// Quando cada token fora da lista foi conferido e o CoinGecko nao reconheceu: nao
     /// pergunta de novo antes de 7 dias.
     var unrecognizedChecks: [String: Date]?
+    /// Ordens limite que o dono pediu para refazer quando vencerem (`LimitRenewal`).
+    /// Opcional para os metadados gravados antes deste campo abrirem.
+    var limitRenewals: [LimitRenewal]?
 
     var selectedWallet: WalletMeta? {
         wallets.first { $0.id == selectedWalletID } ?? wallets.first

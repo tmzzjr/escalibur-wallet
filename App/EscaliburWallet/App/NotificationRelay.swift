@@ -1,8 +1,9 @@
 import Observation
 import UserNotifications
 
-/// Recebe as notificacoes locais dos alertas de preco. So abre o app: nenhuma acao
-/// na notificacao, e tocar nela leva ao Mercado depois do PIN ou do Face ID.
+/// Recebe as notificacoes locais dos alertas de preco e do fim do prazo das ordens
+/// limite. So abre o app: nenhuma acao na notificacao. Depois do PIN ou do Face ID, o
+/// alerta leva ao Mercado e a ordem, a Trocar, onde o app pergunta se refaz.
 ///
 /// Os metodos sao `nonisolated` e assincronos: o iOS chama o delegado fora da fila
 /// principal, e um fechamento criado no MainActor e chamado de outra fila derruba o app
@@ -20,6 +21,10 @@ final class NotificationRelay: NSObject, UNUserNotificationCenterDelegate, Senda
                 identifier: PriceAlertCenter.category, actions: [], intentIdentifiers: [],
                 hiddenPreviewsBodyPlaceholder: "Alerta de preço", options: []
             ),
+            UNNotificationCategory(
+                identifier: LimitRenewalCenter.category, actions: [], intentIdentifiers: [],
+                hiddenPreviewsBodyPlaceholder: "Ordem limite", options: []
+            ),
         ])
     }
 
@@ -28,8 +33,10 @@ final class NotificationRelay: NSObject, UNUserNotificationCenterDelegate, Senda
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        let coin = response.notification.request.content.userInfo["moeda"] as? String
-        await MainActor.run { NotificationInbox.shared.request = .init(coinID: coin) }
+        let info = response.notification.request.content.userInfo
+        let coin = info["moeda"] as? String
+        let order = info["ordem"] as? String
+        await MainActor.run { NotificationInbox.shared.request = .init(coinID: coin, orderID: order) }
     }
 }
 
@@ -42,6 +49,8 @@ final class NotificationInbox {
     struct Request: Equatable {
         let token = UUID()
         let coinID: String?
+        /// O fim do prazo de uma ordem limite: abre Trocar, na ordem limite.
+        var orderID: String? = nil
     }
 
     var request: Request?
