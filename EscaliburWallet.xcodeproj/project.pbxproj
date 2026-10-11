@@ -35,6 +35,7 @@
 		32C85CC66E71ADDE142F2B2C /* OpenEnvelopeFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */; };
 		33B19CE5E4635C5873A892E0 /* TokenMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C89672710E00E2856C3A1EB7 /* TokenMarks.swift */; };
 		3436AC2D44A808B71561FBA0 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E67A652A823737F6EAC7745 /* RootView.swift */; };
+		34D036DCABA04A85524FBFCD /* LimitPriceTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916F3B8A91333FB80F918ED9 /* LimitPriceTextTests.swift */; };
 		36B41043E66CFB6CC7CE2FA9 /* StandbyCoverRenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D66AC658150B36FCB6F00AF3 /* StandbyCoverRenderTests.swift */; };
 		3713EB9DE45CE49DD1E025D5 /* ReceiptWatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DDFFAB74FD774B9359BD3FE /* ReceiptWatch.swift */; };
 		3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09712057581F9378B87996C5 /* PasswordCost.swift */; };
@@ -225,6 +226,7 @@
 		8C9605AF6B0175CB6F7E648C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		8DDFFAB74FD774B9359BD3FE /* ReceiptWatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptWatch.swift; sourceTree = "<group>"; };
 		8E73AD40F44D72D64B0F550B /* ReceiveFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveFlowTests.swift; sourceTree = "<group>"; };
+		916F3B8A91333FB80F918ED9 /* LimitPriceTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitPriceTextTests.swift; sourceTree = "<group>"; };
 		923ECBE19CCD67EE592B54AA /* PriceAlertTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlertTextTests.swift; sourceTree = "<group>"; };
 		93C77E773E63B6664F4262AD /* Metadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metadata.swift; sourceTree = "<group>"; };
 		9533E741733252A8A22C3477 /* EnvelopeChain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeChain.swift; sourceTree = "<group>"; };
@@ -596,6 +598,7 @@
 			isa = PBXGroup;
 			children = (
 				257E1C63C5F4FC66E542B13F /* ImportPipelineTests.swift */,
+				916F3B8A91333FB80F918ED9 /* LimitPriceTextTests.swift */,
 				4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */,
 				923ECBE19CCD67EE592B54AA /* PriceAlertTextTests.swift */,
 				B4F387C06F2F84E8F145E72E /* ReceiptWatchTests.swift */,
@@ -806,6 +809,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F31E9A19BDD8A75BEFD422B9 /* ImportPipelineTests.swift in Sources */,
+				34D036DCABA04A85524FBFCD /* LimitPriceTextTests.swift in Sources */,
 				9199129964B9661C2FF62FDF /* MetadataCompatibilityTests.swift in Sources */,
 				3E25AAAF8F41385BA8FCFC03 /* PriceAlertTextTests.swift in Sources */,
 				6DE36F9779659ECEE5EEC272 /* ReceiptWatchTests.swift in Sources */,

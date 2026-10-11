@@ -364,13 +364,11 @@ public struct EVMTradeEngine: TradeEngine {
         guard !request.minimumOut.isZero else { throw CoWRefusal.zeroBuyAmount }
         guard !request.amountIn.isZero else { throw TradeRefusal.zeroAmount }
 
-        // O minimo que o dono calculou vira preco decimal exato: a ordem assinada recebe
-        // exatamente esse minimo, nem um wei a menos.
-        let price = try Self.limitPrice(minimumOut: request.minimumOut, sellAmount: request.amountIn,
-                                        sellDecimals: sell.decimals, buyDecimals: buy.decimals)
+        // O minimo que o dono calculou vai direto na ordem assinada: ela recebe exatamente
+        // esse minimo, nem um wei a menos, por menor que seja o preco.
         // Sem prazo pedido ("ate cancelar"): a CoW exige um, e vale o maximo pratico dela.
         let intent = try CoWLimitOrderIntent(owner: account.address, sell: sell, buy: buy, sellAmount: request.amountIn,
-                                             price: price, validFor: request.validFor ?? CoWProtocol.untilCancelledValidity)
+                                             buyAmount: request.minimumOut, validFor: request.validFor ?? CoWProtocol.untilCancelledValidity)
         guard intent.buyAmount == request.minimumOut, let sellToken = intent.orderSellToken else {
             throw EVMEngineFailure.limitPriceNotRepresentable
         }
@@ -393,28 +391,6 @@ public struct EVMTradeEngine: TradeEngine {
         let plan = try CoWPlanner.planLimitOrder(walletID: request.walletID, account: account, intent: intent, state: state, now: now)
         await services.pendingOrders.store(plan, now: now)
         return plan
-    }
-
-    /// O preco-alvo como decimal exato que reproduz `minimumOut`.
-    ///
-    /// A CoW calcula `buyAmount = ceil(sellAmount * preco * 10^casasCompra / 10^(escala +
-    /// casasVenda))`. Com o preco truncado em `escala` casas, o resultado fica em
-    /// `[minimumOut - e, minimumOut]`, com `e < sellAmount * 10^casasCompra /
-    /// 10^(escala + casasVenda)`. Escolhendo a escala para essa razao ficar abaixo de 1, o
-    /// teto devolve exatamente `minimumOut`. A conta e conferida no fim.
-    static func limitPrice(minimumOut: BigUInt, sellAmount: BigUInt, sellDecimals: Int, buyDecimals: Int) throws -> CoWLimitPrice {
-        guard !sellAmount.isZero, !minimumOut.isZero else { throw CoWRefusal.zeroBuyAmount }
-        let scale = max(0, sellAmount.decimalString.count + buyDecimals - sellDecimals)
-        guard scale <= 36 else { throw EVMEngineFailure.limitPriceNotRepresentable }
-        let mantissa = minimumOut * BigUInt.power(of: 10, scale + sellDecimals) / (sellAmount * BigUInt.power(of: 10, buyDecimals))
-        let unit = BigUInt.power(of: 10, scale)
-        let integer = (mantissa / unit).decimalString
-        let fraction = (mantissa % unit).decimalString
-        let text = scale == 0 ? integer : integer + "." + String(repeating: "0", count: scale - fraction.count) + fraction
-        guard let price = CoWLimitPrice(text),
-              price.buyAmount(sellAmount: sellAmount, sellDecimals: sellDecimals, buyDecimals: buyDecimals) == minimumOut
-        else { throw EVMEngineFailure.limitPriceNotRepresentable }
-        return price
     }
 
     // MARK: Envio

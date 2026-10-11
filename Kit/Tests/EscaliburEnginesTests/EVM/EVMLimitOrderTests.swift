@@ -23,27 +23,14 @@ struct EVMLimitOrderTests {
                           buy: .native(.base), amountIn: F.amount, minimumOut: minimumOut, validFor: validFor)
     }
 
-    @Test("Preco-alvo: o minimo que o dono calculou e reproduzido exatamente pela conta da CoW")
-    func exactLimitPrice() throws {
-        let amounts: [BigUInt] = [1, 7, 999, 100_000_000, BigUInt(decimal: "123456789012345678")!, BigUInt(decimal: "40000000000000000000000")!]
-        let minimums: [BigUInt] = [1, 3, 1_000_003, BigUInt(decimal: "40000000000000000")!, BigUInt(decimal: "987654321987654321987")!]
-        let decimals: [(Int, Int)] = [(6, 18), (18, 6), (18, 18), (6, 6), (8, 18), (18, 8)]
-        var checked = 0
-        for amount in amounts {
-            for minimum in minimums {
-                for (sell, buy) in decimals {
-                    do {
-                        let price = try EVMTradeEngine.limitPrice(minimumOut: minimum, sellAmount: amount, sellDecimals: sell, buyDecimals: buy)
-                        #expect(price.buyAmount(sellAmount: amount, sellDecimals: sell, buyDecimals: buy) == minimum, "\(amount) \(minimum) \(sell) \(buy)")
-                        checked += 1
-                    } catch EVMEngineFailure.limitPriceNotRepresentable {
-                        // So quando a escala passaria das 36 casas que o preco aceita.
-                        #expect(amount.decimalString.count + buy - sell > 36)
-                    }
-                }
-            }
-        }
-        #expect(checked > 150)
+    @Test("Minimo minusculo: a ordem grava exatamente o minimo calculado, sem preco decimal no meio")
+    func tinyPrice() async throws {
+        let cow = FakeCoW()
+        let engine = H.engine(cow: cow, sources: [], transport: try H.baseTransport())
+        let minimum = BigUInt(123)
+        let plan = try await engine.planLimitOrder(Self.request(minimumOut: minimum))
+        let order = try #require(plan.transactions.last as? EIP712ValidatedMessage)
+        #expect(order.typedData.message["buyAmount"] == .string("123"))
     }
 
     @Test("Ordem limite: autorizacao exata ao VaultRelayer e ordem EIP-712; o envio espera a autorizacao e devolve o UID")

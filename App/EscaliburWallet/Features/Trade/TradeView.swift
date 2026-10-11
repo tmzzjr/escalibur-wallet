@@ -38,6 +38,9 @@ final class TradeModel {
     var targetPriceText = ""
     /// Por quanto tempo a ordem limite vale; nil e "ate cancelar".
     var validFor: TimeInterval? = 7 * 86_400
+    /// O preco-alvo que o app preencheu (o de agora). Enquanto o dono nao muda o campo,
+    /// trocar o par preenche de novo.
+    var autoTarget: String?
     /// Refazer a ordem quando vencer: o app avisa e pergunta (`LimitRenewalCenter`).
     var renewOnExpiry = false
 
@@ -48,6 +51,8 @@ final class TradeModel {
 
     func reset(to chain: Chain) {
         self.chain = chain
+        // Prazo que a rede nova nao tem (o "ate cancelar" fora do XRP Ledger) volta aos 7 dias.
+        if validFor == nil, chain.family != .xrpl { validFor = 7 * 86_400 }
         sell = .native(chain)
         buy = TokenRegistry.tokens.first { $0.chainID == chain.id && $0.isStablecoin }
         quote = nil
@@ -76,11 +81,18 @@ struct TradeView: View {
     /// Sobe quando uma ordem foi criada: as ordens abertas releem.
     @State private var ordersRefresh = 0
 
-    /// Os prazos da ordem limite; nil e "ate cancelar" (na Stellar e no XRP Ledger a
-    /// oferta vai sem prazo; na CoW, com o maximo do protocolo).
-    static let validities: [(seconds: TimeInterval?, title: String)] = [
-        (86_400, "1 dia"), (604_800, "7 dias"), (2_592_000, "30 dias"), (nil, "Até cancelar"),
-    ]
+    /// Os prazos da ordem limite que a rede aceita. Na CoW, de 1 a 30 dias: o "ate
+    /// cancelar" de lá era um prazo de 364 dias disfarcado e saiu (pedido do dono,
+    /// 11/10/2026). No XRP Ledger a oferta pode ir sem prazo de verdade. Na Stellar nao ha
+    /// prazo nenhum: a oferta fica ate executar ou o dono cancelar.
+    static func validities(_ chain: Chain) -> [(seconds: TimeInterval?, title: String)] {
+        let days: [(seconds: TimeInterval?, title: String)] = [(86_400, "1 dia"), (604_800, "7 dias"), (2_592_000, "30 dias")]
+        switch chain.family {
+        case .xrpl: return days + [(nil, "Até cancelar")]
+        case .stellar: return []
+        default: return days
+        }
+    }
 
     enum Side: Identifiable { case sell, buy; var id: Self { self } }
 
@@ -161,6 +173,11 @@ struct TradeView: View {
             }
         }
         .task(id: quoteKey) { await refreshQuote() }
+        // Ordem limite: o preco de agora ja no campo, e de novo ao trocar o par (enquanto o
+        // dono nao mudou o campo); quando o preco chega depois, tambem.
+        .task(id: "\(model.chain.id)|\(model.sell?.id ?? "")|\(model.buy?.id ?? "")|\(router.tradeMode == .limit)|\(marketRate != nil)") {
+            prefillTarget()
+        }
         .task(id: session.selectedWallet?.id) { await portfolio.ensureLoaded(session.selectedWallet, session: session) }
     }
 
@@ -371,6 +388,10 @@ struct TradeView: View {
                         .keyboardType(.decimalPad)
                     Text(model.buy?.symbol ?? "").typeStyle(.action).foregroundStyle(Palette.inkSoft)
                 }
+                if let compact = Fmt.compactZeros(model.targetPriceText) {
+                    Text("\(compact) \(model.buy?.symbol ?? "")").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        .accessibilityLabel("\(model.targetPriceText) \(model.buy?.symbol ?? "")")
+                }
                 HStack(spacing: Space.xs) {
                     ForEach([0, 5, 10, 20], id: \.self) { percent in
                         Chip(title: percent == 0 ? "Atual" : "+\(percent)%") { setTarget(percent) }
@@ -384,17 +405,19 @@ struct TradeView: View {
             AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(limitReceiveText), balance: balance(model.buy),
                       fiat: nil, editable: false, over: false, onPick: { picking = .buy }, onFraction: nil)
             VStack(alignment: .leading, spacing: Space.xs) {
-                Text("Vale por").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Space.xs) {
-                        ForEach(Self.validities, id: \.title) { option in
-                            Chip(title: option.title, selected: model.validFor == option.seconds) { model.validFor = option.seconds }
+                let options = Self.validities(model.chain)
+                if options.isEmpty {
+                    Text("Na \(model.chain.name) a oferta não tem prazo: fica até executar ou você cancelar.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Vale por").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: Space.xs) {
+                            ForEach(options, id: \.title) { option in
+                                Chip(title: option.title, selected: model.validFor == option.seconds) { model.validFor = option.seconds }
+                            }
                         }
                     }
-                }
-                if model.validFor == nil, model.chain.family == .evm {
-                    Text("Na CoW toda ordem tem prazo: sem prazo escolhido, ela vale o máximo que o protocolo aceita, e a revisão mostra a data.")
-                        .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
                 }
                 if model.validFor != nil, LimitRenewalCenter.supports(model.chain) {
                     renewToggle.padding(.top, Space.xs)
@@ -443,11 +466,35 @@ struct TradeView: View {
         case unknown
     }
 
+    /// O preco de um ativo na moeda do app: o da lista pelo id do CoinGecko, o de fora da
+    /// lista pelo contrato.
+    private func price(_ asset: Asset) -> Double? {
+        let value = asset.coingeckoID.flatMap { portfolio.quotes[$0]?.price } ?? portfolio.tokenQuotes[asset.id]?.price
+        return value.flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
+    }
+
     private var marketRate: Double? {
-        guard let sell = model.sell, let buy = model.buy,
-              let sellPrice = sell.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }),
-              let buyPrice = buy.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }), sellPrice > 0, buyPrice > 0 else { return nil }
+        guard let sell = model.sell, let buy = model.buy, let sellPrice = price(sell), let buyPrice = price(buy) else { return nil }
         return sellPrice / buyPrice
+    }
+
+    /// O preco no campo: sem separador de milhar, com seis algarismos que contam, por
+    /// menor que seja (o de um token de fracao de centavo nao vira zero).
+    static func priceText(_ value: Double) -> String {
+        guard value.isFinite, value > 0 else { return "" }
+        let decimals = max(2, min(30, 5 - Int(floor(log10(value)))))
+        var text = String(format: "%.\(decimals)f", value)
+        if text.contains(".") {
+            while text.hasSuffix("0") { text.removeLast() }
+            if text.hasSuffix(".") { text.removeLast() }
+        }
+        return text.replacingOccurrences(of: ".", with: ",")
+    }
+
+    /// O preco de agora no campo, se ele esta vazio ou ainda com o que o app preencheu.
+    private func prefillTarget() {
+        guard router.tradeMode == .limit, model.targetPriceText.isEmpty || model.targetPriceText == model.autoTarget else { return }
+        setTarget(0)
     }
 
     private var limitSanity: LimitSanity {
@@ -522,8 +569,8 @@ struct TradeView: View {
     /// passar pelo texto formatado: valor vendido vezes preco, arredondado para baixo.
     private var limitMinimumOut: BigUInt? {
         guard let amount = model.amountIn, !amount.isZero, let sell = model.sell, let buy = model.buy,
-              let price = Fmt.parseAmount(model.targetPriceText, decimals: 18), !price.isZero else { return nil }
-        let out = amount * price * Self.powerOfTen(buy.decimals) / (Self.powerOfTen(sell.decimals) * Self.powerOfTen(18))
+              let price = Fmt.parseAmount(model.targetPriceText, decimals: 36), !price.isZero else { return nil }
+        let out = amount * price * Self.powerOfTen(buy.decimals) / (Self.powerOfTen(sell.decimals) * Self.powerOfTen(36))
         return out.isZero ? nil : out
     }
 
@@ -554,11 +601,10 @@ struct TradeView: View {
     }
 
     private func setTarget(_ percent: Int) {
-        guard let sell = model.sell, let buy = model.buy,
-              let sellPrice = sell.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }),
-              let buyPrice = buy.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }), buyPrice > 0 else { return }
-        let current = sellPrice / buyPrice * (1 + Double(percent) / 100)
-        model.targetPriceText = Fmt.grouped(current, fractionDigits: 6, trimZeros: true).replacingOccurrences(of: ".", with: "")
+        guard let rate = marketRate else { return }
+        let text = Self.priceText(rate * (1 + Double(percent) / 100))
+        model.targetPriceText = text
+        model.autoTarget = percent == 0 ? text : nil
     }
 
     // MARK: Rodape
@@ -720,7 +766,13 @@ struct AmountBox: View {
                             // cotacao e os detalhes ficam escondidos embaixo dele.
                             ToolbarItemGroup(placement: .keyboard) {
                                 Spacer()
-                                Button("Pronto") { focused = false }.fontWeight(.semibold)
+                                // Fecha o teclado de qualquer campo da tela (o do preco-alvo
+                                // da ordem limite tambem), nao so o deste.
+                                Button("Pronto") {
+                                    focused = false
+                                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                                }
+                                .fontWeight(.semibold)
                             }
                         }
                 } else if loading {
@@ -738,7 +790,8 @@ struct AmountBox: View {
                 Button(action: onPick) {
                     HStack(spacing: 6) {
                         if let asset {
-                            CoinLogo(coingeckoID: asset.coingeckoID, symbol: asset.symbol, size: 24, network: asset.chain, ringColor: Palette.rail)
+                            CoinLogo(coingeckoID: asset.coingeckoID, symbol: asset.symbol, size: 24, network: asset.chain, ringColor: Palette.rail,
+                                     unverified: asset.origin != nil, logoAsset: asset.origin != nil ? asset : nil)
                             Text(asset.symbol).typeStyle(.action).foregroundStyle(Palette.ink)
                         } else {
                             Text("Escolher").typeStyle(.action).foregroundStyle(Palette.ink)

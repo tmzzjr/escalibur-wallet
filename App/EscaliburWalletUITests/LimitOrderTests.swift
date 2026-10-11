@@ -1,6 +1,7 @@
 import XCTest
 
-/// Ordem limite: o prazo "Até cancelar" e a folha de ordens abertas, lida da rede.
+/// Ordem limite: os prazos que a CoW aceita, o teclado do preco-alvo e a folha de ordens
+/// abertas, lida da rede.
 final class LimitOrderTests: XCTestCase {
     var shots: String? { ProcessInfo.processInfo.environment["ESCALIBUR_FOTOS"] }
 
@@ -16,19 +17,32 @@ final class LimitOrderTests: XCTestCase {
         if let shots { try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/\(name).png")) }
     }
 
-    func testUntilCancelledAndOpenOrders() {
+    func testValiditiesKeyboardAndOpenOrders() {
         let app = XCUIApplication()
         app.launchArguments = ["-reset", "-demo", "-tela", "trocar"]
         app.launch()
         let limit = app.buttons["Limite"]
         XCTAssertTrue(limit.waitForExistence(timeout: 30))
         limit.tap()
+
+        // O preco-alvo: "Pronto" fecha o teclado deste campo tambem.
+        let price = app.textFields.element(boundBy: 1)
+        XCTAssertTrue(price.waitForExistence(timeout: 10))
+        price.tap()
+        price.typeText("3000")
+        let done = app.buttons["Pronto"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5))
+        done.tap()
+        let until = Date().addingTimeInterval(5)
+        while Date() < until, app.keyboards.count > 0 { usleep(200_000) }
+        XCTAssertEqual(app.keyboards.count, 0, "o teclado do preco-alvo nao fechou")
+
+        // Na CoW: so os prazos que o protocolo aceita, sem "Ate cancelar".
         app.swipeUp()
-        let untilCancelled = app.buttons["Até cancelar"]
-        XCTAssertTrue(untilCancelled.waitForExistence(timeout: 10))
-        untilCancelled.tap()
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Na CoW toda ordem tem prazo'")).firstMatch.waitForExistence(timeout: 5))
-        shot("l1-ate-cancelar", app)
+        XCTAssertTrue(app.buttons["30 dias"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["7 dias"].exists && app.buttons["1 dia"].exists)
+        XCTAssertFalse(app.buttons["Até cancelar"].exists)
+        shot("l1-prazos", app)
         app.swipeUp()
         XCTAssertTrue(app.staticTexts["Ordens abertas"].waitForExistence(timeout: 5))
         let empty = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Nenhuma ordem aberta'")).firstMatch

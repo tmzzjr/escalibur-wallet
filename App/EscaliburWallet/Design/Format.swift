@@ -276,6 +276,20 @@ enum Fmt {
         return value.formatted(style)
     }
 
+    /// O preco digitado com muitos zeros depois da virgula, resumido: "0,00000000001234"
+    /// vira "0,0₁₀1234". Nil quando ha menos de 4 zeros (ja se le de relance).
+    static func compactZeros(_ text: String) -> String? {
+        let normalized = text.replacingOccurrences(of: ".", with: ",")
+        let parts = normalized.split(separator: ",", omittingEmptySubsequences: false)
+        guard parts.count == 2, parts[0].allSatisfy({ $0 == "0" }), parts[1].allSatisfy(\.isNumber) else { return nil }
+        let zeros = parts[1].prefix { $0 == "0" }.count
+        let rest = parts[1].dropFirst(zeros)
+        guard zeros >= 4, !rest.isEmpty else { return nil }
+        let subscripts = Array("₀₁₂₃₄₅₆₇₈₉")
+        let sub = String(zeros).compactMap { $0.wholeNumberValue.map { subscripts[$0] } }
+        return "0,0" + String(sub) + rest.prefix(8)
+    }
+
     private static func subscriptZeros(_ value: Double) -> String {
         // 0,00005234 vira 0,0₄5234: o subscrito conta os zeros depois da virgula.
         let text = String(format: "%.18f", value)

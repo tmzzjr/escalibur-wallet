@@ -175,9 +175,8 @@ extension EVMTradeEngine {
         let account = context.account
         let sell = context.intent.sell
         let buy = context.intent.buy
-        let price = try Self.limitPrice(minimumOut: minimum, sellAmount: request.amountIn, sellDecimals: sell.decimals, buyDecimals: buy.decimals)
         let intent = try CoWLimitOrderIntent(
-            owner: account.address, sell: sell, buy: buy, sellAmount: request.amountIn, price: price,
+            owner: account.address, sell: sell, buy: buy, sellAmount: request.amountIn, buyAmount: minimum,
             validFor: request.inParts ? CoWProtocol.partsValidity : CoWProtocol.instantValidity,
             partiallyFillable: true, style: request.inParts ? .parts : .instant
         )

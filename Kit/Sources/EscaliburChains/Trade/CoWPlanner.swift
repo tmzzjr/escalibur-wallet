@@ -54,12 +54,25 @@ public struct CoWLimitOrderIntent: Sendable, Equatable {
     public let sell: TradeAsset
     public let buy: TradeAsset
     public let sellAmount: BigUInt
-    public let price: CoWLimitPrice
     public let validFor: TimeInterval
     public let partiallyFillable: Bool
     public let style: Style
+    /// O minimo que a ordem exige, em unidades do comprado: o do preco-alvo, ou o que o
+    /// dono calculou, gravado direto.
+    public let buyAmount: BigUInt
 
+    /// Pelo preco-alvo digitado: o minimo e `ceil(sellAmount * preco)`.
     public init(owner: EVMAddress, sell: TradeAsset, buy: TradeAsset, sellAmount: BigUInt, price: CoWLimitPrice,
+                validFor: TimeInterval = CoWProtocol.defaultValidity, partiallyFillable: Bool = true, style: Style = .limit) throws {
+        try self.init(owner: owner, sell: sell, buy: buy, sellAmount: sellAmount,
+                      buyAmount: price.buyAmount(sellAmount: sellAmount, sellDecimals: sell.decimals, buyDecimals: buy.decimals),
+                      validFor: validFor, partiallyFillable: partiallyFillable, style: style)
+    }
+
+    /// Pelo minimo exato. Sem passar por um preco decimal: um preco minusculo (token de
+    /// fracao de centavo) precisaria de mais casas do que o decimal comporta, e a ordem
+    /// era recusada sem motivo.
+    public init(owner: EVMAddress, sell: TradeAsset, buy: TradeAsset, sellAmount: BigUInt, buyAmount: BigUInt,
                 validFor: TimeInterval = CoWProtocol.defaultValidity, partiallyFillable: Bool = true, style: Style = .limit) throws {
         guard CoWProtocol.supports(sell.chain), buy.chain.id == sell.chain.id else { throw CoWRefusal.unsupportedChain }
         guard sell != buy else { throw CoWRefusal.sameToken }
@@ -78,10 +91,10 @@ public struct CoWLimitOrderIntent: Sendable, Equatable {
         self.sell = sell
         self.buy = buy
         self.sellAmount = sellAmount
-        self.price = price
         self.validFor = validFor
         self.partiallyFillable = partiallyFillable
         self.style = style
+        self.buyAmount = buyAmount
     }
 
     public var chain: Chain { sell.chain }
@@ -97,10 +110,6 @@ public struct CoWLimitOrderIntent: Sendable, Equatable {
         }
     }
 
-    /// O minimo que a ordem exige, calculado aqui.
-    public var buyAmount: BigUInt {
-        price.buyAmount(sellAmount: sellAmount, sellDecimals: sell.decimals, buyDecimals: buy.decimals)
-    }
 }
 
 /// O estado publico que a ordem precisa.

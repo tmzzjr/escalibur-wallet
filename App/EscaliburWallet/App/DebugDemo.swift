@@ -159,6 +159,9 @@ enum DebugDemo {
                 router.tab = .market
                 router.pendingCoinID = "bitcoin"
             case "trocar", "trocar-grande": router.tab = .trade
+            case "limite":
+                router.tab = .trade
+                router.tradeMode = .limit
             // `-tela refazer`: a pergunta de refazer uma ordem limite vencida (ETH por
             // USDC na Base, 40% ja tinha saido), sem rede.
             case "refazer":
