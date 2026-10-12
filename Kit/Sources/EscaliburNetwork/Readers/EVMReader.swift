@@ -404,7 +404,32 @@ public actor EVMReader {
         }
     }
 
-    // MARK: Historico
+    /// Um recibo com os logs, igual em dois provedores (mesmo bloco, status e logs).
+    public struct ReceiptLogs: Sendable, Equatable {
+        public let success: Bool
+        public let block: UInt64
+        public let logs: [TradeSimulatedLog]
+    }
+
+    /// O recibo e os logs de uma transacao, em dois RPCs concordando; `nil` se ainda nao
+    /// ha recibo. A ponte confere por aqui o evento de entrega no destino.
+    public func receiptLogs(chain: Chain, hash: String) async throws -> ReceiptLogs? {
+        guard let bytes = Hex.decode(hash), bytes.count == 32, hash.hasPrefix("0x") else { throw ReaderError.invalidInput("hash") }
+        let (pool, providers) = try await eligible(chain)
+        let transport = self.transport
+        return try await Quorum.agree(providers, pool: pool, field: "receipt-logs") { provider -> ReceiptLogs? in
+            try await self.verify(provider, chain: chain)
+            let raw = try await Self.call(transport, provider.baseURL, "eth_getTransactionReceipt", [.string(hash)])
+            guard let receipt = try Self.parseReceipt(raw) else { return nil }
+            let logs = try raw.field("logs", "receipt").array("receipt.logs").map { log -> TradeSimulatedLog in
+                let address = try Self.address(log.field("address", "log"), "log.address")
+                let topics = try log.field("topics", "log").array("log.topics").map { try $0.hexData("log.topic") }
+                return TradeSimulatedLog(address: address, topics: topics, data: try log.field("data", "log").hexData("log.data"))
+            }
+            return ReceiptLogs(success: receipt.success, block: receipt.block, logs: logs)
+        }
+    }
+
     // MARK: Historico
 
     /// Os ultimos movimentos da conta na rede, pelo indexador publico (Blockscout; na

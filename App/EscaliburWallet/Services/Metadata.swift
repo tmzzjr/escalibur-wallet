@@ -56,6 +56,9 @@ struct Metadata: Codable, Equatable {
     /// Tokens fora da lista usados numa ordem ou troca (`TradedAssets`): as ordens abertas
     /// mostram nome, casas e logo deles mesmo depois que saem do saldo.
     var tradedAssets: [Asset]?
+    /// Pontes entre redes (`BridgeRecord`): a transferencia assinada e o deposito, para
+    /// acompanhar ate a entrega conferida no destino. Nada de segredo.
+    var bridges: [BridgeRecord]?
 
     var selectedWallet: WalletMeta? {
         wallets.first { $0.id == selectedWalletID } ?? wallets.first

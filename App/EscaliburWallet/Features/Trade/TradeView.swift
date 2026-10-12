@@ -99,13 +99,15 @@ struct TradeView: View {
     private var engine: (any TradeEngine)? { TradeEngines.engine(for: model.chain) }
     private var tradeChains: [Chain] { TradeEngines.chains }
     @State private var flipTurns = 0
+    @State private var bridgeModel = BridgeFormModel()
+    @State private var bridgeReviewing: BridgeReviewFlow.Item?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     TabTitle(title: "Trocar") {
-                        if !tradeChains.isEmpty {
+                        if !tradeChains.isEmpty, router.tradeMode != .bridge {
                             NetworkMenu(chains: tradeChains, selected: model.chain) { chain in
                                 withAnimation(Motion.fade) { model.reset(to: chain) }
                             }
@@ -120,12 +122,17 @@ struct TradeView: View {
                         .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                     } else {
                         VStack(alignment: .leading, spacing: 0) {
-                            Segmented(options: [(Router.TradeMode.now, "Imediata"), (.limit, "Limite")], selection: Bindable(router).tradeMode)
+                            Segmented(options: [(Router.TradeMode.now, "Imediata"), (.limit, "Limite"), (.bridge, "Ponte")],
+                                      selection: Bindable(router).tradeMode)
                                 .padding(.top, Space.sm)
                             if session.selectedWallet?.isWatchOnly == true {
                                 Banner(kind: .neutral, title: "Esta carteira só observa. Escolha outra carteira para trocar.").padding(.top, Space.md)
                             }
-                            if router.tradeMode == .now { nowForm.padding(.top, Space.md) } else { limitForm.padding(.top, Space.md) }
+                            switch router.tradeMode {
+                            case .now: nowForm.padding(.top, Space.md)
+                            case .limit: limitForm.padding(.top, Space.md)
+                            case .bridge: BridgeForm(model: bridgeModel).padding(.top, Space.md)
+                            }
                         }
                         .padding(.horizontal, Space.gutter)
                     }
@@ -169,6 +176,15 @@ struct TradeView: View {
                     model.amountText = ""
                     model.targetPriceText = ""
                     model.quote = nil
+                }
+            }
+        }
+        .fullScreenCover(item: $bridgeReviewing) { item in
+            BridgeReviewFlow(item: item) { completed in
+                bridgeReviewing = nil
+                if completed {
+                    bridgeModel.amountText = ""
+                    bridgeModel.changed()
                 }
             }
         }
@@ -593,6 +609,8 @@ struct TradeView: View {
                                             amountIn: amount, minimumOut: minimum, validFor: model.validFor)
             reviewing = TradeReviewFlow.Item(kind: .limit(request), chain: model.chain, fiat: fiat,
                                              renewLimit: model.renewOnExpiry && model.validFor != nil && LimitRenewalCenter.supports(model.chain))
+        case .bridge:
+            return
         }
     }
 
@@ -612,7 +630,9 @@ struct TradeView: View {
 
     private var footer: some View {
         ActionFooter {
-            if !tradeChains.isEmpty {
+            if router.tradeMode == .bridge {
+                BridgeFooter(model: bridgeModel) { bridgeReviewing = $0 }
+            } else if !tradeChains.isEmpty {
             if router.tradeMode == .now, model.quote != nil {
                 Text("Nova cotação em \(model.nextRefresh) s").typeStyle(.note).foregroundStyle(Palette.inkMuted)
             }

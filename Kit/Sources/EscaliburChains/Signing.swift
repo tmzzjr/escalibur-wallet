@@ -213,7 +213,7 @@ public struct SigningPlan: Sendable {
 /// O resumo que a tela de revisao mostra, montado pela validacao.
 public struct PlanReview: Sendable, Equatable {
     public enum Kind: String, Sendable {
-        case send, swap, approve, limitOrder, cancelOrder, trustline, revoke
+        case send, swap, approve, limitOrder, cancelOrder, trustline, revoke, bridge
     }
 
     public struct Line: Sendable, Equatable {

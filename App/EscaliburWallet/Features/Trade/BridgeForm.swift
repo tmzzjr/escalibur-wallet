@@ -1,0 +1,311 @@
+import EscaliburChains
+import EscaliburCore
+import EscaliburEngines
+import SwiftUI
+
+/// O estado da ponte na tela de Trocar: redes, moeda, valor e as opcoes cotadas.
+@MainActor
+@Observable
+final class BridgeFormModel {
+    var from: Chain = .base
+    var to: Chain = .arbitrum
+    var asset: BridgeAsset = .usdc
+    var amountText = ""
+    var route: BridgeRoute = .cctpFast
+    var options: [ValidatedBridgeQuote] = []
+    var quoting = false
+    var error: String?
+
+    var assets: [BridgeAsset] { BridgeEngine.assets(from: from, to: to) }
+    var fromBridge: BridgeChain? { BridgeAllowlist.chain(from) }
+    var toBridge: BridgeChain? { BridgeAllowlist.chain(to) }
+    var sellAsset: Asset? { fromBridge.flatMap { asset.asset(on: $0) } }
+    var receiveAsset: Asset? { toBridge.flatMap { asset.asset(on: $0) } }
+
+    var amount: BigUInt? {
+        guard let parsed = TradeDecimal(amountText), parsed.scale <= asset.decimals else { return nil }
+        return parsed.mantissa * BigUInt.power(of: 10, asset.decimals - parsed.scale)
+    }
+
+    /// A opcao escolhida, ou a primeira cotada.
+    var selected: ValidatedBridgeQuote? { options.first { $0.route == route } ?? options.first }
+
+    func setFrom(_ chain: Chain) {
+        if chain.id == to.id { to = from }
+        from = chain
+        changed()
+    }
+
+    func setTo(_ chain: Chain) {
+        if chain.id == from.id { from = to }
+        to = chain
+        changed()
+    }
+
+    func swapNetworks() {
+        (from, to) = (to, from)
+        changed()
+    }
+
+    func changed() {
+        if !assets.contains(asset) { asset = assets.first ?? .usdc }
+        options = []
+        error = nil
+    }
+}
+
+/// A ponte: levar a mesma moeda da sua conta numa rede para a sua conta em outra.
+struct BridgeForm: View {
+    @Environment(AppSession.self) private var session
+    @Environment(Portfolio.self) private var portfolio
+    @Bindable var model: BridgeFormModel
+    @State private var pickingAsset = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            networks
+            VStack(spacing: 4) {
+                AmountBox(title: "Você envia", asset: model.sellAsset, amount: $model.amountText, balance: balanceText,
+                          fiat: fiatText(model.amount), editable: true, over: over,
+                          onPick: { pickingAsset = true }, onFraction: fractionAction)
+                AmountBox(title: "Chega na \(model.to.name)", asset: model.receiveAsset, amount: .constant(receiveText), balance: nil,
+                          fiat: fiatText(model.selected?.minimumReceived), editable: false, over: false,
+                          loading: model.quoting && model.options.isEmpty && model.amount != nil,
+                          onPick: { pickingAsset = true }, onFraction: nil)
+            }
+            .padding(.top, Space.md)
+            if model.asset == .usdc, model.options.count > 1 {
+                Segmented(options: model.options.map { ($0.route, $0.route == .cctpFast ? "Rápida" : "Padrão") }, selection: $model.route)
+                    .padding(.top, Space.md)
+            }
+            details.padding(.top, Space.lg)
+            BridgeList().padding(.top, Space.lg)
+        }
+        .confirmationDialog("Moeda", isPresented: $pickingAsset, titleVisibility: .hidden) {
+            ForEach(model.assets, id: \.self) { asset in
+                Button(asset.symbol) {
+                    model.asset = asset
+                    model.amountText = ""
+                    model.changed()
+                }
+            }
+        }
+        .task(id: quoteKey) { await refresh() }
+        .task { await BridgeCenter.shared.refresh(session: session) }
+        #if DEBUG
+        .onAppear { if DebugDemo.screen == "ponte", model.amountText.isEmpty { model.amountText = "250" } }
+        #endif
+    }
+
+    private var networks: some View {
+        HStack(spacing: Space.xs) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("De").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                NetworkMenu(chains: BridgeEngine.chains, selected: model.from) { model.setFrom($0) }
+            }
+            Spacer(minLength: 0)
+            Button { withAnimation(Motion.flip) { model.swapNetworks() } } label: {
+                Image(systemName: "arrow.left.arrow.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
+                    .frame(width: 36, height: 36).background(Circle().fill(Palette.rail))
+            }
+            .accessibilityLabel("Inverter redes")
+            Spacer(minLength: 0)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Para").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                NetworkMenu(chains: BridgeEngine.chains, selected: model.to) { model.setTo($0) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var details: some View {
+        if let quote = model.selected {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                line(quote.route.isCCTP ? "Pelo CCTP da Circle: queima aqui e a própria Circle cunha o mesmo USDC na \(model.to.name)"
+                                        : "Pelo Across: um relayer entrega na \(model.to.name) em segundos")
+                line("Taxa da ponte\(quote.route.isCCTP ? ", no máximo" : ""): \(Fmt.crypto(quote.bridgeFee, decimals: model.asset.decimals, symbol: model.asset.symbol, style: .full))")
+                line("Tempo: \(timeText(quote))")
+                line("Vai para a sua própria conta na \(model.to.name), o mesmo endereço")
+                line("Sem taxa da Escalibur")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else if let error = model.error {
+            Banner(kind: .neutral, title: error)
+        } else {
+            Text("Leva a mesma moeda para a sua conta em outra rede. USDC pelo CCTP da própria Circle; ETH e USDT pelo Across. Sem taxa da Escalibur.")
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func line(_ text: String) -> some View {
+        Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func timeText(_ quote: ValidatedBridgeQuote) -> String {
+        switch quote.route {
+        case .cctpFast: return "menos de 1 minuto"
+        case .cctpStandard: return "uns 20 minutos (sem taxa do protocolo)"
+        case .across: return quote.estimatedSeconds < 120 ? "segundos" : "uns \(quote.estimatedSeconds / 60) minutos"
+        }
+    }
+
+    private var receiveText: String {
+        guard let quote = model.selected else { return "" }
+        return Fmt.plainDecimal(quote.minimumReceived, decimals: model.asset.decimals)
+    }
+
+    // MARK: Saldo
+
+    private var holding: BigUInt {
+        guard let asset = model.sellAsset else { return 0 }
+        return portfolio.balance(model.from)?.holdings.first { $0.asset.id == asset.id }?.amount ?? 0
+    }
+
+    private var over: Bool { (model.amount ?? 0) > holding }
+
+    private var balanceText: String? {
+        guard let asset = model.sellAsset else { return nil }
+        return "Saldo \(Fmt.crypto(holding, decimals: asset.decimals, symbol: asset.symbol, style: .list))"
+    }
+
+    private var fractionAction: ((Double) -> Void)? {
+        guard !holding.isZero else { return nil }
+        return { fraction in
+            var part = fraction >= 1 ? holding : holding * BigUInt(UInt64(fraction * 100)) / BigUInt(100)
+            // ETH: deixa o gas do deposito na conta.
+            if model.asset == .eth, fraction >= 1 {
+                let reserve = BigUInt(decimal: model.from == .ethereum ? "5000000000000000" : "300000000000000")!
+                part = part > reserve ? part - reserve : 0
+            }
+            model.amountText = Fmt.plainDecimal(part, decimals: model.asset.decimals)
+        }
+    }
+
+    private func fiatText(_ amount: BigUInt?) -> String? {
+        guard let amount, let asset = model.sellAsset, let price = asset.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) else { return nil }
+        return "≈ \(Fmt.fiat(Fmt.double(amount, decimals: asset.decimals) * price, session.currency))"
+    }
+
+    // MARK: Cotacao
+
+    private var quoteKey: String { "\(model.from.id)|\(model.to.id)|\(model.asset.rawValue)|\(model.amountText)" }
+
+    private func refresh() async {
+        model.options = []
+        model.error = nil
+        guard let wallet = session.selectedWallet, !wallet.isWatchOnly, let amount = model.amount, !amount.isZero,
+              let account = wallet.account(model.from), let owner = try? EVMAddress(account.address) else { return }
+        try? await Task.sleep(for: .milliseconds(400))
+        guard !Task.isCancelled else { return }
+        model.quoting = true
+        defer { model.quoting = false }
+        do {
+            let intent = try BridgeIntent(owner: owner, asset: model.asset, from: model.from, to: model.to, amount: amount)
+            let options = try await BridgeEngine.shared.quotes(intent)
+            guard !Task.isCancelled else { return }
+            model.options = options
+            if !options.contains(where: { $0.route == model.route }), let first = options.first { model.route = first.route }
+        } catch let refusal as BridgeRefusal {
+            model.error = BridgeRefusalText.text(refusal)
+        } catch {
+            guard !Task.isCancelled else { return }
+            model.error = (error as? LocalizedError)?.errorDescription ?? "Não foi possível cotar a ponte agora."
+        }
+    }
+}
+
+/// O texto das recusas que acontecem antes da cotacao (no pedido).
+enum BridgeRefusalText {
+    static func text(_ refusal: BridgeRefusal) -> String {
+        switch refusal {
+        case .aboveBurnLimit: return "O CCTP da Circle leva até 10 milhões de USDC por vez. Faça em partes."
+        case .unsupportedRoute: return "A ponte ainda não leva esta moeda entre estas redes."
+        case .sameChain: return "Escolha redes diferentes."
+        default: return "A ponte recusou este pedido."
+        }
+    }
+}
+
+/// O rodape da ponte: o botao de revisar.
+struct BridgeFooter: View {
+    @Environment(AppSession.self) private var session
+    @Environment(Portfolio.self) private var portfolio
+    let model: BridgeFormModel
+    let onReview: (BridgeReviewFlow.Item) -> Void
+
+    var body: some View {
+        PrimaryButton(title: title, enabled: enabled, loading: model.quoting && model.options.isEmpty && model.amount != nil) {
+            guard let quote = model.selected else { return }
+            let price = model.sellAsset?.coingeckoID.flatMap { portfolio.quotes[$0]?.price }
+            onReview(.init(intent: quote.intent, route: quote.route,
+                           fiat: price.map { Fmt.double(quote.intent.amount, decimals: model.asset.decimals) * $0 }))
+        }
+    }
+
+    private var over: Bool {
+        guard let asset = model.sellAsset, let amount = model.amount else { return false }
+        return amount > (portfolio.balance(model.from)?.holdings.first { $0.asset.id == asset.id }?.amount ?? 0)
+    }
+
+    private var title: String {
+        guard let amount = model.amount, !amount.isZero else { return "Digite um valor" }
+        if over { return "Saldo de \(model.asset.symbol) insuficiente na \(model.from.name)" }
+        if model.quoting && model.options.isEmpty { return "Cotando a ponte" }
+        return "Revisar ponte"
+    }
+
+    private var enabled: Bool {
+        guard session.selectedWallet?.isWatchOnly == false, let amount = model.amount, !amount.isZero, !over else { return false }
+        return model.selected != nil
+    }
+}
+
+/// As pontes da carteira: em curso primeiro, depois as ultimas terminadas.
+struct BridgeList: View {
+    @Environment(AppSession.self) private var session
+    @State private var opened: UUID?
+
+    var body: some View {
+        let records = BridgeCenter.shared.visible(session)
+        if !records.isEmpty {
+            VStack(alignment: .leading, spacing: Space.sm) {
+                Text("Suas pontes").typeStyle(.row).foregroundStyle(Palette.ink)
+                ForEach(records) { record in
+                    Button { opened = record.id } label: { row(record) }.buttonStyle(.plain)
+                }
+            }
+            .sheet(item: Binding(get: { opened.map(Opened.init) }, set: { opened = $0?.id })) { item in
+                VStack(alignment: .leading) {
+                    BridgeProgressPanel(recordID: item.id)
+                    Spacer()
+                }
+                .padding(Space.gutter)
+                .presentationDetents([.medium])
+                .presentationBackground(Palette.body)
+            }
+        }
+    }
+
+    private struct Opened: Identifiable { let id: UUID }
+
+    private func row(_ record: BridgeRecord) -> some View {
+        let text = BridgeText.status(record, BridgeCenter.shared.progress[record.id])
+        let amount = BigUInt(decimal: record.amount).map { Fmt.crypto($0, decimals: record.asset.decimals, symbol: record.asset.symbol, style: .list) } ?? ""
+        return HStack(spacing: Space.sm) {
+            if let from = record.from?.chain, let to = record.to?.chain {
+                HStack(spacing: -6) {
+                    NetworkBadge(chain: from, size: 24, ring: Palette.void)
+                    NetworkBadge(chain: to, size: 24, ring: Palette.void)
+                }
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(amount).typeStyle(.row).foregroundStyle(Palette.ink)
+                Text(text.title).typeStyle(.note).foregroundStyle(record.state == .arrived ? Palette.up : Palette.inkSoft)
+            }
+            Spacer()
+            if record.state == .pending { ProgressView().tint(Palette.accent) }
+        }
+        .padding(Space.sm)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+    }
+}

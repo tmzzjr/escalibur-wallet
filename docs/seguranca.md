@@ -400,7 +400,7 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
 5. Campos que precisam bater com a intenção:
    - 1inch `swap(executor, desc, data)`: `desc.srcToken`, `dstToken`, `dstReceiver == self`, `amount == amountIn`, `minReturnAmount`. O `data` do executor é opaco, e isso só é aceitável porque o router garante `minReturn` para o `dstReceiver`. Nas funções `unoswap*` o destinatário é `msg.sender`; nas `unoswapTo*`, confira `to`.
    - 0x `exec(operator, token, amount, target, data)`: `operator == target ==` o Settler atual, obtido por `ownerOf(2)` no registro `0x00000000000004533Fe15556B1E086BB1A72cEae`, com 2 ou mais RPCs concordando (a própria 0x manda nunca fixar o endereço do Settler). `token == sellToken`, `amount == amountIn`. Dentro de `execute(...)`: `slippage.recipient == self`, `buyToken`, `minAmountOut`. O approve vai para o AllowanceHolder, nunca para o Settler.
-   - LI.FI `swapTokensGeneric(..., receiver, minAmount, swapData[])`: `receiver == self`, primeiro `sendingAssetId` e `fromAmount` e último `receivingAssetId` batendo. Pontes ficam fora da v1.
+   - LI.FI `swapTokensGeneric(..., receiver, minAmount, swapData[])`: `receiver == self`, primeiro `sendingAssetId` e `fromAmount` e último `receivingAssetId` batendo. Pontes nunca passam pela LI.FI: têm caminho próprio, na seção 4.12.
    - `minOut ≥ cotação × (1 − slippage)` e maior que zero. `deadline ≤ agora + 20 min`. Taxa de integrador e destinatário da taxa iguais aos compilados (zero, ou a nossa).
 6. **O ranking entre agregadores usa o `minOut` decodificado**, que é garantido na cadeia, e não o `expectedOut` cotado. Inflar o `expectedOut` é justamente como um provedor malicioso venceria a disputa.
 7. Checagem de sanidade contra oráculo: pior que o preço médio da CoinGecko em mais de 2%, avisa; em mais de 5%, bloqueia (desbloquear exige PIN). Oráculo e cotação chegam pelo mesmo relay, então isso é sanidade, não garantia.
@@ -527,6 +527,69 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
 - EVM: Ethereum 1, Arbitrum 42161, Base 8453, OP 10, Polygon 137, BNB 56, Avalanche 43114, Plasma 9745, X Layer 196, Linea 59144, Unichain 130, Sonic 146, Celo 42220.
 - A passphrase da Stellar.
 - Tudo num arquivo travado por lock, e as mudanças passam pelo CODEOWNERS.
+
+### 4.12 Pontes
+
+Revisado em 12/10/2026 com o agente de segurança, antes do código. Pontes são a parte de cripto que mais foi roubada (Ronin, Wormhole, Nomad, Multichain), e o desenho parte disso.
+
+**Escopo da v1**
+- Redes: Ethereum, Arbitrum, Base e Optimism. As quatro têm CCTP V2 rápido, SpokePool do Across, ETH nativo e simulação em dois RPCs.
+- A mesma moeda dos dois lados, na versão do emissor:
+  - USDC só pelo CCTP V2 da Circle, que queima numa rede e cunha na outra. Não há cofre de ponte nem token embrulhado, e a única confiança nova é na Circle, que quem segura USDC já tem.
+  - ETH pelo Across, entre as quatro redes.
+  - USDT pelo Across, só entre Ethereum e Arbitrum (USDT0). Na Base e na Optimism o Across entrega USDT de ponte, não o do emissor.
+- Fora da v1, cada um com motivo:
+  - BNB: queima, mas não cunha. O TokenMessengerV2 da Ethereum aceita o domínio 17, e na BNB `getLocalToken` é zero para todas as origens. Uma queima para lá se perderia.
+  - Celo, Sonic e X Layer: falta CCTP ou SpokePool.
+  - WBTC: nas L2 é de ponte.
+  - Redes fora da EVM.
+  - Ponte nativa de rollup: saque de 7 dias, prova e finalização na L1, e USDC.e em vez de USDC.
+
+**Regras**
+- Destinatário e depositante são a própria conta do dono. A conta de destino da carteira tem de ter o mesmo endereço da origem.
+- Nenhuma mensagem e nenhuma chamada no destino. A única exceção é a constante de encaminhamento da Circle (`cctp-forward`, 32 bytes), com `destinationCaller` zero. Qualquer um pode enviar o resgate, mas o contrato só cunha para o `mintRecipient` atestado.
+- O app monta a calldata. A Iris e a API do Across só informam taxa, prazo e limite, e a consulta de taxa vai sem endereço.
+- O Across vai sem relayer exclusivo e com prazo de entrega da própria carteira: 2 h depois da cotação. Um relayer exclusivo escolhido pela API, que nunca entregasse, prenderia o depósito.
+- A carteira nunca assina speed-up do Across. Ele permitiria a quem é depositante trocar destino e valor.
+
+**Tetos**
+- CCTP rápido: até 2 bps. CCTP padrão: zero. Encaminhamento: até 10 USDC.
+- Across: até 0,5% do valor ou US$ 3, o que for maior.
+- A ponte recusa quando a taxa passa de 5% do valor.
+- Por queima, até 10.000.000 USDC: o `burnLimitsPerMessage` lido nas quatro redes.
+
+**Antes de assinar o depósito**
+1. A calldata é montada de novo a partir da transferência e comparada byte a byte com a que vai ser assinada. Dono dos dois lados, ativos, redes e domínios são os compilados.
+2. A implementação de cada proxy da rota, nas duas redes, é a fixada (slot EIP-1967), lida em dois RPCs:
+   - TokenMessengerV2 e MessageTransmitterV2 no CCTP;
+   - SpokePool no Across.
+   Implementação diferente desliga a ponte até a próxima versão do app.
+3. No CCTP, o destino precisa confirmar três coisas: `localDomain()` igual ao domínio pedido, `getLocalToken(domínio da origem, USDC da origem)` igual ao USDC compilado do destino, e `isBlacklisted(dono)` falso.
+4. `eth_getCode(dono)` no destino é vazio em dois RPCs. Uma delegação EIP-7702 pode ser um varredor posto por quem roubou a frase, e o SpokePool entrega ETH a carteiras 7702.
+5. Simulação em duas fontes:
+   - sai do dono exatamente o valor, só do ativo movido;
+   - nenhum Approval além do exato;
+   - o contrato emite `DepositForBurn` ou `FundsDeposited` com cada campo igual ao montado.
+
+**A chegada**
+- Só conta com a entrega conferida no destino, em dois RPCs.
+- No CCTP:
+  - a mensagem atestada pela Circle bate campo a campo com a queima assinada (`CCTPMessage.check`);
+  - o recibo da entrega tem o `Transfer` do USDC do destino para o dono, com `amount - feeExecuted`.
+- No Across, o recibo da entrega tem o `FilledRelay` do SpokePool do destino com depositante, destinatário, tokens e valores do depósito, sem alteração.
+- A ponte pendente fica nos metadados cifrados: a transferência assinada e o hash do depósito.
+
+**Risco aceito**
+- A Circle pode congelar USDC ou reter atestações. Reter é negação de serviço, não roubo: a queima só cunha para o dono.
+- No Across, o reembolso depende do oráculo otimista da UMA.
+- Um upgrade de contrato deixa a ponte desligada até a próxima versão do app.
+
+**O que faria deixar de ser aceitável**
+- Um incidente de atestação na Circle.
+- Um reembolso do Across perdido.
+
+**Pendente**
+- O resgate pelo próprio app quando o encaminhamento da Circle falhar (`receiveMessage`). A mensagem tem de ser igual ao evento do próprio recibo, salvo os quatro campos que o evento emite zerados, e `usedNonces` tem de ser zero.
 
 ---
 

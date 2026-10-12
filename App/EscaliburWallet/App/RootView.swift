@@ -48,6 +48,11 @@ struct RootView: View {
             guard session.phase == .unlocked else { return }
             await ReceiptWatchCenter.shared.sync(accounts: ReceiptAccounts.all(session))
         }
+        // Pontes em curso: ao destravar, confere se chegaram (entrega conferida no destino).
+        .task(id: session.phase == .unlocked ? session.selectedWallet?.id : nil) {
+            guard session.phase == .unlocked else { return }
+            await BridgeCenter.shared.refresh(session: session)
+        }
         // Os alertas falam na moeda escolhida em Ativos (com bitcoin, em dolar); trocar
         // a moeda zera a base de cada um.
         .task(id: session.phase == .unlocked ? session.metadata.settings.alertCurrency : nil) {

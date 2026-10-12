@@ -6,7 +6,7 @@ import SwiftUI
 @Observable
 final class Router {
     enum Tab: Hashable { case wallet, market, trade, activity, settings }
-    enum TradeMode: Hashable { case now, limit }
+    enum TradeMode: Hashable { case now, limit, bridge }
 
     enum Flow: Identifiable, Hashable {
         case send(Asset?)

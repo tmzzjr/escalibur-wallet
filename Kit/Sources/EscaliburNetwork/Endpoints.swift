@@ -399,6 +399,15 @@ public enum Endpoints {
         "cow": .init(name: "cow", baseURL: url("https://api.cow.fi")),
     ]
 
+    /// Pontes, sem chave (docs/seguranca.md, Pontes). A Iris da Circle da a taxa do CCTP e
+    /// a mensagem atestada; a API do Across da a taxa do relayer e os limites. Nenhuma
+    /// das duas monta calldata: o app monta e confere sozinho. Conferidas ao vivo em
+    /// 12/10/2026.
+    public static let bridge: [String: ProviderPool.Provider] = [
+        "circle": .init(name: "circle", baseURL: url("https://iris-api.circle.com")),
+        "across": .init(name: "across", baseURL: url("https://app.across.to/api")),
+    ]
+
     /// RPCs que respondem `eth_simulateV1` com `traceTransfers` (conferido ao vivo em
     /// 26/09/2026). A troca exige duas fontes (docs/seguranca.md 4.9). Avalanche: nenhum
     /// RPC publico implementa o metodo hoje (api.avax.network, publicnode e drpc devolvem

@@ -178,6 +178,22 @@ enum DebugDemo {
                         amountIn: BigUInt(6) * BigUInt.power(of: 10, 17), minimumOut: BigUInt(1_200) * BigUInt.power(of: 10, 6), filledFraction: 0.4
                     ))
                 }
+            // `-tela ponte`: a ponte em Trocar, com 250 USDC da Base para a Arbitrum cotados
+            // ao vivo e uma ponte ja chegada na lista (sem rede).
+            case "ponte":
+                router.tab = .trade
+                router.tradeMode = .bridge
+                if let wallet = session.selectedWallet, let account = wallet.account(.base), let owner = try? EVMAddress(account.address),
+                   let intent = try? BridgeIntent(owner: owner, asset: .usdc, from: .optimism, to: .base, amount: BigUInt(1_200_000_000)),
+                   let quote = try? BridgeValidator.cctp(intent, route: .cctpStandard, fees: CCTPFees(
+                       fast: nil, standard: .init(protocolBps: TradeDecimal("0")!, forwardFee: BigUInt(54_000))), fastAllowance: nil) {
+                    var record = BridgeRecord(quote: quote, walletID: wallet.id, depositTxHash: "0x" + String(repeating: "ab", count: 32),
+                                              now: Date().addingTimeInterval(-3_600))
+                    record.state = .arrived
+                    record.receivedAmount = quote.minimumReceived.decimalString
+                    record.settledTxHash = "0x" + String(repeating: "cd", count: 32)
+                    session.metadata.bridges = [record]
+                }
             case "atividade": router.tab = .activity
             case "ajustes": router.tab = .settings
             case "enviar": router.present(.send(nil))
