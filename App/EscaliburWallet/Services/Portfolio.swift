@@ -80,6 +80,11 @@ final class Portfolio {
     private(set) var suspicious: [OtherToken] = []
     /// Preco por contrato (moeda custom e outros tokens), por `Asset.id`.
     private(set) var tokenQuotes: [String: Quote] = [:]
+
+    #if DEBUG
+    /// `-tela token-grafico`: o preco por contrato de um token que a carteira de teste nao tem.
+    func debugSetTokenQuote(_ quote: Quote, for id: String) { tokenQuotes[id] = quote }
+    #endif
     private(set) var lastUpdated: Date?
     private(set) var offline = false
     private(set) var balances: [String: ChainBalance] = [:]

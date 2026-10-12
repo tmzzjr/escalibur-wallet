@@ -5,6 +5,7 @@ struct RootView: View {
     @Environment(ToastCenter.self) private var toasts
     @Environment(AuthCoordinator.self) private var auth
     @Environment(Router.self) private var router
+    @Environment(Portfolio.self) private var portfolio
     @Environment(\.scenePhase) private var scenePhase
     @State private var offeredBiometry = false
     /// A primeira carteira e guardada antes de as palavras aparecerem. Sem esta
@@ -75,7 +76,7 @@ struct RootView: View {
         }
         .onAppear { EnvelopeFile.sweepInbox() }
         #if DEBUG
-        .task { await DebugDemo.prepare(session: session, router: router) }
+        .task { await DebugDemo.prepare(session: session, router: router, portfolio: portfolio) }
         #endif
     }
 

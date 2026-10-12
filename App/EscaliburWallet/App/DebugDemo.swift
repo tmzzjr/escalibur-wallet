@@ -4,6 +4,7 @@ import EscaliburChains
 import EscaliburCore
 import EscaliburEngines
 import EscaliburKeys
+import EscaliburNetwork
 import SwiftUI
 
 /// Conferencia visual no simulador, so em compilacao de depuracao.
@@ -110,7 +111,7 @@ enum DebugDemo {
     }
 
     @MainActor
-    static func prepare(session: AppSession, router: Router) async {
+    static func prepare(session: AppSession, router: Router, portfolio: Portfolio? = nil) async {
         // `-experimento-se`: o experimento da chave do Secure Enclave com senha de
         // aplicativo, sem demo, sem PIN e sem tocar o cofre. O resultado vai para
         // Documents/experimento-se.txt, que se le pelo devicectl.
@@ -193,6 +194,23 @@ enum DebugDemo {
                     record.receivedAmount = quote.minimumReceived.decimalString
                     record.settledTxHash = "0x" + String(repeating: "cd", count: 32)
                     session.metadata.bridges = [record]
+                }
+            // `-tela token-grafico`: a pagina do BNB Frog Inu (fora da lista, com aviso do
+            // CoinGecko), com o preco e o grafico pelo contrato, ao vivo.
+            case "token-grafico":
+                let frog = Asset(chainID: "bnb", kind: .token(contract: "0x64da67a12a46f1ddf337393e2da12ed0a507ad3d"), symbol: "BNBFROG",
+                                 name: "BNB Frog Inu", decimals: 9, coingeckoID: nil, isStablecoin: false, origin: .discovered)
+                Task { @MainActor in
+                    router.walletPath.append(UnlistedHolding(asset: frog, amount: BigUInt(decimal: "125000000000000000000")!, reasons: []))
+                    // Depois que a carteira abriu (ela recarrega os precos guardados), com
+                    // novas tentativas se o CoinGecko limitar.
+                    for _ in 0..<8 {
+                        try? await Task.sleep(for: .seconds(6))
+                        if let quote = await MarketService.shared.tokenQuotes([frog], currency: session.metadata.settings.currency)[frog.id] {
+                            portfolio?.debugSetTokenQuote(quote, for: frog.id)
+                            break
+                        }
+                    }
                 }
             case "atividade": router.tab = .activity
             case "ajustes": router.tab = .settings

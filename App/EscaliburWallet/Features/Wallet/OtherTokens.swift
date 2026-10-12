@@ -151,6 +151,18 @@ struct OtherTokenDetailView: View {
                 }
                 .padding(.top, Space.lg)
 
+                // Com preco pelo contrato, o grafico do contrato. Token suspeito nunca tem
+                // preco, entao nunca ganha grafico.
+                if let quote {
+                    MarketChartSection(
+                        coingeckoID: nil, symbol: asset.symbol, name: asset.name, livePrice: quote.price, liveChange: quote.change24h,
+                        isStable: false, priceAsFigure: false, contractAsset: asset
+                    )
+                    .padding(.horizontal, -Space.gutter)
+                    .padding(.top, Space.lg)
+                    ContractNoticeBanner(asset: asset).padding(.top, Space.md)
+                }
+
                 Banner(kind: .caution, title: holding.isSuspicious ? "Este token tem cara de golpe" : "Token não verificado",
                        message: TokenReasonText.anyoneCanCreate)
                     .padding(.top, Space.lg)

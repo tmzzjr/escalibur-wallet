@@ -52,6 +52,9 @@ struct PriceChart: View {
                 chart
             }
         }
+        // Largura toda: sem isto, o texto de "sem historico" encolhe o quadro e cola na
+        // esquerda.
+        .frame(maxWidth: .infinity)
         .frame(height: 248)
     }
 
@@ -160,6 +163,9 @@ struct PriceChart: View {
 
     private func priceText(_ value: Double, prices: [Double]) -> String {
         let amplitude = ((prices.max() ?? 0) - (prices.min() ?? 0)) / max(prices.max() ?? 1, .ulpOfOne)
+        // Preco miudo (abaixo de 0,0001) sai com os zeros em subscrito: com 4 casas, a
+        // maxima e a minima viravam as duas "R$ 0,0000".
+        guard value >= 0.0001 else { return Fmt.price(value, currency) }
         return amplitude < 0.01 ? "\(currency.symbol)\(Fmt.nbsp)\(Fmt.grouped(value, fractionDigits: 4))" : Fmt.price(value, currency)
     }
 

@@ -643,8 +643,48 @@ public actor MarketService {
         return fresh
     }
 
+    /// O historico de um token pelo contrato (`/coins/{rede}/contract/{contrato}/market_chart`),
+    /// para o que nao tem id na lista nem foi reconhecido: um token com aviso do CoinGecko
+    /// continua sem reconhecimento (logo, nome e confianca), mas o grafico de preco e o do
+    /// proprio contrato e pode aparecer. Sem contingencia da OKX: ela nao lista por contrato.
+    public func contractChartSnapshot(_ asset: Asset, currency: String, range: ChartRange) async throws -> ChartSnapshot {
+        guard case .token(let contract) = asset.kind, let platform = Self.tokenPlatforms[asset.chainID]?.gecko else {
+            throw HTTPClient.Failure.invalidResponse
+        }
+        let key = "contrato:\(asset.id):\(currency):\(range.rawValue)"
+        if let cached = charts[key], !cached.isStale, now().timeIntervalSince(cached.fetchedAt) < Self.chartLifetime(range) { return cached }
+        do {
+            let path = "coins/\(platform)/contract/\(TokenRecognitionRules.canonical(contract, chainID: asset.chainID))/market_chart"
+            let points = try await fromGecko { try await self.geckoChart(path: path, currency: currency, range: range) }
+            let fresh = ChartSnapshot(points: points, fetchedAt: now(), source: .coingecko, isStale: false)
+            charts[key] = fresh
+            return fresh
+        } catch {
+            guard let last = charts[key] else { throw error }
+            let stale = ChartSnapshot(points: last.points, fetchedAt: last.fetchedAt, source: last.source, isStale: true)
+            charts[key] = stale
+            return stale
+        }
+    }
+
+    /// O aviso publico que o CoinGecko poe no token deste contrato (risco de contrato,
+    /// listagem em teste), em texto puro. `nil`: sem aviso ou sem listagem. Erro: o
+    /// CoinGecko nao respondeu (limite), e a tela tenta de novo.
+    public func contractNotice(_ asset: Asset) async throws -> String? {
+        guard let coin = try await contractCoin(asset) else { return nil }
+        let text = (coin.public_notice ?? "").replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        let clean = String(String(text.unicodeScalars.filter { !Self.forbidden.contains($0) }).prefix(400))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !clean.isEmpty { return clean }
+        return coin.preview_listing == true ? "Listed as a preview on CoinGecko." : nil
+    }
+
     private func geckoChart(id: String, currency: String, range: ChartRange) async throws -> [PricePoint] {
-        let url = Self.url(Self.gecko, "coins/\(id)/market_chart", [("vs_currency", currency), ("days", range.days)])
+        try await geckoChart(path: "coins/\(id)/market_chart", currency: currency, range: range)
+    }
+
+    private func geckoChart(path: String, currency: String, range: ChartRange) async throws -> [PricePoint] {
+        let url = Self.url(Self.gecko, path, [("vs_currency", currency), ("days", range.days)])
         let raw = try await get(GeckoChart.self, url)
         let points = raw.prices.compactMap { pair -> PricePoint? in
             guard pair.count == 2, pair[1].isFinite, pair[1] > 0 else { return nil }

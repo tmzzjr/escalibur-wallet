@@ -27,6 +27,14 @@ struct AssetDetailView: View {
             VStack(alignment: .leading, spacing: 0) {
                 position.padding(.horizontal, Space.gutter)
                 if row.isCustom, let asset = row.positions.first?.asset {
+                    // Com preco pelo contrato, o grafico do contrato tambem.
+                    if row.price != nil {
+                        MarketChartSection(
+                            coingeckoID: nil, symbol: row.symbol, name: row.name, livePrice: row.price, liveChange: row.change24h,
+                            isStable: false, priceAsFigure: false, contractAsset: asset
+                        )
+                        .padding(.top, Space.lg)
+                    }
                     customDetails(asset).padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                 } else if let identity = row.recognized {
                     // Reconhecida pelo CoinGecko: o grafico de la, o aviso de que nao e da
@@ -38,11 +46,17 @@ struct AssetDetailView: View {
                     .padding(.top, Space.lg)
                     recognizedDetails.padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                 } else {
+                    // Fora da lista e sem reconhecimento (um token com aviso do CoinGecko,
+                    // por exemplo): o grafico vem pelo contrato, so se ele ja tem preco.
+                    // Token suspeito nunca tem preco, entao nunca ganha grafico.
+                    let byContract = row.coingeckoID == nil && row.price != nil ? row.positions.first?.asset : nil
                     MarketChartSection(
                         coingeckoID: row.coingeckoID, symbol: row.symbol, name: row.name,
-                        livePrice: row.price, liveChange: row.change24h, isStable: row.isStablecoin, priceAsFigure: false
+                        livePrice: row.price, liveChange: row.change24h, isStable: row.isStablecoin, priceAsFigure: false,
+                        contractAsset: byContract
                     )
                     .padding(.top, Space.lg)
+                    if let byContract { ContractNoticeBanner(asset: byContract).padding(.horizontal, Space.gutter).padding(.top, Space.lg) }
                     if row.positions.count > 1 { networks.padding(.top, Space.xl) }
                     contract.padding(.top, Space.lg)
                 }
@@ -204,6 +218,8 @@ struct MarketChartSection: View {
     /// A linha de 7 dias, hora a hora, que a lista do Mercado ja trouxe: desenha o
     /// grafico na hora, enquanto o detalhado chega.
     var seed: [Double] = []
+    /// Sem id: o grafico pelo contrato deste token (`MarketService.contractChartSnapshot`).
+    var contractAsset: Asset? = nil
     /// Tocar no preco mostra a outra moeda (real e dolar), com o grafico junto.
     @State private var alternate = false
 
@@ -315,18 +331,40 @@ struct MarketChartSection: View {
     }
 
     private func load() async {
-        guard let coingeckoID else { return }
+        guard coingeckoID != nil || contractAsset != nil else { return }
         if points.isEmpty { points = Self.seeded(seed, range: range) }
         loading = true
         defer { loading = false }
         do {
-            let snapshot = try await MarketService.shared.chartSnapshot(id: coingeckoID, currency: session.metadata.settings.currency, range: range)
+            let currency = session.metadata.settings.currency
+            let snapshot = if let coingeckoID {
+                try await MarketService.shared.chartSnapshot(id: coingeckoID, currency: currency, range: range)
+            } else {
+                try await Self.contractChart(contractAsset!, currency: currency, range: range)
+            }
             points = snapshot.points
             staleSince = snapshot.isStale ? snapshot.fetchedAt : nil
             failed = false
         } catch {
             failed = true
         }
+    }
+
+    /// Pelo contrato so o CoinGecko responde, e ele limita por IP (fica de fora por pelo
+    /// menos 1 minuto depois de um 429): tenta de novo enquanto a tela esta aberta.
+    static let contractRetryDelays: [Double] = [0, 15, 45, 90]
+
+    static func contractChart(_ asset: Asset, currency: String, range: ChartRange) async throws -> ChartSnapshot {
+        var lastError: Error = HTTPClient.Failure.offline
+        for delay in contractRetryDelays {
+            if delay > 0 { try await Task.sleep(for: .seconds(delay)) }
+            do {
+                return try await MarketService.shared.contractChartSnapshot(asset, currency: currency, range: range)
+            } catch {
+                lastError = error
+            }
+        }
+        throw lastError
     }
 
     /// O comeco do grafico com a linha de 7 dias da lista: as ultimas 24 horas para 24h,
@@ -360,6 +398,38 @@ struct MarketChartSection: View {
                 change = quote.change24h
             }
             try? await Task.sleep(for: .seconds(15))
+        }
+    }
+}
+
+/// O aviso que o CoinGecko poe no token (dono do contrato pode bloquear venda, mudar taxa,
+/// cunhar), para o token sem reconhecimento que mostra grafico pelo contrato. O texto vem
+/// em ingles, como o CoinGecko publica; o app nao traduz o que nao escreveu.
+struct ContractNoticeBanner: View {
+    let asset: Asset
+    @State private var notice: String?
+
+    var body: some View {
+        Group {
+            if let notice {
+                Banner(kind: .caution, title: "O CoinGecko marca este token com um aviso",
+                       message: "O gráfico é do CoinGecko, pelo contrato, e o token não está na lista conferida da Escalibur. O aviso, como o CoinGecko publica: \u{201C}\(notice)\u{201D}")
+            } else {
+                Text("Gráfico do CoinGecko, pelo contrato. O token não está na lista conferida da Escalibur.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .task(id: asset.id) {
+            for delay in MarketChartSection.contractRetryDelays {
+                if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+                guard !Task.isCancelled else { return }
+                // Sem erro, a resposta vale, com ou sem aviso; com erro (limite), de novo.
+                if let read = try? await MarketService.shared.contractNotice(asset) {
+                    notice = read
+                    return
+                }
+            }
         }
     }
 }

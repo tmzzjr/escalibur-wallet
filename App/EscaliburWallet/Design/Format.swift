@@ -290,13 +290,15 @@ enum Fmt {
         return "0,0" + String(sub) + rest.prefix(8)
     }
 
-    private static func subscriptZeros(_ value: Double) -> String {
-        // 0,00005234 vira 0,0₄5234: o subscrito conta os zeros depois da virgula.
-        let text = String(format: "%.18f", value)
-        guard let dot = text.firstIndex(of: ".") else { return text }
-        let fraction = text[text.index(after: dot)...]
-        let zeros = fraction.prefix { $0 == "0" }.count
-        let significant = fraction.dropFirst(zeros).prefix(4)
+    static func subscriptZeros(_ value: Double) -> String {
+        // 0,00005234 vira 0,0₄5234: o subscrito conta os zeros depois da virgula. Pela
+        // notacao cientifica, e nao por "%.18f": abaixo de 10^-18 as 18 casas sao todas
+        // zero e o preco sumia (o BNB Frog Inu, perto de 4,8 x 10^-19, saia "0,0₁₈").
+        guard value.isFinite, value > 0 else { return "0" }
+        let parts = String(format: "%.3e", value).split(separator: "e")
+        guard parts.count == 2, let exponent = Int(parts[1]), exponent < 0 else { return grouped(value, fractionDigits: 4) }
+        let significant = parts[0].filter(\.isNumber)
+        let zeros = -exponent - 1
         let subscripts = Array("₀₁₂₃₄₅₆₇₈₉")
         let sub = String(zeros).compactMap { $0.wholeNumberValue.map { subscripts[$0] } }
         return "0,0" + String(sub) + significant

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import EscaliburChains
 @testable import EscaliburNetwork
 
 /// Testes contra os provedores reais. So rodam com ESCALIBUR_REDE=1, para o CI
@@ -24,6 +25,25 @@ struct MarketLiveTests {
     func chart() async throws {
         let points = try await MarketService().chart(id: "bitcoin", currency: "brl", range: .week)
         #expect(points.count > 50)
+    }
+
+    @Test("Grafico pelo contrato de token com aviso do CoinGecko (BNB Frog Inu e o SHIB da BNB Chain)")
+    func contractChart() async throws {
+        let market = MarketService()
+        let frog = Asset(chainID: "bnb", kind: .token(contract: "0x64da67a12a46f1ddf337393e2da12ed0a507ad3d"), symbol: "BNBFROG",
+                         name: "BNB Frog Inu", decimals: 9, coingeckoID: nil, isStablecoin: false, origin: .discovered)
+        let shib = Asset(chainID: "bnb", kind: .token(contract: "0x2859e4544c4bb03966803b044a93563bd2d0dd4d"), symbol: "SHIB",
+                         name: "SHIBA INU", decimals: 18, coingeckoID: nil, isStablecoin: false, origin: .discovered)
+        for asset in [frog, shib] {
+            let snapshot = try await market.contractChartSnapshot(asset, currency: "brl", range: .day)
+            #expect(snapshot.points.count > 50, "\(asset.symbol)")
+            #expect(snapshot.points.allSatisfy { $0.price > 0 })
+            // O reconhecimento continua recusado: o aviso mantem o token fora da confianca.
+            #expect(try await market.tokenIdentity(asset) == nil, "\(asset.symbol)")
+            let notice = try await market.contractNotice(asset)
+            #expect(notice?.contains("GoPlus") == true, "\(asset.symbol): \(notice ?? "sem aviso")")
+            #expect(notice?.contains("<") == false)
+        }
     }
 
     @Test("Logo passa pelas regras de tamanho e formato")
