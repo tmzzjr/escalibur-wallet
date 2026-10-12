@@ -12,7 +12,8 @@ struct PriceChart: View {
     /// vira sismografo.
     var isStable: Bool = false
     @Binding var selection: PricePoint?
-    let currency: Fmt.Currency
+    /// A unidade escolhida em Ativos (ou a outra, ao tocar no preco).
+    let unit: Fmt.DisplayUnit
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -165,8 +166,8 @@ struct PriceChart: View {
         let amplitude = ((prices.max() ?? 0) - (prices.min() ?? 0)) / max(prices.max() ?? 1, .ulpOfOne)
         // Preco miudo (abaixo de 0,0001) sai com os zeros em subscrito: com 4 casas, a
         // maxima e a minima viravam as duas "R$ 0,0000".
-        guard value >= 0.0001 else { return Fmt.price(value, currency) }
-        return amplitude < 0.01 ? "\(currency.symbol)\(Fmt.nbsp)\(Fmt.grouped(value, fractionDigits: 4))" : Fmt.price(value, currency)
+        guard unit != .btc, value >= 0.0001 else { return Fmt.price(value, unit: unit) }
+        return amplitude < 0.01 ? "\(unit.symbol)\(Fmt.nbsp)\(Fmt.grouped(value, fractionDigits: 4))" : Fmt.price(value, unit: unit)
     }
 
     private func accessibilitySummary(_ data: [PricePoint]) -> String {

@@ -42,14 +42,38 @@ enum Fmt {
             }
         }
 
-        init(_ currency: Currency) { self = currency == .brl ? .brl : .usd }
+        init(_ currency: Currency) {
+            switch currency {
+            case .brl: self = .brl
+            case .usd: self = .usd
+            case .eur: self = .eur
+            }
+        }
+
+        /// A moeda em que os precos sao buscados e mostrados para esta unidade. Com o
+        /// bitcoin, o dolar: o preco de cada moeda vem em dolar, e a pagina da moeda converte.
+        var fiat: Currency {
+            switch self {
+            case .brl: return .brl
+            case .usd, .btc: return .usd
+            case .eur: return .eur
+            }
+        }
     }
 
     enum Currency: String, CaseIterable, Codable, Sendable {
         case brl = "BRL"
         case usd = "USD"
+        case eur = "EUR"
 
-        var symbol: String { self == .brl ? "R$" : "US$" }
+        var symbol: String {
+            switch self {
+            case .brl: return "R$"
+            case .usd: return "US$"
+            case .eur: return "€"
+            }
+        }
+
         var coingeckoID: String { rawValue.lowercased() }
     }
 

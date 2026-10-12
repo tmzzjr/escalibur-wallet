@@ -106,8 +106,11 @@ struct WalletHomeView: View {
 
     private var unitBinding: Binding<Fmt.DisplayUnit> {
         Binding(get: { unit }, set: { newValue in
-            session.metadata.settings.totalUnit = newValue.rawValue
+            // A escolha daqui vale para o app todo: precos, graficos, Mercado e alertas.
+            let changed = session.metadata.settings.choose(newValue)
+            if changed { session.metadata.quoteCache = [:] }
             try? session.persist()
+            if changed { portfolio.currencyChanged(session.selectedWallet, session: session) }
         })
     }
 

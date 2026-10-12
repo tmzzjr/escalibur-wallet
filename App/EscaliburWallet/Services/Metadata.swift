@@ -108,9 +108,28 @@ struct Contact: Codable, Equatable, Identifiable, Hashable {
 }
 
 struct Settings: Codable, Equatable {
+    /// A moeda em que os precos sao buscados ("brl", "usd", "eur"). Segue a unidade
+    /// escolhida em Ativos (`choose`), a unica escolha de moeda do app desde 12/10/2026;
+    /// com o bitcoin escolhido, o dolar.
     var currency: String = "brl"
-    /// Unidade do saldo total na tela da carteira (`Fmt.DisplayUnit`). Nil: a moeda do app.
+    /// Unidade escolhida em Ativos (`Fmt.DisplayUnit`). Nil: a moeda do app.
     var totalUnit: String?
+
+    /// A unidade escolhida em Ativos.
+    var displayUnit: Fmt.DisplayUnit {
+        totalUnit.flatMap(Fmt.DisplayUnit.init(rawValue:)) ?? Fmt.DisplayUnit(Fmt.Currency(rawValue: currency.uppercased()) ?? .brl)
+    }
+
+    /// Escolhe a unidade em Ativos, e com ela a moeda de todos os precos do app.
+    /// Devolve se a moeda dos precos mudou (os precos guardados sao da antiga).
+    @discardableResult
+    mutating func choose(_ unit: Fmt.DisplayUnit) -> Bool {
+        totalUnit = unit.rawValue
+        let fetch = unit.fiat.coingeckoID
+        guard currency != fetch else { return false }
+        currency = fetch
+        return true
+    }
 
     /// A moeda dos alertas de preco: a escolhida em Ativos (real, dolar ou euro). Com o
     /// bitcoin escolhido, o dolar: um alerta "BTC passou de 1 BTC" nao diz nada.

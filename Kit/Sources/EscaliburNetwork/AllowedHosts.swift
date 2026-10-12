@@ -16,6 +16,7 @@ enum AllowedHosts {
         "api.coinpaprika.com",
         "api.cow.fi",
         "api.fastnear.com",
+        "api.geckoterminal.com",
         "api.jup.ag",
         "api.koios.rest",
         "api.mainnet.aptoslabs.com",

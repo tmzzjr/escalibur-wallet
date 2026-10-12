@@ -151,11 +151,12 @@ struct OtherTokenDetailView: View {
                 }
                 .padding(.top, Space.lg)
 
-                // Com preco pelo contrato, o grafico do contrato. Token suspeito nunca tem
-                // preco, entao nunca ganha grafico.
-                if let quote {
+                // O grafico pelo contrato: CoinGecko, ou a pool de DEX com mais liquidez no
+                // GeckoTerminal. Token suspeito nunca ganha grafico: um grafico bonito
+                // daria cara de confiavel a um golpe.
+                if !holding.isSuspicious {
                     MarketChartSection(
-                        coingeckoID: nil, symbol: asset.symbol, name: asset.name, livePrice: quote.price, liveChange: quote.change24h,
+                        coingeckoID: nil, symbol: asset.symbol, name: asset.name, livePrice: quote?.price, liveChange: quote?.change24h,
                         isStable: false, priceAsFigure: false, contractAsset: asset
                     )
                     .padding(.horizontal, -Space.gutter)

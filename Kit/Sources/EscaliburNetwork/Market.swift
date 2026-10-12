@@ -52,6 +52,24 @@ public enum MarketSource: String, Sendable, Codable, Hashable {
     case coingecko = "CoinGecko"
     case coinpaprika = "CoinPaprika"
     case okx = "OKX"
+    case geckoTerminal = "GeckoTerminal"
+}
+
+/// A pool de DEX de onde vem o preco de um token que o CoinGecko nao lista.
+public struct DexPool: Sendable, Hashable {
+    /// O nome do par, como a pool foi criada ("BNBFrog / WBNB"): texto de quem criou o
+    /// token, limpo de controle e bidi e com tamanho limitado.
+    public let name: String
+    public let dex: String
+    public let reserveUSD: Double
+}
+
+/// O grafico de um token fora da lista: pelo contrato no CoinGecko ou, se ele nao
+/// lista, pela pool de DEX com mais liquidez no GeckoTerminal.
+public struct TokenChart: Sendable, Hashable {
+    public let snapshot: ChartSnapshot
+    /// So no preco de DEX: a pool de onde ele vem.
+    public let pool: DexPool?
 }
 
 /// A lista de mercado com a hora e a fonte.
@@ -125,6 +143,8 @@ public actor MarketService {
     private var prices: [String: [String: (at: Date, quote: Quote)]] = [:]
     private var lists: [String: MarketSnapshot] = [:]
     private var charts: [String: ChartSnapshot] = [:]
+    /// A pool escolhida de cada token no GeckoTerminal (ou nenhuma), por 30 minutos.
+    private var dexPools: [String: (at: Date, pool: (address: String, info: DexPool)?)] = [:]
     private var details: [String: MarketCoinDetails] = [:]
     private var paprikaLists: [String: (at: Date, tickers: [PaprikaTicker])] = [:]
     /// Id do CoinPaprika por id do CoinGecko, aprendido da lista do CoinPaprika.
@@ -156,6 +176,7 @@ public actor MarketService {
     static let gecko = URL(string: "https://api.coingecko.com/api/v3")!
     static let paprika = URL(string: "https://api.coinpaprika.com/v1")!
     static let okx = URL(string: "https://www.okx.com/api/v5")!
+    static let geckoTerminal = URL(string: "https://api.geckoterminal.com/api/v2")!
 
     // MARK: Rede
 
@@ -665,6 +686,105 @@ public actor MarketService {
             charts[key] = stale
             return stale
         }
+    }
+
+    /// O grafico de um token fora da lista: pelo contrato no CoinGecko; se o CoinGecko nao
+    /// lista o contrato, pela pool de DEX com mais liquidez no GeckoTerminal. Erro de
+    /// limite ou de rede sobe: a tela tenta de novo.
+    public func tokenChart(_ asset: Asset, currency: String, range: ChartRange) async throws -> TokenChart {
+        do {
+            return TokenChart(snapshot: try await contractChartSnapshot(asset, currency: currency, range: range), pool: nil)
+        } catch HTTPClient.Failure.status(404) {
+        } catch HTTPClient.Failure.invalidResponse {
+        }
+        return try await dexChart(asset, currency: currency, range: range)
+    }
+
+    /// As redes do GeckoTerminal (`/networks`, conferido em 12/10/2026). A Asset Hub da
+    /// Polkadot nao esta la.
+    static let geckoTerminalNetworks: [String: String] = [
+        "ethereum": "eth", "bnb": "bsc", "polygon": "polygon_pos", "arbitrum": "arbitrum", "base": "base", "optimism": "optimism",
+        "avalanche": "avax", "solana": "solana", "linea": "linea", "sonic": "sonic", "celo": "celo", "unichain": "unichain",
+        "xlayer": "x-layer", "plasma": "plasma", "tron": "tron", "ton": "ton", "sui": "sui-network", "aptos": "aptos",
+        "near": "near", "cardano": "cardano",
+    ]
+
+    /// Abaixo disso a pool e pequena demais: qualquer um cria uma pool com centavos e
+    /// desenha o preco que quiser. Mesmo acima, o preco de DEX so desenha o grafico; o
+    /// saldo total so usa preco de fonte que lista o contrato (`tokenQuotes`).
+    static let dexMinimumReserveUSD: Double = 5_000
+
+    /// O grafico pela pool de DEX com mais liquidez do token, em dolar convertido pela
+    /// cotacao do USDT na moeda pedida, como a contingencia da OKX.
+    public func dexChart(_ asset: Asset, currency: String, range: ChartRange) async throws -> TokenChart {
+        guard case .token(let contract) = asset.kind, let network = Self.geckoTerminalNetworks[asset.chainID] else {
+            throw HTTPClient.Failure.invalidResponse
+        }
+        let token = TokenRecognitionRules.canonical(contract, chainID: asset.chainID)
+        let key = "dex:\(asset.id):\(currency):\(range.rawValue)"
+        guard let pool = try await dexPool(network: network, token: token, assetID: asset.id) else { throw HTTPClient.Failure.status(404) }
+        if let cached = charts[key], now().timeIntervalSince(cached.fetchedAt) < Self.chartLifetime(range) {
+            return TokenChart(snapshot: cached, pool: pool.info)
+        }
+        let (timeframe, aggregate, limit, window): (String, String, Int, TimeInterval) = {
+            switch range {
+            case .day: return ("minute", "15", 96, 86_400)
+            case .week: return ("hour", "1", 168, 7 * 86_400)
+            case .month: return ("hour", "4", 180, 30 * 86_400)
+            case .year: return ("day", "1", 365, 365 * 86_400)
+            case .all: return ("day", "1", 1000, .infinity)
+            }
+        }()
+        let url = Self.url(Self.geckoTerminal, "networks/\(network)/pools/\(pool.address)/ohlcv/\(timeframe)", [
+            ("aggregate", aggregate), ("limit", String(limit)), ("currency", "usd"), ("token", token),
+        ])
+        let json = try await get(JSONValue.self, url)
+        let rate = currency == "usd" ? 1 : (try await quotes(ids: ["tether"], currency: currency)["tether"]?.price ?? 0)
+        guard rate > 0, let rows = json["data"]?["attributes"]?["ohlcv_list"]?.arrayValue else { throw HTTPClient.Failure.invalidResponse }
+        let start = now().addingTimeInterval(-window)
+        // As velas so existem quando houve negocio: 96 velas de 15 min podem cobrir dias.
+        let points = rows.compactMap { row -> PricePoint? in
+            guard let ts = row[0]?.doubleValue, let close = row[4]?.doubleValue, close.isFinite, close > 0 else { return nil }
+            let time = Date(timeIntervalSince1970: ts)
+            return time >= start ? PricePoint(time: time, price: close * rate) : nil
+        }
+        .sorted { $0.time < $1.time }
+        let snapshot = ChartSnapshot(points: points, fetchedAt: now(), source: .geckoTerminal, isStale: false)
+        charts[key] = snapshot
+        return TokenChart(snapshot: snapshot, pool: pool.info)
+    }
+
+    /// A pool do token com mais liquidez, acima do minimo. `nil`: nenhuma serve.
+    private func dexPool(network: String, token: String, assetID: String) async throws -> (address: String, info: DexPool)? {
+        if let cached = dexPools[assetID], now().timeIntervalSince(cached.at) < 1800 { return cached.pool }
+        let json = try await get(JSONValue.self, Self.url(Self.geckoTerminal, "networks/\(network)/tokens/\(token)/pools", [("page", "1")]))
+        guard let list = json["data"]?.arrayValue else { throw HTTPClient.Failure.invalidResponse }
+        let id = "\(network)_\(token)".lowercased()
+        var best: (address: String, info: DexPool)?
+        for entry in list {
+            guard let attributes = entry["attributes"], let address = attributes["address"]?.stringValue,
+                  let reserve = attributes["reserve_in_usd"]?.stringValue.flatMap(Double.init), reserve.isFinite,
+                  reserve >= Self.dexMinimumReserveUSD, reserve > (best?.info.reserveUSD ?? 0)
+            else { continue }
+            let base = entry["relationships"]?["base_token"]?["data"]?["id"]?.stringValue?.lowercased()
+            let quote = entry["relationships"]?["quote_token"]?["data"]?["id"]?.stringValue?.lowercased()
+            guard base == id || quote == id else { continue }
+            let dex = entry["relationships"]?["dex"]?["data"]?["id"]?.stringValue ?? ""
+            best = (address, DexPool(name: Self.clean(attributes["name"]?.stringValue ?? ""), dex: Self.dexName(dex), reserveUSD: reserve))
+        }
+        dexPools[assetID] = (now(), best)
+        return best
+    }
+
+    /// "pancakeswap_v2" vira "PancakeSwap v2".
+    static func dexName(_ id: String) -> String {
+        let known = ["pancakeswap": "PancakeSwap", "uniswap": "Uniswap", "sushiswap": "SushiSwap", "aerodrome": "Aerodrome",
+                     "velodrome": "Velodrome", "raydium": "Raydium", "orca": "Orca", "meteora": "Meteora", "pumpswap": "PumpSwap",
+                     "camelot": "Camelot", "quickswap": "QuickSwap", "traderjoe": "Trader Joe", "curve": "Curve", "balancer": "Balancer"]
+        let words = id.split(whereSeparator: { $0 == "_" || $0 == "-" }).map(String.init)
+        guard let first = words.first else { return "DEX" }
+        let rest = words.dropFirst().filter { !["bsc", "eth", "base", "arbitrum", "polygon", "avalanche", "solana"].contains($0) }
+        return Self.clean(([known[first] ?? first.capitalized] + rest).joined(separator: " "))
     }
 
     /// O aviso publico que o CoinGecko poe no token deste contrato (risco de contrato,

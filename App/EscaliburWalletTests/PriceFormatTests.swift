@@ -19,3 +19,46 @@ struct PriceFormatTests {
         #expect(Fmt.price(0.5, .brl) == "R$\u{00A0}0,5000")
     }
 }
+
+/// A moeda do app e uma escolha so, a de Ativos: ela decide em que moeda os precos sao
+/// buscados e mostrados. Com o bitcoin, os precos vem em dolar.
+struct CurrencyChoiceTests {
+    @Test func walletUnitDrivesPrices() {
+        var settings = Settings()
+        #expect(settings.displayUnit == .brl)
+        let toDollar = settings.choose(.usd)
+        #expect(toDollar)
+        #expect(settings.currency == "usd" && settings.totalUnit == "usd")
+        let toEuro = settings.choose(.eur)
+        #expect(toEuro)
+        #expect(settings.currency == "eur")
+        let toBitcoin = settings.choose(.btc)
+        #expect(toBitcoin)
+        #expect(settings.currency == "usd" && settings.displayUnit == .btc)
+        // Do bitcoin para o dolar a moeda dos precos nao muda: nada a recarregar.
+        let backToDollar = settings.choose(.usd)
+        #expect(!backToDollar)
+    }
+
+    @Test func oldMetadataBecomesCoherent() {
+        // Antes de 12/10/2026: Ajustes em real e Ativos em dolar.
+        var settings = Settings()
+        settings.currency = "brl"
+        settings.totalUnit = "usd"
+        let fixed = settings.choose(settings.displayUnit)
+        #expect(fixed)
+        #expect(settings.currency == "usd")
+        // Sem unidade escolhida, vale a moeda que estava em Ajustes.
+        var legacy = Settings()
+        legacy.currency = "usd"
+        let changed = legacy.choose(legacy.displayUnit)
+        #expect(!changed)
+        #expect(legacy.displayUnit == .usd)
+    }
+
+    @Test func euroFormats() {
+        #expect(Fmt.fiat(1234.5, .eur) == "€\u{00A0}1.234,50")
+        #expect(Fmt.DisplayUnit(Fmt.Currency.eur) == .eur)
+        #expect(Fmt.DisplayUnit.btc.fiat == .usd)
+    }
+}

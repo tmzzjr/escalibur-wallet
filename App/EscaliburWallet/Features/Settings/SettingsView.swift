@@ -39,9 +39,6 @@ struct SettingsView: View {
                     .padding(.top, Space.lg)
 
                     SettingsSection(title: "Preferências") {
-                        NavigationLink { CurrencySettingsView() } label: {
-                            SettingsRow(icon: session.currency == .brl ? "brazilianrealsign.circle" : "dollarsign.circle", title: "Moeda", value: session.currency == .brl ? "Real (R$)" : "Dólar (US$)")
-                        }
                         NavigationLink { NetworksSettingsView() } label: {
                             SettingsRow(icon: "network", title: "Redes",
                                         value: "\(Chain.all.count - session.metadata.settings.disabledChainIDs.count) ligadas")
@@ -592,37 +589,6 @@ struct AutoLockView: View {
             session.metadata.settings.autoLockSeconds = previous
             self.error = "Não foi possível salvar. Tente de novo."
         }
-    }
-}
-
-struct CurrencySettingsView: View {
-    @Environment(AppSession.self) private var session
-
-    var body: some View {
-        ScrollView {
-            SettingsGroup {
-                ForEach([("brl", "Real (R$)"), ("usd", "Dólar americano (US$)")], id: \.0) { code, label in
-                    Button {
-                        session.metadata.settings.currency = code
-                        session.metadata.quoteCache = [:]
-                        try? session.persist()
-                    } label: {
-                        HStack {
-                            Text(label).typeStyle(.body).foregroundStyle(Palette.ink)
-                            Spacer()
-                            if session.metadata.settings.currency == code {
-                                Image(systemName: "checkmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
-                            }
-                        }
-                        .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
-                    }
-                }
-            }
-            .padding(.top, Space.md)
-        }
-        .background(Palette.void.ignoresSafeArea())
-        .navigationTitle("Moeda")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

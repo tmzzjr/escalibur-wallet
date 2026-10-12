@@ -27,14 +27,13 @@ struct AssetDetailView: View {
             VStack(alignment: .leading, spacing: 0) {
                 position.padding(.horizontal, Space.gutter)
                 if row.isCustom, let asset = row.positions.first?.asset {
-                    // Com preco pelo contrato, o grafico do contrato tambem.
-                    if row.price != nil {
-                        MarketChartSection(
-                            coingeckoID: nil, symbol: row.symbol, name: row.name, livePrice: row.price, liveChange: row.change24h,
-                            isStable: false, priceAsFigure: false, contractAsset: asset
-                        )
-                        .padding(.top, Space.lg)
-                    }
+                    // Moeda custom: o dono conferiu e adicionou o contrato; o grafico vem dele
+                    // (CoinGecko ou, sem listagem, a pool de DEX).
+                    MarketChartSection(
+                        coingeckoID: nil, symbol: row.symbol, name: row.name, livePrice: row.price, liveChange: row.change24h,
+                        isStable: false, priceAsFigure: false, contractAsset: asset
+                    )
+                    .padding(.top, Space.lg)
                     customDetails(asset).padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                 } else if let identity = row.recognized {
                     // Reconhecida pelo CoinGecko: o grafico de la, o aviso de que nao e da
@@ -228,6 +227,15 @@ struct MarketChartSection: View {
     @State private var loading = false
     @State private var selection: PricePoint?
     @State private var failed = false
+    /// Pelo contrato: de onde veio o grafico (CoinGecko, ou a pool de DEX), ou que nenhuma
+    /// das duas fontes tem o token.
+    @State private var tokenSource: TokenChartSource?
+
+    enum TokenChartSource: Equatable {
+        case coingecko
+        case dex(DexPool)
+        case none
+    }
     /// Hora do grafico na tela quando as fontes falharam e ele e o ultimo bom.
     @State private var staleSince: Date?
     @State private var price: Double?
@@ -244,16 +252,20 @@ struct MarketChartSection: View {
         return (last - first) / first * 100
     }
 
-    /// A moeda mostrada: a do app, ou a outra (dolar, ou real para quem usa dolar).
-    private var displayCurrency: Fmt.Currency {
-        alternate ? (session.currency == .usd ? .brl : .usd) : session.currency
+    /// A unidade mostrada: a escolhida em Ativos (real, dolar, euro ou bitcoin), ou, ao
+    /// tocar no preco, a outra (o dolar, ou o real para quem nao usa real).
+    private var displayUnit: Fmt.DisplayUnit {
+        alternate ? alternateUnit : session.metadata.settings.displayUnit
     }
 
-    /// Quanto vale 1 da moeda do app na mostrada, pela cotacao do bitcoin. Sem cotacao,
-    /// nao ha troca.
+    private var alternateUnit: Fmt.DisplayUnit { session.metadata.settings.displayUnit == .brl ? .usd : .brl }
+
+    /// Quanto vale 1 da moeda dos precos na unidade mostrada, pela cotacao do bitcoin. Sem
+    /// cotacao, nao ha troca.
     private var factor: Double? {
-        guard alternate else { return 1 }
-        return portfolio.convert(1, to: Fmt.DisplayUnit(displayCurrency), base: session.currency)
+        let unit = displayUnit
+        if unit == Fmt.DisplayUnit(session.currency) { return 1 }
+        return portfolio.convert(1, to: unit, base: session.currency)
     }
 
     private var displayPoints: [PricePoint] {
@@ -268,22 +280,21 @@ struct MarketChartSection: View {
                 let live = (price ?? livePrice ?? points.last?.price).flatMap { value in factor.map { value * $0 } }
                 let shown = selection?.price ?? live
                 if priceAsFigure {
-                    Text(shown.map { Fmt.price($0, displayCurrency) } ?? " ")
+                    Text(shown.map { Fmt.price($0, unit: displayUnit) } ?? " ")
                         .typeStyle(.figure)
                 } else {
-                    Text(shown.map { Fmt.price($0, displayCurrency) } ?? " ")
+                    Text(shown.map { Fmt.price($0, unit: displayUnit) } ?? " ")
                         .typeStyle(.row)
                 }
             }
             .contentShape(Rectangle())
             .onTapGesture {
                 let next = !alternate
-                let target: Fmt.Currency = session.currency == .usd ? .brl : .usd
-                guard !next || portfolio.convert(1, to: Fmt.DisplayUnit(target), base: session.currency) != nil else { return }
+                guard !next || portfolio.convert(1, to: alternateUnit, base: session.currency) != nil else { return }
                 withAnimation(Motion.number) { alternate = next }
             }
             .sensoryFeedback(.selection, trigger: alternate)
-            .accessibilityHint(session.currency == .usd ? "Toque para ver em reais" : "Toque para ver em dólar")
+            .accessibilityHint(alternateUnit == .brl ? "Toque para ver em reais" : "Toque para ver em dólar")
             .foregroundStyle(selection == nil ? tick : Palette.ink)
             .contentTransition(.numericText(value: shownPrice ?? 0))
             .animation(Motion.number, value: shownPrice)
@@ -303,9 +314,13 @@ struct MarketChartSection: View {
             .padding(.horizontal, Space.gutter)
             .padding(.top, Space.xxs)
 
-            PriceChart(points: displayPoints, loading: loading && points.isEmpty, isStable: isStable, selection: $selection, currency: displayCurrency)
+            PriceChart(points: displayPoints, loading: loading && points.isEmpty, isStable: isStable, selection: $selection, unit: displayUnit)
                 .padding(.top, Space.sm)
-            if failed && points.isEmpty {
+            if tokenSource == TokenChartSource.none {
+                Text("Sem gráfico: o CoinGecko não lista este contrato e o GeckoTerminal não tem pool com liquidez para ele.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Space.gutter)
+            } else if failed && points.isEmpty {
                 Text("Não foi possível carregar o gráfico agora.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     .padding(.horizontal, Space.gutter)
             } else if let staleSince {
@@ -315,6 +330,11 @@ struct MarketChartSection: View {
             PeriodPicker(range: $range)
                 .padding(.horizontal, Space.gutter)
                 .padding(.top, Space.sm)
+            if let note = sourceNote {
+                Text(note).typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Space.gutter)
+                    .padding(.top, Space.sm)
+            }
         }
         .task(id: range) { await load() }
         .task { await live() }
@@ -330,42 +350,60 @@ struct MarketChartSection: View {
         }
     }
 
+    /// De onde vem o grafico de um token fora da lista, dito embaixo dele.
+    private var sourceNote: String? {
+        switch tokenSource {
+        case .coingecko?:
+            return "Gráfico do CoinGecko, pelo contrato. O token não está na lista conferida da Escalibur."
+        case .dex(let pool)?:
+            let liquidity = "US$\(Fmt.nbsp)\(Fmt.compact(pool.reserveUSD))"
+            return "Preço da pool \(pool.name) na \(pool.dex), com \(liquidity) de liquidez, pelo GeckoTerminal. É preço de DEX: qualquer um cria uma pool, e por isso ele não entra no saldo total."
+        default:
+            return nil
+        }
+    }
+
     private func load() async {
         guard coingeckoID != nil || contractAsset != nil else { return }
         if points.isEmpty { points = Self.seeded(seed, range: range) }
         loading = true
         defer { loading = false }
-        do {
-            let currency = session.metadata.settings.currency
-            let snapshot = if let coingeckoID {
-                try await MarketService.shared.chartSnapshot(id: coingeckoID, currency: currency, range: range)
-            } else {
-                try await Self.contractChart(contractAsset!, currency: currency, range: range)
-            }
-            points = snapshot.points
-            staleSince = snapshot.isStale ? snapshot.fetchedAt : nil
-            failed = false
-        } catch {
-            failed = true
-        }
-    }
-
-    /// Pelo contrato so o CoinGecko responde, e ele limita por IP (fica de fora por pelo
-    /// menos 1 minuto depois de um 429): tenta de novo enquanto a tela esta aberta.
-    static let contractRetryDelays: [Double] = [0, 15, 45, 90]
-
-    static func contractChart(_ asset: Asset, currency: String, range: ChartRange) async throws -> ChartSnapshot {
-        var lastError: Error = HTTPClient.Failure.offline
-        for delay in contractRetryDelays {
-            if delay > 0 { try await Task.sleep(for: .seconds(delay)) }
+        let currency = session.metadata.settings.currency
+        if let coingeckoID {
             do {
-                return try await MarketService.shared.contractChartSnapshot(asset, currency: currency, range: range)
+                let snapshot = try await MarketService.shared.chartSnapshot(id: coingeckoID, currency: currency, range: range)
+                points = snapshot.points
+                staleSince = snapshot.isStale ? snapshot.fetchedAt : nil
+                failed = false
             } catch {
-                lastError = error
+                failed = true
+            }
+            return
+        }
+        // Pelo contrato: CoinGecko e GeckoTerminal limitam por IP (o CoinGecko fica de fora
+        // pelo menos 1 minuto depois de um 429). Tenta de novo enquanto a tela esta aberta;
+        // "nao listado em nenhum" e resposta, e para.
+        for delay in Self.contractRetryDelays {
+            if delay > 0 { try? await Task.sleep(for: .seconds(delay)) }
+            guard !Task.isCancelled, let asset = contractAsset else { return }
+            do {
+                let chart = try await MarketService.shared.tokenChart(asset, currency: currency, range: range)
+                points = chart.snapshot.points
+                staleSince = chart.snapshot.isStale ? chart.snapshot.fetchedAt : nil
+                tokenSource = chart.pool.map { .dex($0) } ?? .coingecko
+                failed = false
+                return
+            } catch HTTPClient.Failure.status(404) {
+                tokenSource = TokenChartSource.none
+                points = []
+                return
+            } catch {
+                failed = true
             }
         }
-        throw lastError
     }
+
+    static let contractRetryDelays: [Double] = [0, 15, 45, 90]
 
     /// O comeco do grafico com a linha de 7 dias da lista: as ultimas 24 horas para 24h,
     /// a linha toda para 7 dias. Os pontos sao horarios e terminam agora.
@@ -413,10 +451,7 @@ struct ContractNoticeBanner: View {
         Group {
             if let notice {
                 Banner(kind: .caution, title: "O CoinGecko marca este token com um aviso",
-                       message: "O gráfico é do CoinGecko, pelo contrato, e o token não está na lista conferida da Escalibur. O aviso, como o CoinGecko publica: \u{201C}\(notice)\u{201D}")
-            } else {
-                Text("Gráfico do CoinGecko, pelo contrato. O token não está na lista conferida da Escalibur.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+                       message: "O aviso, como o CoinGecko publica: \u{201C}\(notice)\u{201D}")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

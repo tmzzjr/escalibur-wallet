@@ -121,6 +121,12 @@ final class AppSession {
     private func open(with key: SymmetricKey, adding updates: [UUID: [DerivedAccount]] = [:]) throws {
         metadata = try MetadataStore.load(key: key)
         indexKey = key
+        // A moeda dos precos segue a unidade de Ativos. Metadados de antes de 12/10/2026
+        // podiam ter as duas diferentes (Ajustes em real, Ativos em dolar).
+        if metadata.settings.choose(metadata.settings.displayUnit) {
+            metadata.quoteCache = [:]
+            try? persist()
+        }
         if !updates.isEmpty {
             for (id, accounts) in updates {
                 guard let index = metadata.wallets.firstIndex(where: { $0.id == id }) else { continue }

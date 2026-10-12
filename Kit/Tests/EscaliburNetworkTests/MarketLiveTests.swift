@@ -46,6 +46,22 @@ struct MarketLiveTests {
         }
     }
 
+    @Test("Grafico de DEX pelo GeckoTerminal: pool com mais liquidez, so acima do minimo")
+    func dexChart() async throws {
+        let market = MarketService()
+        let frog = Asset(chainID: "bnb", kind: .token(contract: "0x64da67a12a46f1ddf337393e2da12ed0a507ad3d"), symbol: "BNBFROG",
+                         name: "BNB Frog Inu", decimals: 9, coingeckoID: nil, isStablecoin: false, origin: .discovered)
+        let chart = try await market.dexChart(frog, currency: "usd", range: .week)
+        let pool = try #require(chart.pool)
+        #expect(pool.reserveUSD >= MarketService.dexMinimumReserveUSD)
+        #expect(pool.dex.hasPrefix("PancakeSwap"))
+        #expect(chart.snapshot.source == .geckoTerminal)
+        #expect(chart.snapshot.points.count > 10)
+        #expect(chart.snapshot.points.allSatisfy { $0.price > 0 && $0.time >= Date().addingTimeInterval(-7 * 86_400 - 60) })
+        // Em ordem, do mais antigo ao mais novo (a API manda ao contrario).
+        #expect(zip(chart.snapshot.points, chart.snapshot.points.dropFirst()).allSatisfy { $0.time < $1.time })
+    }
+
     @Test("Logo passa pelas regras de tamanho e formato")
     func logo() async throws {
         let coins = try await MarketService().markets(currency: "usd", perPage: 5)

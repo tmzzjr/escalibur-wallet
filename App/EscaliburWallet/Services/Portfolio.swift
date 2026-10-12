@@ -98,6 +98,15 @@ final class Portfolio {
     private var refreshedIDs: Set<UUID> = []
 
     /// Mostra o cache na hora e atualiza por baixo.
+    /// A moeda do app mudou: os precos guardados sao da antiga e saem; os novos chegam na
+    /// leitura que comeca aqui.
+    func currencyChanged(_ wallet: WalletMeta?, session: AppSession) {
+        quotes = [:]
+        tokenQuotes = [:]
+        if let wallet { recompute(wallet) }
+        Task { await refresh(wallet, session: session) }
+    }
+
     func show(_ wallet: WalletMeta?, session: AppSession, force: Bool = false) {
         guard let wallet else {
             rows = []
