@@ -34,6 +34,10 @@ struct TradeReviewFlow: View {
     @Environment(Portfolio.self) private var portfolio
     let item: Item
     let onClose: (_ completed: Bool) -> Void
+    #if DEBUG
+    /// `-tela carregando` e `-tela enviando`: a tela parada numa etapa, sem rede.
+    var debugStage: Stage?
+    #endif
 
     /// `unsure`: assinado e enviado sem resposta certa (auditoria 2, M3).
     enum Stage { case planning, review, sending, done, unsure }
@@ -81,8 +85,11 @@ struct TradeReviewFlow: View {
                 }
             }
             .padding(.horizontal, Space.gutter)
-            .padding(.top, Space.md)
+            .padding(.top, waits ? 0 : Space.md)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            // A animacao de espera fica no meio da tela, nao no meio do espaco abaixo do
+            // botao de fechar.
+            .ignoresSafeArea(.container, edges: waits ? .vertical : [])
             .background(Palette.void.ignoresSafeArea())
             .toolbar {
                 if stage != .sending {
@@ -96,10 +103,21 @@ struct TradeReviewFlow: View {
             }
         }
         .interactiveDismissDisabled()
-        .task { await makePlan() }
+        .task {
+            #if DEBUG
+            if let debugStage {
+                stage = debugStage
+                return
+            }
+            #endif
+            await makePlan()
+        }
     }
 
     // MARK: Etapas
+
+    /// Montando ou enviando: so a animacao e o texto, no centro da tela.
+    private var waits: Bool { (stage == .planning && error == nil) || stage == .sending }
 
     private var planning: some View {
         VStack(alignment: .leading, spacing: Space.md) {

@@ -237,6 +237,7 @@ struct DemoEnvelopes: ViewModifier {
     @State private var progress = false
     @State private var reviewPreview = false
     @State private var animationPreview = false
+    @State private var tradeStage: TradeReviewFlow.Stage?
     @State private var shown = false
 
     func body(content: Content) -> some View {
@@ -263,6 +264,18 @@ struct DemoEnvelopes: ViewModifier {
                 }
                 .frame(maxWidth: .infinity)
                 .background(Palette.void.ignoresSafeArea())
+            }
+            // `-tela carregando` e `-tela enviando`: a ordem limite de 1 ETH por USDC na
+            // Base, parada na etapa de montar ou de enviar.
+            .fullScreenCover(isPresented: Binding(get: { tradeStage != nil }, set: { if !$0 { tradeStage = nil } })) {
+                if let tradeStage, let wallet = session.selectedWallet, let account = wallet.account(.base),
+                   let usdc = TokenRegistry.tokens.first(where: { $0.chainID == "base" && $0.symbol == "USDC" }) {
+                    let request = LimitOrderRequest(walletID: wallet.id, chain: .base, account: account, sell: .native(.base), buy: usdc,
+                                                    amountIn: BigUInt.power(of: 10, 18), minimumOut: BigUInt(2_600) * BigUInt.power(of: 10, 6),
+                                                    validFor: 604_800)
+                    TradeReviewFlow(item: .init(kind: .limit(request), chain: .base, fiat: nil), onClose: { _ in self.tradeStage = nil },
+                                    debugStage: tradeStage)
+                }
             }
             .fullScreenCover(item: $sealing) { wallet in SealEnvelopeFlow(wallet: wallet) { sealing = nil } }
             .fullScreenCover(isPresented: $opening) { OpenEnvelopeFlow(initialURL: DebugDemo.envelopeURL) { opening = false } }
@@ -294,6 +307,8 @@ struct DemoEnvelopes: ViewModifier {
                 if DebugDemo.screen == "andamento" { progress = true }
                 if DebugDemo.screen == "revisao" { reviewPreview = true }
                 if DebugDemo.screen == "animacao" { animationPreview = true }
+                if DebugDemo.screen == "carregando" { tradeStage = .planning }
+                if DebugDemo.screen == "enviando" { tradeStage = .sending }
                 newWallet = DebugDemo.screen.flatMap(DemoNewWallet.init(rawValue:))
             }
     }

@@ -32,7 +32,12 @@ final class OpenOrdersBook {
 
     func markCancelling(_ id: String) { cancelling[id] = .now }
 
-    func isCancelling(_ id: String) -> Bool { cancelling[id] != nil }
+    /// Cancelamento enviado ha menos de 10 minutos. Se a transacao falhar na rede, a
+    /// ordem volta a aparecer depois disso: uma ordem viva nunca fica escondida de vez.
+    func isCancelling(_ id: String) -> Bool {
+        guard let sent = cancelling[id] else { return false }
+        return Date().timeIntervalSince(sent) < 600
+    }
 
     /// O que ainda falta vender nas ordens abertas que vendem este ativo (as com
     /// cancelamento enviado contam ate a rede confirmar: ate la elas ainda executam).
@@ -81,8 +86,15 @@ struct OpenOrdersSection: View {
     private var canSign: Bool { session.selectedWallet?.isWatchOnly == false }
 
     private var hasRows: Bool {
-        if case .loaded(let orders) = load, !orders.isEmpty { return true }
+        if case .loaded(let orders) = load, !shown(orders).isEmpty { return true }
         return !finished.isEmpty
+    }
+
+    /// As ordens que aparecem: a com cancelamento enviado sai da lista na hora (pedido do
+    /// dono, 14/10/2026), mas continua contando no que esta preso (`OpenOrdersBook`) ate a
+    /// CoW parar de lista-la.
+    private func shown(_ orders: [OpenOrder]) -> [OpenOrder] {
+        orders.filter { !OpenOrdersBook.shared.isCancelling($0.id) }
     }
 
     var body: some View {
@@ -134,11 +146,12 @@ struct OpenOrdersSection: View {
                 Text(message).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 TertiaryButton(title: "Tentar de novo") { Task { await reload() } }
             }
-        case .loaded(let orders) where orders.isEmpty && finished.isEmpty:
+        case .loaded(let orders) where shown(orders).isEmpty && finished.isEmpty:
             Text("Nenhuma ordem aberta. A que você criar, em qualquer rede, aparece aqui até executar, vencer ou você cancelar.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
             unreadNote
-        case .loaded(let orders):
+        case .loaded(let all):
+            let orders = shown(all)
             VStack(spacing: 0) {
                 ForEach(orders) { order in row(order) }
                 ForEach(finished) { item in finishedRow(item) }
@@ -185,34 +198,7 @@ struct OpenOrdersSection: View {
         return "Preço: 1 \(sell.symbol) = \(Fmt.compactZeros(text) ?? text) \(buy.symbol)"
     }
 
-    @ViewBuilder
-    private func row(_ order: OpenOrder) -> some View {
-        if OpenOrdersBook.shared.isCancelling(order.id) {
-            cancellingRow(order)
-        } else {
-            openRow(order)
-        }
-    }
-
-    /// Cancelamento enviado: a CoW ainda lista a ordem ate a transacao confirmar. Sem
-    /// toque, para ninguem pedir de novo.
-    private func cancellingRow(_ order: OpenOrder) -> some View {
-        let (sell, _) = assets(order)
-        return HStack(spacing: Space.sm) {
-            logo(sell, chain: order.chain).opacity(0.5)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Vende \(Self.amount(order.totalSell ?? order.remainingSell, sell)) na \(order.chain.name)")
-                    .typeStyle(.row).foregroundStyle(Palette.inkSoft)
-                Text("Cancelamento enviado. A ordem sai da lista quando a rede confirmar.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: Space.sm)
-            ProgressView().tint(Palette.inkSoft)
-        }
-        .frame(minHeight: Height.row)
-        .padding(.vertical, Space.xxs)
-        .accessibilityElement(children: .combine)
-    }
+    private func row(_ order: OpenOrder) -> some View { openRow(order) }
 
     private func openRow(_ order: OpenOrder) -> some View {
         let (sell, buy) = assets(order)
@@ -316,7 +302,8 @@ struct OpenOrdersSection: View {
         let answeredIDs = Set(answered.map(\.0.id))
         for gone in before where answeredIDs.contains(gone.chain.id) && !current.contains(gone.id) && !finished.contains(where: { $0.id == gone.id }) {
             guard let engine = TradeEngines.engine(for: gone.chain), let account = wallet.account(gone.chain) else { continue }
-            if let progress = try? await engine.orderProgress(id: gone.id, account: account), progress.isFinal {
+            // Executada ou vencida fica um tempo na lista com o resultado; cancelada sai de vez.
+            if let progress = try? await engine.orderProgress(id: gone.id, account: account), progress.isFinal, progress.state != .cancelled {
                 finished.append(FinishedOrder(order: gone, progress: progress))
             }
         }

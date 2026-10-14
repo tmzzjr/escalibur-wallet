@@ -330,36 +330,47 @@ struct SwapProcessingIndicator: View {
 
     static let period = 1.6
     static let logoSize: CGFloat = 56
+    static let width: CGFloat = 280
+    /// Quanto o topo do arco fica acima do centro das moedas.
+    static let rise: CGFloat = 68
+    /// Folga acima do arco para a cabeca do cometa.
+    static let headroom: CGFloat = 8
+    /// A caixa vai do topo do arco ao pe das moedas: centralizar a figura centraliza o
+    /// que se ve, sem vazio em cima.
+    static let height = headroom + rise + logoSize / 2
+    /// A onda de chegada passa da caixa; o desenho tem esta sobra em volta, fora do layout.
+    static let bleed: CGFloat = 24
 
     var body: some View {
         TimelineView(.animation) { context in
             let time = context.date.timeIntervalSinceReferenceDate
             let cycle = time.truncatingRemainder(dividingBy: Self.period) / Self.period
-            GeometryReader { geometry in
-                let size = geometry.size
-                let inset = Self.logoSize / 2
-                let start = CGPoint(x: inset, y: size.height - inset)
-                let end = CGPoint(x: size.width - inset, y: size.height - inset)
-                let control = CGPoint(x: size.width / 2, y: -size.height * 0.25)
-                ZStack {
-                    Canvas { context, _ in
-                        var arc = Path()
-                        arc.move(to: start)
-                        arc.addQuadCurve(to: end, control: control)
-                        context.stroke(arc, with: .color(Palette.edgeStrong), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [3, 6]))
-                        Self.drawComet(context, cycle: cycle, start: start, control: control, end: end, cancelling: cancelling)
-                    }
-                    logo(sell)
-                        .scaleEffect(1 + 0.03 * CGFloat(sin(time * 2 * .pi / 2.2)))
-                        .position(start)
-                    logo(buy)
-                        .scaleEffect(1 + 0.03 * CGFloat(sin(time * 2 * .pi / 2.2 + .pi)))
-                        .opacity(cancelling ? 0.35 : 1)
-                        .position(end)
+            let inset = Self.logoSize / 2
+            let base = Self.bleed + Self.headroom + Self.rise
+            let start = CGPoint(x: Self.bleed + inset, y: base)
+            let end = CGPoint(x: Self.bleed + Self.width - inset, y: base)
+            // O topo de uma curva quadratica simetrica fica na metade do caminho ate o controle.
+            let control = CGPoint(x: Self.bleed + Self.width / 2, y: base - 2 * Self.rise)
+            ZStack {
+                Canvas { context, _ in
+                    var arc = Path()
+                    arc.move(to: start)
+                    arc.addQuadCurve(to: end, control: control)
+                    context.stroke(arc, with: .color(Palette.edgeStrong), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [3, 6]))
+                    Self.drawComet(context, cycle: cycle, start: start, control: control, end: end, cancelling: cancelling)
                 }
+                logo(sell)
+                    .scaleEffect(1 + 0.03 * CGFloat(sin(time * 2 * .pi / 2.2)))
+                    .position(start)
+                logo(buy)
+                    .scaleEffect(1 + 0.03 * CGFloat(sin(time * 2 * .pi / 2.2 + .pi)))
+                    .opacity(cancelling ? 0.35 : 1)
+                    .position(end)
             }
+            .frame(width: Self.width + 2 * Self.bleed, height: Self.height + 2 * Self.bleed)
+            .padding(-Self.bleed)
         }
-        .frame(width: 280, height: 132)
+        .frame(width: Self.width, height: Self.height)
         .accessibilityHidden(true)
     }
 
@@ -455,7 +466,8 @@ enum TradeAccess {
 }
 
 /// O selo de "ordem criada": um circulo que gira no eixo vertical como uma moeda jogada,
-/// com a logo da moeda da ordem de um lado e o checkmark do outro. Gira rapido tres
+/// com a logo da moeda da ordem de um lado e o checkmark em verde do outro (pedido do
+/// dono, 14/10/2026). Gira rapido tres
 /// vezes ao aparecer e depois vira devagar de tempos em tempos. Com "reduzir movimento",
 /// fica parado no checkmark.
 struct CoinFlipBadge: View {
@@ -482,16 +494,16 @@ struct CoinFlipBadge: View {
             } else {
                 Image(systemName: "checkmark")
                     .font(.system(size: size * 0.42, weight: .bold))
-                    .foregroundStyle(Palette.onAccent)
+                    .foregroundStyle(Palette.onLime)
                     .frame(width: size, height: size)
-                    .background(Circle().fill(Palette.accent))
+                    .background(Circle().fill(Palette.up))
                     // O verso de um giro em Y aparece espelhado: desfaz o espelho.
                     .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
             }
         }
         .frame(width: size, height: size)
         .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), perspective: 0.45)
-        .shadow(color: Palette.accent.opacity(showsCoin ? 0 : 0.35), radius: 24)
+        .shadow(color: Palette.up.opacity(showsCoin ? 0 : 0.3), radius: 24)
         .accessibilityElement()
         .accessibilityLabel("Concluído")
         .task {

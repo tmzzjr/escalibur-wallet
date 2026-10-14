@@ -50,8 +50,11 @@ struct BridgeReviewFlow: View {
                 }
             }
             .padding(.horizontal, Space.gutter)
-            .padding(.top, Space.md)
+            .padding(.top, waits ? 0 : Space.md)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            // A animacao de espera fica no meio da tela, nao no meio do espaco abaixo do
+            // botao de fechar.
+            .ignoresSafeArea(.container, edges: waits ? .vertical : [])
             .background(Palette.void.ignoresSafeArea())
             .toolbar {
                 if stage != .sending {
@@ -69,6 +72,9 @@ struct BridgeReviewFlow: View {
     }
 
     // MARK: Etapas
+
+    /// Montando ou enviando: so a animacao e o texto, no centro da tela.
+    private var waits: Bool { (stage == .planning && error == nil) || stage == .sending }
 
     private var planning: some View {
         VStack(alignment: .leading, spacing: Space.md) {
