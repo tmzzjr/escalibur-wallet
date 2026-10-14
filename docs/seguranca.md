@@ -534,6 +534,11 @@ Revisado em 12/10/2026 com o agente de segurança, antes do código. Pontes são
 
 **Escopo da v1**
 - Redes: Ethereum, Arbitrum, Base e Optimism. As quatro têm CCTP V2 rápido, SpokePool do Across, ETH nativo e simulação em dois RPCs.
+- Segunda leva, 14/10/2026: Polygon, Linea, Unichain, Sonic e Plasma, cada uma com simulação em dois RPCs e as implementações lidas no slot EIP-1967 em dois RPCs.
+  - USDC pelo CCTP nas cinco.
+  - ETH pelo Across só na Linea e na Unichain. Na Polygon o Across entrega WETH de ponte, e na Plasma o nativo é XPL.
+  - USDT0 pelo Across na Unichain e na Plasma. O USDT da Linea é de ponte, e o da Polygon ainda não tem a conferência de emissor registrada.
+  - A Sonic fica só com USDC: o Across não tem SpokePool lá.
 - A mesma moeda dos dois lados, na versão do emissor:
   - USDC só pelo CCTP V2 da Circle, que queima numa rede e cunha na outra. Não há cofre de ponte nem token embrulhado, e a única confiança nova é na Circle, que quem segura USDC já tem.
   - ETH pelo Across, entre as quatro redes.
@@ -695,7 +700,11 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
 - **Exportar**:
   - Exige PIN, mais biometria se estiver ligada.
   - Senha padrão **gerada**: 6 palavras BIP-39 do CSPRNG, 66 bits. Com os parâmetros de referência, isso custa cerca de 97 mil anos a um Estado e 9,7 milhões a crime organizado. Com 5 palavras seriam 48 anos contra um Estado.
-  - Senha escolhida pelo dono: mostra a tabela de custo. Recusa se for igual ao PIN ou só dígitos com até 8 caracteres.
+  - Senha escolhida pelo dono, livre, com no mínimo 4 caracteres (pedido do dono, 14/10/2026). Enquanto ele digita, a tela diz em quanto tempo a senha cai com os parâmetros reais do envelope: muito fraca (crime organizado em menos de 1 dia), fraca (até 10 anos), boa contra ladrão comum (um Estado em menos de 1.000 anos) e forte.
+  - O medidor é o modelo do zxcvbn (`PasswordStrength`): palavras e senhas comuns pela posição nas listas de frequência do zxcvbn-ts (MIT, travadas em `forca.lock`), palavras BIP-39 de todos os idiomas com no máximo 11 bits, repetição, sequência, ano, data e linha de teclado quase de graça, e força bruta só no resto. O medidor anterior dava "forte" a "abandon" seis vezes e a doze pontos de exclamação (auditoria do envelope, 14/10/2026).
+  - Abaixo de forte, o lacre só sai com o "sim" explícito (`Envelope.seal(acceptedRisk:)`, que só a folha de confirmação entrega). Nas faixas muito fraca e fraca, "usar mesmo assim" exige segurar o botão por 2 s. Senha só de dígitos ganha o aviso de não usar o código do iPhone nem o PIN. A senha sorteada pelo app vale a entropia exata do sorteio (66 bits) e vai das posições direto para o buffer seguro.
+  - Continua recusada a senha com duas ou mais palavras da própria frase: o papel da frase abriria o envelope, e isso anula o backup.
+  - Subir o Argon2 não compensa senha fraca: dobrar m × t compra 1 bit. A calibração mede na prioridade do lacre, com sonda de 128 MiB rodada duas vezes, e o piso do lacre é t = 3 (a abertura aceita t = 2 dos envelopes antigos).
   - KDF por `KDFCalibration.calibrate()`, com piso de 256 MiB. `cloudEnabled = false`, `passwordOnly`.
   - O arquivo vai para `tmp/` com `.completeFileProtection` e exclusão de backup, e é apagado quando o compartilhamento termina.
   - **Condição posterior obrigatória**: reabrir o envelope gerado com a mesma senha antes de entregá-lo, como o `plantDecoy` já faz.

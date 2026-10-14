@@ -65,7 +65,7 @@ let package = Package(
             name: "EscaliburCore",
             dependencies: ["CSecp256k1", "CArgon2"],
             path: "Sources/EscaliburCore",
-            resources: [.copy("Resources/Wordlists")]
+            resources: [.copy("Resources/Wordlists"), .copy("Resources/Forca")]
         ),
         .target(
             name: "EscaliburChains",

@@ -184,8 +184,11 @@ public enum VaultFile {
         // intermediario que a alimentava, que ninguem zerava. O inicializador aceita
         // qualquer `ContiguousBytes`, entao o buffer seguro vai direto.
         let dekKey = dek.withUnsafeBytes { SymmetricKey(data: $0) }
+        // O bloco em claro vai direto: `[UInt8]` ja e `DataProtocol`, e quem chama zera
+        // o bloco ao sair. Um `Data(block)` aqui deixava uma copia da frase que ninguem
+        // zerava (auditoria do envelope, 14/10/2026, A3).
         let sealedPayload = try ChaChaPoly.seal(
-            Data(block),
+            block,
             using: VaultFormat.messageKey(from: dekKey, salt: payloadSalt, purpose: "escalibur/v1/payload"),
             nonce: VaultFormat.zeroNonce,
             authenticating: Data(payloadAAD)
@@ -211,7 +214,7 @@ public enum VaultFile {
     private static func raisedToFloor(_ kdf: KDFParameters) -> KDFParameters {
         KDFParameters(
             memoryKiB: max(kdf.memoryKiB, KDFCalibration.sealFloorKiB),
-            passes: max(kdf.passes, KDFParameters.passesRange.lowerBound),
+            passes: max(kdf.passes, KDFCalibration.sealPassesFloor),
             lanes: kdf.lanes
         )
     }

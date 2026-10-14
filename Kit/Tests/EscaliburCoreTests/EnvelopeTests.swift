@@ -36,14 +36,26 @@ struct EnvelopeTests {
     /// Seis palavras da lista: 66 bits, acima do piso de lacre.
     static let strong = "crane violin orbit maple harbor tunnel"
 
-    @Test("Senha abaixo do piso nao lacra")
-    func weakPasswordRefused() {
+    @Test("Senha abaixo do piso so lacra com o sim; abaixo de 4 caracteres, nunca")
+    func weakPasswordRefused() throws {
         #expect(throws: Envelope.Failure.weakPassword) {
             try Envelope.seal(phrase: BIP39.canonical(Self.phrase), label: "x", password: Self.secure("senha longa de teste"), parameters: Self.fast)
         }
         #expect(throws: Envelope.Failure.weakPassword) {
             try Envelope.seal(phrase: BIP39.canonical(Self.phrase), label: "x", password: Self.secure("12345678"), parameters: Self.fast)
         }
+        #expect(throws: Envelope.Failure.weakPassword) {
+            try Envelope.seal(phrase: BIP39.canonical(Self.phrase), label: "x", password: Self.secure("123"), parameters: Self.fast,
+                              acceptedRisk: true)
+        }
+        // Com o "sim" da tela, a senha do dono lacra e abre.
+        let data = try Envelope.seal(phrase: BIP39.canonical(Self.phrase), label: "x", password: Self.secure("4821"), parameters: Self.fast,
+                                     acceptedRisk: true)
+        let opened = try Envelope.open(data, password: Self.secure("4821"))
+        opened.wipe()
+        // A sugestao do app vale a entropia do sorteio, mesmo com palavras comuns.
+        _ = try Envelope.seal(phrase: BIP39.canonical(Self.phrase), label: "x", password: Self.secure("about above actor apple arena ocean"),
+                              parameters: Self.fast, generatedBits: PasswordStrength.suggestionBits())
     }
 
     @Test("Nenhum envelope nasce abaixo de 256 MiB, mesmo pedindo menos")

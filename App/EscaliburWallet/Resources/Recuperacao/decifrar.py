@@ -103,6 +103,7 @@ tamanho não conta nem quantas palavras a frase tem nem se existe anotação.
 """
 
 import getpass
+import os
 import struct
 import sys
 import unicodedata
@@ -133,6 +134,13 @@ def hkdf(ikm, salt, info):
     return HKDF(algorithm=hashes.SHA256(), length=32, salt=salt, info=info).derive(ikm)
 
 
+# As mesmas faixas que o app aceita ao abrir (KDFParameters): um arquivo que pede mais
+# que isso não é um envelope da Escalibur, e derrubaria o computador de recuperação.
+MEMORIA_KIB = (64 * 1024, 1024 * 1024)
+PASSES = (2, 16)
+FAIXAS = (1, 8)
+
+
 def ler_cabecalho(blob):
     if len(blob) != FILE_LEN:
         sys.exit(f"tamanho inesperado: {len(blob)} bytes, esperado {FILE_LEN}")
@@ -141,7 +149,9 @@ def ler_cabecalho(blob):
     versao = blob[6]
     if versao > 1:
         sys.exit(f"cofre da versão {versao} do formato; este script entende a 1")
-    return {
+    if blob[7] != 0x01 or blob[24] != 0x01:
+        sys.exit("suíte de cifra ou derivação desconhecida; este script entende a 1 (ChaCha20-Poly1305 e Argon2id)")
+    cab = {
         "uuid": blob[8:24],
         "memoria_kib": struct.unpack(">I", blob[25:29])[0],
         "passes": struct.unpack(">I", blob[29:33])[0],
@@ -150,6 +160,13 @@ def ler_cabecalho(blob):
         "vinculo": blob[50],
         "nuvem": blob[117] == 1,
     }
+    if not MEMORIA_KIB[0] <= cab["memoria_kib"] <= MEMORIA_KIB[1]:
+        sys.exit(f"memória do Argon2 fora da faixa: {cab['memoria_kib']} KiB")
+    if not PASSES[0] <= cab["passes"] <= PASSES[1]:
+        sys.exit(f"passes do Argon2 fora da faixa: {cab['passes']}")
+    if not FAIXAS[0] <= cab["faixas"] <= FAIXAS[1]:
+        sys.exit(f"faixas do Argon2 fora da faixa: {cab['faixas']}")
+    return cab
 
 
 def abrir(blob, senha):
@@ -240,8 +257,12 @@ def main():
     if len(sys.argv) != 2:
         sys.exit(f"uso: {sys.argv[0]} arquivo.esclbr")
 
+    # O tamanho antes de ler: um arquivo de gigabytes não entra na memória.
+    tamanho = os.path.getsize(sys.argv[1])
+    if tamanho != FILE_LEN:
+        sys.exit(f"tamanho inesperado: {tamanho} bytes, esperado {FILE_LEN}")
     with open(sys.argv[1], "rb") as arquivo:
-        blob = arquivo.read()
+        blob = arquivo.read(FILE_LEN + 1)
 
     senha = getpass.getpass("senha do cofre: ")
     cab, encontrados = abrir(blob, senha)

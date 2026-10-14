@@ -151,6 +151,13 @@ for idioma in $(sed -n 's/^ *"\([a-z_]*\)": "[0-9a-f]*".*/\1/p' wordlists.lock);
     [ "$atual" != "$esperado" ] && { aviso "lista $idioma nao confere"; divergentes=$((divergentes + 1)); }
 done
 [ "$divergentes" = "0" ] && ok "as 10 listas BIP-39 conferem com wordlists.lock"
+divergentes=0
+for lista in $(sed -n 's/^ *"\([a-z-]*\)": "[0-9a-f]*".*/\1/p' forca.lock); do
+    esperado=$(sed -n "s/^ *\"$lista\": \"\([0-9a-f]*\)\".*/\1/p" forca.lock)
+    atual=$(shasum -a 256 "$CORE/Resources/Forca/$lista.txt" | cut -d' ' -f1)
+    [ "$atual" != "$esperado" ] && { aviso "lista de forca $lista nao confere"; divergentes=$((divergentes + 1)); }
+done
+[ "$divergentes" = "0" ] && ok "as listas do medidor de forca conferem com forca.lock"
 
 # 5. Registro e aleatoriedade.
 # Kit de recuperacao embarcado: decifrar.py, FORMATO.md e LEIA-ME travados por digesto.

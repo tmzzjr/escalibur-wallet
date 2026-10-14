@@ -19,6 +19,46 @@ enum PasswordCost {
         return pow(2, bits) / 2 / rate
     }
 
+    /// Um Estado testa 100 vezes mais rapido que o crime organizado (README do Escalibur).
+    static func stateSeconds(bits: Double, kdf: KDFParameters) -> Double { seconds(bits: bits, kdf: kdf) / 100 }
+
+    /// As faixas da tela, pelo tempo real com os parametros deste envelope (auditoria
+    /// do envelope, 14/10/2026, C2).
+    enum Band: Equatable {
+        /// O crime organizado abre em menos de 1 dia.
+        case veryWeak
+        /// De 1 dia a 10 anos para o crime organizado.
+        case weak
+        /// Mais de 10 anos para o crime organizado, mas um Estado abre em menos de 1.000.
+        case fair
+        /// Nem um Estado abre em 1.000 anos.
+        case strong
+
+        /// Abaixo de forte, o lacre pede o "sim" explicito.
+        var needsConsent: Bool { self != .strong }
+        /// Muito fraca e fraca: o "usar mesmo assim" exige segurar o botao.
+        var needsHold: Bool { self == .veryWeak || self == .weak }
+    }
+
+    static func band(bits: Double, kdf: KDFParameters) -> Band {
+        let year = 31_557_600.0
+        let crime = seconds(bits: bits, kdf: kdf)
+        if crime < 86_400 { return .veryWeak }
+        if crime < 10 * year { return .weak }
+        if stateSeconds(bits: bits, kdf: kdf) < 1_000 * year { return .fair }
+        return .strong
+    }
+
+    /// A frase da faixa, com o tempo calculado.
+    static func text(bits: Double, kdf: KDFParameters) -> String {
+        switch band(bits: bits, kdf: kdf) {
+        case .veryWeak: return "Muito fraca. Quem pegar o arquivo abre em \(describe(seconds(bits: bits, kdf: kdf)))."
+        case .weak: return "Fraca. Um grupo com placas de vídeo abre em \(describe(seconds(bits: bits, kdf: kdf)))."
+        case .fair: return "Boa contra ladrão comum. Um governo abriria em \(describe(stateSeconds(bits: bits, kdf: kdf)))."
+        case .strong: return "Forte. Nem um governo abre em tempo útil."
+        }
+    }
+
     /// "4 segundos", "6 dias", "485 anos", "3,7 milhões de anos".
     static func describe(_ seconds: Double) -> String {
         let minute = 60.0, hour = 3600.0, day = 86_400.0, year = 31_557_600.0

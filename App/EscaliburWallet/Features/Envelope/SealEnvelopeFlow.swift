@@ -32,7 +32,18 @@ struct SealEnvelopeFlow: View {
     @State private var repeatLength = 0
     @State private var label = ""
     @State private var suggestion: [String] = []
+    /// As posicoes das palavras sorteadas: a senha e montada direto no buffer seguro.
+    @State private var suggestionIndices: [Int] = []
     @State private var customPassword = false
+    /// A senha e a sorteada pelo app (vale a entropia do sorteio, 66 bits).
+    @State private var usingSuggestion = false
+    /// O "sim" explicito do dono para uma senha abaixo de forte.
+    @State private var acceptedRisk = false
+    @State private var riskBits: Double?
+    @State private var weakSealed = false
+    /// A forca medida fora da thread principal, depois que o dono para de digitar: o
+    /// medidor percorre listas grandes, e a digitacao nao espera por ele.
+    @State private var measured: (length: Int, bits: Double)?
     @State private var error: String?
     @State private var working = false
     @State private var sealed: SealedFile?
@@ -68,7 +79,9 @@ struct SealEnvelopeFlow: View {
         .interactiveDismissDisabled()
         .guardedAgainstCapture()
         .task {
-            kdf = await Task.detached(priority: .utility) { KDFCalibration.calibrate() }.value
+            // Na mesma prioridade do lacre: em `.utility` o iOS mede nos nucleos de
+            // eficiencia e a calibracao escolhe menos passes do que cabem.
+            kdf = await Task.detached(priority: .userInitiated) { KDFCalibration.calibrate() }.value
         }
     }
 
@@ -119,8 +132,9 @@ struct SealEnvelopeFlow: View {
         }
     }
 
-    /// O caminho padrao e o forte: seis palavras sorteadas. Criar a propria senha
-    /// existe, mas passa pelo piso de 60 bits.
+    /// O caminho padrao e o forte: seis palavras sorteadas. A senha propria e livre, com
+    /// no minimo 4 caracteres; abaixo de forte, a tela diz em quanto tempo ela cai e
+    /// pede o "sim" (pedido do dono e auditoria do envelope, 14/10/2026).
     private var create: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Crie a senha do envelope").typeStyle(.title).foregroundStyle(Palette.ink)
@@ -156,7 +170,9 @@ struct SealEnvelopeFlow: View {
                     }
                     EnvelopeOptionButton(title: "Criar a minha", icon: "pencil") {
                         error = nil
+                        usingSuggestion = false
                         customPassword = true
+                        Task.detached(priority: .utility) { PasswordStrength.preload() }
                     }
                 }
                 .padding(.top, Space.md)
@@ -166,26 +182,103 @@ struct SealEnvelopeFlow: View {
             if customPassword {
                 PrimaryButton(title: "Continuar", enabled: passwordLength > 0) { proceedFromCreate() }
             } else {
-                PrimaryButton(title: "Anotei, continuar", enabled: !suggestion.isEmpty) {
-                    password.replaceAll(with: Array(suggestion.joined(separator: " ").utf8))
+                PrimaryButton(title: "Anotei, continuar", enabled: !suggestionIndices.isEmpty) {
+                    // Direto das posicoes para o buffer: a senha nao passa por uma String.
+                    guard (try? PasswordStrength.write(suggestionIndices, into: password)) != nil else { return }
                     passwordLength = password.count
+                    usingSuggestion = true
                     proceedFromCreate()
                 }
             }
         }
         .onAppear { if suggestion.isEmpty { suggest() } }
+        .sheet(isPresented: Binding(get: { riskBits != nil }, set: { if !$0 { riskBits = nil } })) {
+            if let bits = riskBits { riskSheet(bits: bits) }
+        }
     }
 
+    /// O risco de uma senha abaixo de forte, dito com o tempo, antes do lacre.
+    private func riskSheet(bits: Double) -> some View {
+        let band = PasswordCost.band(bits: bits, kdf: kdf)
+        let crime = PasswordCost.describe(PasswordCost.seconds(bits: bits, kdf: kdf))
+        let state = PasswordCost.describe(PasswordCost.stateSeconds(bits: bits, kdf: kdf))
+        return VStack(alignment: .leading, spacing: 0) {
+            Image(systemName: band == .fair ? "exclamationmark.shield" : "exclamationmark.triangle.fill")
+                .font(.system(size: 34, weight: .semibold)).foregroundStyle(band == .fair ? Palette.ink : Palette.down)
+            Text(band == .fair ? "Um governo abriria em \(state)" : "Esta senha cai em \(crime)")
+                .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+            Text("Quem tiver uma cópia do arquivo (nuvem, e-mail, AirDrop) testa senhas no próprio computador, sem limite e sem você saber. Seis palavras sorteadas aguentam milhões de anos.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
+            if band == .veryWeak {
+                Text("Se usar mesmo assim, guarde o arquivo num pendrive ou no seu computador, nunca na nuvem nem por e-mail.")
+                    .typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            PrimaryButton(title: "Usar 6 palavras sorteadas") {
+                riskBits = nil
+                password.wipe()
+                passwordLength = 0
+                customPassword = false
+                usingSuggestion = false
+                suggest()
+            }
+            HoldButton(title: band.needsHold ? "Segure para usar mesmo assim" : "Usar mesmo assim", holdSeconds: band.needsHold ? 2 : 0) {
+                riskBits = nil
+                acceptedRisk = true
+                error = nil
+                step = .repeatIt
+            }
+            .padding(.top, Space.sm)
+        }
+        .padding(Space.gutter)
+        .presentationDetents([.medium, .large])
+        .presentationBackground(Palette.body)
+        .accessibilityIdentifier("senha-fraca")
+    }
+
+    /// Ao vivo, enquanto o dono digita: em quanto tempo a senha cai, com os parametros
+    /// reais deste envelope.
+    @ViewBuilder
     private var strengthLine: some View {
-        let bits = passwordLength == 0 ? 0 : PasswordStrength.bits(password)
-        let weak = passwordLength > 0 && bits < PasswordStrength.minimumBits
-        return Text(passwordLength == 0
-                    ? "Uma frase longa, só sua. Não use a senha da carteira nem o PIN."
-                    : weak ? "Abaixo do mínimo para um envelope. Use uma frase mais longa ou 6 palavras sorteadas."
-                    : "Forte o bastante para o envelope.")
-            .typeStyle(.note)
-            .foregroundStyle(passwordLength == 0 ? Palette.inkSoft : weak ? Palette.down : Palette.up)
-            .fixedSize(horizontal: false, vertical: true)
+        let short = passwordLength > 0 && PasswordStrength.scalarCount(password) < PasswordStrength.minimumLength
+        let digits = passwordLength > 0 && password.withUnsafeBytes { $0.allSatisfy { (0x30...0x39).contains($0) } }
+        VStack(alignment: .leading, spacing: 4) {
+            if passwordLength == 0 {
+                Text("Qualquer senha com pelo menos 4 caracteres. Quanto mais longa e menos óbvia, mais tempo ela aguenta. Não use a senha da carteira.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            } else if short {
+                Text("No mínimo 4 caracteres.").typeStyle(.note).foregroundStyle(Palette.down)
+            } else if let measured, measured.length == passwordLength {
+                let band = PasswordCost.band(bits: measured.bits, kdf: kdf)
+                Text(PasswordCost.text(bits: measured.bits, kdf: kdf)).typeStyle(.note)
+                    .foregroundStyle(band == .veryWeak ? Palette.down : band == .weak ? Palette.caution : band == .fair ? Palette.ink : Palette.accent)
+                if digits {
+                    Text("Não use o código do iPhone nem o PIN do app: quem já viu você digitar abre o envelope.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                }
+            } else {
+                Text("Medindo a senha…").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .task(id: passwordLength) { await measure() }
+    }
+
+    /// Mede numa copia do buffer, fora da thread principal, meio segundo depois da
+    /// ultima tecla. A copia e zerada na saida.
+    private func measure() async {
+        guard passwordLength > 0 else { return }
+        try? await Task.sleep(for: .milliseconds(450))
+        guard !Task.isCancelled else { return }
+        let copy = SecureBytes(capacity: max(password.count, 1))
+        password.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
+        let length = passwordLength
+        let bits = await Task.detached(priority: .userInitiated) {
+            defer { copy.wipe() }
+            return PasswordStrength.bits(copy)
+        }.value
+        guard !Task.isCancelled else { return }
+        measured = (length, bits)
     }
 
     private var repeatStep: some View {
@@ -217,6 +310,10 @@ struct SealEnvelopeFlow: View {
                 Text("Envelope lacrado").typeStyle(.title).foregroundStyle(Palette.ink)
                 Text("O arquivo se chama \(sealed?.name ?? "") e não diz de quem é nem o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
+                if weakSealed {
+                    Banner(kind: .caution, title: "Senha muito fraca: guarde o arquivo num pendrive ou no seu computador, nunca na nuvem nem por e-mail.")
+                        .padding(.top, Space.md)
+                }
                 Spacer()
                 if let sealed {
                     ShareLink(item: sealed.url) {
@@ -272,27 +369,35 @@ struct SealEnvelopeFlow: View {
     }
 
     private func suggest() {
-        suggestion = (try? PasswordStrength.suggestion(avoiding: phrase)) ?? []
+        suggestionIndices = (try? PasswordStrength.suggestionIndices(avoiding: phrase)) ?? []
+        let list = try? WordlistStore.shared.wordlist(for: .english)
+        suggestion = suggestionIndices.compactMap { list?.words[$0] }
     }
 
     private func proceedFromCreate() {
         guard passwordLength > 0 else { return }
+        acceptedRisk = false
+        if usingSuggestion {
+            error = nil
+            step = .repeatIt
+            return
+        }
+        // Palavras da propria frase anulam o backup (o papel da frase abriria o envelope):
+        // isso nao e questao de forca, e continua recusado.
         if let phrase, PasswordStrength.reusesPhrase(password, phrase: phrase) {
             error = "Esta senha usa palavras da própria carteira. Quem achar o papel abre o envelope. Escolha outra."
             return
         }
         switch PasswordStrength.verdict(password) {
+        case .tooShort:
+            error = "Use pelo menos 4 caracteres."
         case .strong:
-            break
-        case .digitsOnly:
-            error = "Só números não bastam para um arquivo que pode ir para a nuvem. Use 6 palavras sorteadas ou uma frase longa."
-            return
-        case .weak:
-            error = "Esta senha é fraca para um envelope. Use 6 palavras sorteadas ou uma frase mais longa."
-            return
+            error = nil
+            step = .repeatIt
+        case .digitsOnly(let bits), .weak(let bits):
+            error = nil
+            riskBits = bits
         }
-        error = nil
-        step = .repeatIt
     }
 
     private func seal() async {
@@ -307,9 +412,14 @@ struct SealEnvelopeFlow: View {
         error = nil
         step = .sealing
         let (password, label, passphrase, kdf) = (self.password, String(self.label.prefix(64)), self.passphrase, self.kdf)
+        let generated: Double? = usingSuggestion ? PasswordStrength.suggestionBits() : nil
+        let accepted = acceptedRisk
+        // Para a tela final: senha muito fraca, o arquivo fica fora da nuvem.
+        weakSealed = !usingSuggestion && PasswordCost.band(bits: PasswordStrength.bits(password), kdf: kdf) == .veryWeak
         do {
             let data = try await Task.detached(priority: .userInitiated) {
-                try Envelope.seal(phrase: phrase, passphrase: passphrase, label: label, password: password, parameters: kdf)
+                try Envelope.seal(phrase: phrase, passphrase: passphrase, label: label, password: password, parameters: kdf,
+                                  generatedBits: generated, acceptedRisk: accepted)
             }.value
             password.wipe()
             repeatPassword.wipe()

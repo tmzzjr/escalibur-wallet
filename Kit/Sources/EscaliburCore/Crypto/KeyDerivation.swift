@@ -243,31 +243,42 @@ public enum KDFCalibration {
 
     /// Mede a taxa real deste aparelho com uma derivacao pequena e escolhe o maior
     /// numero de passes que ainda cabe no tempo alvo.
+    /// O piso de passes de um envelope novo. A abertura continua aceitando 2, o piso dos
+    /// envelopes antigos.
+    public static let sealPassesFloor: UInt32 = 3
+
     public static func calibrate(password sample: SecureBytes? = nil) -> KDFParameters {
         // Nunca abaixo do piso de lacre: um vale de memoria nao pode enfraquecer o
         // arquivo. Quem lacra confere antes se ha memoria (`canSeal`).
         let memory = max(memoryCeilingKiB(), sealFloorKiB)
 
-        let probeMemory: UInt32 = 64 * 1024
+        // A sonda: 128 MiB, 1 passe, duas vezes, valendo a segunda. A primeira paga a
+        // alocacao e o aquecimento, e uma sonda pequena e ruidosa demais: medida baixa
+        // escolhe menos passes e da ao atacante o dobro de chutes (auditoria do envelope,
+        // 14/10/2026, A2). Quem chama mede na mesma prioridade do lacre.
+        let probeMemory: UInt32 = 128 * 1024
         let probe = SecureBytes(capacity: 16)
         probe.replaceAll(with: [UInt8](repeating: 0x61, count: 16))
         defer { probe.wipe() }
         let salt = [UInt8](repeating: 0x00, count: VaultFormat.saltLength)
 
-        let started = Date()
-        _ = try? KeyDerivation.deriveMasterKey(
-            password: probe,
-            salt: salt,
-            parameters: KDFParameters(memoryKiB: probeMemory, passes: 2, lanes: Self.lanes)
-        )
-        let probeSeconds = Date().timeIntervalSince(started)
+        var probeSeconds = 0.0
+        for _ in 0..<2 {
+            let started = Date()
+            _ = try? KeyDerivation.deriveMasterKey(
+                password: probe,
+                salt: salt,
+                parameters: KDFParameters(memoryKiB: probeMemory, passes: 1, lanes: Self.lanes)
+            )
+            probeSeconds = Date().timeIntervalSince(started)
+        }
 
         // O custo do Argon2id e proporcional a memoria vezes passes, entao a medida
         // pequena projeta a grande.
-        let unitCost = probeSeconds / (Double(probeMemory) * 2)
+        let unitCost = probeSeconds / Double(probeMemory)
 
-        var chosenPasses: UInt32 = KDFParameters.passesRange.lowerBound
-        for candidate in [8, 6, 4, 3, 2] as [UInt32] {
+        var chosenPasses: UInt32 = sealPassesFloor
+        for candidate in [8, 6, 4, 3] as [UInt32] {
             let predicted = unitCost * Double(memory) * Double(candidate)
             if predicted <= targetSeconds {
                 chosenPasses = candidate

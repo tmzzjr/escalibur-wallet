@@ -51,6 +51,10 @@ struct OpenEnvelopeFlow: View {
     @State private var passwordLength = 0
     @State private var opening = false
     @State private var estimate = 3
+    /// Envelope que pede mais de 10 s de conta: o dono confirma antes (auditoria do
+    /// envelope, 14/10/2026, A4). Um cabecalho hostil prenderia a tela sem aviso.
+    @State private var confirmingHeavy = false
+    @State private var heavyConfirmed = false
     @State private var error: String?
     @State private var opened: Envelope.Contents?
     @State private var revealDraft: PhraseDraft?
@@ -93,6 +97,15 @@ struct OpenEnvelopeFlow: View {
         }
         .interactiveDismissDisabled()
         .guardedAgainstCapture()
+        .alert("Este envelope pede uma conta pesada", isPresented: $confirmingHeavy) {
+            Button("Abrir mesmo assim") {
+                heavyConfirmed = true
+                Task { await open() }
+            }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("Abrir leva cerca de \(estimate) segundos com a tela parada. Um envelope lacrado pela Escalibur leva de 1 a 3. Se você não sabe de onde veio este arquivo, não abra.")
+        }
         .fileImporter(isPresented: $picking, allowedContentTypes: [.escaliburEnvelope, .data]) { result in
             if case .success(let url) = result { load(url) }
         }
@@ -190,6 +203,10 @@ struct OpenEnvelopeFlow: View {
 
     private func open() async {
         guard let data, passwordLength > 0, !opening else { return }
+        if estimate > 10, !heavyConfirmed {
+            confirmingHeavy = true
+            return
+        }
         opening = true
         error = nil
         let password = self.password

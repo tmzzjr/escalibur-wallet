@@ -69,9 +69,17 @@ public enum Envelope {
         label: String,
         notes: String = "",
         password: SecureBytes,
-        parameters: KDFParameters? = nil
+        parameters: KDFParameters? = nil,
+        generatedBits: Double? = nil,
+        acceptedRisk: Bool = false
     ) throws -> Data {
-        guard PasswordStrength.verdict(password) == .strong else { throw Failure.weakPassword }
+        // A senha e do dono, com no minimo 4 caracteres (pedido de 14/10/2026). Abaixo do
+        // piso de forca, so com o "sim" explicito que a tela de confirmacao entrega:
+        // nenhum caminho de codigo lacra senha fraca por acidente. A senha sorteada pelo
+        // app vale a entropia do sorteio (`generatedBits`), nao a estimativa.
+        guard PasswordStrength.scalarCount(password) >= PasswordStrength.minimumLength else { throw Failure.weakPassword }
+        let strength = generatedBits ?? PasswordStrength.bits(password)
+        guard strength >= PasswordStrength.minimumBits || acceptedRisk else { throw Failure.weakPassword }
         guard KDFCalibration.canSeal() else { throw Failure.notEnoughMemory }
         let chosen = parameters ?? KDFCalibration.calibrate()
         let language: BIP39Language

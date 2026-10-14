@@ -292,3 +292,42 @@ struct CopyButton: View {
         .accessibilityLabel(copied ? doneTitle : title)
     }
 }
+
+/// Um botao que so dispara depois de segurado por `holdSeconds`: o fundo enche enquanto o
+/// dedo esta em cima, e soltar antes cancela. Para o "usar mesmo assim" de um risco
+/// grande, que nao pode sair de um toque sem querer. Com 0 segundos, e um toque comum.
+struct HoldButton: View {
+    let title: String
+    var holdSeconds: Double = 2
+    let action: () -> Void
+    @State private var progress: CGFloat = 0
+    @State private var holding = false
+
+    var body: some View {
+        Text(title).typeStyle(.action).foregroundStyle(Palette.ink)
+            .frame(maxWidth: .infinity).frame(height: Height.secondary)
+            .background(
+                ZStack(alignment: .leading) {
+                    Capsule(style: .continuous).fill(Palette.rail)
+                    GeometryReader { geometry in
+                        Capsule(style: .continuous).fill(Palette.downTint)
+                            .frame(width: geometry.size.width * progress)
+                    }
+                }
+            )
+            .clipShape(Capsule(style: .continuous))
+            .contentShape(Capsule(style: .continuous))
+            .onTapGesture { if holdSeconds <= 0 { action() } }
+            .onLongPressGesture(minimumDuration: max(holdSeconds, 0.01), maximumDistance: 40) {
+                guard holdSeconds > 0 else { return }
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                action()
+            } onPressingChanged: { pressing in
+                guard holdSeconds > 0 else { return }
+                holding = pressing
+                withAnimation(pressing ? .linear(duration: holdSeconds) : .easeOut(duration: 0.2)) { progress = pressing ? 1 : 0 }
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint(holdSeconds > 0 ? "Segure por \(Int(holdSeconds)) segundos" : "")
+    }
+}
