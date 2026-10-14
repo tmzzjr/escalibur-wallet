@@ -72,7 +72,7 @@ struct WalletHomeView: View {
             await ReceiptAccounts.enableByDefault(session)
             #if DEBUG
             if DebugDemo.screen == "detalhe", let first = portfolio.rows.first { router.walletPath.append(first) }
-            if DebugDemo.screen == "receber" { receiving = true }
+            if ["receber", "receber-btc"].contains(DebugDemo.screen) { receiving = true }
             if DebugDemo.screen == "revelar" { backingUp = true }
             if DebugDemo.screen == "adicionar" { addingWallet = true }
             if DebugDemo.screen == "gerenciar" { router.walletPath.append(ManageAssetsRoute()) }
@@ -83,7 +83,7 @@ struct WalletHomeView: View {
         .sheet(isPresented: $switching) {
             WalletSwitcherSheet(onAdd: { switching = false; addingWallet = true })
         }
-        .sheet(isPresented: $receiving) { ReceiveSheet(preselected: nil) }
+        .sheet(isPresented: $receiving) { ReceiveSheet(preselected: Self.demoReceiving) }
         #if DEBUG
         .modifier(DemoEnvelopes())
         #endif
@@ -91,6 +91,15 @@ struct WalletHomeView: View {
         .fullScreenCover(isPresented: $backingUp) {
             if let wallet { RevealFlow(wallet: wallet, purpose: .backup) { backingUp = false } }
         }
+    }
+
+    /// `-tela receber-btc` abre Receber ja no bitcoin (captura da loja). Fora do modo
+    /// demo, Receber abre na lista.
+    private static var demoReceiving: Asset? {
+        #if DEBUG
+        if DebugDemo.screen == "receber-btc" { return .native(.bitcoin) }
+        #endif
+        return nil
     }
 
     // MARK: Unidade do total

@@ -13,9 +13,14 @@ enum DeviceIntegrity {
         #if targetEnvironment(simulator)
         return false
         #else
-        return hasJailbreakFiles || canWriteOutsideSandbox || hasInjectedLibraries || isBeingTraced
+        // No Mac, `/usr/sbin/sshd` e `/usr/bin/ssh` existem de fabrica: os caminhos do
+        // jailbreak dariam alarme falso. O resto vale igual.
+        return (!onMac && hasJailbreakFiles) || canWriteOutsideSandbox || hasInjectedLibraries || isBeingTraced
         #endif
     }()
+
+    /// O app de iPhone rodando num Mac com Apple Silicon.
+    static var onMac: Bool { ProcessInfo.processInfo.isiOSAppOnMac }
 
     private static var hasJailbreakFiles: Bool {
         ["/var/jb", "/Applications/Cydia.app", "/Applications/Sileo.app", "/Applications/Zebra.app",

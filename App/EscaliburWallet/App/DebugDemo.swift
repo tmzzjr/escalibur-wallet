@@ -159,8 +159,8 @@ enum DebugDemo {
             case "moeda":
                 router.tab = .market
                 router.pendingCoinID = "bitcoin"
-            case "trocar", "trocar-grande": router.tab = .trade
-            case "limite":
+            case "trocar", "trocar-grande", "trocar-xrp": router.tab = .trade
+            case "limite", "limite-xrp":
                 router.tab = .trade
                 router.tradeMode = .limit
             // `-tela refazer`: a pergunta de refazer uma ordem limite vencida (ETH por
@@ -234,6 +234,7 @@ struct DemoEnvelopes: ViewModifier {
     @State private var newWallet: DemoNewWallet?
     @State private var voice = false
     @State private var alerts = false
+    @State private var support = false
     @State private var progress = false
     @State private var reviewPreview = false
     @State private var animationPreview = false
@@ -244,6 +245,8 @@ struct DemoEnvelopes: ViewModifier {
         content
             // `-tela voz`: Ajustes, Seguranca, Confirmacao por voz.
             .fullScreenCover(isPresented: $voice) { NavigationStack { VoiceSettingsView() } }
+            // `-tela suporte`: Ajustes, Suporte.
+            .fullScreenCover(isPresented: $support) { NavigationStack { SupportView() } }
             // `-tela alertas`: Ajustes, Alertas de preco.
             .fullScreenCover(isPresented: $alerts) { NavigationStack { PriceAlertsView() } }
             // `-tela andamento`: o anel de uma troca pela CoW em 45%, e o anel das
@@ -304,6 +307,7 @@ struct DemoEnvelopes: ViewModifier {
                 if DebugDemo.screen == "abrir" { opening = true }
                 if DebugDemo.screen == "voz" { voice = true }
                 if DebugDemo.screen == "alertas" { alerts = true }
+                if DebugDemo.screen == "suporte" { support = true }
                 if DebugDemo.screen == "andamento" { progress = true }
                 if DebugDemo.screen == "revisao" { reviewPreview = true }
                 if DebugDemo.screen == "animacao" { animationPreview = true }

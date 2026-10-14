@@ -72,6 +72,7 @@
 		764A13E8CD7AFD1D2F471CDF /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */; };
 		76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0C91AC7C8CD9C5B8D31703 /* Components.swift */; };
 		7A74109E68924D0D8E3AC608 /* decifrar.py in Resources */ = {isa = PBXBuildFile; fileRef = 878FC0383FDC934FC98F0EA0 /* decifrar.py */; };
+		7AFE96AAC9B71887F32791C6 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99060F8C4FD3279504FC0185 /* SupportView.swift */; };
 		7B173231DE2779A868F26303 /* EscaliburEngines in Frameworks */ = {isa = PBXBuildFile; productRef = 3E79C0581616E2A098D4B56B /* EscaliburEngines */; };
 		7B637EE92498D3B55BF911DE /* SecurityScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D394E812500F52097076B13 /* SecurityScreens.swift */; };
 		7C26CF738CEA200038380010 /* CoinSearchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22D0D64895845E2269B6731 /* CoinSearchStore.swift */; };
@@ -242,6 +243,7 @@
 		98B99C8E82247CAD42E358D7 /* Buttons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buttons.swift; sourceTree = "<group>"; };
 		98C09B212E6179F72538B94D /* MarketSearchKeyboardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketSearchKeyboardTests.swift; sourceTree = "<group>"; };
 		98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendLookalikeTests.swift; sourceTree = "<group>"; };
+		99060F8C4FD3279504FC0185 /* SupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportView.swift; sourceTree = "<group>"; };
 		99E3B6E8E96F664B813E15B7 /* ForgotPINTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgotPINTests.swift; sourceTree = "<group>"; };
 		9DD76B5A4D8E49D97000A77E /* TradeReviewFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeReviewFlow.swift; sourceTree = "<group>"; };
 		9E53CBDE23167A0EB7AEB5D4 /* MarketSortTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketSortTests.swift; sourceTree = "<group>"; };
@@ -497,6 +499,7 @@
 				676F5C1C45D103AD6705CD95 /* ReceiptWatchView.swift */,
 				529FF2FD620686A71B265A06 /* RevealFlow.swift */,
 				7372B2C6D0156F65AA215FE5 /* SettingsView.swift */,
+				99060F8C4FD3279504FC0185 /* SupportView.swift */,
 				AE76619E0AC218A55627033C /* VoiceListeningPanel.swift */,
 				1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */,
 			);
@@ -920,6 +923,7 @@
 				7B637EE92498D3B55BF911DE /* SecurityScreens.swift in Sources */,
 				7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */,
 				EAD6592758D7814329227F15 /* SettingsView.swift in Sources */,
+				7AFE96AAC9B71887F32791C6 /* SupportView.swift in Sources */,
 				A19377FDA0B48E972A57A2C7 /* SwordInStone.swift in Sources */,
 				33B19CE5E4635C5873A892E0 /* TokenMarks.swift in Sources */,
 				E6F4BCF5A1C5733FBA004E5D /* TradeComponents.swift in Sources */,

@@ -238,6 +238,10 @@ struct DeviceCheck: Identifiable, Equatable {
         #if targetEnvironment(simulator)
         return .init(id: "jailbreak", title: "Sem jailbreak", outcome: .caution("Simulador: a checagem só vale num iPhone de verdade."))
         #else
+        // No Mac, `/bin/bash` e `/usr/sbin/sshd` existem de fabrica: o aviso seria falso.
+        if DeviceIntegrity.onMac {
+            return .init(id: "jailbreak", title: "Sem jailbreak", outcome: .caution("No Mac, a checagem só vale num iPhone de verdade."))
+        }
         let paths = ["/Applications/Cydia.app", "/Applications/Sileo.app", "/Applications/Zebra.app", "/bin/bash", "/usr/sbin/sshd",
                      "/etc/apt", "/private/var/lib/apt", "/usr/bin/ssh", "/var/jb", "/private/preboot/jb", "/.bootstrapped"]
         let found = paths.first { FileManager.default.fileExists(atPath: $0) }
@@ -288,7 +292,9 @@ struct DeviceCheck: Identifiable, Equatable {
     @MainActor
     static func screen() -> DeviceCheck {
         let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-        let captured = scenes.contains { $0.traitCollection.sceneCaptureState == .active } || UIScreen.screens.count > 1
+        // Tela externa sem espelhar (cabo ou AirPlay estendido) abre uma sessao propria.
+        let external = UIApplication.shared.openSessions.contains { $0.role == .windowExternalDisplayNonInteractive }
+        let captured = scenes.contains { $0.screen.isCaptured || $0.traitCollection.sceneCaptureState == .active } || external
         return .init(id: "tela", title: "Tela sem gravação nem espelhamento",
                      outcome: captured ? .fail("A tela está sendo gravada ou espelhada. Pare a gravação ou o AirPlay para seguir.") : .pass)
     }

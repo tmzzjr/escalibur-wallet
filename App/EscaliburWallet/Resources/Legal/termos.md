@@ -2,7 +2,7 @@
 
 Ao usar a Escalibur Wallet, você concorda com estes termos.
 
-A Escalibur Wallet é oferecida por X tech a.i fund holding e participacoes LTDA, chamada aqui de Escalibur.
+A Escalibur Wallet é oferecida por X TECH A.I FUND HOLDING E PARTICIPACOES LTDA, CNPJ 64.019.520/0001-29, chamada aqui de Escalibur. Contato: thomaz@xtech.international.
 
 ## O que o app é
 

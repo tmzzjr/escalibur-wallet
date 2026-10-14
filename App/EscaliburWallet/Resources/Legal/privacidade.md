@@ -1,8 +1,8 @@
 # Política de privacidade
 
-A Escalibur Wallet é uma carteira que roda inteira no seu iPhone. Não existe conta, cadastro, e-mail nem servidor da Escalibur. Este texto diz o que o app guarda, onde guarda, e com quem ele fala.
+A Escalibur Wallet é uma carteira que roda inteira no seu iPhone. Não existe conta, cadastro nem servidor da Escalibur, e o app não pede o seu e-mail. Este texto diz o que o app guarda, onde guarda, e com quem ele fala.
 
-A Escalibur Wallet é oferecida por X tech a.i fund holding e participacoes LTDA, chamada aqui de Escalibur.
+A Escalibur Wallet é oferecida por X TECH A.I FUND HOLDING E PARTICIPACOES LTDA, CNPJ 64.019.520/0001-29, chamada aqui de Escalibur. Contato: thomaz@xtech.international.
 
 ## O que fica no seu iPhone
 
@@ -64,7 +64,11 @@ Endereço copiado fica só neste aparelho e expira sozinho. As palavras da carte
 
 ## Seus direitos
 
-Como a Escalibur não recebe nem guarda dado nenhum seu, não há o que consultar, corrigir ou apagar do nosso lado. Apagar o app apaga os arquivos dele neste iPhone. As chaves cifradas que o iOS guarda no chaveiro ficam no aparelho depois da remoção e são apagadas na primeira abertura, se o app for instalado de novo. Para apagar uma carteira na hora, use Ajustes, a carteira, Remover deste iPhone.
+Como, pelo app, a Escalibur não recebe nem guarda dado nenhum seu, não há o que consultar, corrigir ou apagar do nosso lado. Apagar o app apaga os arquivos dele neste iPhone. As chaves cifradas que o iOS guarda no chaveiro ficam no aparelho depois da remoção e são apagadas na primeira abertura, se o app for instalado de novo. Para apagar uma carteira na hora, use Ajustes, a carteira, Remover deste iPhone.
+
+## Contato
+
+Dúvidas sobre esta política ou sobre os seus dados: thomaz@xtech.international. Um e-mail para o suporte chega fora do app, com o seu endereço e o que você escrever, e serve só para responder. Nunca mande as palavras da carteira, o PIN nem a senha de um envelope.
 
 ## Mudanças
 

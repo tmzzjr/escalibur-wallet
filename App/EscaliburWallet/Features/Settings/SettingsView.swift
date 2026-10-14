@@ -55,6 +55,10 @@ struct SettingsView: View {
                     }
 
                     SettingsSection(title: "Sobre") {
+                        NavigationLink { SupportView() } label: {
+                            SettingsRow(icon: "questionmark.circle", title: "Suporte")
+                        }
+                        .accessibilityIdentifier("ajustes-suporte")
                         NavigationLink { AboutView() } label: {
                             SettingsRow(icon: "info.circle", title: "Taxas, código aberto e versão")
                         }

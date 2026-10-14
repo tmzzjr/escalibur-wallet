@@ -19,10 +19,14 @@ A Carteira mostra os tokens da lista conferida, as moedas custom e, numa seção
 Não existe "impenetrável", e a palavra não aparece no app. O que existe é custo, e cada defesa diz quanto custa quebrá-la e onde ela para. O modelo de ameaça completo, com os riscos aceitos e os números, está em [`docs/seguranca.md`](docs/seguranca.md).
 
 - **A frase nunca sai do aparelho em claro.** Cifrada, ela só sai por ação explícita do dono, num envelope com senha própria.
-- **Não existe verificador de PIN gravado em lugar nenhum.** A chave raiz vai cifrada por uma chave derivada do PIN (Argon2id de 256 MiB), dentro de um embrulho que só abre neste Secure Enclave, num item do chaveiro protegido também pela senha de aplicativo. Se a senha de aplicativo for só uma regra de acesso (o teste em iPhone físico ainda está pendente), a camada derivada do PIN continua valendo sozinha. Face ID usa `biometryCurrentSet`: cadastrar outro rosto destrói o atalho em vez de abri-lo.
+- **Não existe verificador de PIN gravado em lugar nenhum.** A chave raiz vai cifrada por uma chave derivada do PIN (Argon2id de 256 MiB), dentro de um embrulho que só abre neste Secure Enclave e por uma chave do Secure Enclave cuja senha também sai do PIN: cada chute passa por este aparelho, um de cada vez. Que o próprio Secure Enclave cobra essa senha foi conferido num iPhone de verdade (10/10/2026). Face ID usa `biometryCurrentSet`: cadastrar outro rosto destrói o atalho em vez de abri-lo.
 - **Uma chave por carteira.** A chave raiz desembrulha só a chave da carteira que vai assinar. Guarda-se a entropia, não as palavras.
 - **Nada é assinado às cegas.** A rede monta a transação e diz o que assinar. O assinador aceita apenas um plano que passou pela validação: destino, valor, taxa com teto, tag e memo exigidos pela própria rede, e calldata decodificada contra uma allowlist compilada. A assinatura é verificada antes de sair.
 - **Nenhum provedor decide nada.** `chainId`, passphrase de rede, contratos de token, routers e emissores são constantes compiladas. Nonce e sequence exigem dois provedores concordando.
+
+## Suporte
+
+Dúvidas e problemas: thomaz@xtech.international, ou a [página de suporte](https://tmzzjr.github.io/escalibur-wallet/suporte/). Ninguém da Escalibur pede as palavras da carteira. Falha de segurança: veja o [`SECURITY.md`](SECURITY.md).
 
 ## O envelope Escalibur
 
@@ -31,7 +35,7 @@ A carteira lacra e abre o mesmo arquivo `.esclbr` do app [Escalibur](../escalibu
 ## Construir e conferir
 
 ```
-cd Kit && swift test                 # mais de 900 testes: vetores oficiais de cada rede e respostas gravadas dos provedores
+cd Kit && swift test                 # mais de 1.300 testes: vetores oficiais de cada rede e respostas gravadas dos provedores
 ./tools/verificar.sh --testes        # as afirmações acima, conferidas por script
 xcodegen generate                    # gera EscaliburWallet.xcodeproj a partir de project.yml
 xcodebuild -project EscaliburWallet.xcodeproj -scheme EscaliburWallet -sdk iphonesimulator build

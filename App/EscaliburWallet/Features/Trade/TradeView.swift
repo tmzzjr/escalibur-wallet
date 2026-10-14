@@ -159,6 +159,19 @@ struct TradeView: View {
                 model.buy = TokenRegistry.tokens.first { $0.chainID == "ethereum" && $0.symbol == "USDC" }
                 model.amountText = "8000"
             }
+            // `-tela trocar-xrp` e `-tela limite-xrp`: as capturas da loja, com o XRP que a
+            // carteira publica de teste tem. Na Solana nao da: a conta dela foi entregue a
+            // um programa por quem conhece a frase, e o app recusa montar.
+            if DebugDemo.screen == "trocar-xrp", model.amountText.isEmpty {
+                model.reset(to: .xrpl)
+                model.buy = TokenRegistry.tokens.first { $0.chainID == "xrpl" && $0.symbol == "RLUSD" }
+                model.amountText = "500"
+            }
+            if DebugDemo.screen == "limite-xrp", model.amountText.isEmpty {
+                model.reset(to: .xrpl)
+                model.buy = TokenRegistry.tokens.first { $0.chainID == "xrpl" && $0.symbol == "RLUSD" }
+                model.amountText = "1000"
+            }
             #endif
         }
         .onChange(of: router.tradePreset?.asset.id) { _, _ in applyPreset() }
@@ -662,7 +675,7 @@ struct TradeView: View {
     }
 
     private var primaryTitle: String {
-        guard engine != nil else { return "Trocar \(model.chain.id == "xrpl" ? "no" : "na") \(model.chain.name) chega em breve" }
+        guard engine != nil else { return "Troca indisponível nesta rede" }
         guard let amount = model.amountIn, !amount.isZero else { return "Digite um valor" }
         if over { return "Saldo de \(model.sell?.symbol ?? "") insuficiente" }
         if router.tradeMode == .limit {

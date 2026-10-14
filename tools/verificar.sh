@@ -251,8 +251,9 @@ if plutil -lint "$manifesto" >/dev/null 2>&1 \
     && [ "$(/usr/libexec/PlistBuddy -c 'Print :NSPrivacyTracking' "$manifesto" 2>/dev/null)" = "false" ] \
     && [ "$(/usr/libexec/PlistBuddy -c 'Print :NSPrivacyCollectedDataTypes' "$manifesto" 2>/dev/null | grep -c Dict)" = "0" ] \
     && grep -q 'NSPrivacyAccessedAPICategoryUserDefaults' "$manifesto" && grep -q 'CA92.1' "$manifesto" \
+    && grep -q 'NSPrivacyAccessedAPICategorySystemBootTime' "$manifesto" && grep -q '35F9.1' "$manifesto" \
     && grep -q 'PrivacyInfo.xcprivacy' EscaliburWallet.xcodeproj/project.pbxproj; then
-    ok "manifesto de privacidade: sem rastreamento, sem coleta, motivo do UserDefaults, no projeto"
+    ok "manifesto de privacidade: sem rastreamento, sem coleta, motivos do UserDefaults e do tempo de boot, no projeto"
 else
     aviso "manifesto de privacidade ausente, invalido ou fora do projeto"
 fi
@@ -295,6 +296,24 @@ for host in $(sed 's|https://||' hosts.lock); do
     grep -qF "\`$host\`" "$APP/Resources/Legal/privacidade.md" || faltando="$faltando $host"
 done
 [ -n "$faltando" ] && aviso "host fora da Politica de privacidade:$faltando" || ok "todo host do hosts.lock esta na Politica de privacidade"
+# Contato (diretriz 1.5 da App Store e LGPD, art. 9): o e-mail do app e o mesmo da
+# pagina de suporte, dos Termos e da Politica.
+email=$(grep -oE 'static let email = "[^"]+"' "$APP/Features/Settings/SupportView.swift" 2>/dev/null | sed -E 's/.*"(.*)"/\1/')
+faltando=""
+for arquivo in site/suporte.md "$APP/Resources/Legal/termos.md" "$APP/Resources/Legal/privacidade.md"; do
+    grep -qF "$email" "$arquivo" 2>/dev/null || faltando="$faltando $arquivo"
+done
+if [ -z "$email" ]; then
+    aviso "e-mail de suporte ausente no app (SupportView.swift)"
+elif [ -n "$faltando" ]; then
+    aviso "e-mail de suporte ($email) fora de:$faltando"
+else
+    ok "e-mail de suporte igual no app, na pagina de suporte, nos Termos e na Politica"
+fi
+saida_site=$(mktemp -d)
+python3 tools/gerar-site.py "$saida_site/site" >/dev/null 2>&1 && [ -f "$saida_site/site/privacidade/index.html" ] && [ -f "$saida_site/site/suporte/index.html" ] \
+    && ok "paginas publicas (suporte, privacidade, termos) geradas dos mesmos textos do app" || aviso "tools/gerar-site.py falhou"
+rm -rf "$saida_site"
 
 secao "texto"
 achados=$(swift_em "$APP" | xargs grep -nE '"[^"]*(—|–)[^"]*"' 2>/dev/null)

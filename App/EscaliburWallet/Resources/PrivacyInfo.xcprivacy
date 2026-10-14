@@ -23,6 +23,16 @@
 				<string>CA92.1</string>
 			</array>
 		</dict>
+		<!-- A espera entre tentativas do PIN conta pelo relogio monotonico e pelo instante
+		     do boot (PINPolicy.swift), para que mudar o relogio nao encurte a espera. -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>35F9.1</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
