@@ -537,7 +537,7 @@ Os agregadores já dividem entre DEXes internamente.
 | BTC / cross | THORChain `=<` (limite em fila, com TTL) [W]; Chainflip `min_price` + `retry_duration` [W] | memo / parâmetros de refund | expira sozinho | TTL | afiliado / broker |
 
 - **Na v1 (código):**
-  - CoW: validade de 1 hora a 30 dias, ou "até cancelar" = 364 dias (o livro da CoW recusa acima de um ano: `default_max_order_validity_period` em cowprotocol/services), com a data na revisão. Cancelamento pela CoW (sem garantia) ou `invalidateOrder` (garantido). Uma ordem aberta por token vendido: a lista vem só da API da CoW (o livro não está na cadeia), e o teto é da cadeia, com a autorização ao VaultRelayer deixada exatamente no valor da ordem (aprova quando falta, reduz quando sobra).
+  - CoW: validade de 1 hora a 30 dias, ou "até cancelar" = 364 dias (o livro da CoW recusa acima de um ano: `default_max_order_validity_period` em cowprotocol/services), com a data na revisão. Cancelamento por `invalidateOrder` na cadeia (garantido); o pedido à CoW (sem garantia) existe no motor, mas o app não oferece desde 11/10/2026. Uma ordem aberta por token vendido: a lista vem só da API da CoW (o livro não está na cadeia), e o teto é da cadeia, com a autorização ao VaultRelayer deixada exatamente no valor da ordem (aprova quando falta, reduz quando sobra).
   - 1inch LOP e Solana: fora.
   - XRP Ledger: `OfferCreate` com `Expiration` opcional (sem ela, até cancelar), `OfferCancel`. Ligado desde que o RLUSD entrou na lista curada (27/09/2026); a DEX só troca com token da lista.
   - Stellar: só `ManageSellOffer`, sem prazo. A carteira não precisa lembrar das ofertas: o motor lista as abertas lendo as duas Horizons e cancela com os ativos lidos da rede.

@@ -327,6 +327,8 @@ struct SwapProcessingIndicator: View {
     let sell: Asset?
     let buy: Asset?
     var cancelling = false
+    /// No envio nao ha moeda do outro lado: o destino e este simbolo num circulo.
+    var destinationSymbol: String? = nil
 
     static let period = 1.6
     static let logoSize: CGFloat = 56
@@ -362,7 +364,9 @@ struct SwapProcessingIndicator: View {
                 logo(sell)
                     .scaleEffect(1 + 0.03 * CGFloat(sin(time * 2 * .pi / 2.2)))
                     .position(start)
-                logo(buy)
+                Group {
+                    if let destinationSymbol, buy == nil { destination(destinationSymbol) } else { logo(buy) }
+                }
                     .scaleEffect(1 + 0.03 * CGFloat(sin(time * 2 * .pi / 2.2 + .pi)))
                     .opacity(cancelling ? 0.35 : 1)
                     .position(end)
@@ -407,6 +411,13 @@ struct SwapProcessingIndicator: View {
             let rect = CGRect(x: target.x - radius, y: target.y - radius, width: radius * 2, height: radius * 2)
             context.stroke(Path(ellipseIn: rect), with: .color(Palette.accent.opacity(1 - wave)), lineWidth: 2)
         }
+    }
+
+    private func destination(_ symbol: String) -> some View {
+        Image(systemName: symbol).font(.system(size: 22, weight: .semibold)).foregroundStyle(Palette.ink)
+            .frame(width: Self.logoSize, height: Self.logoSize)
+            .background(Circle().fill(Palette.rail))
+            .overlay(Circle().stroke(Palette.edgeStrong, lineWidth: 1))
     }
 
     private func logo(_ asset: Asset?) -> some View {

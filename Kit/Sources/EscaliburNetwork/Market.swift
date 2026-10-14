@@ -142,6 +142,10 @@ public actor MarketService {
 
     private var prices: [String: [String: (at: Date, quote: Quote)]] = [:]
     private var lists: [String: MarketSnapshot] = [:]
+    /// A logo de cada moeda que uma lista do CoinGecko ja trouxe. A lista de reserva do
+    /// CoinPaprika vem sem logo (e o CDN dele recusa quem nao e navegador): com o CoinGecko
+    /// em 429, a lista reusa estas, em vez de mostrar so as iniciais.
+    private var knownImages: [String: URL] = [:]
     private var charts: [String: ChartSnapshot] = [:]
     /// A pool escolhida de cada token no GeckoTerminal (ou nenhuma), por 30 minutos.
     private var dexPools: [String: (at: Date, pool: (address: String, info: DexPool)?)] = [:]
@@ -289,8 +293,10 @@ public actor MarketService {
     }
 
     private func geckoQuotes(ids: [String], currency: String) async throws -> [String: Quote] {
+        // `precision=full`: sem ele o CoinGecko arredonda o preco para poucas casas, e o de
+        // um token de fracao infima (BNB Frog, 9e-20 dolar) chega como 0.
         let url = Self.url(Self.gecko, "simple/price", [
-            ("ids", ids.joined(separator: ",")), ("vs_currencies", currency), ("include_24hr_change", "true"),
+            ("ids", ids.joined(separator: ",")), ("vs_currencies", currency), ("include_24hr_change", "true"), ("precision", "full"),
         ])
         let raw = try await get([String: [String: Double?]].self, url)
         var out: [String: Quote] = [:]
@@ -513,7 +519,7 @@ public actor MarketService {
 
     private func geckoTokenQuote(_ platform: String, contract: String, currency: String) async throws -> Quote? {
         let url = Self.url(Self.gecko, "simple/token_price/\(platform)", [
-            ("contract_addresses", contract), ("vs_currencies", currency), ("include_24hr_change", "true"),
+            ("contract_addresses", contract), ("vs_currencies", currency), ("include_24hr_change", "true"), ("precision", "full"),
         ])
         let raw = try await get([String: [String: Double?]].self, url)
         return Self.tokenQuote(raw, contract: contract, currency: currency)
@@ -577,7 +583,7 @@ public actor MarketService {
     private func geckoMarkets(currency: String, perPage: Int) async throws -> [MarketCoin] {
         let url = Self.url(Self.gecko, "coins/markets", [
             ("vs_currency", currency), ("order", "market_cap_desc"), ("per_page", String(perPage)), ("page", "1"),
-            ("sparkline", "true"), ("price_change_percentage", "24h"),
+            ("sparkline", "true"), ("price_change_percentage", "24h"), ("precision", "full"),
         ])
         let raw = try await get([GeckoMarket].self, url)
         let coins = raw.compactMap { item -> MarketCoin? in
@@ -591,6 +597,7 @@ public actor MarketService {
             )
         }
         guard !coins.isEmpty else { throw HTTPClient.Failure.invalidResponse }
+        for coin in coins { if let image = coin.imageURL { knownImages[coin.id] = image } }
         return coins
     }
 
@@ -603,7 +610,7 @@ public actor MarketService {
             let id = Self.geckoID(forPaprika: ticker.id)
             guard seen.insert(id).inserted else { return nil }
             return MarketCoin(
-                id: id, symbol: Self.clean(ticker.symbol.uppercased()), name: Self.clean(ticker.name), imageURL: nil,
+                id: id, symbol: Self.clean(ticker.symbol.uppercased()), name: Self.clean(ticker.name), imageURL: knownImages[id],
                 price: price, change24h: values.percent_change_24h, marketCap: values.market_cap,
                 volume24h: values.volume_24h, rank: ticker.rank, sparkline: []
             )
@@ -923,7 +930,18 @@ public actor MarketService {
             ("community_data", "false"), ("developer_data", "false"), ("sparkline", "false"),
         ])
         let json = try await get(JSONValue.self, url)
-        return try Self.parseGecko(json, id: id, currency: currency, at: now())
+        var details = try Self.parseGecko(json, id: id, currency: currency, at: now())
+        // `/coins/{id}` nao aceita `precision`: preco de fracao infima chega como 0. O
+        // preco vem do `simple/price` com precisao cheia, e a faixa do dia, do grafico.
+        if details.price == nil {
+            details.price = try? await geckoQuotes(ids: [id], currency: currency)[id]?.price
+            if details.price != nil, details.high24h == nil || details.low24h == nil {
+                let day = (try? await chartSnapshot(id: id, currency: currency, range: .day)).map { $0.points.map(\.price) } ?? []
+                details.high24h = details.high24h ?? day.max()
+                details.low24h = details.low24h ?? day.min()
+            }
+        }
+        return details
     }
 
     static func parseGecko(_ json: JSONValue, id: String, currency: String, at: Date) throws -> MarketCoinDetails {

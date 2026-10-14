@@ -1,7 +1,7 @@
 import EscaliburNetwork
 import SwiftUI
 
-/// O grafico de preco: linha grossa com brilho, a area embaixo em pontinhos, sem grade
+/// O grafico de preco: linha grossa com brilho, sem preenchimento embaixo, sem grade
 /// e sem eixo, so a maxima em cima do pico e a minima embaixo do vale. Lima quando o
 /// periodo sobe, vermelho quando desce. Toque longo ou arrasto horizontal mostra o
 /// preco de um ponto.
@@ -45,8 +45,7 @@ struct PriceChart: View {
     var body: some View {
         ZStack {
             if loading && points.isEmpty {
-                RoundedRectangle(cornerRadius: Radius.badge).fill(Palette.body).padding(.vertical, Self.labelRoom)
-                    .opacity(reduceMotion ? 0.7 : 1)
+                ChartLoading(labelRoom: Self.labelRoom)
             } else if points.count < 2 {
                 Text("Sem histórico de preço neste período").typeStyle(.note).foregroundStyle(Palette.inkMuted)
             } else {
@@ -91,26 +90,8 @@ struct PriceChart: View {
                     for index in data.indices {
                         index == 0 ? line.move(to: place(index)) : line.addLine(to: place(index))
                     }
-                    // A area embaixo da linha, em pontinhos da mesma cor.
-                    var area = line
-                    area.addLine(to: CGPoint(x: plot.maxX, y: plot.maxY))
-                    area.addLine(to: CGPoint(x: plot.minX, y: plot.maxY))
-                    area.closeSubpath()
-                    context.drawLayer { dots in
-                        dots.clip(to: area)
-                        let step: CGFloat = 6.5
-                        var grid = Path()
-                        var y = plot.maxY
-                        while y >= plot.minY - step {
-                            var x = plot.minX + step / 2
-                            while x <= plot.maxX {
-                                grid.addEllipse(in: CGRect(x: x - 0.85, y: y - 0.85, width: 1.7, height: 1.7))
-                                x += step
-                            }
-                            y -= step
-                        }
-                        dots.fill(grid, with: .color(color.opacity(0.7)))
-                    }
+                    // So a linha e o brilho: a area em pontinhos embaixo dela saiu (pedido do
+                    // dono, 14/10/2026).
                     // O brilho: a linha larga e desfocada por baixo da linha nitida.
                     context.drawLayer { glow in
                         glow.addFilter(.blur(radius: 14))
@@ -218,5 +199,48 @@ struct PeriodPicker: View {
             }
         }
         .sensoryFeedback(.selection, trigger: range)
+    }
+}
+
+/// O grafico carregando (pedido do dono, 14/10/2026): uma linha fantasma cinza, que ondula
+/// devagar, com um brilho que corre da esquerda para a direita. Cinza e sem rotulos, para
+/// nunca passar por dado. Com Reduzir Movimento, fica parada.
+private struct ChartLoading: View {
+    let labelRoom: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    static let sweepPeriod = 1.8
+
+    var body: some View {
+        TimelineView(.animation(paused: reduceMotion)) { context in
+            let time = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate
+            Canvas { canvas, size in
+                let plot = CGRect(x: Space.gutter, y: labelRoom, width: size.width - Space.gutter * 2, height: size.height - labelRoom * 2)
+                var line = Path()
+                let steps = 90
+                for step in 0...steps {
+                    let x = Double(step) / Double(steps)
+                    let wave = 0.5 + 0.16 * sin(x * 2 * .pi * 1.2 + time * 0.9) + 0.08 * sin(x * 2 * .pi * 2.9 - time * 1.3)
+                    let point = CGPoint(x: plot.minX + plot.width * x, y: plot.maxY - plot.height * wave)
+                    step == 0 ? line.move(to: point) : line.addLine(to: point)
+                }
+                let style = StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round)
+                canvas.stroke(line, with: .color(Palette.edgeStrong), style: style)
+                guard !reduceMotion else { return }
+                // O brilho: uma janela que atravessa a linha, mais clara no meio.
+                let phase = time.truncatingRemainder(dividingBy: Self.sweepPeriod) / Self.sweepPeriod
+                let width = plot.width * 0.28
+                let center = plot.minX - width / 2 + (plot.width + width) * phase
+                canvas.drawLayer { glow in
+                    glow.clip(to: Path(CGRect(x: center - width / 2, y: 0, width: width, height: size.height)))
+                    glow.stroke(line, with: .linearGradient(
+                        Gradient(stops: [.init(color: Palette.inkSoft.opacity(0), location: 0), .init(color: Palette.inkSoft, location: 0.5),
+                                         .init(color: Palette.inkSoft.opacity(0), location: 1)]),
+                        startPoint: CGPoint(x: center - width / 2, y: 0), endPoint: CGPoint(x: center + width / 2, y: 0)
+                    ), style: style)
+                }
+            }
+        }
+        .accessibilityLabel("Carregando o gráfico")
     }
 }

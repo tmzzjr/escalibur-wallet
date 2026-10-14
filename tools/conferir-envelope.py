@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Abre com o decifrar.py embarcado no app um envelope lacrado pela carteira.
+"""Abre com o decifrar.py de referencia um envelope lacrado pela carteira.
 
 Uso: python3 tools/conferir-envelope.py arquivo.esclbr
 
@@ -12,7 +12,7 @@ import sys
 import unicodedata
 
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
-DECIFRAR = RAIZ / "App/EscaliburWallet/Resources/Recuperacao/decifrar.py"
+DECIFRAR = RAIZ / "tools/referencia/decifrar.py"
 
 spec = importlib.util.spec_from_file_location("decifrar", DECIFRAR)
 decifrar = importlib.util.module_from_spec(spec)

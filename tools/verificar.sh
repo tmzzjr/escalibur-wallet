@@ -160,12 +160,14 @@ done
 [ "$divergentes" = "0" ] && ok "as listas do medidor de forca conferem com forca.lock"
 
 # 5. Registro e aleatoriedade.
-# Kit de recuperacao embarcado: decifrar.py, FORMATO.md e LEIA-ME travados por digesto.
-if (cd "$APP/Resources/Recuperacao" && shasum -a 256 -c ../../../../recuperacao.lock >/dev/null 2>&1); then
-    ok "kit de recuperacao confere com recuperacao.lock"
+# Decifrador de referencia (so para os testes, fora do app): decifrar.py e FORMATO.md
+# travados por digesto. O app nao distribui decifrador para computador.
+if (cd tools/referencia && shasum -a 256 -c ../../recuperacao.lock >/dev/null 2>&1); then
+    ok "decifrador de referencia confere com recuperacao.lock"
 else
-    aviso "kit de recuperacao difere de recuperacao.lock"
+    aviso "decifrador de referencia difere de recuperacao.lock"
 fi
+[ -e "$APP/Resources/Recuperacao" ] && aviso "decifrador para computador de volta no app" || ok "nenhum decifrador para computador dentro do app"
 
 secao "registro e aleatoriedade"
 achados=$(procurar '(^|[^A-Za-z0-9_.])(print|debugPrint|dump|NSLog)\(' "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET")

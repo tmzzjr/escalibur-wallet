@@ -279,7 +279,21 @@ struct EVMReaderTests {
         SignedTransaction(chainID: "ethereum", raw: raw, encoded: Hex.encode(raw, prefix: true), id: Hex.encode(Hash.keccak256(raw), prefix: true))
     }
 
-    @Test("Transmissao: mesmos bytes a dois provedores, o id e o calculado aqui")
+    /// Os `eth_sendRawTransaction` que chegaram ao transporte. A transmissao volta no
+    /// primeiro que aceita e o outro segue sozinho: espera ele chegar.
+    static func sentRaw(_ transport: FixtureTransport, expecting count: Int) async throws -> [String] {
+        func read() -> [String] {
+            transport.requests.compactMap { request -> String? in
+                let body = request.body.flatMap { try? StrictJSON.parse($0) }
+                guard FixtureTransport.method(body) == "eth_sendRawTransaction" else { return nil }
+                return try? FixtureTransport.params(body)[0].string("raw")
+            }
+        }
+        for _ in 0..<200 where read().count < count { try await Task.sleep(for: .milliseconds(10)) }
+        return read()
+    }
+
+    @Test("Transmissao: mesmos bytes a dois provedores, o id e o calculado aqui, e volta no primeiro que aceita")
     func broadcast() async throws {
         let signed = Self.signed()
         let accepted = rpcResult("\"\(signed.id)\"")
@@ -287,13 +301,8 @@ struct EVMReaderTests {
         let transport = try Self.transport(overrides: ["a.test": ["eth_sendRawTransaction": accepted], "b.test": ["eth_sendRawTransaction": known]])
         let receipt = try await Self.reader(transport).broadcast(signed, chain: .ethereum)
         #expect(receipt.id == signed.id)
-        #expect(Set(receipt.acceptedBy) == ["a", "b"])
-        let sent = transport.requests.compactMap { request -> String? in
-            let body = request.body.flatMap { try? StrictJSON.parse($0) }
-            guard FixtureTransport.method(body) == "eth_sendRawTransaction" else { return nil }
-            return try? FixtureTransport.params(body)[0].string("raw")
-        }
-        #expect(sent == [signed.encoded, signed.encoded])
+        #expect(!receipt.acceptedBy.isEmpty && Set(receipt.acceptedBy).isSubset(of: ["a", "b"]))
+        #expect(try await Self.sentRaw(transport, expecting: 2) == [signed.encoded, signed.encoded])
     }
 
     @Test("Transmissao: provedor que devolve outro hash nao conta; todos recusando da o motivo")
@@ -335,7 +344,8 @@ struct EVMReaderTests {
         let accepted = rpcResult("\"\(signed.id)\"")
         let transport = try Self.transport(overrides: ["relay1.test": ["eth_sendRawTransaction": accepted], "relay2.test": ["eth_sendRawTransaction": accepted]])
         let receipt = try await Self.reader(transport).broadcast(signed, chain: .ethereum, route: .mevProtected)
-        #expect(Set(receipt.acceptedBy) == ["relay1", "relay2"])
+        #expect(!receipt.acceptedBy.isEmpty && Set(receipt.acceptedBy).isSubset(of: ["relay1", "relay2"]))
+        _ = try await Self.sentRaw(transport, expecting: 2)
         let sentTo = transport.requests.filter { FixtureTransport.method($0.body.flatMap { try? StrictJSON.parse($0) }) == "eth_sendRawTransaction" }.map(\.url.host)
         #expect(Set(sentTo) == ["relay1.test", "relay2.test"])
     }

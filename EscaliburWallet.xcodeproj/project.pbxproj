@@ -11,7 +11,6 @@
 		046D4A66EDC4E578C0246247 /* TradeQuoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1020538B4146BC659BF384E8 /* TradeQuoteTests.swift */; };
 		04B18402EA73A60AC95466C5 /* NewWalletFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B192EE33D90EEA58E27E195C /* NewWalletFlowTests.swift */; };
 		0B7E83EED78DFCB68FCE521B /* MarketView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BADB432EFAFD601991FB0A /* MarketView.swift */; };
-		0BD31CF923D94F41C7BF61FE /* FORMATO.md in Resources */ = {isa = PBXBuildFile; fileRef = CF3019F2F06749CD522B32AB /* FORMATO.md */; };
 		0C69486F69E82B02C7F393AE /* NonceQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */; };
 		0E72E15B4987058F90F1117C /* MarketCoinActionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4C1798A2E008CDBC7E2F8F /* MarketCoinActionsTests.swift */; };
 		0EA6EDD44AB204C413E8EDC3 /* VoiceFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6095C38283534AF48C451BC4 /* VoiceFlowTests.swift */; };
@@ -71,7 +70,6 @@
 		70C2500A596690F779DABA57 /* BridgeReviewFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B219BABF4E367FFDCB8DC084 /* BridgeReviewFlow.swift */; };
 		764A13E8CD7AFD1D2F471CDF /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */; };
 		76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0C91AC7C8CD9C5B8D31703 /* Components.swift */; };
-		7A74109E68924D0D8E3AC608 /* decifrar.py in Resources */ = {isa = PBXBuildFile; fileRef = 878FC0383FDC934FC98F0EA0 /* decifrar.py */; };
 		7AFE96AAC9B71887F32791C6 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99060F8C4FD3279504FC0185 /* SupportView.swift */; };
 		7B173231DE2779A868F26303 /* EscaliburEngines in Frameworks */ = {isa = PBXBuildFile; productRef = 3E79C0581616E2A098D4B56B /* EscaliburEngines */; };
 		7B637EE92498D3B55BF911DE /* SecurityScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D394E812500F52097076B13 /* SecurityScreens.swift */; };
@@ -122,7 +120,6 @@
 		D7EEBC93C795C4E45FEEBEDD /* LiveCipher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1E802485A80F66518F915 /* LiveCipher.swift */; };
 		D9993FE2FD6DDDCA4F84E8C6 /* PriceChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */; };
 		D9BE60229797504784BC6F97 /* KeyServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1722E329135DB398B784E8C8 /* KeyServices.swift */; };
-		DA717CEE0E76AEF1F0CBCE9A /* LEIA-ME.txt in Resources */ = {isa = PBXBuildFile; fileRef = 445327A094057374455F9FD5 /* LEIA-ME.txt */; };
 		DAC0E966C277EFDAF466D0EB /* DeviceIntegrity.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5ECD2EB5627AA912E7957E4 /* DeviceIntegrity.swift */; };
 		E09B8272656E909426D4987D /* Buttons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B99C8E82247CAD42E358D7 /* Buttons.swift */; };
 		E345A5856750B23E38B8A35E /* SealEnvelopeFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */; };
@@ -195,7 +192,6 @@
 		3D50F34B146D744EA6BF4F27 /* LimitRenewals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitRenewals.swift; sourceTree = "<group>"; };
 		3FD7ECCFEABE053AB8919C2F /* ActivityCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCache.swift; sourceTree = "<group>"; };
 		4027F05D922AF46864DCED58 /* Portfolio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Portfolio.swift; sourceTree = "<group>"; };
-		445327A094057374455F9FD5 /* LEIA-ME.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LEIA-ME.txt"; sourceTree = "<group>"; };
 		44AE65BCC609869DC729178D /* PriceAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlerts.swift; sourceTree = "<group>"; };
 		464E41DA23598ED80A750BD4 /* EscaliburWalletUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EscaliburWalletUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		49EE4EBF2B576AD8F92E2DA9 /* BackupFirstArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupFirstArt.swift; sourceTree = "<group>"; };
@@ -229,7 +225,6 @@
 		839F9C92169FD1A8C5C69A3B /* ImportPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPreview.swift; sourceTree = "<group>"; };
 		85AD68422B44E0DD96545710 /* ContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsView.swift; sourceTree = "<group>"; };
 		86B74EDB87479FBC14EC1F7E /* privacidade.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = privacidade.md; sourceTree = "<group>"; };
-		878FC0383FDC934FC98F0EA0 /* decifrar.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = decifrar.py; sourceTree = "<group>"; };
 		8A40A382D8B2C13CF2FB3263 /* ReceiveCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveCatalogTests.swift; sourceTree = "<group>"; };
 		8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonceQueue.swift; sourceTree = "<group>"; };
 		8C9605AF6B0175CB6F7E648C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -281,7 +276,6 @@
 		CCCB20AFE4A43091DEB9D551 /* LimitRenewalPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitRenewalPrompt.swift; sourceTree = "<group>"; };
 		CE4C1798A2E008CDBC7E2F8F /* MarketCoinActionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketCoinActionsTests.swift; sourceTree = "<group>"; };
 		CED594CB5884DB17FE81B8D4 /* TradeComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradeComponents.swift; sourceTree = "<group>"; };
-		CF3019F2F06749CD522B32AB /* FORMATO.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FORMATO.md; sourceTree = "<group>"; };
 		D0E6EBFF95E21A9523382BC5 /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
 		D13BB44FB767203C255AC794 /* PriceAlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlertsView.swift; sourceTree = "<group>"; };
 		D19676DE10AD70D111052D72 /* ResponsibilityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponsibilityView.swift; sourceTree = "<group>"; };
@@ -422,7 +416,6 @@
 				2D484651018FF5D48FD37087 /* Assets.xcassets */,
 				8C9605AF6B0175CB6F7E648C /* PrivacyInfo.xcprivacy */,
 				DCCE0E25C9CAF37570F0707C /* Legal */,
-				6E8E6429DDBD541C15C27864 /* Recuperacao */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -435,16 +428,6 @@
 				09754506E0869351661279D1 /* SendFlow.swift */,
 			);
 			path = Send;
-			sourceTree = "<group>";
-		};
-		6E8E6429DDBD541C15C27864 /* Recuperacao */ = {
-			isa = PBXGroup;
-			children = (
-				878FC0383FDC934FC98F0EA0 /* decifrar.py */,
-				CF3019F2F06749CD522B32AB /* FORMATO.md */,
-				445327A094057374455F9FD5 /* LEIA-ME.txt */,
-			);
-			path = Recuperacao;
 			sourceTree = "<group>";
 		};
 		7719C44BCFB732B2DA3A73BE /* EscaliburWalletUITests */ = {
@@ -775,10 +758,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F9AA5C1E81DED2AF9F55AA8C /* Assets.xcassets in Resources */,
-				0BD31CF923D94F41C7BF61FE /* FORMATO.md in Resources */,
-				DA717CEE0E76AEF1F0CBCE9A /* LEIA-ME.txt in Resources */,
 				AB7B23776FBF7C6424A8874C /* PrivacyInfo.xcprivacy in Resources */,
-				7A74109E68924D0D8E3AC608 /* decifrar.py in Resources */,
 				1854C15FE3CC0403A4179218 /* privacidade.md in Resources */,
 				4DA261DD7012A533E034CF1C /* termos.md in Resources */,
 			);

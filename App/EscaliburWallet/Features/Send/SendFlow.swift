@@ -74,6 +74,16 @@ final class SendModel {
     /// transmitida de novo (os mesmos bytes, o mesmo id): remontar pagaria duas vezes.
     var unsureSigned: [SignedTransaction]?
     var unsureDetail: String?
+    /// O dono marcou que sabe que o envio nao se desfaz (pedido do dono, 14/10/2026).
+    /// Volta a desmarcar a cada plano novo.
+    var irreversibleAcknowledged = false
+    /// As ordens limite abertas desta conta que vendem o ativo: o que elas ainda vao
+    /// vender nao sai num envio sem cancelar antes (pedido do dono, 14/10/2026).
+    var sellingOrders: [OpenOrder] = []
+    var showingLockedOrders = false
+
+    /// O que as ordens abertas ainda vao vender deste ativo.
+    var locked: BigUInt { sellingOrders.reduce(BigUInt()) { $0 + $1.remainingSell } }
 
     init(wallet: WalletMeta, holding: Holding?) {
         self.wallet = wallet
@@ -130,11 +140,14 @@ struct SendFlow: View {
             }
             .background(Palette.void.ignoresSafeArea())
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                // Transmitindo, nao fecha: a tela so some com a resposta da rede.
+                if model?.stage != .sending {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                        }
+                        .accessibilityLabel("Fechar")
                     }
-                    .accessibilityLabel("Fechar")
                 }
             }
         }
@@ -151,6 +164,29 @@ struct SendFlow: View {
             #endif
             model = SendModel(wallet: wallet, holding: holding)
             #if DEBUG
+            // `-tela envio-valor`, `envio-revisao`, `envio-enviando`, `enviado` e `envio-preso`:
+            // um envio da carteira de teste ja com destino, para conferir cada etapa. A revisao
+            // usa o USDT da Tron: a conta XRP dela teve a chave mestra desligada por quem
+            // conhece a frase.
+            let stages = ["envio-valor", "envio-revisao", "envio-enviando", "enviado", "envio-preso"]
+            if stages.contains(DebugDemo.screen ?? "") {
+                let usdt = TokenRegistry.tokens.first { $0.chainID == "tron" && $0.symbol == "USDT" }
+                let review = DebugDemo.screen == "envio-revisao"
+                let held = review && usdt != nil ? Holding(asset: usdt!, amount: BigUInt(8_250_350_000)) : Holding(asset: .native(.xrpl), amount: BigUInt(2_267_600_000))
+                let chain: Chain = review ? .tron : .xrpl
+                let demo = SendModel(wallet: wallet, holding: held)
+                demo.destinationText = review ? "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7" : "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"
+                if case .success(let destination) = Address.validate(demo.destinationText, for: chain) { demo.destination = destination }
+                demo.amountText = DebugDemo.screen == "envio-valor" ? "123456789012,123456" : (DebugDemo.screen == "envio-preso" ? "500" : "150")
+                demo.stage = DebugDemo.screen == "envio-enviando" ? .sending : (DebugDemo.screen == "enviado" ? .done : .amount)
+                if DebugDemo.screen == "envio-preso", let rlusd = TokenRegistry.tokens.first(where: { $0.chainID == "xrpl" && $0.symbol == "RLUSD" }) {
+                    demo.sellingOrders = [OpenOrder(id: "demo", chain: .xrpl, sellAssetID: Asset.native(.xrpl).id, buyAssetID: rlusd.id,
+                                                    remainingSell: BigUInt(2_000_000_000), minimumBuy: BigUInt(3_000_000_000),
+                                                    expiresAt: Date().addingTimeInterval(6 * 86_400), sources: 1, cancellations: [.onchain])]
+                    demo.showingLockedOrders = true
+                }
+                model = demo
+            }
             // A tela de transmissao sem resposta certa, para conferir o desenho.
             if DebugDemo.screen == "envio-incerto" {
                 model?.resultID = "0x" + String(repeating: "ab", count: 32)
@@ -823,16 +859,14 @@ struct SendStages: View {
         let over = model.amount.map { $0 > limit } ?? false
         return VStack(alignment: .leading, spacing: 0) {
             header
+            let shown = model.sendAll ? Fmt.plainDecimal(model.spendable?.amount ?? 0, decimals: holding.asset.decimals) : model.amountText
             HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
-                TextField("0", text: Binding(
-                    get: { model.sendAll ? Fmt.plainDecimal(model.spendable?.amount ?? 0, decimals: holding.asset.decimals) : model.amountText },
-                    set: { model.sendAll = false; model.amountText = $0 }
-                ))
-                .font(.system(size: 40, weight: .bold).monospacedDigit())
-                .foregroundStyle(over ? Palette.down : Palette.ink)
-                .keyboardType(.decimalPad)
-                .fixedSize()
-                Text(holding.asset.symbol).typeStyle(.heading).foregroundStyle(Palette.inkSoft)
+                TextField("0", text: Binding(get: { shown }, set: { model.sendAll = false; model.amountText = $0 }))
+                    .font(.system(size: Self.amountFontSize(shown), weight: .bold).monospacedDigit())
+                    .foregroundStyle(over ? Palette.down : Palette.ink)
+                    .keyboardType(.decimalPad)
+                    .fixedSize()
+                Text(holding.asset.symbol).typeStyle(.heading).foregroundStyle(Palette.inkSoft).lineLimit(1)
             }
             .padding(.top, Space.xl)
             if let fiat, price != nil {
@@ -850,6 +884,18 @@ struct SendStages: View {
             }
             .padding(.top, Space.lg)
             amountSlider(limit: limit, decimals: holding.asset.decimals)
+            if !model.locked.isZero {
+                Button { model.showingLockedOrders = true } label: {
+                    HStack(spacing: Space.xxs) {
+                        Text("\(Fmt.crypto(min(model.locked, limit), decimals: holding.asset.decimals, symbol: holding.asset.symbol)) em ordens de venda abertas")
+                            .typeStyle(.note).foregroundStyle(lockedOver ? Palette.caution : Palette.inkSoft)
+                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                    }
+                }
+                .buttonStyle(.plain)
+                .padding(.top, Space.sm)
+                .accessibilityIdentifier("envio-ordens-abertas")
+            }
             if let note = model.spendable?.reserveNote {
                 Text(note).typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs).fixedSize(horizontal: false, vertical: true)
             }
@@ -865,10 +911,55 @@ struct SendStages: View {
             }
             Spacer()
             PrimaryButton(title: over ? "Saldo insuficiente" : "Revisar", enabled: (model.amount.map { !$0.isZero } ?? false) && !over, loading: model.working) {
-                Task { await review() }
+                // Parte do valor esta numa ordem de venda: antes, a tela de liberar.
+                if lockedOver { model.showingLockedOrders = true } else { Task { await review() } }
             }
         }
-        .task { await loadSpendable() }
+        .task {
+            await loadSpendable()
+            #if DEBUG
+            if DebugDemo.screen == "envio-revisao" { await review() }
+            #endif
+        }
+        .task(id: model.chain?.id) { await loadSellingOrders() }
+        .sheet(isPresented: $model.showingLockedOrders) {
+            LockedOrdersSheet(model: model, limit: limit) { await loadSellingOrders() }
+        }
+    }
+
+    /// O valor pedido passa do que esta livre das ordens de venda abertas.
+    private var lockedOver: Bool {
+        guard !model.locked.isZero, let amount = model.amount, let holding = model.holding else { return false }
+        let limit = model.spendable?.amount ?? portfolio.available(holding)
+        return amount > (limit.subtractingReportingUnderflow(model.locked) ?? BigUInt())
+    }
+
+    /// As ordens limite abertas que vendem este ativo, lidas da rede para esta conta (a
+    /// lista da aba Trocar pode ser de outra carteira ou ainda nao ter sido lida).
+    private func loadSellingOrders() async {
+        #if DEBUG
+        if DebugDemo.screen == "envio-preso" { return }
+        #endif
+        guard let chain = model.chain, let account = model.account, let holding = model.holding,
+              let engine = TradeEngines.engine(for: chain), engine.supportsLimitOrders,
+              let orders = try? await engine.openOrders(account: account) else { return }
+        let id = holding.asset.id.lowercased()
+        model.sellingOrders = orders.filter { $0.sellAssetID.lowercased() == id && $0.chain.id == chain.id }
+    }
+
+    /// O numero grande encolhe com a quantidade de algarismos: um saldo de bilhoes com
+    /// 9 casas cabe na tela, e o slider embaixo nao muda de largura enquanto arrasta.
+    static func amountFontSize(_ text: String) -> CGFloat {
+        let count = max(text.count, 1)
+        return count <= 11 ? 40 : max(18, 40 * 11 / CGFloat(count))
+    }
+
+    /// Para baixo, com 6 algarismos que contam: o slider nao enche o campo de casas.
+    static func roundDown(_ value: BigUInt, significant: Int = 6) -> BigUInt {
+        let digits = value.decimalString.count
+        guard digits > significant else { return value }
+        let factor = BigUInt.power(of: 10, digits - significant)
+        return value / factor * factor
     }
 
     private func request(amount: BigUInt, sendAll: Bool) -> SendRequest? {
@@ -903,6 +994,7 @@ struct SendStages: View {
                 return
             }
             model.plan = plan
+            model.irreversibleAcknowledged = false
             model.stage = .review
         } catch {
             // A fila estava a frente da rede (transacao descartada): esquecida, o proximo
@@ -925,7 +1017,7 @@ struct SendStages: View {
                     model.sendAll = true
                 } else {
                     model.sendAll = false
-                    let part = limit * BigUInt(UInt64((fraction * 1000).rounded())) / BigUInt(1000)
+                    let part = Self.roundDown(limit * BigUInt(UInt64((fraction * 1000).rounded())) / BigUInt(1000))
                     model.amountText = part.isZero ? "" : Fmt.plainDecimal(part, decimals: decimals)
                 }
             }), in: 0...1)
@@ -976,7 +1068,9 @@ struct SendStages: View {
                         Text("cerca de \(Fmt.fiat(Fmt.double(amount, decimals: holding.asset.decimals) * price, session.currency))")
                             .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, 2)
                     }
-                    PlanVerbatimPlate(review: plan.review).padding(.top, Space.lg)
+                    // So o destino (e a tag ou o memo dele): o contrato do token ficou de fora
+                    // (pedido do dono, 14/10/2026). O ativo do plano e conferido em `planMatches`.
+                    PlanVerbatimPlate(review: plan.review, onlyDestination: true).padding(.top, Space.lg)
                     PlanDetailLines(review: plan.review, extra: [("De", model.wallet.name)])
                         .padding(.top, Space.lg)
                     ForEach(Array(warnings(plan).enumerated()), id: \.offset) { _, warning in
@@ -989,7 +1083,8 @@ struct SendStages: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Space.sm) {
-                PrimaryButton(title: model.plan?.review.title ?? "Enviar", loading: model.working) {
+                irreversibleCheck
+                PrimaryButton(title: model.plan?.review.title ?? "Enviar", enabled: model.irreversibleAcknowledged, loading: model.working) {
                     Task { await send() }
                 }
                 if model.isFirstSend {
@@ -1000,6 +1095,35 @@ struct SendStages: View {
             .padding(.top, Space.sm)
             .background(Palette.void)
         }
+    }
+
+    /// A caixa de "sei que nao se desfaz", no desenho do aceite da carteira nova.
+    private var irreversibleCheck: some View {
+        let checked = model.irreversibleAcknowledged
+        return Button { model.irreversibleAcknowledged.toggle() } label: {
+            HStack(alignment: .top, spacing: Space.sm) {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(checked ? Palette.control : Palette.void)
+                    .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(checked ? Palette.inkSoft : Palette.edgeStrong, lineWidth: 1.5))
+                    .overlay {
+                        if checked { Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(Palette.ink) }
+                    }
+                    .frame(width: 24, height: 24)
+                    .padding(.top, 1)
+                Text("Sei que este envio não pode ser desfeito. Depois de confirmado na rede, ninguém consegue devolver, nem a Escalibur.")
+                    .typeStyle(.note).foregroundStyle(checked ? Palette.ink : Palette.inkSoft)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(checked ? "Marcado" : "Desmarcado")
+        .accessibilityAddTraits(checked ? .isSelected : [])
+        .accessibilityIdentifier("envio-irreversivel")
+        .sensoryFeedback(.selection, trigger: checked)
     }
 
     private func warnings(_ plan: SigningPlan) -> [String] {
@@ -1015,6 +1139,9 @@ struct SendStages: View {
         for warning in plan.review.warnings {
             // O aviso de primeiro envio ja aparece embaixo do botao.
             if warning == .firstSendToAddress, model.isFirstSend { continue }
+            // O aviso de token fora da lista saiu do envio (pedido do dono, 14/10/2026): a
+            // moeda e do saldo do dono, e o ativo do plano e conferido em `planMatches`.
+            if case .unverifiedToken = warning { continue }
             out.append(PlanWarningText.text(warning, tagNoun: tagNoun))
         }
         return out
@@ -1156,27 +1283,31 @@ struct SendStages: View {
 
     // MARK: E8 Status
 
+    /// Enviando: a moeda indo para o destino, como na troca. Enviado: a moeda girando com
+    /// o selo, e a confirmacao da rede embaixo (pedido do dono, 14/10/2026).
     private var statusStage: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: 0) {
             Spacer()
-            switch model.status {
-            case .pending:
-                ProgressView().tint(Palette.ink)
-                Text(model.stage == .sending ? "Enviando" : "Enviado").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
-                if let chain = model.chain {
-                    Text(chain.family == .utxo
-                         ? "A primeira confirmação leva cerca de \(chain.typicalConfirmationSeconds / 60) minutos. Pode fechar o app."
-                         : "\(chain.id == "xrpl" ? "No" : "Na") \(chain.name) leva cerca de \(chain.typicalConfirmationSeconds) segundos.")
-                        .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+            if model.stage == .sending {
+                SwapProcessingIndicator(sell: model.holding?.asset, buy: nil, destinationSymbol: MainTabs.walletSymbol)
+                    .frame(maxWidth: .infinity)
+                Text("Enviando").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
+                Text(sendingLine).typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            } else {
+                switch model.status {
+                case .pending, .confirmed:
+                    CoinFlipBadge(asset: model.holding?.asset)
+                    Text("Enviado").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
+                    Text(sendingLine).typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                        .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                    confirmationLine.padding(.top, Space.md)
+                case .failed(let reason):
+                    Image(systemName: "xmark.octagon.fill").font(.system(size: 44)).foregroundStyle(Palette.down)
+                    Text("A rede recusou o envio").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+                    Text(reason).typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                        .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 }
-            case .confirmed(let detail):
-                Image(systemName: "checkmark.circle.fill").font(.system(size: 44)).foregroundStyle(Palette.up)
-                Text("Enviado").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
-                Text(detail ?? "Confirmado na rede.").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
-            case .failed(let reason):
-                Image(systemName: "xmark.octagon.fill").font(.system(size: 44)).foregroundStyle(Palette.down)
-                Text("A rede recusou o envio").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
-                Text(reason).typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
             }
             Spacer()
             if let id = model.resultID, let url = model.chain?.explorerURL(tx: id) {
@@ -1186,9 +1317,38 @@ struct SendStages: View {
                 }
                 .buttonStyle(SecondaryStyle())
             }
-            PrimaryButton(title: "Concluir", action: close).padding(.top, Space.sm)
+            if model.stage != .sending {
+                PrimaryButton(title: "Concluir", action: close).padding(.top, Space.sm)
+            }
         }
         .sensoryFeedback(.success, trigger: model.stage == .done)
+    }
+
+    /// "0,5 ETH para 0x12ab…34cd": o valor que a transacao move, do plano.
+    private var sendingLine: String {
+        guard let holding = model.holding else { return "" }
+        let amount = model.plan?.review.outgoing?.amount ?? model.amount ?? 0
+        let value = Fmt.crypto(amount, decimals: holding.asset.decimals, symbol: holding.asset.symbol, style: .full)
+        guard let address = model.destination?.address else { return value }
+        return "\(value) para \(KnownExchanges.name(for: address) ?? Fmt.address(address))"
+    }
+
+    @ViewBuilder
+    private var confirmationLine: some View {
+        if case .confirmed(let detail) = model.status {
+            HStack(spacing: Space.xs) {
+                Image(systemName: "checkmark.seal.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.up)
+                Text(detail ?? "Confirmado na rede.").typeStyle(.note).foregroundStyle(Palette.ink)
+            }
+        } else if let chain = model.chain {
+            HStack(spacing: Space.xs) {
+                ProgressView().controlSize(.small).tint(Palette.inkSoft)
+                Text(chain.family == .utxo
+                     ? "A primeira confirmação leva cerca de \(chain.typicalConfirmationSeconds / 60) minutos. Pode fechar o app."
+                     : "Confirmando \(chain.id == "xrpl" ? "no" : "na") \(chain.name), cerca de \(chain.typicalConfirmationSeconds) segundos.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }
 
@@ -1221,5 +1381,118 @@ enum PaymentURI {
         } catch {
             return Reading(address: "", chainID: nil, problem: "Este pedido de pagamento não pôde ser lido com segurança. Peça só o endereço.")
         }
+    }
+}
+
+/// Parte do valor esta numa ordem de venda aberta: para enviar, cancela a ordem antes, ou
+/// envia so o que esta livre (pedido do dono, 14/10/2026). O cancelamento passa pela
+/// mesma revisao, PIN e assinatura de Ordens abertas, e o valor so fica livre quando a
+/// rede confirma (ate la a ordem ainda pode executar).
+struct LockedOrdersSheet: View {
+    @Environment(AppSession.self) private var session
+    @Environment(Portfolio.self) private var portfolio
+    @Environment(\.dismiss) private var dismiss
+    @Bindable var model: SendModel
+    /// O disponivel do envio, antes de descontar as ordens.
+    let limit: BigUInt
+    let reload: () async -> Void
+    @State private var cancelling: TradeReviewFlow.Item?
+
+    private var asset: Asset? { model.holding?.asset }
+    private var free: BigUInt { limit.subtractingReportingUnderflow(model.locked) ?? BigUInt() }
+    private var released: Bool { model.amount.map { $0 <= free } ?? false }
+
+    private func amount(_ value: BigUInt) -> String {
+        guard let asset else { return "" }
+        return Fmt.crypto(value, decimals: asset.decimals, symbol: asset.symbol)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(title: "Moeda em ordem de venda") { dismiss() }
+            ScrollView {
+                VStack(alignment: .leading, spacing: Space.md) {
+                    Text(summary).typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                    VStack(spacing: Space.xs) {
+                        ForEach(model.sellingOrders) { order in row(order) }
+                    }
+                    if released {
+                        Banner(kind: .neutral, title: "Liberado. O valor que você digitou já pode ser enviado.")
+                    }
+                }
+                .padding(.horizontal, Space.gutter)
+                .padding(.top, Space.md)
+                .padding(.bottom, Space.lg)
+            }
+            VStack(spacing: Space.sm) {
+                if released {
+                    PrimaryButton(title: "Continuar o envio") { dismiss() }
+                } else if !free.isZero {
+                    SecondaryButton(title: "Enviar só o livre, \(amount(free))") {
+                        model.sendAll = false
+                        model.amountText = Fmt.plainDecimal(free, decimals: asset?.decimals ?? 0)
+                        dismiss()
+                    }
+                }
+            }
+            .padding(.horizontal, Space.gutter)
+            .padding(.bottom, Space.xs)
+        }
+        .presentationDetents([.large])
+        .presentationBackground(Palette.body)
+        .presentationCornerRadius(Radius.sheet)
+        // Rele a cada 6 s: a ordem cancelada sai da lista quando a rede confirma.
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: OpenOrdersSection.pollInterval)
+                guard !Task.isCancelled else { return }
+                await reload()
+            }
+        }
+        .fullScreenCover(item: $cancelling) { item in
+            TradeReviewFlow(item: item) { completed in
+                if completed, case .cancel(let order, _) = item.kind {
+                    OpenOrdersBook.shared.markCancelling(order.id)
+                    Task { await LimitOrderWatch.shared.forget(order.id) }
+                }
+                cancelling = nil
+                if completed { Task { await reload() } }
+            }
+        }
+    }
+
+    private var summary: String {
+        let wanted = model.amount.map(amount) ?? ""
+        return "Do disponível de \(amount(limit)), \(amount(min(model.locked, limit))) estão reservados em ordens de venda abertas. "
+            + "Para enviar \(wanted), cancele a ordem antes. O que ela não vendeu volta a ficar livre na carteira assim que a rede confirmar."
+    }
+
+    private func row(_ order: OpenOrder) -> some View {
+        let sell = TradedAssets.resolve(order.sellAssetID, listed: order.sell, chain: order.chain, session: session, portfolio: portfolio)
+        let buy = TradedAssets.resolve(order.buyAssetID, listed: order.buy, chain: order.chain, session: session, portfolio: portfolio)
+        let sent = OpenOrdersBook.shared.isCancelling(order.id)
+        return HStack(spacing: Space.sm) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Vende \(OpenOrdersSection.amount(order.remainingSell, sell))").typeStyle(.row).foregroundStyle(Palette.ink)
+                Text("por no mínimo \(OpenOrdersSection.amount(order.minimumBuy, buy))").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                Text(sent ? "Cancelamento enviado. Esperando a rede confirmar." : OpenOrdersSection.expiry(order.expiresAt))
+                    .typeStyle(.note).foregroundStyle(sent ? Palette.caution : Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: Space.sm)
+            if sent {
+                ProgressView().tint(Palette.inkSoft)
+            } else if let via = OpenOrdersSection.safest(order.cancellations), session.selectedWallet?.isWatchOnly == false {
+                Button { cancelling = TradeReviewFlow.Item(kind: .cancel(order, via), chain: order.chain, fiat: nil) } label: {
+                    Text("Cancelar").typeStyle(.label).foregroundStyle(Palette.down)
+                        .padding(.horizontal, Space.sm).frame(height: 34)
+                        .background(Capsule(style: .continuous).fill(Palette.rail))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("envio-cancelar-ordem")
+            }
+        }
+        .padding(Space.md)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.void)
+            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
     }
 }

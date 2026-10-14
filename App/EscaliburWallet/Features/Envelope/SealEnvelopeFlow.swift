@@ -3,20 +3,12 @@ import EscaliburKeys
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// O decifrador de envelopes para computador: o `decifrar.py`, a descricao do formato
-/// e o LEIA-ME, embarcados no app e travados por `recuperacao.lock`. Sem ele, o
-/// envelope so abriria num app Escalibur; com ele, abre em qualquer computador com
-/// Python, mesmo que o app deixe de existir.
-enum RecoveryKit {
-    static var files: [URL] {
-        [("LEIA-ME", "txt"), ("decifrar", "py"), ("FORMATO", "md")].compactMap { Bundle.main.url(forResource: $0.0, withExtension: $0.1) }
-    }
-}
-
 /// V1: lacrar a senha de uma carteira num envelope Escalibur.
 ///
-/// O envelope sai no formato `.esclbr` v1 do Escalibur, byte a byte: abre no app
-/// Escalibur, aqui, e no decifrador de referencia em Python.
+/// O envelope sai no formato `.esclbr` v1 do Escalibur, byte a byte, e abre no app
+/// Escalibur e aqui. O decifrador para computador saiu do app (pedido do dono,
+/// 14/10/2026); o de referencia em Python ficou em `tools/referencia`, so para os
+/// testes conferirem a cifra.
 struct SealEnvelopeFlow: View {
     @Environment(AppSession.self) private var session
     @Environment(AuthCoordinator.self) private var auth
@@ -112,7 +104,7 @@ struct SealEnvelopeFlow: View {
                 EnvelopePoint(icon: "lock.doc", text: "A senha da carteira é cifrada neste iPhone e vira um arquivo.")
                 EnvelopePoint(icon: "key", text: "Você escolhe a senha que abre o arquivo. Ela não sai do iPhone e ninguém mais sabe.")
                 EnvelopePoint(icon: "eye.slash", text: "Nem a Escalibur consegue abrir: não temos a sua senha nem cópia do arquivo.")
-                EnvelopePoint(icon: "externaldrive", text: "Guarde o arquivo onde quiser. Ele abre aqui ou no decifrador aberto, num computador.")
+                EnvelopePoint(icon: "externaldrive", text: "Guarde o arquivo onde quiser. Ele só abre no app, com a senha do envelope.")
             }
             .padding(Space.base)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -322,13 +314,7 @@ struct SealEnvelopeFlow: View {
                     }
                     .buttonStyle(PrimaryStyle())
                 }
-                ShareLink(items: RecoveryKit.files) {
-                    Text("Salvar o decifrador para computador").typeStyle(.action)
-                        .frame(maxWidth: .infinity).frame(height: Height.secondary)
-                }
-                .buttonStyle(SecondaryStyle())
-                .padding(.top, Space.sm)
-                Text("Abre no app Escalibur, aqui, ou num computador com o decifrador, que também fica em Ajustes, Sobre.")
+                Text("Para abrir: Ajustes, Abrir um envelope, neste ou em outro iPhone com o app.")
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
             } else {

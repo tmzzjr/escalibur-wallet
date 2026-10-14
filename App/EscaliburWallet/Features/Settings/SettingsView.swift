@@ -666,12 +666,12 @@ struct AboutView: View {
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 }
                 SettingsGroup {
-                    ShareLink(items: RecoveryKit.files) {
-                        SettingsRow(icon: "laptopcomputer", title: "Decifrador de envelopes para computador")
-                    }
                     Button { legalDocument = .terms } label: { SettingsRow(icon: "doc.text", title: "Termos de uso") }
                     Button { legalDocument = .privacy } label: { SettingsRow(icon: "hand.raised", title: "Política de privacidade") }
                 }
+                // O grupo ja traz a margem da tela; aqui ela vem do VStack, e somar as duas
+                // desalinhava os botoes do texto acima.
+                .padding(.horizontal, -Space.gutter)
             }
             .padding(Space.gutter)
         }

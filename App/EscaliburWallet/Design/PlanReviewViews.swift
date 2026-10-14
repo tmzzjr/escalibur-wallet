@@ -10,10 +10,17 @@ struct PlanVerbatimPlate: View {
     /// quem fica autorizado) ficam atras de um toque. No envio, o destino fica sempre a
     /// vista: e o que a pessoa confere antes de assinar.
     var collapsible = false
+    /// No envio, so o destino e o que vai com ele (tag, memo): contrato, mint e emissor do
+    /// token ficam de fora (pedido do dono, 14/10/2026).
+    var onlyDestination = false
     @State private var expanded = false
 
+    static func isAssetLine(_ label: String) -> Bool {
+        label.hasPrefix("Contrato") || label.hasPrefix("Mint") || label.contains("emissor") || label.hasPrefix("Conta de token")
+    }
+
     var body: some View {
-        let lines = review.lines.filter(\.verbatim)
+        let lines = review.lines.filter { $0.verbatim && !(onlyDestination && Self.isAssetLine($0.label)) }
         if !lines.isEmpty, collapsible, !expanded {
             Button { withAnimation(Motion.fade) { expanded = true } } label: {
                 HStack(spacing: Space.sm) {

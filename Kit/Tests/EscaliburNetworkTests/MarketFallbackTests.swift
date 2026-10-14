@@ -86,6 +86,24 @@ struct MarketFallbackTests {
         #expect(fake.requests.count == geckoCalls + 1)
     }
 
+    @Test("Lista de reserva reusa as logos que o CoinGecko ja trouxe (o CDN do CoinPaprika recusa o app)")
+    func fallbackKeepsKnownImages() async throws {
+        let fake = Fake(), clock = Clock()
+        try fake.on(Self.gecko + "coins/markets", fixture: "gecko-markets")
+        let service = Self.service(fake, clock)
+        let first = try await service.marketSnapshot(currency: "brl")
+        let images = Dictionary(first.coins.compactMap { coin in coin.imageURL.map { (coin.id, $0) } }, uniquingKeysWith: { a, _ in a })
+        #expect(!images.isEmpty)
+
+        clock.advance(30)
+        fake.on(Self.gecko + "coins/markets", status: 429)
+        try fake.on(Self.paprika + "tickers", fixture: "paprika-tickers")
+        let fallback = try await service.marketSnapshot(currency: "brl")
+        #expect(fallback.source == .coinpaprika)
+        for coin in fallback.coins { #expect(coin.imageURL == images[coin.id], "\(coin.id)") }
+        #expect(fallback.coins.contains { $0.imageURL != nil })
+    }
+
     @Test("Sem as duas fontes, a ultima lista boa volta, com a hora dela")
     func listStale() async throws {
         let fake = Fake(), clock = Clock()

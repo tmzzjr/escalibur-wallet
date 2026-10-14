@@ -8,8 +8,16 @@ para o repositorio e passa por revisao como qualquer outro arquivo.
     python3 tools/baixar-logos.py              todos
     python3 tools/baixar-logos.py celo linea   so os nomes dados (id do CoinGecko da
                                                moeda ou id da rede em Chain.swift)
+    python3 tools/baixar-logos.py --mercado 250
+                                               as 250 maiores do Mercado que ainda nao
+                                               tem logo, em 128 px: com o CoinGecko em
+                                               429, a lista de reserva nao traz logo
+
+So aceita imagem dos hosts de imagem do CoinGecko (os mesmos do `ImageLoader` do app),
+id em [a-z0-9-] e ate 160 KB: uma resposta adulterada nao poe arquivo local nem de
+outro host no repositorio (pentest de 14/10/2026, B7).
 """
-import json, os, sys, urllib.request, hashlib, shutil, subprocess, tempfile
+import json, os, re, sys, time, urllib.error, urllib.request, hashlib, shutil, subprocess, tempfile
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(RAIZ, "App/EscaliburWallet/Resources/Assets.xcassets/Logos")
@@ -48,11 +56,29 @@ REDES["cardano"] = "cardano"
 REDES["polkadot"] = "polkadot"
 REDES["near"] = "near-protocol"
 REDES["aptos"] = "aptos"
-SO = set(sys.argv[1:])
+ARGS = sys.argv[1:]
+MERCADO = 0
+if ARGS[:1] == ["--mercado"]:
+    MERCADO = int(ARGS[1]) if len(ARGS) > 1 else 250
+    ARGS = []
+SO = set(ARGS)
+ORIGENS = ("https://coin-images.coingecko.com/", "https://assets.coingecko.com/")
+API = "https://api.coingecko.com/api/v3/"
+ID = re.compile(r"^[a-z0-9-]{1,80}$")
+LIMITE = 160 * 1024
 
 def get(url):
+    if not (url.startswith(API) or url.startswith(ORIGENS)):
+        raise SystemExit("host recusado: " + url)
     req = urllib.request.Request(url, headers={"User-Agent": "EscaliburWallet-tools"})
-    return urllib.request.urlopen(req, timeout=30).read()
+    # O CoinGecko sem chave limita por minuto: 429 espera e tenta de novo.
+    for tentativa in range(6):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resposta:
+                return resposta.read(LIMITE + 1 if not url.startswith(API) else 8 * 1024 * 1024)
+        except urllib.error.HTTPError as erro:
+            if erro.code != 429 or tentativa == 5: raise
+            time.sleep(20 * (tentativa + 1))
 
 def webp_para_png(dados):
     """O CoinGecko serve alguns logos so em WebP. O app so decodifica PNG e JPEG (menos
@@ -65,12 +91,25 @@ def webp_para_png(dados):
         if r.returncode != 0 or not os.path.exists(destino): return None
         return open(destino, "rb").read()
 
-def salvar(nome, url):
-    dados = get(url.replace("/large/", "/large/"))
+def reduzir(dados, lado):
+    """Logo do Mercado em `lado` px: a lista mostra 40 pt."""
+    with tempfile.TemporaryDirectory() as pasta:
+        origem, destino = os.path.join(pasta, "a.png"), os.path.join(pasta, "b.png")
+        open(origem, "wb").write(dados)
+        r = subprocess.run(["sips", "-s", "format", "png", "-Z", str(lado), origem, "--out", destino], capture_output=True)
+        return open(destino, "rb").read() if r.returncode == 0 and os.path.exists(destino) else dados
+
+def salvar(nome, url, lado=None):
+    if not ID.match(nome.split("-", 1)[1] if "-" in nome else nome) or not isinstance(url, str) or not url.startswith(ORIGENS):
+        print("recusado", nome, url); return
+    dados = get(url)
+    if len(dados) > LIMITE:
+        print("grande demais", nome, len(dados)); return
     if dados[:4] == b"RIFF" and dados[8:12] == b"WEBP":
         dados = webp_para_png(dados) or dados
     if not (dados.startswith(b"\x89PNG") or dados.startswith(b"\xff\xd8\xff")):
         print("formato recusado", nome, url); return
+    if lado: dados = reduzir(dados, lado)
     ext = "png" if dados.startswith(b"\x89PNG") else "jpg"
     pasta = os.path.join(ASSETS, nome + ".imageset")
     os.makedirs(pasta, exist_ok=True)
@@ -83,11 +122,23 @@ def salvar(nome, url):
 os.makedirs(ASSETS, exist_ok=True)
 json.dump({"info": {"author": "xcode", "version": 1}, "properties": {"provides-namespace": False}},
           open(os.path.join(ASSETS, "Contents.json"), "w"))
+if MERCADO:
+    # As maiores do Mercado, na ordem da lista, que ainda nao tem logo no app.
+    feitos = 0
+    for pagina in range(1, (MERCADO + 249) // 250 + 1):
+        lista = json.loads(get(API + "coins/markets?vs_currency=usd&order=market_cap_desc&per_page=%d&page=%d" % (min(MERCADO, 250), pagina)))
+        for m in lista:
+            if feitos >= MERCADO: break
+            feitos += 1
+            mid = m.get("id", "")
+            if not ID.match(mid) or os.path.exists(os.path.join(ASSETS, "logo-" + mid + ".imageset")): continue
+            salvar("logo-" + mid, m.get("image"), lado=128)
+    sys.exit(0)
 moedas = [m for m in MOEDAS if not SO or m in SO]
 if moedas:
     mercados = json.loads(get("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=" + ",".join(moedas)))
     for m in mercados:
-        salvar("logo-" + m["id"], m["image"])
+        if m.get("id") in moedas: salvar("logo-" + m["id"], m.get("image"))
 plataformas = {p["id"]: p for p in json.loads(get("https://api.coingecko.com/api/v3/asset_platforms"))}
 for rede, pid in REDES.items():
     if SO and rede not in SO: continue

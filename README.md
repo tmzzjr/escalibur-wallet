@@ -30,7 +30,7 @@ Dúvidas e problemas: thomaz@xtech.international, ou a [página de suporte](http
 
 ## O envelope Escalibur
 
-A carteira lacra e abre o mesmo arquivo `.esclbr` do app [Escalibur](../escalibur): Argon2id, ChaCha20-Poly1305, quatro compartimentos e formato aberto. Um envelope lacrado aqui abre no Escalibur e no decifrador de referência em Python. Um envelope lacrado por outro programa, escrito só a partir da especificação (`tools/lacrar-referencia.py`), abre aqui. Os testes conferem os dois sentidos.
+A carteira lacra e abre o mesmo arquivo `.esclbr` do app [Escalibur](../escalibur): Argon2id, ChaCha20-Poly1305, quatro compartimentos e formato aberto. Um envelope lacrado aqui abre no Escalibur e no decifrador de referência em Python (`tools/referencia`, só para os testes: o app não distribui decifrador para computador). Um envelope lacrado por outro programa, escrito só a partir da especificação (`tools/lacrar-referencia.py`), abre aqui. Os testes conferem os dois sentidos.
 
 ## Construir e conferir
 

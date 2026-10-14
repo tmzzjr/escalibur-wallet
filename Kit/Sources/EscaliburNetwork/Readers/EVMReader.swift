@@ -256,6 +256,10 @@ public actor EVMReader {
 
     /// Transmite os mesmos bytes assinados a dois provedores. Aceita se pelo menos um
     /// aceitou; o id e sempre o calculado localmente.
+    ///
+    /// Volta no primeiro que aceita: esperar o segundo segurava a tela de "Enviando" pelo
+    /// provedor mais lento (relato do dono, 14/10/2026). O segundo envio segue sozinho, com
+    /// os mesmos bytes; a resposta dele so conta se o primeiro recusou.
     public func broadcast(_ signed: SignedTransaction, chain: Chain, route: EVMBroadcastRoute = .publicMempool) async throws -> BroadcastReceipt {
         guard chain.family == .evm, signed.chainID == chain.id else { throw ReaderError.broadcastMismatch }
         // O que sai e exatamente `raw`, e o id e o keccak dele: um `encoded` que nao fosse
@@ -276,27 +280,33 @@ public actor EVMReader {
             pool = self.pool("ethereum-relays", privateRelays)
             targets = await pool.available()
         }
+        guard !targets.isEmpty else { throw ReaderError.notEnoughProviders(needed: 1, got: 0) }
         let transport = self.transport
         let id = signed.id.lowercased()
-        var tally = BroadcastTally()
-        await withTaskGroup(of: (Provider, Result<String, Error>).self) { group in
-            for provider in targets {
-                group.addTask {
-                    do {
-                        try await self.verify(provider, chain: chain)
-                        let result = try await Self.call(transport, provider.baseURL, "eth_sendRawTransaction", [.string(signed.encoded)])
-                        guard try result.string("result").lowercased() == id else { throw ReaderError.broadcastMismatch }
-                        return (provider, .success(id))
-                    } catch {
-                        return (provider, .failure(error))
-                    }
+        let (answers, delivery) = AsyncStream<(Provider, Result<String, Error>)>.makeStream()
+        for provider in targets {
+            Task {
+                let result: Result<String, Error>
+                do {
+                    try await self.verify(provider, chain: chain)
+                    let answer = try await Self.call(transport, provider.baseURL, "eth_sendRawTransaction", [.string(signed.encoded)])
+                    guard try answer.string("result").lowercased() == id else { throw ReaderError.broadcastMismatch }
+                    result = .success(id)
+                } catch {
+                    result = .failure(error)
+                    await Quorum.record(error, provider, pool)
                 }
-            }
-            for await (provider, result) in group {
-                tally.add(result, provider: provider)
-                if case .failure(let error) = result { await Quorum.record(error, provider, pool) }
+                delivery.yield((provider, result))
             }
         }
+        var tally = BroadcastTally()
+        var heard = 0
+        for await (provider, result) in answers {
+            tally.add(result, provider: provider)
+            heard += 1
+            if !tally.accepted.isEmpty || heard == targets.count { break }
+        }
+        delivery.finish()
         return try tally.receipt(chainID: chain.id, id: signed.id)
     }
 

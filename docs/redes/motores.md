@@ -153,7 +153,7 @@ Onde não há ordem limite, as duas lançam `SendEngineError.unavailable`.
 
 | Rede | Lista | Cancela | Prazo |
 |---|---|---|---|
-| EVM (CoW) | API da CoW (única fonte do livro), UID conferido, só abertas, não invalidadas e no prazo | Pela CoW, grátis e sem garantia (`.offchain`), ou `invalidateOrder` na cadeia, garantido, com taxa (`.onchain`) | De 1 hora a 30 dias, ou "até cancelar": 364 dias, perto do máximo de um ano que o livro da CoW aceita, com a data na revisão |
+| EVM (CoW) | API da CoW (única fonte do livro), UID conferido, só abertas, não invalidadas e no prazo | `invalidateOrder` na cadeia, garantido, com taxa (`.onchain`). O motor ainda sabe o pedido à CoW (`.offchain`, grátis e sem garantia), mas o app só oferece o da cadeia desde 11/10/2026 | De 1 hora a 30 dias, ou "até cancelar": 364 dias, perto do máximo de um ano que o livro da CoW aceita, com a data na revisão |
 | XRP Ledger | `account_offers` em dois servidores no mesmo ledger | `OfferCancel`, depois de conferir que a oferta ainda está aberta | Opcional; sem prazo, a oferta fica até executar ou ser cancelada |
 | Stellar | `/accounts/{G}/offers` nas duas Horizons, juntas, com quantas viram cada oferta | `ManageSellOffer` com quantidade zero, com os ativos lidos da rede | Não existe: a oferta fica até executar ou ser cancelada |
 

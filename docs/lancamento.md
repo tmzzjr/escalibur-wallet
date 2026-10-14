@@ -83,8 +83,7 @@ do dono com o advogado.
   protocolos públicos de cada rede, crie ordens limite, leve USDC, ETH e USDT entre redes
   pela ponte e receba alertas de preço e de recebimento gerados no próprio iPhone. Antes
   de assinar, o app mostra destino, valor e taxa, e confere o que será assinado. Guarde a
-  senha da carteira num envelope cifrado com senha própria, que também abre num
-  computador. O código é aberto.
+  senha da carteira num envelope cifrado com senha própria. O código é aberto.
   - Sem preço, sem promessa de ganho e sem nome de outra carteira (2.3.7 e 2.3.10).
 
 **Privacidade do app:** "Não, não coletamos dados deste app". Rastreamento: não. O app não
@@ -146,9 +145,7 @@ e-mail.
 > Other features: price, incoming-payment and limit-order alerts are local notifications
 > created on the device; background app refresh only reads public prices, balances and
 > order status, and there is no push server. Optional voice confirmation uses on-device
-> speech recognition only. "Decifrador de envelopes para computador" shares a Python
-> script and a format description so users can open their encrypted backup (.esclbr) on a
-> computer; the app never runs it.
+> speech recognition only. The encrypted backup (.esclbr) is opened inside the app only.
 
 **Se a Apple pedir a licença da 3.1.5(iii)** (em inglês):
 - Countries: [lista decidida com o advogado].

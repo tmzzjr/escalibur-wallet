@@ -44,6 +44,39 @@ final class TradeModel {
     /// Refazer a ordem quando vencer: o app avisa e pergunta (`LimitRenewalCenter`).
     var renewOnExpiry = false
 
+    // Quanto receber (pedido do dono, 14/10/2026)
+    /// O dono digitou em "Voce recebe". Na troca imediata o app acha quanto pagar
+    /// (`ExactOutSolver`); na ordem limite, o preco ou o valor vendido sai da conta.
+    var exactOut = false
+    var receiveText = ""
+    /// O campo "Voce recebe" esta com o teclado.
+    var editingReceive = false
+    /// A busca de quanto pagar para o recebido digitado.
+    var solving = false
+    /// Nem a ultima tentativa chegou ao recebido digitado: o garantido fica abaixo.
+    var shortOfTarget = false
+    /// Na ordem limite, o que acompanha o recebido digitado.
+    var limitDerives: LimitDerived = .price
+
+    enum LimitDerived { case price, amount }
+
+    var wantOut: BigUInt? {
+        guard let buy else { return nil }
+        return Fmt.parseAmount(receiveText, decimals: buy.decimals)
+    }
+
+    /// O dono digitou em "Voce paga" (ou "Voce vende"): volta a valer o valor de entrada.
+    func typePay(_ text: String) {
+        amountText = text
+        clearExactOut()
+    }
+
+    func clearExactOut() {
+        exactOut = false
+        receiveText = ""
+        shortOfTarget = false
+    }
+
     var amountIn: BigUInt? {
         guard let sell else { return nil }
         return Fmt.parseAmount(amountText, decimals: sell.decimals)
@@ -59,6 +92,7 @@ final class TradeModel {
         inParts = false
         error = nil
         amountText = ""
+        clearExactOut()
     }
 
     /// O que a tela mostra em "Voce recebe": o minimo garantido da execucao escolhida,
@@ -172,13 +206,28 @@ struct TradeView: View {
                 model.buy = TokenRegistry.tokens.first { $0.chainID == "xrpl" && $0.symbol == "RLUSD" }
                 model.amountText = "1000"
             }
+            // `-tela trocar-recebe` e `-tela limite-recebe`: "Voce recebe" ja digitado (500
+            // RLUSD), para conferir a busca do valor a pagar e o preco que sai da conta.
+            if ["trocar-recebe", "limite-recebe"].contains(DebugDemo.screen), model.receiveText.isEmpty {
+                model.reset(to: .xrpl)
+                model.buy = TokenRegistry.tokens.first { $0.chainID == "xrpl" && $0.symbol == "RLUSD" }
+                if DebugDemo.screen == "limite-recebe" { model.amountText = "1000" }
+                if DebugDemo.screen == "limite-recebe" { typeLimitReceive("1500") } else { model.receiveText = "500"; model.exactOut = true }
+            }
             #endif
         }
         .onChange(of: router.tradePreset?.asset.id) { _, _ in applyPreset() }
+        // Outro modo: o recebido digitado era do anterior (o valor a pagar fica).
+        .onChange(of: router.tradeMode) { _, _ in model.clearExactOut() }
         .sheet(item: $picking) { side in
             TokenPickerSheet(chain: model.chain, exclude: side == .sell ? model.buy : model.sell) { asset in
                 if side == .sell { model.sell = asset } else { model.buy = asset }
                 model.quote = nil
+                // Outra moeda a receber: o recebido digitado era em outra unidade.
+                if side == .buy, model.exactOut {
+                    model.clearExactOut()
+                    if router.tradeMode == .now { model.amountText = "" }
+                }
                 picking = nil
             }
         }
@@ -228,8 +277,11 @@ struct TradeView: View {
         }
     }
 
+    /// Com o recebido digitado, o valor a pagar e do app: a busca so recomeca quando o
+    /// recebido, o par, a tolerancia ou a execucao (em partes) mudam.
     private var quoteKey: String {
-        "\(model.chain.id)|\(model.sell?.id ?? "")|\(model.buy?.id ?? "")|\(model.amountText)|\(slippage())|\(router.tradeMode == .now)"
+        let amount = model.exactOut ? "recebe:\(model.receiveText)|\(model.inParts)" : "paga:\(model.amountText)"
+        return "\(model.chain.id)|\(model.sell?.id ?? "")|\(model.buy?.id ?? "")|\(amount)|\(slippage())|\(router.tradeMode == .now)"
     }
 
     /// A tolerancia do pedido: a automatica (o par, o dia e a rede) ou a escolhida no
@@ -254,13 +306,16 @@ struct TradeView: View {
     private var nowForm: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(spacing: 4) {
-                AmountBox(title: "Você paga", asset: model.sell, amount: $model.amountText, balance: balance(model.sell),
-                          fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
+                AmountBox(title: "Você paga", asset: model.sell, amount: Binding(get: { model.amountText }, set: { model.typePay($0) }),
+                          balance: balance(model.sell), fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
+                          loading: model.exactOut && model.solving, computed: model.exactOut,
                           onPick: { picking = .sell }, onFraction: fractionAction)
-                AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(receiveText), balance: balance(model.buy),
-                          fiat: fiat(model.shownMinimum, model.buy), editable: false, over: false,
-                          loading: model.quoting && model.quote == nil && model.amountIn != nil,
-                          onPick: { picking = .buy }, onFraction: nil)
+                AmountBox(title: "Você recebe", asset: model.buy, amount: receiveBinding(computed: receiveText),
+                          balance: balance(model.buy), fiat: fiat(model.exactOut ? model.wantOut : model.shownMinimum, model.buy),
+                          editable: true, over: false,
+                          loading: !model.exactOut && model.quoting && model.quote == nil && model.amountIn != nil,
+                          computed: !model.exactOut, placeholder: receivePlaceholder(receiveText), keyboardDone: false,
+                          onFocusChange: receiveFocus, onPick: { picking = .buy }, onFraction: nil)
                     .overlay(alignment: .top) {
                         Button(action: flip) {
                             Image(systemName: "arrow.up.arrow.down").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.ink)
@@ -290,6 +345,33 @@ struct TradeView: View {
     private var receiveText: String {
         guard let minimum = model.shownMinimum, let buy = model.buy else { return "" }
         return Fmt.plainDecimal(minimum, decimals: buy.decimals)
+    }
+
+    /// "Voce recebe" editavel: mostra o calculado ate o dono digitar. Com o teclado nele,
+    /// o campo abre vazio, com o calculado de dica, e o que se digita vira o pedido.
+    private func receiveBinding(computed: String) -> Binding<String> {
+        Binding(
+            get: { model.exactOut ? model.receiveText : (model.editingReceive ? "" : computed) },
+            set: { text in
+                if router.tradeMode == .limit { typeLimitReceive(text) } else {
+                    model.receiveText = text
+                    model.exactOut = true
+                }
+            }
+        )
+    }
+
+    private func receivePlaceholder(_ computed: String) -> String {
+        !model.exactOut && model.editingReceive && !computed.isEmpty ? computed : "0"
+    }
+
+    /// Saiu do campo sem digitar nada: volta a valer o valor de entrada. Na troca
+    /// imediata, o valor a pagar era do app e sai junto.
+    private func receiveFocus(_ focused: Bool) {
+        model.editingReceive = focused
+        guard !focused, model.exactOut, model.receiveText.isEmpty else { return }
+        model.exactOut = false
+        if router.tradeMode == .now { model.amountText = "" }
     }
 
     private var routeText: String {
@@ -325,6 +407,10 @@ struct TradeView: View {
                 }
                 .buttonStyle(.plain)
                 Text(feeText(quote)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                if model.exactOut, model.shortOfTarget {
+                    Text("A liquidez de agora não chega a \(model.receiveText) \(buy.symbol). O garantido fica em \(Fmt.crypto(model.shownMinimum ?? quote.minimumOut, decimals: buy.decimals, symbol: buy.symbol, style: .full)).")
+                        .typeStyle(.note).foregroundStyle(Palette.caution).fixedSize(horizontal: false, vertical: true)
+                }
                 if let unverified = [sell, buy].first(where: { $0.origin != nil }) {
                     Text("\(unverified.symbol) não está na lista verificada da Escalibur. Qualquer pessoa cria um token com qualquer nome, e alguns deixam comprar mas não deixam vender. Confira o contrato antes.")
                         .typeStyle(.note).foregroundStyle(Palette.caution).fixedSize(horizontal: false, vertical: true)
@@ -407,13 +493,14 @@ struct TradeView: View {
 
     private var limitForm: some View {
         VStack(alignment: .leading, spacing: 4) {
-            AmountBox(title: "Você vende", asset: model.sell, amount: $model.amountText, balance: balance(model.sell),
-                      fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
+            AmountBox(title: "Você vende", asset: model.sell, amount: Binding(get: { model.amountText }, set: { model.typePay($0) }),
+                      balance: balance(model.sell), fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
+                      computed: model.exactOut && model.limitDerives == .amount,
                       onPick: { picking = .sell }, onFraction: setFraction)
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Quando 1 \(model.sell?.symbol ?? "") valer").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 HStack(alignment: .firstTextBaseline) {
-                    TextField("0", text: $model.targetPriceText)
+                    TextField("0", text: Binding(get: { model.targetPriceText }, set: { model.targetPriceText = $0; limitPriceChanged() }))
                         .font(.system(size: 28, weight: .bold).monospacedDigit()).foregroundStyle(Palette.ink)
                         .keyboardType(.decimalPad)
                     Text(model.buy?.symbol ?? "").typeStyle(.action).foregroundStyle(Palette.inkSoft)
@@ -432,8 +519,9 @@ struct TradeView: View {
             .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
                 .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
             limitSanityLine
-            AmountBox(title: "Você recebe", asset: model.buy, amount: .constant(limitReceiveText), balance: balance(model.buy),
-                      fiat: nil, editable: false, over: false, onPick: { picking = .buy }, onFraction: nil)
+            AmountBox(title: "Você recebe", asset: model.buy, amount: receiveBinding(computed: limitReceiveText), balance: balance(model.buy),
+                      fiat: nil, editable: true, over: false, computed: !model.exactOut, placeholder: receivePlaceholder(limitReceiveText),
+                      keyboardDone: false, onFocusChange: receiveFocus, onPick: { picking = .buy }, onFraction: nil)
             VStack(alignment: .leading, spacing: Space.xs) {
                 let options = Self.validities(model.chain)
                 if options.isEmpty {
@@ -596,6 +684,11 @@ struct TradeView: View {
     /// O minimo da ordem limite em unidades da rede, calculado do preco digitado sem
     /// passar pelo texto formatado: valor vendido vezes preco, arredondado para baixo.
     private var limitMinimumOut: BigUInt? {
+        // Recebido digitado: ele mesmo e o minimo, sem passar pelo preco arredondado.
+        if model.exactOut {
+            guard let amount = model.amountIn, !amount.isZero, let want = model.wantOut, !want.isZero else { return nil }
+            return want
+        }
         guard let amount = model.amountIn, !amount.isZero, let sell = model.sell, let buy = model.buy,
               let price = Fmt.parseAmount(model.targetPriceText, decimals: 36), !price.isZero else { return nil }
         let out = amount * price * Self.powerOfTen(buy.decimals) / (Self.powerOfTen(sell.decimals) * Self.powerOfTen(36))
@@ -635,6 +728,47 @@ struct TradeView: View {
         let text = Self.priceText(rate * (1 + Double(percent) / 100))
         model.targetPriceText = text
         model.autoTarget = percent == 0 ? text : nil
+        limitPriceChanged()
+    }
+
+    /// "Voce recebe" digitado na ordem limite. Com valor vendido, o preco sai da conta
+    /// (como na CoW); sem ele, sai o valor vendido, pelo preco do campo.
+    private func typeLimitReceive(_ text: String) {
+        if !model.exactOut { model.limitDerives = (model.amountIn?.isZero ?? true) ? .amount : .price }
+        model.receiveText = text
+        model.exactOut = true
+        deriveLimit()
+    }
+
+    private func deriveLimit() {
+        guard model.exactOut, let want = model.wantOut, !want.isZero, let sell = model.sell, let buy = model.buy else { return }
+        let wantValue = Fmt.double(want, decimals: buy.decimals)
+        switch model.limitDerives {
+        case .price:
+            guard let amount = model.amountIn, !amount.isZero else { return }
+            model.targetPriceText = Self.priceText(wantValue / Fmt.double(amount, decimals: sell.decimals))
+            model.autoTarget = nil
+        case .amount:
+            guard let price = Double(model.targetPriceText.replacingOccurrences(of: ",", with: ".")), price > 0, price.isFinite,
+                  let amount = Self.units(wantValue / price, decimals: sell.decimals) else { return }
+            model.amountText = Fmt.plainDecimal(ExactOutSolver.roundUp(amount), decimals: sell.decimals)
+        }
+    }
+
+    /// O preco mudou (digitado, chip ou o de agora). Se o valor vendido acompanha o
+    /// recebido digitado, ele refaz a conta; se era o preco que acompanhava, o recebido
+    /// volta a sair do preco.
+    private func limitPriceChanged() {
+        guard model.exactOut else { return }
+        if model.limitDerives == .amount { deriveLimit() } else { model.clearExactOut() }
+    }
+
+    /// Um valor decimal em unidades da rede, arredondado para cima.
+    static func units(_ value: Double, decimals: Int) -> BigUInt? {
+        guard value.isFinite, value > 0 else { return nil }
+        let text = String(format: "%.\(min(decimals, 18))f", value)
+        guard let parsed = Fmt.parseAmount(text, decimals: decimals) else { return nil }
+        return parsed + BigUInt(1)
     }
 
     // MARK: Rodape
@@ -732,7 +866,7 @@ struct TradeView: View {
         guard let sell = model.sell else { return }
         let total = free(sell)
         let part = fraction >= 1 ? total : total * BigUInt(UInt64(fraction * 100)) / BigUInt(100)
-        model.amountText = Fmt.plainDecimal(part, decimals: sell.decimals)
+        model.typePay(Fmt.plainDecimal(part, decimals: sell.decimals))
     }
 
     private func flip() {
@@ -743,14 +877,29 @@ struct TradeView: View {
             model.buy = sell
             model.amountText = ""
             model.quote = nil
+            model.clearExactOut()
         }
     }
 
     private func refreshQuote() async {
         guard router.tradeMode == .now, let engine, let wallet = session.selectedWallet, !wallet.isWatchOnly,
-              let sell = model.sell, let buy = model.buy, let amount = model.amountIn, !amount.isZero,
-              let account = wallet.account(model.chain) else {
+              let sell = model.sell, let buy = model.buy, let account = wallet.account(model.chain) else {
             model.quote = nil
+            model.quoting = false
+            return
+        }
+        if model.exactOut {
+            let chain = model.chain
+            let tolerance = slippage()
+            await solveLoop(sell: sell, buy: buy) { amount in
+                try await engine.quote(TradeRequest(walletID: wallet.id, chain: chain, account: account, sell: sell, buy: buy,
+                                                    amountIn: amount, slippageBasisPoints: tolerance))
+            }
+            return
+        }
+        guard let amount = model.amountIn, !amount.isZero else {
+            model.quote = nil
+            model.quoting = false
             return
         }
         // Pedido novo (par, valor, rede ou tolerancia): o aceite do impacto era do outro.
@@ -779,6 +928,64 @@ struct TradeView: View {
             }
         }
     }
+
+    /// "Voce recebe" digitado: acha quanto pagar e, a cada 15 s, recota mantendo o
+    /// recebido. Na revisao o motor recota esse valor e monta o plano como sempre.
+    private func solveLoop(sell: Asset, buy: Asset, quote: (BigUInt) async throws -> TradeQuote) async {
+        guard let want = model.wantOut, !want.isZero else {
+            model.quote = nil
+            model.quoting = false
+            model.solving = false
+            model.shortOfTarget = false
+            model.amountText = ""
+            return
+        }
+        model.acceptedImpactPercent = nil
+        try? await Task.sleep(for: .milliseconds(400))
+        guard !Task.isCancelled else { return }
+        // O valor a pagar some ate a primeira resposta; nas recotacoes, fica o anterior.
+        model.solving = true
+        while !Task.isCancelled {
+            model.quoting = true
+            model.error = nil
+            do {
+                let solution = try await ExactOutSolver.solve(
+                    want: want, start: sellEstimate(want: want, sell: sell, buy: buy),
+                    unit: Self.powerOfTen(sell.decimals), inParts: model.inParts, quote: quote
+                )
+                guard !Task.isCancelled else { return }
+                model.amountText = Fmt.plainDecimal(solution.amountIn, decimals: sell.decimals)
+                if solution.quote.parts == nil { model.inParts = false }
+                model.quote = solution.quote
+                model.shortOfTarget = !solution.reached
+            } catch {
+                guard !Task.isCancelled else { return }
+                model.quote = nil
+                model.amountText = ""
+                model.error = (error as? LocalizedError)?.errorDescription
+                    ?? "Nenhum provedor troca \(sell.symbol) por \(buy.symbol) \(model.chain.id == "xrpl" ? "no" : "na") \(model.chain.name) agora. Tente um valor menor ou outro par."
+            }
+            model.quoting = false
+            model.solving = false
+            for second in stride(from: 15, through: 1, by: -1) {
+                model.nextRefresh = second
+                try? await Task.sleep(for: .seconds(1))
+                if Task.isCancelled { return }
+            }
+        }
+    }
+
+    /// A partida da busca: a cotacao de agora do mesmo par, ou o preco de mercado com a
+    /// tolerancia. Sem nenhum dos dois, o `ExactOutSolver` sonda com uma unidade.
+    private func sellEstimate(want: BigUInt, sell: Asset, buy: Asset) -> BigUInt? {
+        if let quote = model.quote, quote.sell.id == sell.id, quote.buy.id == buy.id {
+            let got = quote.minimumOut(inParts: model.inParts && quote.parts != nil)
+            if !got.isZero { return ExactOutSolver.ceilDiv(quote.amountIn * want, got) }
+        }
+        guard let rate = marketRate else { return nil }
+        let margin = 1 + Double(slippage()) / 10_000
+        return Self.units(Fmt.double(want, decimals: buy.decimals) / rate * margin, decimals: sell.decimals)
+    }
 }
 
 /// Caixa de valor do swap: "Voce paga" e "Voce recebe".
@@ -791,6 +998,14 @@ struct AmountBox: View {
     let editable: Bool
     let over: Bool
     var loading: Bool = false
+    /// O valor veio do app (cotacao ou conta), nao do dono: aparece com a animacao dos
+    /// numeros ate o dono tocar para digitar.
+    var computed: Bool = false
+    var placeholder: String = "0"
+    /// So uma caixa por tela poe o "Pronto" no teclado: o botao fecha qualquer campo, e
+    /// dois apareceriam lado a lado.
+    var keyboardDone: Bool = true
+    var onFocusChange: ((Bool) -> Void)? = nil
     let onPick: () -> Void
     let onFraction: ((Double) -> Void)?
     @FocusState private var focused: Bool
@@ -804,26 +1019,32 @@ struct AmountBox: View {
             }
             HStack(alignment: .center, spacing: Space.sm) {
                 if editable {
-                    TextField("0", text: $amount)
-                        .font(.system(size: 32, weight: .bold).monospacedDigit())
-                        .foregroundStyle(over ? Palette.down : Palette.ink)
-                        .keyboardType(.decimalPad)
-                        .focused($focused)
-                        .minimumScaleFactor(0.5)
-                        .toolbar {
-                            // O teclado numerico nao tem tecla de fechar; sem isto, a
-                            // cotacao e os detalhes ficam escondidos embaixo dele.
-                            ToolbarItemGroup(placement: .keyboard) {
-                                Spacer()
-                                // Fecha o teclado de qualquer campo da tela (o do preco-alvo
-                                // da ordem limite tambem), nao so o deste.
-                                Button("Pronto") {
-                                    focused = false
-                                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                                }
-                                .fontWeight(.semibold)
-                            }
+                    // O campo fica sempre ali (o toque cai nele); por cima, enquanto o dono
+                    // nao digita, o valor calculado com animacao ou o brilho de carregando.
+                    let shimmer = loading && !focused
+                    let shown = computed && !focused && !shimmer
+                    ZStack(alignment: .leading) {
+                        TextField(placeholder, text: $amount)
+                            .font(.system(size: 32, weight: .bold).monospacedDigit())
+                            .foregroundStyle(over ? Palette.down : Palette.ink)
+                            .keyboardType(.decimalPad)
+                            .focused($focused)
+                            .minimumScaleFactor(0.5)
+                            .opacity(shimmer || shown ? 0 : 1)
+                            .modifier(KeyboardDone(enabled: keyboardDone) { focused = false })
+                        if shimmer {
+                            ShimmerBar(width: 150, height: 30).allowsHitTesting(false)
+                        } else if shown {
+                            Text(amount.isEmpty ? "0" : amount)
+                                .font(.system(size: 32, weight: .bold).monospacedDigit())
+                                .foregroundStyle(amount.isEmpty ? Palette.inkDead : (over ? Palette.down : Palette.ink))
+                                .lineLimit(1).minimumScaleFactor(0.5)
+                                .contentTransition(.numericText())
+                                .animation(Motion.number, value: amount)
+                                .allowsHitTesting(false)
                         }
+                    }
+                    .onChange(of: focused) { _, value in onFocusChange?(value) }
                 } else if loading {
                     ShimmerBar(width: 150, height: 30)
                     Spacer(minLength: 0)
@@ -873,6 +1094,31 @@ struct AmountBox: View {
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
                 .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(focused ? Palette.edgeStrong : Palette.edge, lineWidth: 1))
         )
+    }
+}
+
+/// O "Pronto" no teclado numerico, que nao tem tecla de fechar: sem ele, a cotacao e os
+/// detalhes ficam escondidos embaixo do teclado. Fecha qualquer campo da tela (o do
+/// preco-alvo da ordem limite tambem), nao so o da caixa.
+private struct KeyboardDone: ViewModifier {
+    let enabled: Bool
+    let dismiss: () -> Void
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Pronto") {
+                        dismiss()
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        } else {
+            content
+        }
     }
 }
 

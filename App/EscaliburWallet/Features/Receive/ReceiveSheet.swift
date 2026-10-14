@@ -509,38 +509,17 @@ struct ReceiveSheet: View {
         return addressContent(asset: shown, chain: shown.chain ?? chain, siblings: siblings, key: key)
     }
 
-    /// "pela rede X": com mais de uma rede, um seletor que troca a rede sem voltar.
+    /// Com mais de uma rede, a rede embaixo do QR, no mesmo seletor da troca: o logo de cada rede na lista,
+    /// porque escolher rede e reconhecer o logo (pedido do dono, 14/10/2026).
     @ViewBuilder
-    private func networkLine(asset: Asset, chain: Chain, siblings: [Asset], key: String) -> some View {
+    private func addressNetworkMenu(asset: Asset, chain: Chain, siblings: [Asset], key: String) -> some View {
         if siblings.count > 1 {
-            Menu {
-                ForEach(siblings) { item in
-                    if let itemChain = item.chain {
-                        Button {
-                            withAnimation(Motion.fade) { chosenNetwork[key] = item }
-                        } label: {
-                            if item.id == asset.id {
-                                Label(itemChain.name, systemImage: "checkmark")
-                            } else {
-                                Text(item.kind == .native ? itemChain.name : "\(itemChain.name) · \(ReceiveCoin.standard(itemChain))")
-                            }
-                        }
-                    }
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    NetworkBadge(chain: chain, size: 18, ring: Palette.rail)
-                    Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.ink)
-                    Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkSoft)
-                }
-                .padding(.leading, 6).padding(.trailing, Space.sm)
-                .frame(height: 34)
-                .background(Capsule(style: .continuous).fill(Palette.rail))
+            NetworkMenu(chains: siblings.compactMap(\.chain), selected: chain) { picked in
+                guard let item = siblings.first(where: { $0.chain == picked }) else { return }
+                withAnimation(Motion.fade) { chosenNetwork[key] = item }
             }
-            .accessibilityLabel("Rede: \(chain.name). Trocar a rede")
             .accessibilityIdentifier("receber-rede")
-        } else {
-            Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.inkSoft)
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -554,7 +533,7 @@ struct ReceiveSheet: View {
             VStack(alignment: .leading, spacing: 0) {
                 if preselected != nil { HStack { Spacer(); closeButton } }
                 Text("Receber \(asset.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
-                networkLine(asset: asset, chain: chain, siblings: siblings, key: key).padding(.top, Space.xs)
+                Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
 
                 if wallet?.isWatchOnly == true {
                     // Golpe comum: alguem pede para "observar" o endereco dele e depositar ali.
@@ -566,6 +545,7 @@ struct ReceiveSheet: View {
                 }
 
                 qrPlate(address: address, chain: chain).padding(.top, Space.lg)
+                addressNetworkMenu(asset: asset, chain: chain, siblings: siblings, key: key).padding(.top, Space.md)
 
                 AddressBlocks(address: address).padding(.top, Space.base)
 
@@ -735,10 +715,10 @@ struct AddressBlocks: View {
         let soft = onPlate ? Palette.plateMuted : Palette.inkSoft
         return FlowText(blocks: blocks) { index, block in
             if highlighted.contains(index) {
-                // Marca-texto: letra branca no rosa do app, na placa clara e no fundo escuro.
+                // Marca-texto: letra escura no amarelo, na placa clara e no fundo escuro.
                 var text = AttributedString(block)
-                text.backgroundColor = Palette.accent
-                text.foregroundColor = Palette.onAccent
+                text.backgroundColor = Palette.highlight
+                text.foregroundColor = Palette.onHighlight
                 return Text(text).font(TypeStyle.mono.font).fontWeight(.bold)
             }
             return Text(verbatim: block).font(TypeStyle.mono.font).foregroundColor(soft)

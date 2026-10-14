@@ -202,13 +202,28 @@ footer p { color: var(--ink-muted); font-size: 14px; }
 """
 
 
+# So apaga a pasta de saida que este script criou (pentest de 14/10/2026, B7: com
+# `gerar-site.py .` o rmtree levava a copia de trabalho inteira, .git incluido).
+MARCA = ".gerado-por-gerar-site"
+
+
+def preparar(saida):
+    saida = saida.resolve()
+    if saida in (RAIZ, SITE) or RAIZ.is_relative_to(saida) or saida.is_relative_to(SITE) or saida.is_relative_to(LEGAL):
+        sys.exit(f"pasta de saida recusada: {saida}")
+    if saida.exists():
+        if not (saida / MARCA).is_file():
+            sys.exit(f"{saida} ja existe e nao foi criada por este script; escolha outra pasta")
+        shutil.rmtree(saida)
+    saida.mkdir(parents=True)
+    (saida / MARCA).write_text("")
+    return saida
+
+
 def main():
     if len(sys.argv) != 2:
         sys.exit("uso: gerar-site.py <pasta de saida>")
-    saida = Path(sys.argv[1])
-    if saida.exists():
-        shutil.rmtree(saida)
-    saida.mkdir(parents=True)
+    saida = preparar(Path(sys.argv[1]))
     for fonte, pasta, _, descricao in PAGINAS:
         titulo, itens = blocos(fonte.read_text(encoding="utf-8"))
         if not titulo:

@@ -159,8 +159,8 @@ enum DebugDemo {
             case "moeda":
                 router.tab = .market
                 router.pendingCoinID = "bitcoin"
-            case "trocar", "trocar-grande", "trocar-xrp": router.tab = .trade
-            case "limite", "limite-xrp":
+            case "trocar", "trocar-grande", "trocar-xrp", "trocar-recebe": router.tab = .trade
+            case "limite", "limite-xrp", "limite-recebe":
                 router.tab = .trade
                 router.tradeMode = .limit
             // `-tela refazer`: a pergunta de refazer uma ordem limite vencida (ETH por
@@ -214,7 +214,7 @@ enum DebugDemo {
                 }
             case "atividade": router.tab = .activity
             case "ajustes": router.tab = .settings
-            case "enviar": router.present(.send(nil))
+            case "enviar", "envio-valor", "envio-revisao", "envio-enviando", "enviado", "envio-preso": router.present(.send(nil))
             case "enviar-eth", "envio-incerto": router.present(.send(.native(.ethereum)))
             default: break
             }
@@ -245,8 +245,8 @@ struct DemoEnvelopes: ViewModifier {
         content
             // `-tela voz`: Ajustes, Seguranca, Confirmacao por voz.
             .fullScreenCover(isPresented: $voice) { NavigationStack { VoiceSettingsView() } }
-            // `-tela suporte`: Ajustes, Suporte.
-            .fullScreenCover(isPresented: $support) { NavigationStack { SupportView() } }
+            // `-tela suporte`: Ajustes, Suporte. `-tela sobre`: Ajustes, Sobre.
+            .fullScreenCover(isPresented: $support) { NavigationStack { DebugDemo.screen == "sobre" ? AnyView(AboutView()) : AnyView(SupportView()) } }
             // `-tela alertas`: Ajustes, Alertas de preco.
             .fullScreenCover(isPresented: $alerts) { NavigationStack { PriceAlertsView() } }
             // `-tela andamento`: o anel de uma troca pela CoW em 45%, e o anel das
@@ -307,7 +307,7 @@ struct DemoEnvelopes: ViewModifier {
                 if DebugDemo.screen == "abrir" { opening = true }
                 if DebugDemo.screen == "voz" { voice = true }
                 if DebugDemo.screen == "alertas" { alerts = true }
-                if DebugDemo.screen == "suporte" { support = true }
+                if ["suporte", "sobre"].contains(DebugDemo.screen) { support = true }
                 if DebugDemo.screen == "andamento" { progress = true }
                 if DebugDemo.screen == "revisao" { reviewPreview = true }
                 if DebugDemo.screen == "animacao" { animationPreview = true }

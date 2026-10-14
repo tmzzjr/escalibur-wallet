@@ -53,6 +53,10 @@ enum Palette {
     static let accentPress = Color(hex: 0xD10065)
     static let onAccent = Color.white
     static let cautionTint = Color(hex: 0x2C210F)
+    /// Marca-texto das pontas do endereco (pedido do dono, 14/10/2026: amarelo no lugar do
+    /// rosa, que e a cor das acoes). Letra escura por cima, legivel na placa clara e no fundo escuro.
+    static let highlight = Color(hex: 0xFFD60A)
+    static let onHighlight = Color(hex: 0x0B0B0C)
 
     // A placa clara: so onde se confere caractere por caractere.
     static let plateInk = Color(hex: 0x070708)
