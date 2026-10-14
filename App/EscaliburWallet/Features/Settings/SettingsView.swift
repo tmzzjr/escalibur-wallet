@@ -130,12 +130,14 @@ struct SettingsRow: View {
 struct WalletsListView: View {
     @Environment(AppSession.self) private var session
     @State private var adding = false
+    @State private var reorder = WalletReorder()
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 SettingsGroup {
-                    ForEach(session.metadata.wallets) { wallet in
+                    let wallets = session.metadata.wallets
+                    ForEach(Array(wallets.enumerated()), id: \.element.id) { index, wallet in
                         NavigationLink { WalletSettingsView(walletID: wallet.id) } label: {
                             HStack(spacing: Space.sm) {
                                 WalletGlyph(id: wallet.id, size: 32, selected: true, watchOnly: wallet.isWatchOnly)
@@ -147,15 +149,23 @@ struct WalletsListView: View {
                                 Spacer()
                                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
                             }
-                            .padding(.horizontal, Space.md).frame(minHeight: Height.row)
+                            .padding(.horizontal, Space.md).frame(height: Height.row)
+                            .background(reorder.dragging == wallet.id ? Palette.rail : Color.clear)
                         }
+                        .disabled(reorder.justDropped)
+                        .walletReorder(reorder, id: wallet.id, index: index, count: wallets.count, rowHeight: Height.row, session: session)
                     }
                 }
                 .padding(.top, Space.md)
+                if session.metadata.wallets.count > 1 {
+                    Text("Segure uma carteira e arraste para mudar a ordem.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                        .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+                }
                 SecondaryButton(title: "Adicionar carteira") { adding = true }
                     .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
             }
         }
+        .scrollDisabled(reorder.dragging != nil)
         .background(Palette.void.ignoresSafeArea())
         .navigationTitle("Carteiras")
         .navigationBarTitleDisplayMode(.inline)

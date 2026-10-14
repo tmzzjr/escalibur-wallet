@@ -33,7 +33,7 @@ struct BridgePlannerTests {
             inputAmount: intent.amount, outputAmount: output, quoteTimestamp: timestamp, fillDeadline: timestamp + 7_200,
             exclusiveRelayer: S.stranger, exclusivityDeadline: timestamp + 160, estimatedFillSeconds: 2,
             maxDeposit: maxDeposit, maxDepositInstant: maxDeposit, minDeposit: 1,
-            spokePool: spoke ?? intent.from.spokePool, destinationSpokePool: intent.to.spokePool
+            spokePool: spoke ?? intent.from.across!.spokePool, destinationSpokePool: intent.to.across!.spokePool
         )
     }
 
@@ -79,7 +79,7 @@ struct BridgePlannerTests {
         let defaultEvent: TradeSimulatedLog
         switch quote.call {
         case .cctp(let transfer): defaultEvent = depositForBurnLog(transfer)
-        case .across(let transfer): defaultEvent = fundsDepositedLog(transfer, spoke: intent.from.spokePool)
+        case .across(let transfer): defaultEvent = fundsDepositedLog(transfer, spoke: intent.from.across!.spokePool)
         }
         calls.append(TradeSimulatedCall(success: true, gasUsed: 120_000, logs: [
             S.transferLog(moved, from: owner, to: quote.to, spent ?? intent.amount), event ?? defaultEvent,
@@ -121,6 +121,23 @@ struct BridgePlannerTests {
         #expect(throws: BridgeRefusal.aboveBurnLimit(limit: BridgeAllowlist.burnLimitPerMessage)) {
             try Self.usdcIntent(BridgeAllowlist.burnLimitPerMessage + 1)
         }
+    }
+
+    @Test("Segunda leva: USDC em todas, ETH so onde o nativo e ETH, USDT so com USDT0 dos dois lados, Sonic sem Across")
+    func secondWave() throws {
+        _ = try BridgeIntent(owner: Self.owner, asset: .usdc, from: .polygon, to: .sonic, amount: 1)
+        _ = try BridgeIntent(owner: Self.owner, asset: .usdc, from: .plasma, to: .linea, amount: 1)
+        _ = try BridgeIntent(owner: Self.owner, asset: .eth, from: .linea, to: .unichain, amount: 1)
+        _ = try BridgeIntent(owner: Self.owner, asset: .usdt, from: .unichain, to: .plasma, amount: 1)
+        _ = try BridgeIntent(owner: Self.owner, asset: .usdt, from: .ethereum, to: .plasma, amount: 1)
+        // ETH na Polygon e WETH de ponte; na Plasma o nativo e XPL; a Sonic nao tem Across.
+        #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .eth, from: .base, to: .polygon, amount: 1) }
+        #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .eth, from: .base, to: .plasma, amount: 1) }
+        #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .eth, from: .base, to: .sonic, amount: 1) }
+        #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .usdt, from: .ethereum, to: .polygon, amount: 1) }
+        #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .usdt, from: .ethereum, to: .linea, amount: 1) }
+        // Dominios do CCTP, cada um diferente.
+        #expect(Set(BridgeAllowlist.chains.map(\.cctpDomain)).count == BridgeAllowlist.chains.count)
     }
 
     // MARK: Validador
@@ -286,7 +303,7 @@ struct BridgePlannerTests {
         )
         #expect(throws: BridgeRefusal.quoteMismatch("depósito")) { try Self.plan(stolen, Self.state(stolen)) }
         // Evento com outro destinatario na simulacao.
-        let other = Self.simulation(quote, source: "b", event: Self.fundsDepositedLog(transfer, spoke: intent.from.spokePool, recipient: S.stranger))
+        let other = Self.simulation(quote, source: "b", event: Self.fundsDepositedLog(transfer, spoke: intent.from.across!.spokePool, recipient: S.stranger))
         #expect(throws: BridgeRefusal.simulationEventMissing) {
             try Self.plan(quote, Self.state(quote, simulations: [Self.simulation(quote, source: "a"), other]))
         }

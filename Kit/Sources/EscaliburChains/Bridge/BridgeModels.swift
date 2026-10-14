@@ -37,8 +37,9 @@ public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
     public func available(from: BridgeChain, to: BridgeChain) -> Bool {
         guard from.chain.id != to.chain.id else { return false }
         switch self {
-        case .usdc, .eth: return true
-        case .usdt: return from.usdt != nil && to.usdt != nil
+        case .usdc: return true
+        case .eth: return from.nativeETH && to.nativeETH && from.across != nil && to.across != nil
+        case .usdt: return from.usdt != nil && to.usdt != nil && from.across != nil && to.across != nil
         }
     }
 
@@ -234,8 +235,10 @@ public enum BridgeValidator {
     /// de US$ 3; sem preco, vale so o teto de 0,5%.
     public static func across(_ intent: BridgeIntent, quote: AcrossQuote, usdPrice: TradeDecimal?, now: Date = .now) throws
         -> ValidatedBridgeQuote {
-        guard intent.asset != .usdc else { throw BridgeRefusal.unsupportedRoute }
-        guard quote.spokePool == intent.from.spokePool, quote.destinationSpokePool == intent.to.spokePool else {
+        guard intent.asset != .usdc, let fromAcross = intent.from.across, let toAcross = intent.to.across else {
+            throw BridgeRefusal.unsupportedRoute
+        }
+        guard quote.spokePool == fromAcross.spokePool, quote.destinationSpokePool == toAcross.spokePool else {
             throw BridgeRefusal.quoteMismatch("SpokePool")
         }
         guard quote.inputAmount == intent.amount, quote.outputAmount <= intent.amount, !quote.outputAmount.isZero else {
@@ -253,8 +256,8 @@ public enum BridgeValidator {
         let fillDeadline = quote.quoteTimestamp + acrossFillWindow
         guard fillDeadline >= clock + 600 else { throw BridgeRefusal.quoteMismatch("prazo") }
 
-        let input = intent.asset.contract(on: intent.from) ?? intent.from.wrappedNative
-        let output = intent.asset.contract(on: intent.to) ?? intent.to.wrappedNative
+        let input = intent.asset.contract(on: intent.from) ?? fromAcross.wrappedNative
+        let output = intent.asset.contract(on: intent.to) ?? toAcross.wrappedNative
         // Sem relayer exclusivo: um relayer escolhido pela API que nunca entregasse
         // prenderia o deposito ate o prazo.
         let transfer = AcrossTransfer(
@@ -265,8 +268,8 @@ public enum BridgeValidator {
             nativeInput: intent.asset == .eth
         )
         let validated = ValidatedBridgeQuote(
-            intent: intent, route: .across, call: .across(transfer), to: intent.from.spokePool, value: transfer.value,
-            data: try AcrossCalldata.encode(transfer), spender: intent.asset == .eth ? nil : intent.from.spokePool,
+            intent: intent, route: .across, call: .across(transfer), to: fromAcross.spokePool, value: transfer.value,
+            data: try AcrossCalldata.encode(transfer), spender: intent.asset == .eth ? nil : fromAcross.spokePool,
             minimumReceived: quote.outputAmount, expectedReceived: quote.outputAmount, bridgeFee: fee,
             estimatedSeconds: max(5, min(quote.estimatedFillSeconds ?? 60, 3_600)), createdAt: now
         )

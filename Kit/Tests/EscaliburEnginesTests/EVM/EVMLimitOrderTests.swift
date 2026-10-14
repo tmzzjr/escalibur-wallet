@@ -97,12 +97,15 @@ struct EVMLimitOrderTests {
         #expect(await cow.submitted.isEmpty)
     }
 
-    @Test("Ordem aberta vendendo o mesmo token, validade fora da faixa e rede sem CoW: recusa")
-    func refusals() async throws {
+    @Test("Outra ordem aberta vendendo o mesmo token: a nova soma, e a autorizacao cobre exatamente a soma")
+    func stackedOrders() async throws {
         let engine = H.engine(cow: FakeCoW(openTotal: 1), sources: [], transport: try H.baseTransport())
-        await #expect(throws: SendEngineError.message("Já existe uma ordem limite aberta vendendo este token. Cancele a anterior antes de criar outra.")) {
-            _ = try await engine.planLimitOrder(Self.request())
-        }
+        let plan = try await engine.planLimitOrder(Self.request())
+        #expect(plan.review.lines.contains { $0.label == "Outras ordens" && $0.value.hasPrefix("Já há ordens abertas vendendo") })
+    }
+
+    @Test("Validade fora da faixa e rede sem CoW: recusa")
+    func refusals() async throws {
         let fresh = H.engine(sources: [], transport: try H.baseTransport())
         await #expect(throws: SendEngineError.message("A validade da ordem precisa ficar entre 1 hora e 30 dias.")) {
             _ = try await fresh.planLimitOrder(Self.request(validFor: 31 * 86_400))

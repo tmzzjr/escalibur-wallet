@@ -5,12 +5,15 @@ import SwiftUI
 /// aparece: o cofre abre, deriva a carteira nova e grava, com uma confirmacao so.
 struct PassphraseWalletView: View {
     @Environment(AppSession.self) private var session
+    @Environment(ToastCenter.self) private var toasts
     @Environment(AuthCoordinator.self) private var auth
     @Environment(\.dismiss) private var dismiss
     let base: WalletMeta
 
     @State private var passphrase = SecureBytes(capacity: 256)
     @State private var passphraseLength = 0
+    /// Segurar o dedo numa das duas mostra as duas.
+    @State private var revealPassphrase = false
     @State private var again = SecureBytes(capacity: 256)
     @State private var againLength = 0
     @State private var name = ""
@@ -51,9 +54,9 @@ struct PassphraseWalletView: View {
 
                 VStack(alignment: .leading, spacing: Space.xs) {
                     Text("Passphrase").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                    PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "Passphrase")
-                    PasswordBox(buffer: again, length: $againLength, placeholder: "Repita a passphrase") { Task { await create() } }
-                    Text("Diferença de maiúscula, acento ou espaço já abre outra carteira.")
+                    PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "Passphrase", reveal: $revealPassphrase)
+                    PasswordBox(buffer: again, length: $againLength, placeholder: "Repita a passphrase", reveal: $revealPassphrase) { Task { await create() } }
+                    Text("Diferença de maiúscula, acento ou espaço já abre outra carteira. Segure o dedo num campo para conferir as duas.")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("Nome").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
@@ -105,12 +108,17 @@ struct PassphraseWalletView: View {
         defer { copy.wipe() }
         let title = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40))
         let walletName = title.isEmpty ? "\(base.name) com passphrase" : title
+        let before = Set(session.metadata.wallets.map(\.id))
         do {
-            guard try await auth.retrying(reason: "Abrir a carteira com passphrase", { credential in
+            guard let opened = try await auth.retrying(reason: "Abrir a carteira com passphrase", { credential in
                 try await session.addPassphraseWallet(base: base, passphrase: copy, name: walletName, credential: credential)
-            }) != nil else { return }
+            }) else { return }
             passphrase.wipe()
             again.wipe()
+            // A mesma frase com a mesma passphrase e a mesma carteira: ela ja estava aqui.
+            if before.contains(opened.id) {
+                toasts.show("Esta carteira já está aberta, como \(opened.name). Ela passa a ser a carteira em uso.")
+            }
             dismiss()
         } catch let error as WalletError {
             message = error.errorDescription

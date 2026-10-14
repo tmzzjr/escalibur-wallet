@@ -249,8 +249,11 @@ chaves=$(/usr/libexec/PlistBuddy -c "Print" "$APP/Resources/EscaliburWallet.enti
 [ "$chaves" = "com.apple.developer.default-data-protection " ] && ok "entitlements: so a protecao de dados" || aviso "entitlements inesperados: $chaves"
 achados=$(grep -oE 'NS[A-Za-z]+UsageDescription' "$APP/Resources/Info.plist" | sort -u | grep -vE 'NSFaceIDUsageDescription|NSCameraUsageDescription|NSMicrophoneUsageDescription|NSSpeechRecognitionUsageDescription')
 [ -n "$achados" ] && { aviso "permissao fora da lista"; echo "$achados"; } || ok "permissoes: Face ID, camera, microfone e fala, nada mais"
-achados=$(swift_em "$APP" | xargs grep -lE 'UIPasteboard' 2>/dev/null | grep -vE 'Receive/ReceiveSheet\.swift|NewWallet/ImportPhraseView\.swift')
-[ -n "$achados" ] && { aviso "area de transferencia fora dos pontos conhecidos"; echo "$achados"; } || ok "area de transferencia so em dois pontos"
+achados=$(swift_em "$APP" | xargs grep -lE 'UIPasteboard' 2>/dev/null | grep -vE 'Receive/ReceiveSheet\.swift|NewWallet/ImportPhraseView\.swift|NewWallet/SecurityScreens\.swift')
+[ -n "$achados" ] && { aviso "area de transferencia fora dos pontos conhecidos"; echo "$achados"; } || ok "area de transferencia so em tres pontos"
+# A checagem do aparelho so pergunta se ha texto copiado, sem ler o conteudo.
+achados=$(grep -nE 'UIPasteboard' "$APP/Features/NewWallet/SecurityScreens.swift" | grep -v 'UIPasteboard.general.hasStrings')
+[ -n "$achados" ] && { aviso "a checagem do aparelho le a area de transferencia"; echo "$achados"; } || ok "a checagem do aparelho so pergunta se ha texto copiado"
 grep -q '\.localOnly' "$APP/Features/Receive/ReceiveSheet.swift" && grep -q '\.expirationDate' "$APP/Features/Receive/ReceiveSheet.swift" \
     && ok "endereco copiado e local e expira" || aviso "copia de endereco sem localOnly/expiracao"
 achados=$(procurar '^[[:space:]]*import +(Firebase[A-Za-z]*|Crashlytics|Sentry|Bugsnag|Amplitude|Mixpanel|Segment|AppsFlyer[A-Za-z]*|Adjust[A-Za-z]*|Branch|OneSignal|Datadog[A-Za-z]*|NewRelic|Instabug|FBSDK[A-Za-z]*|GoogleMobileAds|PostHog)\b' "$APP" "$NET" "$CORE" "$CHAINS" "$KEYS")

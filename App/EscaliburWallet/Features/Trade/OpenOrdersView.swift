@@ -11,6 +11,38 @@ import SwiftUI
 /// A lista rele a cada 6 segundos enquanto esta na tela: o anel de cada ordem mostra
 /// quanto ja foi preenchido. A ordem que some da lista (executou, venceu ou foi
 /// cancelada) fica com o resultado final ate a tela fechar.
+/// As ordens abertas da carteira, lidas pela secao de Ordens abertas, para o resto da
+/// tela de troca: o disponivel de uma ordem nova desconta o que ainda falta vender nas
+/// abertas do mesmo ativo, e a ordem com cancelamento enviado aparece como tal ate a CoW
+/// parar de lista-la (a transacao de cancelamento leva alguns blocos para confirmar).
+@MainActor
+@Observable
+final class OpenOrdersBook {
+    static let shared = OpenOrdersBook()
+
+    private(set) var orders: [OpenOrder] = []
+    /// Cancelamento enviado e ainda listado pela CoW: id da ordem e quando foi enviado.
+    private(set) var cancelling: [String: Date] = [:]
+
+    func update(_ orders: [OpenOrder]) {
+        self.orders = orders
+        let ids = Set(orders.map(\.id))
+        cancelling = cancelling.filter { ids.contains($0.key) }
+    }
+
+    func markCancelling(_ id: String) { cancelling[id] = .now }
+
+    func isCancelling(_ id: String) -> Bool { cancelling[id] != nil }
+
+    /// O que ainda falta vender nas ordens abertas que vendem este ativo (as com
+    /// cancelamento enviado contam ate a rede confirmar: ate la elas ainda executam).
+    func lockedSell(_ asset: Asset) -> BigUInt {
+        let id = asset.id.lowercased()
+        return orders.filter { $0.sellAssetID.lowercased() == id && $0.chain.id == asset.chainID }
+            .reduce(BigUInt()) { $0 + $1.remainingSell }
+    }
+}
+
 struct OpenOrdersSection: View {
     @Environment(AppSession.self) private var session
     @Environment(Portfolio.self) private var portfolio
@@ -81,6 +113,7 @@ struct OpenOrdersSection: View {
         }
         .fullScreenCover(item: $reviewing) { item in
             TradeReviewFlow(item: item) { completed in
+                if completed, case .cancel(let order, _) = item.kind { OpenOrdersBook.shared.markCancelling(order.id) }
                 reviewing = nil
                 if completed { Task { await reload() } }
             }
@@ -152,7 +185,36 @@ struct OpenOrdersSection: View {
         return "Preço: 1 \(sell.symbol) = \(Fmt.compactZeros(text) ?? text) \(buy.symbol)"
     }
 
+    @ViewBuilder
     private func row(_ order: OpenOrder) -> some View {
+        if OpenOrdersBook.shared.isCancelling(order.id) {
+            cancellingRow(order)
+        } else {
+            openRow(order)
+        }
+    }
+
+    /// Cancelamento enviado: a CoW ainda lista a ordem ate a transacao confirmar. Sem
+    /// toque, para ninguem pedir de novo.
+    private func cancellingRow(_ order: OpenOrder) -> some View {
+        let (sell, _) = assets(order)
+        return HStack(spacing: Space.sm) {
+            logo(sell, chain: order.chain).opacity(0.5)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Vende \(Self.amount(order.totalSell ?? order.remainingSell, sell)) na \(order.chain.name)")
+                    .typeStyle(.row).foregroundStyle(Palette.inkSoft)
+                Text("Cancelamento enviado. A ordem sai da lista quando a rede confirmar.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: Space.sm)
+            ProgressView().tint(Palette.inkSoft)
+        }
+        .frame(minHeight: Height.row)
+        .padding(.vertical, Space.xxs)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func openRow(_ order: OpenOrder) -> some View {
         let (sell, buy) = assets(order)
         return Button { choosing = order } label: {
             HStack(spacing: Space.sm) {
@@ -260,6 +322,7 @@ struct OpenOrdersSection: View {
         }
         unread = failedChains.sorted { (order[$0.id] ?? .max) < (order[$1.id] ?? .max) }
         load = .loaded(orders)
+        OpenOrdersBook.shared.update(orders)
     }
 
     // MARK: Textos

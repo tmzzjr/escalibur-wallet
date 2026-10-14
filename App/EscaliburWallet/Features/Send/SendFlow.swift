@@ -209,7 +209,7 @@ struct SendAssetPicker: View {
                                             if holding.asset.isCustom { TokenBadge(.custom) }
                                         }
                                         Text(unavailable == nil
-                                             ? "na \(holding.asset.chain?.name ?? "") · \(Fmt.crypto(holding.amount, decimals: holding.asset.decimals))"
+                                             ? "na \(holding.asset.chain?.name ?? "") · \(Fmt.crypto(portfolio.available(holding), decimals: holding.asset.decimals))"
                                              : "na \(holding.asset.chain?.name ?? "") · envio indisponível")
                                             .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                                     }
@@ -266,6 +266,9 @@ struct SendStages: View {
     @Bindable var model: SendModel
     let close: () -> Void
     @State private var scanning = false
+    @State private var pickingWallet = false
+    /// O slider da tela de valor, de 0 a 1 do disponivel.
+    @State private var sliderFraction: Double = 0
 
     private var engine: (any SendEngine)? { model.chain.flatMap { SendEngines.engine(for: $0) } }
 
@@ -291,6 +294,60 @@ struct SendStages: View {
                 apply(PaymentURI.read(text))
             }
         }
+        .sheet(isPresented: $pickingWallet) { ownWalletsSheet }
+    }
+
+    /// As outras carteiras deste app com conta nesta rede: o endereco vem da propria
+    /// carteira, nada de colar.
+    private var ownWallets: [(wallet: WalletMeta, address: String)] {
+        guard let chain = model.chain else { return [] }
+        let current = session.selectedWallet?.id
+        return session.metadata.wallets.compactMap { wallet in
+            guard wallet.id != current, let address = wallet.account(chain)?.address, !address.isEmpty else { return nil }
+            return (wallet, address)
+        }
+    }
+
+    private var ownWalletsSheet: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(title: "Minhas carteiras") { pickingWallet = false }
+            ScrollView {
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    if ownWallets.isEmpty {
+                        Text("Nenhuma outra carteira deste app tem conta \(model.chain.map { "\(Self.of($0) == "do" ? "no" : "na") \($0.name)" } ?? "nesta rede").")
+                            .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                    }
+                    ForEach(ownWallets, id: \.wallet.id) { item in
+                        Button {
+                            model.destinationText = item.address
+                            model.tagText = ""
+                            pickingWallet = false
+                            validate()
+                        } label: {
+                            HStack(spacing: Space.sm) {
+                                Image(systemName: item.wallet.isWatchOnly ? "eye" : "wallet.bifold")
+                                    .font(.system(size: 17, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                                    .frame(width: 36, height: 36).background(Circle().fill(Palette.rail))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(verbatim: item.wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
+                                    Text(verbatim: Fmt.address(item.address)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                            }
+                            .padding(Space.sm)
+                            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("minha-carteira-\(item.wallet.name)")
+                    }
+                }
+                .padding(.horizontal, Space.gutter)
+                .padding(.top, Space.md)
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationBackground(Palette.void)
     }
 
     private var header: some View {
@@ -336,6 +393,15 @@ struct SendStages: View {
                             .background(Capsule(style: .continuous).fill(Palette.rail))
                     }
                     .foregroundStyle(Palette.ink)
+                    if session.metadata.wallets.count > 1 {
+                        Button { pickingWallet = true } label: {
+                            Label("Minhas carteiras", systemImage: "wallet.bifold").typeStyle(.label)
+                                .padding(.horizontal, Space.sm).frame(height: 34)
+                                .background(Capsule(style: .continuous).fill(Palette.rail))
+                        }
+                        .foregroundStyle(Palette.ink)
+                        .accessibilityIdentifier("minhas-carteiras")
+                    }
                 }
                 .padding(.top, Space.xs)
 
@@ -642,35 +708,54 @@ struct SendStages: View {
 
     // MARK: E3 Tag
 
-    /// Tag, memo ou comentario quando a rede tem e o destino nao exige: um campo que o
-    /// dono abre se quem pediu o envio deu um (auditoria 2, M5). Quando o destino exige,
-    /// a etapa propria cuida.
+    /// Tag, memo ou comentario quando a rede tem e o destino nao exige: o campo ja vem
+    /// aberto, com o nome que a rede e as exchanges usam (pedido do dono, 14/10/2026).
+    /// Quando o destino exige, a etapa propria cuida.
     @ViewBuilder
     private var optionalTag: some View {
-        if let chain = model.chain, chain.destinationTag != .none, model.destination != nil, !model.needsTagStep {
-            if model.showOptionalTag || !model.tagText.isEmpty {
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    // "tag" e feminino; "memo" e "comentario", masculinos.
-                    Text("\(tagNoun.prefix(1).uppercased() + tagNoun.dropFirst()), se quem pediu deu \(chain.destinationTag == .xrplTag ? "uma" : "um")")
-                        .typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                    TextField("", text: $model.tagText, prompt: Text("Opcional").foregroundColor(Palette.inkDead))
-                        .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
-                        .keyboardType(chain.destinationTag == .xrplTag ? .numberPad : .asciiCapable)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .padding(.horizontal, Space.md).frame(height: Height.field)
-                        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-                            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
-                        .accessibilityIdentifier("tag-opcional")
-                    if let problem = tagProblem {
-                        Text(problem).typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
-                    }
+        if let chain = model.chain, chain.destinationTag != .none, !model.needsTagStep {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                HStack(spacing: 6) {
+                    Text(tagTitle).typeStyle(.row).foregroundStyle(Palette.ink)
+                    Text("opcional").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 }
-                .padding(.top, Space.md)
-            } else {
-                TertiaryButton(title: "Adicionar \(tagNoun)") { model.showOptionalTag = true }
-                    .padding(.top, Space.xs)
+                Text(tagExplanation).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                TextField("", text: $model.tagText, prompt: Text(tagPlaceholder).foregroundColor(Palette.inkDead))
+                    .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                    .keyboardType(chain.destinationTag == .xrplTag ? .numberPad : .asciiCapable)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .padding(.horizontal, Space.md).frame(height: Height.field)
+                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+                    .accessibilityIdentifier("tag-opcional")
+                if let problem = tagProblem {
+                    Text(problem).typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
+                }
             }
+            .padding(.top, Space.lg)
         }
+    }
+
+    /// O nome como a exchange mostra, para o dono achar o mesmo campo dos dois lados.
+    private var tagTitle: String {
+        switch model.chain?.destinationTag {
+        case .stellarMemo: return "Memo (MEMO)"
+        case .tonComment: return "Comentário (Memo)"
+        default: return "Tag de destino (Destination Tag)"
+        }
+    }
+
+    private var tagExplanation: String {
+        let exchange = "Exchanges pedem para saber de quem é o depósito. Se quem pediu o envio deu"
+        switch model.chain?.destinationTag {
+        case .stellarMemo: return "\(exchange) um memo, cole aqui exatamente igual. Para uma carteira pessoal, deixe vazio."
+        case .tonComment: return "\(exchange) um comentário ou memo, cole aqui exatamente igual. Para uma carteira pessoal, deixe vazio."
+        default: return "\(exchange) uma tag (um número), cole aqui. Sem ela, a exchange pode não achar o depósito. Para uma carteira pessoal, deixe vazio."
+        }
+    }
+
+    private var tagPlaceholder: String {
+        model.chain?.destinationTag == .xrplTag ? "Ex.: 123456789" : "Cole aqui, se tiver"
     }
 
     private var tagNoun: String {
@@ -733,7 +818,8 @@ struct SendStages: View {
         let holding = model.holding!
         let price = portfolio.price(of: holding.asset)
         let fiat = model.amount.map { Fmt.double($0, decimals: holding.asset.decimals) * (price ?? 0) }
-        let limit = model.spendable?.amount ?? holding.amount
+        // Antes da consulta do motor, o saldo menos a reserva da rede: a reserva nao sai.
+        let limit = model.spendable?.amount ?? portfolio.available(holding)
         let over = model.amount.map { $0 > limit } ?? false
         return VStack(alignment: .leading, spacing: 0) {
             header
@@ -763,6 +849,7 @@ struct SendStages: View {
                 }
             }
             .padding(.top, Space.lg)
+            amountSlider(limit: limit, decimals: holding.asset.decimals)
             if let note = model.spendable?.reserveNote {
                 Text(note).typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs).fixedSize(horizontal: false, vertical: true)
             }
@@ -825,6 +912,36 @@ struct SendStages: View {
             }
             model.error = (error as? LocalizedError)?.errorDescription ?? "Não foi possível preparar o envio."
         }
+    }
+
+    /// O valor pelo slider, de 0 ao disponivel. No fim, vira "enviar tudo" (o motor
+    /// desconta a taxa). Digitar move o slider junto.
+    private func amountSlider(limit: BigUInt, decimals: Int) -> some View {
+        let total = Fmt.double(limit, decimals: decimals)
+        let typed = model.sendAll ? 1 : (model.amount.map { total > 0 ? min(Fmt.double($0, decimals: decimals) / total, 1) : 0 } ?? 0)
+        return VStack(spacing: 2) {
+            Slider(value: Binding(get: { typed }, set: { fraction in
+                if fraction >= 0.995 {
+                    model.sendAll = true
+                } else {
+                    model.sendAll = false
+                    let part = limit * BigUInt(UInt64((fraction * 1000).rounded())) / BigUInt(1000)
+                    model.amountText = part.isZero ? "" : Fmt.plainDecimal(part, decimals: decimals)
+                }
+            }), in: 0...1)
+            .tint(Palette.accent)
+            .disabled(limit.isZero)
+            .accessibilityLabel("Quanto do disponível enviar")
+            .accessibilityValue("\(Int((typed * 100).rounded())) por cento")
+            HStack {
+                ForEach(["0%", "25%", "50%", "75%", "Máx"], id: \.self) { label in
+                    Text(label).typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                    if label != "Máx" { Spacer() }
+                }
+            }
+        }
+        .padding(.top, Space.md)
+        .sensoryFeedback(.selection, trigger: Int((typed * 4).rounded()))
     }
 
     // MARK: E6 Revisao

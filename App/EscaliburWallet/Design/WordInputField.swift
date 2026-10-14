@@ -15,6 +15,9 @@ struct WordInputField: UIViewRepresentable {
     var placeholder: String = ""
     var fontSize: CGFloat = 20
     var returnKey: UIReturnKeyType = .done
+    /// O texto fica invisivel (so o cursor aparece): quem usa desenha por cima a forma
+    /// cifrada (`LiveCipher`).
+    var masked = false
     var onSubmit: () -> Void = {}
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -45,6 +48,7 @@ struct WordInputField: UIViewRepresentable {
     func updateUIView(_ field: UITextField, context: Context) {
         context.coordinator.parent = self
         if field.text != text { field.text = text }
+        field.textColor = masked ? .clear : UIColor(Palette.ink)
         field.attributedPlaceholder = NSAttributedString(string: placeholder, attributes: [.foregroundColor: UIColor(Palette.inkDead)])
         if isFocused, !field.isFirstResponder {
             DispatchQueue.main.async { field.becomeFirstResponder() }

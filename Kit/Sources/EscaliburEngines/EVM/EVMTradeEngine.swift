@@ -373,13 +373,12 @@ public struct EVMTradeEngine: TradeEngine {
             throw EVMEngineFailure.limitPriceNotRepresentable
         }
 
-        // Uma ordem aberta por token vendido (docs/seguranca.md 4.5): uma ordem antiga e
-        // esquecida executaria quando o saldo voltasse. Somar ordens exigiria o "sim" do
-        // dono, que o contrato do motor ainda nao traz. A lista vem so da API da CoW (o
-        // livro nao esta na cadeia); o teto na cadeia e a autorizacao ao VaultRelayer,
-        // que o plano deixa exatamente no valor desta ordem (auditoria 2, B4).
+        // Varias ordens abertas para o mesmo token (pedido do dono, 14/10/2026): a
+        // autorizacao ao VaultRelayer fica exatamente na soma delas, a soma tem de caber no
+        // saldo, e a revisao diz que ha outras ordens e o total autorizado. Assinar essa
+        // revisao e o "sim" do dono (docs/seguranca.md 4.5). A lista vem so da API da CoW
+        // (o livro nao esta na cadeia); o teto na cadeia e a autorizacao (auditoria 2, B4).
         let open = try await services.cow.openSellTotal(owner: account.address, sellToken: sellToken.contract, chain: chain)
-        guard open.isZero else { throw EVMEngineFailure.openOrderExists }
 
         let read = try await services.chainState.readCoW(intent: intent, openOrdersSellTotal: open, localNextNonce: request.nonceQueue?.nextNonce)
         let state = CoWChainState(
@@ -388,7 +387,8 @@ public struct EVMTradeEngine: TradeEngine {
         )
         // O prazo do plano e o validTo da ordem contam de agora, depois das leituras.
         let now = Date()
-        let plan = try CoWPlanner.planLimitOrder(walletID: request.walletID, account: account, intent: intent, state: state, now: now)
+        let plan = try CoWPlanner.planLimitOrder(walletID: request.walletID, account: account, intent: intent, state: state,
+                                                 stackingConfirmed: true, now: now)
         await services.pendingOrders.store(plan, now: now)
         return plan
     }

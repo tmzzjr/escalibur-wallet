@@ -486,7 +486,7 @@ public enum CoWPlanner {
             lines.append(.init("Autorização", "Já existe e é exatamente o valor da ordem"))
         }
         if stacked {
-            lines.append(.init("Outras ordens", "Há outra ordem aberta vendendo \(sellToken.symbol); a autorização cobre só a soma das duas"))
+            lines.append(.init("Outras ordens", "Já há ordens abertas vendendo \(EVMText.amount(approvalTotal - intent.sellAmount, decimals: Int(sellToken.decimals), symbol: sellToken.symbol)). A autorização cobre exatamente a soma com esta, e as ordens juntas nunca tiram mais que isso da carteira"))
         } else {
             lines.append(.init("Outras ordens", "A lista de ordens abertas vem só da CoW. Na cadeia, a autorização ao contrato da CoW fica exatamente no valor desta ordem: juntas, as ordens que vendem \(sellToken.symbol) não tiram mais que isso da carteira"))
         }

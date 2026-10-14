@@ -72,10 +72,14 @@ struct ImportPhraseView: View {
 
     @State private var entry = PhraseEntry()
     @State private var typed = ""
+    /// A cifra viva: o que aparece no lugar de cada palavra (`LiveCipher`).
+    @State private var cipher = LiveCipher()
     @State private var reveal = false
     @State private var usesPassphrase = false
     @State private var passphrase = SecureBytes(capacity: 256)
     @State private var passphraseLength = 0
+    /// Segurar o dedo numa das duas mostra as duas.
+    @State private var revealPassphrase = false
     @State private var passphraseAgain = SecureBytes(capacity: 256)
     @State private var passphraseAgainLength = 0
     @State private var message: String?
@@ -130,6 +134,16 @@ struct ImportPhraseView: View {
                         Text("Toque numa posição e digite a palavra. Ninguém da Escalibur pede estas palavras.")
                             .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                             .fixedSize(horizontal: false, vertical: true)
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "lock.shield.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.accent)
+                            Text("Tela protegida: cada letra é cifrada na hora, com uma chave que só existe enquanto esta tela está aberta, e captura e gravação de tela ficam bloqueadas. Segure uma palavra para conferir.")
+                                .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .padding(Space.sm)
+                        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+                        .padding(.top, Space.xs)
                     }
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
@@ -165,11 +179,11 @@ struct ImportPhraseView: View {
                         }
                         .tint(Palette.accent)
                         if usesPassphrase {
-                            Text("Com a passphrase errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes.")
+                            Text("Com a passphrase errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes. Segure o dedo num campo para conferir as duas.")
                                 .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                                 .fixedSize(horizontal: false, vertical: true)
-                            PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "Passphrase").padding(.top, Space.sm)
-                            PasswordBox(buffer: passphraseAgain, length: $passphraseAgainLength, placeholder: "Repita a passphrase").padding(.top, Space.xs)
+                            PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "Passphrase", reveal: $revealPassphrase).padding(.top, Space.sm)
+                            PasswordBox(buffer: passphraseAgain, length: $passphraseAgainLength, placeholder: "Repita a passphrase", reveal: $revealPassphrase).padding(.top, Space.xs)
                         }
                         if let message {
                             Banner(kind: .failure, title: message).padding(.top, Space.md)
@@ -202,7 +216,24 @@ struct ImportPhraseView: View {
                 }
             }
         }
-        .onChange(of: typed) { _, value in absorb(value) }
+        .onChange(of: typed) { _, value in
+            cipher.seal(entry.active, text: Mnemonic.canonicalize(value))
+            absorb(value)
+        }
+        .onChange(of: entry.revision) { _, _ in resealAll() }
+        .onAppear {
+            #if DEBUG
+            // `-tela frase`: a frase publica de teste do BIP-39 nas 11 primeiras posicoes e a
+            // 12a em digitacao, para conferir a cifra viva na tela.
+            if DebugDemo.screen == "frase", entry.filledCount == 0 {
+                entry.paste(Array(repeating: "abandon", count: 11).joined(separator: " "))
+                entry.active = 11
+                focused = true
+                typed = "abo"
+            }
+            #endif
+            resealAll()
+        }
         .alert("Apagar as palavras digitadas?", isPresented: $confirmClear) {
             Button("Apagar", role: .destructive) { clearAll() }
             Button("Cancelar", role: .cancel) {}
@@ -210,6 +241,7 @@ struct ImportPhraseView: View {
             Text("As \(entry.filledCount) palavras saem desta tela. Você digita de novo, a partir da primeira.")
         }
         .background(Palette.void.ignoresSafeArea())
+        .statusBarBackdrop()
         .guardedAgainstCapture()
     }
 
@@ -245,18 +277,44 @@ struct ImportPhraseView: View {
             ForEach(0..<entry.count, id: \.self) { index in
                 PhraseSlot(index: index, display: slotText(index), isActive: focused && entry.active == index,
                            text: textBinding(index), isFocused: focusBinding(index),
-                           word: { [entry] in entry.word(at: index) }) { submit() }
+                           word: { [entry] in entry.word(at: index) },
+                           sealed: sealedGlyphs(index), typing: typingGlyphs(index)) { submit() }
                     .id(index)
             }
         }
     }
 
-    /// O que aparece numa posicao que nao esta sendo digitada: nada, pontos ou a palavra.
-    /// `revision` entra aqui para a grade acompanhar o que foi gravado nos buffers.
+    /// O que aparece numa posicao que nao esta sendo digitada: nada, a forma cifrada ou
+    /// a palavra. `revision` entra aqui para a grade acompanhar o que foi gravado nos
+    /// buffers.
     private func slotText(_ index: Int) -> String? {
         _ = entry.revision
         guard entry.isFilled(index) else { return nil }
         return reveal ? entry.word(at: index) : "•••••"
+    }
+
+    /// A palavra confirmada, cifrada: sempre 4 glifos, que nao contam o tamanho dela.
+    private func sealedGlyphs(_ index: Int) -> ((UInt64) -> String)? {
+        _ = entry.revision
+        guard entry.isFilled(index), !reveal, !(focused && entry.active == index) else { return nil }
+        let cipher = self.cipher
+        return { tick in cipher.glyphs(index, count: 4, tick: tick) }
+    }
+
+    /// A palavra em digitacao, cifrada: um glifo por letra.
+    private func typingGlyphs(_ index: Int) -> ((UInt64) -> String)? {
+        guard focused, entry.active == index, !typed.isEmpty else { return nil }
+        let cipher = self.cipher
+        let count = typed.count
+        return { tick in cipher.glyphs(index, count: count, tick: tick) }
+    }
+
+    /// Cifra de novo cada posicao preenchida (colar, confirmar, limpar) e a em digitacao.
+    private func resealAll() {
+        for index in 0..<entry.count {
+            if focused, index == entry.active, !typed.isEmpty { continue }
+            if entry.isFilled(index) { cipher.seal(index, buffer: entry.slots[index]) } else { cipher.clear(index) }
+        }
     }
 
     /// So a posicao em digitacao tem texto no campo; as palavras ja gravadas ficam so
@@ -443,8 +501,22 @@ private struct PhraseSlot: View {
     @Binding var isFocused: Bool
     /// Le a palavra so enquanto o dedo segura a posicao: fora disso ela fica no buffer.
     let word: () -> String
+    /// A forma cifrada da palavra confirmada, e da que esta sendo digitada, por tique.
+    var sealed: ((UInt64) -> String)? = nil
+    var typing: ((UInt64) -> String)? = nil
     let onSubmit: () -> Void
     @State private var holding = false
+
+    /// Os glifos trocam num relogio de 12 Hz, o mesmo com ou sem tecla.
+    private func glyphRow(_ glyphs: @escaping (UInt64) -> String, color: Color) -> some View {
+        TimelineView(.periodic(from: .now, by: 1.0 / 12)) { context in
+            Text(verbatim: glyphs(UInt64(context.date.timeIntervalSinceReferenceDate * 12)))
+                .font(.system(size: 15, weight: .medium, design: .monospaced))
+                .foregroundStyle(color)
+                .lineLimit(1)
+        }
+        .allowsHitTesting(false)
+    }
 
     var body: some View {
         HStack(spacing: Space.xs) {
@@ -453,13 +525,25 @@ private struct PhraseSlot: View {
                 .foregroundStyle(isActive ? Palette.purple : Palette.inkMuted)
             ZStack(alignment: .leading) {
                 if text.isEmpty {
-                    Text(verbatim: holding ? word() : (display ?? "palavra"))
-                        .font(.system(size: 15, weight: .medium, design: .monospaced))
-                        .foregroundStyle(display == nil || isActive ? Palette.inkDead : Palette.ink)
-                        .lineLimit(1)
-                        .allowsHitTesting(false)
+                    if holding {
+                        Text(verbatim: word())
+                            .font(.system(size: 15, weight: .medium, design: .monospaced))
+                            .foregroundStyle(Palette.ink).lineLimit(1).allowsHitTesting(false)
+                    } else if let sealed {
+                        glyphRow(sealed, color: Palette.accent)
+                    } else {
+                        Text(verbatim: display ?? "palavra")
+                            .font(.system(size: 15, weight: .medium, design: .monospaced))
+                            .foregroundStyle(display == nil || isActive ? Palette.inkDead : Palette.ink)
+                            .lineLimit(1)
+                            .allowsHitTesting(false)
+                    }
+                } else if let typing {
+                    // O que esta sendo digitado, cifrado: o campo de verdade fica por baixo,
+                    // invisivel, so com o cursor.
+                    glyphRow(typing, color: Palette.ink)
                 }
-                WordInputField(text: $text, isFocused: $isFocused, fontSize: 15, returnKey: .next, onSubmit: onSubmit)
+                WordInputField(text: $text, isFocused: $isFocused, fontSize: 15, returnKey: .next, masked: typing != nil, onSubmit: onSubmit)
                 // Posicao preenchida e fora de edicao: segurar mostra a palavra enquanto
                 // o dedo esta em cima; tocar e soltar abre a posicao para corrigir.
                 if !isActive, display != nil {

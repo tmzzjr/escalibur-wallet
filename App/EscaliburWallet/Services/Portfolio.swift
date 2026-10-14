@@ -550,4 +550,11 @@ final class Portfolio {
     }
 
     func balance(_ chain: Chain) -> ChainBalance? { balances[chain.id] }
+
+    /// O que da para mover de um ativo: o saldo menos a reserva que a rede prende (XRP
+    /// Ledger, Stellar). A reserva continua no saldo, mas nao e "disponivel".
+    func available(_ holding: Holding) -> BigUInt {
+        guard let chain = holding.asset.chain, let balance = balance(chain) else { return holding.amount }
+        return balance.available(holding)
+    }
 }

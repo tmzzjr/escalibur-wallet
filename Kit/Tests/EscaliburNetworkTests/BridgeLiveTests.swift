@@ -55,7 +55,9 @@ struct BridgeLiveTests {
         #expect(plan.review.lines.contains { $0.label == "Endereço que recebe" && $0.value == intent.owner.checksummed })
     }
 
-    @Test("USDC pelo CCTP, rapido e padrao, nas duas direcoes", arguments: [("base", "arbitrum", true), ("arbitrum", "optimism", false)])
+    @Test("USDC pelo CCTP, rapido e padrao, nas duas direcoes",
+          arguments: [("base", "arbitrum", true), ("arbitrum", "optimism", false), ("polygon", "linea", false), ("unichain", "sonic", false),
+                      ("plasma", "base", false)])
     func cctp(from: String, to: String, fast: Bool) async throws {
         let account = try TradeLiveTests.account()
         let amount = BigUInt(100_000_000)
@@ -80,13 +82,14 @@ struct BridgeLiveTests {
         }
     }
 
-    @Test("ETH pelo Across, Base para Arbitrum e Optimism para Ethereum", arguments: [("base", "arbitrum"), ("optimism", "ethereum")])
+    @Test("ETH pelo Across, Base para Arbitrum, Optimism para Ethereum e Linea para Unichain",
+          arguments: [("base", "arbitrum"), ("optimism", "ethereum"), ("linea", "unichain")])
     func acrossETH(from: String, to: String) async throws {
         let account = try TradeLiveTests.account()
         let amount = BigUInt(decimal: "50000000000000000")!
         let intent = try BridgeIntent(owner: account.address, asset: .eth, from: Chain.find(from)!, to: Chain.find(to)!, amount: amount)
         let across = try await AcrossClient().quote(
-            inputToken: intent.from.wrappedNative, outputToken: intent.to.wrappedNative,
+            inputToken: intent.from.across!.wrappedNative, outputToken: intent.to.across!.wrappedNative,
             originChainID: intent.from.chain.evmChainID!, destinationChainID: intent.to.chain.evmChainID!, amount: amount
         )
         let price = try? await MarketService().quotes(ids: ["ethereum"], currency: "usd")["ethereum"]?.price
@@ -108,9 +111,10 @@ struct BridgeLiveTests {
     func pins() async throws {
         let reader = TradeStateReader()
         for bridge in BridgeAllowlist.chains {
-            for (proxy, expected) in [(BridgeAllowlist.tokenMessenger, bridge.messengerImplementation),
-                                      (BridgeAllowlist.messageTransmitter, bridge.transmitterImplementation),
-                                      (bridge.spokePool, bridge.spokePoolImplementation)] {
+            var proxies = [(BridgeAllowlist.tokenMessenger, bridge.messengerImplementation),
+                           (BridgeAllowlist.messageTransmitter, bridge.transmitterImplementation)]
+            if let across = bridge.across { proxies.append((across.spokePool, across.implementation)) }
+            for (proxy, expected) in proxies {
                 let found = try await reader.pin(chain: bridge.chain, router: proxy, query: .storage(slot: TradeRouterPin.eip1967ImplementationSlot))
                 #expect(found == expected, "\(bridge.chain.name) \(proxy.checksummed)")
             }
@@ -145,16 +149,16 @@ struct BridgeLiveTests {
         let owner = try EVMAddress("0x411580947c337770994174855f8cbf56936e3062")
         func transfer(output: BigUInt = BigUInt(2_986_913_403_912_798), recipient: EVMAddress? = nil) -> AcrossTransfer {
             AcrossTransfer(originChainID: 8453, destinationChainID: 42161, owner: owner, recipient: recipient ?? owner,
-                           inputToken: BridgeAllowlist.base.wrappedNative, outputToken: BridgeAllowlist.arbitrum.wrappedNative,
+                           inputToken: BridgeAllowlist.base.across!.wrappedNative, outputToken: BridgeAllowlist.arbitrum.across!.wrappedNative,
                            inputAmount: BigUInt(2_992_129_562_251_732), outputAmount: output, exclusiveRelayer: nil,
                            quoteTimestamp: 1_791_765_167, fillDeadline: 1_791_772_367, exclusivityDeadline: 0, nativeInput: true)
         }
         let receipt = try await EVMReader().receiptLogs(
             chain: .arbitrum, hash: "0x29813d5c09bb51f493bda3067aac3bccab77e6eeb0b3eba62a0e8cc104d1841c")
         let logs = try #require(receipt).logs
-        let spoke = BridgeAllowlist.arbitrum.spokePool
+        let spoke = BridgeAllowlist.arbitrum.across!.spokePool
         #expect(BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: spoke))
         #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(output: 1), destinationSpoke: spoke))
-        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: BridgeAllowlist.base.spokePool))
+        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: BridgeAllowlist.base.across!.spokePool))
     }
 }

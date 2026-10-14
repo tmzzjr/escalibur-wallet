@@ -181,18 +181,25 @@ struct BalanceBatchTests {
             switch FixtureTransport.method(body) {
             case "account_info": return try ReaderFixtures.data("xrpl", "account_info-linhas")
             case "account_lines": return try ReaderFixtures.data("xrpl", "account_lines-linhas")
+            case "server_info": return try ReaderFixtures.data("xrpl", "server_info")
             default: return nil
             }
         }])
         let service = BalanceService(client: .shared, transport: transport, evm: [:], xrpl: testProviders("xrpl-a", "xrpl-b"))
         let balance = try await service.balance(chain: .xrpl, addresses: ["rLoD9U2ghXP2xUYbtML6G6v1p8LhM9mSnc"])
+        // A reserva: base mais o incremento por objeto (2 objetos), do server_info do mesmo
+        // servidor. Ela fica no saldo, mas nao e disponivel.
+        let reserved = try #require(balance.reservedNative)
+        #expect(reserved == XRPLReserveFixture.base + XRPLReserveFixture.increment * BigUInt(2))
+        let native = try #require(balance.holdings.first)
+        #expect(balance.available(native) == native.amount - reserved)
         let rlusd = try #require(TokenRegistry.assets(on: .xrpl).first { $0.symbol == "RLUSD" })
         #expect(balance.accountExists)
         #expect(balance.holdings.first == Holding(asset: .native(.xrpl), amount: BigUInt(4_179_816_000_005)))
         #expect(balance.holdings.contains(Holding(asset: rlusd, amount: BigUInt(9_696_979_559))))
         #expect(balance.holdings.count == 2)
         #expect(balance.unknownTokenCount == 1)  // SOLO, fora da lista
-        #expect(transport.requests.count == 2)
+        #expect(transport.requests.count == 3)
     }
 
     @Test("XRP Ledger: conta inexistente nao pede as linhas")
@@ -229,4 +236,10 @@ struct BalanceBatchTests {
         // Linha de confianca so nasce pelo dono: nada de poeira "sem pedir" aqui.
         #expect(unknown.first?.reasons.contains(.dust) == false)
     }
+}
+
+/// A reserva do `server_info.json` gravado: 1 XRP de base e 0,2 XRP por objeto, em drops.
+enum XRPLReserveFixture {
+    static let base = BigUInt(1_000_000)
+    static let increment = BigUInt(200_000)
 }

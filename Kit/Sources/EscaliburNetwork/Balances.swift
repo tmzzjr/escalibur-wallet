@@ -77,17 +77,28 @@ public struct ChainBalance: Sendable, Codable, Hashable {
     /// gravado antes deste campo continuar abrindo; `nil` tambem quando a fonte que
     /// respondeu so da a moeda nativa.
     public let unlisted: [UnlistedHolding]?
+    /// XRP Ledger e Stellar: quanto da moeda nativa a rede prende enquanto a conta existir
+    /// (a reserva da conta e de cada objeto dela). Esta no saldo, mas nao pode sair: nao e
+    /// "disponivel". `nil` onde a rede nao prende nada (e no cache antigo).
+    public let reservedNative: BigUInt?
 
     public init(
         chainID: String, holdings: [Holding], accountExists: Bool, unknownTokenCount: Int, fetchedAt: Date,
-        unlisted: [UnlistedHolding]? = nil
+        unlisted: [UnlistedHolding]? = nil, reservedNative: BigUInt? = nil
     ) {
         self.chainID = chainID
+        self.reservedNative = reservedNative
         self.holdings = holdings
         self.accountExists = accountExists
         self.unknownTokenCount = unlisted?.count ?? unknownTokenCount
         self.fetchedAt = fetchedAt
         self.unlisted = unlisted
+    }
+
+    /// O que da para mover de um ativo: o saldo menos a reserva, na moeda nativa.
+    public func available(_ holding: Holding) -> BigUInt {
+        guard holding.asset.kind == .native, let reservedNative else { return holding.amount }
+        return holding.amount.subtractingReportingUnderflow(reservedNative) ?? BigUInt()
     }
 }
 
@@ -483,9 +494,20 @@ public actor BalanceService {
                 guard (try? error.string("account_info.error")) == "actNotFound" else { throw HTTPClient.Failure.invalidResponse }
                 return ChainBalance(chainID: "xrpl", holdings: [Holding(asset: .native(.xrpl), amount: BigUInt())], accountExists: false, unknownTokenCount: 0, fetchedAt: .now)
             }
-            let drops = try info.field("account_data", "account_info").field("Balance", "account_info.account_data")
-                .decimalString("account_info.account_data.Balance")
+            let data = try info.field("account_data", "account_info")
+            let drops = try data.field("Balance", "account_info.account_data").decimalString("account_info.account_data.Balance")
             var holdings = [Holding(asset: .native(.xrpl), amount: drops)]
+            // A reserva: a base mais o incremento por objeto (linha de confianca, oferta),
+            // com os valores do ledger validado no mesmo servidor. Sem server_info, a
+            // reserva fica sem dizer (o envio confere de novo antes de assinar).
+            let owned = (try? data.field("OwnerCount", "account_info.account_data").uint32("OwnerCount")) ?? 0
+            var reserved: BigUInt?
+            if let server = try? await XRPLReader.call(transport, provider.baseURL, "server_info", [:]),
+               let validated = try? server.field("info", "server_info").field("validated_ledger", "info"),
+               let base = try? validated.field("reserve_base_xrp", "v").scaledDecimal("reserve_base_xrp", scale: 6),
+               let increment = try? validated.field("reserve_inc_xrp", "v").scaledDecimal("reserve_inc_xrp", scale: 6) {
+                reserved = base + increment * BigUInt(owned)
+            }
             var unlisted: [UnlistedHolding]?
             if let lines = try? await XRPLReader.call(transport, provider.baseURL, "account_lines", [
                 "account": .string(address), "ledger_index": .string("validated"), "limit": .int(400),
@@ -496,7 +518,7 @@ public actor BalanceService {
             }
             return ChainBalance(
                 chainID: "xrpl", holdings: holdings, accountExists: true, unknownTokenCount: 0, fetchedAt: .now,
-                unlisted: unlisted.map(UnlistedHolding.sorted)
+                unlisted: unlisted.map(UnlistedHolding.sorted), reservedNative: reserved
             )
         }
     }
@@ -553,9 +575,27 @@ public actor BalanceService {
             let read = Self.stellarBalances(json, custom: custom)
             return ChainBalance(
                 chainID: "stellar", holdings: read.holdings, accountExists: true, unknownTokenCount: 0, fetchedAt: .now,
-                unlisted: UnlistedHolding.sorted(read.unlisted)
+                unlisted: UnlistedHolding.sorted(read.unlisted), reservedNative: Self.stellarReserve(json)
             )
         }
+    }
+
+    /// A reserva da conta na Stellar: (2 + subentradas + patrocinando - patrocinadas) x
+    /// 0,5 XLM, mais o XLM preso em ofertas de venda (`selling_liabilities`). A reserva
+    /// base de 0,5 XLM e a da rede desde 2019; o envio confere com a da Horizon.
+    static func stellarReserve(_ json: StrictJSON) -> BigUInt? {
+        func count(_ field: String) -> Int {
+            (try? json.field(field, "account").uint32(field)).map(Int.init) ?? 0
+        }
+        let entries = 2 + count("subentry_count") + count("num_sponsoring") - count("num_sponsored")
+        var reserve = BigUInt(5_000_000) * BigUInt(max(entries, 0))
+        let native = ((try? json.field("balances", "account").array("balances")) ?? []).first {
+            (try? $0.field("asset_type", "b").string("asset_type")) == "native"
+        }
+        if let text = try? native?.field("selling_liabilities", "b").string("selling_liabilities"), let held = stroops(text) {
+            reserve = reserve + held
+        }
+        return reserve
     }
 
     /// Os saldos de uma conta da Horizon: XLM primeiro, depois os ativos da lista e as

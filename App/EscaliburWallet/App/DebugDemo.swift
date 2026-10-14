@@ -272,6 +272,16 @@ struct DemoEnvelopes: ViewModifier {
                 case .seguranca: NavigationStack { ResponsibilityView(continueTitle: "Digitar as palavras") {} }
                 case .observar: NavigationStack { WatchAddressView { newWallet = nil } }
                 case .adicionar: AddWalletView(isFirst: false) { newWallet = nil }
+                case .promessa: NavigationStack { SecurityPromiseView {} }
+                case .checagem: NavigationStack { DeviceCheckView {} }
+                case .frase: NavigationStack { ImportPhraseView { newWallet = nil } }
+                case .selo: VStack(spacing: Space.lg) {
+                        Spacer()
+                        CoinFlipBadge(asset: .native(.base))
+                        Text("Ordem limite criada").typeStyle(.title).foregroundStyle(Palette.ink)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity).background(Palette.void.ignoresSafeArea())
                 }
             }
             .task(id: session.metadata.wallets.first?.id) {
@@ -291,7 +301,7 @@ struct DemoEnvelopes: ViewModifier {
 
 /// As telas de carteira nova que `-tela` abre direto.
 enum DemoNewWallet: String, Identifiable {
-    case adicionar, criar, seguranca, observar
+    case adicionar, criar, seguranca, observar, promessa, checagem, frase, selo
     var id: String { rawValue }
 }
 /// O andamento de uma ordem sem rede, para conferir o desenho.

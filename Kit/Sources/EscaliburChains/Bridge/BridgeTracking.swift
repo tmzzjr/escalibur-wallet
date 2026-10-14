@@ -83,12 +83,13 @@ public struct BridgeRecord: Codable, Sendable, Equatable, Identifiable {
 
     /// O deposito como foi assinado.
     public var acrossTransfer: AcrossTransfer? {
-        guard route == .across, let from, let to, let owner = ownerAddress, let amount = BigUInt(decimal: amount),
-              let output = outputAmount.flatMap(BigUInt.init(decimal:)), let quoteTimestamp, let fillDeadline
+        guard route == .across, let from, let to, let fromAcross = from.across, let toAcross = to.across, let owner = ownerAddress,
+              let amount = BigUInt(decimal: amount), let output = outputAmount.flatMap(BigUInt.init(decimal:)), let quoteTimestamp,
+              let fillDeadline
         else { return nil }
         return AcrossTransfer(
             originChainID: from.chain.evmChainID ?? 0, destinationChainID: to.chain.evmChainID ?? 0, owner: owner, recipient: owner,
-            inputToken: asset.contract(on: from) ?? from.wrappedNative, outputToken: asset.contract(on: to) ?? to.wrappedNative,
+            inputToken: asset.contract(on: from) ?? fromAcross.wrappedNative, outputToken: asset.contract(on: to) ?? toAcross.wrappedNative,
             inputAmount: amount, outputAmount: output, exclusiveRelayer: nil, quoteTimestamp: quoteTimestamp, fillDeadline: fillDeadline,
             exclusivityDeadline: 0, nativeInput: asset == .eth
         )

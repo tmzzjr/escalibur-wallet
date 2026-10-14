@@ -75,13 +75,15 @@ struct NewWalletFlow: View {
     @State private var askingLater = false
 
     /// `pledge` e o aceite de responsabilidade, logo antes de a frase nascer.
-    enum Step { case before, pledge, record, confirm, created }
+    enum Step { case before, promise, pledge, record, confirm, created }
 
     var body: some View {
         NavigationStack {
             Group {
                 switch step {
                 case .before: before
+                case .promise:
+                    SecurityPromiseView { step = .pledge }
                 case .pledge:
                     ResponsibilityView(continueTitle: "Mostrar as palavras", loading: saving) { Task { await start() } }
                 case .record:
@@ -98,10 +100,16 @@ struct NewWalletFlow: View {
             }
             .background(Palette.void.ignoresSafeArea())
             .toolbar {
-                if step == .pledge || step == .confirm {
+                if step == .promise || step == .pledge || step == .confirm {
                     // Voltar um passo: a carteira em criacao e as palavras continuam.
                     ToolbarItem(placement: .topBarLeading) {
-                        Button { step = step == .pledge ? .before : .record } label: {
+                        Button {
+                            switch step {
+                            case .promise: step = .before
+                            case .pledge: step = .promise
+                            default: step = .record
+                            }
+                        } label: {
                             Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold)).foregroundStyle(Palette.inkSoft)
                         }
                         .accessibilityLabel("Voltar")
@@ -148,7 +156,7 @@ struct NewWalletFlow: View {
             Text("12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
                 .padding(.bottom, Space.lg)
-            PrimaryButton(title: "Continuar") { error = nil; step = .pledge }
+            PrimaryButton(title: "Continuar") { error = nil; step = .promise }
         }
         .padding(.horizontal, Space.gutter)
         .padding(.top, Space.md)

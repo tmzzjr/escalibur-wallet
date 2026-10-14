@@ -203,13 +203,16 @@ struct TradeReviewFlow: View {
     }
 
     private var plainDone: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: 0) {
             Spacer()
-            Image(systemName: "checkmark.circle.fill").font(.system(size: 44)).foregroundStyle(Palette.up)
+            // A moeda da ordem e o checkmark, girando como uma moeda jogada.
+            CoinFlipBadge(asset: assets.sell)
             Text(text(swap: "Troca enviada", limit: "Ordem limite criada", cancel: "Cancelamento enviado"))
-                .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+                .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
+                .multilineTextAlignment(.center)
             Text(doneMessage)
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer()
             if !isLimit, !isOffchainCancel, let last = ids.last, let url = item.chain.explorerURL(tx: last) {

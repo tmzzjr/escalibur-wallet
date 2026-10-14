@@ -453,3 +453,63 @@ enum TradeAccess {
         return asset.origin == nil || supportsUnlisted(chain)
     }
 }
+
+/// O selo de "ordem criada": um circulo que gira no eixo vertical como uma moeda jogada,
+/// com a logo da moeda da ordem de um lado e o checkmark do outro. Gira rapido tres
+/// vezes ao aparecer e depois vira devagar de tempos em tempos. Com "reduzir movimento",
+/// fica parado no checkmark.
+struct CoinFlipBadge: View {
+    let asset: Asset?
+    var size: CGFloat = 112
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var angle: Double = 0
+
+    /// O lado de cima e o da logo quando o angulo esta perto de 0, 360, 720...
+    private var showsCoin: Bool {
+        let turn = angle.truncatingRemainder(dividingBy: 360)
+        return turn < 90 || turn > 270
+    }
+
+    var body: some View {
+        ZStack {
+            Circle().fill(Palette.body)
+                .overlay(Circle().stroke(Palette.edgeStrong, lineWidth: 1))
+            if showsCoin {
+                if let asset {
+                    CoinLogo(coingeckoID: asset.coingeckoID, symbol: asset.symbol, size: size * 0.72, network: asset.chain,
+                             ringColor: Palette.body, unverified: asset.origin != nil, logoAsset: asset.origin != nil ? asset : nil)
+                }
+            } else {
+                Image(systemName: "checkmark")
+                    .font(.system(size: size * 0.42, weight: .bold))
+                    .foregroundStyle(Palette.onAccent)
+                    .frame(width: size, height: size)
+                    .background(Circle().fill(Palette.accent))
+                    // O verso de um giro em Y aparece espelhado: desfaz o espelho.
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+            }
+        }
+        .frame(width: size, height: size)
+        .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), perspective: 0.45)
+        .shadow(color: Palette.accent.opacity(showsCoin ? 0 : 0.35), radius: 24)
+        .accessibilityElement()
+        .accessibilityLabel("Concluído")
+        .task {
+            guard !reduceMotion else {
+                angle = 180
+                return
+            }
+            // Jogada: tres voltas e meia, terminando no checkmark.
+            withAnimation(.timingCurve(0.2, 0.8, 0.25, 1, duration: 1.6)) { angle = 1080 + 180 }
+            try? await Task.sleep(for: .seconds(2.6))
+            // Depois, vira devagar: mostra a moeda, volta ao checkmark.
+            while !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.7)) { angle += 180 }
+                try? await Task.sleep(for: .seconds(1.6))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeInOut(duration: 0.7)) { angle += 180 }
+                try? await Task.sleep(for: .seconds(3.2))
+            }
+        }
+    }
+}

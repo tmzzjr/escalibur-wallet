@@ -403,7 +403,7 @@ struct MarketChartSection: View {
         }
     }
 
-    static let contractRetryDelays: [Double] = [0, 15, 45, 90]
+    static let contractRetryDelays: [Double] = [0, 6, 15, 30, 60]
 
     /// O comeco do grafico com a linha de 7 dias da lista: as ultimas 24 horas para 24h,
     /// a linha toda para 7 dias. Os pontos sao horarios e terminam agora.

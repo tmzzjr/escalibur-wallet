@@ -140,7 +140,10 @@ struct TradeView: View {
                 .padding(.bottom, Space.xl)
             }
             .scrollDismissesKeyboard(.interactively)
-            .safeAreaInset(edge: .bottom) { footer }
+            // A base do rodape desce ate o fim da tela, por baixo da barra de abas: o toque
+            // que cai no vao entre os botoes da barra para nela, e nao numa ordem aberta
+            // que esteja rolada por tras (relato do dono, 14/10/2026).
+            .safeAreaInset(edge: .bottom) { footer.background(Palette.void.ignoresSafeArea(.container, edges: .bottom)) }
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .statusBarBackdrop()
@@ -625,7 +628,17 @@ struct TradeView: View {
 
     private var over: Bool {
         guard let amount = model.amountIn, let sell = model.sell else { return false }
-        return amount > (holding(sell)?.amount ?? 0)
+        return amount > free(sell)
+    }
+
+    /// O que da para usar do ativo: o saldo menos a reserva da rede (XRP Ledger,
+    /// Stellar) e, na ordem limite, menos o que ainda falta vender nas ordens abertas
+    /// dele, que a autorizacao ja cobre.
+    private func free(_ asset: Asset?) -> BigUInt {
+        guard let asset, let held = holding(asset) else { return 0 }
+        let available = portfolio.available(held)
+        guard router.tradeMode == .limit else { return available }
+        return available.subtractingReportingUnderflow(OpenOrdersBook.shared.lockedSell(asset)) ?? BigUInt()
     }
 
     private var footer: some View {
@@ -683,7 +696,13 @@ struct TradeView: View {
 
     private func balance(_ asset: Asset?) -> String? {
         guard let asset else { return nil }
-        let amount = holding(asset)?.amount ?? 0
+        let amount = free(asset)
+        if router.tradeMode == .limit, asset.id == model.sell?.id, !OpenOrdersBook.shared.lockedSell(asset).isZero {
+            return "Livre \(Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol, style: .list)), o resto em ordens"
+        }
+        if let held = holding(asset), held.amount > portfolio.available(held) {
+            return "Disponível \(Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol, style: .list))"
+        }
         return "Saldo \(Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol, style: .list))"
     }
 
@@ -697,7 +716,8 @@ struct TradeView: View {
     }
 
     private func setFraction(_ fraction: Double) {
-        guard let sell = model.sell, let total = holding(sell)?.amount else { return }
+        guard let sell = model.sell else { return }
+        let total = free(sell)
         let part = fraction >= 1 ? total : total * BigUInt(UInt64(fraction * 100)) / BigUInt(100)
         model.amountText = Fmt.plainDecimal(part, decimals: sell.decimals)
     }

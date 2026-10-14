@@ -81,13 +81,12 @@ struct BridgeForm: View {
             details.padding(.top, Space.lg)
             BridgeList().padding(.top, Space.lg)
         }
-        .confirmationDialog("Moeda", isPresented: $pickingAsset, titleVisibility: .hidden) {
-            ForEach(model.assets, id: \.self) { asset in
-                Button(asset.symbol) {
-                    model.asset = asset
-                    model.amountText = ""
-                    model.changed()
-                }
+        .sheet(isPresented: $pickingAsset) {
+            BridgeAssetSheet(model: model) { asset in
+                model.asset = asset
+                model.amountText = ""
+                model.changed()
+                pickingAsset = false
             }
         }
         .task(id: quoteKey) { await refresh() }
@@ -307,5 +306,76 @@ struct BridgeList: View {
         }
         .padding(Space.sm)
         .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+    }
+}
+
+/// Escolher a moeda da ponte, como o seletor da troca: logo, nome, saldo na rede de
+/// origem. A que nao faz esta rota aparece apagada, com o motivo.
+struct BridgeAssetSheet: View {
+    @Environment(Portfolio.self) private var portfolio
+    @Environment(\.dismiss) private var dismiss
+    let model: BridgeFormModel
+    let onPick: (BridgeAsset) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(title: "Moeda") { dismiss() }
+            Text("Da \(model.from.name) para a \(model.to.name)").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+            ScrollView {
+                VStack(spacing: Space.xs) {
+                    ForEach(BridgeAsset.allCases, id: \.self) { asset in row(asset) }
+                }
+                .padding(.horizontal, Space.gutter)
+                .padding(.top, Space.md)
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationBackground(Palette.void)
+    }
+
+    private func reason(_ asset: BridgeAsset) -> String? {
+        guard let from = model.fromBridge, let to = model.toBridge else { return "Rede fora da ponte." }
+        guard !asset.available(from: from, to: to) else { return nil }
+        switch asset {
+        case .usdc: return "Fora da ponte nestas redes."
+        case .eth:
+            if from.across == nil || to.across == nil { return "O Across não atende \(from.across == nil ? from.chain.name : to.chain.name)." }
+            return "ETH só entre redes em que ele é a moeda nativa."
+        case .usdt:
+            if from.across == nil || to.across == nil { return "O Across não atende \(from.across == nil ? from.chain.name : to.chain.name)." }
+            return "USDT só onde é o da Tether (USDT0) dos dois lados: Ethereum, Arbitrum, Unichain e Plasma."
+        }
+    }
+
+    private func row(_ asset: BridgeAsset) -> some View {
+        let listed = model.fromBridge.flatMap { asset.asset(on: $0) }
+        let held = listed.flatMap { item in portfolio.balance(model.from)?.holdings.first { $0.asset.id == item.id } }
+        let why = reason(asset)
+        return Button { if why == nil { onPick(asset) } } label: {
+            HStack(spacing: Space.sm) {
+                CoinLogo(coingeckoID: listed?.coingeckoID, symbol: asset.symbol, size: 40, network: model.from, ringColor: Palette.body)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(asset.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
+                    Text(why ?? (asset == .usdc ? "Pelo CCTP da Circle" : "Pelo Across")).typeStyle(.note)
+                        .foregroundStyle(why == nil ? Palette.inkSoft : Palette.inkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                if let held, why == nil {
+                    Text(Fmt.crypto(portfolio.available(held), decimals: asset.decimals, symbol: asset.symbol, style: .list))
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                }
+                if asset == model.asset {
+                    Image(systemName: "checkmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.accent)
+                }
+            }
+            .padding(Space.sm)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+            .opacity(why == nil ? 1 : 0.5)
+        }
+        .buttonStyle(.plain)
+        .disabled(why != nil)
+        .accessibilityIdentifier("ponte-moeda-\(asset.symbol)")
     }
 }

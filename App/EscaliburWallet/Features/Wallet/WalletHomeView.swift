@@ -502,14 +502,17 @@ struct WalletSwitcherSheet: View {
     let onAdd: () -> Void
     @State private var renaming: WalletMeta?
     @State private var newName = ""
+    @State private var reorder = WalletReorder()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SheetHeader(title: "Carteiras") { dismiss() }
             ScrollView {
                 VStack(spacing: 0) {
-                    ForEach(session.metadata.wallets) { wallet in
+                    let wallets = session.metadata.wallets
+                    ForEach(Array(wallets.enumerated()), id: \.element.id) { index, wallet in
                         Button {
+                            guard !reorder.justDropped else { return }
                             session.select(wallet)
                             dismiss()
                         } label: {
@@ -537,14 +540,21 @@ struct WalletSwitcherSheet: View {
                                 .accessibilityLabel("Editar o nome de \(wallet.name)")
                             }
                             .padding(.horizontal, Space.gutter)
-                            .frame(minHeight: Height.row)
-                            .background(wallet.id == session.selectedWallet?.id ? Palette.rail : Color.clear)
+                            .frame(height: Height.row)
+                            .background(wallet.id == session.selectedWallet?.id || reorder.dragging == wallet.id ? Palette.rail : Color.clear)
                         }
                         .buttonStyle(RowStyle(surface: .body))
+                        .walletReorder(reorder, id: wallet.id, index: index, count: wallets.count, rowHeight: Height.row, session: session)
+                    }
+                    if wallets.count > 1 {
+                        Text("Segure uma carteira e arraste para mudar a ordem.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                            .padding(.horizontal, Space.gutter).padding(.top, Space.sm)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .padding(.top, Space.md)
             }
+            .scrollDisabled(reorder.dragging != nil)
             PrimaryButton(title: "Adicionar carteira", action: onAdd)
                 .padding(.horizontal, Space.gutter).padding(.bottom, Space.xs)
         }
@@ -584,3 +594,79 @@ struct WalletSwitcherSheet: View {
 
 /// O caminho de "Gerenciar ativos" na pilha da Carteira.
 struct ManageAssetsRoute: Hashable {}
+
+/// Reordenar as carteiras: segurar uma linha e arrastar. As outras abrem espaco enquanto
+/// ela anda, e soltar grava a ordem nova nos metadados cifrados.
+@MainActor
+@Observable
+final class WalletReorder {
+    var dragging: UUID?
+    var offset: CGFloat = 0
+    var from = 0
+    /// Logo depois de arrastar, o toque que solta nao seleciona a carteira.
+    var justDropped = false
+
+    func target(count: Int, rowHeight: CGFloat) -> Int {
+        max(0, min(count - 1, from + Int((offset / rowHeight).rounded())))
+    }
+
+    /// Quanto uma linha que nao esta sendo arrastada desce ou sobe para abrir espaco.
+    func shift(index: Int, count: Int, rowHeight: CGFloat) -> CGFloat {
+        guard dragging != nil else { return 0 }
+        let to = target(count: count, rowHeight: rowHeight)
+        if from < to, index > from, index <= to { return -rowHeight }
+        if from > to, index >= to, index < from { return rowHeight }
+        return 0
+    }
+
+    func gesture(id: UUID, index: Int, count: Int, rowHeight: CGFloat, session: AppSession) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.35)
+            .sequenced(before: DragGesture(minimumDistance: 0))
+            .onChanged { value in
+                guard case .second(true, let drag) = value else { return }
+                if self.dragging == nil {
+                    self.dragging = id
+                    self.from = index
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                }
+                let before = self.target(count: count, rowHeight: rowHeight)
+                self.offset = drag?.translation.height ?? 0
+                if self.target(count: count, rowHeight: rowHeight) != before { UISelectionFeedbackGenerator().selectionChanged() }
+            }
+            .onEnded { _ in
+                guard self.dragging != nil else { return }
+                let to = self.target(count: count, rowHeight: rowHeight)
+                if to != self.from {
+                    var wallets = session.metadata.wallets
+                    let moved = wallets.remove(at: self.from)
+                    wallets.insert(moved, at: to)
+                    session.metadata.wallets = wallets
+                    try? session.persist()
+                }
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    self.dragging = nil
+                    self.offset = 0
+                }
+                self.justDropped = true
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(300))
+                    self.justDropped = false
+                }
+            }
+    }
+}
+
+extension View {
+    /// Uma linha da lista de carteiras que da para arrastar.
+    func walletReorder(_ reorder: WalletReorder, id: UUID, index: Int, count: Int, rowHeight: CGFloat, session: AppSession) -> some View {
+        let dragging = reorder.dragging == id
+        return self
+            .offset(y: dragging ? reorder.offset : reorder.shift(index: index, count: count, rowHeight: rowHeight))
+            .scaleEffect(dragging ? 1.03 : 1)
+            .shadow(color: .black.opacity(dragging ? 0.35 : 0), radius: 16, y: 6)
+            .zIndex(dragging ? 1 : 0)
+            .animation(dragging ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: reorder.shift(index: index, count: count, rowHeight: rowHeight))
+            .simultaneousGesture(reorder.gesture(id: id, index: index, count: count, rowHeight: rowHeight, session: session))
+            .accessibilityHint("Segure e arraste para mudar a ordem")
+    }
+}

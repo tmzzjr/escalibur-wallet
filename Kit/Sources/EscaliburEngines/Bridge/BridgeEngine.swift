@@ -63,8 +63,9 @@ public struct BridgeEngine: Sendable {
                 options.append(try BridgeValidator.cctp(intent, route: .cctpStandard, fees: levels, fastAllowance: nil, now: now))
                 return options
             }
-            let input = intent.asset.contract(on: intent.from) ?? intent.from.wrappedNative
-            let output = intent.asset.contract(on: intent.to) ?? intent.to.wrappedNative
+            guard let fromAcross = intent.from.across, let toAcross = intent.to.across else { throw BridgeRefusal.unsupportedRoute }
+            let input = intent.asset.contract(on: intent.from) ?? fromAcross.wrappedNative
+            let output = intent.asset.contract(on: intent.to) ?? toAcross.wrappedNative
             async let suggested = across.quote(
                 inputToken: input, outputToken: output, originChainID: intent.from.chain.evmChainID ?? 0,
                 destinationChainID: intent.to.chain.evmChainID ?? 0, amount: intent.amount
@@ -189,7 +190,8 @@ public struct BridgeEngine: Sendable {
             return .refunded(txHash: hash)
         case .filled:
             guard let hash = status.fillTxHash, let receipt = try await reader.receiptLogs(chain: to.chain, hash: hash) else { return .inFlight }
-            guard receipt.success, BridgeArrival.acrossDelivered(receipt.logs, transfer: transfer, destinationSpoke: to.spokePool) else {
+            guard receipt.success, let spoke = to.across?.spokePool,
+                  BridgeArrival.acrossDelivered(receipt.logs, transfer: transfer, destinationSpoke: spoke) else {
                 return .mismatch
             }
             return .arrived(txHash: hash, amount: transfer.outputAmount)

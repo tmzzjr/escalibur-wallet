@@ -81,9 +81,10 @@ public enum BridgePlanner {
                 BridgePin(chain: to.chain, proxy: BridgeAllowlist.messageTransmitter, implementation: to.transmitterImplementation, name: "MessageTransmitterV2"),
             ]
         }
+        guard let fromAcross = from.across, let toAcross = to.across else { return [] }
         return [
-            BridgePin(chain: from.chain, proxy: from.spokePool, implementation: from.spokePoolImplementation, name: "SpokePool"),
-            BridgePin(chain: to.chain, proxy: to.spokePool, implementation: to.spokePoolImplementation, name: "SpokePool"),
+            BridgePin(chain: from.chain, proxy: fromAcross.spokePool, implementation: fromAcross.implementation, name: "SpokePool"),
+            BridgePin(chain: to.chain, proxy: toAcross.spokePool, implementation: toAcross.implementation, name: "SpokePool"),
         ]
     }
 
@@ -141,6 +142,8 @@ public enum BridgePlanner {
 
         // O codigo atras de cada proxy, nas duas pontas.
         let pins = pins(for: quote)
+        // Rota sem contrato fixado nao vira plano (uma lista vazia passaria em branco).
+        guard !pins.isEmpty else { throw BridgeRefusal.unsupportedRoute }
         guard state.implementations.count == pins.count else { throw BridgeRefusal.implementationChanged("leitura incompleta") }
         for (pin, found) in zip(pins, state.implementations) where found != pin.implementation {
             throw BridgeRefusal.implementationChanged("\(pin.name) na \(pin.chain.name)")
@@ -240,16 +243,17 @@ public enum BridgePlanner {
                   try CCTPCalldata.encodeDeposit(transfer) == quote.data
             else { throw BridgeRefusal.quoteMismatch("queima") }
         case .across(let transfer):
-            let input = intent.asset.contract(on: intent.from) ?? intent.from.wrappedNative
-            let output = intent.asset.contract(on: intent.to) ?? intent.to.wrappedNative
-            guard quote.route == .across, quote.to == intent.from.spokePool,
+            guard let fromAcross = intent.from.across, let toAcross = intent.to.across else { throw BridgeRefusal.unsupportedRoute }
+            let input = intent.asset.contract(on: intent.from) ?? fromAcross.wrappedNative
+            let output = intent.asset.contract(on: intent.to) ?? toAcross.wrappedNative
+            guard quote.route == .across, quote.to == fromAcross.spokePool,
                   transfer.owner == intent.owner, transfer.recipient == intent.owner,
                   transfer.inputToken == input, transfer.outputToken == output, transfer.inputAmount == intent.amount,
                   transfer.outputAmount <= transfer.inputAmount,
                   transfer.originChainID == intent.from.chain.evmChainID, transfer.destinationChainID == intent.to.chain.evmChainID,
                   transfer.exclusiveRelayer == nil, transfer.exclusivityDeadline == 0,
                   transfer.nativeInput == (intent.asset == .eth), quote.value == transfer.value,
-                  quote.spender == (intent.asset == .eth ? nil : intent.from.spokePool),
+                  quote.spender == (intent.asset == .eth ? nil : fromAcross.spokePool),
                   try AcrossCalldata.encode(transfer) == quote.data
             else { throw BridgeRefusal.quoteMismatch("depósito") }
         }
@@ -354,7 +358,7 @@ enum BridgeSimulationCheck {
             else { throw BridgeRefusal.simulationEventMissing }
             return true
         case .across(let transfer):
-            guard log.address == quote.intent.from.spokePool, log.topics.first == fundsDepositedTopic else { return false }
+            guard let spoke = quote.intent.from.across?.spokePool, log.address == spoke, log.topics.first == fundsDepositedTopic else { return false }
             guard log.topics.count == 4,
                   BigUInt(bigEndian: log.topics[1]) == BigUInt(transfer.destinationChainID),
                   log.topics[3] == CCTPMessage.word(owner),

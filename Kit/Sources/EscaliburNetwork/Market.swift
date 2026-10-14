@@ -691,13 +691,51 @@ public actor MarketService {
     /// O grafico de um token fora da lista: pelo contrato no CoinGecko; se o CoinGecko nao
     /// lista o contrato, pela pool de DEX com mais liquidez no GeckoTerminal. Erro de
     /// limite ou de rede sobe: a tela tenta de novo.
+    ///
+    /// As duas fontes sao perguntadas ao mesmo tempo e vale a primeira que responder: o
+    /// CoinGecko sem chave fica de fora por minutos depois de um limite, e esperar por
+    /// ele deixava o grafico de um token como o BNB Frog Inu demorando (relato do dono,
+    /// 14/10/2026). A tela diz de qual fonte veio.
     public func tokenChart(_ asset: Asset, currency: String, range: ChartRange) async throws -> TokenChart {
-        do {
-            return TokenChart(snapshot: try await contractChartSnapshot(asset, currency: currency, range: range), pool: nil)
-        } catch HTTPClient.Failure.status(404) {
-        } catch HTTPClient.Failure.invalidResponse {
+        enum Answer: Sendable {
+            case chart(TokenChart)
+            /// A fonte respondeu que nao tem o token (CoinGecko sem o contrato, nenhuma
+            /// pool com liquidez).
+            case absent
+            case failed(Error)
         }
-        return try await dexChart(asset, currency: currency, range: range)
+        func classify(_ error: Error) -> Answer {
+            switch error {
+            case HTTPClient.Failure.status(404), HTTPClient.Failure.invalidResponse: return .absent
+            default: return .failed(error)
+            }
+        }
+        return try await withThrowingTaskGroup(of: Answer.self) { group in
+            group.addTask {
+                do { return .chart(TokenChart(snapshot: try await self.contractChartSnapshot(asset, currency: currency, range: range), pool: nil)) }
+                catch { return classify(error) }
+            }
+            group.addTask {
+                do { return .chart(try await self.dexChart(asset, currency: currency, range: range)) }
+                catch { return classify(error) }
+            }
+            var absent = 0
+            var lastError: Error?
+            for try await answer in group {
+                switch answer {
+                case .chart(let chart):
+                    group.cancelAll()
+                    return chart
+                case .absent:
+                    absent += 1
+                case .failed(let error):
+                    lastError = error
+                }
+            }
+            // As duas disseram que nao tem: sem grafico. Senao, limite ou rede: a tela tenta de novo.
+            if absent == 2 { throw HTTPClient.Failure.status(404) }
+            throw lastError ?? HTTPClient.Failure.status(404)
+        }
     }
 
     /// As redes do GeckoTerminal (`/networks`, conferido em 12/10/2026). A Asset Hub da
