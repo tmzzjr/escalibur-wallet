@@ -32,6 +32,7 @@ MOEDAS += ["cardano"]
 MOEDAS += ["polkadot"]
 MOEDAS += ["near"]
 MOEDAS += ["aptos"]
+MOEDAS += ["shiba-inu", "bnb-frog-inu"]
 # Provedores de troca com token proprio: o logo e o do token no CoinGecko. LI.FI e
 # De¹ nao tem token; o app desenha a inicial.
 PROVEDORES = {"kyberswap": "kyber-network-crystal", "cow": "cow-protocol", "velora": "paraswap",

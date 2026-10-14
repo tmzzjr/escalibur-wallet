@@ -11,7 +11,8 @@ import UserNotifications
 // O preco disso, dito no botao que liga: para conferir com o iPhone bloqueado, os
 // enderecos publicos das contas ficam num arquivo proprio, com a protecao ate o primeiro
 // desbloqueio (classe C), fora dos metadados cifrados. Nada de chave, frase ou nome de
-// carteira. Desligado por padrao; desligar apaga o arquivo.
+// carteira. Ligado por padrao desde 14/10/2026, a pedido do dono
+// (`ReceiptAccounts.enableByDefault`); desligar apaga o arquivo e vale para sempre.
 //
 // Este arquivo nao toca no cofre, no chaveiro nem nos metadados cifrados, e verificar.sh
 // confere: os enderecos chegam de fora, pelo app destravado (`sync`).
@@ -252,13 +253,13 @@ enum ReceiptText {
     }
 }
 
-/// A checagem em segundo plano e uma so para os alertas de preco e o aviso de
-/// recebimento: fica na agenda enquanto um dos dois estiver ligado.
+/// A checagem em segundo plano e uma so para os alertas de preco, o aviso de
+/// recebimento e as ordens limite abertas: fica na agenda enquanto um deles precisar.
 enum BackgroundCheck {
     static func reschedule() {
         let prices = PriceAlertStore.load()
         let receipts = ReceiptWatchStore.load()
-        if (prices.enabled && !prices.coins.isEmpty) || receipts.enabled {
+        if (prices.enabled && !prices.coins.isEmpty) || receipts.enabled || !LimitOrderWatchStore.load().orders.isEmpty {
             PriceAlertCenter.schedule()
         } else {
             PriceAlertCenter.cancelSchedule()

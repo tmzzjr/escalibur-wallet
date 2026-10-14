@@ -69,6 +69,7 @@ struct WalletHomeView: View {
             // ao abrir a Atividade, ele ja esta na tela.
             let disabled = session.metadata.settings.disabledChainIDs
             Task { await ActivityFeed.shared.load(wallet, disabled: disabled, session: session) }
+            await ReceiptAccounts.enableByDefault(session)
             #if DEBUG
             if DebugDemo.screen == "detalhe", let first = portfolio.rows.first { router.walletPath.append(first) }
             if DebugDemo.screen == "receber" { receiving = true }

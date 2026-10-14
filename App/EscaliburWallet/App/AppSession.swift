@@ -340,8 +340,10 @@ final class AppSession {
         KeyServices.root.wipeAll()
         MetadataStore.deleteFile()
         PriceAlertStore.erase()
+        Preferences.receiptWatchChosen = false
         Task {
             await ReceiptWatchCenter.shared.disable()
+            await LimitOrderWatch.shared.erase()
             await PriceAlertCenter.shared.erase()
         }
         indexKey = nil

@@ -56,6 +56,7 @@ struct TokenRegistryLiveTests {
         "LINK": ["LINK", "LINK.e"],
         "CAKE": ["Cake"],
         "XAUT": ["XAUt"],
+        "BNBFROG": ["BNBFrog"],
     ]
 
     /// keccak256 do codigo executavel do Multicall3 (sem o trailer CBOR de metadados do
@@ -184,21 +185,23 @@ struct TokenRegistryLiveTests {
 
 @Suite("Varredura da lista de tokens ao vivo", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_REDE"] == "1"))
 struct TokenListScanLiveTests {
-    @Test("BNB Chain sem indexador: a lista do CoinGecko acha o BNB Frog Inu de quem recebeu")
+    /// O BNB Frog Inu entrou na lista curada em 14/10/2026: de quem tem, ele sai no saldo
+    /// da lista, e a varredura nao o repete em Outros tokens. A conta e o par BNBFrog/WBNB
+    /// da PancakeSwap v2, que sempre tem o token (a conta de antes vendeu tudo).
+    @Test("BNB Chain sem indexador: o BNB Frog Inu, agora da lista, sai no saldo e nao na varredura")
     func bnbFrog() async throws {
         let service = BalanceService()
         let started = Date()
-        let balance = try await service.balance(chain: .bnb, addresses: ["0x882000956f71472411bf271e268d75db61c27d8b"])
+        let balance = try await service.balance(chain: .bnb, addresses: ["0x2724358279dc913bef672771cd7b96c4c26a9bf5"])
         let first = Date().timeIntervalSince(started)
         let frog = "0x64da67a12a46f1ddf337393e2da12ed0a507ad3d"
-        let found = balance.unlisted?.contains { if case .token(let contract) = $0.asset.kind { return contract.lowercased() == frog } else { return false } }
-        #expect(found == true)
-        let frogLogo = balance.unlisted?.first { if case .token(let contract) = $0.asset.kind { return contract.lowercased() == frog } else { return false } }?.logo
-        #expect(frogLogo?.host == "assets.coingecko.com")
-        print("logo da BNB Frog: \(frogLogo?.absoluteString ?? "nenhuma")")
+        let isFrog: (Asset) -> Bool = { if case .token(let contract) = $0.kind { return contract.lowercased() == frog } else { return false } }
+        #expect(balance.holdings.contains { isFrog($0.asset) && $0.asset.isVerified })
+        #expect(balance.unlisted?.contains { isFrog($0.asset) } != true)
+        for other in balance.unlisted ?? [] { if let logo = other.logo { #expect(logo.host == "assets.coingecko.com") } }
         // A segunda leitura nao varre de novo: so relê os que tinham saldo.
         let again = Date()
-        _ = try await service.balance(chain: .bnb, addresses: ["0x882000956f71472411bf271e268d75db61c27d8b"])
+        _ = try await service.balance(chain: .bnb, addresses: ["0x2724358279dc913bef672771cd7b96c4c26a9bf5"])
         print("varredura BNB: primeira \(first) s, segunda \(Date().timeIntervalSince(again)) s, \(balance.unlisted?.count ?? 0) fora da lista")
     }
 }

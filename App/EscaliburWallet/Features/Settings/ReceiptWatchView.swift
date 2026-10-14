@@ -22,6 +22,21 @@ enum ReceiptAccounts {
         return out
     }
 
+    /// Ligado por padrao (pedido do dono, 14/10/2026): na primeira vez que a carteira abre
+    /// com o dono sem ter escolhido, pede a permissao de notificacao e liga. Desligar em
+    /// Ajustes vale para sempre; sem permissao, fica desligado.
+    @MainActor
+    static func enableByDefault(_ session: AppSession) async {
+        guard !Preferences.receiptWatchChosen, session.phase == .unlocked, !session.metadata.wallets.isEmpty else { return }
+        #if DEBUG
+        if DebugDemo.enabled { return }
+        #endif
+        Preferences.receiptWatchChosen = true
+        let accounts = all(session)
+        guard await PriceAlertCenter.requestPermission() else { return }
+        await ReceiptWatchCenter.shared.enable(accounts: accounts)
+    }
+
     /// Muda quando as contas mudam: carteira nova, rede ligada ou desligada, endereco
     /// UTXO novo. Barato: sem derivar endereco.
     @MainActor
@@ -86,7 +101,7 @@ struct ReceiptWatchView: View {
 
                 VStack(alignment: .leading, spacing: Space.sm) {
                     note("Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois de a moeda entrar. Com o app aberto, a conferência é a cada 2 minutos.")
-                    note("Para conferir com o iPhone bloqueado, os endereços públicos das suas contas ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Nenhuma chave, frase ou nome de carteira entra nele. Desligar apaga o arquivo.")
+                    note("Para conferir com o iPhone bloqueado, os endereços públicos das suas contas ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Nenhuma chave, frase ou nome de carteira entra nele. Vem ligado; desligar apaga o arquivo.")
                     note("Contam a moeda de cada rede e os tokens da lista conferida. Token fora da lista não avisa: é por ele que chega o spam.")
                 }
                 .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
@@ -103,6 +118,7 @@ struct ReceiptWatchView: View {
     }
 
     private func setEnabled(_ on: Bool) {
+        Preferences.receiptWatchChosen = true
         file.enabled = on
         guard on else {
             denied = false

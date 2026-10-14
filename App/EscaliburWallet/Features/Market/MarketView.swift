@@ -224,41 +224,51 @@ struct MarketRow: View {
     }
 }
 
-/// A pilula de variacao do dia: seta cheia e numero sem sinal (a seta ja diz a
-/// direcao), sobre a cor cheia da direcao. Alta: lima com texto escuro (nunca branco
-/// sobre verde, 2,29:1). Queda: vermelho saturado (#E8112D), com o texto branco
-/// a 4,6:1. Variacao abaixo de 0,01% e neutra, sem seta.
+/// A pilula de variacao do dia, em vidro liquido (pedido do dono, 14/10/2026): so a seta
+/// tem cor, lima na alta e vermelho na queda; o numero, sem sinal (a seta ja diz a
+/// direcao), fica na tinta do app. Variacao abaixo de 0,01% e neutra, sem seta. Antes do
+/// iOS 26, material fino com borda clara, como a selecao.
 struct ChangePill: View {
     let change: Double?
-    /// Fora de lista longa: o numero rola e a cor troca devagar. Na lista do Mercado, nao.
+    /// Fora de lista longa: o numero rola e a seta troca devagar. Na lista do Mercado, nao.
     var animated = true
 
     var body: some View {
         let value = change ?? 0
         let up = value > 0.004
         let down = value < -0.004
-        let tint = up ? Palette.onLime : (down ? Color.white : Palette.inkSoft)
-        HStack(spacing: 4) {
+        HStack(spacing: 5) {
             if up || down {
                 Image(systemName: up ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
                     .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(up ? Palette.up : Palette.down)
             }
             Text(Fmt.percent(abs(value)).replacingOccurrences(of: "+", with: ""))
                 .typeStyle(.label).monospacedDigit()
+                .foregroundStyle(up || down ? Palette.ink : Palette.inkSoft)
                 .contentTransition(animated ? .numericText(value: value) : .identity)
         }
-        .foregroundStyle(tint)
         .lineLimit(1)
         .fixedSize()
         .padding(.horizontal, Space.sm)
         .frame(minWidth: 80, minHeight: 28)
-        .background(
-            Capsule(style: .continuous)
-                .fill(up ? Palette.up : (down ? Palette.downSolid : Palette.rail))
-        )
+        .modifier(PillGlass())
         .layoutPriority(1)
         .animation(animated ? Motion.fade : nil, value: value)
         .accessibilityLabel(up ? "Subiu \(Fmt.percent(abs(value)))" : (down ? "Caiu \(Fmt.percent(abs(value)))" : "Estável"))
+    }
+}
+
+/// O fundo da pilula: vidro sem cor e sem toque (ela nao e botao).
+private struct PillGlass: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular.tint(Color.white.opacity(0.04)), in: Capsule(style: .continuous))
+        } else {
+            content
+                .background(Capsule(style: .continuous).fill(.ultraThinMaterial))
+                .overlay(Capsule(style: .continuous).stroke(Color.white.opacity(0.14), lineWidth: 1))
+        }
     }
 }
 

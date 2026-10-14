@@ -281,8 +281,10 @@ struct EVMCoWSwapTests {
 
 @Suite("Troca de token fora da lista")
 struct EVMUnlistedTradeTests {
-    static let frog = Asset(chainID: "bnb", kind: .token(contract: "0x64da67a12a46f1ddf337393e2da12ed0a507ad3d"), symbol: "BNBFROG",
-                            name: "BNB Frog Inu", decimals: 18, coingeckoID: nil, isStablecoin: false, origin: .discovered)
+    /// O SHIB de ponte da BNB Chain, fora da lista (o BNB Frog Inu, exemplo antigo, entrou
+    /// nela em 14/10/2026).
+    static let frog = Asset(chainID: "bnb", kind: .token(contract: "0x2859e4544c4bb03966803b044a93563bd2d0dd4d"), symbol: "SHIB",
+                            name: "SHIBA INU", decimals: 18, coingeckoID: nil, isStablecoin: false, origin: .discovered)
 
     @Test("Token que a carteira tem e moeda adicionada entram na troca; no envio, so a adicionada")
     func resolve() throws {
@@ -292,7 +294,7 @@ struct EVMUnlistedTradeTests {
             Issue.record("token")
             return
         }
-        #expect(token.decimals == 18 && token.symbol == "BNBFROG")
+        #expect(token.decimals == 18 && token.symbol == "SHIB")
         // Outra rede: recusa.
         #expect(throws: EVMEngineFailure.assetNotListed) { _ = try EVMEngineSupport.resolve(Self.frog, on: .base, allowUnlisted: true) }
     }

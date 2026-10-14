@@ -8,31 +8,32 @@ import Testing
 @Suite("Reconhecimento de token")
 struct TokenRecognitionTests {
     static let now = Date(timeIntervalSince1970: 1_791_600_000)
-    static let shib = Asset(chainID: "ethereum", kind: .token(contract: "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE"), symbol: "SHIB",
-                            name: "SHIBA INU", decimals: 18, coingeckoID: nil, isStablecoin: false, origin: .discovered)
-    static let image = URL(string: "https://coin-images.coingecko.com/coins/images/11939/large/shiba.png")!
+    /// Um token fora da lista curada (o SHIB, exemplo antigo, entrou nela em 14/10/2026).
+    static let floki = Asset(chainID: "ethereum", kind: .token(contract: "0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E"), symbol: "FLOKI",
+                             name: "FLOKI", decimals: 9, coingeckoID: nil, isStablecoin: false, origin: .discovered)
+    static let image = URL(string: "https://coin-images.coingecko.com/coins/images/16746/large/PNG_image.png")!
 
-    func identity(_ asset: Asset = Self.shib, id: String? = "shiba-inu", symbol: String? = "shib", name: String? = "Shiba Inu",
-                  listed: String? = "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce", decimals: Int? = 18,
+    func identity(_ asset: Asset = Self.floki, id: String? = "floki", symbol: String? = "floki", name: String? = "FLOKI",
+                  listed: String? = "0xcf0c122c6b73ff809c693db761e7baebe62b6a2e", decimals: Int? = 9,
                   preview: Bool? = false, notice: String? = nil, image: URL? = Self.image) -> TokenIdentity? {
         TokenRecognitionRules.identity(asset: asset, platform: "ethereum", id: id, symbol: symbol, name: name, listedContract: listed,
                                        listedDecimals: decimals, previewListing: preview, publicNotice: notice, image: image, now: Self.now)
     }
 
-    @Test("SHIB na Ethereum: reconhecida, com nome e simbolo do CoinGecko")
-    func shiba() throws {
+    @Test("FLOKI na Ethereum: reconhecido, com nome e simbolo do CoinGecko")
+    func floki() throws {
         let found = try #require(identity())
-        #expect(found.coingeckoID == "shiba-inu" && found.symbol == "SHIB" && found.name == "Shiba Inu")
-        #expect(found.contract == "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce")
+        #expect(found.coingeckoID == "floki" && found.symbol == "FLOKI" && found.name == "FLOKI")
+        #expect(found.contract == "0xcf0c122c6b73ff809c693db761e7baebe62b6a2e")
         #expect(found.image == Self.image)
-        #expect(TokenRecognitionRules.isValid(found, for: Self.shib, now: Self.now.addingTimeInterval(86_400)))
+        #expect(TokenRecognitionRules.isValid(found, for: Self.floki, now: Self.now.addingTimeInterval(86_400)))
     }
 
     @Test("Contrato diferente, casas diferentes, pre-listagem ou aviso publico: nao reconhece")
     func rejected() {
         #expect(identity(listed: "0x0000000000000000000000000000000000000001") == nil)
         #expect(identity(listed: nil) == nil)
-        #expect(identity(decimals: 9) == nil)
+        #expect(identity(decimals: 18) == nil)
         #expect(identity(decimals: nil) == nil)
         #expect(identity(preview: true) == nil)
         #expect(identity(notice: "This token may be a scam") == nil)
@@ -48,7 +49,7 @@ struct TokenRecognitionTests {
 
     @Test("Nome do CoinGecko com link ou isca passa pelo filtro de golpe")
     func textFilter() {
-        #expect(identity(name: "Claim at shib-airdrop.com") == nil)
+        #expect(identity(name: "Claim at floki-airdrop.com") == nil)
     }
 
     @Test("Imagem fora do host do CoinGecko nao entra")
@@ -60,10 +61,10 @@ struct TokenRecognitionTests {
     @Test("O guardado expira em 7 dias e nao vale para outro contrato ou outra rede")
     func cache() throws {
         let found = try #require(identity())
-        #expect(!TokenRecognitionRules.isValid(found, for: Self.shib, now: Self.now.addingTimeInterval(8 * 86_400)))
-        let other = Asset(chainID: "base", kind: .token(contract: "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE"), symbol: "SHIB",
-                          name: "SHIB", decimals: 18, coingeckoID: nil, isStablecoin: false, origin: .discovered)
+        #expect(!TokenRecognitionRules.isValid(found, for: Self.floki, now: Self.now.addingTimeInterval(8 * 86_400)))
+        let other = Asset(chainID: "base", kind: .token(contract: "0xcf0C122c6b73ff809C693DB761e7BaeBe62b6a2E"), symbol: "FLOKI",
+                          name: "FLOKI", decimals: 9, coingeckoID: nil, isStablecoin: false, origin: .discovered)
         #expect(!TokenRecognitionRules.isValid(found, for: other, now: Self.now))
-        #expect(!TokenRecognitionRules.isValid(found, for: Self.shib, now: Self.now.addingTimeInterval(-60)))
+        #expect(!TokenRecognitionRules.isValid(found, for: Self.floki, now: Self.now.addingTimeInterval(-60)))
     }
 }

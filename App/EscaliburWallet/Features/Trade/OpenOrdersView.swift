@@ -125,7 +125,10 @@ struct OpenOrdersSection: View {
         }
         .fullScreenCover(item: $reviewing) { item in
             TradeReviewFlow(item: item) { completed in
-                if completed, case .cancel(let order, _) = item.kind { OpenOrdersBook.shared.markCancelling(order.id) }
+                if completed, case .cancel(let order, _) = item.kind {
+                    OpenOrdersBook.shared.markCancelling(order.id)
+                    Task { await LimitOrderWatch.shared.forget(order.id) }
+                }
                 reviewing = nil
                 if completed { Task { await reload() } }
             }
@@ -303,9 +306,16 @@ struct OpenOrdersSection: View {
         for gone in before where answeredIDs.contains(gone.chain.id) && !current.contains(gone.id) && !finished.contains(where: { $0.id == gone.id }) {
             guard let engine = TradeEngines.engine(for: gone.chain), let account = wallet.account(gone.chain) else { continue }
             // Executada ou vencida fica um tempo na lista com o resultado; cancelada sai de vez.
-            if let progress = try? await engine.orderProgress(id: gone.id, account: account), progress.isFinal, progress.state != .cancelled {
-                finished.append(FinishedOrder(order: gone, progress: progress))
+            if let progress = try? await engine.orderProgress(id: gone.id, account: account), progress.isFinal {
+                if progress.state != .cancelled { finished.append(FinishedOrder(order: gone, progress: progress)) }
+                await LimitOrderWatch.shared.settle(gone.id, filled: progress.state == .filled)
             }
+        }
+        // Ordem da CoW aberta (criada aqui antes destes avisos, ou em outro aparelho):
+        // passa a ser acompanhada para o aviso de vencimento e o de executada.
+        for open in orders where CoWProtocol.supports(open.chain) && !OpenOrdersBook.shared.isCancelling(open.id) {
+            guard let expiresAt = open.expiresAt else { continue }
+            await LimitOrderWatch.shared.track(id: open.id, chainID: open.chain.id, expiresAt: expiresAt)
         }
         unread = failedChains.sorted { (order[$0.id] ?? .max) < (order[$1.id] ?? .max) }
         load = .loaded(orders)

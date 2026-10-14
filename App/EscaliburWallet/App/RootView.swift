@@ -35,6 +35,7 @@ struct RootView: View {
             case .active:
                 Task { await PriceAlertCenter.shared.check() }
                 Task { await ReceiptWatchCenter.shared.check() }
+                Task { await LimitOrderWatch.shared.check() }
                 Task { await LimitRenewalCenter.shared.refresh(session: session) }
             case .background: Task { await PriceAlertCenter.shared.reschedule() }
             default: break

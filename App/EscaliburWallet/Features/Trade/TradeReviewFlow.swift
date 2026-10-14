@@ -397,6 +397,15 @@ struct TradeReviewFlow: View {
             if case .limit(let request) = item.kind, let orderID = ids.first {
                 if let old = item.replacesRenewal { LimitRenewalCenter.shared.forget(old, session: session) }
                 if item.renewLimit { LimitRenewalCenter.shared.register(orderID: orderID, request: request, session: session) }
+                // Avisos de 24 horas antes de vencer e de executada: pede a permissao de
+                // notificacao aqui, com a ordem na tela, se ainda nao pediu.
+                if CoWProtocol.supports(request.chain), let uid = Hex.decode(orderID), let validTo = CoWProtocol.validTo(ofUID: uid) {
+                    let chainID = request.chain.id
+                    Task {
+                        _ = await PriceAlertCenter.requestPermission()
+                        await LimitOrderWatch.shared.track(id: orderID, chainID: chainID, expiresAt: Date(timeIntervalSince1970: TimeInterval(validTo)))
+                    }
+                }
             }
             stage = .done
             portfolio.show(session.selectedWallet, session: session, force: true)

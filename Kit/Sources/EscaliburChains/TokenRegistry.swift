@@ -320,6 +320,20 @@ public enum TokenRegistry {
         erc20("ethereum", "0x45804880De22913dAFE09f4980848ECE6EcbAf78", "PAXG", "PAX Gold", 18, "pax-gold"),
         // Pepe (PEPE), Ethereum. Fonte do emissor: pepe.vip.
         erc20("ethereum", "0x6982508145454Ce325dDbE47a25d4ec3d2311933", "PEPE", "Pepe", 18, "pepe"),
+        // Shiba Inu (SHIB), Ethereum (pedido do dono, 14/10/2026). O site do emissor
+        // (shibatoken.com) so mostra o contrato com JavaScript; fonte: o CoinGecko, que
+        // aponta para shibatoken.com e shib.io, e o contrato verificado no Etherscan
+        // ("SHIBA INU"). symbol()/decimals() iguais em dois RPCs. Sem dono, sem cunhagem,
+        // sem proxy e sem taxa (GoPlus, 14/10/2026). As versoes em outras redes sao de
+        // ponte, nao do emissor: ficam de fora.
+        erc20("ethereum", "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE", "SHIB", "Shiba Inu", 18, "shiba-inu"),
+        // BNB Frog Inu (BNBFROG), BNB Chain (pedido do dono, 14/10/2026). Fonte do emissor:
+        // bnbfrog.com (projeto tocado pela comunidade, "CTO"). `symbol()` devolve "BNBFrog";
+        // 9 casas, iguais em dois RPCs. O CoinGecko marca o token com aviso (o codigo deixa
+        // o dono mudar taxa e travar venda), mas o dono renunciou (dono 0x0), sem cunhagem
+        // nem proxy (GoPlus, 14/10/2026). Transferencia entre carteiras sem taxa; compra e
+        // venda na DEX pagam 9% ao contrato, e a troca mostra isso na cotacao.
+        erc20("bnb", "0x64da67A12a46f1DDF337393e2dA12eD0A507Ad3D", "BNBFROG", "BNB Frog Inu", 9, "bnb-frog-inu"),
         // USDD (USDD), Ethereum, BNB Chain. Fonte do emissor: docs.usdd.io, "Contract
         // Addresses". Fica fora da paridade automatica de 1 dolar da troca. Tron fora
         // (motor).

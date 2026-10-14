@@ -142,6 +142,7 @@
 		F8EA2B1B268220A255B30FAB /* ImportPhraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98728880640B5B94955214E7 /* ImportPhraseView.swift */; };
 		F9AA5C1E81DED2AF9F55AA8C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2D484651018FF5D48FD37087 /* Assets.xcassets */; };
 		FABE9F4C3D6EBE05D7CB48CE /* Marks.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7441E45998B7F6AA7BCE1E4 /* Marks.swift */; };
+		FED80BD6CD59BD0A5511085C /* LimitOrderWatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FC99EEBFD013CDC431B4A /* LimitOrderWatch.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -291,6 +292,7 @@
 		E7B2519CA657D4A05E4C4A06 /* Metrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metrics.swift; sourceTree = "<group>"; };
 		E92DA0C0AAD564FC730F1CFF /* EscaliburWalletTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EscaliburWalletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0B27CDCE8102705833E021C /* AddCustomTokenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCustomTokenView.swift; sourceTree = "<group>"; };
+		F45FC99EEBFD013CDC431B4A /* LimitOrderWatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitOrderWatch.swift; sourceTree = "<group>"; };
 		F5287E825D53043F109D791D /* RecordWordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWordsView.swift; sourceTree = "<group>"; };
 		F5B28FD8147EA5FAC1A2067A /* NotificationRelay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRelay.swift; sourceTree = "<group>"; };
 		F5ECD2EB5627AA912E7957E4 /* DeviceIntegrity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIntegrity.swift; sourceTree = "<group>"; };
@@ -384,6 +386,7 @@
 				A2D88AA69992E5B71F258F14 /* Bridges.swift */,
 				B22D0D64895845E2269B6731 /* CoinSearchStore.swift */,
 				1722E329135DB398B784E8C8 /* KeyServices.swift */,
+				F45FC99EEBFD013CDC431B4A /* LimitOrderWatch.swift */,
 				3D50F34B146D744EA6BF4F27 /* LimitRenewals.swift */,
 				93C77E773E63B6664F4262AD /* Metadata.swift */,
 				8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */,
@@ -873,6 +876,7 @@
 				478026866DF85E9EF5D50A76 /* ImportPreview.swift in Sources */,
 				D9BE60229797504784BC6F97 /* KeyServices.swift in Sources */,
 				21A2E4CF04770FD56E788AF9 /* LegalDocumentView.swift in Sources */,
+				FED80BD6CD59BD0A5511085C /* LimitOrderWatch.swift in Sources */,
 				AD4A5C7FD936DD94FDAABC41 /* LimitRenewalPrompt.swift in Sources */,
 				A7C8693BD35C7E02E4191EDC /* LimitRenewals.swift in Sources */,
 				D7EEBC93C795C4E45FEEBEDD /* LiveCipher.swift in Sources */,

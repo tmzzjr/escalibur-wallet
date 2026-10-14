@@ -21,7 +21,9 @@ Para mostrar saldos, preços e histórico, e para enviar e trocar, o app fala di
 
 Com os alertas de preço ligados, o iPhone consulta de tempos em tempos, também com o app fechado, o preço das moedas marcadas no CoinGecko e no CoinPaprika. Os dois veem o IP e a lista dessas moedas, nada mais.
 
-Com o aviso de recebimento ligado (vem desligado), o iPhone confere de tempos em tempos, também com o app fechado, o saldo das suas contas nos mesmos serviços de cada rede que o app já usa. Para isso, os endereços públicos das contas ficam num arquivo à parte no iPhone, legível depois do primeiro desbloqueio, fora dos dados cifrados da carteira. Nenhuma chave entra nele, e desligar o aviso apaga o arquivo.
+Com o aviso de recebimento ligado (ele vem ligado, e desliga em Ajustes, Aviso de recebimento), o iPhone confere de tempos em tempos, também com o app fechado, o saldo das suas contas nos mesmos serviços de cada rede que o app já usa. Para isso, os endereços públicos das contas ficam num arquivo à parte no iPhone, legível depois do primeiro desbloqueio, fora dos dados cifrados da carteira. Nenhuma chave entra nele, e desligar o aviso apaga o arquivo.
+
+Com uma ordem limite aberta, o iPhone pergunta à CoW de tempos em tempos, também com o app fechado, se ela foi executada, para avisar. Para isso, o identificador de cada ordem aberta (que traz o endereço da conta e o prazo, os mesmos dados que a CoW publica) fica num arquivo à parte, legível depois do primeiro desbloqueio. A ordem sai do arquivo quando termina.
 
 Para a busca de Receber achar qualquer moeda, o texto que você digita vai ao CoinGecko, e, quando você toca numa moeda, o app pergunta em que redes ela existe. O CoinGecko vê o IP e o que foi buscado, sem endereço nem saldo.
 
@@ -53,7 +55,7 @@ Cada um desses serviços tem a própria política de privacidade.
 
 - **Face ID:** quem decide é o iOS. O app recebe só "confirmou" ou "não confirmou", nunca o seu rosto.
 - **Câmera:** só para ler QR code de endereço, no aparelho. Nenhuma imagem é guardada.
-- **Notificações:** só se você ligar os alertas de preço. São notificações locais, criadas no próprio iPhone: o app não tem token de push e nenhum servidor manda nada para ele. Elas mostram a moeda e o preço, ou só "Alerta de preço", como você escolher. Nunca o saldo.
+- **Notificações:** todas locais, criadas no próprio iPhone, e só com a sua permissão: o app não tem token de push e nenhum servidor manda nada para ele. Saem para: alertas de preço, com a moeda e o preço, ou só "Alerta de preço", como você escolher; aviso de recebimento (vem ligado), com o valor e a moeda que entraram, ou só "Entrou moeda na carteira", como você escolher; chegada de uma ponte, com o valor que chegou; e ordens limite, 24 horas antes de vencer, quando executa e quando o prazo acaba, sem moeda nem valor. Nunca o saldo da carteira.
 - **Microfone e reconhecimento de fala:** só se você ligar a confirmação por voz. O reconhecimento roda no aparelho, sem servidor da Apple; o áudio não é gravado e o que foi dito não é guardado, só uma impressão cifrada da frase.
 
 ## Área de transferência
