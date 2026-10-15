@@ -77,10 +77,10 @@ struct SwordInStone: View {
         }
     }
 
-    /// O brilho passa pela lamina em 1,1 s a cada 4,5 s; fora disso, nil.
+    /// O brilho passa pela lamina em 1,5 s a cada 4,5 s; fora disso, nil.
     static func glintPhase(_ date: Date) -> CGFloat? {
         let cycle = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4.5)
-        let pass = 1.1
+        let pass = 1.5
         return cycle < pass ? CGFloat(cycle / pass) : nil
     }
 
@@ -228,14 +228,14 @@ struct SwordInStone: View {
             Gradient(colors: [metal.lit, metal.light]),
             startPoint: CGPoint(x: cx - g.bladeTopWidth / 2, y: 0), endPoint: CGPoint(x: cx, y: 0)))
         context.fill(rightBevel, with: .linearGradient(
-            Gradient(colors: [metal.mid, metal.shade]),
+            Gradient(colors: [metal.lit, metal.mid]),
             startPoint: CGPoint(x: cx, y: 0), endPoint: CGPoint(x: cx + g.bladeTopWidth / 2, y: 0)))
         // Canaleta (fuller) no primeiro terco, e a nervura dali para baixo.
         let fullerBottom = g.bladeTop + (g.entry.y - g.bladeTop) * 0.42
         let fuller = Path(roundedRect: CGRect(x: cx - 9 * u, y: g.bladeTop + 14 * u, width: 18 * u, height: fullerBottom - g.bladeTop - 14 * u),
                           cornerRadius: 9 * u)
         context.fill(fuller, with: .linearGradient(
-            Gradient(colors: [metal.shade, metal.mid, metal.lit]),
+            Gradient(colors: [metal.mid, metal.lit, metal.light]),
             startPoint: CGPoint(x: cx - 9 * u, y: 0), endPoint: CGPoint(x: cx + 9 * u, y: 0)))
         var ridge = Path()
         ridge.move(to: CGPoint(x: cx, y: fullerBottom))
@@ -251,11 +251,11 @@ struct SwordInStone: View {
         rightEdge.move(to: CGPoint(x: cx + g.bladeTopWidth / 2, y: g.bladeTop))
         rightEdge.addLine(to: CGPoint(x: cx + g.bladeWidth(at: bottom) / 2, y: bottom))
         rightEdge.addLine(to: CGPoint(x: cx, y: tip))
-        context.stroke(rightEdge, with: .color(metal.deep), lineWidth: max(1, 2.5 * u))
+        context.stroke(rightEdge, with: .color(metal.shade.opacity(0.55)), lineWidth: max(1, 1.5 * u))
         // A guarda faz sombra na lamina logo abaixo dela.
-        let guardShadow = CGRect(x: cx - g.bladeTopWidth / 2, y: g.bladeTop, width: g.bladeTopWidth, height: 30 * u)
+        let guardShadow = CGRect(x: cx - g.bladeTopWidth / 2, y: g.bladeTop, width: g.bladeTopWidth, height: 16 * u)
         context.fill(Path(guardShadow), with: .linearGradient(
-            Gradient(colors: [.black.opacity(0.32), .black.opacity(0)]),
+            Gradient(colors: [.black.opacity(0.1), .black.opacity(0)]),
             startPoint: CGPoint(x: 0, y: guardShadow.minY), endPoint: CGPoint(x: 0, y: guardShadow.maxY)))
 
         // Pomo, punho e guarda: os retangulos do icone, em aco escovado. Luz de cima, a
@@ -264,12 +264,12 @@ struct SwordInStone: View {
         let pommel = g.rect(SwordGeometry.pommel, top: g.pommelTop)
         let grip = g.rect(SwordGeometry.grip, top: g.gripTop)
         let crossguard = g.rect(SwordGeometry.crossguard, top: g.guardTop)
-        steelBar(context, grip, unit: u, tone: 0.92, rounded: true)
+        steelBar(context, grip, unit: u, tone: 0.97, rounded: true)
         steelBar(context, pommel, unit: u, tone: 1, rounded: false)
         steelBar(context, crossguard, unit: u, tone: 1, rounded: false)
         context.fill(Path(crossguard), with: .linearGradient(
-            Gradient(stops: [.init(color: .black.opacity(0.18), location: 0), .init(color: .clear, location: 0.22),
-                             .init(color: .clear, location: 0.78), .init(color: .black.opacity(0.22), location: 1)]),
+            Gradient(stops: [.init(color: .black.opacity(0.06), location: 0), .init(color: .clear, location: 0.22),
+                             .init(color: .clear, location: 0.78), .init(color: .black.opacity(0.08), location: 1)]),
             startPoint: CGPoint(x: crossguard.minX, y: 0), endPoint: CGPoint(x: crossguard.maxX, y: 0)))
 
         // O brilho: uma faixa suave, na diagonal, que corre a lamina da guarda ate a pedra,
@@ -281,23 +281,39 @@ struct SwordInStone: View {
             blade.addPath(rightBevel)
             let top = g.bladeTop
             let span = g.entry.y - top
-            let center = top - span * 0.2 + span * 1.4 * glint
-            let slant = g.bladeTopWidth * 0.9
-            let band = span * 0.1
+            let center = top - span * 0.25 + span * 1.5 * glint
+            // Inclinado uns 28 graus: sobe da esquerda para a direita.
+            let reach = g.bladeTopWidth * 1.4
+            let rise = reach * 0.53
+            func streak(offset: CGFloat, thickness: CGFloat) -> Path {
+                var path = Path()
+                let y = center + offset
+                path.move(to: CGPoint(x: cx - reach, y: y - thickness + rise))
+                path.addLine(to: CGPoint(x: cx + reach, y: y - thickness - rise))
+                path.addLine(to: CGPoint(x: cx + reach, y: y + thickness - rise))
+                path.addLine(to: CGPoint(x: cx - reach, y: y + thickness + rise))
+                path.closeSubpath()
+                return path
+            }
+            // O degrade atravessa a faixa na perpendicular dela, nao na vertical.
+            let length = (rise * rise + reach * reach).squareRoot()
+            let normal = CGPoint(x: rise / length, y: reach / length)
+            func soft(offset: CGFloat, thickness: CGFloat, peak: Double) -> GraphicsContext.Shading {
+                let middle = CGPoint(x: cx, y: center + offset)
+                let half = thickness * 1.15
+                return .linearGradient(Gradient(stops: [.init(color: .clear, location: 0), .init(color: .white.opacity(peak), location: 0.5),
+                                                        .init(color: .clear, location: 1)]),
+                                       startPoint: CGPoint(x: middle.x - normal.x * half, y: middle.y - normal.y * half),
+                                       endPoint: CGPoint(x: middle.x + normal.x * half, y: middle.y + normal.y * half))
+            }
             context.drawLayer { layer in
                 layer.clip(to: blade)
                 layer.blendMode = .plusLighter
-                var sweep = Path()
-                sweep.move(to: CGPoint(x: cx - g.bladeTopWidth - slant, y: center - band + slant * 0.6))
-                sweep.addLine(to: CGPoint(x: cx + g.bladeTopWidth + slant, y: center - band - slant * 0.6))
-                sweep.addLine(to: CGPoint(x: cx + g.bladeTopWidth + slant, y: center + band - slant * 0.6))
-                sweep.addLine(to: CGPoint(x: cx - g.bladeTopWidth - slant, y: center + band + slant * 0.6))
-                sweep.closeSubpath()
-                layer.fill(sweep, with: .linearGradient(
-                    Gradient(stops: [.init(color: .clear, location: 0), .init(color: .white.opacity(0.22), location: 0.3),
-                                     .init(color: .white.opacity(0.85), location: 0.5), .init(color: .white.opacity(0.22), location: 0.7),
-                                     .init(color: .clear, location: 1)]),
-                    startPoint: CGPoint(x: cx, y: center - band), endPoint: CGPoint(x: cx, y: center + band)))
+                // O halo largo, o fio principal e um fio fino logo atras, como no metal polido.
+                let halo = span * 0.16, main = span * 0.045, trail = span * 0.012
+                layer.fill(streak(offset: 0, thickness: halo), with: soft(offset: 0, thickness: halo, peak: 0.16))
+                layer.fill(streak(offset: 0, thickness: main), with: soft(offset: 0, thickness: main, peak: 0.9))
+                layer.fill(streak(offset: span * 0.075, thickness: trail), with: soft(offset: span * 0.075, thickness: trail, peak: 0.55))
             }
         }
     }
@@ -307,13 +323,13 @@ struct SwordInStone: View {
     private static func steelBar(_ context: GraphicsContext, _ rect: CGRect, unit u: CGFloat, tone: Double, rounded: Bool) {
         let path = rounded ? Path(roundedRect: rect, cornerRadius: 3 * u) : Path(rect)
         context.fill(path, with: .linearGradient(
-            Gradient(stops: [.init(color: metal.light, location: 0), .init(color: metal.lit, location: 0.4),
-                             .init(color: metal.mid, location: 0.85), .init(color: metal.shade, location: 1)]),
+            Gradient(stops: [.init(color: metal.light, location: 0), .init(color: metal.lit, location: 0.45),
+                             .init(color: metal.lit, location: 0.75), .init(color: metal.mid, location: 1)]),
             startPoint: CGPoint(x: 0, y: rect.minY), endPoint: CGPoint(x: 0, y: rect.maxY)))
         if tone < 1 { context.fill(path, with: .color(.black.opacity(1 - tone))) }
         context.fill(Path(CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: max(1, 3 * u))), with: .color(.white.opacity(0.9)))
         context.fill(Path(CGRect(x: rect.minX, y: rect.maxY - max(1, 3 * u), width: rect.width, height: max(1, 3 * u))),
-                     with: .color(metal.deep.opacity(0.8)))
+                     with: .color(metal.shade.opacity(0.35)))
     }
 
     /// O contato da lamina com a pedra: a lamina escurece onde entra, e a borda da frente

@@ -34,12 +34,12 @@ struct WelcomeTour: View {
 
             TabView(selection: $page) {
                 TourPage(
-                    title: String(localized: "Só você tira a espada da pedra"),
+                    title: String(localized: "Só você é digno"),
                     text: String(localized: "Na lenda, só as mãos certas tiram a Escalibur da pedra. Nesta carteira, as mãos certas são as suas.")
                 ) { SwordInStone() }
                 .tag(0)
                 TourPage(
-                    title: String(localized: "A chave de tudo é sua"),
+                    title: String(localized: "Uma chave para todas as suas moedas"),
                     text: String(localized: "Todas as suas moedas num lugar só, com a chave criada e guardada neste iPhone. Sem servidor, sem conta e sem e-mail.")
                 ) { ConvergeScene(active: page == 1) }
                 .tag(1)
@@ -158,8 +158,8 @@ private func pause(_ milliseconds: Int) async -> Bool {
 
 /// As moedas e as redes espalhadas em tres planos (as do fundo menores e desfocadas),
 /// girando devagar. Depois elas sao puxadas para o centro num redemoinho que acelera,
-/// com rastro, e somem num clarao de onde sai o icone do app, com uma onda e um toque
-/// firme. Fica o icone, com um brilho que passa de tempos em tempos.
+/// com rastro e a camera chegando perto, e somem num clarao rosa de onde sai o icone do
+/// app, com faiscas que se espalham e um toque firme. Fica o icone, sem brilho em volta.
 ///
 /// Tudo e funcao do tempo desde o comeco (`start`): a cena e a mesma toda vez, e o
 /// Canvas desenha os logos como simbolos, sem uma view por quadro.
@@ -249,6 +249,11 @@ private struct ConvergeScene: View {
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
         let reach = Double(min(size.width, size.height)) * 0.5
         let pull = pow(clamp((t - gather) / (merge - gather)), 3)
+        // A camera chega perto enquanto eles sao puxados e volta no encontro.
+        let push = 1 + 0.07 * smooth((t - gather) / (merge - gather)) * (1 - smooth((t - merge) / 0.6))
+        context.translateBy(x: center.x, y: center.y)
+        context.scaleBy(x: push, y: push)
+        context.translateBy(x: -center.x, y: -center.y)
 
         // A luz que cresce no centro enquanto eles chegam, e o clarao do encontro.
         let flash = exp(-pow((t - merge) / 0.14, 2))
@@ -256,7 +261,7 @@ private struct ConvergeScene: View {
         if core > 0.01 {
             let glow = CGRect(x: center.x - reach * 0.7, y: center.y - reach * 0.7, width: reach * 1.4, height: reach * 1.4)
             context.fill(Path(ellipseIn: glow), with: .radialGradient(
-                Gradient(colors: [Color.white.opacity(core), Palette.accent.opacity(core * 0.45), .clear]),
+                Gradient(colors: [Color.white.opacity(core * 0.7), Palette.accent.opacity(core * 0.6), .clear]),
                 center: center, startRadius: 0, endRadius: reach * 0.7))
         }
 
@@ -281,19 +286,20 @@ private struct ConvergeScene: View {
         guard t >= merge - 0.04 else { return }
         let since = t - merge
 
-        // A onda que sai do encontro.
-        let wave = clamp(since / 0.85)
-        if wave < 1 {
-            let radius = Double(iconSide) * 0.55 + reach * 1.05 * (1 - pow(1 - wave, 3))
-            context.stroke(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)),
-                           with: .color(Color.white.opacity(0.55 * (1 - wave))), lineWidth: 2)
+        // As faiscas do encontro: saem do centro, perdem velocidade e somem.
+        let burst = clamp(since / 1.1)
+        if burst < 1 {
+            for spark in 0..<28 {
+                let angle = Double(spark) * 2.399963 + 0.4
+                let speed = 0.55 + 0.45 * Double((spark * 53) % 17) / 16
+                let distance = reach * speed * (1 - pow(1 - burst, 3))
+                let point = CGPoint(x: center.x + distance * cos(angle), y: center.y + distance * sin(angle))
+                let radius = (spark % 3 == 0 ? 3.2 : 2.2) * (1 - burst * 0.6)
+                let color = spark % 2 == 0 ? Color.white : Palette.accent
+                context.fill(Path(ellipseIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)),
+                             with: .color(color.opacity(0.9 * (1 - burst))))
+            }
         }
-
-        // O halo rosa atras do icone, respirando.
-        let halo = clamp(since / 0.4) * (0.32 + 0.06 * sin(t * 2.2))
-        let haloRect = CGRect(x: center.x - Double(iconSide), y: center.y - Double(iconSide), width: Double(iconSide) * 2, height: Double(iconSide) * 2)
-        context.fill(Path(ellipseIn: haloRect), with: .radialGradient(
-            Gradient(colors: [Palette.accent.opacity(halo), .clear]), center: center, startRadius: 0, endRadius: Double(iconSide)))
 
         // O icone, com uma mola que passa um pouco do tamanho e volta.
         guard let icon = context.resolveSymbol(id: 1000) else { return }
@@ -303,25 +309,6 @@ private struct ConvergeScene: View {
         layer.translateBy(x: center.x, y: center.y)
         layer.scaleBy(x: spring, y: spring)
         layer.draw(icon, at: .zero)
-
-        // Um brilho que atravessa o icone a cada 4 s, depois de assentar.
-        let cycle = (since - 1.0).truncatingRemainder(dividingBy: 4)
-        if since > 1.0, cycle < 0.9 {
-            let side = Double(iconSide) * spring
-            let frame = CGRect(x: center.x - side / 2, y: center.y - side / 2, width: side, height: side)
-            var sheen = context
-            sheen.clip(to: Path(roundedRect: frame, cornerRadius: side * 0.2237, style: .continuous))
-            let x = frame.minX - side * 0.5 + side * 2 * (cycle / 0.9)
-            var band = Path()
-            band.move(to: CGPoint(x: x, y: frame.minY))
-            band.addLine(to: CGPoint(x: x + side * 0.22, y: frame.minY))
-            band.addLine(to: CGPoint(x: x + side * 0.22 - side * 0.4, y: frame.maxY))
-            band.addLine(to: CGPoint(x: x - side * 0.4, y: frame.maxY))
-            band.closeSubpath()
-            sheen.fill(band, with: .linearGradient(Gradient(colors: [.white.opacity(0), .white.opacity(0.35), .white.opacity(0)]),
-                                                   startPoint: CGPoint(x: x - side * 0.2, y: frame.midY),
-                                                   endPoint: CGPoint(x: x + side * 0.22, y: frame.midY)))
-        }
     }
 }
 
@@ -428,12 +415,6 @@ private struct SignScene: View {
                 let to = CGPoint(x: width - coin / 2 - 8, y: geo.size.height * 0.62)
                 let control = CGPoint(x: width / 2, y: geo.size.height * 0.02)
                 ZStack {
-                    // O halo de cada moeda, na cor dela.
-                    Circle().fill(Self.btc.opacity(0.32)).frame(width: coin * 1.5, height: coin * 1.5).blur(radius: 22)
-                        .position(from).opacity(coinsIn ? 1 : 0)
-                    Circle().fill(Self.usdc.opacity(arrived ? 0.55 : 0.3)).frame(width: coin * 1.5, height: coin * 1.5).blur(radius: 22)
-                        .position(to).opacity(coinsIn ? 1 : 0)
-                        .animation(.easeOut(duration: 0.5), value: arrived)
                     Path { path in
                         path.move(to: from)
                         path.addQuadCurve(to: to, control: control)
@@ -447,7 +428,6 @@ private struct SignScene: View {
                     ForEach([0.0, 0.05, 0.1], id: \.self) { lag in
                         Circle().fill(lag == 0 ? Color.white : Self.btc)
                             .frame(width: lag == 0 ? 12 : 10 - lag * 30, height: lag == 0 ? 12 : 10 - lag * 30)
-                            .shadow(color: Self.btc, radius: lag == 0 ? 10 : 0)
                             .opacity(lag == 0 ? 1 : (travel > 0 && travel < 1 ? 0.5 - lag * 3 : 0))
                             .scaleEffect(lag == 0 && waiting && travel == 0 ? 1.35 : 1)
                             .animation(waiting && travel == 0 ? .easeInOut(duration: 0.6).repeatForever(autoreverses: true) : .default, value: waiting)
@@ -503,7 +483,6 @@ private struct SignScene: View {
     private func coinView(_ id: String, symbol: String, size: CGFloat) -> some View {
         VStack(spacing: 6) {
             CoinLogo(coingeckoID: id, size: size, ringColor: .clear)
-                .shadow(color: .black.opacity(0.45), radius: 12, y: 6)
             Text(verbatim: symbol).typeStyle(.note).foregroundStyle(Palette.inkSoft)
         }
     }

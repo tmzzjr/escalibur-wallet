@@ -43,7 +43,7 @@ struct OnboardingFlow: View {
                 .frame(maxWidth: .infinity, minHeight: 220, maxHeight: .infinity)
                 .padding(.top, Space.xs)
             VStack(spacing: Space.sm) {
-                Text("Só você tira a espada da pedra")
+                Text("Só você é digno")
                     .typeStyle(.hero)
                     .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
