@@ -293,7 +293,10 @@ final class Portfolio {
         if !fresh.isEmpty { refreshedIDs.insert(wallet.id) }
         guard walletID == wallet.id else { return }
         for (id, balance) in fresh { balances[id] = balance }
-        if let newQuotes, !newQuotes.isEmpty { quotes = newQuotes }
+        // A moeda mudou durante a leitura (Dolar e de volta para Real): os precos daqui sao
+        // da moeda antiga e nao entram, senao o dolar aparecia com R$. A leitura que a troca
+        // comecou traz os da moeda nova.
+        if let newQuotes, !newQuotes.isEmpty, stillIn(base, session) { quotes = newQuotes }
         // Rede cuja ultima leitura boa nao tinha nada (o Litecoin de quem nunca teve
         // Litecoin): a falha de agora nao muda o que a tela mostra, e o aviso so
         // assustaria. Fica o zero guardado ate a proxima leitura responder.
@@ -307,15 +310,17 @@ final class Portfolio {
         if !priced.isEmpty {
             let found = await MarketService.shared.tokenQuotes(priced, currency: base)
             guard walletID == wallet.id else { return }
-            tokenQuotes.merge(found) { $1 }
+            if stillIn(base, session) { tokenQuotes.merge(found) { $1 } }
             recompute(wallet)
         }
         await recognize(wallet, session: session)
 
         session.metadata.balanceCache[wallet.id] = balances
-        var cache = quotes
-        for (id, quote) in tokenQuotes { cache[Self.contractQuotePrefix + id] = quote }
-        session.metadata.quoteCache = cache
+        if stillIn(base, session) {
+            var cache = quotes
+            for (id, quote) in tokenQuotes { cache[Self.contractQuotePrefix + id] = quote }
+            session.metadata.quoteCache = cache
+        }
         session.metadata.cachedAt = lastUpdated
         try? session.persist()
     }
@@ -340,6 +345,11 @@ final class Portfolio {
             }
         }
         return custom + official + others
+    }
+
+    /// A moeda do app ainda e a da leitura que terminou agora?
+    private func stillIn(_ currency: String, _ session: AppSession) -> Bool {
+        session.metadata.settings.currency == currency
     }
 
     /// O preco de um ativo: pelo id do CoinGecko na lista; por contrato fora dela.
@@ -532,7 +542,7 @@ final class Portfolio {
             let priced = Self.contractPriced([chain.id: balance])
             guard !priced.isEmpty else { return }
             let found = await MarketService.shared.tokenQuotes(priced, currency: currency)
-            guard walletID == wallet.id else { return }
+            guard walletID == wallet.id, stillIn(currency, session) else { return }
             tokenQuotes.merge(found) { $1 }
             recompute(wallet)
         }
