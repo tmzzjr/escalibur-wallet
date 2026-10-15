@@ -208,7 +208,7 @@ public enum XRPLPlanner {
             PlanReview.Line(kitText("Moeda"), code),
             PlanReview.Line(kitText("Emissor"), asset.issuerName),
             PlanReview.Line(kitText("Endereço do emissor"), asset.issuer, verbatim: true, role: .assetReference),
-            PlanReview.Line(kitText("Limite"), "\(XRPLFormat.decimal(limit)) \(code)"),
+            PlanReview.Line(kitText("Limite da linha"), "\(XRPLFormat.decimal(limit)) \(code)"),
             PlanReview.Line(kitText("Reserva"), kitText("\(XRPLFormat.xrp(ledger.reserveIncrement)) ficam presos enquanto a linha existir")),
             PlanReview.Line(kitText("Taxa da rede"), XRPLFormat.xrp(base.fee)),
         ]
