@@ -5,11 +5,9 @@ import SwiftUI
 /// voce abre. O painel e o rosa do icone e a espada e a dele, para o app abrir como
 /// continuacao do icone. A pedra e grafite, como o resto do app.
 ///
-/// A espada ja aparece cravada: a queda de ponta saiu (pedido do dono, 15/10/2026). Um
-/// brilho corre a lamina de tempos em tempos, como metal polido. Com Reduzir Movimento,
-/// nada se mexe.
+/// A espada ja aparece cravada e parada: sem a queda de ponta e sem o brilho que corria
+/// a lamina (pedidos do dono, 15/10/2026).
 struct SwordInStone: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Onde a lamina entra na pedra, em fracao da altura do painel.
     nonisolated static let entryY: CGFloat = 0.695
@@ -26,11 +24,7 @@ struct SwordInStone: View {
                     // O encaixe: um fio de sombra de cada lado da lamina, que cobre o meio.
                     context.fill(Path(ellipseIn: SwordGeometry(size).slot), with: .color(Stone.slot))
                 }
-                TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { timeline in
-                    Canvas { context, size in
-                        Self.drawSword(context, size, glint: reduceMotion ? nil : Self.glintPhase(timeline.date))
-                    }
-                }
+                Canvas { context, size in Self.drawSword(context, size) }
                 // A lamina some na borda da frente do encaixe: dali para baixo esta dentro
                 // da pedra, e o furo nao aparece por baixo dela.
                 .mask {
@@ -48,13 +42,6 @@ struct SwordInStone: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .accessibilityHidden(true)
-    }
-
-    /// O brilho passa pela lamina em 1,5 s a cada 4,5 s; fora disso, nil.
-    static func glintPhase(_ date: Date) -> CGFloat? {
-        let cycle = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4.5)
-        let pass = 1.5
-        return cycle < pass ? CGFloat(cycle / pass) : nil
     }
 
     // MARK: Pedra
@@ -148,8 +135,7 @@ struct SwordInStone: View {
         }
     }
 
-    /// O metal da espada, da luz para a sombra. Aco um tom abaixo do branco: o brilho que
-    /// corre por ele precisa de onde subir.
+    /// O metal da espada, da luz para a sombra.
     struct Metal {
         let light: Color
         let lit: Color
@@ -172,7 +158,7 @@ struct SwordInStone: View {
         return .steel
     }()
 
-    static func drawSword(_ context: GraphicsContext, _ size: CGSize, glint: CGFloat?) {
+    static func drawSword(_ context: GraphicsContext, _ size: CGSize) {
         let g = SwordGeometry(size)
         let u = g.unit
         let cx = g.cx
@@ -244,51 +230,6 @@ struct SwordInStone: View {
             Gradient(stops: [.init(color: .black.opacity(0.025), location: 0), .init(color: .clear, location: 0.22),
                              .init(color: .clear, location: 0.78), .init(color: .black.opacity(0.035), location: 1)]),
             startPoint: CGPoint(x: crossguard.minX, y: 0), endPoint: CGPoint(x: crossguard.maxX, y: 0)))
-
-        // O brilho: uma faixa suave, na diagonal, que corre a lamina da guarda ate a pedra,
-        // somando luz ao aco. So na lamina: pomo, punho e guarda ficam quietos (pedido do
-        // dono, 15/10/2026).
-        if let glint {
-            var blade = Path()
-            blade.addPath(leftBevel)
-            blade.addPath(rightBevel)
-            let top = g.bladeTop
-            let span = g.entry.y - top
-            let center = top - span * 0.25 + span * 1.5 * glint
-            // Inclinado uns 28 graus: sobe da esquerda para a direita.
-            let reach = g.bladeTopWidth * 1.4
-            let rise = reach * 0.53
-            func streak(offset: CGFloat, thickness: CGFloat) -> Path {
-                var path = Path()
-                let y = center + offset
-                path.move(to: CGPoint(x: cx - reach, y: y - thickness + rise))
-                path.addLine(to: CGPoint(x: cx + reach, y: y - thickness - rise))
-                path.addLine(to: CGPoint(x: cx + reach, y: y + thickness - rise))
-                path.addLine(to: CGPoint(x: cx - reach, y: y + thickness + rise))
-                path.closeSubpath()
-                return path
-            }
-            // O degrade atravessa a faixa na perpendicular dela, nao na vertical.
-            let length = (rise * rise + reach * reach).squareRoot()
-            let normal = CGPoint(x: rise / length, y: reach / length)
-            func soft(offset: CGFloat, thickness: CGFloat, peak: Double) -> GraphicsContext.Shading {
-                let middle = CGPoint(x: cx, y: center + offset)
-                let half = thickness * 1.15
-                return .linearGradient(Gradient(stops: [.init(color: .clear, location: 0), .init(color: .white.opacity(peak), location: 0.5),
-                                                        .init(color: .clear, location: 1)]),
-                                       startPoint: CGPoint(x: middle.x - normal.x * half, y: middle.y - normal.y * half),
-                                       endPoint: CGPoint(x: middle.x + normal.x * half, y: middle.y + normal.y * half))
-            }
-            context.drawLayer { layer in
-                layer.clip(to: blade)
-                layer.blendMode = .plusLighter
-                // O halo largo, o fio principal e um fio fino logo atras, como no metal polido.
-                let halo = span * 0.16, main = span * 0.045, trail = span * 0.012
-                layer.fill(streak(offset: 0, thickness: halo), with: soft(offset: 0, thickness: halo, peak: 0.16))
-                layer.fill(streak(offset: 0, thickness: main), with: soft(offset: 0, thickness: main, peak: 0.9))
-                layer.fill(streak(offset: span * 0.075, thickness: trail), with: soft(offset: span * 0.075, thickness: trail, peak: 0.55))
-            }
-        }
     }
 
     /// Uma barra de metal: degrade suave de cima para baixo, aresta de cima acesa e a de
