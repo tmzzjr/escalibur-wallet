@@ -56738,6 +56738,52 @@
         }
       }
     },
+    "Não são %@ da rede %@: são tokens que valem o mesmo enquanto o emissor mantiver o lastro. Quem envia tem de escolher exatamente esta moeda e esta rede." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das sind keine %1$@ im %2$@-Netzwerk, sondern Token, die gleich viel wert sind, solange der Emittent die Deckung hält. Der Absender muss genau diesen Coin und dieses Netzwerk wählen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These aren’t %1$@ on the %2$@ network: they’re tokens worth the same as long as the issuer keeps the backing. The sender has to pick exactly this coin and this network."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No son %1$@ de la red %2$@: son tokens que valen lo mismo mientras el emisor mantenga el respaldo. Quien envía tiene que elegir exactamente esta moneda y esta red."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce ne sont pas des %1$@ du réseau %2$@ : ce sont des jetons qui valent autant tant que l’émetteur maintient la réserve. L’expéditeur doit choisir exactement cette crypto et ce réseau."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ये %2$@ नेटवर्क के %1$@ नहीं हैं: ये ऐसे टोकन हैं जिनकी कीमत तब तक बराबर रहती है जब तक जारीकर्ता उनका बैकअप बनाए रखता है. भेजने वाले को ठीक यही कॉइन और यही नेटवर्क चुनना होगा."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Não são %1$@ da rede %2$@: são tokens que valem o mesmo enquanto o emissor mantiver o lastro. Quem envia tem de escolher exatamente esta moeda e esta rede."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些不是 %2$@ 网络上的 %1$@，而是在发行方保持储备期间与其等值的代币。发送方必须选择完全相同的币种和网络。"
+          }
+        }
+      }
+    },
     "Não temos servidor com as suas chaves. Não temos como ver, mover nem recuperar nada." : {
       "localizations" : {
         "de" : {
@@ -65141,6 +65187,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "其他报价"
+          }
+        }
+      }
+    },
+    "Outras formas de %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere Formen von %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other forms of %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otras formas de %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autres formes de %@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ के दूसरे रूप"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 的其他形式"
           }
         }
       }

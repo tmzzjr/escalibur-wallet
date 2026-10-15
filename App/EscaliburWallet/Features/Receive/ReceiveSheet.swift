@@ -86,7 +86,7 @@ struct ReceiveSheet: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: ReceiveCoin.self) { coin in
                 Group {
-                    if coin.assets.count == 1, extraNetworks(coin).isEmpty, let only = coin.assets.first, let chain = only.chain {
+                    if coin.assets.count == 1, extraNetworks(coin).isEmpty, otherForms(coin).isEmpty, let only = coin.assets.first, let chain = only.chain {
                         addressView(asset: only, chain: chain)
                     } else {
                         networkPicker(coin)
@@ -376,6 +376,33 @@ struct ReceiveSheet: View {
         return freshNetworks(entry)
     }
 
+    /// As formas embrulhadas da moeda que a carteira recebe (WBTC e cbBTC no BTC; WETH e o
+    /// ETH da Binance no ETH). Cada uma e a sua propria moeda: tocar abre o endereco dela, e
+    /// o seletor embaixo do QR so troca de rede dentro dela, nunca de volta para a nativa.
+    private func otherForms(_ coin: ReceiveCoin) -> [Asset] {
+        guard let id = coin.coingeckoID, coin.assets.contains(where: { $0.kind == .native }) else { return [] }
+        return receivable.filter { asset in asset.coingeckoID.flatMap { ReceiveCoin.wrappedForms[$0] } == id }
+    }
+
+    private func otherFormRow(_ asset: Asset) -> some View {
+        NavigationLink(value: asset) {
+            HStack(spacing: Space.sm) {
+                CoinLogo(coingeckoID: asset.coingeckoID, symbol: asset.symbol, size: 32, network: asset.chain, ringColor: Palette.body)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(asset.symbol) na \(asset.chain?.name ?? "")").typeStyle(.row).foregroundStyle(Palette.ink)
+                    Text(verbatim: [asset.name, asset.chain.map(ReceiveCoin.standard) ?? ""].filter { !$0.isEmpty }.joined(separator: " · "))
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                }
+                Spacer()
+                Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+            }
+            .frame(minHeight: Height.row)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("outra-forma-\(asset.symbol)-\(asset.chainID)")
+    }
+
     /// A rede de uma moeda fora da lista com mais de uma rede.
     private func catalogNetworkPicker(_ coin: CatalogCoin, networks: [CatalogCoin.Network], image: URL? = nil) -> some View {
         ScrollView {
@@ -482,6 +509,16 @@ struct ReceiveSheet: View {
                     }
                 }
                 .padding(.top, Space.md)
+                let forms = otherForms(coin)
+                if !forms.isEmpty {
+                    Text("Outras formas de \(coin.symbol)").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
+                    Text("Não são \(coin.symbol) da rede \(coin.assets.first { $0.kind == .native }?.chain?.name ?? coin.name): são tokens que valem o mesmo enquanto o emissor mantiver o lastro. Quem envia tem de escolher exatamente esta moeda e esta rede.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true).padding(.top, 2)
+                    VStack(spacing: 0) {
+                        ForEach(forms) { asset in otherFormRow(asset) }
+                    }
+                    .padding(.top, Space.xs)
+                }
                 let extras = extraNetworks(coin)
                 if !extras.isEmpty, let id = coin.coingeckoID, let entry = search.coins[id] {
                     Text("Fora da lista verificada").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
@@ -787,6 +824,14 @@ struct ReceiveCoin: Identifiable, Hashable {
         let tokens = coins.filter { coin in !coin.assets.contains { $0.kind == .native } }
         return natives + tokens.sorted { (rank[$0.id] ?? .max, $0.id) < (rank[$1.id] ?? .max, $1.id) }
     }
+
+    /// Tokens que representam outra moeda, pelo id de preco: aparecem tambem dentro dela no
+    /// Receber, como "Outras formas". So agrupamento de tela; saldo, preco e envio de cada
+    /// um continuam os do proprio token.
+    static let wrappedForms: [String: String] = [
+        "wrapped-bitcoin": "bitcoin", "binance-bitcoin": "bitcoin", "coinbase-wrapped-btc": "bitcoin",
+        "weth": "ethereum",
+    ]
 
     /// O padrao do token na rede, para quem envia de uma corretora achar a opcao certa.
     static func standard(_ chain: Chain) -> String {

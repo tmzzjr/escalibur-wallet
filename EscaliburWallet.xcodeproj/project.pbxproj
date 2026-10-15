@@ -17,6 +17,7 @@
 		12BD568C64CF45967323782A /* EscaliburCore in Frameworks */ = {isa = PBXBuildFile; productRef = A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */; };
 		17A65BEC30C064A2F585BA4E /* PlanReviewViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178D0EBBB2AA6CB89DC6772B /* PlanReviewViews.swift */; };
 		17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */; };
+		17F23C467A8881B6BFBB3288 /* ReceiveOtherFormsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1366E2043E5FB90A45156340 /* ReceiveOtherFormsTests.swift */; };
 		1854C15FE3CC0403A4179218 /* privacidade.md in Resources */ = {isa = PBXBuildFile; fileRef = 86B74EDB87479FBC14EC1F7E /* privacidade.md */; };
 		19E1559AA99AE5A16A3BD1AC /* QRScannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7543B278315E1446160A8DAF /* QRScannerSheet.swift */; };
 		1D531EE18959F349F80372D4 /* OtherTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EC9A98DB32F891A29BDD3AC /* OtherTokens.swift */; };
@@ -211,6 +212,7 @@
 		1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceSettingsView.swift; sourceTree = "<group>"; };
 		1230FF61D7222514EB7DF821 /* ActivityExplorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityExplorerTests.swift; sourceTree = "<group>"; };
 		1292233C35D3175EC36E4F70 /* EscaliburWallet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EscaliburWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1366E2043E5FB90A45156340 /* ReceiveOtherFormsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveOtherFormsTests.swift; sourceTree = "<group>"; };
 		15276BF5A254093B41A55B40 /* NewWalletFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewWalletFlow.swift; sourceTree = "<group>"; };
 		15BD461E4847F65BD1B64982 /* SafeImageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeImageTests.swift; sourceTree = "<group>"; };
 		1722E329135DB398B784E8C8 /* KeyServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyServices.swift; sourceTree = "<group>"; };
@@ -515,6 +517,7 @@
 				8A40A382D8B2C13CF2FB3263 /* ReceiveCatalogTests.swift */,
 				8E73AD40F44D72D64B0F550B /* ReceiveFlowTests.swift */,
 				7B9EB37901CCCCF752510F2E /* ReceiveNetworkSwitchTests.swift */,
+				1366E2043E5FB90A45156340 /* ReceiveOtherFormsTests.swift */,
 				B00956B57FDDD41C22852289 /* SavedAddressesTests.swift */,
 				39490B905A2AF9D9891711F3 /* SecurityFlowHelpers.swift */,
 				98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */,
@@ -946,6 +949,7 @@
 				4F552A8E20AD2256662538B1 /* ReceiveCatalogTests.swift in Sources */,
 				2A90FB479DFA2C8FA3B4A582 /* ReceiveFlowTests.swift in Sources */,
 				96F7FD520325D595BB6C1AE5 /* ReceiveNetworkSwitchTests.swift in Sources */,
+				17F23C467A8881B6BFBB3288 /* ReceiveOtherFormsTests.swift in Sources */,
 				47F68D13E6EA84A3D27FA7DC /* SavedAddressesTests.swift in Sources */,
 				A28557057327D9D8C672B37D /* SecurityFlowHelpers.swift in Sources */,
 				4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */,
