@@ -7,7 +7,7 @@ import SwiftUI
 ///
 /// Ao aparecer, a espada cai de ponta e crava: a pedra nao tem furo antes dela, o
 /// painel treme de leve com o golpe e o iPhone da um toque firme. Depois, um brilho
-/// corre a espada de tempos em tempos, como metal polido. Com Reduzir Movimento, a
+/// corre a lamina de tempos em tempos, como metal polido. Com Reduzir Movimento, a
 /// espada ja esta cravada e nada se mexe.
 struct SwordInStone: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -48,8 +48,8 @@ struct SwordInStone: View {
                         context.fill(visible, with: .color(.black))
                     }
                 }
-                // A borda da pedra na frente da lamina pega a luz, e a lamina escurece
-                // onde entra: o contato que diz que ela esta cravada, e nao apoiada.
+                // A borda da pedra na frente da lamina pega a luz: o contato que diz que
+                // ela esta cravada, e nao apoiada.
                 Canvas { context, size in Self.drawSeat(context, size) }
                     .opacity(seated ? 1 : 0)
             }
@@ -265,16 +265,6 @@ struct SwordInStone: View {
         let grip = g.rect(SwordGeometry.grip, top: g.gripTop)
         let crossguard = g.rect(SwordGeometry.crossguard, top: g.guardTop)
         steelBar(context, grip, unit: u, tone: 0.92, rounded: true)
-        // Ranhuras do punho, de leve: e onde a mao segura.
-        context.drawLayer { layer in
-            layer.clip(to: Path(grip))
-            var y = grip.minY + 16 * u
-            while y < grip.maxY - 8 * u {
-                layer.fill(Path(CGRect(x: grip.minX, y: y, width: grip.width, height: 2.5 * u)), with: .color(.black.opacity(0.14)))
-                layer.fill(Path(CGRect(x: grip.minX, y: y + 2.5 * u, width: grip.width, height: 1.5 * u)), with: .color(.white.opacity(0.35)))
-                y += 18 * u
-            }
-        }
         steelBar(context, pommel, unit: u, tone: 1, rounded: false)
         steelBar(context, crossguard, unit: u, tone: 1, rounded: false)
         context.fill(Path(crossguard), with: .linearGradient(
@@ -282,51 +272,32 @@ struct SwordInStone: View {
                              .init(color: .clear, location: 0.78), .init(color: .black.opacity(0.22), location: 1)]),
             startPoint: CGPoint(x: crossguard.minX, y: 0), endPoint: CGPoint(x: crossguard.maxX, y: 0)))
 
-        // O brilho: uma faixa suave, na diagonal, que corre da ponta do pomo ate a pedra
-        // somando luz ao aco; quando passa pela guarda, um lampejo na ponta dela.
+        // O brilho: uma faixa suave, na diagonal, que corre a lamina da guarda ate a pedra,
+        // somando luz ao aco. So na lamina: pomo, punho e guarda ficam quietos (pedido do
+        // dono, 15/10/2026).
         if let glint {
-            var sword = Path()
-            sword.addRect(pommel)
-            sword.addRect(grip)
-            sword.addRect(crossguard)
-            sword.addPath(leftBevel)
-            sword.addPath(rightBevel)
-            let top = g.pommelTop
+            var blade = Path()
+            blade.addPath(leftBevel)
+            blade.addPath(rightBevel)
+            let top = g.bladeTop
             let span = g.entry.y - top
             let center = top - span * 0.2 + span * 1.4 * glint
-            let slant = crossguard.width * 0.35
-            let band = span * 0.09
+            let slant = g.bladeTopWidth * 0.9
+            let band = span * 0.1
             context.drawLayer { layer in
-                layer.clip(to: sword)
+                layer.clip(to: blade)
                 layer.blendMode = .plusLighter
                 var sweep = Path()
-                sweep.move(to: CGPoint(x: crossguard.minX - slant, y: center - band + slant * 0.6))
-                sweep.addLine(to: CGPoint(x: crossguard.maxX + slant, y: center - band - slant * 0.6))
-                sweep.addLine(to: CGPoint(x: crossguard.maxX + slant, y: center + band - slant * 0.6))
-                sweep.addLine(to: CGPoint(x: crossguard.minX - slant, y: center + band + slant * 0.6))
+                sweep.move(to: CGPoint(x: cx - g.bladeTopWidth - slant, y: center - band + slant * 0.6))
+                sweep.addLine(to: CGPoint(x: cx + g.bladeTopWidth + slant, y: center - band - slant * 0.6))
+                sweep.addLine(to: CGPoint(x: cx + g.bladeTopWidth + slant, y: center + band - slant * 0.6))
+                sweep.addLine(to: CGPoint(x: cx - g.bladeTopWidth - slant, y: center + band + slant * 0.6))
                 sweep.closeSubpath()
                 layer.fill(sweep, with: .linearGradient(
                     Gradient(stops: [.init(color: .clear, location: 0), .init(color: .white.opacity(0.22), location: 0.3),
                                      .init(color: .white.opacity(0.85), location: 0.5), .init(color: .white.opacity(0.22), location: 0.7),
                                      .init(color: .clear, location: 1)]),
                     startPoint: CGPoint(x: cx, y: center - band), endPoint: CGPoint(x: cx, y: center + band)))
-            }
-            // O lampejo: uma estrela de quatro pontas na ponta direita da guarda.
-            let tipY = crossguard.midY - 0 * u
-            let distance = abs(center - tipY + slant * 0.6) / span
-            if distance < 0.08 {
-                let strength = 1 - distance / 0.08
-                let tip = CGPoint(x: crossguard.maxX - 6 * u, y: crossguard.minY + 6 * u)
-                let length = 46 * u * strength
-                let thickness = 5 * u * strength
-                var star = Path()
-                star.move(to: CGPoint(x: tip.x - length, y: tip.y))
-                star.addQuadCurve(to: CGPoint(x: tip.x, y: tip.y - length), control: CGPoint(x: tip.x - thickness, y: tip.y - thickness))
-                star.addQuadCurve(to: CGPoint(x: tip.x + length, y: tip.y), control: CGPoint(x: tip.x + thickness, y: tip.y - thickness))
-                star.addQuadCurve(to: CGPoint(x: tip.x, y: tip.y + length), control: CGPoint(x: tip.x + thickness, y: tip.y + thickness))
-                star.addQuadCurve(to: CGPoint(x: tip.x - length, y: tip.y), control: CGPoint(x: tip.x - thickness, y: tip.y + thickness))
-                star.closeSubpath()
-                context.fill(star, with: .color(.white.opacity(0.95 * strength)))
             }
         }
     }
@@ -351,24 +322,8 @@ struct SwordInStone: View {
         let g = SwordGeometry(size)
         let u = g.unit
 
-        // A sombra so dentro da lamina, ate a curva do encaixe.
-        let top = g.slot.midY - 80 * u
-        var blade = Path()
-        blade.move(to: CGPoint(x: g.cx - g.bladeWidth(at: top) / 2, y: top))
-        blade.addLine(to: CGPoint(x: g.cx + g.bladeWidth(at: top) / 2, y: top))
-        blade.addLine(to: CGPoint(x: g.cx + g.bladeEntryWidth / 2, y: g.slot.midY))
-        blade.addLine(to: CGPoint(x: g.cx - g.bladeEntryWidth / 2, y: g.slot.midY))
-        blade.closeSubpath()
-        blade.addEllipse(in: g.slot)
-        context.drawLayer { layer in
-            layer.clip(to: blade)
-            layer.clip(to: Path(CGRect(x: g.slot.minX, y: top, width: g.slot.width, height: g.slot.maxY - top)))
-            let rect = CGRect(x: g.slot.minX, y: top, width: g.slot.width, height: g.slot.maxY - top)
-            layer.fill(Path(rect), with: .linearGradient(
-                Gradient(stops: [.init(color: .black.opacity(0), location: 0), .init(color: .black.opacity(0.1), location: 0.55),
-                                 .init(color: .black.opacity(0.42), location: 1)]),
-                startPoint: CGPoint(x: 0, y: rect.minY), endPoint: CGPoint(x: 0, y: rect.maxY)))
-        }
+        // Sem sombra na lamina perto da pedra (pedido do dono, 15/10/2026): o contato e
+        // so a borda da pedra acesa na frente dela.
         var lip = Path()
         lip.addArc(center: CGPoint(x: g.slot.midX, y: g.slot.midY), radius: 1, startAngle: .degrees(10), endAngle: .degrees(170), clockwise: false)
         let scaled = lip.applying(CGAffineTransform(translationX: -g.slot.midX, y: -g.slot.midY)

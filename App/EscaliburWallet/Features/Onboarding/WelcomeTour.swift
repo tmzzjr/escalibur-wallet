@@ -34,8 +34,8 @@ struct WelcomeTour: View {
 
             TabView(selection: $page) {
                 TourPage(
-                    title: String(localized: "Uma carteira que só você abre"),
-                    text: String(localized: "Na lenda, a Escalibur só sai da pedra pelas mãos certas. Aqui, essas mãos são as suas.")
+                    title: String(localized: "Só você tira a espada da pedra"),
+                    text: String(localized: "Na lenda, só as mãos certas tiram a Escalibur da pedra. Nesta carteira, as mãos certas são as suas.")
                 ) { SwordInStone() }
                 .tag(0)
                 TourPage(

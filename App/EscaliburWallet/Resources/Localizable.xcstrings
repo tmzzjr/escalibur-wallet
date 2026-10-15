@@ -81606,6 +81606,7 @@
       }
     },
     "Na lenda, a Escalibur só sai da pedra pelas mãos certas. Aqui, essas mãos são as suas." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -81665,6 +81666,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "传说中，只有对的人才能从石中拔出宝剑。在这里，这个人就是你。"
+          }
+        }
+      }
+    },
+    "Na lenda, só as mãos certas tiram a Escalibur da pedra. Nesta carteira, as mãos certas são as suas." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Legende ziehen nur die richtigen Hände das Schwert aus dem Stein. In diesem Wallet sind es deine."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the legend, only the right hands pull the sword from the stone. In this wallet, the right hands are yours."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En la leyenda, solo las manos correctas sacan la espada de la piedra. En esta billetera, las manos correctas son las tuyas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans la légende, seules les bonnes mains retirent l’épée de la pierre. Dans ce portefeuille, ces mains sont les vôtres."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "किंवदंती में सिर्फ़ सही हाथ ही पत्थर से तलवार निकालते हैं. इस वॉलेट में वे सही हाथ आपके हैं."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dalam legenda, hanya tangan yang tepat yang mencabut pedang dari batu. Di dompet ini, tangan itu adalah tangan Anda."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伝説では、正しい者の手だけが石から剣を抜けます。このウォレットでは、その手はあなたのものです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전설에서는 올바른 손만이 바위에서 검을 뽑습니다. 이 지갑에서는 그 손이 바로 나입니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Efsanede kılıcı taştan yalnızca doğru eller çeker. Bu cüzdanda doğru eller senin."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传说中，只有对的人才能从石中拔出宝剑。在这个钱包里，这个人就是你。"
           }
         }
       }
@@ -124473,6 +124538,70 @@
         }
       }
     },
+    "Só você tira a espada da pedra" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur du ziehst das Schwert aus dem Stein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only you pull the sword from the stone"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo tú sacas la espada de la piedra"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous seul retirez l’épée de la pierre"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सिर्फ़ आप पत्थर से तलवार निकालते हैं"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hanya Anda yang mencabut pedang dari batu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "石から剣を抜けるのはあなただけ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "바위에서 검을 뽑는 건 나뿐"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kılıcı taştan yalnızca sen çekersin"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有你能从石中拔出宝剑"
+          }
+        }
+      }
+    },
     "TON para o envio" : {
       "localizations" : {
         "de" : {
@@ -131550,6 +131679,7 @@
       }
     },
     "Uma carteira que só você abre" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {

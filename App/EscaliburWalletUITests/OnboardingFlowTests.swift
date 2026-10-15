@@ -73,7 +73,7 @@ final class OnboardingFlowTests: XCTestCase {
         type(pin: pin, in: app)
 
         // O tour de quatro passos, logo depois do PIN.
-        XCTAssertTrue(app.staticTexts["Uma carteira que só você abre"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Só você tira a espada da pedra"].waitForExistence(timeout: 10))
         app.buttons["tour-continuar"].tap()
         XCTAssertTrue(app.staticTexts["A chave de tudo é sua"].waitForExistence(timeout: 5))
         sleep(4)
