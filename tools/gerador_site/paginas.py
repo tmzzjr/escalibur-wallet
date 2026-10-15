@@ -591,9 +591,11 @@ def pagina_redes(ctx, base):
             f'<small>{e(", ".join(segunda))}</small></div></li>'
         )
 
+    # Uma linha por moeda: mesmo simbolo e mesmo id de preco. O ETH da Binance na BNB tem
+    # o preco do WETH, mas nao e o WETH: fica na linha dele.
     grupos = {}
     for t in ctx["tokens"]:
-        grupos.setdefault(t["gecko"], []).append(t)
+        grupos.setdefault((t["simbolo"].upper(), t["gecko"]), []).append(t)
     ordenados = sorted(grupos.values(), key=lambda g: (g[0]["simbolo"].lower(), g[0]["nome"].lower()))
     itens = []
     for grupo in ordenados:
@@ -613,7 +615,8 @@ def pagina_redes(ctx, base):
                 alvo, rotulo = t["emissor"], f"{t['simbolo']} emitido por {t['emissor']}"
             url = (rede["explorador_endereco"] or "").replace("{address}", alvo)
             link = f'<a href="{e(url)}">{e(rotulo)}</a>' if url.startswith("https://") else e(rotulo)
-            contratos.append(f"<div><dt>{e(rede['nome'])}, {t['casas']} casas</dt><dd>{link}</dd></div>")
+            variante = f" · {t['nome']}" if t["nome"] != primeiro["nome"] else ""
+            contratos.append(f"<div><dt>{e(rede['nome'])}, {t['casas']} casas{e(variante)}</dt><dd>{link}</dd></div>")
         busca = " ".join([primeiro["simbolo"], primeiro["nome"], primeiro["gecko"], nomes_redes]).lower()
         busca = re.sub(r"\s+", " ", busca)
         plural = "redes" if len(grupo) > 1 else "rede"
