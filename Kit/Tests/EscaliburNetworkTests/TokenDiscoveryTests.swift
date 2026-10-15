@@ -130,6 +130,43 @@ struct TokenDiscoveryTests {
         #expect(holding.reasons == [.dust])
     }
 
+    /// Base pela Alchemy (gravado em 15/10/2026): os saldos de todos os ERC-20 que a conta
+    /// ja teve, e o lote de metadados dos que tem saldo.
+    static func alchemyTransport(metadata: Bool = true) -> FixtureTransport {
+        FixtureTransport([{ _, body in
+            if case .array? = body { return metadata ? try Self.data("alchemy-metadados-base") : nil }
+            guard FixtureTransport.method(body) == "alchemy_getTokenBalances" else { return nil }
+            return try Self.data("alchemy-saldos-base")
+        }])
+    }
+
+    @Test("Alchemy (Base): so os contratos com saldo, nome e simbolo num lote, endereco so no corpo")
+    func alchemyIndex() async throws {
+        let owner = try EVMAddress(Self.owner)
+        let transport = Self.alchemyTransport()
+        let provider = ProviderPool.Provider(name: "alchemy", baseURL: URL(string: "https://alchemy.test/v2/chave")!)
+        let tokens = try await TokenIndex.fetch(provider, owner: owner, transport: transport)
+
+        let balances = try StrictJSON.parse(Self.data("alchemy-saldos-base")).field("result", "r")
+        let nonZero = try balances.field("tokenBalances", "t").array("t").filter {
+            (try? $0.field("tokenBalance", "b").quantity("b").isZero) == false
+        }
+        #expect(tokens.count == nonZero.count)
+        #expect(tokens.count < (try balances.field("tokenBalances", "t").array("t").count))
+        #expect(transport.requests.count == 2)
+        #expect(transport.requests.allSatisfy { !$0.url.absoluteString.lowercased().contains(Self.owner.lowercased()) })
+        #expect(tokens.allSatisfy { !$0.symbol.isEmpty && $0.logo == nil && !$0.flagged })
+    }
+
+    @Test("Alchemy: sem o lote de metadados, os tokens vem sem nome, mas vem")
+    func alchemyIndexWithoutMetadata() async throws {
+        let transport = Self.alchemyTransport(metadata: false)
+        let provider = ProviderPool.Provider(name: "alchemy", baseURL: URL(string: "https://alchemy.test/v2/chave")!)
+        let tokens = try await TokenIndex.fetch(provider, owner: try EVMAddress(Self.owner), transport: transport)
+        #expect(!tokens.isEmpty)
+        #expect(tokens.allSatisfy { $0.symbol.isEmpty && $0.decimals == nil })
+    }
+
     // MARK: Tron
 
     @Test("Tron: USDT da lista; os outros TRC-20 com nome e casas da TronGrid numa chamada, e o que faltar lido do contrato")

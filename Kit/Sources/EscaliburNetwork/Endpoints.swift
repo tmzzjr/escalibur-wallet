@@ -330,20 +330,20 @@ public enum Endpoints {
     ///
     /// Base, Arbitrum e Polygon: o Blockscout passou a responder 403 com o desafio do
     /// Cloudflare (conferido em 15/10/2026) e nao ha indexador sem chave que atenda as
-    /// tres. Vao pela Alchemy (`alchemyHistory`), com o Blockscout de reserva.
+    /// tres. Vao pela Alchemy (`alchemy`), com o Blockscout de reserva.
     public static let evmHistory: [String: [ProviderPool.Provider]] = [
         "ethereum": [.init(name: "blockscout", baseURL: url("https://eth.blockscout.com/api/v2"))],
         "base": [
-            .init(name: "alchemy", baseURL: alchemyHistory["base"]!),
+            .init(name: "alchemy", baseURL: alchemy["base"]!),
             .init(name: "blockscout", baseURL: url("https://base.blockscout.com/api/v2")),
         ],
         "optimism": [.init(name: "blockscout", baseURL: url("https://explorer.optimism.io/api/v2"))],
         "arbitrum": [
-            .init(name: "alchemy", baseURL: alchemyHistory["arbitrum"]!),
+            .init(name: "alchemy", baseURL: alchemy["arbitrum"]!),
             .init(name: "blockscout", baseURL: url("https://arbitrum.blockscout.com/api/v2")),
         ],
         "polygon": [
-            .init(name: "alchemy", baseURL: alchemyHistory["polygon"]!),
+            .init(name: "alchemy", baseURL: alchemy["polygon"]!),
             .init(name: "blockscout", baseURL: url("https://polygon.blockscout.com/api/v2")),
         ],
         "avalanche": [.init(name: "routescan", baseURL: url("https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api"))],
@@ -362,30 +362,33 @@ public enum Endpoints {
     /// 15/10/2026 com a conta publica de teste do BIP-39.
     public static let nodeRealBNB = url("https://bsc-mainnet.nodereal.io/v1/f0c15aadeef94b9ba1ea7d52310cedaf")
 
-    /// Historico de Base, Arbitrum e Polygon pela API de transferencias da Alchemy
-    /// (`alchemy_getAssetTransfers`, JSON-RPC por POST, o endereco vai no corpo). Chave
+    /// Historico e tokens de Base, Arbitrum e Polygon pela Alchemy (transferencias:
+    /// `alchemy_getAssetTransfers`; tokens: `alchemy_getTokenBalances` e
+    /// `alchemy_getTokenMetadata`; JSON-RPC por POST, o endereco vai no corpo). Chave
     /// gratuita em nome da Escalibur, publica neste codigo como a da NodeReal: identifica
-    /// o app, nao o dono, e so le a rede. Quem esgotar a cota tira do ar so o historico
-    /// dessas tres; saldo, envio e troca nao passam por aqui. Conferido ao vivo em
+    /// o app, nao o dono, e so le a rede. Quem esgotar a cota tira do ar so o historico e
+    /// os tokens fora da lista dessas tres; saldo, envio e troca nao passam por aqui.
+    /// Conferido ao vivo em
     /// 15/10/2026 com a conta publica de teste do BIP-39.
-    public static let alchemyHistory: [String: URL] = [
+    public static let alchemy: [String: URL] = [
         "base": url("https://base-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
         "arbitrum": url("https://arb-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
         "polygon": url("https://polygon-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
     ]
 
-    /// Quais ERC-20 uma conta tem, sem chave (`TokenIndex`). As mesmas instancias do
-    /// Blockscout do historico e, na Avalanche e na Plasma, a API propria do Routescan.
+    /// Quais ERC-20 uma conta tem (`TokenIndex`). As mesmas instancias do Blockscout do
+    /// historico; na Avalanche e na Plasma, a API propria do Routescan; na Base, Arbitrum
+    /// e Polygon, onde o Blockscout responde 403 desde outubro de 2026, a Alchemy.
     /// Conferido ao vivo em 04/10/2026 com a conta publica de teste do BIP-39: `200` e a
     /// lista de tokens em todas (de 0 a 50 itens, a maioria isca de golpe). BNB Chain, X
     /// Layer e Sonic ficam de fora: nenhum indexador sem chave atende (Blockscout e
     /// Routescan respondem 404 e "chain not supported"; Ankr pede chave).
     public static let evmTokenIndex: [String: ProviderPool.Provider] = [
         "ethereum": .init(name: "blockscout", baseURL: url("https://eth.blockscout.com/api/v2")),
-        "base": .init(name: "blockscout", baseURL: url("https://base.blockscout.com/api/v2")),
+        "base": .init(name: "alchemy", baseURL: alchemy["base"]!),
         "optimism": .init(name: "blockscout", baseURL: url("https://explorer.optimism.io/api/v2")),
-        "arbitrum": .init(name: "blockscout", baseURL: url("https://arbitrum.blockscout.com/api/v2")),
-        "polygon": .init(name: "blockscout", baseURL: url("https://polygon.blockscout.com/api/v2")),
+        "arbitrum": .init(name: "alchemy", baseURL: alchemy["arbitrum"]!),
+        "polygon": .init(name: "alchemy", baseURL: alchemy["polygon"]!),
         "linea": .init(name: "blockscout", baseURL: url("https://api-explorer.linea.build/api/v2")),
         "unichain": .init(name: "blockscout", baseURL: url("https://unichain.blockscout.com/api/v2")),
         "celo": .init(name: "blockscout", baseURL: url("https://celo.blockscout.com/api/v2")),
