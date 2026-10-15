@@ -312,6 +312,8 @@ struct DemoEnvelopes: ViewModifier {
                 // `-tela transacao` com `-transacao recebida|enviada|troca`: o detalhe de
                 // uma transacao inventada, sem rede.
                 case .transacao: NavigationStack { ActivityDetailView(entry: DemoNewWallet.sampleEntry) }
+                // `-tela camera`: o leitor de QR; com `-camera-negada`, a tela de permissao.
+                case .camera: QRScannerSheet { _ in newWallet = nil }
                 case .frase: NavigationStack { ImportPhraseView { newWallet = nil } }
                 case .selo: VStack(spacing: Space.lg) {
                         Spacer()
@@ -344,7 +346,7 @@ struct DemoEnvelopes: ViewModifier {
 
 /// As telas de carteira nova que `-tela` abre direto.
 enum DemoNewWallet: String, Identifiable {
-    case adicionar, criar, seguranca, observar, promessa, checagem, frase, selo, criada, palavras, transacao
+    case adicionar, criar, seguranca, observar, promessa, checagem, frase, selo, criada, palavras, transacao, camera
     var id: String { rawValue }
 
     static var sampleEntry: ActivityEntry {

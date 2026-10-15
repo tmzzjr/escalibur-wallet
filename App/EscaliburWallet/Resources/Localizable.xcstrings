@@ -6065,6 +6065,34 @@
         }
       }
     },
+    "A câmera só lê o código, aqui no iPhone. Nenhuma imagem é guardada nem sai do aparelho." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Kamera liest nur den Code, hier auf dem iPhone. Kein Bild wird gespeichert oder verlässt das Gerät."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera only reads the code, here on the iPhone. No image is saved or leaves the device."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cámara solo lee el código, aquí en el iPhone. Ninguna imagen se guarda ni sale del dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’appareil photo lit seulement le code, ici sur l’iPhone. Aucune image n’est enregistrée ni ne quitte l’appareil."
+          }
+        }
+      }
+    },
     "A cópia fica só neste iPhone, não passa para o Mac e some sozinha em 1 minuto. Anotar no papel continua sendo o mais seguro." : {
       "localizations" : {
         "de" : {
@@ -11324,6 +11352,34 @@
         }
       }
     },
+    "Abrir Ajustes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir Réglages"
+          }
+        }
+      }
+    },
     "Abrir Ajustes do iPhone" : {
       "localizations" : {
         "de" : {
@@ -16367,6 +16423,34 @@
         }
       }
     },
+    "Cole ou digite o endereço no campo." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Füge die Adresse ins Feld ein oder tippe sie."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste or type the address in the field."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pega o escribe la dirección en el campo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collez ou saisissez l’adresse dans le champ."
+          }
+        }
+      }
+    },
     "Cole ou escaneie" : {
       "localizations" : {
         "de" : {
@@ -19399,6 +19483,34 @@
         }
       }
     },
+    "Câmera" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cámara"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appareil photo"
+          }
+        }
+      }
+    },
     "Código aberto" : {
       "localizations" : {
         "de" : {
@@ -21335,6 +21447,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dans Réglages, Ouvrir une enveloppe, sur cet iPhone ou un autre avec Escalibur. Avec le bon mot de passe, le portefeuille revient. Gardez le fichier et le mot de passe à des endroits différents."
+          }
+        }
+      }
+    },
+    "Em Ajustes, Apps, Escalibur Wallet, ligue:" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Einstellungen, Apps, Escalibur Wallet, aktiviere:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Settings, Apps, Escalibur Wallet, turn on:"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En Ajustes, Apps, Escalibur Wallet, activa:"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans Réglages, Apps, Escalibur Wallet, activez :"
           }
         }
       }
@@ -28219,6 +28359,34 @@
         }
       }
     },
+    "Este iPhone não lê QR pela câmera" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses iPhone kann QR-Codes nicht mit der Kamera lesen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This iPhone can’t read QR codes with the camera"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este iPhone no lee códigos QR con la cámara"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cet iPhone ne peut pas lire les QR codes avec l’appareil photo"
+          }
+        }
+      }
+    },
     "Este iPhone não reconhece fala sem internet agora." : {
       "localizations" : {
         "de" : {
@@ -33331,6 +33499,34 @@
         }
       }
     },
+    "Libere a câmera para ler o QR" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaube die Kamera, um den QR-Code zu lesen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow the camera to read the QR code"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permite la cámara para leer el QR"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisez l’appareil photo pour lire le QR code"
+          }
+        }
+      }
+    },
     "Ligada" : {
       "localizations" : {
         "de" : {
@@ -37322,6 +37518,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nonce"
+          }
+        }
+      }
+    },
+    "Nos Ajustes da Escalibur Wallet, ligue:" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In den Einstellungen von Escalibur Wallet, aktiviere:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Escalibur Wallet settings, turn on:"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En los ajustes de Escalibur Wallet, activa:"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans les réglages d’Escalibur Wallet, activez :"
           }
         }
       }
@@ -46420,6 +46644,7 @@
       }
     },
     "Para ler o QR, o app precisa da câmera." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
