@@ -161,7 +161,7 @@ public enum KDFCalibration {
     }
     public static let ceilingSeconds: Double = 2.5
 
-    private static let log = Logger(subsystem: "com.thomazjr.escalibur.wallet", category: "kdf")
+    private static let log = Logger(subsystem: "app.escalibur.wallet", category: "kdf")
 
     /// Teto de memoria seguro para este aparelho.
     ///

@@ -901,7 +901,7 @@ Fontes sobre a OKX:
 - [OKX DEX user guide (app)](https://web3.okx.com/help/okx-dex-user-guide-app): dá a opção "Unlimited" na aprovação como forma de evitar aprovações futuras.
 - [OKX DEX FAQs](https://web3.okx.com/help/okx-dex-faqs): a ordem é dividida entre vários DEXs quando isso rende mais.
 
-Arquivos do Escalibur usados como base, em /Users/thomazjr/projects/escalibur:
+Arquivos do Escalibur usados como base, no repositório do Escalibur original:
 - `README.md` (tabela de custo da senha)
 - `docs/custodia.md`
 - `docs/formato.md` (compartimentos, vínculo com o aparelho, 25ª palavra, SLIP-39)

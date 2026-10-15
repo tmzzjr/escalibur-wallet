@@ -48,7 +48,7 @@ public enum StoreError: Error, Equatable, Sendable {
 
 /// O chaveiro do iOS, com os atributos exatos de docs/seguranca.md §2.3.
 public final class KeychainStore: SecretStore, @unchecked Sendable {
-    public static let service = "com.thomazjr.escalibur.wallet"
+    public static let service = "app.escalibur.wallet"
 
     public init() {}
 

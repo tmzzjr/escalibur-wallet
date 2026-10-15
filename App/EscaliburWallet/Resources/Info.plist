@@ -4,7 +4,7 @@
 <dict>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.thomazjr.escalibur.wallet.precos</string>
+		<string>app.escalibur.wallet.precos</string>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>pt-BR</string>
@@ -21,7 +21,7 @@
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.thomazjr.escalibur.envelope</string>
+				<string>app.escalibur.envelope</string>
 			</array>
 		</dict>
 	</array>
@@ -92,7 +92,7 @@
 			<key>UTTypeDescription</key>
 			<string>Envelope Escalibur</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.thomazjr.escalibur.envelope</string>
+			<string>app.escalibur.envelope</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>

@@ -15,10 +15,10 @@ Números de referência:
 No Escalibur de hoje nenhum destes achados é grave, porque lá o PIN não protege a frase. Copiados como estão para a carteira, vários passam a ser.
 
 **A1. Crítico se copiado: o verificador de PIN do AppLock cai offline em minutos.**
-- Onde: `/Users/thomazjr/projects/escalibur/Escalibur/Vault/AppLock.swift` grava `salt || Argon2id(PIN, m=64 MiB, t=3, p=1)` num item de chaveiro sem ACL.
+- Onde: `escalibur/Escalibur/Vault/AppLock.swift` grava `salt || Argon2id(PIN, m=64 MiB, t=3, p=1)` num item de chaveiro sem ACL.
 - Como se explora:
   1. O ladrão vê o código do iPhone por cima do ombro e leva o aparelho. Esse é o golpe dominante de roubo de iPhone hoje.
-  2. Com ferramenta forense ou exploit para aquela versão do iOS, extrai o item `com.thomazjr.escalibur.applock/pin` do aparelho desbloqueado.
+  2. Com ferramenta forense ou exploit para aquela versão do iOS, extrai o item de chaveiro do PIN do AppLock do aparelho desbloqueado.
   3. Testa 10^6 PINs a 384 MiB de tráfego cada. São cerca de 403 TB, ou seja, 7 minutos teóricos numa RTX 4090 (cerca de 1 TB/s) e em torno de meia hora na prática.
 - Na carteira, com o PIN protegendo a seed desse jeito, isso entrega a seed. O conserto está na seção 2: **não pode existir verificador de PIN fora do chaveiro e do SE.**
 
@@ -33,7 +33,7 @@ No Escalibur de hoje nenhum destes achados é grave, porque lá o PIN não prote
 - Conserto: gravar `kern.boottime` (sysctl `KERN_BOOTTIME`) junto com o prazo. Se o boot mudou, descarte o prazo monotônico e recomece a espera cheia a partir de agora. Reiniciar então não encurta a espera e também não a congela por dias.
 
 **A4. Abrir um envelope transforma a seed em `String`.**
-- Onde: `VaultFile.open` chama `VaultContents.decode`, que usa `String(decoding:)` para a frase e para a 25ª palavra (`/Users/thomazjr/projects/escalibur/Escalibur/Crypto/VaultFile.swift`, linhas 86–101).
+- Onde: `VaultFile.open` chama `VaultContents.decode`, que usa `String(decoding:)` para a frase e para a 25ª palavra (`escalibur/Escalibur/Crypto/VaultFile.swift`, linhas 86–101).
 - O lacre já tem `SealingContents` com `SecureBytes`, mas a abertura não tem o equivalente. Além disso, `SealingContents.passphrase` é `String`, e `Mnemonic.validate` recebe `String`.
 - Consequência: na carteira, importar um envelope deixaria a seed no heap, sem endereço para zerar, pela vida inteira do processo.
 - Conserto: criar `OpeningContents`, que decodifica o bloco direto para `SecureBytes` (frase e passphrase) e zera o `block`. A validação BIP-39 passa a trabalhar sobre bytes.
@@ -171,10 +171,10 @@ Chaves no Secure Enclave, via `SecKeyCreateRandomKey`:
 - `kSecAttrKeyType: kSecAttrKeyTypeECSECPrimeRandom`
 - `kSecAttrKeySizeInBits: 256`
 - `kSecAttrTokenID: kSecAttrTokenIDSecureEnclave`
-- `kSecPrivateKeyAttrs` com `kSecAttrIsPermanent: true`, `kSecAttrApplicationTag: "com.thomazjr.escalibur.wallet.kdev"` (ou `.kbio`) e `kSecAttrAccessControl: SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, <flags>, nil)`.
+- `kSecPrivateKeyAttrs` com `kSecAttrIsPermanent: true`, `kSecAttrApplicationTag: "app.escalibur.wallet.kdev"` (ou `.kbio`) e `kSecAttrAccessControl: SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, <flags>, nil)`.
 
 Itens de chaveiro (`kSecClassGenericPassword`):
-- Atributos comuns: `kSecAttrService "com.thomazjr.escalibur.wallet"`, `kSecAttrSynchronizable: false`, `kSecUseDataProtectionKeychain: true`, e o access group do próprio app. Nenhum grupo compartilhado com extensões.
+- Atributos comuns: `kSecAttrService "app.escalibur.wallet"`, `kSecAttrSynchronizable: false`, `kSecUseDataProtectionKeychain: true`, e o access group do próprio app. Nenhum grupo compartilhado com extensões.
 - `rk.pin`: `kSecAttrAccessControl = SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, [.applicationPassword], nil)`. Tanto gravar quanto ler usam `kSecUseAuthenticationContext` com um `LAContext` que recebeu `setCredential(AP, type: .applicationPassword)` e `interactionNotAllowed = true`.
 - `rk.bio`, `seed.<uuid>` (DEK embrulhada mais o registro), `pin.kdf` (salt e parâmetros, não secretos), `pin.tentativas` e `bio.estado`: todos com `kSecAttrAccessible: kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`.
 - Nunca use `kSecAttrAccessible` e `kSecAttrAccessControl` no mesmo item. A classe de proteção vai dentro do `SecAccessControl`.
@@ -688,7 +688,7 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
 ## 6. Envelope `.esclbr`
 
 - **Tipo de arquivo**:
-  - O Escalibur declara `UTExportedTypeDeclarations` para `com.thomazjr.escalibur.envelope` (extensão `esclbr`, conforme `public.data`). Hoje não declara.
+  - O Escalibur declara `UTExportedTypeDeclarations` para `app.escalibur.envelope` (extensão `esclbr`, conforme `public.data`). Hoje não declara.
   - A carteira declara `UTImportedTypeDeclarations`, `CFBundleDocumentTypes` com `LSHandlerRank = Alternate` e `UIFileSharingEnabled = NO`.
 - **Entrada**:
   - `fileImporter` com escopo de segurança e `onOpenURL`.
@@ -935,11 +935,11 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
 9. **Coerção**: o código é aberto, e o agressor sabe que a isca existe. A defesa real é o saldo quente pequeno.
 
 Arquivos citados:
-- `/Users/thomazjr/projects/escalibur/Escalibur/Vault/AppLock.swift` (A1–A3)
-- `/Users/thomazjr/projects/escalibur/Escalibur/Crypto/VaultFile.swift` (A4, A5)
-- `/Users/thomazjr/projects/escalibur/Escalibur/Crypto/KeyDerivation.swift` e `/Users/thomazjr/projects/escalibur/Escalibur/Features/ShelfView.swift` (A6)
-- `/Users/thomazjr/projects/escalibur/Escalibur/App/PlatformGuards.swift` (A7)
-- `/Users/thomazjr/projects/escalibur/tools/verificar.sh` (base da 8.3)
+- `escalibur/Escalibur/Vault/AppLock.swift` (A1–A3)
+- `escalibur/Escalibur/Crypto/VaultFile.swift` (A4, A5)
+- `escalibur/Escalibur/Crypto/KeyDerivation.swift` e `escalibur/Escalibur/Features/ShelfView.swift` (A6)
+- `escalibur/Escalibur/App/PlatformGuards.swift` (A7)
+- `escalibur/tools/verificar.sh` (base da 8.3)
 
 **Fontes**
 - [libsecp256k1 CHANGELOG](https://github.com/bitcoin-core/secp256k1/blob/master/CHANGELOG.md) · [Releases](https://github.com/bitcoin-core/secp256k1/releases)

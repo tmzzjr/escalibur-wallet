@@ -1,7 +1,7 @@
 # Gera EscaliburWallet.xcodeproj:  xcodegen generate
 name: EscaliburWallet
 options:
-  bundleIdPrefix: com.thomazjr
+  bundleIdPrefix: app.escalibur
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -45,7 +45,7 @@ targets:
         product: EscaliburEngines
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.thomazjr.escalibur.wallet
+        PRODUCT_BUNDLE_IDENTIFIER: app.escalibur.wallet
         PRODUCT_NAME: EscaliburWallet
         DEVELOPMENT_TEAM: 2UNWMDD93S
         TARGETED_DEVICE_FAMILY: "1"
@@ -68,7 +68,7 @@ targets:
       - path: App/EscaliburWallet/Resources/Localizable.xcstrings
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.thomazjr.escalibur.wallet.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: app.escalibur.wallet.widgets
         PRODUCT_NAME: EscaliburWidgets
         DEVELOPMENT_TEAM: 2UNWMDD93S
         TARGETED_DEVICE_FAMILY: "1"
@@ -87,7 +87,7 @@ targets:
       - target: EscaliburWallet
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.thomazjr.escalibur.wallet.tests
+        PRODUCT_BUNDLE_IDENTIFIER: app.escalibur.wallet.tests
         DEVELOPMENT_TEAM: 2UNWMDD93S
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_STRICT_CONCURRENCY: minimal
@@ -100,7 +100,7 @@ targets:
       - target: EscaliburWallet
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.thomazjr.escalibur.wallet.uitests
+        PRODUCT_BUNDLE_IDENTIFIER: app.escalibur.wallet.uitests
         DEVELOPMENT_TEAM: 2UNWMDD93S
         TEST_TARGET_NAME: EscaliburWallet
         GENERATE_INFOPLIST_FILE: YES

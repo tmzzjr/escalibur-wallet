@@ -243,7 +243,7 @@ achados=$(grep -nE 'import (EscaliburKeys|EscaliburEngines|Security|LocalAuthent
 achados=$(find App/EscaliburWidgets App/Shared -name '*.swift' | xargs grep -nE 'import (Escalibur|Security|LocalAuthentication|Network)|URLSession|URLRequest|NWConnection|SecItem|Keychain|UserDefaults' 2>/dev/null)
 [ -n "$achados" ] && { aviso "o widget importa o Kit, fala com a rede ou le o chaveiro"; echo "$achados"; } || ok "o widget so le o arquivo do App Group: sem Kit, sem rede, sem chaveiro"
 chaves=$(/usr/libexec/PlistBuddy -c "Print" App/EscaliburWidgets/EscaliburWidgets.entitlements | grep -E '^\s+[a-z][^ ]* = ' | awk '{print $1}' | sort | tr '\n' ' ')
-grupos=$(/usr/libexec/PlistBuddy -c "Print :com.apple.security.application-groups" App/EscaliburWidgets/EscaliburWidgets.entitlements 2>/dev/null | grep -c 'group.com.thomazjr.escalibur.wallet$')
+grupos=$(/usr/libexec/PlistBuddy -c "Print :com.apple.security.application-groups" App/EscaliburWidgets/EscaliburWidgets.entitlements 2>/dev/null | grep -c 'group.app.escalibur.wallet$')
 [ "$chaves" = "com.apple.security.application-groups " ] && [ "$grupos" = "1" ] && ok "entitlements do widget: so o App Group da carteira" || aviso "entitlements do widget inesperados: $chaves"
 recebimento="$APP/Services/ReceiptWatch.swift"
 achados=$(grep -nE 'import (EscaliburKeys|Security|LocalAuthentication)|KeyServices|RootKeyVault|SecretStore|MetadataStore|SecureBytes|AppSession|Portfolio|WalletMeta|privateKey|mnemonic' "$recebimento" 2>/dev/null | grep -vE '^[0-9]+:[[:space:]]*//')

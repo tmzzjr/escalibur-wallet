@@ -18,7 +18,7 @@ final class Cenas: XCTestCase {
     // MARK: Apoio
 
     private func abrir(_ tela: String?) -> XCUIApplication {
-        let app = XCUIApplication(bundleIdentifier: "com.thomazjr.escalibur.wallet")
+        let app = XCUIApplication(bundleIdentifier: "app.escalibur.wallet")
         app.launchArguments = ["-demo"] + (tela.map { ["-tela", $0] } ?? [])
         app.launch()
         return app

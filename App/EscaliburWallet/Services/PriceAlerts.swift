@@ -89,7 +89,7 @@ enum PriceAlertStore {
 actor PriceAlertCenter {
     static let shared = PriceAlertCenter()
 
-    nonisolated static let taskID = "com.thomazjr.escalibur.wallet.precos"
+    nonisolated static let taskID = "app.escalibur.wallet.precos"
     nonisolated static let category = "precos"
     /// O iOS decide quando roda; isto e so o mais cedo que pode.
     static let refreshInterval: TimeInterval = 20 * 60

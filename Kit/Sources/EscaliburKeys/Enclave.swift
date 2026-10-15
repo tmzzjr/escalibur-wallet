@@ -56,7 +56,7 @@ public enum EnclaveError: Error, Equatable, Sendable {
 
 /// O Secure Enclave de verdade.
 public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
-    private static let tagPrefix = "com.thomazjr.escalibur.wallet."
+    private static let tagPrefix = "app.escalibur.wallet."
     private static let algorithm = SecKeyAlgorithm.eciesEncryptionCofactorVariableIVX963SHA256AESGCM
 
     public init() {}
@@ -178,7 +178,7 @@ extension SecureEnclaveWrapper {
             kSecUseAuthenticationContext as String: context,
             kSecPrivateKeyAttrs as String: [
                 kSecAttrIsPermanent as String: true,
-                kSecAttrApplicationTag as String: Data(("com.thomazjr.escalibur.wallet." + slot.rawValue).utf8),
+                kSecAttrApplicationTag as String: Data(("app.escalibur.wallet." + slot.rawValue).utf8),
                 kSecAttrAccessControl as String: access,
             ],
         ]
@@ -191,7 +191,7 @@ extension SecureEnclaveWrapper {
         guard context.setCredential(password, type: .applicationPassword) else { throw EnclaveError.failed("credencial") }
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
-            kSecAttrApplicationTag as String: Data(("com.thomazjr.escalibur.wallet." + slot.rawValue).utf8),
+            kSecAttrApplicationTag as String: Data(("app.escalibur.wallet." + slot.rawValue).utf8),
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
             kSecReturnRef as String: true,
             kSecUseAuthenticationContext as String: context,
@@ -235,7 +235,7 @@ extension SecureBytes {
 /// fim). Confere no aparelho de verdade se o SE abre com a senha certa e recusa a
 /// errada e a falta dela, sem pedir nada na tela, e quanto custa cada tentativa.
 public enum EnclaveSpike {
-    static let tag = Data("com.thomazjr.escalibur.wallet.experimento".utf8)
+    static let tag = Data("app.escalibur.wallet.experimento".utf8)
     static let algorithm = SecKeyAlgorithm.eciesEncryptionCofactorVariableIVX963SHA256AESGCM
 
     public static func run() -> [String] {

@@ -690,14 +690,14 @@ Regras duras:
 - Status final do Batch da XRPL após 29/09.
 
 **Arquivos lidos:**
-- `/Users/thomazjr/projects/escalibur/Escalibur/Vault/Mnemonic.swift`
-- `/Users/thomazjr/projects/escalibur/Escalibur/Vault/Wordlist.swift`
-- `/Users/thomazjr/projects/escalibur/Escalibur/Vault/SLIP39.swift`
-- `/Users/thomazjr/projects/escalibur/Escalibur/Crypto/SelfTest.swift`
-- `/Users/thomazjr/projects/escalibur/Escalibur/Crypto/VaultFile.swift`
-- `/Users/thomazjr/projects/escalibur/Escalibur/Crypto/LiveCipher.swift`
-- `/Users/thomazjr/projects/escalibur/docs/formato.md`
-- `/Users/thomazjr/projects/escalibur/wordlists.lock`
+- `escalibur/Escalibur/Vault/Mnemonic.swift`
+- `escalibur/Escalibur/Vault/Wordlist.swift`
+- `escalibur/Escalibur/Vault/SLIP39.swift`
+- `escalibur/Escalibur/Crypto/SelfTest.swift`
+- `escalibur/Escalibur/Crypto/VaultFile.swift`
+- `escalibur/Escalibur/Crypto/LiveCipher.swift`
+- `escalibur/docs/formato.md`
+- `escalibur/wordlists.lock`
 
 ---
 

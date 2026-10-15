@@ -28,7 +28,7 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
     var points: [Double]
     var updated: Date
 
-    static let appGroup = "group.com.thomazjr.escalibur.wallet"
+    static let appGroup = "group.app.escalibur.wallet"
     static let fileName = "widget.json"
     static let logoName = "widget-logo.png"
 

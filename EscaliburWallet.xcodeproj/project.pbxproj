@@ -1202,7 +1202,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = app.escalibur.wallet.tests;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1222,7 +1222,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet;
+				PRODUCT_BUNDLE_IDENTIFIER = app.escalibur.wallet;
 				PRODUCT_NAME = EscaliburWallet;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -1241,7 +1241,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet.widgets;
+				PRODUCT_BUNDLE_IDENTIFIER = app.escalibur.wallet.widgets;
 				PRODUCT_NAME = EscaliburWidgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -1261,7 +1261,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = app.escalibur.wallet.uitests;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1281,7 +1281,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet;
+				PRODUCT_BUNDLE_IDENTIFIER = app.escalibur.wallet;
 				PRODUCT_NAME = EscaliburWallet;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -1369,7 +1369,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet.widgets;
+				PRODUCT_BUNDLE_IDENTIFIER = app.escalibur.wallet.widgets;
 				PRODUCT_NAME = EscaliburWidgets;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -1389,7 +1389,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = app.escalibur.wallet.tests;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1408,7 +1408,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.thomazjr.escalibur.wallet.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = app.escalibur.wallet.uitests;
 				SDKROOT = iphoneos;
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				TARGETED_DEVICE_FAMILY = "1,2";
