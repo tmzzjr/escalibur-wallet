@@ -173,6 +173,11 @@ public struct BridgeEngine: Sendable {
             case .pending: return .inFlight
             case .failed: return .needsClaim
             case .complete(let hash):
+                // A cunhagem e a desta mensagem (nonce e origem), e nao uma antiga de mesmo valor.
+                guard let minted = try await reader.receiptLogs(chain: to.chain, hash: hash) else { return .inFlight }
+                guard minted.success, BridgeArrival.cctpMinted(minted.logs, message: message, transmitter: BridgeAllowlist.messageTransmitter) else {
+                    return .mismatch
+                }
                 switch try await reader.verifyIncoming(chain: to.chain, hash: hash, owner: owner, contract: to.usdc, amount: message.mintedAmount) {
                 case .confirmed: return .arrived(txHash: hash, amount: message.mintedAmount)
                 case .notFound: return .inFlight

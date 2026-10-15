@@ -109,4 +109,32 @@ struct CCTPMessageTests {
         #expect(args[6] == .uint(1000))
         #expect(args[7] == .bytes(CCTPCalldata.forwardHookData))
     }
+
+    /// O MessageReceived que o MessageTransmitterV2 emite ao cunhar esta mensagem.
+    static func received(_ message: CCTPMessage, nonce: [UInt8]? = nil, sourceDomain: UInt32? = nil, sender: [UInt8]? = nil,
+                         transmitter: EVMAddress = BridgeAllowlist.messageTransmitter) -> TradeSimulatedLog {
+        let data = try! BridgeArrival.messageReceivedData.encodeCall([
+            .uint(BigUInt(sourceDomain ?? message.sourceDomain)), .fixedBytes(sender ?? message.sender), .bytes([1, 2, 3]),
+        ])
+        return TradeSimulatedLog(
+            address: transmitter,
+            topics: [BridgeArrival.messageReceivedTopic, TradeTestSupport.word(7), nonce ?? message.nonce, TradeTestSupport.word(1000)],
+            data: Array(data.dropFirst(4))
+        )
+    }
+
+    @Test("A cunhagem conta so com o MessageReceived desta mensagem: nonce, origem e remetente")
+    func mintBoundToMessage() throws {
+        let message = try CCTPMessage(Self.real)
+        let transmitter = BridgeAllowlist.messageTransmitter
+        #expect(BridgeArrival.cctpMinted([Self.received(message)], message: message, transmitter: transmitter))
+        // Uma cunhagem antiga de mesmo valor tem outro nonce.
+        let older = [UInt8](repeating: 0xAB, count: 32)
+        #expect(!BridgeArrival.cctpMinted([Self.received(message, nonce: older)], message: message, transmitter: transmitter))
+        #expect(!BridgeArrival.cctpMinted([Self.received(message, sourceDomain: 3)], message: message, transmitter: transmitter))
+        #expect(!BridgeArrival.cctpMinted([Self.received(message, sender: CCTPMessage.word(Self.recipient))], message: message, transmitter: transmitter))
+        // O mesmo evento emitido por outro contrato nao vale.
+        #expect(!BridgeArrival.cctpMinted([Self.received(message, transmitter: Self.recipient)], message: message, transmitter: transmitter))
+        #expect(!BridgeArrival.cctpMinted([], message: message, transmitter: transmitter))
+    }
 }

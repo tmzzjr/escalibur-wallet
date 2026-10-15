@@ -123,6 +123,24 @@ public enum BridgeArrival {
         return nil
     }
 
+    /// O MessageReceived do MessageTransmitterV2 (CCTP V2): caller, nonce e finalidade
+    /// indexados; dominio de origem, remetente e corpo nos dados.
+    public static let messageReceivedTopic = Hash.keccak256(Array("MessageReceived(address,uint32,bytes32,bytes32,uint32,bytes)".utf8))
+    static let messageReceivedData = try! ABIFunction("e(uint32,bytes32,bytes)")
+
+    /// O recibo da cunhagem no destino tem o MessageReceived da mensagem atestada: o mesmo
+    /// nonce, o dominio de origem e o TokenMessenger que a enviou. Uma cunhagem antiga de
+    /// mesmo valor, devolvida por uma Iris comprometida, nao conta como chegada (pentest de
+    /// 14/10/2026: o B4 do Across, no CCTP).
+    public static func cctpMinted(_ logs: [TradeSimulatedLog], message: CCTPMessage, transmitter: EVMAddress) -> Bool {
+        logs.contains { log in
+            guard log.address == transmitter, log.topics.count == 4, log.topics[0] == messageReceivedTopic, log.topics[2] == message.nonce,
+                  let fields = try? messageReceivedData.decodeCall(messageReceivedData.selector + log.data), fields.count == 3
+            else { return false }
+            return fields[0] == .uint(BigUInt(message.sourceDomain)) && fields[1] == .fixedBytes(message.sender)
+        }
+    }
+
     /// O reembolso na origem: o recibo tem o Transfer do token de entrada saindo do SpokePool
     /// para o dono, com pelo menos o valor do deposito (o reembolso pode vir junto com
     /// outros). O ETH nativo volta como WETH. So a API dizer "refunded" nao basta (revisao

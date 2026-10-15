@@ -204,6 +204,12 @@ struct BridgeLiveTests {
         try message.check(transfer, sourceMessenger: BridgeAllowlist.tokenMessenger, destinationMessenger: BridgeAllowlist.tokenMessenger)
         guard case .complete(let forward) = attested.forward else { Issue.record("sem entrega"); return }
         let reader = EVMReader()
+        // A cunhagem e a desta mensagem: o MessageReceived com o nonce dela; outro nonce nao.
+        let minted = try #require(try await reader.receiptLogs(chain: .arbitrum, hash: forward))
+        #expect(BridgeArrival.cctpMinted(minted.logs, message: message, transmitter: BridgeAllowlist.messageTransmitter))
+        let bytes = attested.messageBytes
+        let otherNonce = try CCTPMessage(Array(bytes.prefix(12)) + [UInt8](repeating: 0xAB, count: 32) + Array(bytes.dropFirst(44)))
+        #expect(!BridgeArrival.cctpMinted(minted.logs, message: otherNonce, transmitter: BridgeAllowlist.messageTransmitter))
         let arrived = try await reader.verifyIncoming(chain: .arbitrum, hash: forward, owner: recipient,
                                                       contract: BridgeAllowlist.arbitrum.usdc, amount: message.mintedAmount)
         guard case .confirmed = arrived else { Issue.record("entrega nao confirmada: \(arrived)"); return }

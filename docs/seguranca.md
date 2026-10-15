@@ -553,6 +553,7 @@ Revisado em 12/10/2026 com o agente de segurança, antes do código. Pontes são
   - A comparação de valores e a taxa são feitas na unidade da origem (`BridgeAsset.rescale`, arredondando o que chega para baixo): uma cotação que entregasse mais do que saiu, ou com taxa acima do teto, é recusada com 6 de um lado e 18 do outro.
   - Na BNB o ETH é token: sai com approve exato ao SpokePool e sem `value`; para a Polygon continua fora.
   - A chegada pelo Across confere o `depositId` do FundsDeposited do próprio recibo e o `fillDeadline` assinado (pentest de 14/10/2026, B4) e, quando a moeda chega como token, o Transfer dela para o dono com o valor cheio. "Devolvido" só com o reembolso conferido na origem, em dois RPCs.
+  - A chegada pelo CCTP exige, no recibo da cunhagem, o `MessageReceived` do MessageTransmitter com o nonce, o domínio de origem e o remetente da mensagem atestada. Uma cunhagem antiga de mesmo valor, devolvida por uma Iris comprometida, não conta como chegada.
   - Chegar mais do que saiu é recusado na unidade mais fina (`BridgeAsset.fits`), e rota, chamada e pedido têm de concordar antes do plano e da leitura de estado (`callMatchesRoute`).
   - Risco aceito: a custódia da Binance e as chaves únicas dos tokens. Deixa de ser aceitável se a Binance suspender saque ou resgate, se o USDC da BNB ficar mais de 1% abaixo do USDC da Circle por mais de um dia, ou se o admin ou a implementação do proxy do USDC mudarem (a ponte já para sozinha no último caso).
 - A mesma moeda dos dois lados, na versão do emissor:
