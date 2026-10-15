@@ -79,6 +79,7 @@
 		7B173231DE2779A868F26303 /* EscaliburEngines in Frameworks */ = {isa = PBXBuildFile; productRef = 3E79C0581616E2A098D4B56B /* EscaliburEngines */; };
 		7B637EE92498D3B55BF911DE /* SecurityScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D394E812500F52097076B13 /* SecurityScreens.swift */; };
 		7C26CF738CEA200038380010 /* CoinSearchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22D0D64895845E2269B6731 /* CoinSearchStore.swift */; };
+		7C50A38C1B47EECC201A7925 /* ActivityDetailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3D353EB5D825C3E1AE9273 /* ActivityDetailTests.swift */; };
 		7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09754506E0869351661279D1 /* SendFlow.swift */; };
 		8209971855BF1B93A25ADB15 /* MarketFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE7F2431E841450CA0BCE4D /* MarketFacts.swift */; };
 		88CD26394B5179DE5B332364 /* ForgotPINTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E3B6E8E96F664B813E15B7 /* ForgotPINTests.swift */; };
@@ -318,6 +319,7 @@
 		C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinLogo.swift; sourceTree = "<group>"; };
 		C9F5E370893F7BFBA8F492FE /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowTests.swift; sourceTree = "<group>"; };
+		CC3D353EB5D825C3E1AE9273 /* ActivityDetailTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityDetailTests.swift; sourceTree = "<group>"; };
 		CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		CCCB20AFE4A43091DEB9D551 /* LimitRenewalPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitRenewalPrompt.swift; sourceTree = "<group>"; };
 		CE4C1798A2E008CDBC7E2F8F /* MarketCoinActionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketCoinActionsTests.swift; sourceTree = "<group>"; };
@@ -485,6 +487,7 @@
 		7719C44BCFB732B2DA3A73BE /* EscaliburWalletUITests */ = {
 			isa = PBXGroup;
 			children = (
+				CC3D353EB5D825C3E1AE9273 /* ActivityDetailTests.swift */,
 				1230FF61D7222514EB7DF821 /* ActivityExplorerTests.swift */,
 				9FE0277A6EBBAE2C28AD2107 /* AssetActivityTests.swift */,
 				4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */,
@@ -914,6 +917,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C50A38C1B47EECC201A7925 /* ActivityDetailTests.swift in Sources */,
 				88D2C04FCBCC1B39D08662B7 /* ActivityExplorerTests.swift in Sources */,
 				BF2AE236B677F2B5801EBB37 /* AssetActivityTests.swift in Sources */,
 				A735272844639F9878C01046 /* BiometryNameTests.swift in Sources */,
