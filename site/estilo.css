@@ -564,7 +564,7 @@ p { margin: 0; }
 .fonte table { border-collapse: collapse; width: 100%; }
 .fonte td { padding: 0; vertical-align: top; }
 .fonte .n { width: 1%; text-align: right; user-select: none; -webkit-user-select: none; padding: 0 14px 0 16px; }
-.fonte .n a { color: #55555C; display: block; }
+.fonte .n a { color: #808089; display: block; }
 .fonte .n a:hover { color: var(--ink-soft); text-decoration: none; }
 .fonte .l { white-space: pre; color: #D6D6DB; padding-right: 24px; }
 .fonte tr:first-child td { padding-top: 16px; }
