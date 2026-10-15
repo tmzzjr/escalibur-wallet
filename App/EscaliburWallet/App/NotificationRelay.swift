@@ -19,19 +19,19 @@ final class NotificationRelay: NSObject, UNUserNotificationCenterDelegate, Senda
         center.setNotificationCategories([
             UNNotificationCategory(
                 identifier: PriceAlertCenter.category, actions: [], intentIdentifiers: [],
-                hiddenPreviewsBodyPlaceholder: "Alerta de preço", options: []
+                hiddenPreviewsBodyPlaceholder: String(localized: "Alerta de preço"), options: []
             ),
             UNNotificationCategory(
                 identifier: LimitRenewalCenter.category, actions: [], intentIdentifiers: [],
-                hiddenPreviewsBodyPlaceholder: "Ordem limite", options: []
+                hiddenPreviewsBodyPlaceholder: String(localized: "Ordem limite"), options: []
             ),
             UNNotificationCategory(
                 identifier: ReceiptWatchCenter.category, actions: [], intentIdentifiers: [],
-                hiddenPreviewsBodyPlaceholder: "Recebimento", options: []
+                hiddenPreviewsBodyPlaceholder: String(localized: "Recebimento"), options: []
             ),
             UNNotificationCategory(
                 identifier: BridgeCenter.category, actions: [], intentIdentifiers: [],
-                hiddenPreviewsBodyPlaceholder: "Ponte", options: []
+                hiddenPreviewsBodyPlaceholder: String(localized: "Ponte"), options: []
             ),
         ])
     }

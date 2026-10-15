@@ -10,8 +10,8 @@ enum LegalDocument: String, Identifiable {
 
     var title: String {
         switch self {
-        case .terms: return "Termos de uso"
-        case .privacy: return "Política de privacidade"
+        case .terms: return String(localized: "Termos de uso")
+        case .privacy: return String(localized: "Política de privacidade")
         }
     }
 

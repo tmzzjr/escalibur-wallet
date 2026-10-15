@@ -38,14 +38,14 @@ public enum CustomToken {
     /// O que a tela pede, na lingua da rede.
     public static func addressLabel(_ chain: Chain) -> String {
         switch chain.family {
-        case .solana: return "Mint do token"
-        case .ton: return "Endereço mestre do jetton"
-        case .xrpl, .stellar: return "Emissor"
-        case .sui: return "Tipo da moeda"
-        case .cardano: return "Política e nome do ativo"
-        case .polkadot: return "Número do ativo"
-        case .aptos: return "Endereço do ativo"
-        default: return "Contrato do token"
+        case .solana: return kitText("Mint do token")
+        case .ton: return kitText("Endereço mestre do jetton")
+        case .xrpl, .stellar: return kitText("Emissor")
+        case .sui: return kitText("Tipo da moeda")
+        case .cardano: return kitText("Política e nome do ativo")
+        case .polkadot: return kitText("Número do ativo")
+        case .aptos: return kitText("Endereço do ativo")
+        default: return kitText("Contrato do token")
         }
     }
 
@@ -56,13 +56,13 @@ public enum CustomToken {
         case .evm, .solana, .stellar:
             return nil
         case .tron:
-            return "Na Tron, a Escalibur envia só TRX e USDT. Um TRC-20 qualquer pede a leitura da energia do contrato dele, que ainda não existe aqui. A moeda aparece no saldo e você recebe normalmente."
+            return kitText("Na Tron, a Escalibur envia só TRX e USDT. Um TRC-20 qualquer pede a leitura da energia do contrato dele, que ainda não existe aqui. A moeda aparece no saldo e você recebe normalmente.")
         case .ton:
-            return "Na TON, a Escalibur envia só TON e USDT. Um jetton qualquer pede conferir a carteira de jetton e o código do contrato dele, o que ainda não existe aqui. A moeda aparece no saldo e você recebe normalmente."
+            return kitText("Na TON, a Escalibur envia só TON e USDT. Um jetton qualquer pede conferir a carteira de jetton e o código do contrato dele, o que ainda não existe aqui. A moeda aparece no saldo e você recebe normalmente.")
         case .xrpl:
-            return "No XRP Ledger, a Escalibur envia só XRP por enquanto, nem os tokens da lista. A moeda aparece no saldo e você recebe normalmente, se a conta já tiver a linha de confiança."
+            return kitText("No XRP Ledger, a Escalibur envia só XRP por enquanto, nem os tokens da lista. A moeda aparece no saldo e você recebe normalmente, se a conta já tiver a linha de confiança.")
         default:
-            return "Esta rede não tem moeda custom."
+            return kitText("Esta rede não tem moeda custom.")
         }
     }
 

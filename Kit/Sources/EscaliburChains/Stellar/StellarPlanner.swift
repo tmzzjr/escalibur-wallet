@@ -42,73 +42,73 @@ public enum StellarPlanError: Error, Equatable, Sendable {
     public var reason: String {
         switch self {
         case .invalidDestination(.otherNetwork(let chain)):
-            return "Este endereço é da rede \(chain.name). Na Stellar o endereço começa com G ou M."
+            return kitText("Este endereço é da rede \(chain.name). Na Stellar o endereço começa com G ou M.")
         case .invalidDestination(.badChecksum):
-            return "O endereço tem um caractere errado ou está incompleto."
+            return kitText("O endereço tem um caractere errado ou está incompleto.")
         case .invalidDestination:
-            return "Isto não é um endereço Stellar."
+            return kitText("Isto não é um endereço Stellar.")
         case .destinationIsSelf:
-            return "O destino é a própria conta."
+            return kitText("O destino é a própria conta.")
         case .destinationIsIssuer:
-            return "O destino é o emissor do ativo. Enviar ao emissor destrói o ativo."
+            return kitText("O destino é o emissor do ativo. Enviar ao emissor destrói o ativo.")
         case .memoRequired:
-            return "O destino exige memo (SEP-29). Sem ele o depósito se perde."
+            return kitText("O destino exige memo (SEP-29). Sem ele o depósito se perde.")
         case .memoIDWithMuxedDestination:
-            return "Endereço M já carrega o ID. Um memo ID junto seria um segundo ID, e o depósito pode ir para a pessoa errada."
+            return kitText("Endereço M já carrega o ID. Um memo ID junto seria um segundo ID, e o depósito pode ir para a pessoa errada.")
         case .amountZero:
-            return "O valor precisa ser maior que zero."
+            return kitText("O valor precisa ser maior que zero.")
         case .amountTooLarge:
-            return "O valor passa do máximo que a rede representa."
+            return kitText("O valor passa do máximo que a rede representa.")
         case .insufficientBalance(let available, let required, let asset):
-            return "Saldo insuficiente: disponível \(StellarAmount.format(available, asset)), necessário \(StellarAmount.format(required, asset))."
+            return kitText("Saldo insuficiente: disponível \(StellarAmount.format(available, asset)), necessário \(StellarAmount.format(required, asset)).")
         case .belowAccountMinimum(let minimum):
-            return "O destino ainda não existe. Para criar a conta, envie pelo menos \(StellarAmount.format(minimum, .native))."
+            return kitText("O destino ainda não existe. Para criar a conta, envie pelo menos \(StellarAmount.format(minimum, .native)).")
         case .destinationMissing:
-            return "A conta de destino não existe e não pode receber este ativo."
+            return kitText("A conta de destino não existe e não pode receber este ativo.")
         case .muxedDestinationMissing:
-            return "A conta por trás do endereço M não existe."
+            return kitText("A conta por trás do endereço M não existe.")
         case .destinationLacksTrustline(let asset):
-            return "O destino ainda não aceita \(asset.code). Ele precisa abrir a linha de confiança antes."
+            return kitText("O destino ainda não aceita \(asset.code). Ele precisa abrir a linha de confiança antes.")
         case .destinationTrustlineNotAuthorized(let asset):
-            return "O emissor não autorizou o destino a receber \(asset.code)."
+            return kitText("O emissor não autorizou o destino a receber \(asset.code).")
         case .destinationTrustlineFull(let asset):
-            return "O destino atingiu o limite de \(asset.code) que aceita receber."
+            return kitText("O destino atingiu o limite de \(asset.code) que aceita receber.")
         case .assetNotAllowed(let asset):
-            return "\(asset.code) deste emissor não está na lista de ativos da carteira."
+            return kitText("\(asset.code) deste emissor não está na lista de ativos da carteira.")
         case .nativeAssetHasNoTrustline:
-            return "XLM não precisa de linha de confiança."
+            return kitText("XLM não precisa de linha de confiança.")
         case .trustlineExists(let asset):
-            return "A conta já aceita \(asset.code)."
+            return kitText("A conta já aceita \(asset.code).")
         case .missingOwnTrustline(let asset):
-            return "A conta ainda não aceita \(asset.code)."
+            return kitText("A conta ainda não aceita \(asset.code).")
         case .ownTrustlineNotAuthorized(let asset):
-            return "O emissor não autorizou esta conta a usar \(asset.code)."
+            return kitText("O emissor não autorizou esta conta a usar \(asset.code).")
         case .ownTrustlineFull(let asset):
-            return "A conta atingiu o limite de \(asset.code) que aceita receber."
+            return kitText("A conta atingiu o limite de \(asset.code) que aceita receber.")
         case .sameAsset:
-            return "Os dois lados da operação são o mesmo ativo."
+            return kitText("Os dois lados da operação são o mesmo ativo.")
         case .slippageTooHigh(let maxBasisPoints):
-            return "A tolerância passa do máximo de \(StellarPlanner.percentText(basisPoints: maxBasisPoints))."
+            return kitText("A tolerância passa do máximo de \(StellarPlanner.percentText(basisPoints: maxBasisPoints)).")
         case .minimumReceiveZero:
-            return "Com esta tolerância o mínimo a receber seria zero."
+            return kitText("Com esta tolerância o mínimo a receber seria zero.")
         case .priceNotRepresentable:
-            return "Este preço não cabe na fração que a Stellar usa. Ajuste os valores."
+            return kitText("Este preço não cabe na fração que a Stellar usa. Ajuste os valores.")
         case .tooManyPathHops:
-            return "A rota tem mais de 5 ativos intermediários."
+            return kitText("A rota tem mais de 5 ativos intermediários.")
         case .pathAssetNotAllowed:
-            return "A rota da troca passa por um ativo fora da lista da carteira. Troca bloqueada."
+            return kitText("A rota da troca passa por um ativo fora da lista da carteira. Troca bloqueada.")
         case .priceFarFromReference(let deviation):
-            return "A cotação está \(StellarPlanner.percentText(basisPoints: UInt32(clamping: deviation))) pior que o preço de referência do mercado. Troca bloqueada."
+            return kitText("A cotação está \(StellarPlanner.percentText(basisPoints: UInt32(clamping: deviation))) pior que o preço de referência do mercado. Troca bloqueada.")
         case .invalidOfferID:
-            return "Oferta inválida."
+            return kitText("Oferta inválida.")
         case .stateForAnotherAccount:
-            return "Os dados recebidos são de outra conta."
+            return kitText("Os dados recebidos são de outra conta.")
         case .sequenceOverflow:
-            return "A sequência da conta chegou ao fim."
+            return kitText("A sequência da conta chegou ao fim.")
         case .feeAboveCeiling:
-            return "A taxa da rede está acima do teto da carteira."
+            return kitText("A taxa da rede está acima do teto da carteira.")
         case .suspiciousNetworkState:
-            return "Os parâmetros da rede recebidos não são plausíveis. Tente outro provedor."
+            return kitText("Os parâmetros da rede recebidos não são plausíveis. Tente outro provedor.")
         }
     }
 }
@@ -152,7 +152,7 @@ public enum StellarPlanner {
             guard amount >= minimum else { throw StellarPlanError.belowAccountMinimum(minimum: minimum) }
             body = .createAccount(destination: target.account, startingBalance: value)
             warnings.append(.activatesAccount(minimum: StellarAmount.format(minimum, .native)))
-            extraLines.append(PlanReview.Line("Conta nova", "Este envio cria a conta de destino"))
+            extraLines.append(PlanReview.Line(kitText("Conta nova"), kitText("Este envio cria a conta de destino")))
         }
 
         let spendable = context.account.spendable(baseReserve: context.network.baseReserve)
@@ -163,7 +163,7 @@ public enum StellarPlanner {
 
         let review = PlanReview(
             kind: .send,
-            title: "Enviar \(StellarAmount.format(amount, .native))",
+            title: kitText("Enviar \(StellarAmount.format(amount, .native))"),
             lines: destinationLines(target) + memoLines(memo) + extraLines + feeLines(fee, operations: 1),
             warnings: warnings,
             recipient: target.address, recipientTag: memo.recipientTag,
@@ -204,8 +204,8 @@ public enum StellarPlanner {
         let body = StellarOperation.Body.payment(destination: target, asset: asset, amount: value)
         let review = PlanReview(
             kind: .send,
-            title: "Enviar \(StellarAmount.format(amount, asset))",
-            lines: destinationLines(target) + memoLines(memo) + assetLines(asset, label: "Emissor")
+            title: kitText("Enviar \(StellarAmount.format(amount, asset))"),
+            lines: destinationLines(target) + memoLines(memo) + assetLines(asset, label: kitText("Emissor"))
                 + feeLines(fee, operations: 1),
             recipient: target.address, recipientTag: memo.recipientTag,
             outgoing: try sent(body)
@@ -232,9 +232,9 @@ public enum StellarPlanner {
 
         let review = PlanReview(
             kind: .trustline,
-            title: "Aceitar \(asset.code)",
-            lines: assetLines(asset, label: "Emissor")
-                + [PlanReview.Line("Reserva", "\(StellarAmount.format(reserve, .native)) ficam presos enquanto a conta aceitar \(asset.code)")]
+            title: kitText("Aceitar \(asset.code)"),
+            lines: assetLines(asset, label: kitText("Emissor"))
+                + [PlanReview.Line(kitText("Reserva"), kitText("\(StellarAmount.format(reserve, .native)) ficam presos enquanto a conta aceitar \(asset.code)"))]
                 + feeLines(fee, operations: 1)
         )
         return try makePlan(
@@ -296,8 +296,8 @@ public enum StellarPlanner {
         if opensTrustline {
             bodies.append(.changeTrust(asset: receiveAsset, limit: StellarLimits.trustlineLimit))
             extraLines.append(PlanReview.Line(
-                "Linha de confiança",
-                "Esta troca abre a linha de \(receiveAsset.code): \(StellarAmount.format(context.network.baseReserve, .native)) presos enquanto a conta aceitar \(receiveAsset.code)"
+                kitText("Linha de confiança"),
+                kitText("Esta troca abre a linha de \(receiveAsset.code): \(StellarAmount.format(context.network.baseReserve, .native)) presos enquanto a conta aceitar \(receiveAsset.code)")
             ))
         }
         bodies.append(.pathPaymentStrictSend(
@@ -311,19 +311,19 @@ public enum StellarPlanner {
 
         let route = ([sendAsset] + path + [receiveAsset]).map(\.code).joined(separator: " > ")
         var lines: [PlanReview.Line] = [
-            PlanReview.Line("Você entrega", StellarAmount.format(sendAmount, sendAsset)),
-            PlanReview.Line("Recebe no mínimo", StellarAmount.format(destMin, receiveAsset)),
-            PlanReview.Line("Cotação", StellarAmount.format(quotedReceive, receiveAsset)),
-            PlanReview.Line("Tolerância", percentText(basisPoints: slippageBasisPoints)),
-            PlanReview.Line("Rota", route),
+            PlanReview.Line(kitText("Você entrega"), StellarAmount.format(sendAmount, sendAsset)),
+            PlanReview.Line(kitText("Recebe no mínimo"), StellarAmount.format(destMin, receiveAsset)),
+            PlanReview.Line(kitText("Cotação"), StellarAmount.format(quotedReceive, receiveAsset)),
+            PlanReview.Line(kitText("Tolerância"), percentText(basisPoints: slippageBasisPoints)),
+            PlanReview.Line(kitText("Rota"), route),
         ]
         if TradeMarketReference.warns(deviation), let deviation {
             lines.append(PlanReview.Line(
-                "Preço de referência", "\(percentText(basisPoints: UInt32(clamping: deviation))) pior que o preço médio de mercado"
+                kitText("Preço de referência"), kitText("\(percentText(basisPoints: UInt32(clamping: deviation))) pior que o preço médio de mercado")
             ))
         }
-        lines += assetLines(sendAsset, label: "Emissor de \(sendAsset.code)")
-        lines += assetLines(receiveAsset, label: "Emissor de \(receiveAsset.code)")
+        lines += assetLines(sendAsset, label: kitText("Emissor de \(sendAsset.code)"))
+        lines += assetLines(receiveAsset, label: kitText("Emissor de \(receiveAsset.code)"))
         lines += extraLines + feeLines(fee, operations: bodies.count)
 
         // Os movimentos saem do path payment montado: sai exatamente `sendAmount`, entra
@@ -333,7 +333,7 @@ public enum StellarPlanner {
         }
         let review = PlanReview(
             kind: .swap,
-            title: "Trocar \(StellarAmount.format(sendAmount, sendAsset)) por \(receiveAsset.code)",
+            title: kitText("Trocar \(StellarAmount.format(sendAmount, sendAsset)) por \(receiveAsset.code)"),
             lines: lines,
             outgoing: movement(sendAsset, BigUInt(UInt64(sent))), incomingMinimum: movement(receiveAsset, BigUInt(UInt64(minimum))),
             beneficiary: destination.address
@@ -381,20 +381,20 @@ public enum StellarPlanner {
 
         let reserve = StellarAmount.format(context.network.baseReserve, .native)
         var lines: [PlanReview.Line] = [
-            PlanReview.Line("Você entrega", StellarAmount.format(sellAmount, sellingAsset)),
-            PlanReview.Line("Recebe no mínimo", StellarAmount.format(minimumReceive, buyingAsset)),
-            PlanReview.Line("Preço limite", "\(price.n)/\(price.d) \(buyingAsset.code) por \(sellingAsset.code)"),
-            PlanReview.Line("Validade", "Até você cancelar. A Stellar não expira ofertas."),
-            PlanReview.Line("Reserva", "\(reserve) ficam presos enquanto a oferta estiver aberta"),
+            PlanReview.Line(kitText("Você entrega"), StellarAmount.format(sellAmount, sellingAsset)),
+            PlanReview.Line(kitText("Recebe no mínimo"), StellarAmount.format(minimumReceive, buyingAsset)),
+            PlanReview.Line(kitText("Preço limite"), "\(price.n)/\(price.d) \(buyingAsset.code) por \(sellingAsset.code)"),
+            PlanReview.Line(kitText("Validade"), kitText("Até você cancelar. A Stellar não expira ofertas.")),
+            PlanReview.Line(kitText("Reserva"), kitText("\(reserve) ficam presos enquanto a oferta estiver aberta")),
         ]
         if opensTrustline {
             lines.append(PlanReview.Line(
-                "Linha de confiança",
-                "Esta ordem abre a linha de \(buyingAsset.code): mais \(reserve) presos enquanto a conta aceitar \(buyingAsset.code)"
+                kitText("Linha de confiança"),
+                kitText("Esta ordem abre a linha de \(buyingAsset.code): mais \(reserve) presos enquanto a conta aceitar \(buyingAsset.code)")
             ))
         }
-        lines += assetLines(sellingAsset, label: "Emissor de \(sellingAsset.code)")
-        lines += assetLines(buyingAsset, label: "Emissor de \(buyingAsset.code)")
+        lines += assetLines(sellingAsset, label: kitText("Emissor de \(sellingAsset.code)"))
+        lines += assetLines(buyingAsset, label: kitText("Emissor de \(buyingAsset.code)"))
         lines += feeLines(fee, operations: bodies.count)
 
         // Os movimentos saem da oferta montada: vende `amount`, e pelo preco n/d gravado
@@ -406,7 +406,7 @@ public enum StellarPlanner {
         let atLeast = BigUInt(UInt64(offered)) * BigUInt(UInt64(limit.n)) / BigUInt(UInt64(limit.d))
         let review = PlanReview(
             kind: .limitOrder,
-            title: "Vender \(StellarAmount.format(sellAmount, sellingAsset)) por \(buyingAsset.code)",
+            title: kitText("Vender \(StellarAmount.format(sellAmount, sellingAsset)) por \(buyingAsset.code)"),
             lines: lines,
             outgoing: movement(sellingAsset, BigUInt(UInt64(offered))), incomingMinimum: movement(buyingAsset, atLeast),
             beneficiary: context.source.account.address
@@ -430,11 +430,11 @@ public enum StellarPlanner {
 
         let review = PlanReview(
             kind: .cancelOrder,
-            title: "Cancelar oferta",
+            title: kitText("Cancelar oferta"),
             lines: [
-                PlanReview.Line("Oferta", String(offerID), verbatim: true),
-                PlanReview.Line("Par", "\(sellingAsset.code) por \(buyingAsset.code)"),
-                PlanReview.Line("Reserva", "\(StellarAmount.format(context.network.baseReserve, .native)) voltam a ficar livres"),
+                PlanReview.Line(kitText("Oferta"), String(offerID), verbatim: true),
+                PlanReview.Line(kitText("Par"), "\(sellingAsset.code) por \(buyingAsset.code)"),
+                PlanReview.Line(kitText("Reserva"), kitText("\(StellarAmount.format(context.network.baseReserve, .native)) voltam a ficar livres")),
             ] + feeLines(fee, operations: 1)
         )
         return try makePlan(
@@ -572,10 +572,10 @@ public enum StellarPlanner {
     // MARK: Tela
 
     private static func destinationLines(_ destination: StellarMuxedAccount) -> [PlanReview.Line] {
-        var lines = [PlanReview.Line("Para", destination.address, verbatim: true)]
+        var lines = [PlanReview.Line(kitText("Para"), destination.address, verbatim: true, role: .recipient)]
         if let id = destination.id {
-            lines.append(PlanReview.Line("Conta base", destination.account.address, verbatim: true))
-            lines.append(PlanReview.Line("ID no endereço M", String(id), verbatim: true))
+            lines.append(PlanReview.Line(kitText("Conta base"), destination.account.address, verbatim: true))
+            lines.append(PlanReview.Line(kitText("ID no endereço M"), String(id), verbatim: true))
         }
         return lines
     }
@@ -587,13 +587,13 @@ public enum StellarPlanner {
 
     private static func assetLines(_ asset: StellarAsset, label: String) -> [PlanReview.Line] {
         guard let issuer = asset.issuer else { return [] }
-        return [PlanReview.Line(label, issuer.address, verbatim: true)]
+        return [PlanReview.Line(label, issuer.address, verbatim: true, role: .assetReference)]
     }
 
     private static func feeLines(_ fee: BigUInt, operations: Int) -> [PlanReview.Line] {
         [
-            PlanReview.Line("Rede", "Stellar"),
-            PlanReview.Line("Taxa máxima", StellarAmount.format(fee * BigUInt(operations), .native)),
+            PlanReview.Line(kitText("Rede"), "Stellar"),
+            PlanReview.Line(kitText("Taxa máxima"), StellarAmount.format(fee * BigUInt(operations), .native)),
         ]
     }
 
@@ -602,7 +602,7 @@ public enum StellarPlanner {
         let fraction = basisPoints % 100
         guard fraction != 0 else { return "\(whole)%" }
         let digits = fraction % 10 == 0 ? String(fraction / 10) : String(format: "%02d", fraction)
-        return "\(whole),\(digits)%"
+        return NumberStyle.current.decimal(String(whole), digits) + "%"
     }
 
     /// Taxa como porcentagem do valor, so para o aviso de taxa alta.

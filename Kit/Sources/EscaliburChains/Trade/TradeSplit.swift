@@ -238,25 +238,25 @@ public struct TradeSplitPlan: Sendable, Equatable {
     }
 
     static func overview(intent: TradeIntent, decision: TradeSplitDecision) -> PlanReview {
-        let parts = decision.legs.map { "\(TradeText.percent(bps: $0.shareBps)) pela \($0.provider.displayName)" }
+        let parts = decision.legs.map { kitText("\(TradeText.percent(bps: $0.shareBps)) pela \($0.provider.displayName)") }
         let first = decision.legs[0]
         let rest = decision.legs.dropFirst().map { TradeText.percent(bps: $0.shareBps) }.joined(separator: " e ")
         var lines: [PlanReview.Line] = [
-            .init("Rede", intent.chain.name),
-            .init("Sai", TradeText.amount(intent.amountIn, intent.sell)),
-            .init("Divisão", parts.joined(separator: ", ")),
-            .init("Transações", "\(decision.legs.count) trocas independentes, uma depois da outra, mais as autorizações exatas que faltarem"),
-            .init("Ordem", "Cada etapa é recotada só depois que a anterior confirmar, com o seu próprio mínimo garantido"),
-            .init("Se uma etapa falhar", "Você fica com cerca de \(TradeText.percent(bps: first.shareBps)) em \(intent.buy.symbol) e \(rest) em \(intent.sell.symbol). Não existe desfazer: perde só a taxa de rede da etapa que falhou, e o app oferece recotar o restante."),
-            .init("Ganho estimado", "\(TradeText.amount(decision.gain, intent.buy)) sobre a melhor cotação única, já descontada a taxa de rede extra"),
-            .init("Taxa da Escalibur", "Sem taxa da Escalibur"),
+            .init(kitText("Rede"), intent.chain.name),
+            .init(kitText("Sai"), TradeText.amount(intent.amountIn, intent.sell), role: .sold),
+            .init(kitText("Divisão"), parts.joined(separator: ", ")),
+            .init(kitText("Transações"), kitText("\(decision.legs.count) trocas independentes, uma depois da outra, mais as autorizações exatas que faltarem")),
+            .init(kitText("Ordem"), kitText("Cada etapa é recotada só depois que a anterior confirmar, com o seu próprio mínimo garantido")),
+            .init(kitText("Se uma etapa falhar"), kitText("Você fica com cerca de \(TradeText.percent(bps: first.shareBps)) em \(intent.buy.symbol) e \(rest) em \(intent.sell.symbol). Não existe desfazer: perde só a taxa de rede da etapa que falhou, e o app oferece recotar o restante.")),
+            .init(kitText("Ganho estimado"), kitText("\(TradeText.amount(decision.gain, intent.buy)) sobre a melhor cotação única, já descontada a taxa de rede extra")),
+            .init(kitText("Taxa da Escalibur"), kitText("Sem taxa da Escalibur")),
         ]
         if let single = decision.singleProvider {
-            lines.append(.init("Alternativa", "Tudo pela \(single.displayName) numa transação só"))
+            lines.append(.init(kitText("Alternativa"), kitText("Tudo pela \(single.displayName) numa transação só")))
         }
         return PlanReview(
             kind: .swap,
-            title: "Trocar \(TradeText.amount(intent.amountIn, intent.sell)) por \(intent.buy.symbol) em \(decision.legs.count) etapas",
+            title: kitText("Trocar \(TradeText.amount(intent.amountIn, intent.sell)) por \(intent.buy.symbol) em \(decision.legs.count) etapas"),
             lines: lines, warnings: [], transactionCount: decision.legs.count
         )
     }

@@ -24,16 +24,16 @@ struct WalletHomeView: View {
                     header
                     actions.padding(.top, Space.lg)
                     if let wallet, !wallet.hasBackup, !wallet.isWatchOnly {
-                        Banner(kind: .caution, title: "Esta carteira ainda não tem cópia",
-                               message: "Grave as \(wordCount(wallet)) palavras antes de receber. Leva 2 minutos.",
-                               actionTitle: "Gravar agora") { backingUp = true }
+                        Banner(kind: .caution, title: String(localized: "Esta carteira ainda não tem cópia"),
+                               message: String(localized: "Grave as \(wordCount(wallet)) palavras antes de receber. Leva 2 minutos."),
+                               actionTitle: String(localized: "Gravar agora")) { backingUp = true }
                             .padding(.horizontal, Space.gutter)
                             .padding(.top, Space.lg)
                     }
                     statusBanners
                     if DeviceIntegrity.suspicious {
-                        Banner(kind: .caution, title: "Este iPhone parece ter jailbreak",
-                               message: "Apps de fora da App Store podem ler o que este app guarda. Para valor alto, prefira uma carteira de hardware.")
+                        Banner(kind: .caution, title: String(localized: "Este iPhone parece ter jailbreak"),
+                               message: String(localized: "Apps de fora da App Store podem ler o que este app guarda. Para valor alto, prefira uma carteira de hardware."))
                             .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                     }
                     assets.padding(.top, Space.xl)
@@ -139,7 +139,7 @@ struct WalletHomeView: View {
 
     static func signed(_ value: Double, _ unit: Fmt.DisplayUnit) -> String {
         let sign = value < 0 ? Fmt.minus : (value > 0 ? "+" : "")
-        return "\(sign)\(unit.symbol)\u{00A0}\(Fmt.grouped(abs(value), fractionDigits: unit.fractionDigits))"
+        return String(localized: "\(sign)\(unit.symbol)\u{00A0}\(Fmt.grouped(abs(value), fractionDigits: unit.fractionDigits))")
     }
 
     private func wordCount(_ wallet: WalletMeta) -> Int {
@@ -154,7 +154,7 @@ struct WalletHomeView: View {
             HStack {
                 Button { switching = true } label: {
                     HStack(spacing: Space.xs) {
-                        Text(wallet?.name ?? "Carteira").typeStyle(.action).foregroundStyle(Palette.ink).lineLimit(1)
+                        Text(wallet?.name ?? String(localized: "Carteira")).typeStyle(.action).foregroundStyle(Palette.ink).lineLimit(1)
                         if wallet?.isWatchOnly == true {
                             Text("Só observar").typeStyle(.label).foregroundStyle(Palette.inkSoft)
                                 .padding(.horizontal, 6).frame(height: Height.badge)
@@ -213,11 +213,11 @@ struct WalletHomeView: View {
     private var actions: some View {
         HStack(spacing: 0) {
             if wallet?.isWatchOnly != true {
-                QuickAction(title: "Enviar", systemImage: "arrow.up") { router.present(.send(nil)) }
+                QuickAction(title: String(localized: "Enviar"), systemImage: "arrow.up") { router.present(.send(nil)) }
             }
-            QuickAction(title: "Receber", systemImage: "arrow.down") { receiving = true }
+            QuickAction(title: String(localized: "Receber"), systemImage: "arrow.down") { receiving = true }
             if wallet?.isWatchOnly != true, !TradeEngines.chains.isEmpty {
-                QuickAction(title: "Trocar", systemImage: "arrow.left.arrow.right") { router.tab = .trade }
+                QuickAction(title: String(localized: "Trocar"), systemImage: "arrow.left.arrow.right") { router.tab = .trade }
             }
         }
         .padding(.horizontal, Space.xs)
@@ -226,19 +226,20 @@ struct WalletHomeView: View {
     @ViewBuilder
     private var statusBanners: some View {
         if portfolio.offline, let updated = portfolio.lastUpdated {
-            Banner(kind: .neutral, title: "Sem internet. Valores de \(Fmt.relative(updated).lowercased()).")
+            Banner(kind: .neutral, title: String(localized: "Sem internet. Valores de \(Fmt.relative(updated).lowercased())."))
                 .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
         } else if portfolio.offline {
             // Sem cache nenhum (primeira abertura, carteira recem importada): sem este
             // aviso a tela mostraria saldo zero, e zero parece frase errada.
-            Banner(kind: .neutral, title: "Sem internet. Os saldos aparecem quando a conexão voltar.",
-                   actionTitle: "Tentar de novo") {
+            Banner(kind: .neutral, title: String(localized: "Sem internet. Os saldos aparecem quando a conexão voltar."),
+                   actionTitle: String(localized: "Tentar de novo")) {
                 Task { await portfolio.refresh(wallet, session: session) }
             }
             .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
         } else if let failed = portfolio.failedChains.first, !portfolio.offline {
-            Banner(kind: .neutral, title: "Não foi possível ler o saldo \(failed.id == "xrpl" ? "no" : "na") \(failed.name). Os outros estão em dia.",
-                   actionTitle: "Tentar de novo") {
+            Banner(kind: .neutral, title: failed.id == "xrpl" ? String(localized: "Não foi possível ler o saldo no \(failed.name). Os outros estão em dia.")
+                : String(localized: "Não foi possível ler o saldo na \(failed.name). Os outros estão em dia."),
+                   actionTitle: String(localized: "Tentar de novo")) {
                 Task { await portfolio.refresh(wallet, session: session) }
             }
             .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
@@ -286,7 +287,7 @@ struct WalletHomeView: View {
         if portfolio.unknownTokens > 0 {
             NavigationLink(value: ManageAssetsRoute()) {
                 HStack(spacing: 4) {
-                    Text("\(portfolio.unknownTokens) \(portfolio.unknownTokens == 1 ? "token sem leitura escondido" : "tokens sem leitura escondidos")")
+                    Text(portfolio.unknownTokens == 1 ? "1 token sem leitura escondido" : "\(portfolio.unknownTokens) tokens sem leitura escondidos")
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                     Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkMuted)
                 }
@@ -319,7 +320,7 @@ struct WalletHomeView: View {
             Text("As redes não responderam agora. Isso não quer dizer que a carteira está vazia: os valores aparecem quando a leitura der certo.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
                 .fixedSize(horizontal: false, vertical: true)
-            SecondaryButton(title: "Tentar de novo") { Task { await portfolio.refresh(wallet, session: session) } }
+            SecondaryButton(title: String(localized: "Tentar de novo")) { Task { await portfolio.refresh(wallet, session: session) } }
                 .padding(.top, Space.md)
         }
         .padding(Space.md)
@@ -343,7 +344,7 @@ struct WalletHomeView: View {
             Text("No XRP Ledger e na Stellar, a conta passa a existir no primeiro recebimento de 1 XRP ou 1 XLM, que ficam reservados pela rede.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.md)
                 .fixedSize(horizontal: false, vertical: true)
-            SecondaryButton(title: "Receber") { receiving = true }.padding(.top, Space.md)
+            SecondaryButton(title: String(localized: "Receber")) { receiving = true }.padding(.top, Space.md)
         }
         .padding(Space.md)
         .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
@@ -503,7 +504,7 @@ struct AssetRowView: View {
     }
 
     private var fiatValue: some View {
-        Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.value(shown($0), unit: shownUnit) } ?? "sem preço"))
+        Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.value(shown($0), unit: shownUnit) } ?? String(localized: "sem preço")))
             .typeStyle(.row).foregroundStyle(Palette.ink)
             .lineLimit(1).minimumScaleFactor(0.6)
     }
@@ -526,7 +527,7 @@ struct WalletSwitcherSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Carteiras") { dismiss() }
+            SheetHeader(title: String(localized: "Carteiras")) { dismiss() }
             ScrollView {
                 VStack(spacing: 0) {
                     let wallets = session.metadata.wallets
@@ -575,7 +576,7 @@ struct WalletSwitcherSheet: View {
                 .padding(.top, Space.md)
             }
             .scrollDisabled(reorder.dragging != nil)
-            PrimaryButton(title: "Adicionar carteira", action: onAdd)
+            PrimaryButton(title: String(localized: "Adicionar carteira"), action: onAdd)
                 .padding(.horizontal, Space.gutter).padding(.bottom, Space.xs)
         }
         .presentationDetents([.medium, .large])
@@ -604,10 +605,10 @@ struct WalletSwitcherSheet: View {
 
     private func subtitle(_ wallet: WalletMeta) -> String {
         switch wallet.kind {
-        case .watch(let chainID): return "Só observar · \(Chain.find(chainID)?.name ?? chainID)"
+        case .watch(let chainID): return String(localized: "Só observar · \(Chain.find(chainID)?.name ?? chainID)")
         case .phrase(let count):
-            if !wallet.hasBackup { return "Sem cópia" }
-            return "\(count) palavras · \(wallet.accounts.count) redes"
+            if !wallet.hasBackup { return String(localized: "Sem cópia") }
+            return String(localized: "\(count) palavras · \(wallet.accounts.count) redes")
         }
     }
 }

@@ -223,15 +223,15 @@ public enum AptosPlanner {
         let estimatedFee = BigUInt(gasUsed) * BigUInt(price)
         let amountText = AptosFormat.apt(amount)
         var lines = [
-            PlanReview.Line("Para", recipient.hex, verbatim: true),
-            PlanReview.Line("Valor", amountText),
-            PlanReview.Line("Taxa estimada", AptosFormat.apt(estimatedFee)),
-            PlanReview.Line("Taxa máxima", "\(AptosFormat.apt(maximumFee)), o que não for usado não é cobrado"),
-            PlanReview.Line("Rede", "Aptos"),
-            PlanReview.Line("Validade", "Até 2 minutos depois desta revisão"),
+            PlanReview.Line(kitText("Para"), recipient.hex, verbatim: true, role: .recipient),
+            PlanReview.Line(kitText("Valor"), amountText),
+            PlanReview.Line(kitText("Taxa estimada"), AptosFormat.apt(estimatedFee)),
+            PlanReview.Line(kitText("Taxa máxima"), kitText("\(AptosFormat.apt(maximumFee)), o que não for usado não é cobrado")),
+            PlanReview.Line(kitText("Rede"), "Aptos"),
+            PlanReview.Line(kitText("Validade"), kitText("Até 2 minutos depois desta revisão")),
         ]
         if !state.destinationExists {
-            lines.append(PlanReview.Line("Conta de destino", "Ainda não existe na Aptos. Este envio cria a conta, e a taxa inclui o armazenamento dela"))
+            lines.append(PlanReview.Line(kitText("Conta de destino"), kitText("Ainda não existe na Aptos. Este envio cria a conta, e a taxa inclui o armazenamento dela")))
         }
 
         var warnings = [PlanReview.Warning]()
@@ -242,7 +242,7 @@ public enum AptosPlanner {
         }
 
         let review = PlanReview(
-            kind: .send, title: "Enviar \(amountText)", lines: lines, warnings: warnings,
+            kind: .send, title: kitText("Enviar \(amountText)"), lines: lines, warnings: warnings,
             recipient: recipient.hex, recipientTag: nil, outgoing: .native(.aptos, amount)
         )
         return SigningPlan(walletID: walletID, chain: .aptos, review: review, transactions: [transfer], createdAt: now)
@@ -325,11 +325,7 @@ enum AptosFormat {
         let whole = Array(padded[..<cut])
         var fraction = String(padded[cut...])
         while fraction.hasSuffix("0") { fraction.removeLast() }
-        var grouped = ""
-        for (index, digit) in whole.enumerated() {
-            if index > 0, (whole.count - index) % 3 == 0 { grouped.append(".") }
-            grouped.append(digit)
-        }
-        return (fraction.isEmpty ? grouped : "\(grouped),\(fraction)") + " APT"
+        let grouped = NumberStyle.current.group(String(whole))
+        return NumberStyle.current.decimal(grouped, fraction) + " APT"
     }
 }

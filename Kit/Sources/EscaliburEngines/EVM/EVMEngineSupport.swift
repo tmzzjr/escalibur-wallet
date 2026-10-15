@@ -255,12 +255,8 @@ enum EVMEngineText {
         let integer = Array(padded.prefix(padded.count - decimals))
         var fraction = Array(padded.suffix(decimals))
         while fraction.last == "0" { fraction.removeLast() }
-        var grouped = [Character]()
-        for (index, digit) in integer.enumerated() {
-            if index > 0, (integer.count - index) % 3 == 0 { grouped.append(".") }
-            grouped.append(digit)
-        }
-        let number = fraction.isEmpty ? String(grouped) : String(grouped) + "," + String(fraction)
+        let grouped = NumberStyle.current.group(String(integer))
+        let number = NumberStyle.current.decimal(grouped, String(fraction))
         return number + "\u{00A0}" + symbol
     }
 
@@ -273,6 +269,6 @@ enum EVMEngineText {
         let integer = bps / 100
         var fraction = String(format: "%02d", bps % 100)
         while fraction.hasSuffix("0") { fraction.removeLast() }
-        return fraction.isEmpty ? "\(integer)%" : "\(integer),\(fraction)%"
+        return NumberStyle.current.decimal(String(integer), fraction) + "%"
     }
 }

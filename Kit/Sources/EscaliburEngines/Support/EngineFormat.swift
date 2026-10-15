@@ -16,18 +16,13 @@ enum EngineFormat {
         var fraction = String(padded[cut...])
         while fraction.hasSuffix("0") { fraction.removeLast() }
         let whole = grouped(String(padded[..<cut]))
-        return fraction.isEmpty ? whole : "\(whole),\(fraction)"
+        return NumberStyle.current.decimal(whole, fraction)
     }
 
     /// 107244179 vira "107.244.179".
     static func grouped<T: BinaryInteger>(_ value: T) -> String { grouped(String(value)) }
 
     private static func grouped(_ digits: String) -> String {
-        var out = ""
-        for (index, character) in digits.reversed().enumerated() {
-            if index > 0, index % 3 == 0 { out.append(".") }
-            out.append(character)
-        }
-        return String(out.reversed())
+        NumberStyle.current.group(digits)
     }
 }

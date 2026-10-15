@@ -33,7 +33,7 @@ struct SupportView: View {
                         .textSelection(.enabled).padding(.top, Space.xxs)
                 }
                 VStack(alignment: .leading, spacing: Space.xs) {
-                    PrimaryButton(title: "Escrever e-mail") {
+                    PrimaryButton(title: String(localized: "Escrever e-mail")) {
                         guard let url = SupportContact.mailURL else { return }
                         openURL(url) { accepted in noMailApp = !accepted }
                     }

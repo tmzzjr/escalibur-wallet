@@ -83,12 +83,12 @@ enum ChainTransferStatus {
         case .notFound, .pending:
             return .pending
         case .confirmed(let height, let confirmations):
-            if finalLedger { return .confirmed(detail: "Incluída no ledger \(EngineFormat.grouped(height)), que já é final.") }
-            guard let count = confirmations else { return .confirmed(detail: "Confirmada no bloco \(EngineFormat.grouped(height)).") }
-            let noun = count == 1 ? "confirmação" : "confirmações"
-            return .confirmed(detail: "\(EngineFormat.grouped(count)) \(noun), no bloco \(EngineFormat.grouped(height)).")
+            if finalLedger { return .confirmed(detail: kitText("Incluída no ledger \(EngineFormat.grouped(height)), que já é final.")) }
+            guard let count = confirmations else { return .confirmed(detail: kitText("Confirmada no bloco \(EngineFormat.grouped(height)).")) }
+            let noun = count == 1 ? kitText("confirmação") : kitText("confirmações")
+            return .confirmed(detail: kitText("\(EngineFormat.grouped(count)) \(noun), no bloco \(EngineFormat.grouped(height))."))
         case .failed:
-            return .failed(reason: "A transação entrou na rede e falhou. Só a taxa foi cobrada.")
+            return .failed(reason: kitText("A transação entrou na rede e falhou. Só a taxa foi cobrada."))
         }
     }
 }

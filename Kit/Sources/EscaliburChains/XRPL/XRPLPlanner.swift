@@ -141,7 +141,7 @@ public enum XRPLPlanner {
             }
             if flags & XRPLAccountFlags.disallowXRP != 0 {
                 guard intent.acknowledgesDisallowXRP else { throw XRPLPlanError.destinationDisallowsXRP }
-                notices.append(PlanReview.Line("Aviso do destino", "Esta conta pediu para não receber XRP"))
+                notices.append(PlanReview.Line(kitText("Aviso do destino"), kitText("Esta conta pediu para não receber XRP")))
             }
         }
 
@@ -165,15 +165,15 @@ public enum XRPLPlanner {
             throw XRPLPlanError.transaction(.redundant)
         }
 
-        var lines = [PlanReview.Line("Para", resolved.address, verbatim: true)]
-        if let tag { lines.append(PlanReview.Line("Tag de destino", String(tag), verbatim: true)) }
-        lines.append(PlanReview.Line("Valor", XRPLFormat.xrp(intent.drops)))
-        lines.append(PlanReview.Line("Taxa da rede", XRPLFormat.xrp(base.fee)))
-        if let text = intent.memo, !text.isEmpty { lines.append(PlanReview.Line("Memo", text)) }
+        var lines = [PlanReview.Line(kitText("Para"), resolved.address, verbatim: true, role: .recipient)]
+        if let tag { lines.append(PlanReview.Line(kitText("Tag de destino"), String(tag), verbatim: true)) }
+        lines.append(PlanReview.Line(kitText("Valor"), XRPLFormat.xrp(intent.drops)))
+        lines.append(PlanReview.Line(kitText("Taxa da rede"), XRPLFormat.xrp(base.fee)))
+        if let text = intent.memo, !text.isEmpty { lines.append(PlanReview.Line(kitText("Memo"), text)) }
         lines += notices
 
         let review = PlanReview(
-            kind: .send, title: "Enviar \(XRPLFormat.xrp(intent.drops))", lines: lines, warnings: warnings,
+            kind: .send, title: kitText("Enviar \(XRPLFormat.xrp(intent.drops))"), lines: lines, warnings: warnings,
             recipient: resolved.address, recipientTag: tag.map { String($0) },
             outgoing: .native(.xrpl, sent)
         )
@@ -205,14 +205,14 @@ public enum XRPLPlanner {
 
         let code = asset.currency.displayCode
         let lines = [
-            PlanReview.Line("Moeda", code),
-            PlanReview.Line("Emissor", asset.issuerName),
-            PlanReview.Line("Endereço do emissor", asset.issuer, verbatim: true),
-            PlanReview.Line("Limite", "\(XRPLFormat.decimal(limit)) \(code)"),
-            PlanReview.Line("Reserva", "\(XRPLFormat.xrp(ledger.reserveIncrement)) ficam presos enquanto a linha existir"),
-            PlanReview.Line("Taxa da rede", XRPLFormat.xrp(base.fee)),
+            PlanReview.Line(kitText("Moeda"), code),
+            PlanReview.Line(kitText("Emissor"), asset.issuerName),
+            PlanReview.Line(kitText("Endereço do emissor"), asset.issuer, verbatim: true, role: .assetReference),
+            PlanReview.Line(kitText("Limite"), "\(XRPLFormat.decimal(limit)) \(code)"),
+            PlanReview.Line(kitText("Reserva"), kitText("\(XRPLFormat.xrp(ledger.reserveIncrement)) ficam presos enquanto a linha existir")),
+            PlanReview.Line(kitText("Taxa da rede"), XRPLFormat.xrp(base.fee)),
         ]
-        let review = PlanReview(kind: .trustline, title: "Aceitar \(code) de \(asset.issuerName)", lines: lines)
+        let review = PlanReview(kind: .trustline, title: kitText("Aceitar \(code) de \(asset.issuerName)"), lines: lines)
         return SigningPlan(walletID: walletID, chain: .xrpl, review: review, transactions: [transaction], createdAt: now)
     }
 
@@ -267,29 +267,29 @@ public enum XRPLPlanner {
         }
 
         var lines = [
-            PlanReview.Line("Você entrega", intent.sell ? gets.label : "até \(gets.label)"),
-            PlanReview.Line("Você recebe no mínimo", pays.label),
+            PlanReview.Line(kitText("Você entrega"), intent.sell ? gets.label : kitText("até \(gets.label)")),
+            PlanReview.Line(kitText("Você recebe no mínimo"), pays.label),
         ]
         for side in [gets, pays] {
             guard let asset = side.asset else { continue }
             let code = asset.currency.displayCode
-            lines.append(PlanReview.Line("Emissor de \(code)", asset.issuerName))
-            lines.append(PlanReview.Line("Endereço do emissor de \(code)", asset.issuer, verbatim: true))
+            lines.append(PlanReview.Line(kitText("Emissor de \(code)"), asset.issuerName))
+            lines.append(PlanReview.Line(kitText("Endereço do emissor de \(code)"), asset.issuer, verbatim: true, role: .assetReference))
         }
-        lines.append(PlanReview.Line("Execução", executionText(intent)))
+        lines.append(PlanReview.Line(kitText("Execução"), executionText(intent)))
         if let date = intent.expiration {
-            lines.append(PlanReview.Line("Expira em", XRPLFormat.date(date)))
+            lines.append(PlanReview.Line(kitText("Expira em"), XRPLFormat.date(date)))
         } else {
-            lines.append(PlanReview.Line("Validade", "Não expira: fica no livro até executar ou você cancelar"))
+            lines.append(PlanReview.Line(kitText("Validade"), kitText("Não expira: fica no livro até executar ou você cancelar")))
         }
-        lines.append(PlanReview.Line("Reserva", "\(XRPLFormat.xrp(ledger.reserveIncrement)) ficam presos enquanto a oferta estiver no livro"))
-        lines.append(PlanReview.Line("Taxa da rede", XRPLFormat.xrp(base.fee)))
+        lines.append(PlanReview.Line(kitText("Reserva"), kitText("\(XRPLFormat.xrp(ledger.reserveIncrement)) ficam presos enquanto a oferta estiver no livro")))
+        lines.append(PlanReview.Line(kitText("Taxa da rede"), XRPLFormat.xrp(base.fee)))
 
         // Tudo ou nada na hora e troca; a que fica no livro e ordem limite. Os movimentos
         // saem dos valores gravados na oferta: entrega TakerGets, recebe pelo menos
         // TakerPays, e quem recebe e a propria conta que assina.
         let isSwap = intent.timeInForce != .goodTilExpiration
-        let title = isSwap ? "Trocar \(gets.label) por \(pays.code)" : "Ordem limite: \(gets.label) por \(pays.label)"
+        let title = isSwap ? kitText("Trocar \(gets.label) por \(pays.code)") : kitText("Ordem limite: \(gets.label) por \(pays.label)")
         let review = PlanReview(
             kind: isSwap ? .swap : .limitOrder, title: title, lines: lines,
             outgoing: try movement(gets, roundingUp: true), incomingMinimum: try movement(pays, roundingUp: false),
@@ -317,8 +317,8 @@ public enum XRPLPlanner {
               line.signer == order.signer, line.sequence < UInt32.max, line.sequence + 1 == order.sequence,
               trustSet.limit.currency == bought.currency, trustSet.limit.issuerAddress == bought.issuerAddress
         else { throw SigningPlan.CompositionError.partsDoNotMatch }
-        let what = offer.review.kind == .swap ? "a troca" : "a ordem"
-        let lead = [PlanReview.Line("Transações", "2: primeiro aceitar \(bought.currency.displayCode), depois \(what)")]
+        let what = offer.review.kind == .swap ? kitText("a troca") : kitText("a ordem")
+        let lead = [PlanReview.Line(kitText("Transações"), kitText("2: primeiro aceitar \(bought.currency.displayCode), depois \(what)"))]
         return try SigningPlan.sequence(
             [trust, offer], kind: offer.review.kind, title: offer.review.title, lead: lead,
             outgoing: offer.review.outgoing, incomingMinimum: offer.review.incomingMinimum, beneficiary: offer.review.beneficiary
@@ -345,11 +345,11 @@ public enum XRPLPlanner {
             )
         }
         let lines = [
-            PlanReview.Line("Oferta", String(intent.offerSequence), verbatim: true),
-            PlanReview.Line("Reserva", "\(XRPLFormat.xrp(ledger.reserveIncrement)) voltam a ficar livres"),
-            PlanReview.Line("Taxa da rede", XRPLFormat.xrp(base.fee)),
+            PlanReview.Line(kitText("Oferta"), String(intent.offerSequence), verbatim: true),
+            PlanReview.Line(kitText("Reserva"), kitText("\(XRPLFormat.xrp(ledger.reserveIncrement)) voltam a ficar livres")),
+            PlanReview.Line(kitText("Taxa da rede"), XRPLFormat.xrp(base.fee)),
         ]
-        let review = PlanReview(kind: .cancelOrder, title: "Cancelar a oferta \(intent.offerSequence)", lines: lines)
+        let review = PlanReview(kind: .cancelOrder, title: kitText("Cancelar a oferta \(String(intent.offerSequence))"), lines: lines)
         return SigningPlan(walletID: walletID, chain: .xrpl, review: review, transactions: [transaction], createdAt: now)
     }
 
@@ -474,11 +474,11 @@ public enum XRPLPlanner {
         var text: String
         switch intent.timeInForce {
         case .goodTilExpiration:
-            text = intent.expiration == nil ? "Fica no livro até executar ou ser cancelada" : "Fica no livro até executar, ser cancelada ou expirar"
-        case .immediateOrCancel: text = "Executa o que der agora e cancela o resto"
-        case .fillOrKill: text = "Executa tudo agora ou nada"
+            text = intent.expiration == nil ? kitText("Fica no livro até executar ou ser cancelada") : kitText("Fica no livro até executar, ser cancelada ou expirar")
+        case .immediateOrCancel: text = kitText("Executa o que der agora e cancela o resto")
+        case .fillOrKill: text = kitText("Executa tudo agora ou nada")
         }
-        if intent.passive { text += "; passiva, não consome ofertas de mesmo preço" }
+        if intent.passive { text += kitText("; passiva, não consome ofertas de mesmo preço") }
         return text
     }
 
@@ -505,18 +505,14 @@ enum XRPLFormat {
         var digits = fraction.decimalString
         digits = String(repeating: "0", count: 6 - digits.count) + digits
         while digits.hasSuffix("0") { digits.removeLast() }
-        return digits.isEmpty ? "\(whole) XRP" : "\(whole),\(digits) XRP"
+        return NumberStyle.current.decimal(whole.decimalString, digits) + " XRP"
     }
 
     static func decimal(_ value: XRPLDecimal) -> String {
-        value.decimalString.replacingOccurrences(of: ".", with: ",")
+        value.decimalString.replacingOccurrences(of: ".", with: NumberStyle.current.decimal)
     }
 
     static func date(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "pt_BR")
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        formatter.dateFormat = "dd/MM/yyyy HH:mm 'UTC'"
-        return formatter.string(from: date)
+        NumberStyle.current.utcStamp(date)
     }
 }

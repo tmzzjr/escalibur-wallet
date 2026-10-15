@@ -179,11 +179,11 @@ enum EVMTradeQuoteMapping {
             let fee = quote.decoded.providerFeeAmount
             guard !fee.isZero, !quote.intent.amountIn.isZero,
                   let bps = (fee * BigUInt(10_000) / quote.intent.amountIn).uint64 else { return nil }
-            return "A LI.FI fica com \(EVMEngineText.percent(bps: Int(bps))) do valor vendido, já descontado do mínimo garantido."
+            return kitText("A LI.FI fica com \(EVMEngineText.percent(bps: Int(bps))) do valor vendido, já descontado do mínimo garantido.")
         case .velora:
-            return "A Velora fica com o que vier acima da estimativa. O mínimo garantido não muda."
+            return kitText("A Velora fica com o que vier acima da estimativa. O mínimo garantido não muda.")
         case .de1:
-            return "A De¹ embute a própria taxa na rota. O mínimo garantido já considera essa taxa."
+            return kitText("A De¹ embute a própria taxa na rota. O mínimo garantido já considera essa taxa.")
         case .kyberSwap:
             return nil
         }

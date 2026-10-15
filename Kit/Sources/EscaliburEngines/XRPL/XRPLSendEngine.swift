@@ -40,15 +40,15 @@ struct XRPLSendEngine: SendEngine {
                 let ledger = try await reader.ledgerState()
                 return DestinationInfo(
                     exists: false, activationMinimum: ledger.reserveBase,
-                    note: "Esta conta ainda não existe no XRP Ledger. O primeiro envio ativa a conta e precisa ser de pelo menos \(XRPLEngineSupport.xrp(ledger.reserveBase))."
+                    note: kitText("Esta conta ainda não existe no XRP Ledger. O primeiro envio ativa a conta e precisa ser de pelo menos \(XRPLEngineSupport.xrp(ledger.reserveBase)).")
                 )
             case .found(let flags):
                 var notes: [String] = []
                 if flags & XRPLAccountFlags.disallowXRP != 0 {
-                    notes.append("Esta conta pediu para não receber XRP. Nesta versão a carteira não envia para ela.")
+                    notes.append(kitText("Esta conta pediu para não receber XRP. Nesta versão a carteira não envia para ela."))
                 }
                 if flags & XRPLAccountFlags.depositAuth != 0 {
-                    notes.append("Esta conta só aceita depósitos de quem ela autorizou antes. O envio é conferido na revisão.")
+                    notes.append(kitText("Esta conta só aceita depósitos de quem ela autorizou antes. O envio é conferido na revisão."))
                 }
                 return DestinationInfo(
                     exists: true, requiresTag: flags & XRPLAccountFlags.requireDestTag != 0,
@@ -76,7 +76,7 @@ struct XRPLSendEngine: SendEngine {
             } catch ReaderError.accountNotFound {
                 return Spendable(
                     amount: BigUInt(),
-                    reserveNote: "Esta conta ainda não existe no XRP Ledger. Ela passa a existir quando receber pelo menos \(XRPLEngineSupport.xrp(ledger.reserveBase))."
+                    reserveNote: kitText("Esta conta ainda não existe no XRP Ledger. Ela passa a existir quando receber pelo menos \(XRPLEngineSupport.xrp(ledger.reserveBase)).")
                 )
             }
             let fee = XRPLPlanner.fee(openLedgerFee: ledger.openLedgerFee)
@@ -84,11 +84,13 @@ struct XRPLSendEngine: SendEngine {
             let reserve = ledger.reserveBase + BigUInt(account.ownerCount) * ledger.reserveIncrement
             let objects = account.ownerCount == 0
                 ? ""
-                : " \(account.ownerCount == 1 ? "Inclui 1 objeto da conta" : "Inclui \(account.ownerCount) objetos da conta"), como linha de confiança ou oferta aberta."
+                : " " + (account.ownerCount == 1
+                    ? kitText("Inclui 1 objeto da conta, como linha de confiança ou oferta aberta.")
+                    : kitText("Inclui \(account.ownerCount) objetos da conta, como linha de confiança ou oferta aberta."))
             return Spendable(
                 amount: XRPLPlanner.spendable(account: account, ledger: ledger).subtractingReportingUnderflow(fee) ?? BigUInt(),
-                reserveNote: "\(XRPLEngineSupport.xrp(reserve)) ficam reservados pela rede enquanto a conta existir.\(objects)",
-                feeNote: "Já descontada a taxa da rede, de \(XRPLEngineSupport.xrp(fee))."
+                reserveNote: kitText("\(XRPLEngineSupport.xrp(reserve)) ficam reservados pela rede enquanto a conta existir.\(objects)"),
+                feeNote: kitText("Já descontada a taxa da rede, de \(XRPLEngineSupport.xrp(fee)).")
             )
         } catch {
             throw XRPLEngineSupport.translate(error)
@@ -153,7 +155,7 @@ struct XRPLSendEngine: SendEngine {
             throw SendEngineError.message(NetworkFailureText.inconsistent)
         }
         guard last > validatedLedger else {
-            throw SendEngineError.message("O prazo da transação venceu antes do envio. Nada foi debitado. Revise de novo.")
+            throw SendEngineError.message(kitText("O prazo da transação venceu antes do envio. Nada foi debitado. Revise de novo."))
         }
         do {
             let receipt = try await reader.broadcast(signed)
@@ -179,12 +181,12 @@ struct XRPLSendEngine: SendEngine {
         case .notFound, .pending:
             return .pending
         case .confirmed(let block, _):
-            return .confirmed(detail: block.map { "Validada no ledger \(EngineFormat.grouped($0)), que já é final." })
+            return .confirmed(detail: block.map { kitText("Validada no ledger \(EngineFormat.grouped($0)), que já é final.") })
         case .failed(let reason):
             if reason == "expired" {
-                return .failed(reason: "O prazo venceu antes de a transação entrar num ledger. Nada foi debitado.")
+                return .failed(reason: kitText("O prazo venceu antes de a transação entrar num ledger. Nada foi debitado."))
             }
-            return .failed(reason: "A transação entrou num ledger e falhou. Só a taxa foi cobrada.")
+            return .failed(reason: kitText("A transação entrou num ledger e falhou. Só a taxa foi cobrada."))
         }
     }
 
@@ -199,7 +201,7 @@ struct XRPLSendEngine: SendEngine {
         try requireChain(request.chain)
         if request.asset.isCustom, let reason = CustomToken.sendUnavailableReason(.xrpl) { throw SendEngineError.unavailable(reason) }
         guard request.asset.chainID == Chain.xrpl.id, request.asset.kind == .native else {
-            throw SendEngineError.message("Enviar tokens pelo XRP Ledger chega numa atualização em breve. XRP já funciona.")
+            throw SendEngineError.message(kitText("Enviar tokens pelo XRP Ledger chega numa atualização em breve. XRP já funciona."))
         }
     }
 }

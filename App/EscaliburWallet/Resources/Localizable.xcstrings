@@ -1,0 +1,7136 @@
+{
+  "sourceLanguage" : "pt-BR",
+  "strings" : {
+    "" : {
+
+    },
+    " " : {
+
+    },
+    " (%@ do volume)" : {
+
+    },
+    " Este envio também cria a conta de destino." : {
+
+    },
+    " Já saíram %@ de %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : " Já saíram %1$@ de %2$@."
+          }
+        }
+      }
+    },
+    " · com passphrase" : {
+
+    },
+    "%@" : {
+
+    },
+    "%@ %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "%@ %@, no bloco %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@, no bloco %3$@."
+          }
+        }
+      }
+    },
+    "%@ (%@)" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "%@ A conta tem %@, menos que isso. Envie TON para esta conta antes." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ A conta tem %2$@, menos que isso. Envie TON para esta conta antes."
+          }
+        }
+      }
+    },
+    "%@ A conta tem %@, menos que isso. Envie TRX para esta conta antes: a Escalibur não paga essa taxa por você." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ A conta tem %2$@, menos que isso. Envie TRX para esta conta antes: a Escalibur não paga essa taxa por você."
+          }
+        }
+      }
+    },
+    "%@ A conta tem %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ A conta tem %2$@."
+          }
+        }
+      }
+    },
+    "%@ DOGE/kB" : {
+
+    },
+    "%@ a %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ a %2$@"
+          }
+        }
+      }
+    },
+    "%@ adicionada. Ela aparece na Carteira, em Receber e em Enviar." : {
+
+    },
+    "%@ bytes" : {
+
+    },
+    "%@ caiu %@ em 24 h" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ caiu %2$@ em 24 h"
+          }
+        }
+      }
+    },
+    "%@ caiu abaixo de %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ caiu abaixo de %2$@"
+          }
+        }
+      }
+    },
+    "%@ com este contrato já está na lista verificada. Ele aparece sozinho na Carteira quando houver saldo." : {
+
+    },
+    "%@ com passphrase" : {
+
+    },
+    "%@ da Binance (Binance-Peg): vale enquanto a Binance mantiver o lastro e o resgate" : {
+
+    },
+    "%@ da ordem chegou a sair antes de vencer. Refazer vende o que falta, no mesmo preço." : {
+
+    },
+    "%@ de energia" : {
+
+    },
+    "%@ desta conta estão congelados na rede (stake, voto ou vesting) e ficam fora do máximo." : {
+
+    },
+    "%@ desta conta estão junto de tokens nativos, que a Escalibur ainda não movimenta. O máximo conta só o ADA livre." : {
+
+    },
+    "%@ desta conta estão no saldo de endereço da Sui, que a Escalibur ainda não movimenta. O máximo conta só as moedas de SUI." : {
+
+    },
+    "%@ deste emissor não está na lista de ativos da carteira." : {
+
+    },
+    "%@ em ordens de venda abertas" : {
+
+    },
+    "%@ existe na %@, que está desligada nesta carteira. Ligue a rede em Ajustes para receber." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ existe na %2$@, que está desligada nesta carteira. Ligue a rede em Ajustes para receber."
+          }
+        }
+      }
+    },
+    "%@ fica na conta: é o mínimo que a rede exige para ela existir." : {
+
+    },
+    "%@ ficam na conta: é a reserva mínima que a rede exige para ela continuar existindo." : {
+
+    },
+    "%@ ficam presos enquanto a conta aceitar %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ ficam presos enquanto a conta aceitar %2$@"
+          }
+        }
+      }
+    },
+    "%@ ficam presos enquanto a linha existir" : {
+
+    },
+    "%@ ficam presos enquanto a oferta estiver aberta" : {
+
+    },
+    "%@ ficam presos enquanto a oferta estiver no livro" : {
+
+    },
+    "%@ ficam presos pelo armazenamento da conta na rede e ficam fora do máximo." : {
+
+    },
+    "%@ ficam reservados pela rede enquanto a conta existir.%@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ ficam reservados pela rede enquanto a conta existir.%2$@"
+          }
+        }
+      }
+    },
+    "%@ ficam reservados pela rede enquanto a conta, as linhas de confiança e as ofertas dela existirem." : {
+
+    },
+    "%@ foi preenchido. O restante continua na sua carteira." : {
+
+    },
+    "%@ milhões de anos" : {
+
+    },
+    "%@ na %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ na %2$@"
+          }
+        }
+      }
+    },
+    "%@ no %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ no %2$@"
+          }
+        }
+      }
+    },
+    "%@ não está na lista de tokens verificados." : {
+
+    },
+    "%@ não está na lista verificada da Escalibur. Qualquer pessoa cria um token com qualquer nome, e alguns deixam comprar mas não deixam vender. Confira o contrato antes." : {
+
+    },
+    "%@ para %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ para %2$@"
+          }
+        }
+      }
+    },
+    "%@ para a LI.FI, já descontada do mínimo" : {
+
+    },
+    "%@ passou de %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ passou de %2$@"
+          }
+        }
+      }
+    },
+    "%@ pela %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ pela %2$@"
+          }
+        }
+      }
+    },
+    "%@ pelo preço do contrato, %@ cada." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ pelo preço do contrato, %2$@ cada."
+          }
+        }
+      }
+    },
+    "%@ pior que o preço médio de mercado" : {
+
+    },
+    "%@ queimados" : {
+
+    },
+    "%@ sat/vB" : {
+
+    },
+    "%@ sobre a melhor cotação única, já descontada a taxa de rede extra" : {
+
+    },
+    "%@ subiu %@ em 24 h" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ subiu %2$@ em 24 h"
+          }
+        }
+      }
+    },
+    "%@ um comentário ou memo, cole aqui exatamente igual. Para uma carteira pessoal, deixe vazio." : {
+
+    },
+    "%@ um memo, cole aqui exatamente igual. Para uma carteira pessoal, deixe vazio." : {
+
+    },
+    "%@ uma tag (um número), cole aqui. Sem ela, a exchange pode não achar o depósito. Para uma carteira pessoal, deixe vazio." : {
+
+    },
+    "%@ vezes o preço de mercado: a ordem provavelmente nunca executa." : {
+
+    },
+    "%@ volta para esta conta" : {
+
+    },
+    "%@ voltam a ficar livres" : {
+
+    },
+    "%@ · não verificado" : {
+
+    },
+    "%@%%" : {
+
+    },
+    "%@%% abaixo da máxima" : {
+
+    },
+    "%@%% abaixo do preço de mercado. A ordem pode sair na hora, vendendo abaixo do mercado até este preço." : {
+
+    },
+    "%@%% abaixo do preço de mercado. Confira o número: a ordem sairia na hora, com prejuízo." : {
+
+    },
+    "%@%@ %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@%2$@ %3$@"
+          }
+        }
+      }
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%@, %@ e mais %lld redes" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@ e mais %3$lld redes"
+          }
+        }
+      }
+    },
+    "%@, %@ queimados" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@ queimados"
+          }
+        }
+      }
+    },
+    "%@, coberta pela cota da conta" : {
+
+    },
+    "%@, coberta pelo stake" : {
+
+    },
+    "%@, conferido na rede de destino." : {
+
+    },
+    "%@, endereço de depósito" : {
+
+    },
+    "%@, incluída na ativação" : {
+
+    },
+    "%@, o melhor entre %lld" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, o melhor entre %2$lld"
+          }
+        }
+      }
+    },
+    "%@, o prazo mais longo que a CoW aceita. Até lá, fica aberta até executar ou você cancelar" : {
+
+    },
+    "%@, o que não for usado não é cobrado" : {
+
+    },
+    "%@, o que não for usado volta" : {
+
+    },
+    "%@, o que sobrar volta" : {
+
+    },
+    "%@, volta para a sua carteira" : {
+
+    },
+    "%@. O que não for usado volta para a conta" : {
+
+    },
+    "%@Palavras %lld a %lld de %lld" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@Palavras %2$lld a %3$lld de %4$lld"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld %@, %@: pequenas, sem confirmação ou que não pagam a própria taxa" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld %2$@, %3$@: pequenas, sem confirmação ou que não pagam a própria taxa"
+          }
+        }
+      }
+    },
+    "%lld de %lld" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld de %2$lld"
+          }
+        }
+      }
+    },
+    "%lld de %lld digitos" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld de %2$lld digitos"
+          }
+        }
+      }
+    },
+    "%lld minutos. O que não for preenchido até lá continua na sua carteira, sem custo" : {
+
+    },
+    "%lld moedas desta conta" : {
+
+    },
+    "%lld moedas pequenas ou ainda sem confirmação ficam fora do máximo." : {
+
+    },
+    "%lld moedas que ainda valem ficam" : {
+
+    },
+    "%lld palavras · %lld redes" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld palavras · %2$lld redes"
+          }
+        }
+      }
+    },
+    "%lld palavras, lista em %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld palavras, lista em %2$@"
+          }
+        }
+      }
+    },
+    "%lld por cento" : {
+
+    },
+    "%lld recebimentos suspeitos escondidos. São envios de valor zero ou de tokens fora da lista, muitas vezes de endereços parecidos com os seus." : {
+
+    },
+    "%lld redes" : {
+
+    },
+    "%lld tokens chegaram numa rede em que a carteira ainda só conta quantos são, sem ler nome e contrato. Eles ficam escondidos." : {
+
+    },
+    "%lld tokens sem leitura escondidos" : {
+
+    },
+    "%lld transações independentes, em sequência, assinadas de uma vez" : {
+
+    },
+    "%lld transações: autorizar e depositar, nesta ordem" : {
+
+    },
+    "%lld transações: autorizar e trocar, nesta ordem" : {
+
+    },
+    "%lld trocas independentes, uma depois da outra, mais as autorizações exatas que faltarem" : {
+
+    },
+    "%lld%%" : {
+
+    },
+    "+%@%%" : {
+
+    },
+    "+%lld" : {
+
+    },
+    ", %@ em 24 h." : {
+
+    },
+    ", com " : {
+
+    },
+    "0" : {
+
+    },
+    "1 %@ a %@ %@, na %@. Refeita, vale por mais %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "1 %1$@ a %2$@ %3$@, na %4$@. Refeita, vale por mais %5$@."
+          }
+        }
+      }
+    },
+    "1 %@ ≈ %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "1 %1$@ ≈ %2$@"
+          }
+        }
+      }
+    },
+    "1 ano" : {
+
+    },
+    "1 dia" : {
+
+    },
+    "1 hora" : {
+
+    },
+    "1 minuto" : {
+
+    },
+    "1 moeda" : {
+
+    },
+    "1 moeda pequena ou ainda sem confirmação fica fora do máximo." : {
+
+    },
+    "1 moeda que ainda vale fica" : {
+
+    },
+    "1 recebimento suspeito escondido. São envios de valor zero ou de tokens fora da lista, muitas vezes de endereços parecidos com os seus." : {
+
+    },
+    "1 segundo" : {
+
+    },
+    "1 token chegou numa rede em que a carteira ainda só conta quantos são, sem ler nome e contrato. Ele fica escondido." : {
+
+    },
+    "1 token sem leitura escondido" : {
+
+    },
+    "1 transação: a troca" : {
+
+    },
+    "1 transação: o depósito na ponte" : {
+
+    },
+    "12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar." : {
+
+    },
+    "12 palavras" : {
+
+    },
+    "24 palavras" : {
+
+    },
+    "24h" : {
+
+    },
+    "24h, sem %@" : {
+
+    },
+    "2: primeiro aceitar %@, depois %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "2: primeiro aceitar %1$@, depois %2$@"
+          }
+        }
+      }
+    },
+    "30 dias" : {
+
+    },
+    "30 minutos" : {
+
+    },
+    "5.000" : {
+
+    },
+    "6 marcados" : {
+
+    },
+    "7 dias" : {
+
+    },
+    "; passiva, não consome ofertas de mesmo preço" : {
+
+    },
+    "A Circle atesta e entrega em menos de 1 minuto." : {
+
+    },
+    "A Circle entrega na %@ e cobra o gás de lá dentro da taxa acima. Você não precisa ter %@ na %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A Circle entrega na %1$@ e cobra o gás de lá dentro da taxa acima. Você não precisa ter %2$@ na %3$@"
+          }
+        }
+      }
+    },
+    "A Circle espera a finalidade da %@, uns 20 minutos, e entrega." : {
+
+    },
+    "A CoW devolveu uma ordem diferente da assinada. Confira a Atividade." : {
+
+    },
+    "A CoW recebeu o pedido. Se um solver já estava executando a ordem, ela ainda pode sair." : {
+
+    },
+    "A CoW respondeu fora do esperado. Confira a Atividade antes de tentar de novo." : {
+
+    },
+    "A De¹ embute a própria taxa na rota. O mínimo garantido já considera essa taxa." : {
+
+    },
+    "A Escalibur ainda não recebe %@: ela existe só em redes que a carteira não tem, ou em que a carteira ainda não mostra token fora da lista. Não envie %@ para nenhum endereço desta carteira." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A Escalibur ainda não recebe %1$@: ela existe só em redes que a carteira não tem, ou em que a carteira ainda não mostra token fora da lista. Não envie %2$@ para nenhum endereço desta carteira."
+          }
+        }
+      }
+    },
+    "A Escalibur não cobra taxa sobre envios, recebimentos, trocas ou ordens. Você paga só a taxa da rede e, nas trocas, a do provedor, que já vem dentro do valor que você recebe." : {
+
+    },
+    "A Escalibur não tem servidor nem conta. Ninguém do nosso lado vê, guarda ou consegue recuperar nada seu." : {
+
+    },
+    "A Escalibur não vê nada" : {
+
+    },
+    "A LI.FI fica com %@ do valor vendido, já descontado do mínimo garantido." : {
+
+    },
+    "A Velora fica com o que vier acima da estimativa. O mínimo garantido não muda." : {
+
+    },
+    "A autorização ainda não confirmou, e a ordem não foi enviada. Quando ela aparecer confirmada na Atividade, monte a ordem de novo." : {
+
+    },
+    "A autorização da ordem falhou na rede. A ordem não foi enviada." : {
+
+    },
+    "A autorização do token vai antes e a troca logo depois, em transações separadas. Se a troca não sair, a autorização continua valendo, só para este valor e só para o contrato desta troca." : {
+
+    },
+    "A autorização vai antes e o depósito logo depois. Se o depósito não sair, a autorização continua valendo, só para este valor e só para o contrato da ponte." : {
+
+    },
+    "A autorização vai primeiro. A ordem segue para a CoW assim que ela confirmar na %@. Não feche o app até terminar." : {
+
+    },
+    "A banda deste envio sai do stake ou da cota grátis da conta, sem queimar TRX." : {
+
+    },
+    "A busca pelos endereços desta carteira passou do limite. Nada foi montado." : {
+
+    },
+    "A caminho da %@" : {
+
+    },
+    "A captura está na Fototeca e pode já ter subido para o iCloud. Se ela mostra as palavras da carteira, apague agora." : {
+
+    },
+    "A carteira de USDT informada pela rede não é a desta conta. Nada foi montado." : {
+
+    },
+    "A carteira envia uma transação que invalida a ordem de vez, com a taxa da rede. Depois que ela confirmar, a ordem não executa mais, e o que não foi vendido continua na sua carteira." : {
+
+    },
+    "A carteira não vai para o backup do iPhone. Num iPhone novo, só as palavras ou um envelope trazem ela de volta." : {
+
+    },
+    "A carteira pede à CoW para parar de oferecer a ordem. O que não foi vendido continua na sua carteira." : {
+
+    },
+    "A carteira processou o pedido, mas a transferência não saiu. Só a taxa da rede foi cobrada." : {
+
+    },
+    "A carteira roda só neste iPhone. A Escalibur não vê, não move e não devolve saldo, e não desfaz transação." : {
+
+    },
+    "A carteira é só sua. Por isso, o cuidado com ela também é." : {
+
+    },
+    "A chave desta carteira não pode mover esta conta NEAR: ela foi removida da conta ou só chama contratos. Nada foi montado." : {
+
+    },
+    "A chave desta conta foi trocada na rede Aptos, e a frase desta carteira não assina mais por ela. Nada foi montado." : {
+
+    },
+    "A chave desta conta não confere com a conta NEAR. Nada foi montado." : {
+
+    },
+    "A chave desta conta não confere com o endereço. Nada foi montado." : {
+
+    },
+    "A chave desta conta não confere. Nada foi assinado." : {
+
+    },
+    "A chave pública guardada não gera o endereço desta conta. Por segurança, nada foi montado." : {
+
+    },
+    "A conferência final da transação não fechou. Nada foi montado." : {
+
+    },
+    "A conta Solana desta carteira não confere com a chave guardada. Nada foi montado." : {
+
+    },
+    "A conta Solana desta carteira usa um caminho de derivação que a rede não aceita. Nada foi montado." : {
+
+    },
+    "A conta ainda não aceita %@." : {
+
+    },
+    "A conta atingiu o limite de %@ que aceita receber." : {
+
+    },
+    "A conta da Solana desta carteira foi entregue a um programa, e o saldo dela não paga taxa nem pode sair. Só quem tem a senha da carteira faz isso: se não foi você, a senha vazou e esta carteira não é mais segura." : {
+
+    },
+    "A conta de destino ainda não existe. O primeiro envio precisa ser do mínimo que ativa a conta." : {
+
+    },
+    "A conta de destino ainda não existe. O primeiro envio precisa ser do mínimo que cria a conta." : {
+
+    },
+    "A conta de destino está congelada na rede TON e não recebe envios." : {
+
+    },
+    "A conta de destino está vazia na rede Polkadot, e a rede só a cria com pelo menos %@. Envie esse valor ou mais." : {
+
+    },
+    "A conta de destino não existe e não pode receber este ativo." : {
+
+    },
+    "A conta de token está congelada pelo emissor. A transferência não passaria." : {
+
+    },
+    "A conta de token está congelada pelo emissor. A troca não passaria." : {
+
+    },
+    "A conta de token lida da rede não confere. Nada foi montado." : {
+
+    },
+    "A conta desta rede não confere com a chave da carteira. Nada foi assinado." : {
+
+    },
+    "A conta deste token na Solana foi passada para outro dono: alguém mudou o dono dela. O que entrasse nela iria para esse outro dono. Nada foi montado." : {
+
+    },
+    "A conta já aceita %@." : {
+
+    },
+    "A conta por trás do endereço M não existe." : {
+
+    },
+    "A cotação está %@ pior que o preço de referência do mercado. Troca bloqueada." : {
+
+    },
+    "A cotação está %@%% pior que o preço de referência do mercado. Troca bloqueada." : {
+
+    },
+    "A cotação não confere com a troca pedida. Cote de novo." : {
+
+    },
+    "A cotação não corresponde a esta troca. Atualize a cotação e revise de novo." : {
+
+    },
+    "A cotação não passou na conferência de segurança da carteira. Nada foi assinado." : {
+
+    },
+    "A cotação venceu ou não passou na conferência. Cote de novo. %@" : {
+
+    },
+    "A cotação venceu. Atualize e revise de novo." : {
+
+    },
+    "A cotação venceu. Atualize o preço e tente de novo." : {
+
+    },
+    "A cotação venceu. Atualize para ver o preço de agora." : {
+
+    },
+    "A energia acabou antes do fim da transferência. O USDT não saiu, e o TRX queimado na tentativa não volta." : {
+
+    },
+    "A energia e a banda deste envio saem do stake da conta, sem queimar TRX." : {
+
+    },
+    "A entrega da Circle falhou" : {
+
+    },
+    "A entrega não confere" : {
+
+    },
+    "A exchange não pediu comentário" : {
+
+    },
+    "A exchange não pediu memo" : {
+
+    },
+    "A exchange não pediu tag de destino" : {
+
+    },
+    "A exchange usa a tag de destino para saber que este envio é seu. Copie da tela de depósito da exchange, a mesma onde está o endereço." : {
+
+    },
+    "A exchange usa o comentário para saber que este envio é seu. Copie da tela de depósito da exchange, a mesma onde está o endereço." : {
+
+    },
+    "A exchange usa o memo para saber que este envio é seu. Copie da tela de depósito da exchange, a mesma onde está o endereço." : {
+
+    },
+    "A frase gravada foi ouvida em %@. Em %@, grave a frase de novo para o iPhone conferir certo." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A frase gravada foi ouvida em %1$@. Em %2$@, grave a frase de novo para o iPhone conferir certo."
+          }
+        }
+      }
+    },
+    "A liquidez de agora não chega a %@ %@. O garantido fica em %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A liquidez de agora não chega a %1$@ %2$@. O garantido fica em %3$@."
+          }
+        }
+      }
+    },
+    "A lista de alertas já tem %lld moedas" : {
+
+    },
+    "A lista de moedas da conta veio repetida da rede. Por segurança, nada foi montado." : {
+
+    },
+    "A lista de moedas fica neste iPhone fora do cofre, para o alerta funcionar com a tela bloqueada. Nela não entra saldo nem endereço." : {
+
+    },
+    "A lista de ordens abertas vem só da CoW. Na cadeia, a autorização ao contrato da CoW fica exatamente no valor desta ordem: juntas, as ordens que vendem %@ não tiram mais que isso da carteira" : {
+
+    },
+    "A mensagem a assinar não passou na conferência da carteira. Nada foi assinado." : {
+
+    },
+    "A mensagem assinada não confere com a que foi montada. Nada foi transmitido." : {
+
+    },
+    "A mesma que carteiras de hardware mostram para esta frase." : {
+
+    },
+    "A moeda do app mudou. Até você conferir o valor, todo envio pede a frase." : {
+
+    },
+    "A moeda some da Carteira, de Receber e de Enviar. O saldo continua na rede, e você pode adicionar de novo." : {
+
+    },
+    "A ordem assinada vai direto para a CoW" : {
+
+    },
+    "A ordem assinada vai para a CoW depois que as transações acima confirmarem" : {
+
+    },
+    "A ordem deixa de valer quando a rede confirmar a transação." : {
+
+    },
+    "A ordem fica aberta até executar, vencer ou você cancelar." : {
+
+    },
+    "A ordem não foi montada" : {
+
+    },
+    "A ordem não saiu. Nada foi debitado." : {
+
+    },
+    "A ordem venceu antes de ser enviada. Monte a ordem de novo." : {
+
+    },
+    "A palavra %lld não existe na lista. Confira no papel." : {
+
+    },
+    "A ponte ainda não leva esta moeda entre estas redes." : {
+
+    },
+    "A ponte não cotou esta rota agora. Tente de novo." : {
+
+    },
+    "A ponte não foi montada" : {
+
+    },
+    "A ponte não saiu. Nada foi debitado." : {
+
+    },
+    "A ponte recusou este pedido." : {
+
+    },
+    "A ponte só leva para a sua própria conta, e o endereço de destino desta carteira é outro. %@" : {
+
+    },
+    "A primeira confirmação leva cerca de %lld minutos. Pode fechar o app." : {
+
+    },
+    "A primeira transferência para este endereço grava um saldo novo no contrato e gasta cerca do dobro de energia." : {
+
+    },
+    "A própria fonte da rede marca este token como golpe." : {
+
+    },
+    "A rede %@ ainda não aceita moeda custom." : {
+
+    },
+    "A rede %@ não usa tag nem memo. Envie só com o endereço." : {
+
+    },
+    "A rede %@ não usa tag nem memo. Tire a tag para enviar." : {
+
+    },
+    "A rede Aptos recusou a transação. Confira a Atividade antes de enviar de novo." : {
+
+    },
+    "A rede Cardano exige pelo menos %@ em cada envio." : {
+
+    },
+    "A rede NEAR recusou a assinatura. Nada saiu da conta." : {
+
+    },
+    "A rede NEAR recusou o envio por saldo insuficiente para o valor e a taxa. Nada saiu da conta." : {
+
+    },
+    "A rede NEAR recusou o envio. Nada saiu da conta." : {
+
+    },
+    "A rede Polkadot mudou o formato das transações numa atualização. A Escalibur volta a enviar DOT depois de conferir o novo formato, numa atualização do app. O saldo não é afetado." : {
+
+    },
+    "A rede Polkadot não reconheceu o formato desta transação, talvez por uma atualização que o app ainda não conhece. Nada foi montado." : {
+
+    },
+    "A rede Polkadot recusou a assinatura. Nada saiu da conta." : {
+
+    },
+    "A rede Polkadot recusou o envio por saldo insuficiente para a taxa. Nada saiu da conta." : {
+
+    },
+    "A rede Polkadot recusou o envio. Nada saiu da conta." : {
+
+    },
+    "A rede Solana demorou a responder. Tente de novo." : {
+
+    },
+    "A rede Solana não usa tag nem memo de destino. Envie sem tag." : {
+
+    },
+    "A rede Solana recusou a consulta. Tente de novo em instantes." : {
+
+    },
+    "A rede Solana respondeu dados que não fecham. Tente de novo em instantes." : {
+
+    },
+    "A rede Solana respondeu num formato inesperado. Tente de novo." : {
+
+    },
+    "A rede Sui não simulou o envio agora. Nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "A rede TON recusou a assinatura. Nada saiu da conta." : {
+
+    },
+    "A rede TON recusou o envio por saldo insuficiente. Nada saiu da conta." : {
+
+    },
+    "A rede TON recusou o envio. Nada saiu da conta." : {
+
+    },
+    "A rede Tron recusou a assinatura. Nada saiu da conta." : {
+
+    },
+    "A rede Tron recusou o envio por saldo insuficiente. Nada saiu da conta." : {
+
+    },
+    "A rede Tron recusou o envio. Nada saiu da conta." : {
+
+    },
+    "A rede Tron registrou o envio como falho. O valor não saiu, e o TRX queimado na tentativa não volta." : {
+
+    },
+    "A rede ainda não viu a transação anterior desta conta. Tente de novo em instantes." : {
+
+    },
+    "A rede de destino não confirmou que cunha este USDC. Ponte bloqueada. %@" : {
+
+    },
+    "A rede demorou para responder. Tente de novo em instantes." : {
+
+    },
+    "A rede estimou um custo fora do normal para esta transação. Nada foi assinado." : {
+
+    },
+    "A rede já tinha recebido esta transação. Confira a Atividade." : {
+
+    },
+    "A rede não aceitou a assinatura. Nada foi debitado." : {
+
+    },
+    "A rede não confirma este recebimento" : {
+
+    },
+    "A rede não confirmou a transação. Se ela entrou num ledger e falhou, só a taxa foi cobrada. Confira na Atividade antes de tentar de novo." : {
+
+    },
+    "A rede não confirmou o recebimento da transação. Confira a Atividade antes de tentar de novo." : {
+
+    },
+    "A rede não respondeu com certeza, e a transação assinada pode já estar a caminho. Não monte outro envio: transmitir de novo usa os mesmos dados e não paga duas vezes. O app continua perguntando à rede por esta transação." : {
+
+    },
+    "A rede onde o token existe. O mesmo contrato em outra rede é outro token." : {
+
+    },
+    "A rede recusou a assinatura. Nada foi debitado." : {
+
+    },
+    "A rede recusou a transação por ser de outra rede. Nada foi debitado." : {
+
+    },
+    "A rede recusou a transação. Confira a Atividade e o saldo antes de enviar de novo." : {
+
+    },
+    "A rede recusou a transação. Nada foi debitado." : {
+
+    },
+    "A rede recusou o envio" : {
+
+    },
+    "A rede respondeu com um bloco fora de hora. Confira a data e a hora do aparelho e tente de novo." : {
+
+    },
+    "A rede simulou a transação e recusou: ela falharia agora. Nada foi debitado." : {
+
+    },
+    "A resposta da rede não confere com a mensagem assinada. Confira a Atividade antes de enviar de novo." : {
+
+    },
+    "A resposta da rede não confere com a transação assinada. Confira a Atividade antes de enviar de novo." : {
+
+    },
+    "A resposta não veio com certeza, e o que foi assinado pode já estar a caminho. Não monte de novo: enviar de novo usa os mesmos dados e não paga duas vezes. Confira na Atividade antes de qualquer outra operação." : {
+
+    },
+    "A rota da troca passa por um ativo fora da lista da carteira. Troca bloqueada." : {
+
+    },
+    "A rota proposta pela Jupiter não passou na conferência da carteira. Nada foi assinado." : {
+
+    },
+    "A rota tem mais de 5 ativos intermediários." : {
+
+    },
+    "A senha da carteira entra no envelope" : {
+
+    },
+    "A senha da carteira nasce e fica aqui, cifrada com uma chave do Secure Enclave, o chip de segurança do iPhone. Ela nunca vai para a internet." : {
+
+    },
+    "A senha da carteira são %lld palavras, em ordem. Quem tiver as palavras tem o saldo. Sem elas, ninguém recupera a carteira, nem a Escalibur." : {
+
+    },
+    "A senha da carteira é cifrada neste iPhone e vira um arquivo." : {
+
+    },
+    "A senha da carteira, as 12 ou 24 palavras, é a única forma de trazer a carteira de volta." : {
+
+    },
+    "A senha escolhida quando o envelope foi lacrado. No app Escalibur, é a senha do cofre." : {
+
+    },
+    "A sequência da conta chegou ao fim." : {
+
+    },
+    "A simulação da rede devolveu um consumo fora do normal. Tente de novo em instantes." : {
+
+    },
+    "A simulação da rede diz que este envio falharia agora. Nada foi montado." : {
+
+    },
+    "A simulação da rede não moveu exatamente o valor revisado. Nada foi assinado." : {
+
+    },
+    "A simulação da troca não confirmou o resultado esperado. Nada foi assinado. Tente de novo em instantes." : {
+
+    },
+    "A simulação da troca não está disponível agora, e sem ela a carteira não troca. Tente de novo em instantes." : {
+
+    },
+    "A simulação de segurança não respondeu em duas fontes agora. %@ Tente de novo em instantes." : {
+
+    },
+    "A simulação do envio falhou na rede. Nada foi assinado. Confira o saldo e tente de novo." : {
+
+    },
+    "A simulação mostra que a rede recusaria esta transação agora. Nada foi assinado." : {
+
+    },
+    "A simulação mostra que esta troca falharia agora. Nada foi assinado." : {
+
+    },
+    "A simulação mostrou outra conta de token sua perdendo saldo. Troca bloqueada. Nada foi assinado." : {
+
+    },
+    "A simulação mostrou um movimento diferente do que a ponte prometia. Ponte bloqueada. %@" : {
+
+    },
+    "A simulação mostrou um movimento que a cotação não prometia. Troca bloqueada." : {
+
+    },
+    "A sua conta na %@" : {
+
+    },
+    "A sua conta na rede de destino tem código instalado (uma delegação ou contrato). Isso pode ser um varredor posto por quem conhece a sua frase. Ponte bloqueada. %@" : {
+
+    },
+    "A sua frase" : {
+
+    },
+    "A tag de destino %@ veio junto no endereço." : {
+
+    },
+    "A tag de destino é um número de 0 a 4.294.967.295. Confira com quem pediu o envio." : {
+
+    },
+    "A tag é um número de 0 a 4.294.967.295. Confira na exchange." : {
+
+    },
+    "A taxa calculada pela rede está fora do normal. Nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "A taxa cotada passou do teto da carteira. %@" : {
+
+    },
+    "A taxa da CoW%@ e a taxa da rede da troca já saíram da cotação e do mínimo garantido." : {
+
+    },
+    "A taxa da ponte levaria %@%% do valor. Aumente o valor. %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A taxa da ponte levaria %1$@%% do valor. Aumente o valor. %2$@"
+          }
+        }
+      }
+    },
+    "A taxa da rede %@ está acima do teto da carteira agora. Espere a rede acalmar e tente de novo." : {
+
+    },
+    "A taxa da rede e a criação da conta de %@ do destino, até %@, saem do seu saldo de SOL." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A taxa da rede e a criação da conta de %1$@ do destino, até %2$@, saem do seu saldo de SOL."
+          }
+        }
+      }
+    },
+    "A taxa da rede está acima do limite de segurança agora. Tente de novo mais tarde." : {
+
+    },
+    "A taxa da rede está acima do teto da carteira agora. Espere a rede acalmar e tente de novo." : {
+
+    },
+    "A taxa da rede está acima do teto da carteira." : {
+
+    },
+    "A taxa da rede sai em XLM." : {
+
+    },
+    "A taxa da rede é paga em %@, e o saldo de %@ não cobre a taxa agora." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A taxa da rede é paga em %1$@, e o saldo de %2$@ não cobre a taxa agora."
+          }
+        }
+      }
+    },
+    "A taxa da rede é paga à parte, em %@." : {
+
+    },
+    "A taxa da rede, até %@, sai do seu saldo de SOL." : {
+
+    },
+    "A taxa deste envio passaria do teto absoluto da carteira. Nada foi montado." : {
+
+    },
+    "A taxa escolhida fica abaixo do mínimo da rede." : {
+
+    },
+    "A taxa escolhida passa do teto da carteira, que é o dobro da maior estimativa da rede." : {
+
+    },
+    "A taxa estimada pela rede está fora do normal. Nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "A taxa ficou abaixo do mínimo da rede agora. Revise e envie de novo." : {
+
+    },
+    "A taxa ficou abaixo do mínimo que a rede pede agora. Revise de novo." : {
+
+    },
+    "A taxa informada pela rede está fora do normal. Nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "A taxa máxima calculada (%@) passa do teto de segurança da carteira. Nada foi assinado." : {
+
+    },
+    "A taxa máxima calculada passa do teto de segurança da carteira. Nada foi assinado." : {
+
+    },
+    "A taxa máxima da rede já está descontada." : {
+
+    },
+    "A taxa é %@%% do valor." : {
+
+    },
+    "A tela bloqueada mostra só \"Alerta de preço\". Moeda e preço aparecem no app, depois do PIN." : {
+
+    },
+    "A tela bloqueada só diz que entrou moeda" : {
+
+    },
+    "A tela está sendo gravada ou espelhada" : {
+
+    },
+    "A tela está sendo gravada ou espelhada. Pare a gravação ou o AirPlay para seguir." : {
+
+    },
+    "A tolerância de preço passa do máximo que a carteira aceita na Solana. Escolha uma menor." : {
+
+    },
+    "A tolerância de preço precisa ficar entre 0,01% e 10%." : {
+
+    },
+    "A tolerância de preço vai de 0% a 5% nesta rede." : {
+
+    },
+    "A tolerância passa do máximo de %@." : {
+
+    },
+    "A tonapi marca este jetton como golpe." : {
+
+    },
+    "A transação assinada não confere com a que foi montada. Nada foi transmitido." : {
+
+    },
+    "A transação assinada não confere com esta rede. Nada foi transmitido." : {
+
+    },
+    "A transação assinada não confere com o plano. Nada foi enviado." : {
+
+    },
+    "A transação assinada não confere com o que foi revisado. Nada foi transmitido." : {
+
+    },
+    "A transação assinada não confere. Nada foi enviado." : {
+
+    },
+    "A transação entrou na rede e falhou. Só a taxa foi cobrada." : {
+
+    },
+    "A transação entrou na rede, mas a transferência não saiu. O valor volta para a conta, e só a taxa da rede foi cobrada." : {
+
+    },
+    "A transação entrou na rede, mas a transferência não saiu. Só a taxa da rede foi cobrada." : {
+
+    },
+    "A transação entrou na rede, mas o contrato recusou. A taxa da rede foi cobrada." : {
+
+    },
+    "A transação entrou num bloco e falhou. A taxa da rede foi cobrada e o valor não saiu." : {
+
+    },
+    "A transação entrou num ledger e falhou. Só a taxa foi cobrada." : {
+
+    },
+    "A transação falhou na %@. Só a taxa de rede foi cobrada." : {
+
+    },
+    "A transação ficou grande demais para a rede Solana." : {
+
+    },
+    "A transação foi montada para outra rede. Nada foi transmitido." : {
+
+    },
+    "A transação montada não passou na conferência da carteira. Nada foi assinado." : {
+
+    },
+    "A transação não entrou na rede." : {
+
+    },
+    "A transação não passou na conferência da carteira. Nada foi assinado." : {
+
+    },
+    "A transação não passou na conferência de montagem. Nada foi montado." : {
+
+    },
+    "A transação venceu antes de entrar na rede. Revise e envie de novo." : {
+
+    },
+    "A transação venceu antes de entrar num bloco. Nada foi debitado. Pode enviar de novo." : {
+
+    },
+    "A transferência rápida da Circle está sem limite agora. Use a padrão." : {
+
+    },
+    "A transmissão não foi concluída. Confira a Atividade antes de tentar de novo." : {
+
+    },
+    "A troca deixaria na conta menos SOL que a reserva mínima da rede. Diminua o valor." : {
+
+    },
+    "A troca não foi montada" : {
+
+    },
+    "A troca não saiu. Nada foi debitado." : {
+
+    },
+    "A troca saiu no seu preço. O saldo novo já está na carteira." : {
+
+    },
+    "A validade da ordem precisa ficar entre 1 hora e 30 dias." : {
+
+    },
+    "A validade da ordem precisa ser de pelo menos um minuto." : {
+
+    },
+    "A validade máxima de uma ordem é de %lld dias." : {
+
+    },
+    "A verificação de permissões não corresponde a esta conta. Tente de novo." : {
+
+    },
+    "Abra a Atividade para ver." : {
+
+    },
+    "Abra a Escalibur para ver." : {
+
+    },
+    "Abra a Escalibur: se ainda faltar vender, o app pergunta se refaz com o mesmo preço." : {
+
+    },
+    "Abra o Mercado para ver." : {
+
+    },
+    "Abra o app para ver o que mudou." : {
+
+    },
+    "Abrindo o envelope" : {
+
+    },
+    "Abrir Ajustes do iPhone" : {
+
+    },
+    "Abrir a carteira com passphrase" : {
+
+    },
+    "Abrir carteira" : {
+
+    },
+    "Abrir envelope" : {
+
+    },
+    "Abrir leva cerca de %lld segundos com a tela parada. Um envelope lacrado pela Escalibur leva de 1 a 3. Se você não sabe de onde veio este arquivo, não abra." : {
+
+    },
+    "Abrir mesmo assim" : {
+
+    },
+    "Abrir os Ajustes do iPhone" : {
+
+    },
+    "Abrir ou criar com passphrase" : {
+
+    },
+    "Abrir um envelope" : {
+
+    },
+    "Aceitar %@" : {
+
+    },
+    "Aceitar %@ de %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Aceitar %1$@ de %2$@"
+          }
+        }
+      }
+    },
+    "Acima de" : {
+
+    },
+    "Acompanhe o saldo de um endereço sem guardar chave nenhuma neste iPhone." : {
+
+    },
+    "Acompanhe um saldo sem poder enviar." : {
+
+    },
+    "Across: um relayer entrega na %@ do próprio bolso, e o Across devolve a ele o seu depósito depois" : {
+
+    },
+    "Adicionar %@ aos alertas" : {
+
+    },
+    "Adicionar %@ à carteira" : {
+
+    },
+    "Adicionar carteira" : {
+
+    },
+    "Adicionar como moeda custom" : {
+
+    },
+    "Adicionar moeda" : {
+
+    },
+    "Adicionar moeda pelo contrato" : {
+
+    },
+    "Adicionar à carteira" : {
+
+    },
+    "Agora %@" : {
+
+    },
+    "Agora não" : {
+
+    },
+    "Agora, no leilão da CoW" : {
+
+    },
+    "Agora, numa transação" : {
+
+    },
+    "Aguardando confirmação" : {
+
+    },
+    "Ainda não conferiu. Se o iPhone escreve uma palavra de outro jeito, toque em Mudar a frase e deixe como ele escreveu." : {
+
+    },
+    "Ainda não existe na Aptos. Este envio cria a conta, e a taxa inclui o armazenamento dela" : {
+
+    },
+    "Ainda não há ativos para enviar" : {
+
+    },
+    "Ajustes" : {
+
+    },
+    "Alerta de preço" : {
+
+    },
+    "Alertas de %@ desligados" : {
+
+    },
+    "Alertas de %@ ligados" : {
+
+    },
+    "Alertas de preço" : {
+
+    },
+    "Alta ou queda forte" : {
+
+    },
+    "Alternativa" : {
+
+    },
+    "Anotar e confirmar depois" : {
+
+    },
+    "Anote a passphrase longe das %lld. Para abrir esta carteira em outro aparelho, você vai precisar das duas." : {
+
+    },
+    "Anote no papel, à mão. Captura de tela vai para a Fototeca e sobe para o iCloud." : {
+
+    },
+    "Anotei, continuar" : {
+
+    },
+    "Anteriores" : {
+
+    },
+    "Antes" : {
+
+    },
+    "Antes de começar, o que protege o seu dinheiro aqui." : {
+
+    },
+    "Antes de ver as palavras" : {
+
+    },
+    "Ao continuar, você aceita os [Termos de uso](escalibur-doc:termos) e a [Política de privacidade](escalibur-doc:privacidade)." : {
+
+    },
+    "Ao sair do app" : {
+
+    },
+    "Apagar" : {
+
+    },
+    "Apagar %@?" : {
+
+    },
+    "Apagar as carteiras deste iPhone" : {
+
+    },
+    "Apagar as carteiras deste iPhone?" : {
+
+    },
+    "Apagar as palavras digitadas?" : {
+
+    },
+    "Apagar depois de %u PINs errados" : {
+
+    },
+    "Apagar depois de PINs errados" : {
+
+    },
+    "Apagar depois de erros" : {
+
+    },
+    "Apagar o endereço" : {
+
+    },
+    "Apagar permanentemente" : {
+
+    },
+    "Apague as carteiras deste iPhone." : {
+
+    },
+    "Aparecem 3 palavras por vez. Arraste o cartão para ver as próximas." : {
+
+    },
+    "Apps de fora da App Store podem ler o que este app guarda." : {
+
+    },
+    "Apps de fora da App Store podem ler o que este app guarda. Para valor alto, prefira uma carteira de hardware." : {
+
+    },
+    "Aqui errar não conta como tentativa." : {
+
+    },
+    "As %lld moedas da conta viram uma só" : {
+
+    },
+    "As %lld palavras saem desta tela. Você digita de novo, a partir da primeira." : {
+
+    },
+    "As casas decimais deste token na rede não conferem com as que a carteira mostrou. Atualize o saldo e tente de novo. Nada foi assinado." : {
+
+    },
+    "As casas decimais deste token na rede não são mais as que foram salvas. Remova a moeda e adicione de novo antes de enviar." : {
+
+    },
+    "As chaves ficam só neste iPhone, fora do backup do iCloud. Sem conta e sem e‑mail: a Escalibur não tem como ver, mover nem recuperar o seu saldo." : {
+
+    },
+    "As duas fontes leram as mesmas casas decimais no contrato. É nessa escala que o valor de um envio é lido." : {
+
+    },
+    "As duas não conferem. Digite a senha do envelope de novo." : {
+
+    },
+    "As duas versões da passphrase não conferem." : {
+
+    },
+    "As etapas anteriores já valeram. Se esta falhar, o restante fica em %@ e você perde só a taxa de rede." : {
+
+    },
+    "As fontes da rede responderam casas decimais diferentes. Por segurança, a moeda não foi adicionada." : {
+
+    },
+    "As fontes de taxa da rede %@ discordam demais agora. Nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "As notificações da Escalibur estão desligadas no iPhone." : {
+
+    },
+    "As outras continuam valendo: você fica com parte em %@ e parte em %@. Não existe desfazer, e a etapa que falhou custa só a taxa de rede." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "As outras continuam valendo: você fica com parte em %1$@ e parte em %2$@. Não existe desfazer, e a etapa que falhou custa só a taxa de rede."
+          }
+        }
+      }
+    },
+    "As palavras recuperam" : {
+
+    },
+    "As palavras são de idiomas diferentes. Confira no papel." : {
+
+    },
+    "As palavras voltam quando isso parar." : {
+
+    },
+    "As permissões desta conta Tron foram alteradas: outra chave controla a conta ou divide o controle com a sua. A Escalibur não envia a partir dela. Não mande TRX para cá, porque quem tem a outra chave pode levar." : {
+
+    },
+    "As pontas são iguais, o meio é diferente. Golpistas mandam centavos de um endereço assim para ele aparecer no seu histórico." : {
+
+    },
+    "As redes não responderam agora. Isso não quer dizer que a carteira está vazia: os valores aparecem quando a leitura der certo." : {
+
+    },
+    "As transações assinadas não conferem com o plano revisado. Nada foi transmitido." : {
+
+    },
+    "Ativação" : {
+
+    },
+    "Ativação da conta de destino" : {
+
+    },
+    "Atividade" : {
+
+    },
+    "Ativo emitido" : {
+
+    },
+    "Ativos" : {
+
+    },
+    "Atual" : {
+
+    },
+    "Até %@ blocos depois do bloco %@, cerca de 14 horas" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Até %1$@ blocos depois do bloco %2$@, cerca de 14 horas"
+          }
+        }
+      }
+    },
+    "Até %@. Depois disso, o contrato da %@ recusa a troca" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Até %1$@. Depois disso, o contrato da %2$@ recusa a troca"
+          }
+        }
+      }
+    },
+    "Até 2 minutos depois desta revisão" : {
+
+    },
+    "Até cancelar" : {
+
+    },
+    "Até o bloco %@ da rede, cerca de 9 minutos" : {
+
+    },
+    "Até o fim da época %@ da rede, cerca de um a dois dias" : {
+
+    },
+    "Até o slot %@ da rede, cerca de 15 minutos" : {
+
+    },
+    "Até você cancelar. A Stellar não expira ofertas." : {
+
+    },
+    "Auto" : {
+
+    },
+    "Auto · %@" : {
+
+    },
+    "Automática: a menor tolerância que costuma passar para este par, agora %@. Recalculada a cada cotação: entre stablecoins fica perto de 0,1%%; moeda de pouca liquidez ou dia agitado ganha mais folga." : {
+
+    },
+    "Autorizado a gastar" : {
+
+    },
+    "Autorizar %@" : {
+
+    },
+    "Autorizar %@ e trocar" : {
+
+    },
+    "Autorizar %@ sem limite" : {
+
+    },
+    "Autorização" : {
+
+    },
+    "Autorização atual" : {
+
+    },
+    "Autorização sem limite." : {
+
+    },
+    "Autorização · %@" : {
+
+    },
+    "Avisar quando chegar moeda" : {
+
+    },
+    "Avisar sobre o preço desta moeda" : {
+
+    },
+    "Avisar sobre preços" : {
+
+    },
+    "Aviso de recebimento" : {
+
+    },
+    "Aviso do destino" : {
+
+    },
+    "Banda" : {
+
+    },
+    "Bloquear o app" : {
+
+    },
+    "Bloquear o app %@" : {
+
+    },
+    "Boa contra ladrão comum. Um governo abriria em %@." : {
+
+    },
+    "Buscando as redes de %@" : {
+
+    },
+    "Buscando cotação" : {
+
+    },
+    "Buscando o melhor preço" : {
+
+    },
+    "Buscar" : {
+
+    },
+    "Buscar de novo" : {
+
+    },
+    "Buscar moeda" : {
+
+    },
+    "Buscar por nome" : {
+
+    },
+    "Buscar qualquer moeda" : {
+
+    },
+    "CCTP da Circle: o USDC é queimado na %@ e a própria Circle cunha o mesmo USDC na %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CCTP da Circle: o USDC é queimado na %1$@ e a própria Circle cunha o mesmo USDC na %2$@"
+          }
+        }
+      }
+    },
+    "Cada envio de USDT leva %@ para a rede, e o que sobra volta, mais a taxa de cerca de %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cada envio de USDT leva %1$@ para a rede, e o que sobra volta, mais a taxa de cerca de %2$@."
+          }
+        }
+      }
+    },
+    "Cada envio de USDT queima TRX para pagar energia e banda: cerca de %@ neste, com a taxa do memo." : {
+
+    },
+    "Cada envio de USDT queima TRX para pagar energia e banda: cerca de %@ neste." : {
+
+    },
+    "Cada etapa é recotada só depois que a anterior confirmar, com o seu próprio mínimo garantido" : {
+
+    },
+    "Cada parte sai pelo preço garantido ou melhor. %@" : {
+
+    },
+    "Cada transferência chama um programa do emissor. A Escalibur não envia token com esse gancho." : {
+
+    },
+    "Caiu %@" : {
+
+    },
+    "Cancelada" : {
+
+    },
+    "Cancelada com %@ preenchido" : {
+
+    },
+    "Cancelamento enviado" : {
+
+    },
+    "Cancelamento enviado. Esperando a rede confirmar." : {
+
+    },
+    "Cancelar" : {
+
+    },
+    "Cancelar %lld ordens limite" : {
+
+    },
+    "Cancelar a oferta %@" : {
+
+    },
+    "Cancelar a ordem" : {
+
+    },
+    "Cancelar esta ordem?" : {
+
+    },
+    "Cancelar oferta" : {
+
+    },
+    "Cancelar ordem limite" : {
+
+    },
+    "Cancelar ordem limite na cadeia" : {
+
+    },
+    "Capitalização" : {
+
+    },
+    "Carregando o gráfico" : {
+
+    },
+    "Carteira" : {
+
+    },
+    "Carteira %lld" : {
+
+    },
+    "Carteira com passphrase" : {
+
+    },
+    "Carteira criada" : {
+
+    },
+    "Carteira fria" : {
+
+    },
+    "Carteira principal" : {
+
+    },
+    "Carteira só de observação" : {
+
+    },
+    "Carteiras" : {
+
+    },
+    "Casas decimais" : {
+
+    },
+    "Checando: %@" : {
+
+    },
+    "Checar de novo" : {
+
+    },
+    "Chega na %@" : {
+
+    },
+    "Chega, no mínimo" : {
+
+    },
+    "Chegaram sem você pedir e têm cara de golpe. Não abra os sites dos nomes." : {
+
+    },
+    "Chegou na %@" : {
+
+    },
+    "Chegou uma quantia mínima sem você pedir. Serve para o endereço de quem mandou aparecer no seu histórico." : {
+
+    },
+    "Chinês simplificado" : {
+
+    },
+    "Chinês tradicional" : {
+
+    },
+    "Cifrada, só neste iPhone" : {
+
+    },
+    "Cola as palavras todas de uma vez." : {
+
+    },
+    "Colado. A área de transferência foi limpa agora, mas pode já ter sincronizado com outros aparelhos Apple." : {
+
+    },
+    "Cole aqui, se tiver" : {
+
+    },
+    "Cole o endereço do token." : {
+
+    },
+    "Cole ou digite o endereço" : {
+
+    },
+    "Cole ou escaneie" : {
+
+    },
+    "Com a passphrase errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes. Segure o dedo num campo para conferir as duas." : {
+
+    },
+    "Com esta tolerância o mínimo a receber seria zero." : {
+
+    },
+    "Comentário" : {
+
+    },
+    "Comentário (Memo)" : {
+
+    },
+    "Começar" : {
+
+    },
+    "Começar a falar" : {
+
+    },
+    "Como" : {
+
+    },
+    "Como a sua ordem foi dividida" : {
+
+    },
+    "Como funciona" : {
+
+    },
+    "Compartilhar" : {
+
+    },
+    "Comprar %@" : {
+
+    },
+    "Concluir" : {
+
+    },
+    "Concluído" : {
+
+    },
+    "Conferi o preço" : {
+
+    },
+    "Conferi o preço e quero assim" : {
+
+    },
+    "Conferida na rede" : {
+
+    },
+    "Conferida na rede, %@ confirmações" : {
+
+    },
+    "Conferido em" : {
+
+    },
+    "Conferido na %@. Abra a Escalibur para ver." : {
+
+    },
+    "Conferindo" : {
+
+    },
+    "Conferindo este iPhone" : {
+
+    },
+    "Conferindo o que ouvi" : {
+
+    },
+    "Conferir moeda" : {
+
+    },
+    "Conferir o aparelho" : {
+
+    },
+    "Conferiu. É assim que a frase vai ser pedida." : {
+
+    },
+    "Configure um código em Ajustes do iPhone. Sem ele, o iOS não protege as chaves da carteira." : {
+
+    },
+    "Confira antes de guardar" : {
+
+    },
+    "Confira o que eu ouvi" : {
+
+    },
+    "Confirmada" : {
+
+    },
+    "Confirmada na rede Solana." : {
+
+    },
+    "Confirmada no bloco %@." : {
+
+    },
+    "Confirmado na rede Aptos, que já é final." : {
+
+    },
+    "Confirmado na rede Sui, que já é final." : {
+
+    },
+    "Confirmado na rede TON." : {
+
+    },
+    "Confirmado na rede Tron. O bloco já é irreversível." : {
+
+    },
+    "Confirmado na rede, com %llu confirmações." : {
+
+    },
+    "Confirmado na rede." : {
+
+    },
+    "Confirmado num bloco final da rede NEAR." : {
+
+    },
+    "Confirmado num bloco finalizado da rede Polkadot." : {
+
+    },
+    "Confirmando na %@" : {
+
+    },
+    "Confirmando na %@, cerca de %lld segundos." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Confirmando na %1$@, cerca de %2$lld segundos."
+          }
+        }
+      }
+    },
+    "Confirmando no %@, cerca de %lld segundos." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Confirmando no %1$@, cerca de %2$lld segundos."
+          }
+        }
+      }
+    },
+    "Confirmar" : {
+
+    },
+    "Confirmar depois" : {
+
+    },
+    "Confirmar depois?" : {
+
+    },
+    "Confirmar ponte" : {
+
+    },
+    "Confirmar troca" : {
+
+    },
+    "Confirmação por voz" : {
+
+    },
+    "Confirme a cópia de %@ antes de ligar." : {
+
+    },
+    "Confirme a senha da carteira" : {
+
+    },
+    "Confirme com o PIN" : {
+
+    },
+    "Confirme o %@ para ligar" : {
+
+    },
+    "Conta NEAR inválida. Ela tem 64 caracteres de 0 a 9 e de a até f, ou é um nome como alice.near, só com letras minúsculas. Confira se copiou inteira." : {
+
+    },
+    "Conta a soma dos envios sem a frase nas últimas 24 horas." : {
+
+    },
+    "Conta ainda sem registro na rede. Este envio a cria, e a taxa inclui a cobrança da rede por conta nova. Confira que é uma conta NEAR: um endereço de outra rede sem o 0x recebe aqui, e ninguém consegue mover" : {
+
+    },
+    "Conta ainda vazia na rede. Este envio a cria" : {
+
+    },
+    "Conta base" : {
+
+    },
+    "Conta de destino" : {
+
+    },
+    "Conta de token digitada" : {
+
+    },
+    "Conta de token do destino" : {
+
+    },
+    "Conta nova" : {
+
+    },
+    "Contam a moeda de cada rede e os tokens da lista conferida. Token fora da lista não avisa: é por ele que chega o spam." : {
+
+    },
+    "Contas NEAR sem nome têm 64 letras e números, o mesmo formato de um endereço Sui ou Aptos sem o 0x. Se este endereço é de outra rede, o valor vai para uma conta NEAR que ninguém controla e se perde." : {
+
+    },
+    "Contas novas deste token nascem congeladas pelo emissor." : {
+
+    },
+    "Continuar" : {
+
+    },
+    "Continuar o envio" : {
+
+    },
+    "Contra quem pega o iPhone e tenta adivinhar o PIN. Depois do número escolhido de PINs errados seguidos, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta. Mudar pede o PIN." : {
+
+    },
+    "Contrato" : {
+
+    },
+    "Contrato copiado." : {
+
+    },
+    "Contrato da Circle" : {
+
+    },
+    "Contrato da CoW" : {
+
+    },
+    "Contrato do Across" : {
+
+    },
+    "Contrato do USDT" : {
+
+    },
+    "Contrato do provedor" : {
+
+    },
+    "Contrato do token" : {
+
+    },
+    "Contrato listado pelo CoinGecko, fora da lista verificada da Escalibur. Para o saldo aparecer na carteira, adicione a moeda: a carteira lê nome, símbolo e casas na própria rede antes de salvar." : {
+
+    },
+    "Contrato na %@" : {
+
+    },
+    "Contrato no %@" : {
+
+    },
+    "Converter %@ em %@: a ordem vende %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Converter %1$@ em %2$@: a ordem vende %3$@"
+          }
+        }
+      }
+    },
+    "Copiado. Confira o endereço inteiro com a fonte oficial do token." : {
+
+    },
+    "Copiar" : {
+
+    },
+    "Copiar contrato" : {
+
+    },
+    "Copiar endereço" : {
+
+    },
+    "Copie o endereço da fonte oficial do token, não de um site que apareceu num anúncio ou no nome de outro token." : {
+
+    },
+    "Coreano" : {
+
+    },
+    "Cotando a ponte" : {
+
+    },
+    "Cotando de novo, conferindo os contratos nas duas redes e simulando antes de mostrar." : {
+
+    },
+    "Cotação" : {
+
+    },
+    "Cotação do provedor" : {
+
+    },
+    "Criar a minha" : {
+
+    },
+    "Criar carteira nova" : {
+
+    },
+    "Criar ordem limite" : {
+
+    },
+    "Criação da conta de token do destino" : {
+
+    },
+    "Criação da sua conta de %@" : {
+
+    },
+    "Crie a senha do envelope" : {
+
+    },
+    "Crie um PIN novo e importe cada carteira de novo." : {
+
+    },
+    "Custo da rede neste envio: %@ queimados da conta%@. O máximo já desconta." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Custo da rede neste envio: %1$@ queimados da conta%2$@. O máximo já desconta."
+          }
+        }
+      }
+    },
+    "Custo estimado" : {
+
+    },
+    "Custom" : {
+
+    },
+    "Código aberto" : {
+
+    },
+    "Código aberto, para qualquer um auditar" : {
+
+    },
+    "Código da moeda" : {
+
+    },
+    "Código do iPhone ativo" : {
+
+    },
+    "Cópias" : {
+
+    },
+    "DEX da Stellar" : {
+
+    },
+    "DEX do XRP Ledger" : {
+
+    },
+    "Da %@ para a %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Da %1$@ para a %2$@"
+          }
+        }
+      }
+    },
+    "Da sua carteira e das favoritas" : {
+
+    },
+    "Dados de mercado: %@, às %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Dados de mercado: %1$@, às %2$@"
+          }
+        }
+      }
+    },
+    "Dados do %@, às %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Dados do %1$@, às %2$@."
+          }
+        }
+      }
+    },
+    "Data" : {
+
+    },
+    "De" : {
+
+    },
+    "De uma vez" : {
+
+    },
+    "Dentro do arquivo, as palavras viram dados cifrados. Ele não diz de quem é, nem quantas palavras guarda, nem o que tem dentro." : {
+
+    },
+    "Depois da taxa, sobraria na conta menos SOL que a reserva mínima da rede. Deposite um pouco de SOL antes." : {
+
+    },
+    "Depois de %u erros" : {
+
+    },
+    "Depois de 1 minuto" : {
+
+    },
+    "Depois de 30 segundos" : {
+
+    },
+    "Depois deste envio sobrariam %@ na conta, abaixo do mínimo de %@ que a rede aceita. %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Depois deste envio sobrariam %1$@ na conta, abaixo do mínimo de %2$@ que a rede aceita. %3$@"
+          }
+        }
+      }
+    },
+    "Depósito no %@" : {
+
+    },
+    "Desligada" : {
+
+    },
+    "Desligado" : {
+
+    },
+    "Desligados" : {
+
+    },
+    "Desligar a confirmação por voz" : {
+
+    },
+    "Desligar alertas desta moeda" : {
+
+    },
+    "Desmarcado" : {
+
+    },
+    "Desta carteira você vê saldo e histórico. Enviar e trocar ficam desligados." : {
+
+    },
+    "Destinatário" : {
+
+    },
+    "Destino" : {
+
+    },
+    "Destino sem USDT" : {
+
+    },
+    "Destino sem conta ativa" : {
+
+    },
+    "Destrava o app e confirma envios em 1 segundo. Se o %@ falhar, o PIN vale." : {
+
+    },
+    "Destravar" : {
+
+    },
+    "Destravar a Escalibur Wallet" : {
+
+    },
+    "Destravar com o %@" : {
+
+    },
+    "Detalhes" : {
+
+    },
+    "Devolvido na %@" : {
+
+    },
+    "Diferença de maiúscula, acento ou espaço já abre outra carteira. Segure o dedo num campo para conferir as duas." : {
+
+    },
+    "Diga a frase nova" : {
+
+    },
+    "Diga a sua frase" : {
+
+    },
+    "Diga a sua frase de voz" : {
+
+    },
+    "Digitar as palavras" : {
+
+    },
+    "Digite a palavra %lld" : {
+
+    },
+    "Digite o PIN atual" : {
+
+    },
+    "Digite o seu PIN" : {
+
+    },
+    "Digite um valor" : {
+
+    },
+    "Digite um valor maior que zero." : {
+
+    },
+    "Digite um valor." : {
+
+    },
+    "Direto dos provedores públicos da rede." : {
+
+    },
+    "Disponível %@" : {
+
+    },
+    "Distribuição" : {
+
+    },
+    "Dividida entre %lld provedores para você receber mais" : {
+
+    },
+    "Divisão" : {
+
+    },
+    "Do disponível de %@, %@ estão reservados em ordens de venda abertas. " : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Do disponível de %1$@, %2$@ estão reservados em ordens de venda abertas. "
+          }
+        }
+      }
+    },
+    "Dólar" : {
+
+    },
+    "Dúvidas, problemas ou sugestões: escreva para este endereço." : {
+
+    },
+    "EQ... ou UQ..." : {
+
+    },
+    "ETH da rede Ethereum" : {
+
+    },
+    "ETH só entre redes em que ele é a moeda nativa, e na BNB, onde é o da Binance." : {
+
+    },
+    "EVM (Ethereum, Base e outras)" : {
+
+    },
+    "Editar o nome de %@" : {
+
+    },
+    "Ela executa quando o mercado chegar ao seu preço, de uma vez ou em partes. %@" : {
+
+    },
+    "Em %@, os ajustes da voz abrem só com o PIN. Reiniciar o iPhone recomeça a espera." : {
+
+    },
+    "Em %@: %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Em %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "Em Ajustes, Abrir um envelope, neste ou em outro iPhone com a Escalibur. Com a senha certa, a carteira volta. Guarde o arquivo e a senha em lugares diferentes." : {
+
+    },
+    "Em circulação" : {
+
+    },
+    "Em espera" : {
+
+    },
+    "Em partes" : {
+
+    },
+    "Em partes pela CoW, conforme chega liquidez" : {
+
+    },
+    "Embutida na rota; o mínimo já considera" : {
+
+    },
+    "Emissor" : {
+
+    },
+    "Emissor de %@" : {
+
+    },
+    "Emissor na %@" : {
+
+    },
+    "Emissor no %@" : {
+
+    },
+    "Encurtar vale na hora. Alongar pede o PIN." : {
+
+    },
+    "Endereço" : {
+
+    },
+    "Endereço %@" : {
+
+    },
+    "Endereço Aptos inválido. Ele começa com 0x e tem 64 caracteres depois dele. Confira se copiou inteiro." : {
+
+    },
+    "Endereço Cardano inválido. Ele começa com addr1. Confira se copiou inteiro." : {
+
+    },
+    "Endereço G..." : {
+
+    },
+    "Endereço M já carrega o ID. Um memo ID junto seria um segundo ID, e o depósito pode ir para a pessoa errada." : {
+
+    },
+    "Endereço Polkadot inválido. Ele começa com 1. Confira se copiou inteiro." : {
+
+    },
+    "Endereço Sui inválido. Ele começa com 0x e tem 64 caracteres depois dele. Confira se copiou inteiro." : {
+
+    },
+    "Endereço TON inválido. Confira se copiou inteiro." : {
+
+    },
+    "Endereço Tron inválido. Confira se ele começa com T e se foi copiado inteiro." : {
+
+    },
+    "Endereço Tron inválido. Confira se ele começa com T e tem 34 caracteres." : {
+
+    },
+    "Endereço copiado" : {
+
+    },
+    "Endereço copiado." : {
+
+    },
+    "Endereço copiado. Depois de colar, confira o endereço inteiro, inclusive o meio." : {
+
+    },
+    "Endereço da %@" : {
+
+    },
+    "Endereço do %@" : {
+
+    },
+    "Endereço do ativo" : {
+
+    },
+    "Endereço do emissor" : {
+
+    },
+    "Endereço do emissor de %@" : {
+
+    },
+    "Endereço do mint" : {
+
+    },
+    "Endereço inválido para a rede %@." : {
+
+    },
+    "Endereço mestre do jetton" : {
+
+    },
+    "Endereço parecido com %@." : {
+
+    },
+    "Endereço parecido com %@. Confira o endereço inteiro." : {
+
+    },
+    "Endereço parecido com um que você já usou" : {
+
+    },
+    "Endereço que recebe" : {
+
+    },
+    "Endereço r..." : {
+
+    },
+    "Endereço salvo vira atalho no envio e entra na conferência de endereço parecido. Salvar pede %@ ou PIN." : {
+
+    },
+    "Endereço válido na %@" : {
+
+    },
+    "Endereços" : {
+
+    },
+    "Endereços Aptos têm o mesmo formato dos endereços Sui, então o endereço não diz a rede. Se quem vai receber espera o valor pela Sui ou por outra rede, ele não chega." : {
+
+    },
+    "Endereços EVM são iguais em todas as redes EVM, então o endereço não diz a rede. Se quem vai receber só aceita %@ por outra rede (uma exchange que recebe só pela Ethereum, por exemplo), o valor não chega." : {
+
+    },
+    "Endereços Sui têm o mesmo formato dos endereços Aptos, então o endereço não diz a rede. Se quem vai receber espera o valor pela Aptos ou por outra rede, ele não chega." : {
+
+    },
+    "Endereços prontos em %lld redes. Guarde o papel longe do iPhone: se o iPhone sumir, o papel traz a carteira de volta, aqui ou em qualquer carteira BIP-39." : {
+
+    },
+    "Endereços salvos" : {
+
+    },
+    "Energia" : {
+
+    },
+    "Enquanto não terminar, em Ordens abertas: pedido à CoW, grátis mas sem garantia, ou na rede, garantido, pagando taxa" : {
+
+    },
+    "Entendi" : {
+
+    },
+    "Entendo a frase em português ou em inglês." : {
+
+    },
+    "Entendo e quero trocar assim" : {
+
+    },
+    "Entendo o risco e quero seguir mesmo assim" : {
+
+    },
+    "Entendo que só eu guardo a senha desta carteira. Se eu perder a senha ou alguém tiver acesso a ela, a Escalibur não tem como recuperar meus ativos. Li e aceito os Termos de uso." : {
+
+    },
+    "Entendo só em %@: o %@ não está disponível sem internet neste iPhone." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Entendo só em %1$@: o %2$@ não está disponível sem internet neste iPhone."
+          }
+        }
+      }
+    },
+    "Entra, no mínimo" : {
+
+    },
+    "Entrega" : {
+
+    },
+    "Entrega no %@" : {
+
+    },
+    "Entrou moeda na carteira" : {
+
+    },
+    "Envelope" : {
+
+    },
+    "Envelope Escalibur" : {
+
+    },
+    "Envelope lacrado" : {
+
+    },
+    "Enviado" : {
+
+    },
+    "Enviado · %@" : {
+
+    },
+    "Enviando" : {
+
+    },
+    "Enviando a ordem" : {
+
+    },
+    "Enviando a troca" : {
+
+    },
+    "Enviando o cancelamento" : {
+
+    },
+    "Enviando para a ponte" : {
+
+    },
+    "Enviar" : {
+
+    },
+    "Enviar %@" : {
+
+    },
+    "Enviar %@ pela %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Enviar %1$@ pela %2$@"
+          }
+        }
+      }
+    },
+    "Enviar de novo" : {
+
+    },
+    "Enviar e receber já funcionam em todas as redes. A troca entra rede por rede, cada uma depois de passar pela validação de segurança." : {
+
+    },
+    "Enviar só o livre, %@" : {
+
+    },
+    "Enviar tokens pelo XRP Ledger chega numa atualização em breve. XRP já funciona." : {
+
+    },
+    "Envie até %@ ou use enviar tudo." : {
+
+    },
+    "Envie só %@, pela rede %@. Outra moeda enviada para este endereço se perde." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Envie só %1$@, pela rede %2$@. Outra moeda enviada para este endereço se perde."
+          }
+        }
+      }
+    },
+    "Envie só pela rede Solana. Tokens de outras redes enviados para este endereço se perdem." : {
+
+    },
+    "Envie só pela rede TON. Não precisa de comentário." : {
+
+    },
+    "Envie só pela rede Tron (TRC-20). USDT de outra rede enviado para este endereço se perde." : {
+
+    },
+    "Envio" : {
+
+    },
+    "Envio de %@ indisponível" : {
+
+    },
+    "Envio indisponível nesta rede" : {
+
+    },
+    "Envio pela rede %@" : {
+
+    },
+    "Envio sem comentário, por sua escolha." : {
+
+    },
+    "Envio sem memo, por sua escolha." : {
+
+    },
+    "Envio sem tag de destino, por sua escolha." : {
+
+    },
+    "Envios, recebimentos, trocas e ordens, cada um com o seu status." : {
+
+    },
+    "Equilíbrio: passa na maioria das trocas sem deixar espaço grande para robôs." : {
+
+    },
+    "Escalibur" : {
+
+    },
+    "Escalibur, Trust Wallet, Tonkeeper e MyTonWallet (V4R2)" : {
+
+    },
+    "Escanear QR" : {
+
+    },
+    "Escolha 3 palavras ou mais que só você saiba e fale em voz normal, perto do iPhone. Eu paro de ouvir sozinho quando você terminar." : {
+
+    },
+    "Escolha a rede. Tem de ser a mesma que quem envia escolher: %@ enviado por outra rede não chega a este endereço." : {
+
+    },
+    "Escolha dois ativos diferentes para a ordem." : {
+
+    },
+    "Escolha dois ativos diferentes para trocar." : {
+
+    },
+    "Escolha o arquivo .esclbr no app Arquivos. O original continua onde está." : {
+
+    },
+    "Escolha o novo PIN" : {
+
+    },
+    "Escolha o que enviar" : {
+
+    },
+    "Escolha redes diferentes." : {
+
+    },
+    "Escolha um PIN" : {
+
+    },
+    "Escolha uma rede de destino diferente da origem." : {
+
+    },
+    "Escolher" : {
+
+    },
+    "Escolher arquivo" : {
+
+    },
+    "Escolher token" : {
+
+    },
+    "Esconder palavras" : {
+
+    },
+    "Esconder suspeitos" : {
+
+    },
+    "Escondidas para ninguém ler por cima do seu ombro." : {
+
+    },
+    "Escrever e-mail" : {
+
+    },
+    "Espanhol" : {
+
+    },
+    "Esperando o preço" : {
+
+    },
+    "Esquecer a passphrase é perder o que estiver nesta carteira. Ninguém recupera, nem a Escalibur." : {
+
+    },
+    "Esqueceu a frase?" : {
+
+    },
+    "Esqueci a frase" : {
+
+    },
+    "Esqueci o PIN" : {
+
+    },
+    "Esta carteira TON ainda não foi ativada. O valor chega e fica nela, sem devolução automática." : {
+
+    },
+    "Esta carteira ainda não tem cópia" : {
+
+    },
+    "Esta carteira ainda não tem cópia. Se o iPhone sumir antes disso, o que chegar aqui se perde." : {
+
+    },
+    "Esta carteira já está aberta, como %@. Ela passa a ser a carteira em uso." : {
+
+    },
+    "Esta carteira já está aqui, como %@." : {
+
+    },
+    "Esta carteira já tem endereço em Bitcoin, Ethereum, Base, Solana, XRP Ledger, Stellar e outras. Receba em qualquer um para começar." : {
+
+    },
+    "Esta carteira não tem conta deste token na Solana." : {
+
+    },
+    "Esta carteira não tem conta nas duas redes." : {
+
+    },
+    "Esta carteira não tem conta nesta rede." : {
+
+    },
+    "Esta carteira não tem cópia confirmada. Removida, o saldo fica inacessível para sempre." : {
+
+    },
+    "Esta carteira não tem saldo do ativo vendido." : {
+
+    },
+    "Esta carteira só acompanha um endereço. A passphrase precisa da senha de 12 ou 24 palavras." : {
+
+    },
+    "Esta carteira só acompanha: para cancelar, abra a carteira que assina." : {
+
+    },
+    "Esta carteira só observa. Escolha outra carteira para trocar." : {
+
+    },
+    "Esta carteira usa passphrase" : {
+
+    },
+    "Esta consulta ainda não está disponível na %@." : {
+
+    },
+    "Esta conta TON está congelada na rede e não recebe envios." : {
+
+    },
+    "Esta conta TON está congelada na rede por falta de pagamento de armazenamento e não consegue enviar agora." : {
+
+    },
+    "Esta conta Tron ainda não está ativa. Ela ativa no primeiro recebimento de TRX ou de token." : {
+
+    },
+    "Esta conta Tron é controlada por outra chave. Quem tem a frase não consegue mover o saldo, e qualquer TRX enviado para cá pode ser levado. É o golpe da frase com USDT: não envie nada para esta conta." : {
+
+    },
+    "Esta conta acabou de mudar na rede. Tente de novo em alguns segundos." : {
+
+    },
+    "Esta conta ainda está vazia na rede Polkadot. O primeiro envio para ela precisa ser de pelo menos %@." : {
+
+    },
+    "Esta conta ainda não existe na %@. Para ativá-la, o primeiro envio precisa ser de %@ ou mais." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Esta conta ainda não existe na %1$@. Para ativá-la, o primeiro envio precisa ser de %2$@ ou mais."
+          }
+        }
+      }
+    },
+    "Esta conta ainda não existe na Aptos. O envio de APT cria a conta, e a taxa inclui o armazenamento dela." : {
+
+    },
+    "Esta conta ainda não existe na Solana. O primeiro envio precisa cobrir a reserva mínima que a rede exige." : {
+
+    },
+    "Esta conta ainda não existe na Stellar. Ela passa a existir quando receber o primeiro XLM." : {
+
+    },
+    "Esta conta ainda não existe na Stellar. O primeiro envio cria a conta, só pode ser em XLM e precisa ser de pelo menos %@." : {
+
+    },
+    "Esta conta ainda não existe na Stellar. O primeiro recebimento precisa ser de 1 XLM ou mais, e parte fica reservada pela rede." : {
+
+    },
+    "Esta conta ainda não existe na rede NEAR. Ela passa a existir quando receber o primeiro NEAR." : {
+
+    },
+    "Esta conta ainda não existe na rede Tron. Ela passa a existir quando recebe TRX." : {
+
+    },
+    "Esta conta ainda não existe na rede Tron. Um envio de TRX a ativa e queima até %@ da sua conta. USDT chega sem ativar a conta, e o dono dela vai precisar de TRX para movimentá-lo." : {
+
+    },
+    "Esta conta ainda não existe na rede Tron: ela só recebeu USDT. Para enviar, ela precisa de TRX para pagar a energia da rede, e a Escalibur não paga essa taxa por você. Envie TRX para esta conta e tente de novo." : {
+
+    },
+    "Esta conta ainda não existe no %@. Para ativá-la, o primeiro envio precisa ser de %@ ou mais." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Esta conta ainda não existe no %1$@. Para ativá-la, o primeiro envio precisa ser de %2$@ ou mais."
+          }
+        }
+      }
+    },
+    "Esta conta ainda não existe no XRP Ledger. Ela passa a existir quando receber o primeiro XRP." : {
+
+    },
+    "Esta conta ainda não existe no XRP Ledger. Ela passa a existir quando receber pelo menos %@." : {
+
+    },
+    "Esta conta ainda não existe no XRP Ledger. O primeiro envio ativa a conta e precisa ser de pelo menos %@." : {
+
+    },
+    "Esta conta ainda não existe no XRP Ledger. O primeiro recebimento precisa ser de 1 XRP ou mais, e 1 XRP fica reservado pela rede." : {
+
+    },
+    "Esta conta ainda não tem TRX. Para enviar USDT na Tron ela precisa de TRX para pagar a energia da rede, e a Escalibur não paga essa taxa por você." : {
+
+    },
+    "Esta conta ainda não tem registro na rede NEAR. O primeiro envio a cria, e a rede cobra a mais por conta nova, cerca de 0,007 NEAR hoje, junto da taxa. Confira que é uma conta NEAR, e não um endereço de outra rede sem o 0x." : {
+
+    },
+    "Esta conta chegou ao limite de transações da rede. Nada foi montado." : {
+
+    },
+    "Esta conta desativou a chave mestra no XRP Ledger. A carteira não tem a chave que assina por ela." : {
+
+    },
+    "Esta conta exige comentário" : {
+
+    },
+    "Esta conta exige memo" : {
+
+    },
+    "Esta conta exige memo (SEP-29). Sem ele o depósito se perde." : {
+
+    },
+    "Esta conta exige tag de destino" : {
+
+    },
+    "Esta conta exige tag de destino. Sem ela o depósito se perde." : {
+
+    },
+    "Esta conta não existe na rede NEAR, conferido em dois provedores. Confira o nome com quem vai receber. Nada foi montado." : {
+
+    },
+    "Esta conta não serve para esta rede." : {
+
+    },
+    "Esta conta não tem TON suficiente para a taxa deste envio de USDT. Envie TON para esta conta e tente de novo." : {
+
+    },
+    "Esta conta pediu para não receber XRP" : {
+
+    },
+    "Esta conta pediu para não receber XRP. Nesta versão a carteira não envia para ela." : {
+
+    },
+    "Esta conta só aceita depósitos de quem ela autorizou antes, e esta carteira não está entre eles." : {
+
+    },
+    "Esta conta só aceita depósitos de quem ela autorizou antes. O envio é conferido na revisão." : {
+
+    },
+    "Esta conta tem moedas de SUI demais para a carteira juntar num envio. Nada foi montado." : {
+
+    },
+    "Esta conta tem moedas demais para a carteira juntar num envio só. Nada foi montado." : {
+
+    },
+    "Esta conta tem um contrato. Confira com quem vai receber se ela aceita NEAR enviado direto." : {
+
+    },
+    "Esta frase vale em mais de um idioma, e a escolha muda a carteira. Importe pela versão em inglês da frase." : {
+
+    },
+    "Esta moeda já está na carteira." : {
+
+    },
+    "Esta oferta não está mais aberta: já executou ou foi cancelada." : {
+
+    },
+    "Esta oferta não está mais aberta: já executou, venceu ou foi cancelada." : {
+
+    },
+    "Esta oferta não é da Stellar." : {
+
+    },
+    "Esta oferta não é do XRP Ledger." : {
+
+    },
+    "Esta ordem abre a linha de %@: mais %@ presos enquanto a conta aceitar %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Esta ordem abre a linha de %1$@: mais %2$@ presos enquanto a conta aceitar %3$@"
+          }
+        }
+      }
+    },
+    "Esta ordem move o preço em %@%%. Dividir em ordens menores ajuda." : {
+
+    },
+    "Esta ordem não pode ser cancelada pela carteira." : {
+
+    },
+    "Esta rede ainda não aceita moeda custom." : {
+
+    },
+    "Esta rede não tem moeda custom." : {
+
+    },
+    "Esta senha cai em %@" : {
+
+    },
+    "Esta senha usa palavras da própria carteira. Quem achar o papel abre o envelope. Escolha outra." : {
+
+    },
+    "Esta troca abre a linha de %@: %@ presos enquanto a conta aceitar %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Esta troca abre a linha de %1$@: %2$@ presos enquanto a conta aceitar %3$@"
+          }
+        }
+      }
+    },
+    "Esta troca perderia %@%% para o impacto no preço. Divida em ordens menores ou use uma ordem limite." : {
+
+    },
+    "Esta troca perderia demais para o impacto no preço. Diminua o valor." : {
+
+    },
+    "Esta troca perderia demais para o impacto no preço. Tente um valor menor ou uma ordem limite." : {
+
+    },
+    "Estas ordens não são desta conta." : {
+
+    },
+    "Este aparelho não tem o chip de segurança disponível agora." : {
+
+    },
+    "Este app não tem a chave deste endereço: o que chegar aqui não sai por este app. Se alguém pediu para você observar um endereço e depositar nele, é golpe." : {
+
+    },
+    "Este arquivo não é um envelope Escalibur. Envelopes terminam em .esclbr e têm 16.504 bytes." : {
+
+    },
+    "Este ativo não está na lista de tokens verificados da %@." : {
+
+    },
+    "Este ativo não é da rede Stellar." : {
+
+    },
+    "Este ativo não é enviado nem trocado por esta carteira na Solana." : {
+
+    },
+    "Este ativo não é trocado por esta carteira na Solana." : {
+
+    },
+    "Este código de moeda não vale na rede %@." : {
+
+    },
+    "Este código é longo demais para ser um endereço." : {
+
+    },
+    "Este emissor não tem esta moeda em circulação. Confira o código e o emissor." : {
+
+    },
+    "Este endereço Cardano é de um tipo que a Escalibur ainda não envia: de contrato, de stake, de rede de teste ou do formato antigo (Byron). Use um endereço de carteira, que começa com addr1q ou addr1v." : {
+
+    },
+    "Este endereço TON é de rede de teste ou de um tipo que a carteira não envia." : {
+
+    },
+    "Este endereço ainda não existe na Solana. Um envio de SOL precisa cobrir a reserva mínima da rede." : {
+
+    },
+    "Este endereço não é da %@. Confira se copiou inteiro." : {
+
+    },
+    "Este endereço não é de um token nesta rede. Confira a rede escolhida e o endereço inteiro." : {
+
+    },
+    "Este endereço não é do %@. Confira se copiou inteiro." : {
+
+    },
+    "Este endereço queima tudo o que recebe. Envio recusado." : {
+
+    },
+    "Este endereço é %@, não da Polkadot. Peça o endereço no formato Polkadot, que começa com 1." : {
+
+    },
+    "Este endereço é da %@" : {
+
+    },
+    "Este endereço é da própria rede Aptos, não de uma carteira. O que é enviado para ele fica preso." : {
+
+    },
+    "Este endereço é da própria rede Sui, não de uma carteira. O que é enviado para ele fica preso." : {
+
+    },
+    "Este endereço é da rede %@, não da rede %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Este endereço é da rede %1$@, não da rede %2$@."
+          }
+        }
+      }
+    },
+    "Este endereço é da rede %@, não do XRP Ledger." : {
+
+    },
+    "Este endereço é da rede %@. Na Stellar o endereço começa com G ou M." : {
+
+    },
+    "Este endereço é da rede %@. Para Aptos, use um endereço Aptos, que começa com 0x e tem 64 caracteres depois dele." : {
+
+    },
+    "Este endereço é da rede %@. Para Cardano, use um endereço Cardano, que começa com addr1." : {
+
+    },
+    "Este endereço é da rede %@. Para NEAR, use uma conta NEAR: os 64 caracteres da conta implícita ou um nome como alice.near." : {
+
+    },
+    "Este endereço é da rede %@. Para Polkadot, use um endereço Polkadot, que começa com 1." : {
+
+    },
+    "Este endereço é da rede %@. Para Sui, use um endereço Sui, que começa com 0x e tem 64 caracteres depois dele." : {
+
+    },
+    "Este endereço é da rede %@. Para TON, use um endereço TON." : {
+
+    },
+    "Este endereço é da rede %@. Para Tron, use um endereço que começa com T." : {
+
+    },
+    "Este endereço é de um programa da rede, não de um token." : {
+
+    },
+    "Este endereço é de um programa da rede, não de uma carteira. O valor ficaria preso." : {
+
+    },
+    "Este endereço é de uma conta de programa, como um cofre multiassinatura. Envio de SOL passa com aviso; envio de token não." : {
+
+    },
+    "Este endereço é de uma conta de programa, não de uma carteira comum. Esta versão não envia tokens para contas assim." : {
+
+    },
+    "Este endereço é de uma exchange" : {
+
+    },
+    "Este endereço é desta mesma carteira." : {
+
+    },
+    "Este endereço é o contrato do próprio token. O que for enviado para ele fica preso para sempre." : {
+
+    },
+    "Este endereço é o do próprio token, não de uma carteira. O valor ficaria preso." : {
+
+    },
+    "Este endereço é um contrato de token, não uma carteira. O que é enviado para ele fica preso." : {
+
+    },
+    "Este endereço é um contrato de troca ou de token, não uma carteira. Envio recusado." : {
+
+    },
+    "Este endereço é um contrato, não uma carteira comum. Confira se ele aceita %@ e tokens." : {
+
+    },
+    "Este endereço é uma conta de programa, não uma carteira. O valor poderia ficar preso." : {
+
+    },
+    "Este endereço é uma conta de token, não uma carteira. Peça o endereço da carteira de quem vai receber." : {
+
+    },
+    "Este envelope está danificado e não abre. Se você tem outra cópia do arquivo, use a outra." : {
+
+    },
+    "Este envelope exige %lld MiB por tentativa, e este iPhone não consegue reservar tanto agora. Feche outros apps e tente de novo. A senha não chegou a ser testada." : {
+
+    },
+    "Este envelope foi lacrado preso ao iPhone que o criou e só abre no app Escalibur daquele aparelho." : {
+
+    },
+    "Este envelope guarda uma parte SLIP-39. Uma parte sozinha não abre carteira, e esta versão ainda não junta partes." : {
+
+    },
+    "Este envelope pede uma conta pesada" : {
+
+    },
+    "Este envio ativa a conta de destino (mínimo %@)." : {
+
+    },
+    "Este envio cria a conta de destino" : {
+
+    },
+    "Este envio junta moedas demais para uma transação só. Envie um valor menor." : {
+
+    },
+    "Este envio também ativa a sua carteira TON" : {
+
+    },
+    "Este iPhone não reconhece fala sem internet agora." : {
+
+    },
+    "Este iPhone não reconhece fala sem internet, nem em português nem em inglês, então a confirmação por voz não está disponível." : {
+
+    },
+    "Este iPhone não tem código" : {
+
+    },
+    "Este iPhone parece ter jailbreak" : {
+
+    },
+    "Este motor só atende a rede Solana." : {
+
+    },
+    "Este não é um endereço Solana válido. Confira se copiou inteiro." : {
+
+    },
+    "Este não é um endereço do XRP Ledger." : {
+
+    },
+    "Este não é um endereço válido na rede %@. Confira se copiou inteiro e se a rede é essa." : {
+
+    },
+    "Este pedido de pagamento não pôde ser lido com segurança. Peça só o endereço." : {
+
+    },
+    "Este pedido é da rede %@, e o envio é pela %@. Confira com quem pediu antes de enviar." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Este pedido é da rede %1$@, e o envio é pela %2$@. Confira com quem pediu antes de enviar."
+          }
+        }
+      }
+    },
+    "Este pedido é de outra rede." : {
+
+    },
+    "Este preço não cabe na fração que a Stellar usa. Ajuste os valores." : {
+
+    },
+    "Este preço-alvo resulta em zero. Confira o valor." : {
+
+    },
+    "Este preço-alvo tem casas decimais demais para a ordem. Arredonde e tente de novo." : {
+
+    },
+    "Este tipo de conta NEAR ainda não recebe envios pela Escalibur. Peça a conta implícita, de 64 caracteres, ou um nome como alice.near." : {
+
+    },
+    "Este tipo de endereço ainda não recebe envios desta carteira." : {
+
+    },
+    "Este token não está na lista de ativos da carteira." : {
+
+    },
+    "Este token não pode ser transferido." : {
+
+    },
+    "Este token tem cara de golpe" : {
+
+    },
+    "Este token tem regras do emissor que esta carteira não aceita." : {
+
+    },
+    "Este é um endereço %@. Para enviar pela rede %@, use um endereço da %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Este é um endereço %1$@. Para enviar pela rede %2$@, use um endereço da %3$@."
+          }
+        }
+      }
+    },
+    "Este é um endereço %@. Para enviar pela rede %@, use um endereço do %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Este é um endereço %1$@. Para enviar pela rede %2$@, use um endereço do %3$@."
+          }
+        }
+      }
+    },
+    "Estimativa" : {
+
+    },
+    "Estou ciente que:" : {
+
+    },
+    "Estável" : {
+
+    },
+    "Etapa %lld de %lld: %@ do valor" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Etapa %1$lld de %2$lld: %3$@ do valor"
+          }
+        }
+      }
+    },
+    "Etapa %lld · %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Etapa %1$lld · %2$@"
+          }
+        }
+      }
+    },
+    "Etapas" : {
+
+    },
+    "Euro" : {
+
+    },
+    "Ex.: Bitcoin passou de %@" : {
+
+    },
+    "Ex.: Minha conta na corretora" : {
+
+    },
+    "Ex.: Recebeu 100 USDT, na Tron" : {
+
+    },
+    "Exata: %@, nunca ilimitada" : {
+
+    },
+    "Exchanges pedem para saber de quem é o depósito. Se quem pediu o envio deu" : {
+
+    },
+    "Exchanges quase sempre pedem comentário. Sem ele, o valor chega na exchange mas não na sua conta, e recuperar leva semanas de suporte." : {
+
+    },
+    "Exchanges quase sempre pedem memo. Sem ele, o valor chega na exchange mas não na sua conta, e recuperar leva semanas de suporte." : {
+
+    },
+    "Exchanges quase sempre pedem tag de destino. Sem ela, o valor chega na exchange mas não na sua conta, e recuperar leva semanas de suporte." : {
+
+    },
+    "Executa o que der agora e cancela o resto" : {
+
+    },
+    "Executa tudo agora ou nada" : {
+
+    },
+    "Executada. Recebido %@" : {
+
+    },
+    "Execução" : {
+
+    },
+    "Execução parcial" : {
+
+    },
+    "Existe iOS mais novo, com correções de segurança. Atualize quando puder." : {
+
+    },
+    "Expira em" : {
+
+    },
+    "Faixa de 24 horas" : {
+
+    },
+    "Falar a frase" : {
+
+    },
+    "Falar agora" : {
+
+    },
+    "Falar de novo" : {
+
+    },
+    "Fale a frase de novo" : {
+
+    },
+    "Fale a frase que você gravou. Depois dela vem o %@ ou o PIN. O iPhone reconhece a frase, não a sua voz." : {
+
+    },
+    "Fale com a Escalibur" : {
+
+    },
+    "Falhou" : {
+
+    },
+    "Falta 1 envio sem a frase." : {
+
+    },
+    "Falta SOL para a taxa da rede e para criar a conta de %@ do destino. Deposite SOL nesta carteira para enviar %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Falta SOL para a taxa da rede e para criar a conta de %1$@ do destino. Deposite SOL nesta carteira para enviar %2$@."
+          }
+        }
+      }
+    },
+    "Falta SOL para a taxa da rede. Deposite SOL nesta carteira para enviar %@." : {
+
+    },
+    "Falta SOL para pagar a taxa da rede deste envio de token." : {
+
+    },
+    "Falta XLM livre para pagar a taxa da rede." : {
+
+    },
+    "Falta a chave pública desta conta nos dados da carteira. Nada foi montado." : {
+
+    },
+    "Faltam %lld envios sem a frase." : {
+
+    },
+    "Faltam palavras: %lld de %lld." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Faltam palavras: %1$lld de %2$lld."
+          }
+        }
+      }
+    },
+    "Favoritas" : {
+
+    },
+    "Fechar" : {
+
+    },
+    "Fechar aviso" : {
+
+    },
+    "Fechar e acompanhar na Atividade" : {
+
+    },
+    "Fica na carteira" : {
+
+    },
+    "Fica no livro até executar ou ser cancelada" : {
+
+    },
+    "Fica no livro até executar, ser cancelada ou expirar" : {
+
+    },
+    "Finalizada na rede Solana." : {
+
+    },
+    "Fixar no topo do Mercado" : {
+
+    },
+    "Foi em %@? Usar “%@”" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Foi em %1$@? Usar “%2$@”"
+          }
+        }
+      }
+    },
+    "Fora da leitura" : {
+
+    },
+    "Fora da leitura: %@." : {
+
+    },
+    "Fora da lista verificada" : {
+
+    },
+    "Fora da lista verificada. Os suspeitos não aparecem aqui: ficam sempre escondidos." : {
+
+    },
+    "Fora da lista verificada. Sem preço confiável, ficam fora do saldo total." : {
+
+    },
+    "Fora da ponte nestas redes." : {
+
+    },
+    "Forte. Nem um governo abre em tempo útil." : {
+
+    },
+    "Fraca. Um grupo com placas de vídeo abre em %@." : {
+
+    },
+    "Francês" : {
+
+    },
+    "Frase conferida" : {
+
+    },
+    "Frase gravada. As operações marcadas abaixo pedem a frase antes do %@ ou do PIN." : {
+
+    },
+    "Ganho estimado" : {
+
+    },
+    "Garantia" : {
+
+    },
+    "Garantido" : {
+
+    },
+    "Garantido depois que a transação confirmar: o contrato marca a ordem como executada" : {
+
+    },
+    "Garantido no total: %@ ou mais" : {
+
+    },
+    "Gerenciar" : {
+
+    },
+    "Gerenciar ativos" : {
+
+    },
+    "Gravar agora" : {
+
+    },
+    "Gravar outra frase" : {
+
+    },
+    "Grave a senha da carteira" : {
+
+    },
+    "Grave a senha da carteira antes de receber" : {
+
+    },
+    "Grave as %lld palavras antes de receber. Leva 2 minutos." : {
+
+    },
+    "Grupo de palavras" : {
+
+    },
+    "Gráfico de %@. Sem conexão com as fontes agora." : {
+
+    },
+    "Gráfico de preço" : {
+
+    },
+    "Gráfico do CoinGecko, pelo contrato. O token não está na lista conferida da Escalibur." : {
+
+    },
+    "Guardar a carteira do envelope neste iPhone" : {
+
+    },
+    "Guardar a carteira importada neste iPhone" : {
+
+    },
+    "Guardar a carteira nova neste iPhone" : {
+
+    },
+    "Guardar esta carteira" : {
+
+    },
+    "Guardar num envelope Escalibur" : {
+
+    },
+    "Guardar também num envelope Escalibur" : {
+
+    },
+    "Guarde o arquivo onde quiser. Ele só abre no app, com a senha do envelope." : {
+
+    },
+    "Hoje" : {
+
+    },
+    "Hoje, %@" : {
+
+    },
+    "Há texto copiado. Se for a senha da carteira, apague depois de colar: a cópia pode ir para outros aparelhos Apple." : {
+
+    },
+    "Há uma biblioteca de interceptação carregada no app (%@). Alguém pode estar lendo o que a tela mostra." : {
+
+    },
+    "ID no endereço M" : {
+
+    },
+    "Identificador" : {
+
+    },
+    "Identificador copiado." : {
+
+    },
+    "Imediata" : {
+
+    },
+    "Impacto no preço" : {
+
+    },
+    "Impacto no preço %@%%" : {
+
+    },
+    "Impacto no preço alto demais" : {
+
+    },
+    "Impacto no preço de %@%%." : {
+
+    },
+    "Importada com a senha da carteira" : {
+
+    },
+    "Importada de envelope" : {
+
+    },
+    "Importar" : {
+
+    },
+    "Importar com a senha da carteira" : {
+
+    },
+    "Importar de um envelope Escalibur" : {
+
+    },
+    "Importar esta carteira" : {
+
+    },
+    "Impressão digital da carteira" : {
+
+    },
+    "Inclui %u objetos da conta, como linha de confiança ou oferta aberta." : {
+
+    },
+    "Inclui 1 objeto da conta, como linha de confiança ou oferta aberta." : {
+
+    },
+    "Inclui prioridade" : {
+
+    },
+    "Incluída na versão %@ do ledger, que já é final." : {
+
+    },
+    "Incluída no checkpoint %@, que já é final." : {
+
+    },
+    "Incluída no ledger %@, que já é final." : {
+
+    },
+    "Incluída num bloco da rede Cardano, com %@ confirmações." : {
+
+    },
+    "Incluída num bloco da rede Cardano." : {
+
+    },
+    "Informe a conta de destino." : {
+
+    },
+    "Informe o endereço de destino." : {
+
+    },
+    "Informe um valor maior que zero." : {
+
+    },
+    "Inglês" : {
+
+    },
+    "Inverter" : {
+
+    },
+    "Inverter redes" : {
+
+    },
+    "Ir para a carteira" : {
+
+    },
+    "Isto não é um endereço Stellar." : {
+
+    },
+    "Italiano" : {
+
+    },
+    "Japonês" : {
+
+    },
+    "Jetton" : {
+
+    },
+    "Já anotei as %lld" : {
+
+    },
+    "Já descontada a taxa da rede de %@, a %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Já descontada a taxa da rede de %1$@, a %2$@."
+          }
+        }
+      }
+    },
+    "Já descontada a taxa da rede, de %@." : {
+
+    },
+    "Já descontada a taxa máxima da rede, de %@." : {
+
+    },
+    "Já descontada do mínimo, junto com a taxa da rede da troca" : {
+
+    },
+    "Já existe e cobre o valor" : {
+
+    },
+    "Já existe e é exatamente o valor da ordem" : {
+
+    },
+    "Já existe e é exatamente o valor da troca" : {
+
+    },
+    "Já existe uma ordem limite aberta vendendo este token. Cancele a anterior antes de criar outra." : {
+
+    },
+    "Já há ordens abertas vendendo %@. A autorização cobre exatamente a soma com esta, e as ordens juntas nunca tiram mais que isso da carteira" : {
+
+    },
+    "Lacrando o envelope" : {
+
+    },
+    "Lacrar a senha de %@ num envelope" : {
+
+    },
+    "Lacrar envelope" : {
+
+    },
+    "Leilão da CoW, o melhor entre %lld" : {
+
+    },
+    "Leilão da CoW: os solvers disputam a ordem com a liquidez das corretoras descentralizadas e dos formadores de mercado. Se não couber de uma vez, ela é preenchida em partes, cada uma pelo mínimo ou mais." : {
+
+    },
+    "Leitor de tela" : {
+
+    },
+    "Lendo as ordens na rede." : {
+
+    },
+    "Lendo mais %lld redes" : {
+
+    },
+    "Lendo mais 1 rede" : {
+
+    },
+    "Lendo o andamento na CoW." : {
+
+    },
+    "Lendo o histórico" : {
+
+    },
+    "Lendo os movimentos" : {
+
+    },
+    "Lendo os saldos desta carteira." : {
+
+    },
+    "Ler QR" : {
+
+    },
+    "Ler na rede" : {
+
+    },
+    "Ler os Termos de uso" : {
+
+    },
+    "Leva %@, e cada tentativa custa o mesmo para quem tentar adivinhar." : {
+
+    },
+    "Leva %@, só neste iPhone. A senha do envelope não sai dele." : {
+
+    },
+    "Leva 2 minutos" : {
+
+    },
+    "Leva a mesma moeda para a sua conta em outra rede. USDC pelo CCTP da própria Circle; ETH e USDT pelo Across. Sem taxa da Escalibur." : {
+
+    },
+    "Leva a moeda para a sua conta em outra rede, pelo Across. Na BNB, o USDC, o USDT e o ETH são os da Binance (Binance-Peg): valem enquanto a Binance mantiver o lastro, e não são os da Circle nem os da Tether. Sem taxa da Escalibur." : {
+
+    },
+    "Leva cerca de 2 minutos." : {
+
+    },
+    "Levar %@ para a %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Levar %1$@ para a %2$@"
+          }
+        }
+      }
+    },
+    "Liberado. O valor que você digitou já pode ser enviado." : {
+
+    },
+    "Ligada" : {
+
+    },
+    "Ligado" : {
+
+    },
+    "Ligue em Ajustes do iPhone, Notificações, Escalibur Wallet." : {
+
+    },
+    "Limitar envios seguidos sem a frase" : {
+
+    },
+    "Limite" : {
+
+    },
+    "Limpar" : {
+
+    },
+    "Limpar busca" : {
+
+    },
+    "Linha de confiança" : {
+
+    },
+    "Listada no CoinGecko, não conferida pela Escalibur" : {
+
+    },
+    "Livre %@, o resto em ordens" : {
+
+    },
+    "Língua da frase" : {
+
+    },
+    "Maior que esta ordem. Ela é reduzida para o valor exato, e nenhuma ordem assinada antes consegue usar a diferença" : {
+
+    },
+    "Maior que esta troca. Ela é reduzida para o valor exato, e nenhuma ordem assinada antes consegue usar a diferença" : {
+
+    },
+    "Mais %lld alertas de preço" : {
+
+    },
+    "Mais %lld ordens vencidas depois desta" : {
+
+    },
+    "Mais 1 ordem vencida depois desta" : {
+
+    },
+    "Mais moedas, fora da lista verificada" : {
+
+    },
+    "Manter a frase atual" : {
+
+    },
+    "Manter a ordem" : {
+
+    },
+    "Marcado" : {
+
+    },
+    "Marque o aceite para continuar" : {
+
+    },
+    "Medindo a senha…" : {
+
+    },
+    "Memo" : {
+
+    },
+    "Memo (ID)" : {
+
+    },
+    "Memo (MEMO)" : {
+
+    },
+    "Memo (hash)" : {
+
+    },
+    "Memo (retorno)" : {
+
+    },
+    "Memo (texto)" : {
+
+    },
+    "Memo, se houver" : {
+
+    },
+    "Menos de 1 minuto" : {
+
+    },
+    "Menos provedores responderam do que a carteira exige para seguir com segurança. Nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "Mercado" : {
+
+    },
+    "Mesmo abaixo do valor, a frase volta depois de alguns envios." : {
+
+    },
+    "Minhas carteiras" : {
+
+    },
+    "Mint" : {
+
+    },
+    "Mint comprado" : {
+
+    },
+    "Mint do token" : {
+
+    },
+    "Moeda" : {
+
+    },
+    "Moeda custom, não verificada" : {
+
+    },
+    "Moeda e preço" : {
+
+    },
+    "Moeda em ordem de venda" : {
+
+    },
+    "Moedas" : {
+
+    },
+    "Moedas custom" : {
+
+    },
+    "Moedas de SUI" : {
+
+    },
+    "Moedas usadas" : {
+
+    },
+    "Montando a ordem e conferindo os dados da rede." : {
+
+    },
+    "Montando o cancelamento e conferindo a ordem na rede." : {
+
+    },
+    "Mostrando os preços de %@." : {
+
+    },
+    "Mostrar as palavras" : {
+
+    },
+    "Mostrar de novo" : {
+
+    },
+    "Mostrar mais" : {
+
+    },
+    "Mostrar palavras" : {
+
+    },
+    "Mostrar suspeitos (%lld)" : {
+
+    },
+    "Mostrar valores" : {
+
+    },
+    "Mudar a confirmação por voz" : {
+
+    },
+    "Mudar a frase" : {
+
+    },
+    "Mudar o PIN" : {
+
+    },
+    "Muitas consultas seguidas. Espere alguns segundos e tente de novo." : {
+
+    },
+    "Muitas tentativas de voz seguidas. As operações que pedem voz voltam às %@." : {
+
+    },
+    "Muito fraca. Quem pegar o arquivo abre em %@." : {
+
+    },
+    "Máx" : {
+
+    },
+    "Máxima" : {
+
+    },
+    "Máxima histórica" : {
+
+    },
+    "Mínima" : {
+
+    },
+    "Mínima %@, máxima %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mínima %1$@, máxima %2$@"
+          }
+        }
+      }
+    },
+    "Na %@ a oferta não tem prazo: fica até executar ou você cancelar." : {
+
+    },
+    "Na %@. O saldo novo já está na carteira." : {
+
+    },
+    "Na BNB, o %@ é o da Binance (Binance-Peg). Ele vale enquanto a Binance mantiver o lastro e o resgate: não é o %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Na BNB, o %1$@ é o da Binance (Binance-Peg). Ele vale enquanto a Binance mantiver o lastro e o resgate: não é o %2$@."
+          }
+        }
+      }
+    },
+    "Na BNB, o %@ é o da Binance (Binance-Peg): vale enquanto a Binance mantiver o lastro" : {
+
+    },
+    "Na Stellar todo ativo tem 7 casas decimais, pela própria rede." : {
+
+    },
+    "Na TON, a Escalibur envia só TON e USDT. Um jetton qualquer pede conferir a carteira de jetton e o código do contrato dele, o que ainda não existe aqui. A moeda aparece no saldo e você recebe normalmente." : {
+
+    },
+    "Na Tron, a Escalibur envia só TRX e USDT. Um TRC-20 qualquer pede a leitura da energia do contrato dele, que ainda não existe aqui. A moeda aparece no saldo e você recebe normalmente." : {
+
+    },
+    "Na carteira" : {
+
+    },
+    "Na exchange, escolha a rede %@. Se vier por outra rede EVM, o saldo aparece naquela rede, desde que ela esteja ligada em Ajustes." : {
+
+    },
+    "Na exchange, escolha a rede Aptos e envie só APT. O endereço tem o mesmo formato dos endereços Sui, e um envio pela Sui não chega aqui. A conta passa a existir no primeiro recebimento, de qualquer valor." : {
+
+    },
+    "Na exchange, escolha a rede Cardano. Envie só ADA: tokens nativos que chegarem aqui ainda não podem ser movidos pela Escalibur." : {
+
+    },
+    "Na exchange, escolha a rede NEAR e envie só NEAR. Esta é a conta implícita da carteira, com 64 caracteres, e não precisa de memo." : {
+
+    },
+    "Na exchange, escolha a rede NEAR. Esta é a conta implícita da carteira: ela passa a existir no primeiro recebimento, de qualquer valor, e não precisa de memo." : {
+
+    },
+    "Na exchange, escolha a rede Polkadot Asset Hub e envie só DOT. DOT enviado pela relay chain antiga não aparece aqui." : {
+
+    },
+    "Na exchange, escolha a rede Polkadot Asset Hub. O primeiro recebimento precisa ser de 0,01 DOT ou mais, o mínimo da rede para a conta existir." : {
+
+    },
+    "Na exchange, escolha a rede Sui. O endereço tem o mesmo formato dos endereços Aptos, e um envio pela Aptos não chega aqui." : {
+
+    },
+    "Na máxima" : {
+
+    },
+    "Na sua conta" : {
+
+    },
+    "Na tela bloqueada" : {
+
+    },
+    "Nada foi assinado." : {
+
+    },
+    "Nada foi preenchido. O valor continua na sua carteira." : {
+
+    },
+    "Nada sai sem você" : {
+
+    },
+    "Nas ordens abertas da carteira: pedido à CoW, grátis mas sem garantia, ou na cadeia, garantido, pagando taxa de rede" : {
+
+    },
+    "Nem a Escalibur consegue abrir: não temos a sua senha nem cópia do arquivo." : {
+
+    },
+    "Nem por suporte, e-mail ou mensagem. Quem pedir as palavras quer o seu saldo." : {
+
+    },
+    "Nenhum" : {
+
+    },
+    "Nenhum SDK de análise, de anúncio ou de relatório de falhas. O app não conta a ninguém o que você faz." : {
+
+    },
+    "Nenhum app de e-mail abriu. Toque e segure o endereço acima para copiar." : {
+
+    },
+    "Nenhum código injetado no app" : {
+
+    },
+    "Nenhum depurador conectado" : {
+
+    },
+    "Nenhum endereço salvo" : {
+
+    },
+    "Nenhum movimento de %@ ainda. Envios, recebimentos e trocas aparecem aqui." : {
+
+    },
+    "Nenhum provedor aceitou a transação. Nada foi debitado. Tente de novo." : {
+
+    },
+    "Nenhum provedor cotou esta troca agora. Tente um valor menor ou outro par." : {
+
+    },
+    "Nenhum provedor troca %@ por %@ na %@ agora. Tente um valor menor ou outro par." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nenhum provedor troca %1$@ por %2$@ na %3$@ agora. Tente um valor menor ou outro par."
+          }
+        }
+      }
+    },
+    "Nenhum provedor troca %@ por %@ no %@ agora. Tente um valor menor ou outro par." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nenhum provedor troca %1$@ por %2$@ no %3$@ agora. Tente um valor menor ou outro par."
+          }
+        }
+      }
+    },
+    "Nenhum que a carteira consiga conferir: o contrato da %@ não tem prazo. Se a transação ficar presa na rede, ela pode executar bem mais tarde, e então vale só o mínimo acima, mesmo que o preço tenha melhorado" : {
+
+    },
+    "Nenhum relayer entregou no prazo, e o Across devolveu o depósito para a sua conta." : {
+
+    },
+    "Nenhum: %@ que sobraria fica abaixo do mínimo que vale guardar e vai para a taxa" : {
+
+    },
+    "Nenhum: envia tudo o que as moedas escolhidas pagam; %@ de fora" : {
+
+    },
+    "Nenhum: enviar tudo" : {
+
+    },
+    "Nenhuma" : {
+
+    },
+    "Nenhuma cotação passou na conferência de segurança da carteira. Nada foi assinado." : {
+
+    },
+    "Nenhuma moeda com esse nome ou símbolo." : {
+
+    },
+    "Nenhuma moeda confirmada cobre a taxa da rede agora. Moedas pequenas ou ainda sem confirmação ficam de fora." : {
+
+    },
+    "Nenhuma ordem aberta. A que você criar, em qualquer rede, aparece aqui até executar, vencer ou você cancelar." : {
+
+    },
+    "Nenhuma outra carteira deste app tem conta na %@." : {
+
+    },
+    "Nenhuma outra carteira deste app tem conta nesta rede." : {
+
+    },
+    "Nenhuma outra carteira deste app tem conta no %@." : {
+
+    },
+    "Nenhuma palavra da lista começa assim." : {
+
+    },
+    "Nenhuma rota troca %@ por %@ na Stellar agora. Tente um valor menor." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nenhuma rota troca %1$@ por %2$@ na Stellar agora. Tente um valor menor."
+          }
+        }
+      }
+    },
+    "Nenhuma: juntar as moedas devolve mais armazenamento do que o envio custa" : {
+
+    },
+    "Nenhuma; o que vier acima da estimativa fica com a Velora" : {
+
+    },
+    "Nesta carteira" : {
+
+    },
+    "Nesta rede a carteira envia só %@." : {
+
+    },
+    "Ninguém abre sem ela, nem a Escalibur, e ninguém recupera uma senha esquecida. Quem tiver uma cópia do arquivo pode tentar senhas à vontade, por isso a sugerida tem seis palavras sorteadas." : {
+
+    },
+    "Ninguém da Escalibur pede" : {
+
+    },
+    "Ninguém da Escalibur pede a senha da carteira, o PIN ou a senha de um envelope, nem pelo suporte. Quem pede quer o seu saldo." : {
+
+    },
+    "Ninguém da Escalibur vai pedir suas palavras" : {
+
+    },
+    "No XRP Ledger e na Stellar, a conta passa a existir no primeiro recebimento de 1 XRP ou 1 XLM, que ficam reservados pela rede." : {
+
+    },
+    "No XRP Ledger o token não tem casas decimais fixas. A carteira mostra até %lld casas." : {
+
+    },
+    "No XRP Ledger, a Escalibur envia só XRP por enquanto, nem os tokens da lista. A moeda aparece no saldo e você recebe normalmente, se a conta já tiver a linha de confiança." : {
+
+    },
+    "No leilão da CoW" : {
+
+    },
+    "No máximo %lld envios seguidos" : {
+
+    },
+    "No mínimo 4 caracteres." : {
+
+    },
+    "Nome" : {
+
+    },
+    "Nome da carteira" : {
+
+    },
+    "Nome dentro do envelope" : {
+
+    },
+    "Nonce" : {
+
+    },
+    "Notificações desligadas" : {
+
+    },
+    "Nova cotação em %lld s" : {
+
+    },
+    "Nunca" : {
+
+    },
+    "Nunca apagar por PINs errados" : {
+
+    },
+    "Nunca mande as palavras da carteira" : {
+
+    },
+    "Não abriu. Confira a senha, com maiúsculas, acentos e espaços, e tente de novo." : {
+
+    },
+    "Não conferiu com a frase acima. Fale de novo, do mesmo jeito." : {
+
+    },
+    "Não conferiu. Mais %lld tentativas antes da pausa de 15 minutos." : {
+
+    },
+    "Não conferiu. Mais 1 tentativa antes da pausa de 15 minutos." : {
+
+    },
+    "Não conferiu. Numa operação, isto contaria como uma tentativa errada." : {
+
+    },
+    "Não conferiu. Tente de novo." : {
+
+    },
+    "Não deu para confirmar a ordem" : {
+
+    },
+    "Não deu para confirmar a troca" : {
+
+    },
+    "Não deu para confirmar o cancelamento" : {
+
+    },
+    "Não deu para confirmar o depósito" : {
+
+    },
+    "Não deu para confirmar o envio" : {
+
+    },
+    "Não existe redefinir o PIN" : {
+
+    },
+    "Não expira: fica no livro até executar ou você cancelar" : {
+
+    },
+    "Não feche o app até terminar." : {
+
+    },
+    "Não foi possível abrir a carteira agora." : {
+
+    },
+    "Não foi possível abrir este envelope agora. Tente de novo." : {
+
+    },
+    "Não foi possível calcular o valor disponível agora." : {
+
+    },
+    "Não foi possível cancelar a ordem agora. Tente de novo em instantes." : {
+
+    },
+    "Não foi possível carregar a lista de moedas agora." : {
+
+    },
+    "Não foi possível carregar mais dados desta moeda agora." : {
+
+    },
+    "Não foi possível carregar o gráfico agora." : {
+
+    },
+    "Não foi possível carregar o mercado agora." : {
+
+    },
+    "Não foi possível confirmar a transmissão. Confira a Atividade antes de enviar de novo." : {
+
+    },
+    "Não foi possível confirmar em duas fontes da rede agora. Tente de novo em instantes." : {
+
+    },
+    "Não foi possível consultar o destino agora." : {
+
+    },
+    "Não foi possível consultar o destino agora. Tente de novo em instantes." : {
+
+    },
+    "Não foi possível cotar a ponte agora." : {
+
+    },
+    "Não foi possível cotar a ponte agora. Tente de novo em instantes." : {
+
+    },
+    "Não foi possível cotar esta troca agora. Tente de novo em instantes." : {
+
+    },
+    "Não foi possível criar a carteira agora." : {
+
+    },
+    "Não foi possível destravar. Tente de novo." : {
+
+    },
+    "Não foi possível estimar a energia deste envio. Tente de novo em instantes." : {
+
+    },
+    "Não foi possível falar com a rede Solana agora. Tente de novo." : {
+
+    },
+    "Não foi possível falar com a rede agora. Confira a conexão e tente de novo." : {
+
+    },
+    "Não foi possível gravar a frase agora. Tente de novo." : {
+
+    },
+    "Não foi possível guardar a carteira. Tente de novo." : {
+
+    },
+    "Não foi possível guardar o PIN neste iPhone." : {
+
+    },
+    "Não foi possível guardar." : {
+
+    },
+    "Não foi possível importar a carteira." : {
+
+    },
+    "Não foi possível lacrar o envelope." : {
+
+    },
+    "Não foi possível ler a moeda na rede agora." : {
+
+    },
+    "Não foi possível ler a parte da taxa paga à L1. Tente de novo em instantes." : {
+
+    },
+    "Não foi possível ler a rede TON agora. Tente de novo em instantes." : {
+
+    },
+    "Não foi possível ler a rede Tron agora. Tente de novo em instantes." : {
+
+    },
+    "Não foi possível ler as ordens agora. Tente de novo." : {
+
+    },
+    "Não foi possível ler o andamento da ordem agora." : {
+
+    },
+    "Não foi possível ler o arquivo inteiro. Se ele está no iCloud, espere o download terminar e tente de novo." : {
+
+    },
+    "Não foi possível ler o arquivo. Confira se ele ainda está no mesmo lugar e tente de novo." : {
+
+    },
+    "Não foi possível ler o histórico da %@ agora." : {
+
+    },
+    "Não foi possível ler o histórico da Aptos agora." : {
+
+    },
+    "Não foi possível ler o histórico da Cardano agora." : {
+
+    },
+    "Não foi possível ler o histórico da NEAR agora." : {
+
+    },
+    "Não foi possível ler o histórico da Polkadot agora." : {
+
+    },
+    "Não foi possível ler o histórico da Sui agora." : {
+
+    },
+    "Não foi possível ler o histórico da TON agora." : {
+
+    },
+    "Não foi possível ler o histórico da Tron agora." : {
+
+    },
+    "Não foi possível ler o histórico de %@ agora." : {
+
+    },
+    "Não foi possível ler o saldo agora. %@" : {
+
+    },
+    "Não foi possível ler o saldo na %@. Os outros estão em dia." : {
+
+    },
+    "Não foi possível ler o saldo no %@. Os outros estão em dia." : {
+
+    },
+    "Não foi possível ler os movimentos agora." : {
+
+    },
+    "Não foi possível ligar o %@ agora." : {
+
+    },
+    "Não foi possível montar agora. Tente de novo." : {
+
+    },
+    "Não foi possível mudar agora. Tente de novo." : {
+
+    },
+    "Não foi possível preparar a ordem limite agora. Nada foi assinado." : {
+
+    },
+    "Não foi possível preparar a ponte agora. Nada foi assinado." : {
+
+    },
+    "Não foi possível preparar a troca agora. Nada foi assinado." : {
+
+    },
+    "Não foi possível preparar o envio agora. Nada foi assinado." : {
+
+    },
+    "Não foi possível preparar o envio." : {
+
+    },
+    "Não foi possível registrar a tentativa neste iPhone. Libere espaço e tente de novo." : {
+
+    },
+    "Não foi possível salvar agora. Tente de novo." : {
+
+    },
+    "Não foi possível salvar. Tente de novo." : {
+
+    },
+    "Não foi possível trocar. O PIN atual continua valendo." : {
+
+    },
+    "Não houve provedores suficientes respondendo para conferir os dados. Tente de novo em instantes." : {
+
+    },
+    "Não há SOL suficiente para este envio depois da taxa da rede e da reserva mínima da conta." : {
+
+    },
+    "Não ouvi nada. Toque em falar e diga a frase perto do iPhone." : {
+
+    },
+    "Não precisa de memo. Se a exchange pedir, marque que o endereço não tem memo." : {
+
+    },
+    "Não precisa de tag de destino. Se a exchange pedir, marque que o endereço não tem tag." : {
+
+    },
+    "Não precisa: moeda nativa" : {
+
+    },
+    "Não reconheci este endereço em nenhuma rede ligada. Confira se copiou inteiro." : {
+
+    },
+    "Não refazer" : {
+
+    },
+    "Não temos servidor com as suas chaves. Não temos como ver, mover nem recuperar nada." : {
+
+    },
+    "Não use o código do iPhone nem o PIN do app: quem já viu você digitar abre o envelope." : {
+
+    },
+    "Não verificado" : {
+
+    },
+    "Não verificado pela Escalibur" : {
+
+    },
+    "Não é a palavra %lld. Confira a posição %lld no seu papel." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Não é a palavra %1$lld. Confira a posição %2$lld no seu papel."
+          }
+        }
+      }
+    },
+    "Não é garantido: se um solver já estiver liquidando, a ordem ainda pode executar. Para ter certeza, cancele na cadeia." : {
+
+    },
+    "Número do ativo" : {
+
+    },
+    "Números redondos" : {
+
+    },
+    "O %@ deste iPhone mudou desde que foi ligado aqui. Confirme com o PIN; depois você pode religar." : {
+
+    },
+    "O %@ deste iPhone mudou desde que foi ligado aqui. Entre com o PIN; depois você pode religar." : {
+
+    },
+    "O %@ não confirmou. Ele continua desligado." : {
+
+    },
+    "O %@ não confirmou. Ele continua desligado; você pode ligar depois nos Ajustes." : {
+
+    },
+    "O %@ sem internet não está disponível neste iPhone agora. Costuma ficar disponível quando você adiciona um teclado em %@ nos Ajustes do iPhone." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "O %1$@ sem internet não está disponível neste iPhone agora. Costuma ficar disponível quando você adiciona um teclado em %2$@ nos Ajustes do iPhone."
+          }
+        }
+      }
+    },
+    "O Across não atende %@." : {
+
+    },
+    "O CCTP da Circle leva até %@ por vez. Faça em partes." : {
+
+    },
+    "O CCTP da Circle leva até 10 milhões de USDC por vez. Faça em partes." : {
+
+    },
+    "O CoinGecko lista %@ também nestas redes, com o contrato de cada uma. A Escalibur ainda não conferiu esses contratos." : {
+
+    },
+    "O CoinGecko marca este token com um aviso" : {
+
+    },
+    "O CoinGecko não respondeu agora, e sem ele a carteira não sabe em que rede esta moeda existe." : {
+
+    },
+    "O CoinGecko não respondeu agora. Aparecem só as moedas verificadas." : {
+
+    },
+    "O CoinGecko pediu uma pausa. Esperando liberar para ler as redes de %@." : {
+
+    },
+    "O CoinGecko pediu uma pausa. Tentando de novo." : {
+
+    },
+    "O CoinGecko publicou um aviso sobre %@ (ataque, migração ou golpe). Confira as notícias da moeda antes de receber." : {
+
+    },
+    "O PIN atual não confere." : {
+
+    },
+    "O PIN mora só neste iPhone, e ninguém tem cópia dele, nem a Escalibur. Para voltar a usar o app, comece de novo:" : {
+
+    },
+    "O PIN não recupera a carteira. Se você esquecer o PIN, a senha da carteira traz tudo de volta." : {
+
+    },
+    "O TRX desta conta não cobre as taxas da rede deste envio. A Escalibur não paga essa taxa por você. Envie mais TRX para esta conta e tente de novo." : {
+
+    },
+    "O USDC da rede de destino bloqueou esta conta: a cunhagem falharia. %@" : {
+
+    },
+    "O USDC queimado só pode ser cunhado para a sua conta. Abra de novo mais tarde; se continuar assim, a carteira resgata com a sua assinatura." : {
+
+    },
+    "O USDC queimado só pode ser cunhado para a sua conta. Se a entrega da Circle falhar, a carteira resgata com a sua assinatura" : {
+
+    },
+    "O USDT chega, mas para movimentá-lo o dono do endereço vai precisar de TRX." : {
+
+    },
+    "O VoiceOver está ligado e lê as palavras em voz alta. Use fone de ouvido." : {
+
+    },
+    "O andamento da ordem não está disponível nesta rede." : {
+
+    },
+    "O app avisa e pergunta se refaz, com o mesmo preço" : {
+
+    },
+    "O arquivo .esclbr e a senha do envelope." : {
+
+    },
+    "O arquivo se chama %@ e não diz de quem é nem o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira." : {
+
+    },
+    "O aviso, como o CoinGecko publica: “%@”" : {
+
+    },
+    "O bloco recebido da rede é inconsistente. Tente de novo em instantes." : {
+
+    },
+    "O cancelamento não foi montado" : {
+
+    },
+    "O cancelamento não saiu. A ordem continua aberta." : {
+
+    },
+    "O comentário tem caracteres invisíveis ou de controle. Digite de novo, só com texto comum." : {
+
+    },
+    "O comentário tem espaço no começo ou no fim. Tire os espaços: a exchange compara o comentário exatamente." : {
+
+    },
+    "O comentário é longo demais para a mensagem." : {
+
+    },
+    "O contrato a autorizar não existe nesta rede. Nada foi assinado." : {
+
+    },
+    "O contrato da CoW não respondeu nesta rede. Nada foi assinado." : {
+
+    },
+    "O contrato da ponte não respondeu como esperado. %@" : {
+
+    },
+    "O contrato desta carteira na rede não é da versão esperada. Nada foi montado." : {
+
+    },
+    "O contrato deste token não respondeu nesta rede. Nada foi assinado." : {
+
+    },
+    "O contrato do USDT recusaria este envio agora, e a energia seria queimada à toa. Confira o saldo de USDT e tente de novo." : {
+
+    },
+    "O contrato do provedor não confere com o que a carteira conhece. Troca bloqueada." : {
+
+    },
+    "O contrato do token recusaria esta transferência. Nada foi assinado." : {
+
+    },
+    "O código do contrato da ponte mudou (%@). Por segurança, a ponte fica desligada até a próxima atualização da Escalibur. %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "O código do contrato da ponte mudou (%1$@). Por segurança, a ponte fica desligada até a próxima atualização da Escalibur. %2$@"
+          }
+        }
+      }
+    },
+    "O código está público no GitHub. Dá para conferir, linha por linha, que a senha e as chaves nunca saem do aparelho." : {
+
+    },
+    "O depósito está entrando na rede." : {
+
+    },
+    "O depósito não saiu" : {
+
+    },
+    "O destino ainda não aceita %@. Ele precisa abrir a linha de confiança antes." : {
+
+    },
+    "O destino ainda não existe. Para criar a conta, envie pelo menos %@." : {
+
+    },
+    "O destino atingiu o limite de %@ que aceita receber." : {
+
+    },
+    "O destino exige memo (SEP-29). Sem ele o depósito se perde." : {
+
+    },
+    "O destino mostrou algo diferente do que você assinou. Confira a Atividade das duas redes." : {
+
+    },
+    "O destino ou o comentário não puderam ser montados na mensagem. Confira os dois." : {
+
+    },
+    "O destino recebe" : {
+
+    },
+    "O destino é a própria carteira de origem." : {
+
+    },
+    "O destino é a própria conta." : {
+
+    },
+    "O destino é o contrato do USDT. O que é enviado para ele fica preso para sempre." : {
+
+    },
+    "O destino é o emissor do ativo. Enviar ao emissor destrói o ativo." : {
+
+    },
+    "O destino é o endereço de queima da Tron. O que é enviado para ele se perde." : {
+
+    },
+    "O destino é um contrato, não uma carteira comum." : {
+
+    },
+    "O destino é um contrato, não uma carteira comum. A rede Tron não aceita TRX enviado direto para contrato." : {
+
+    },
+    "O destino é um contrato. A rede Tron não aceita TRX enviado direto para contrato." : {
+
+    },
+    "O emissor cobra %@%% de cada transferência deste token (Token-2022)." : {
+
+    },
+    "O emissor não autorizou esta conta a usar %@." : {
+
+    },
+    "O emissor não autorizou o destino a receber %@." : {
+
+    },
+    "O emissor pausou este token." : {
+
+    },
+    "O emissor pausou este token. A transferência não passaria." : {
+
+    },
+    "O emissor pausou este token. A troca não passaria." : {
+
+    },
+    "O emissor pode mover ou queimar este token em qualquer conta, inclusive na sua." : {
+
+    },
+    "O endereço de troco não confere com a chave da carteira. Por segurança, nada foi montado." : {
+
+    },
+    "O endereço já traz uma tag, e a tag digitada é outra. Confira com quem pediu o envio." : {
+
+    },
+    "O endereço sai da lista. Nada muda na rede." : {
+
+    },
+    "O endereço tem um caractere errado ou está incompleto." : {
+
+    },
+    "O envelope abriu, mas a senha da carteira dentro dele está num idioma que esta versão não reconhece." : {
+
+    },
+    "O envelope pega as palavras da sua carteira e tranca tudo com uma senha que você escolhe. O resultado é um arquivo .esclbr." : {
+
+    },
+    "O envio montado não confere com o destino digitado. Nada foi assinado." : {
+
+    },
+    "O envio montado não confere com o destino ou o comentário pedidos. Nada foi assinado." : {
+
+    },
+    "O envio montado não confere com o destino ou o memo pedidos. Nada foi assinado." : {
+
+    },
+    "O envio montado não confere com o destino pedido. Nada foi assinado." : {
+
+    },
+    "O envio não saiu. Nada foi debitado." : {
+
+    },
+    "O envio venceu antes de chegar à rede. Nada saiu da conta. Revise e envie de novo." : {
+
+    },
+    "O envio venceu sem entrar na rede. Nada saiu da conta." : {
+
+    },
+    "O envio venceu sem entrar num bloco. Nada saiu da conta." : {
+
+    },
+    "O estado da conta recebido da rede é inconsistente. Tente de novo em instantes." : {
+
+    },
+    "O histórico da %@ ainda não está disponível nesta versão." : {
+
+    },
+    "O histórico de %@ não aparece aqui: nenhum serviço gratuito publica o histórico dessas redes sem cadastro. O saldo aparece na Carteira, e o histórico completo, no explorador da rede." : {
+
+    },
+    "O histórico desta rede não pôde ser lido agora, então o app não consegue comparar com os endereços que você já usou. Confira o endereço com quem vai receber." : {
+
+    },
+    "O iPhone reconhece a frase, não a sua voz" : {
+
+    },
+    "O iPhone reiniciou. Depois de reiniciar ou de a bateria acabar, o PIN é necessário uma vez antes do %@ voltar a valer." : {
+
+    },
+    "O iPhone reiniciou. Digite o PIN uma vez para o %@ voltar a valer." : {
+
+    },
+    "O iPhone reiniciou: o PIN é necessário uma vez antes do %@ voltar a valer." : {
+
+    },
+    "O impacto no preço subiu desde a cotação. Atualize a cotação e confirme de novo." : {
+
+    },
+    "O indexador público da %@ está recusando pedidos de aplicativos agora. O histórico dela fica no explorador." : {
+
+    },
+    "O livro de ofertas de %@ por %@ não cobre este valor agora. Tente um valor menor." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "O livro de ofertas de %1$@ por %2$@ não cobre este valor agora. Tente um valor menor."
+          }
+        }
+      }
+    },
+    "O memo cabe até 28 caracteres." : {
+
+    },
+    "O memo de texto cabe até %lld caracteres. Confira com quem pediu o memo." : {
+
+    },
+    "O memo passa de %lld bytes." : {
+
+    },
+    "O memo é longo demais para a rede Tron." : {
+
+    },
+    "O mercado já paga mais que o preço desta ordem. Refeita agora, ela sai na hora, ao preço de mercado ou melhor." : {
+
+    },
+    "O microfone não abriu. Se outro app estiver usando o microfone, feche e tente de novo." : {
+
+    },
+    "O máximo conta as %lld maiores moedas da conta, o que cabe num envio." : {
+
+    },
+    "O máximo deixa %@ na conta como folga: a taxa cobrada de verdade pode passar um pouco da estimativa." : {
+
+    },
+    "O nome fica cifrado. O arquivo não diz de quem é." : {
+
+    },
+    "O nome ou o símbolo traz um site ou um @. É o jeito mais comum de levar alguém a uma página que pede a senha da carteira." : {
+
+    },
+    "O nome tem caracteres invisíveis ou que invertem o texto." : {
+
+    },
+    "O nome usa isca: resgate, prêmio, bônus, airdrop, visite." : {
+
+    },
+    "O nome, o símbolo e a logo vêm do CoinGecko, que lista este contrato. A troca fica só para as moedas da lista conferida. Ao enviar, confira o contrato inteiro." : {
+
+    },
+    "O plano montado não confere com a ponte pedida. Nada foi assinado." : {
+
+    },
+    "O plano montado não confere com a troca pedida. Nada foi assinado." : {
+
+    },
+    "O plano montado não confere com o pedido. Nada foi assinado." : {
+
+    },
+    "O prazo da transação venceu antes de ela entrar na rede. Nada foi debitado. Revise de novo." : {
+
+    },
+    "O prazo da transação venceu antes do envio. Nada foi debitado. Revise de novo." : {
+
+    },
+    "O prazo de uma ordem limite acabou" : {
+
+    },
+    "O prazo venceu antes de a transação entrar num ledger. Nada foi debitado." : {
+
+    },
+    "O preço desta cotação está longe demais do preço médio de mercado. Troca bloqueada." : {
+
+    },
+    "O preço mudou desde a cotação e o mínimo garantido ficou abaixo do mostrado. Confira o novo preço e tente de novo." : {
+
+    },
+    "O preço mudou desde a cotação. Atualize para ver o preço de agora." : {
+
+    },
+    "O preço mudou mais que a sua tolerância desde a cotação. Atualize a cotação e revise de novo." : {
+
+    },
+    "O primeiro passo entrou na rede e falhou, e só a taxa foi cobrada. O resto não foi enviado." : {
+
+    },
+    "O primeiro passo foi enviado; o seguinte não saiu. %@" : {
+
+    },
+    "O provedor escolhido não respondeu a tempo. Atualize a cotação e tente de novo." : {
+
+    },
+    "O provedor escolhido não respondeu. Atualize a cotação e tente de novo." : {
+
+    },
+    "O provedor escolhido não tem rota para esta troca agora. Atualize a cotação." : {
+
+    },
+    "O próprio iPhone confere o saldo das suas contas e avisa quando entra moeda. Sem servidor da Escalibur no caminho." : {
+
+    },
+    "O próprio iPhone confere os preços e avisa quando uma moeda passa de um número redondo ou se mexe forte em 24 h. Sem servidor da Escalibur no caminho." : {
+
+    },
+    "O próximo envio pede a frase." : {
+
+    },
+    "O que o suporte não consegue fazer" : {
+
+    },
+    "O reconhecimento de fala sem internet não respondeu. Tente de novo em instantes." : {
+
+    },
+    "O relógio deste iPhone está diferente da hora da rede Aptos. Ajuste a data e a hora automáticas e tente de novo." : {
+
+    },
+    "O relógio do aparelho está diferente do horário da rede Tron. Ative data e hora automáticas e tente de novo. Nada foi assinado." : {
+
+    },
+    "O saldo continua na blockchain. Sem a senha da carteira ou um envelope, você não volta a acessá-lo." : {
+
+    },
+    "O saldo novo aparece quando a rede confirmar." : {
+
+    },
+    "O símbolo imita o de uma moeda conhecida, com outro contrato." : {
+
+    },
+    "O token não foi reconhecido na rede Solana." : {
+
+    },
+    "O token tem extensões do Token-2022 que a carteira não conhece." : {
+
+    },
+    "O valor fica abaixo do mínimo que a rede repassa, depois da taxa. Envie um valor maior." : {
+
+    },
+    "O valor fica na sua carteira até a ordem executar. Para cancelar, toque nela em Ordens abertas, logo abaixo: a carteira envia uma transação que invalida a ordem de vez, com a taxa da rede." : {
+
+    },
+    "O valor fica na sua conta, reservado pela oferta, até executar ou você cancelar pelas ordens abertas. A Stellar não tem prazo para ofertas: ela fica aberta até executar ou ser cancelada, e prende uma reserva de XLM enquanto isso." : {
+
+    },
+    "O valor fica na sua conta, reservado pela oferta, até executar, vencer (se tiver prazo) ou você cancelar pelas ordens abertas. Enquanto a oferta estiver no livro, a rede prende a reserva de um objeto em XRP." : {
+
+    },
+    "O valor não volta" : {
+
+    },
+    "O valor passa do máximo que a rede %@ aceita." : {
+
+    },
+    "O valor passa do máximo que a rede representa." : {
+
+    },
+    "O valor passa do máximo que o XRP Ledger representa." : {
+
+    },
+    "O valor precisa ser maior que zero." : {
+
+    },
+    "O valor tem casas demais para o XRP Ledger." : {
+
+    },
+    "OK" : {
+
+    },
+    "Observar" : {
+
+    },
+    "Observar um endereço" : {
+
+    },
+    "Ocultar valores" : {
+
+    },
+    "Oferta" : {
+
+    },
+    "Oferta inválida." : {
+
+    },
+    "Oferta máxima" : {
+
+    },
+    "Oferta total" : {
+
+    },
+    "Ontem" : {
+
+    },
+    "Ontem, %@" : {
+
+    },
+    "Opções de %@" : {
+
+    },
+    "Ordem" : {
+
+    },
+    "Ordem cancelada" : {
+
+    },
+    "Ordem executada" : {
+
+    },
+    "Ordem limite" : {
+
+    },
+    "Ordem limite criada" : {
+
+    },
+    "Ordem limite na Solana ainda não está disponível nesta versão." : {
+
+    },
+    "Ordem limite na Solana ainda não está disponível nesta versão. Nada sai da sua carteira para esperar uma ordem." : {
+
+    },
+    "Ordem limite: %@ por %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ordem limite: %1$@ por %2$@"
+          }
+        }
+      }
+    },
+    "Ordem limite: vender %@ por %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ordem limite: vender %1$@ por %2$@"
+          }
+        }
+      }
+    },
+    "Ordem na CoW preenchida em partes, conforme chega liquidez neste preço. Cada parte sai pelo mínimo ou mais." : {
+
+    },
+    "Ordem · %@" : {
+
+    },
+    "Ordens abertas" : {
+
+    },
+    "Ordens limite ainda não estão disponíveis na %@." : {
+
+    },
+    "Ordens limite ainda não estão disponíveis nesta rede." : {
+
+    },
+    "Os ajustes da voz abrem só com o PIN depois de 72 horas. Até lá, a voz continua pedindo a frase. Reiniciar o iPhone recomeça a espera." : {
+
+    },
+    "Os dados da rede não conferem com esta operação. Nada foi assinado." : {
+
+    },
+    "Os dados da rede venceram antes de o plano ficar pronto. Tente de novo." : {
+
+    },
+    "Os dados da rede venceram. Confira de novo." : {
+
+    },
+    "Os dados da rede venceram. Revise de novo." : {
+
+    },
+    "Os dados deste token na rede não conferem com a lista da carteira. Nada foi montado." : {
+
+    },
+    "Os dados recebidos são de outra conta." : {
+
+    },
+    "Os dois ativos precisam estar na mesma rede." : {
+
+    },
+    "Os dois lados da operação são o mesmo ativo." : {
+
+    },
+    "Os dois lados da troca são o mesmo ativo." : {
+
+    },
+    "Os dois não conferem. Escolha de novo." : {
+
+    },
+    "Os mesmos seis dígitos." : {
+
+    },
+    "Os parâmetros da rede recebidos não são plausíveis. Tente outro provedor." : {
+
+    },
+    "Os parâmetros de taxa recebidos da rede estão fora do normal. Tente de novo em instantes." : {
+
+    },
+    "Os provedores da rede Solana não concordaram sobre os dados da transação. Nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "Os provedores da rede TON responderam diferente. Por segurança, nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "Os provedores da rede Tron responderam diferente. Por segurança, nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "Os provedores da rede deram respostas diferentes. Por segurança, nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "Os provedores da rede não concordaram sobre a sua conta. Nada foi assinado. Tente de novo em instantes." : {
+
+    },
+    "Os provedores da rede não responderam de forma consistente. Nada foi assinado. Tente de novo em instantes." : {
+
+    },
+    "Os provedores da rede pediram uma pausa. Tente de novo em um minuto." : {
+
+    },
+    "Os provedores estão limitando as consultas agora. Tente de novo em instantes." : {
+
+    },
+    "Os saldos ainda não foram lidos" : {
+
+    },
+    "Outra carteira, aberta pela senha de %@ com uma passphrase que só você sabe." : {
+
+    },
+    "Outra transação desta conta entrou antes desta. Revise de novo." : {
+
+    },
+    "Outra transação desta conta entrou antes. Nada saiu por esta. Confira a Atividade e envie de novo." : {
+
+    },
+    "Outra transação desta conta entrou antes. Revise e envie de novo." : {
+
+    },
+    "Outras cotações" : {
+
+    },
+    "Outras ordens" : {
+
+    },
+    "Outros" : {
+
+    },
+    "Outros tokens" : {
+
+    },
+    "Ouvi" : {
+
+    },
+    "Ouvi em %@." : {
+
+    },
+    "Ouvindo" : {
+
+    },
+    "Ouço em %@. A língua se troca em Ajustes, Confirmação por voz." : {
+
+    },
+    "PIN incorreto." : {
+
+    },
+    "PIN incorreto. Depois de mais %u, as carteiras deste iPhone são apagadas." : {
+
+    },
+    "PIN incorreto. Mais um erro e o app pede uma espera de %@." : {
+
+    },
+    "Padrão" : {
+
+    },
+    "Palavra %lld de %lld" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Palavra %1$lld de %2$lld"
+          }
+        }
+      }
+    },
+    "Palavra %lld, preenchida" : {
+
+    },
+    "Palavra %lld, vazia" : {
+
+    },
+    "Papel" : {
+
+    },
+    "Par" : {
+
+    },
+    "Para" : {
+
+    },
+    "Para %@" : {
+
+    },
+    "Para abrir, só o app" : {
+
+    },
+    "Para abrir: Ajustes, Abrir um envelope, neste ou em outro iPhone com o app." : {
+
+    },
+    "Para conferir com o iPhone bloqueado, os endereços públicos das suas contas e o último saldo visto de cada moeda ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Nenhuma chave, frase ou nome de carteira entra nele. Vem ligado; desligar apaga o arquivo." : {
+
+    },
+    "Para conferir que o iPhone escreve a frase sempre do mesmo jeito." : {
+
+    },
+    "Para enviar %@, cancele a ordem antes. O que ela não vendeu volta a ficar livre na carteira assim que a rede confirmar." : {
+
+    },
+    "Para enviar USDT na Tron é preciso ter TRX: cada envio queima TRX para pagar a energia da rede (cerca de %@ neste). A Escalibur não paga essa taxa por você. Envie TRX para esta conta e tente de novo." : {
+
+    },
+    "Para enviar USDT na Tron é preciso ter TRX: cada envio queima TRX para pagar a energia da rede. A Escalibur não paga essa taxa por você. Envie TRX para esta conta e tente de novo." : {
+
+    },
+    "Para ler o QR, o app precisa da câmera." : {
+
+    },
+    "Para ler saldos, cotações e enviar, o app fala direto com nós públicos de cada rede, de empresas diferentes. Não existe servidor da Escalibur no meio." : {
+
+    },
+    "Para ligar o %@ nesta carteira." : {
+
+    },
+    "Para ligar o %@." : {
+
+    },
+    "Para mudar ou desligar a confirmação por voz, fale a sua frase. Só o PIN não basta: quem viu o PIN não pode tirar a voz." : {
+
+    },
+    "Para receber %@, esta conta precisa antes de uma linha de confiança com o emissor do %@. Sem ela, o envio de quem manda não passa e o valor fica com quem enviou. A linha é criada na primeira troca por %@ aqui na carteira." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Para receber %1$@, esta conta precisa antes de uma linha de confiança com o emissor do %2$@. Sem ela, o envio de quem manda não passa e o valor fica com quem enviou. A linha é criada na primeira troca por %3$@ aqui na carteira."
+          }
+        }
+      }
+    },
+    "Para receber %@, esta conta precisa antes de uma linha de confiança com o emissor. A Escalibur ainda não abre linha de confiança para moeda custom: sem ela, o envio de quem manda não passa e o valor fica com quem enviou." : {
+
+    },
+    "Para receber alertas de preço, ligue as notificações da Escalibur Wallet nos Ajustes do iPhone." : {
+
+    },
+    "Para seguir, digite os 6 caracteres marcados do endereço que você colou." : {
+
+    },
+    "Para seguir, digite os 6 caracteres marcados." : {
+
+    },
+    "Para usar a voz, permita o microfone e o reconhecimento de fala para este app nos Ajustes do iPhone." : {
+
+    },
+    "Para usar o %@ aqui, cadastre um rosto em Ajustes do iPhone, em %@ e código." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Para usar o %1$@ aqui, cadastre um rosto em Ajustes do iPhone, em %2$@ e código."
+          }
+        }
+      }
+    },
+    "Parece um endereço da %@. Usar a %@?" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Parece um endereço da %1$@. Usar a %2$@?"
+          }
+        }
+      }
+    },
+    "Parte da taxa paga à L1" : {
+
+    },
+    "Parte das transações foi transmitida e parte não. Confira a Atividade antes de tentar de novo." : {
+
+    },
+    "Passa mesmo com o mercado agitado ou com pouca liquidez. Em troca, você aceita receber até %@ a menos, e robôs podem explorar essa diferença." : {
+
+    },
+    "Passo 1 de 3" : {
+
+    },
+    "Passo 2 de 3" : {
+
+    },
+    "Passo 3 de 3" : {
+
+    },
+    "Passphrase" : {
+
+    },
+    "Pedido assinado à CoW, sem taxa de rede" : {
+
+    },
+    "Pedir a troca" : {
+
+    },
+    "Pedir em envios e trocas" : {
+
+    },
+    "Pedir para lacrar envelope" : {
+
+    },
+    "Pedir para ver a senha da carteira" : {
+
+    },
+    "Pelo Across" : {
+
+    },
+    "Pelo Across: um relayer entrega na %@ em segundos" : {
+
+    },
+    "Pelo CCTP da Circle" : {
+
+    },
+    "Pelo CCTP da Circle: queima aqui e a própria Circle cunha o mesmo USDC na %@" : {
+
+    },
+    "Pelo menos %@ fica, o mínimo que a rede exige para a conta existir" : {
+
+    },
+    "Pendente" : {
+
+    },
+    "Pendentes" : {
+
+    },
+    "Perguntar de novo quando vencer" : {
+
+    },
+    "Permitida" : {
+
+    },
+    "Pode falar" : {
+
+    },
+    "Pode fechar esta tela: o andamento fica em Ordens abertas." : {
+
+    },
+    "Política de privacidade" : {
+
+    },
+    "Política e nome do ativo" : {
+
+    },
+    "Ponte" : {
+
+    },
+    "Por enquanto, a Escalibur envia só ADA na rede Cardano." : {
+
+    },
+    "Por enquanto, a Escalibur envia só APT na rede Aptos." : {
+
+    },
+    "Por enquanto, a Escalibur envia só DOT na rede Polkadot." : {
+
+    },
+    "Por enquanto, a Escalibur envia só NEAR na rede NEAR." : {
+
+    },
+    "Por enquanto, a Escalibur envia só SUI na rede Sui." : {
+
+    },
+    "Por enquanto, a Escalibur envia só TON e USDT na TON." : {
+
+    },
+    "Por enquanto, a Escalibur envia só TRX e USDT na Tron." : {
+
+    },
+    "Por que está em suspeitos" : {
+
+    },
+    "Por rede" : {
+
+    },
+    "Português" : {
+
+    },
+    "Posição no mercado" : {
+
+    },
+    "Pouca memória livre agora. Feche outros apps e tente de novo." : {
+
+    },
+    "Prazo" : {
+
+    },
+    "Prazo da ordem" : {
+
+    },
+    "Prazo encerrado" : {
+
+    },
+    "Prazo na cadeia" : {
+
+    },
+    "Preenchendo" : {
+
+    },
+    "Preenchida %@" : {
+
+    },
+    "Preferências" : {
+
+    },
+    "Preparando a checagem" : {
+
+    },
+    "Preço" : {
+
+    },
+    "Preço da pool %@ na %@, com %@ de liquidez, pelo GeckoTerminal. É preço de DEX: qualquer um cria uma pool, e por isso ele não entra no saldo total." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Preço da pool %1$@ na %2$@, com %3$@ de liquidez, pelo GeckoTerminal. É preço de DEX: qualquer um cria uma pool, e por isso ele não entra no saldo total."
+          }
+        }
+      }
+    },
+    "Preço de referência" : {
+
+    },
+    "Preço limite" : {
+
+    },
+    "Preço melhor, preenchida pela CoW conforme chega liquidez, em até 1 hora" : {
+
+    },
+    "Preço muito abaixo do mercado" : {
+
+    },
+    "Preço por contrato: %@ cada." : {
+
+    },
+    "Preço-alvo" : {
+
+    },
+    "Preço: 1 %@ = %@ %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Preço: 1 %1$@ = %2$@ %3$@"
+          }
+        }
+      }
+    },
+    "Preços" : {
+
+    },
+    "Preços e dados de mercado: CoinGecko, com CoinPaprika e OKX de reserva. Os saldos e as transações vêm direto das redes." : {
+
+    },
+    "Primeira vez que você envia para este endereço." : {
+
+    },
+    "Primeiro envio para este endereço" : {
+
+    },
+    "Primeiro envio para este endereço? Mandar um valor pequeno antes é a forma mais barata de conferir." : {
+
+    },
+    "Procurar no %@" : {
+
+    },
+    "Pronto" : {
+
+    },
+    "Protege mais o preço, mas a troca pode falhar se o mercado se mexer, e a taxa da rede é cobrada mesmo assim." : {
+
+    },
+    "Proteção contra robôs" : {
+
+    },
+    "Provedor" : {
+
+    },
+    "Próximas" : {
+
+    },
+    "Próximo" : {
+
+    },
+    "QR do endereço" : {
+
+    },
+    "Qualquer pessoa cria um token com qualquer nome e qualquer símbolo. Este não está na lista conferida da Escalibur: o nome e o símbolo foram escritos por quem criou o contrato. Não abra sites que aparecem no nome e não conecte esta carteira a nada que o token peça." : {
+
+    },
+    "Qualquer senha com pelo menos 4 caracteres. Quanto mais longa e menos óbvia, mais tempo ela aguenta. Não use a senha da carteira." : {
+
+    },
+    "Qualquer token que os provedores trocam na %@" : {
+
+    },
+    "Quando 1 %@ valer" : {
+
+    },
+    "Quando avisar" : {
+
+    },
+    "Quando chegar saldo nesta carteira, ele aparece aqui para você escolher o que enviar." : {
+
+    },
+    "Quando o prazo acabar, o iPhone avisa e o app pergunta se refaz com o mesmo preço. Refazer pede o seu Face ID ou PIN: sem você, ninguém assina uma ordem nova com a sua chave." : {
+
+    },
+    "Quando vencer" : {
+
+    },
+    "Quanto do disponível enviar" : {
+
+    },
+    "Quem achar só as %lld palavras vê a carteira de sempre, não esta." : {
+
+    },
+    "Quem envia tem de usar exatamente este contrato:" : {
+
+    },
+    "Quem envia tem de usar exatamente este emissor:" : {
+
+    },
+    "Quem ouvir você falar pode repetir a frase. Ela protege contra quem viu o seu PIN, não contra quem está perto. A voz é processada neste iPhone e não sai dele." : {
+
+    },
+    "Quem pegar o iPhone bloqueado vê a moeda e o preço. Nunca o seu saldo." : {
+
+    },
+    "Quem tiver uma cópia do arquivo (nuvem, e-mail, AirDrop) testa senhas no próprio computador, sem limite e sem você saber. Seis palavras sorteadas aguentam milhões de anos." : {
+
+    },
+    "Quem vai receber aceita %@ pela %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Quem vai receber aceita %1$@ pela %2$@"
+          }
+        }
+      }
+    },
+    "Real" : {
+
+    },
+    "Recebe" : {
+
+    },
+    "Recebe em" : {
+
+    },
+    "Recebe na sua conta de token" : {
+
+    },
+    "Recebe no mínimo" : {
+
+    },
+    "Recebe, no mínimo" : {
+
+    },
+    "Recebedor da taxa" : {
+
+    },
+    "Receber" : {
+
+    },
+    "Receber %@" : {
+
+    },
+    "Recebeu %@" : {
+
+    },
+    "Recebido %@" : {
+
+    },
+    "Recebido %@, falta vender %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Recebido %1$@, falta vender %2$@"
+          }
+        }
+      }
+    },
+    "Recebido · %@" : {
+
+    },
+    "Recebimento" : {
+
+    },
+    "Recotando e simulando a troca antes de mostrar." : {
+
+    },
+    "Rede" : {
+
+    },
+    "Rede fora da ponte." : {
+
+    },
+    "Rede reconhecida." : {
+
+    },
+    "Rede: %@" : {
+
+    },
+    "Redes" : {
+
+    },
+    "Refazer a ordem" : {
+
+    },
+    "Refazer pede o seu Face ID ou PIN: sem você, ninguém assina uma ordem nova com a sua chave." : {
+
+    },
+    "Refazer quando vencer" : {
+
+    },
+    "Remover" : {
+
+    },
+    "Remover %@" : {
+
+    },
+    "Remover %@ deste iPhone" : {
+
+    },
+    "Remover %@ deste iPhone?" : {
+
+    },
+    "Remover %@?" : {
+
+    },
+    "Remover deste iPhone" : {
+
+    },
+    "Remover moeda custom" : {
+
+    },
+    "Remover permanentemente" : {
+
+    },
+    "Repita a passphrase" : {
+
+    },
+    "Repita a senha do envelope" : {
+
+    },
+    "Repita o PIN" : {
+
+    },
+    "Repita o novo PIN" : {
+
+    },
+    "Reserva" : {
+
+    },
+    "Reservado para a taxa" : {
+
+    },
+    "Revisar" : {
+
+    },
+    "Revisar ordem" : {
+
+    },
+    "Revisar ponte" : {
+
+    },
+    "Revisar troca" : {
+
+    },
+    "Revisar troca em partes" : {
+
+    },
+    "Revogar autorização de %@" : {
+
+    },
+    "Rota" : {
+
+    },
+    "Rota da troca" : {
+
+    },
+    "Rápida" : {
+
+    },
+    "Sai" : {
+
+    },
+    "Sai da conta" : {
+
+    },
+    "Saiu inteira, pelo mínimo garantido de %@ ou mais. O saldo novo aparece em instantes." : {
+
+    },
+    "Saldo %@" : {
+
+    },
+    "Saldo de %@ insuficiente" : {
+
+    },
+    "Saldo de %@ insuficiente na %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Saldo de %1$@ insuficiente na %2$@"
+          }
+        }
+      }
+    },
+    "Saldo de %@ insuficiente para esta ordem." : {
+
+    },
+    "Saldo de %@ insuficiente para o valor e a taxa da rede." : {
+
+    },
+    "Saldo de %@ insuficiente para o valor e a taxa da rede. Nada foi debitado." : {
+
+    },
+    "Saldo de %@ insuficiente, ou falta XLM livre para a taxa da rede." : {
+
+    },
+    "Saldo de ADA insuficiente para este valor com a taxa da rede." : {
+
+    },
+    "Saldo de APT insuficiente para este valor com a taxa da rede." : {
+
+    },
+    "Saldo de DOT insuficiente para este valor com a taxa da rede e o mínimo que a conta precisa manter." : {
+
+    },
+    "Saldo de NEAR insuficiente para este valor com a reserva da taxa da rede." : {
+
+    },
+    "Saldo de SOL depois" : {
+
+    },
+    "Saldo de SOL insuficiente para a troca e a taxa da rede." : {
+
+    },
+    "Saldo de SOL insuficiente para o valor e a taxa da rede." : {
+
+    },
+    "Saldo de SUI insuficiente para este valor com a taxa da rede." : {
+
+    },
+    "Saldo de TON insuficiente para este valor com a taxa da rede." : {
+
+    },
+    "Saldo de TRX insuficiente para este valor com as taxas da rede." : {
+
+    },
+    "Saldo de USDT insuficiente para este valor." : {
+
+    },
+    "Saldo de USDT insuficiente: %@ pedidos, %@ disponíveis." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Saldo de USDT insuficiente: %1$@ pedidos, %2$@ disponíveis."
+          }
+        }
+      }
+    },
+    "Saldo depois" : {
+
+    },
+    "Saldo do token insuficiente para este valor." : {
+
+    },
+    "Saldo insuficiente" : {
+
+    },
+    "Saldo insuficiente do ativo vendido." : {
+
+    },
+    "Saldo insuficiente na rede para esta transação. Nada foi debitado." : {
+
+    },
+    "Saldo insuficiente para esta ordem." : {
+
+    },
+    "Saldo insuficiente para este valor mais a taxa da rede." : {
+
+    },
+    "Saldo insuficiente para este valor." : {
+
+    },
+    "Saldo insuficiente. Este envio precisa de %@ com as taxas, e a conta tem %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Saldo insuficiente. Este envio precisa de %1$@ com as taxas, e a conta tem %2$@."
+          }
+        }
+      }
+    },
+    "Saldo insuficiente: disponível %@, necessário %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Saldo insuficiente: disponível %1$@, necessário %2$@."
+          }
+        }
+      }
+    },
+    "Saldo total" : {
+
+    },
+    "Salvar" : {
+
+    },
+    "Salvar endereço" : {
+
+    },
+    "Salvar o endereço de %@" : {
+
+    },
+    "Salvar ou enviar o arquivo" : {
+
+    },
+    "Salvar um endereço" : {
+
+    },
+    "Salve os endereços para onde você envia sempre, com a tag de destino junto quando houver. No envio, é só escolher." : {
+
+    },
+    "Se alguma palavra saiu errada, corrija digitando. Na hora de confirmar uma operação não tem teclado: só vale falar." : {
+
+    },
+    "Se ela ainda não executou, abra a Escalibur para ver ou mudar o preço." : {
+
+    },
+    "Se esta carteira já recebeu antes, estes endereços são os que você conhece. Se não baterem, a frase ou a passphrase está diferente, e o que abriria aqui é outra carteira, vazia." : {
+
+    },
+    "Se esta carteira já recebeu antes, estes endereços são os que você conhece. Se não baterem, alguma palavra está diferente, e o que abriria aqui é outra carteira, vazia." : {
+
+    },
+    "Se não chegar" : {
+
+    },
+    "Se o destino recusar" : {
+
+    },
+    "Se uma etapa falhar" : {
+
+    },
+    "Se uma etapa seguinte falhar, esta continua valendo: você fica com parte em %@ e parte em %@. Não existe desfazer." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Se uma etapa seguinte falhar, esta continua valendo: você fica com parte em %1$@ e parte em %2$@. Não existe desfazer."
+          }
+        }
+      }
+    },
+    "Se usar mesmo assim, guarde o arquivo num pendrive ou no seu computador, nunca na nuvem nem por e-mail." : {
+
+    },
+    "Se você conhece este token e confere o contrato com a fonte oficial dele, pode adicioná-lo como moeda custom. A carteira lê o token de novo na rede antes de salvar." : {
+
+    },
+    "Secure Enclave disponível" : {
+
+    },
+    "Segundo o indexador. A rede ainda não mostra esta transação" : {
+
+    },
+    "Segundo o indexador. Chegou por transação interna, que o recibo não mostra" : {
+
+    },
+    "Segundo o indexador. Conferindo na rede" : {
+
+    },
+    "Segundo o indexador. Não deu para conferir na rede agora" : {
+
+    },
+    "Segundos" : {
+
+    },
+    "Segurança" : {
+
+    },
+    "Segure e arraste para mudar a ordem" : {
+
+    },
+    "Segure para usar mesmo assim" : {
+
+    },
+    "Segure por %lld segundos" : {
+
+    },
+    "Segure uma carteira e arraste para mudar a ordem." : {
+
+    },
+    "Sei que este envio não pode ser desfeito. Depois de confirmado na rede, ninguém consegue devolver, nem a Escalibur." : {
+
+    },
+    "Seis dígitos para destravar o app e confirmar envios quando o %@ falhar." : {
+
+    },
+    "Seis palavras sorteadas neste iPhone. Anote em outro lugar, longe do papel da senha da carteira." : {
+
+    },
+    "Sem a senha da carteira anotada, perder o iPhone é perder os ativos. Até você confirmar, a carteira fica marcada Sem cópia e não recebe." : {
+
+    },
+    "Sem a senha de cada carteira ou um envelope, o saldo delas fica inacessível para sempre." : {
+
+    },
+    "Sem a senha, o arquivo é ruído" : {
+
+    },
+    "Sem cobrança à parte: a ordem só executa se entregar pelo menos o mínimo" : {
+
+    },
+    "Sem comentário. Se o destino for uma exchange, confira na tela de depósito se ela pede: sem isso o valor não chega na sua conta de lá." : {
+
+    },
+    "Sem conexão com a internet." : {
+
+    },
+    "Sem conexão com a internet. Nada foi montado." : {
+
+    },
+    "Sem conexão com as fontes agora. Dados de %@, do %@." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sem conexão com as fontes agora. Dados de %1$@, do %2$@."
+          }
+        }
+      }
+    },
+    "Sem conexão com os dados de mercado agora." : {
+
+    },
+    "Sem código, a proteção de dados do iOS não cifra os arquivos do app. Ative em Ajustes > Face ID e Código." : {
+
+    },
+    "Sem cópia" : {
+
+    },
+    "Sem ela, as palavras acima abrem uma carteira diferente e vazia." : {
+
+    },
+    "Sem entrega em %u horas, o depósito volta para esta conta na %@, algumas horas depois do prazo" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sem entrega em %1$u horas, o depósito volta para esta conta na %2$@, algumas horas depois do prazo"
+          }
+        }
+      }
+    },
+    "Sem gráfico: o CoinGecko não lista este contrato e o GeckoTerminal não tem pool com liquidez para ele." : {
+
+    },
+    "Sem histórico de preço neste período" : {
+
+    },
+    "Sem internet. Os saldos aparecem quando a conexão voltar." : {
+
+    },
+    "Sem internet. Valores de %@." : {
+
+    },
+    "Sem jailbreak" : {
+
+    },
+    "Sem limite" : {
+
+    },
+    "Sem memo. Se o destino for uma exchange, confira na tela de depósito se ela pede: sem isso o valor não chega na sua conta de lá." : {
+
+    },
+    "Sem preço confiável por contrato. Fica fora do saldo total." : {
+
+    },
+    "Sem preço de mercado agora para comparar. Confira o número antes de seguir." : {
+
+    },
+    "Sem preço de referência do mercado agora, a troca precisa de pelo menos duas cotações para comparar, e só uma respondeu. Tente de novo em instantes." : {
+
+    },
+    "Sem preço de referência do mercado agora, esta troca fica bloqueada: a cotação da Jupiter não tem com o que ser comparada. Tente de novo em instantes." : {
+
+    },
+    "Sem preço: token suspeito nunca entra no saldo total." : {
+
+    },
+    "Sem rastreamento" : {
+
+    },
+    "Sem resposta agora: %@. A lista tenta de novo sozinha." : {
+
+    },
+    "Sem resposta da CoW agora. O andamento volta a aparecer sozinho, e as ordens abertas mostram o mesmo." : {
+
+    },
+    "Sem servidor" : {
+
+    },
+    "Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois de a moeda entrar. Com o app aberto, a conferência é a cada 2 minutos." : {
+
+    },
+    "Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois do preço passar." : {
+
+    },
+    "Sem tag de destino. Se o destino for uma exchange, confira na tela de depósito se ela pede: sem isso o valor não chega na sua conta de lá." : {
+
+    },
+    "Sem taxa da Escalibur" : {
+
+    },
+    "Sem taxa da Escalibur e sem taxa de plataforma da Jupiter. A taxa dos pools já está no preço." : {
+
+    },
+    "Sem taxa da Escalibur. A taxa da rede aparece na revisão." : {
+
+    },
+    "Sem taxa de provedor: a troca acontece direto na DEX da Stellar." : {
+
+    },
+    "Sem taxa de provedor: a troca acontece no livro de ofertas do XRP Ledger. O emissor do token pode cobrar taxa de transferência." : {
+
+    },
+    "Sem teto" : {
+
+    },
+    "Senha da carteira" : {
+
+    },
+    "Senha do envelope" : {
+
+    },
+    "Senha muito fraca: guarde o arquivo num pendrive ou no seu computador, nunca na nuvem nem por e-mail." : {
+
+    },
+    "Simulador: a checagem só vale num iPhone de verdade." : {
+
+    },
+    "Sinais de golpe neste token" : {
+
+    },
+    "Sobraria na conta menos SOL que a reserva mínima da rede. Use o Máx ou diminua o valor." : {
+
+    },
+    "Sobre" : {
+
+    },
+    "Sobre o mercado" : {
+
+    },
+    "Sobre o projeto" : {
+
+    },
+    "Sortear outras" : {
+
+    },
+    "Sua atividade aparece aqui" : {
+
+    },
+    "Sua carteira, só sua" : {
+
+    },
+    "Sua ordem limite foi executada" : {
+
+    },
+    "Sua ordem limite vence em 24 horas" : {
+
+    },
+    "Sua ponte chegou" : {
+
+    },
+    "Sua posição" : {
+
+    },
+    "Sua primeira carteira" : {
+
+    },
+    "Suas pontes" : {
+
+    },
+    "Subiu %@" : {
+
+    },
+    "Suporte" : {
+
+    },
+    "Suporte, gerente de exchange, recuperação de conta: quem pede a senha da carteira está tentando roubar o saldo." : {
+
+    },
+    "Suspeito" : {
+
+    },
+    "São %lld transações, uma por provedor, confirmadas com um único %@. Cada parte é independente: se uma não passar, você fica com o que foi trocado, e o saldo daquela parte continua na sua carteira." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "São %1$lld transações, uma por provedor, confirmadas com um único %2$@. Cada parte é independente: se uma não passar, você fica com o que foi trocado, e o saldo daquela parte continua na sua carteira."
+          }
+        }
+      }
+    },
+    "Só a sua senha abre" : {
+
+    },
+    "Só aparece neste iPhone." : {
+
+    },
+    "Só ela abre o envelope, em qualquer aparelho. Não é o PIN e não pode ser a senha da carteira. Não existe redefinir." : {
+
+    },
+    "Só inteira" : {
+
+    },
+    "Só o aviso" : {
+
+    },
+    "Só o teclado da Apple" : {
+
+    },
+    "Só observar" : {
+
+    },
+    "Só observar um endereço" : {
+
+    },
+    "Só observar · %@" : {
+
+    },
+    "Só ver as palavras" : {
+
+    },
+    "Só você tem a chave" : {
+
+    },
+    "TON para o envio" : {
+
+    },
+    "TRX insuficiente para as taxas da rede: este envio queima cerca de %@, e a conta tem %@. A Escalibur não paga essa taxa por você." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "TRX insuficiente para as taxas da rede: este envio queima cerca de %1$@, e a conta tem %2$@. A Escalibur não paga essa taxa por você."
+          }
+        }
+      }
+    },
+    "Tag de destino" : {
+
+    },
+    "Tag de destino (Destination Tag)" : {
+
+    },
+    "Tag de destino, se houver" : {
+
+    },
+    "Taxa" : {
+
+    },
+    "Taxa da CoW" : {
+
+    },
+    "Taxa da Escalibur" : {
+
+    },
+    "Taxa da ponte" : {
+
+    },
+    "Taxa da ponte (máxima)" : {
+
+    },
+    "Taxa da ponte, no máximo: %@" : {
+
+    },
+    "Taxa da ponte: %@" : {
+
+    },
+    "Taxa da rede" : {
+
+    },
+    "Taxa da rede (estimada)" : {
+
+    },
+    "Taxa da rede (máxima)" : {
+
+    },
+    "Taxa da rede de até %@ já descontada." : {
+
+    },
+    "Taxa da rede: cerca de %@. O máximo deixa %@ reservados para a taxa, e o que não for usado volta para a conta." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Taxa da rede: cerca de %1$@. O máximo deixa %2$@ reservados para a taxa, e o que não for usado volta para a conta."
+          }
+        }
+      }
+    },
+    "Taxa da rede: cerca de %@. O máximo deixa uma folga para a taxa variar até o envio entrar num bloco." : {
+
+    },
+    "Taxa da rede: cerca de 0,17 ADA. Cada envio precisa levar pelo menos cerca de 1 ADA, o mínimo da rede." : {
+
+    },
+    "Taxa do emissor de %@" : {
+
+    },
+    "Taxa do emissor do token" : {
+
+    },
+    "Taxa do memo" : {
+
+    },
+    "Taxa do provedor" : {
+
+    },
+    "Taxa estimada" : {
+
+    },
+    "Taxa estimada da rede: %@, com a ativação da sua carteira." : {
+
+    },
+    "Taxa estimada da rede: %@." : {
+
+    },
+    "Taxa máxima" : {
+
+    },
+    "Taxa máxima (fee_limit)" : {
+
+    },
+    "Taxa máxima da rede: %@. A rede cobra só o gas usado." : {
+
+    },
+    "Taxa máxima da rede: %@. O que não for usado volta para a conta." : {
+
+    },
+    "Taxas" : {
+
+    },
+    "Taxas, código aberto e versão" : {
+
+    },
+    "Taxas: rede %@ · sem taxa da Escalibur" : {
+
+    },
+    "Tcheco" : {
+
+    },
+    "Tela protegida: cada letra é cifrada na hora, com uma chave que só existe enquanto esta tela está aberta, e captura e gravação de tela ficam bloqueadas. Segure uma palavra para conferir." : {
+
+    },
+    "Tela sem gravação nem espelhamento" : {
+
+    },
+    "Tem a senha copiada?" : {
+
+    },
+    "Tempo estimado" : {
+
+    },
+    "Tempo: %@" : {
+
+    },
+    "Tenha em mãos a senha de cada carteira (as 12 ou 24 palavras) ou o envelope Escalibur." : {
+
+    },
+    "Tentar de novo" : {
+
+    },
+    "Tentativas demais. Tente de novo em %@." : {
+
+    },
+    "Terminei de falar" : {
+
+    },
+    "Termos de uso" : {
+
+    },
+    "Testar a minha frase" : {
+
+    },
+    "Teste a frase" : {
+
+    },
+    "Texto em inglês, como a fonte publica." : {
+
+    },
+    "Tipo da moeda" : {
+
+    },
+    "Tirar %@ dos alertas" : {
+
+    },
+    "Tirar dos favoritos" : {
+
+    },
+    "Toda transação passa pela sua revisão e pelo seu Face ID ou PIN. Sem você, ninguém assina nada." : {
+
+    },
+    "Todas" : {
+
+    },
+    "Todas as palavras existem, mas a conferência da frase não fecha. Alguma está trocada ou fora de ordem. Confira no papel." : {
+
+    },
+    "Todo envio, troca e ordem pede %@ ou PIN." : {
+
+    },
+    "Todo o código que guarda chaves, assina e fala com as redes é aberto e conferível. As bibliotecas de criptografia são compiladas do fonte e travadas por digesto." : {
+
+    },
+    "Token" : {
+
+    },
+    "Token não verificado" : {
+
+    },
+    "Tolerância" : {
+
+    },
+    "Tolerância de preço" : {
+
+    },
+    "Tonkeeper e MyTonWallet (W5)" : {
+
+    },
+    "Toque em Começar a falar." : {
+
+    },
+    "Toque em Falar a frase." : {
+
+    },
+    "Toque em Falar agora e diga a frase." : {
+
+    },
+    "Toque numa ordem para cancelar." : {
+
+    },
+    "Toque numa posição e digite a palavra. Ninguém da Escalibur pede estas palavras." : {
+
+    },
+    "Toque para ver em dólar" : {
+
+    },
+    "Toque para ver em reais" : {
+
+    },
+    "Total" : {
+
+    },
+    "Transações" : {
+
+    },
+    "Transações independentes" : {
+
+    },
+    "Transmitir de novo" : {
+
+    },
+    "Troca concluída" : {
+
+    },
+    "Troca enviada" : {
+
+    },
+    "Troca indisponível nesta rede" : {
+
+    },
+    "Troca nesta rede ainda não está disponível." : {
+
+    },
+    "Troca pedida" : {
+
+    },
+    "Troca · %@" : {
+
+    },
+    "Troca · %@ por %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Troca · %1$@ por %2$@"
+          }
+        }
+      }
+    },
+    "Trocar" : {
+
+    },
+    "Trocar %@" : {
+
+    },
+    "Trocar %@ por %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Trocar %1$@ por %2$@"
+          }
+        }
+      }
+    },
+    "Trocar %@ por %@ em %lld etapas" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Trocar %1$@ por %2$@ em %3$lld etapas"
+          }
+        }
+      }
+    },
+    "Trocar %@ por %@ em partes" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Trocar %1$@ por %2$@ em partes"
+          }
+        }
+      }
+    },
+    "Trocar a língua da frase?" : {
+
+    },
+    "Trocar e gravar" : {
+
+    },
+    "Trocas chegam numa atualização" : {
+
+    },
+    "Troco" : {
+
+    },
+    "Tudo" : {
+
+    },
+    "Tudo acontece numa transação só. Ou executa inteira, ou nada sai da sua carteira." : {
+
+    },
+    "Tudo da carteira é cifrado e fica guardado aqui, em nenhum outro lugar." : {
+
+    },
+    "Tudo foi checado aqui, sem internet. Nada desta checagem sai do aparelho." : {
+
+    },
+    "Tudo pela %@ numa transação só" : {
+
+    },
+    "Tudo só neste iPhone" : {
+
+    },
+    "USD, SOLO ou 40 caracteres hex" : {
+
+    },
+    "USDC da Circle" : {
+
+    },
+    "USDT (Tether) na TON" : {
+
+    },
+    "USDT da Tether" : {
+
+    },
+    "USDT só onde o Across entrega o USDT da Tether (Ethereum, Arbitrum, Unichain e Plasma) ou o da Binance, na BNB." : {
+
+    },
+    "Um alerta só sai quando o CoinGecko e o CoinPaprika concordam no preço." : {
+
+    },
+    "Um caractere deste endereço não confere. Copie de novo, inteiro." : {
+
+    },
+    "Um depurador está preso ao app e pode ler a memória dele." : {
+
+    },
+    "Um endereço em cada rede" : {
+
+    },
+    "Um governo abriria em %@" : {
+
+    },
+    "Um provedor da rede respondeu fora do esperado. Nada foi assinado. Tente de novo em instantes." : {
+
+    },
+    "Um provedor respondeu de outra rede. Por segurança, nada foi montado. Tente de novo em instantes." : {
+
+    },
+    "Um provedor respondeu por outra rede e foi descartado. Tente de novo em instantes." : {
+
+    },
+    "Um provedor respondeu por outra rede que não a Aptos principal. Por segurança, nada foi montado." : {
+
+    },
+    "Um relayer do Across entrega em segundos." : {
+
+    },
+    "Um token que não está na lista verificada e que você quer ver, receber e enviar. A carteira lê nome, símbolo e casas decimais na própria rede antes de salvar." : {
+
+    },
+    "Uma carteira que só você abre" : {
+
+    },
+    "Uma confirmação a mais nas operações que você escolher: você fala uma frase que só você sabe, e depois confirma com o %@ ou o PIN, como sempre." : {
+
+    },
+    "Uma cópia de segurança da senha da carteira, trancada com outra senha que só você conhece." : {
+
+    },
+    "Uma das moedas lidas não confere com a transação que a criou. Por segurança, nada foi montado." : {
+
+    },
+    "Uma frase, um endereço em cada rede. As chaves ficam só neste iPhone." : {
+
+    },
+    "Uma letra deste endereço não confere. Ele pode ter sido copiado pela metade ou alterado. Copie de novo, inteiro." : {
+
+    },
+    "Uma ordem assinada no leilão da CoW: os solvers disputam com a liquidez das corretoras descentralizadas e dos formadores de mercado. Se não couber de uma vez, ela é preenchida em partes, cada uma pelo mínimo garantido ou mais. O que não sair em 30 minutos continua na sua carteira, sem custo." : {
+
+    },
+    "Uma ordem limite venceu" : {
+
+    },
+    "Uma senha extra, escolhida por você. Junto com a senha de %@, ela abre outra carteira, com outros endereços." : {
+
+    },
+    "Uma transação anterior desta conta ainda está pendente. Espere ela confirmar e envie de novo." : {
+
+    },
+    "Uma transação enviada deste aparelho não aparece mais na rede. Confira a Atividade antes de enviar outra. Nada foi assinado." : {
+
+    },
+    "Uns %lld minutos" : {
+
+    },
+    "Uns 20 minutos, o tempo da finalidade da %@" : {
+
+    },
+    "Usar %@" : {
+
+    },
+    "Usar 6 palavras sorteadas" : {
+
+    },
+    "Usar este valor em %@" : {
+
+    },
+    "Usar mesmo assim" : {
+
+    },
+    "Usar o %@" : {
+
+    },
+    "Use 3 palavras ou mais." : {
+
+    },
+    "Use enviar tudo." : {
+
+    },
+    "Use pelo menos 4 caracteres." : {
+
+    },
+    "Vai para a sua própria conta na %@, o mesmo endereço" : {
+
+    },
+    "Vale em %@." : {
+
+    },
+    "Vale por" : {
+
+    },
+    "Validada no ledger %@, que já é final." : {
+
+    },
+    "Validade" : {
+
+    },
+    "Valor" : {
+
+    },
+    "Valor abaixo do mínimo desta rota agora (%@ na menor unidade)." : {
+
+    },
+    "Valor acima do que a rede NEAR aceita numa transferência." : {
+
+    },
+    "Valor acima do que a rede aceita." : {
+
+    },
+    "Valor acima do que esta rota do Across aceita agora. Tente um valor menor ou divida em partes." : {
+
+    },
+    "Valor autorizado" : {
+
+    },
+    "Valor e moeda no aviso" : {
+
+    },
+    "Valor fora do que uma transação da Solana aceita." : {
+
+    },
+    "Valor totalmente diluído" : {
+
+    },
+    "Variação em 24 h acima do limite" : {
+
+    },
+    "Vence %@" : {
+
+    },
+    "Venceu com %@ preenchido" : {
+
+    },
+    "Venceu sem preencher" : {
+
+    },
+    "Vende" : {
+
+    },
+    "Vende %@" : {
+
+    },
+    "Vende %@ na %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Vende %1$@ na %2$@"
+          }
+        }
+      }
+    },
+    "Vender" : {
+
+    },
+    "Vender %@" : {
+
+    },
+    "Vender %@ por %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Vender %1$@ por %2$@"
+          }
+        }
+      }
+    },
+    "Ver a senha da carteira" : {
+
+    },
+    "Ver a senha de %@" : {
+
+    },
+    "Ver as palavras" : {
+
+    },
+    "Ver as palavras de novo" : {
+
+    },
+    "Ver endereços e contratos (%lld)" : {
+
+    },
+    "Ver no %@" : {
+
+    },
+    "Ver o endereço" : {
+
+    },
+    "Ver o histórico no %@" : {
+
+    },
+    "Ver rota" : {
+
+    },
+    "Ver tudo na Atividade" : {
+
+    },
+    "Verificadas" : {
+
+    },
+    "Versão %@ (%@)" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Versão %1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "Você colou" : {
+
+    },
+    "Você entrega" : {
+
+    },
+    "Você envia" : {
+
+    },
+    "Você escolhe a senha que abre o arquivo. Ela não sai do iPhone e ninguém mais sabe." : {
+
+    },
+    "Você fez uma captura de tela" : {
+
+    },
+    "Você fica com cerca de %@ em %@ e %@ em %@. Não existe desfazer: perde só a taxa de rede da etapa que falhou, e o app oferece recotar o restante." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Você fica com cerca de %1$@ em %2$@ e %3$@ em %4$@. Não existe desfazer: perde só a taxa de rede da etapa que falhou, e o app oferece recotar o restante."
+          }
+        }
+      }
+    },
+    "Você já tem 12 ou 24 palavras de outra carteira." : {
+
+    },
+    "Você já usou" : {
+
+    },
+    "Você paga" : {
+
+    },
+    "Você recebe" : {
+
+    },
+    "Você recebe no mínimo" : {
+
+    },
+    "Você vai assinar %lld transações de uma vez" : {
+
+    },
+    "Você vende" : {
+
+    },
+    "Voltar" : {
+
+    },
+    "Voltar e anotar" : {
+
+    },
+    "Voltar e conferir" : {
+
+    },
+    "Voltar e corrigir" : {
+
+    },
+    "Voltar e tentar o PIN" : {
+
+    },
+    "Volume em 24h" : {
+
+    },
+    "Válida até" : {
+
+    },
+    "XLM livre insuficiente para este valor mais a taxa da rede. Parte do saldo fica reservada pela rede." : {
+
+    },
+    "XLM não precisa de linha de confiança." : {
+
+    },
+    "XRP livre insuficiente para este valor mais a taxa. A reserva da conta fica presa pela rede." : {
+
+    },
+    "Zerar a autorização atual (exigência do %@)" : {
+
+    },
+    "Zerar a autorização atual e aprovar o novo valor" : {
+
+    },
+    "a Escalibur nunca pede as palavras" : {
+
+    },
+    "a ativação da conta de destino" : {
+
+    },
+    "a ordem" : {
+
+    },
+    "a taxa do memo" : {
+
+    },
+    "a troca" : {
+
+    },
+    "agora" : {
+
+    },
+    "além do limite de moedas lidas de uma vez" : {
+
+    },
+    "ativo" : {
+
+    },
+    "ativos" : {
+
+    },
+    "até " : {
+
+    },
+    "até %@" : {
+
+    },
+    "cerca de %@" : {
+
+    },
+    "cerca de %lld horas" : {
+
+    },
+    "cerca de %lld segundos" : {
+
+    },
+    "cerca de 1 hora" : {
+
+    },
+    "cerca de 1 segundo" : {
+
+    },
+    "confirmado em %@" : {
+
+    },
+    "confirmação" : {
+
+    },
+    "confirmações" : {
+
+    },
+    "da Kusama" : {
+
+    },
+    "de outra rede do ecossistema Polkadot" : {
+
+    },
+    "desde o início" : {
+
+    },
+    "devo ver as palavras sozinho, longe de câmeras" : {
+
+    },
+    "em 1 ano" : {
+
+    },
+    "em 24h" : {
+
+    },
+    "em 30 dias" : {
+
+    },
+    "em 7 dias" : {
+
+    },
+    "há %lld min" : {
+
+    },
+    "inglês" : {
+
+    },
+    "invalidateOrder no contrato da CoW" : {
+
+    },
+    "lacrado em %@" : {
+
+    },
+    "mais de 1 bilhão de anos" : {
+
+    },
+    "menos de 1 minuto" : {
+
+    },
+    "menos de 1 segundo" : {
+
+    },
+    "na %@" : {
+
+    },
+    "na %@ · %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "na %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "na %@ · envio indisponível" : {
+
+    },
+    "no formato genérico do Substrate" : {
+
+    },
+    "no mínimo " : {
+
+    },
+    "não confirmado" : {
+
+    },
+    "ontem, %@" : {
+
+    },
+    "opcional" : {
+
+    },
+    "outra rede" : {
+
+    },
+    "palavras na senha" : {
+
+    },
+    "pela rede %@" : {
+
+    },
+    "por no mínimo %@" : {
+
+    },
+    "português" : {
+
+    },
+    "que não paga a própria taxa" : {
+
+    },
+    "que não pagam a própria taxa" : {
+
+    },
+    "quem tem as palavras tem o saldo" : {
+
+    },
+    "sem dado" : {
+
+    },
+    "sem memo" : {
+
+    },
+    "sem preço" : {
+
+    },
+    "sem prova da transação anterior" : {
+
+    },
+    "um token fora da lista" : {
+
+    },
+    "uns %lld minutos" : {
+
+    },
+    "uns 20 minutos (sem taxa do protocolo)" : {
+
+    },
+    "Área de transferência" : {
+
+    },
+    "Última vez que a senha da carteira foi exibida: %@." : {
+
+    },
+    "••••••" : {
+
+    },
+    "≈ %@" : {
+
+    }
+  },
+  "version" : "1.0"
+}

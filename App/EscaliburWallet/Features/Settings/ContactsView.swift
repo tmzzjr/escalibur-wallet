@@ -31,7 +31,7 @@ struct ContactsView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            ActionFooter { PrimaryButton(title: "Salvar um endereço") { adding = true } }
+            ActionFooter { PrimaryButton(title: String(localized: "Salvar um endereço")) { adding = true } }
         }
         .background(Palette.void.ignoresSafeArea())
         .navigationTitle("Endereços salvos")
@@ -84,7 +84,7 @@ struct ContactsView: View {
             Menu {
                 Button {
                     Pasteboard.copyAddress(contact.address)
-                    toasts.show("Endereço copiado.")
+                    toasts.show(String(localized: "Endereço copiado."))
                 } label: { Label("Copiar endereço", systemImage: "doc.on.doc") }
                 Button(role: .destructive) { removing = contact } label: { Label("Apagar", systemImage: "trash") }
             } label: {
@@ -125,20 +125,20 @@ struct AddContactSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.lg) {
-                    labeled("Nome") {
+                    labeled(String(localized: "Nome")) {
                         TextField("", text: $name, prompt: Text("Ex.: Minha conta na corretora").foregroundColor(Palette.inkDead))
                             .typeStyle(.row).foregroundStyle(Palette.ink)
                             .textInputAutocapitalization(.words)
                             .padding(.horizontal, Space.md).frame(height: Height.field)
                             .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
                     }
-                    labeled("Rede") {
+                    labeled(String(localized: "Rede")) {
                         HStack {
                             NetworkMenu(chains: Chain.all, selected: chain) { chain = $0 }
                             Spacer()
                         }
                     }
-                    labeled("Endereço") {
+                    labeled(String(localized: "Endereço")) {
                         VStack(alignment: .leading, spacing: Space.xs) {
                             HStack(spacing: Space.xs) {
                                 TextField("", text: $address, prompt: Text("Cole ou escaneie").foregroundColor(Palette.inkDead), axis: .vertical)
@@ -181,7 +181,7 @@ struct AddContactSheet: View {
                         }
                     }
                     if chain.destinationTag != .none {
-                        labeled(chain.destinationTag == .stellarMemo ? "Memo, se houver" : "Tag de destino, se houver") {
+                        labeled(chain.destinationTag == .stellarMemo ? String(localized: "Memo, se houver") : String(localized: "Tag de destino, se houver")) {
                             TextField("", text: $tag)
                                 .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
                                 .textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -195,7 +195,7 @@ struct AddContactSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom) {
                 ActionFooter {
-                    PrimaryButton(title: "Salvar", enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && isValid) { Task { await save() } }
+                    PrimaryButton(title: String(localized: "Salvar"), enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && isValid) { Task { await save() } }
                 }
             }
             .background(Palette.body.ignoresSafeArea())
@@ -226,7 +226,7 @@ struct AddContactSheet: View {
         guard case .success(let destination) = validation else { return }
         let finalTag = destination.tag.map(String.init) ?? (tag.isEmpty ? nil : tag)
         let title = String(name.trimmingCharacters(in: .whitespaces).prefix(40))
-        guard (try? await auth.perform(session, reason: "Salvar o endereço de \(title)", { _ in true })) == true else { return }
+        guard (try? await auth.perform(session, reason: String(localized: "Salvar o endereço de \(title)"), { _ in true })) == true else { return }
         session.metadata.contacts.append(Contact(id: UUID(), name: title, chainID: chain.id, address: destination.address, tag: finalTag))
         do {
             try session.persist()
@@ -339,12 +339,14 @@ struct ManageAssetsView: View {
                     .padding(.top, Space.sm)
                 }
 
-                SecondaryButton(title: "Adicionar moeda", systemImage: "plus") { adding = true }
+                SecondaryButton(title: String(localized: "Adicionar moeda"), systemImage: "plus") { adding = true }
                     .padding(.horizontal, Space.gutter).padding(.top, Space.md)
                     .accessibilityIdentifier("adicionar-moeda")
 
                 if portfolio.unknownTokens > 0 {
-                    Text("\(portfolio.unknownTokens) \(portfolio.unknownTokens == 1 ? "token chegou" : "tokens chegaram") numa rede em que a carteira ainda só conta quantos são, sem ler nome e contrato. Eles ficam escondidos.")
+                    Text(portfolio.unknownTokens == 1
+                         ? "1 token chegou numa rede em que a carteira ainda só conta quantos são, sem ler nome e contrato. Ele fica escondido."
+                         : "\(portfolio.unknownTokens) tokens chegaram numa rede em que a carteira ainda só conta quantos são, sem ler nome e contrato. Eles ficam escondidos.")
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                         .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                         .fixedSize(horizontal: false, vertical: true)

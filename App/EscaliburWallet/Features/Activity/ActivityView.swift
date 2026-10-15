@@ -181,8 +181,8 @@ struct ActivityView: View {
         var groups: [String: [ActivityEntry]] = [:]
         for entry in done {
             let title: String
-            if calendar.isDateInToday(entry.date) { title = "Hoje" }
-            else if calendar.isDateInYesterday(entry.date) { title = "Ontem" }
+            if calendar.isDateInToday(entry.date) { title = String(localized: "Hoje") }
+            else if calendar.isDateInYesterday(entry.date) { title = String(localized: "Ontem") }
             else { title = entry.date.formatted(.dateTime.day().month(.wide).locale(Fmt.locale)) }
             if groups[title] == nil { order.append(title) }
             groups[title, default: []].append(entry)
@@ -194,11 +194,11 @@ struct ActivityView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    TabTitle("Atividade")
+                    TabTitle(String(localized: "Atividade"))
 
                     if !feed.failed.isEmpty {
-                        Banner(kind: .neutral, title: "Não foi possível ler o histórico de \(Self.names(feed.failed)) agora.",
-                               message: Self.debugDetail, actionTitle: "Tentar de novo") { Task { await reload() } }
+                        Banner(kind: .neutral, title: String(localized: "Não foi possível ler o histórico de \(Self.names(feed.failed)) agora."),
+                               message: Self.debugDetail, actionTitle: String(localized: "Tentar de novo")) { Task { await reload() } }
                             .padding(.horizontal, Space.gutter).padding(.top, Space.md)
                     }
 
@@ -215,7 +215,7 @@ struct ActivityView: View {
                     }
 
                     if !pending.isEmpty {
-                        section("Pendentes", pending)
+                        section(String(localized: "Pendentes"), pending)
                     }
                     if feed.loading, !feed.entries.isEmpty, feed.remaining > 0 {
                         HStack(spacing: Space.xs) {
@@ -231,7 +231,7 @@ struct ActivityView: View {
                     if doneEntries.count > visibleCount {
                         // Chegar ao fim da lista ja traz as proximas 20; o botao fica para
                         // quem navega pelo VoiceOver.
-                        SecondaryButton(title: "Mostrar mais") { visibleCount += 20 }
+                        SecondaryButton(title: String(localized: "Mostrar mais")) { visibleCount += 20 }
                             .padding(.horizontal, Space.gutter).padding(.top, Space.md)
                             .onAppear { visibleCount += 20 }
                     }
@@ -262,7 +262,9 @@ struct ActivityView: View {
                     }
 
                     if feed.suspiciousCount > 0 {
-                        Text("\(feed.suspiciousCount) \(feed.suspiciousCount == 1 ? "recebimento suspeito escondido" : "recebimentos suspeitos escondidos"). São envios de valor zero ou de tokens fora da lista, muitas vezes de endereços parecidos com os seus.")
+                        Text(feed.suspiciousCount == 1
+                             ? "1 recebimento suspeito escondido. São envios de valor zero ou de tokens fora da lista, muitas vezes de endereços parecidos com os seus."
+                             : "\(feed.suspiciousCount) recebimentos suspeitos escondidos. São envios de valor zero ou de tokens fora da lista, muitas vezes de endereços parecidos com os seus.")
                             .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                             .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                             .fixedSize(horizontal: false, vertical: true)
@@ -305,7 +307,7 @@ struct ActivityView: View {
         case 1: return names[0]
         case 2: return "\(names[0]) e \(names[1])"
         case 3: return "\(names[0]), \(names[1]) e \(names[2])"
-        default: return "\(names[0]), \(names[1]) e mais \(names.count - 2) redes"
+        default: return String(localized: "\(names[0]), \(names[1]) e mais \(names.count - 2) redes")
         }
     }
 
@@ -340,7 +342,7 @@ struct ActivityView: View {
             }
             .multilineTextAlignment(.center)
             .padding(.top, Space.md)
-            PrimaryButton(title: "Receber") { receiving = true }.padding(.top, Space.lg)
+            PrimaryButton(title: String(localized: "Receber")) { receiving = true }.padding(.top, Space.lg)
         }
         .padding(.horizontal, Space.gutter)
     }
@@ -354,11 +356,11 @@ struct ActivityRow: View {
     private var title: String {
         let symbol = entry.asset?.symbol ?? entry.chain?.nativeSymbol ?? ""
         switch entry.direction {
-        case .sent: return "Enviado · \(symbol)"
-        case .received: return "Recebido · \(symbol)"
-        case .swap: return entry.receivedAsset.map { "Troca · \(symbol) por \($0.symbol)" } ?? "Troca · \(symbol)"
-        case .approval: return "Autorização · \(symbol)"
-        case .order: return "Ordem · \(symbol)"
+        case .sent: return String(localized: "Enviado · \(symbol)")
+        case .received: return String(localized: "Recebido · \(symbol)")
+        case .swap: return entry.receivedAsset.map { String(localized: "Troca · \(symbol) por \($0.symbol)") } ?? String(localized: "Troca · \(symbol)")
+        case .approval: return String(localized: "Autorização · \(symbol)")
+        case .order: return String(localized: "Ordem · \(symbol)")
         case .other: return entry.chain?.name ?? ""
         }
     }
@@ -366,15 +368,15 @@ struct ActivityRow: View {
     private var subtitle: String {
         let time = entry.date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(Fmt.locale))
         switch entry.status {
-        case .pending(let detail): return detail ?? "Aguardando confirmação"
-        case .failed: return "Falhou"
+        case .pending(let detail): return detail ?? String(localized: "Aguardando confirmação")
+        case .failed: return String(localized: "Falhou")
         case .confirmed:
             // Troca: o que saiu fica embaixo; o que entrou vai a direita.
             if entry.direction == .swap, entry.receivedAsset != nil, let asset = entry.asset, !hidden {
                 return "\(Fmt.minus)\(Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .list)) · \(time)"
             }
             guard let counterparty = entry.counterparty else { return time }
-            let preposition = entry.direction == .received ? "De" : "Para"
+            let preposition = entry.direction == .received ? "De" : String(localized: "Para")
             return "\(preposition) \(Fmt.address(counterparty)) · \(time)"
         }
     }
@@ -455,10 +457,10 @@ struct ActivityDetailView: View {
                         Text(entry.direction == .received ? "De" : "Para").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                         AddressBlocks(address: counterparty)
                     }
-                    line("Rede", entry.chain?.name ?? "")
-                    line("Data", entry.date.formatted(.dateTime.day().month(.wide).year().hour().minute().locale(Fmt.locale)))
+                    line(String(localized: "Rede"), entry.chain?.name ?? "")
+                    line(String(localized: "Data"), entry.date.formatted(.dateTime.day().month(.wide).year().hour().minute().locale(Fmt.locale)))
                     if let fee = entry.fee, let chain = entry.chain {
-                        line("Taxa da rede", Fmt.crypto(fee, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol, style: .full))
+                        line(String(localized: "Taxa da rede"), Fmt.crypto(fee, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol, style: .full))
                     }
                 }
                 VStack(alignment: .leading, spacing: Space.xs) {
@@ -467,7 +469,7 @@ struct ActivityDetailView: View {
                     HStack(spacing: Space.sm) {
                         Button {
                             Pasteboard.copyAddress(entry.hash)
-                            toasts.show("Identificador copiado.")
+                            toasts.show(String(localized: "Identificador copiado."))
                         } label: {
                             Text("Copiar").typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.ink)
                         }
@@ -496,23 +498,23 @@ struct ActivityDetailView: View {
             // chegando a esta conta.
             switch check {
             case .confirmed(let confirmations):
-                StatusBadge(kind: .done, text: confirmations > 1 ? "Conferida na rede, \(Fmt.grouped(Double(confirmations), fractionDigits: 0)) confirmações" : "Conferida na rede")
+                StatusBadge(kind: .done, text: confirmations > 1 ? String(localized: "Conferida na rede, \(Fmt.grouped(Double(confirmations), fractionDigits: 0)) confirmações") : String(localized: "Conferida na rede"))
             case .notFound:
-                StatusBadge(kind: .pending, text: "Segundo o indexador. A rede ainda não mostra esta transação")
+                StatusBadge(kind: .pending, text: String(localized: "Segundo o indexador. A rede ainda não mostra esta transação"))
             case .mismatch:
-                StatusBadge(kind: .failed, text: "A rede não confirma este recebimento")
+                StatusBadge(kind: .failed, text: String(localized: "A rede não confirma este recebimento"))
             case .unverifiable:
-                StatusBadge(kind: .pending, text: "Segundo o indexador. Chegou por transação interna, que o recibo não mostra")
+                StatusBadge(kind: .pending, text: String(localized: "Segundo o indexador. Chegou por transação interna, que o recibo não mostra"))
             case .failed:
-                StatusBadge(kind: .pending, text: "Segundo o indexador. Não deu para conferir na rede agora")
+                StatusBadge(kind: .pending, text: String(localized: "Segundo o indexador. Não deu para conferir na rede agora"))
             case .checking, nil:
-                StatusBadge(kind: .pending, text: "Segundo o indexador. Conferindo na rede")
+                StatusBadge(kind: .pending, text: String(localized: "Segundo o indexador. Conferindo na rede"))
             }
         } else {
             switch entry.status {
-            case .pending(let detail): StatusBadge(kind: .pending, text: detail ?? "Pendente")
-            case .confirmed: StatusBadge(kind: .done, text: "Confirmada")
-            case .failed(let reason): StatusBadge(kind: .failed, text: reason ?? "Falhou")
+            case .pending(let detail): StatusBadge(kind: .pending, text: detail ?? String(localized: "Pendente"))
+            case .confirmed: StatusBadge(kind: .done, text: String(localized: "Confirmada"))
+            case .failed(let reason): StatusBadge(kind: .failed, text: reason ?? String(localized: "Falhou"))
             }
         }
     }
@@ -569,7 +571,7 @@ struct ActivityLoading: View {
             }
             VStack(spacing: Space.xxs) {
                 Text("Lendo o histórico").typeStyle(.row).foregroundStyle(Palette.ink)
-                Text(chains.count > 1 ? "\(chains.count) redes, cada uma direto dos provedores públicos." : "Direto dos provedores públicos da rede.")
+                Text(chains.count > 1 ? String(localized: "\(chains.count) redes, cada uma direto dos provedores públicos.") : String(localized: "Direto dos provedores públicos da rede."))
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).multilineTextAlignment(.center)
             }
         }

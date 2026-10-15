@@ -193,7 +193,7 @@ actor PriceAlertCenter {
 
         guard file.showDetails else {
             // Discreto: um aviso so, sem moeda e sem valor.
-            let content = Self.content(title: "Alerta de preço", body: "Abra o app para ver o que mudou.", coin: nil)
+            let content = Self.content(title: String(localized: "Alerta de preço"), body: String(localized: "Abra o app para ver o que mudou."), coin: nil)
             try? await center.add(UNNotificationRequest(identifier: "precos.discreto", content: content, trigger: nil))
             return
         }
@@ -206,7 +206,7 @@ actor PriceAlertCenter {
         }
         if alerts.count > shown.count {
             let rest = alerts.count - shown.count
-            let content = Self.content(title: "Mais \(rest) alertas de preço", body: "Abra o Mercado para ver.", coin: nil)
+            let content = Self.content(title: String(localized: "Mais \(rest) alertas de preço"), body: String(localized: "Abra o Mercado para ver."), coin: nil)
             try? await center.add(UNNotificationRequest(identifier: "precos.mais", content: content, trigger: nil))
         }
     }
@@ -263,7 +263,7 @@ enum PriceAlertText {
     static func safeSymbol(_ symbol: String) -> String {
         let clean = symbol.uppercased().unicodeScalars.filter { ("A"..."Z").contains($0) || ("0"..."9").contains($0) }
         let text = String(String.UnicodeScalarView(clean).prefix(10))
-        return text.isEmpty ? "Moeda" : text
+        return text.isEmpty ? String(localized: "Moeda") : text
     }
 
     /// "R$ 81.000" no nivel inteiro; "R$ 1,10" e "R$ 0,000012" abaixo disso.
@@ -275,20 +275,20 @@ enum PriceAlertText {
     }
 
     static func percent(_ value: Double) -> String {
-        "\(Fmt.grouped(abs(value), fractionDigits: 1))%"
+        String(localized: "\(Fmt.grouped(abs(value), fractionDigits: 1))%")
     }
 
     static func describe(_ event: PriceAlertEvent, coin: WatchedCoin, quote: Quote, currency: Fmt.DisplayUnit) -> (title: String, body: String) {
         let name = name(coin)
-        let now = "Agora \(Fmt.price(quote.price, unit: currency))"
-        let day = quote.change24h.map { ", \(Fmt.percent($0)) em 24 h." } ?? "."
+        let now = String(localized: "Agora \(Fmt.price(quote.price, unit: currency))")
+        let day = quote.change24h.map { String(localized: ", \(Fmt.percent($0)) em 24 h.") } ?? "."
         switch event {
         case .crossedUp(let mark):
-            return ("\(name) passou de \(level(mark, currency))", now + day)
+            return (String(localized: "\(name) passou de \(level(mark, currency))"), now + day)
         case .crossedDown(let mark):
-            return ("\(name) caiu abaixo de \(level(mark, currency))", now + day)
+            return (String(localized: "\(name) caiu abaixo de \(level(mark, currency))"), now + day)
         case .moved(let change):
-            return (change >= 0 ? "\(name) subiu \(percent(change)) em 24 h" : "\(name) caiu \(percent(change)) em 24 h", now + ".")
+            return (change >= 0 ? String(localized: "\(name) subiu \(percent(change)) em 24 h") : String(localized: "\(name) caiu \(percent(change)) em 24 h"), now + ".")
         }
     }
 }

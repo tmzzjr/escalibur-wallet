@@ -45,8 +45,8 @@ public struct EVMTradeEngine: TradeEngine {
     public var supportsLimitOrders: Bool { CoWProtocol.supports(chain) }
 
     public var limitCustodyNote: String {
-        guard supportsLimitOrders else { return "Ordens limite ainda não estão disponíveis na \(chain.name)." }
-        return "O valor fica na sua carteira até a ordem executar. Para cancelar, toque nela em Ordens abertas, logo abaixo: a carteira envia uma transação que invalida a ordem de vez, com a taxa da rede."
+        guard supportsLimitOrders else { return kitText("Ordens limite ainda não estão disponíveis na \(chain.name).") }
+        return kitText("O valor fica na sua carteira até a ordem executar. Para cancelar, toque nela em Ordens abertas, logo abaixo: a carteira envia uma transação que invalida a ordem de vez, com a taxa da rede.")
     }
 
     // MARK: Cotacao

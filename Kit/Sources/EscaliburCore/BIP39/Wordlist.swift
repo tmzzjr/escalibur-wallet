@@ -27,16 +27,16 @@ public enum BIP39Language: String, CaseIterable, Hashable, Sendable {
 
     public var displayName: String {
         switch self {
-        case .english: "Inglês"
-        case .japanese: "Japonês"
-        case .chineseSimplified: "Chinês simplificado"
-        case .chineseTraditional: "Chinês tradicional"
-        case .french: "Francês"
-        case .italian: "Italiano"
-        case .korean: "Coreano"
-        case .spanish: "Espanhol"
-        case .czech: "Tcheco"
-        case .portuguese: "Português"
+        case .english: kitText("Inglês")
+        case .japanese: kitText("Japonês")
+        case .chineseSimplified: kitText("Chinês simplificado")
+        case .chineseTraditional: kitText("Chinês tradicional")
+        case .french: kitText("Francês")
+        case .italian: kitText("Italiano")
+        case .korean: kitText("Coreano")
+        case .spanish: kitText("Espanhol")
+        case .czech: kitText("Tcheco")
+        case .portuguese: kitText("Português")
         }
     }
 }

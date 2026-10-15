@@ -139,17 +139,17 @@ public enum CardanoPlanner {
 
         let amountText = CardanoFormat.ada(BigUInt(sent))
         var lines = [
-            PlanReview.Line("Para", draft.recipient, verbatim: true),
-            PlanReview.Line("Valor", amountText),
-            PlanReview.Line("Taxa da rede", CardanoFormat.ada(BigUInt(body.fee))),
+            PlanReview.Line(kitText("Para"), draft.recipient, verbatim: true, role: .recipient),
+            PlanReview.Line(kitText("Valor"), amountText),
+            PlanReview.Line(kitText("Taxa da rede"), CardanoFormat.ada(BigUInt(body.fee))),
         ]
         if body.outputs.count > 1 {
-            lines.append(PlanReview.Line("Troco", "\(CardanoFormat.ada(BigUInt(body.outputs[1].lovelace))) volta para esta conta"))
+            lines.append(PlanReview.Line(kitText("Troco"), kitText("\(CardanoFormat.ada(BigUInt(body.outputs[1].lovelace))) volta para esta conta")))
         }
-        lines.append(PlanReview.Line("Rede", "Cardano"))
-        lines.append(PlanReview.Line("Validade", "Até o slot \(CardanoFormat.grouped(body.ttl)) da rede, cerca de 15 minutos"))
+        lines.append(PlanReview.Line(kitText("Rede"), "Cardano"))
+        lines.append(PlanReview.Line(kitText("Validade"), kitText("Até o slot \(CardanoFormat.grouped(body.ttl)) da rede, cerca de 15 minutos")))
         if body.inputs.count > 1 {
-            lines.append(PlanReview.Line("Moedas usadas", "\(body.inputs.count) moedas desta conta"))
+            lines.append(PlanReview.Line(kitText("Moedas usadas"), kitText("\(body.inputs.count) moedas desta conta")))
         }
 
         var warnings = [PlanReview.Warning]()
@@ -159,7 +159,7 @@ public enum CardanoPlanner {
         }
 
         let review = PlanReview(
-            kind: .send, title: "Enviar \(amountText)", lines: lines, warnings: warnings,
+            kind: .send, title: kitText("Enviar \(amountText)"), lines: lines, warnings: warnings,
             recipient: draft.recipient, recipientTag: nil, outgoing: .native(.cardano, BigUInt(sent))
         )
         return SigningPlan(walletID: walletID, chain: .cardano, review: review, transactions: [transfer], createdAt: now)
@@ -374,17 +374,12 @@ enum CardanoFormat {
         var fraction = String(padded[cut...])
         while fraction.hasSuffix("0") { fraction.removeLast() }
         let whole = grouped(String(padded[..<cut]))
-        return fraction.isEmpty ? "\(whole) ADA" : "\(whole),\(fraction) ADA"
+        return NumberStyle.current.decimal(whole, fraction) + " ADA"
     }
 
     static func grouped(_ value: UInt64) -> String { grouped(String(value)) }
 
     static func grouped(_ digits: String) -> String {
-        var out = ""
-        for (index, digit) in digits.enumerated() {
-            if index > 0, (digits.count - index) % 3 == 0 { out.append(".") }
-            out.append(digit)
-        }
-        return out
+        NumberStyle.current.group(digits)
     }
 }

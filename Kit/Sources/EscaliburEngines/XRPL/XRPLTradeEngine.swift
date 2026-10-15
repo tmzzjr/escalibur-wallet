@@ -34,10 +34,10 @@ struct XRPLTradeEngine: TradeEngine {
     var supportsLimitOrders: Bool { true }
 
     var limitCustodyNote: String {
-        "O valor fica na sua conta, reservado pela oferta, até executar, vencer (se tiver prazo) ou você cancelar pelas ordens abertas. Enquanto a oferta estiver no livro, a rede prende a reserva de um objeto em XRP."
+        kitText("O valor fica na sua conta, reservado pela oferta, até executar, vencer (se tiver prazo) ou você cancelar pelas ordens abertas. Enquanto a oferta estiver no livro, a rede prende a reserva de um objeto em XRP.")
     }
 
-    static let provider = "DEX do XRP Ledger"
+    static let provider = kitText("DEX do XRP Ledger")
     /// A troca e tudo ou nada na hora; o `Expiration` so existe porque a oferta sempre
     /// leva um. O `LastLedgerSequence` (uns 80 segundos) vence antes.
     static let swapExpiration: TimeInterval = 5 * 60
@@ -50,16 +50,16 @@ struct XRPLTradeEngine: TradeEngine {
     func quote(_ request: TradeRequest) async throws -> TradeQuote {
         let (sell, buy) = try sides(request.chain, request.sell, request.buy)
         try TradeMath.requireSlippage(request.slippageBasisPoints)
-        guard !request.amountIn.isZero else { throw SendEngineError.message("Digite um valor maior que zero.") }
+        guard !request.amountIn.isZero else { throw SendEngineError.message(kitText("Digite um valor maior que zero.")) }
         do {
             let offers = try await reader.bookOffers(gets: buy.book, pays: sell.book, limit: XRPLReader.maxBookOffers)
             guard let fill = XRPLBookFill.fill(offers, amountIn: request.amountIn, sell: sell, buy: buy) else {
                 throw SendEngineError.message(
-                    "O livro de ofertas de \(request.sell.symbol) por \(request.buy.symbol) não cobre este valor agora. Tente um valor menor."
+                    kitText("O livro de ofertas de \(request.sell.symbol) por \(request.buy.symbol) não cobre este valor agora. Tente um valor menor.")
                 )
             }
             let minimum = TradeMath.minimumOut(fill.out, slippageBasisPoints: request.slippageBasisPoints)
-            guard !minimum.isZero else { throw SendEngineError.message("Com esta tolerância o mínimo a receber seria zero.") }
+            guard !minimum.isZero else { throw SendEngineError.message(kitText("Com esta tolerância o mínimo a receber seria zero.")) }
             return TradeQuote(
                 sell: request.sell, buy: request.buy, amountIn: request.amountIn,
                 expectedOut: fill.out, minimumOut: minimum,
@@ -67,7 +67,7 @@ struct XRPLTradeEngine: TradeEngine {
                     amountIn: request.amountIn, out: fill.out, referenceIn: fill.bestPays, referenceOut: fill.bestGets
                 ),
                 networkFeeFiat: nil,
-                providerFeeNote: "Sem taxa de provedor: a troca acontece no livro de ofertas do XRP Ledger. O emissor do token pode cobrar taxa de transferência.",
+                providerFeeNote: kitText("Sem taxa de provedor: a troca acontece no livro de ofertas do XRP Ledger. O emissor do token pode cobrar taxa de transferência."),
                 legs: [.init(provider: Self.provider, fraction: 1, amountIn: request.amountIn, expectedOut: fill.out)],
                 alternatives: [], providersCompared: 1, needsApproval: false,
                 expiresAt: Date().addingTimeInterval(TradeMath.quoteLifetime)
@@ -121,7 +121,7 @@ struct XRPLTradeEngine: TradeEngine {
                 // O planejador confere a reserva e o XRP; o saldo do token vendido e daqui.
                 guard let line = try await sellLine,
                       let held = XRPLUnits.units(line.balance, decimals: sell.asset.decimals, roundingUp: false), held >= give
-                else { throw SendEngineError.message("Saldo de \(sell.asset.symbol) insuficiente para esta ordem.") }
+                else { throw SendEngineError.message(kitText("Saldo de \(sell.asset.symbol) insuficiente para esta ordem.")) }
             }
             let boughtLine = try await buyLine
             let needsTrustline = !buy.isXRP && boughtLine == nil
@@ -209,7 +209,7 @@ struct XRPLTradeEngine: TradeEngine {
         _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
     ) async throws -> SigningPlan {
         guard via == .onchain, order.chain == .xrpl, let sequence = UInt32(order.id) else {
-            throw SendEngineError.message("Esta oferta não é do XRP Ledger.")
+            throw SendEngineError.message(kitText("Esta oferta não é do XRP Ledger."))
         }
         do {
             let owner = try XRPLEngineSupport.owner(account)
@@ -217,7 +217,7 @@ struct XRPLTradeEngine: TradeEngine {
             async let ledgerState = reader.ledgerState()
             async let accountState = reader.accountState(address: owner)
             guard try await offers.contains(where: { $0.sequence == sequence }) else {
-                throw SendEngineError.message("Esta oferta não está mais aberta: já executou, venceu ou foi cancelada.")
+                throw SendEngineError.message(kitText("Esta oferta não está mais aberta: já executou, venceu ou foi cancelada."))
             }
             return try XRPLPlanner.planCancelOffer(
                 XRPLCancelOfferIntent(offerSequence: sequence), signer: try .init(path: account.path, publicKey: account.publicKey),
@@ -249,11 +249,11 @@ struct XRPLTradeEngine: TradeEngine {
             do {
                 result = try await XRPLSendEngine.submit(transaction, validatedLedger: ledger.validatedLedgerIndex, reader: reader)
             } catch let error as SendEngineError where index > 0 {
-                throw SendEngineError.message("O primeiro passo foi enviado; o seguinte não saiu. \(error.errorDescription ?? NetworkFailureText.refused)")
+                throw SendEngineError.message(kitText("O primeiro passo foi enviado; o seguinte não saiu. \(error.errorDescription ?? NetworkFailureText.refused)"))
             }
             ids.append(result.id)
             if index < signed.count - 1, let provisional = result.provisional, provisional != "tesSUCCESS", provisional != "terQUEUED" {
-                throw SendEngineError.message("O primeiro passo entrou na rede e falhou, e só a taxa foi cobrada. O resto não foi enviado.")
+                throw SendEngineError.message(kitText("O primeiro passo entrou na rede e falhou, e só a taxa foi cobrada. O resto não foi enviado."))
             }
         }
         return ids

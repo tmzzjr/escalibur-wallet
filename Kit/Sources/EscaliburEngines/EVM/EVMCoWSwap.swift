@@ -140,13 +140,13 @@ extension EVMTradeEngine {
     /// O `TradeQuote` da troca pela CoW. As alternativas sao os agregadores, cada um com o
     /// seu garantido.
     static func cowQuote(_ request: TradeRequest, candidate: EVMCoWCandidate, ranked: [TradeCandidate]) -> TradeQuote {
-        let fee = candidate.quote.protocolFeeBps.map { " (\(EVMEngineText.percent(bps: $0)) do volume)" } ?? ""
+        let fee = candidate.quote.protocolFeeBps.map { kitText(" (\(EVMEngineText.percent(bps: $0)) do volume)") } ?? ""
         return TradeQuote(
             sell: request.sell, buy: request.buy, amountIn: request.amountIn,
             expectedOut: candidate.quote.buyAmount, minimumOut: candidate.guaranteed,
             priceImpactPercent: candidate.deviationBps.map { Double(max(0, $0)) / 100 },
             networkFeeFiat: nil,
-            providerFeeNote: "A taxa da CoW\(fee) e a taxa da rede da troca já saíram da cotação e do mínimo garantido.",
+            providerFeeNote: kitText("A taxa da CoW\(fee) e a taxa da rede da troca já saíram da cotação e do mínimo garantido."),
             legs: [TradeQuote.Leg(provider: "CoW", fraction: 1, amountIn: request.amountIn, expectedOut: candidate.quote.buyAmount)],
             alternatives: ranked.map { TradeQuote.Alternative(provider: $0.quote.provider.displayName, out: $0.quote.guaranteedOut) },
             providersCompared: ranked.count + 1, needsApproval: candidate.needsApproval,

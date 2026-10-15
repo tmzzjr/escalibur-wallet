@@ -431,7 +431,7 @@ public enum UTXOPlanner {
         let valuableLeft = (leftBehind.count - leftBehindUneconomic) + skipped.filter { $0.reason != .uneconomic }.count
         let review = PlanReview(
             kind: .send,
-            title: "Enviar \(UTXOFormat.amount(amount, chain: chain))",
+            title: kitText("Enviar \(UTXOFormat.amount(amount, chain: chain))"),
             lines: reviewLines(
                 chain: chain, destination: destination.address, summary: summary,
                 leftBehind: intent.amount == .all ? leftBehind.map(\.output.value) : [],
@@ -527,37 +527,37 @@ public enum UTXOPlanner {
     ) -> [PlanReview.Line] {
         let sats = { (value: BigUInt) in value.uint64 ?? 0 }
         var lines = [
-            PlanReview.Line("Para", destination, verbatim: true),
-            PlanReview.Line("Valor", UTXOFormat.amount(sats(summary.amount), chain: chain)),
-            PlanReview.Line("Rede", chain.name),
-            PlanReview.Line("Taxa", "\(UTXOFormat.amount(sats(summary.fee), chain: chain)) (\(UTXOFormat.feeRate(summary.feeRate, chain: chain)))"),
+            PlanReview.Line(kitText("Para"), destination, verbatim: true, role: .recipient),
+            PlanReview.Line(kitText("Valor"), UTXOFormat.amount(sats(summary.amount), chain: chain)),
+            PlanReview.Line(kitText("Rede"), chain.name),
+            PlanReview.Line(kitText("Taxa"), kitText("\(UTXOFormat.amount(sats(summary.fee), chain: chain)) (\(UTXOFormat.feeRate(summary.feeRate, chain: chain)))")),
         ]
         let absorbed = sats(summary.absorbedIntoFee)
         if let change = summary.change {
-            lines.append(PlanReview.Line("Troco", "\(UTXOFormat.amount(sats(change), chain: chain)), volta para a sua carteira"))
+            lines.append(PlanReview.Line(kitText("Troco"), kitText("\(UTXOFormat.amount(sats(change), chain: chain)), volta para a sua carteira")))
         } else if summary.sendsAll, valuableLeft == 0 {
-            lines.append(PlanReview.Line("Troco", "Nenhum: enviar tudo"))
+            lines.append(PlanReview.Line(kitText("Troco"), kitText("Nenhum: enviar tudo")))
         } else if summary.sendsAll {
-            let noun = valuableLeft == 1 ? "1 moeda que ainda vale fica" : "\(valuableLeft) moedas que ainda valem ficam"
-            lines.append(PlanReview.Line("Troco", "Nenhum: envia tudo o que as moedas escolhidas pagam; \(noun) de fora"))
+            let noun = valuableLeft == 1 ? kitText("1 moeda que ainda vale fica") : kitText("\(valuableLeft) moedas que ainda valem ficam")
+            lines.append(PlanReview.Line(kitText("Troco"), kitText("Nenhum: envia tudo o que as moedas escolhidas pagam; \(noun) de fora")))
         } else if absorbed > 0 {
             lines.append(PlanReview.Line(
-                "Troco",
-                "Nenhum: \(UTXOFormat.amount(absorbed, chain: chain)) que sobraria fica abaixo do mínimo que vale guardar e vai para a taxa"
+                kitText("Troco"),
+                kitText("Nenhum: \(UTXOFormat.amount(absorbed, chain: chain)) que sobraria fica abaixo do mínimo que vale guardar e vai para a taxa")
             ))
         } else {
-            lines.append(PlanReview.Line("Troco", "Nenhum"))
+            lines.append(PlanReview.Line(kitText("Troco"), kitText("Nenhum")))
         }
         if !leftBehind.isEmpty {
             let total = leftBehind.reduce(UInt64(0)) { $0 &+ $1 }
             let noun = leftBehind.count == 1 ? "moeda" : "moedas"
             lines.append(PlanReview.Line(
-                "Fica na carteira",
-                "\(leftBehind.count) \(noun), \(UTXOFormat.amount(total, chain: chain)): pequenas, sem confirmação ou que não pagam a própria taxa"
+                kitText("Fica na carteira"),
+                kitText("\(leftBehind.count) \(noun), \(UTXOFormat.amount(total, chain: chain)): pequenas, sem confirmação ou que não pagam a própria taxa")
             ))
         }
         if let text = skippedText(skipped) {
-            lines.append(PlanReview.Line("Fora da leitura", text))
+            lines.append(PlanReview.Line(kitText("Fora da leitura"), text))
         }
         return lines
     }
@@ -567,14 +567,14 @@ public enum UTXOPlanner {
         guard !skipped.isEmpty else { return nil }
         var parts = [String]()
         for (reason, one, many) in [
-            (UTXOSkippedCoin.Reason.uneconomic, "que não paga a própria taxa", "que não pagam a própria taxa"),
-            (.overLimit, "além do limite de moedas lidas de uma vez", "além do limite de moedas lidas de uma vez"),
-            (.unverified, "sem prova da transação anterior", "sem prova da transação anterior"),
+            (UTXOSkippedCoin.Reason.uneconomic, kitText("que não paga a própria taxa"), kitText("que não pagam a própria taxa")),
+            (.overLimit, kitText("além do limite de moedas lidas de uma vez"), kitText("além do limite de moedas lidas de uma vez")),
+            (.unverified, kitText("sem prova da transação anterior"), kitText("sem prova da transação anterior")),
         ] {
             let count = skipped.filter { $0.reason == reason }.count
             if count > 0 { parts.append("\(count) \(count == 1 ? one : many)") }
         }
-        let noun = skipped.count == 1 ? "1 moeda" : "\(skipped.count) moedas"
+        let noun = skipped.count == 1 ? kitText("1 moeda") : "\(skipped.count) moedas"
         return "\(noun): \(parts.joined(separator: ", "))"
     }
 
@@ -619,7 +619,7 @@ enum UTXOFormat {
             // Dogecoin conta taxa por kB, em DOGE.
             return "\(decimal(rate.satPerKvB, decimals: 8)) DOGE/kB"
         }
-        return "\(decimal(rate.satPerKvB, decimals: 3)) sat/vB"
+        return kitText("\(decimal(rate.satPerKvB, decimals: 3)) sat/vB")
     }
 
     static func decimal(_ value: UInt64, decimals: Int) -> String {
@@ -631,12 +631,6 @@ enum UTXOFormat {
         let whole = String(digits[..<cut])
         var fraction = String(digits[cut...])
         while fraction.hasSuffix("0") { fraction.removeLast() }
-        var grouped = ""
-        for (index, c) in whole.reversed().enumerated() {
-            if index > 0, index % 3 == 0 { grouped.append(".") }
-            grouped.append(c)
-        }
-        let integer = String(grouped.reversed())
-        return fraction.isEmpty ? integer : "\(integer),\(fraction)"
+        return NumberStyle.current.decimal(NumberStyle.current.group(whole), fraction)
     }
 }

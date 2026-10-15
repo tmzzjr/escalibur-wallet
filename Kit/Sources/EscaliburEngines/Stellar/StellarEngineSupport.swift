@@ -35,7 +35,7 @@ enum StellarEngineSupport {
     /// envio (`allowCustom`), tambem a moeda custom do dono, com codigo e emissor salvos
     /// e as 7 casas que a rede usa para todo ativo.
     static func stellar(_ asset: Asset, allowCustom: Bool = false) throws -> StellarAsset {
-        guard asset.chainID == Chain.stellar.id else { throw SendEngineError.message("Este ativo não é da rede Stellar.") }
+        guard asset.chainID == Chain.stellar.id else { throw SendEngineError.message(kitText("Este ativo não é da rede Stellar.")) }
         switch asset.kind {
         case .native:
             return .native
@@ -44,11 +44,11 @@ enum StellarEngineSupport {
                 return match.stellar
             }
             guard allowCustom, asset.isCustom, asset.decimals == 7, let custom = try? StellarAsset(code: code, issuer: issuer), !custom.isNative else {
-                throw SendEngineError.message("\(asset.symbol) deste emissor não está na lista de ativos da carteira.")
+                throw SendEngineError.message(kitText("\(asset.symbol) deste emissor não está na lista de ativos da carteira."))
             }
             return custom
         case .token:
-            throw SendEngineError.message("Este ativo não é da rede Stellar.")
+            throw SendEngineError.message(kitText("Este ativo não é da rede Stellar."))
         }
     }
 
@@ -77,7 +77,7 @@ enum StellarEngineSupport {
         do {
             return try StellarMemo.fromText(tag)
         } catch {
-            throw SendEngineError.message("O memo de texto cabe até \(StellarMemo.maxTextBytes) caracteres. Confira com quem pediu o memo.")
+            throw SendEngineError.message(kitText("O memo de texto cabe até \(StellarMemo.maxTextBytes) caracteres. Confira com quem pediu o memo."))
         }
     }
 
@@ -133,7 +133,7 @@ enum StellarEngineSupport {
             throw error
         } catch {
             throw SendEngineError.message(
-                "A rede não confirmou a transação. Se ela entrou num ledger e falhou, só a taxa foi cobrada. Confira na Atividade antes de tentar de novo."
+                kitText("A rede não confirmou a transação. Se ela entrou num ledger e falhou, só a taxa foi cobrada. Confira na Atividade antes de tentar de novo.")
             )
         }
         return hash
@@ -147,10 +147,10 @@ enum StellarEngineSupport {
         switch error {
         case .insufficientBalance(_, _, let asset):
             return asset.isNative
-                ? "XLM livre insuficiente para este valor mais a taxa da rede. Parte do saldo fica reservada pela rede."
-                : "Saldo de \(asset.code) insuficiente, ou falta XLM livre para a taxa da rede."
+                ? kitText("XLM livre insuficiente para este valor mais a taxa da rede. Parte do saldo fica reservada pela rede.")
+                : kitText("Saldo de \(asset.code) insuficiente, ou falta XLM livre para a taxa da rede.")
         case .belowAccountMinimum:
-            return "A conta de destino ainda não existe. O primeiro envio precisa ser do mínimo que cria a conta."
+            return kitText("A conta de destino ainda não existe. O primeiro envio precisa ser do mínimo que cria a conta.")
         default:
             return error.reason
         }
@@ -161,5 +161,5 @@ enum StellarEngineSupport {
         return NetworkFailureText.error(error)
     }
 
-    static let accountMissing = "Esta conta ainda não existe na Stellar. Ela passa a existir quando receber o primeiro XLM."
+    static let accountMissing = kitText("Esta conta ainda não existe na Stellar. Ela passa a existir quando receber o primeiro XLM.")
 }

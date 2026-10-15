@@ -15,7 +15,7 @@ struct WatchAddressView: View {
     @Environment(AppSession.self) private var session
     let onFinished: () -> Void
     @State private var address = ""
-    @State private var name = "Carteira fria"
+    @State private var name = String(localized: "Carteira fria")
     @State private var error: String?
     @FocusState private var focus: Field?
 
@@ -29,12 +29,12 @@ struct WatchAddressView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     header
-                    label("Endereço").padding(.top, Space.lg)
+                    label(String(localized: "Endereço")).padding(.top, Space.lg)
                     addressField.padding(.top, Space.xs)
                     detection
                         .padding(.top, Space.sm)
                         .animation(Motion.select, value: detected?.id)
-                    label("Nome da carteira").padding(.top, Space.lg)
+                    label(String(localized: "Nome da carteira")).padding(.top, Space.lg)
                     nameField.padding(.top, Space.xs)
                     HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
                         Image(systemName: "eye").font(.system(size: 13, weight: .medium)).foregroundStyle(Palette.inkMuted)
@@ -55,7 +55,7 @@ struct WatchAddressView: View {
             .scrollDismissesKeyboard(.interactively)
             .scrollBounceBehavior(.basedOnSize)
             ActionFooter {
-                PrimaryButton(title: "Observar", enabled: detected != nil) { save() }
+                PrimaryButton(title: String(localized: "Observar"), enabled: detected != nil) { save() }
             }
         }
         .background(Palette.void.ignoresSafeArea())
@@ -139,7 +139,7 @@ struct WatchAddressView: View {
                     NetworkBadge(chain: detected, size: 32, ring: Palette.body)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(detected.family == .evm ? "Endereço EVM" : "Endereço \(detected.name)")
+                    Text(detected.family == .evm ? String(localized: "Endereço EVM") : String(localized: "Endereço \(detected.name)"))
                         .typeStyle(.row).foregroundStyle(Palette.ink)
                     Text(detected.family == .evm ? "Vale em \(Self.evmNetworkNames)." : "Rede reconhecida.")
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft)
@@ -206,7 +206,7 @@ struct WatchAddressView: View {
             _ = try session.addWatchWallet(chain: chain, address: destination.address, name: String(name.prefix(40)))
             onFinished()
         } catch {
-            self.error = "Não foi possível guardar."
+            self.error = String(localized: "Não foi possível guardar.")
         }
     }
 }

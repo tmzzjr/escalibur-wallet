@@ -71,15 +71,17 @@ struct UTXOSendEngine: SendEngine {
             // O que a leitura deixou de fora tambem fica fora do maximo, e a nota diz.
             var notes = [String]()
             if left > 0 {
-                notes.append("\(left) \(left == 1 ? "moeda pequena ou ainda sem confirmação fica" : "moedas pequenas ou ainda sem confirmação ficam") fora do máximo.")
+                notes.append(left == 1
+                    ? kitText("1 moeda pequena ou ainda sem confirmação fica fora do máximo.")
+                    : kitText("\(left) moedas pequenas ou ainda sem confirmação ficam fora do máximo."))
             }
             if let skipped = UTXOPlanner.skippedText(state.network.skipped) {
-                notes.append("Fora da leitura: \(skipped).")
+                notes.append(kitText("Fora da leitura: \(skipped)."))
             }
             return Spendable(
                 amount: summary.amount,
                 reserveNote: notes.isEmpty ? nil : notes.joined(separator: " "),
-                feeNote: "Já descontada a taxa da rede de \(fee), a \(UTXOEngineSupport.rateText(rate, chain: chain))."
+                feeNote: kitText("Já descontada a taxa da rede de \(fee), a \(UTXOEngineSupport.rateText(rate, chain: chain)).")
             )
         } catch {
             throw UTXOEngineSupport.translate(error, chain: chain)
@@ -195,10 +197,10 @@ struct UTXOSendEngine: SendEngine {
     private func check(_ request: SendRequest) throws {
         try requireChain(request.chain)
         guard request.asset.chainID == chain.id, request.asset.kind == .native else {
-            throw SendEngineError.message("Nesta rede a carteira envia só \(chain.nativeSymbol).")
+            throw SendEngineError.message(kitText("Nesta rede a carteira envia só \(chain.nativeSymbol)."))
         }
         if let tag = request.tag, !tag.isEmpty {
-            throw SendEngineError.message("A rede \(chain.name) não usa tag nem memo. Tire a tag para enviar.")
+            throw SendEngineError.message(kitText("A rede \(chain.name) não usa tag nem memo. Tire a tag para enviar."))
         }
     }
 }

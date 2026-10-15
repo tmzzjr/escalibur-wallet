@@ -53,7 +53,7 @@ enum TradeText {
         let integer = magnitude / 100
         var fraction = String(format: "%02d", magnitude % 100)
         while fraction.hasSuffix("0") { fraction.removeLast() }
-        return (negative ? "-" : "") + (fraction.isEmpty ? "\(integer)%" : "\(integer),\(fraction)%")
+        return (negative ? "-" : "") + NumberStyle.current.decimal(String(integer), fraction) + "%"
     }
 
     static func percent(bps: UInt32) -> String { percent(bps: Int(bps)) }
@@ -62,15 +62,16 @@ enum TradeText {
     /// quando o numero e menor que 1. Corta, nunca arredonda para cima.
     static func approximate(_ value: BigUInt, decimals: Int) -> (text: String, exact: Bool) {
         let full = EVMText.number(value, decimals: decimals)
-        guard let comma = full.firstIndex(of: ",") else { return (full, true) }
-        let integerPart = full[..<comma]
-        let fraction = Array(full[full.index(after: comma)...])
+        let separator = NumberStyle.current.decimal
+        guard let comma = full.range(of: separator) else { return (full, true) }
+        let integerPart = full[..<comma.lowerBound]
+        let fraction = Array(full[comma.upperBound...])
         let leadingZeros = integerPart == "0" ? fraction.prefix { $0 == "0" }.count : 0
         let keep = integerPart == "0" ? leadingZeros + 4 : 2
         guard fraction.count > keep else { return (full, true) }
         var cut = Array(fraction.prefix(keep))
         while cut.last == "0" { cut.removeLast() }
-        return (cut.isEmpty ? String(integerPart) : String(integerPart) + "," + String(cut), false)
+        return (NumberStyle.current.decimal(integerPart, String(cut)), false)
     }
 
     /// "1 ETH ≈ 2.692,43 USDC": quanto do vendido custa uma unidade inteira do comprado,

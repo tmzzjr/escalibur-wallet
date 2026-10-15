@@ -101,7 +101,7 @@ final class AppSession {
 
     func unlockWithBiometry() async throws {
         let (key, updates) = try await Task.detached(priority: .userInitiated) {
-            let rk = try KeyServices.root.unlockWithBiometry(reason: "Destravar a Escalibur Wallet")
+            let rk = try KeyServices.root.unlockWithBiometry(reason: String(localized: "Destravar a Escalibur Wallet"))
             defer { rk.wipe() }
             return (IndexCipher.key(from: rk), Self.missingAccounts(rk: rk))
         }.value
@@ -229,7 +229,7 @@ final class AppSession {
             defer { rk.wipe() }
             try KeyServices.root.enableBiometry(rk: rk)
             do {
-                let check = try KeyServices.root.unlockWithBiometry(reason: "Confirme o \(KeyServices.biometryName) para ligar")
+                let check = try KeyServices.root.unlockWithBiometry(reason: String(localized: "Confirme o \(KeyServices.biometryName) para ligar"))
                 defer { check.wipe() }
                 guard Hash.constantTimeEqual(check, rk) else { throw RootKeyVault.Failure.storage }
             } catch {
@@ -384,8 +384,8 @@ enum WalletError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .alreadyImported(let name): return "Esta carteira já está aqui, como \(name)."
-        case .notPhraseWallet: return "Esta carteira só acompanha um endereço. A passphrase precisa da senha de 12 ou 24 palavras."
+        case .alreadyImported(let name): return String(localized: "Esta carteira já está aqui, como \(name).")
+        case .notPhraseWallet: return String(localized: "Esta carteira só acompanha um endereço. A passphrase precisa da senha de 12 ou 24 palavras.")
         }
     }
 }

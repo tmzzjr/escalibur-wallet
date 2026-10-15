@@ -47,7 +47,7 @@ struct SolanaTradeEngine: TradeEngine {
     var supportsLimitOrders: Bool { false }
 
     var limitCustodyNote: String {
-        "Ordem limite na Solana ainda não está disponível nesta versão. Nada sai da sua carteira para esperar uma ordem."
+        kitText("Ordem limite na Solana ainda não está disponível nesta versão. Nada sai da sua carteira para esperar uma ordem.")
     }
 
     // MARK: Cotacao
@@ -66,7 +66,7 @@ struct SolanaTradeEngine: TradeEngine {
             return TradeQuote(
                 sell: request.sell, buy: request.buy, amountIn: BigUInt(route.inAmount), expectedOut: expected,
                 minimumOut: BigUInt(route.minimumOut), priceImpactPercent: proposal.priceImpactPercent, networkFeeFiat: nil,
-                providerFeeNote: "Sem taxa da Escalibur e sem taxa de plataforma da Jupiter. A taxa dos pools já está no preço.",
+                providerFeeNote: kitText("Sem taxa da Escalibur e sem taxa de plataforma da Jupiter. A taxa dos pools já está no preço."),
                 legs: [TradeQuote.Leg(provider: Self.provider, fraction: 1, amountIn: BigUInt(route.inAmount), expectedOut: expected)],
                 alternatives: [], providersCompared: 1, needsApproval: false,
                 expiresAt: state.fetchedAt.addingTimeInterval(Self.quoteLifetime)
@@ -171,7 +171,7 @@ struct SolanaTradeEngine: TradeEngine {
               transaction.signer == swap.owner.publicKey, transaction.signerPath == swap.owner.path
         else { throw SolanaEngineProblem.planMismatch }
         let sold = SolanaAmountText.format(request.amountIn, decimals: swap.sell.decimals, symbol: swap.sell.symbol)
-        guard plan.review.lines.first(where: { $0.label == soldLineLabel })?.value == sold else { throw SolanaEngineProblem.planMismatch }
+        guard plan.review.lines.first(where: { $0.role == .sold })?.value == sold else { throw SolanaEngineProblem.planMismatch }
         for warning in plan.review.warnings {
             switch warning {
             case .unverifiedToken: throw SolanaEngineProblem.tokenNotVerified
@@ -180,9 +180,6 @@ struct SolanaTradeEngine: TradeEngine {
             }
         }
     }
-
-    /// O rotulo da linha do valor vendido na revisao (`SolanaSwapPlanner.makeReview`).
-    static let soldLineLabel = "Sai"
 
     func planLimitOrder(_ request: LimitOrderRequest) async throws -> SigningPlan {
         throw SolanaEngineMessages.map(SolanaEngineProblem.limitOrdersUnavailable, .swap)

@@ -275,17 +275,17 @@ public enum NEARPlanner {
 
         let amountText = NEARFormat.near(amount)
         var lines = [
-            PlanReview.Line("Para", receiver.text, verbatim: true),
-            PlanReview.Line("Valor", amountText),
-            PlanReview.Line("Taxa estimada", NEARFormat.near(cost.expected)),
-            PlanReview.Line("Reservado para a taxa", "\(NEARFormat.near(cost.reserved)). O que não for usado volta para a conta"),
-            PlanReview.Line("Rede", "NEAR"),
-            PlanReview.Line("Validade", "Até \(NEARFormat.grouped(NEARRules.validityBlocks)) blocos depois do bloco \(NEARFormat.grouped(state.checkpoint.height)), cerca de 14 horas"),
+            PlanReview.Line(kitText("Para"), receiver.text, verbatim: true, role: .recipient),
+            PlanReview.Line(kitText("Valor"), amountText),
+            PlanReview.Line(kitText("Taxa estimada"), NEARFormat.near(cost.expected)),
+            PlanReview.Line(kitText("Reservado para a taxa"), kitText("\(NEARFormat.near(cost.reserved)). O que não for usado volta para a conta")),
+            PlanReview.Line(kitText("Rede"), "NEAR"),
+            PlanReview.Line(kitText("Validade"), kitText("Até \(NEARFormat.grouped(NEARRules.validityBlocks)) blocos depois do bloco \(NEARFormat.grouped(state.checkpoint.height)), cerca de 14 horas")),
         ]
         var warnings = [PlanReview.Warning]()
         if cost.createsAccount {
             lines.append(PlanReview.Line(
-                "Destino", "Conta ainda sem registro na rede. Este envio a cria, e a taxa inclui a cobrança da rede por conta nova. Confira que é uma conta NEAR: um endereço de outra rede sem o 0x recebe aqui, e ninguém consegue mover"
+                kitText("Destino"), kitText("Conta ainda sem registro na rede. Este envio a cria, e a taxa inclui a cobrança da rede por conta nova. Confira que é uma conta NEAR: um endereço de outra rede sem o 0x recebe aqui, e ninguém consegue mover")
             ))
         }
         if state.destination?.hasContract == true { warnings.append(.destinationIsContract) }
@@ -296,7 +296,7 @@ public enum NEARPlanner {
         }
 
         let review = PlanReview(
-            kind: .send, title: "Enviar \(amountText)", lines: lines, warnings: warnings,
+            kind: .send, title: kitText("Enviar \(amountText)"), lines: lines, warnings: warnings,
             recipient: receiver.text, recipientTag: nil, outgoing: .native(.near, fields.deposit)
         )
         return SigningPlan(walletID: walletID, chain: .near, review: review, transactions: [transfer], createdAt: now)
@@ -343,17 +343,12 @@ enum NEARFormat {
         var fraction = String(padded[cut...])
         while fraction.hasSuffix("0") { fraction.removeLast() }
         let whole = grouped(String(padded[..<cut]))
-        return (fraction.isEmpty ? whole : "\(whole),\(fraction)") + " NEAR"
+        return NumberStyle.current.decimal(whole, fraction) + " NEAR"
     }
 
     static func grouped<T: BinaryInteger>(_ value: T) -> String { grouped(String(value)) }
 
     static func grouped(_ digits: String) -> String {
-        var out = ""
-        for (index, digit) in digits.enumerated() {
-            if index > 0, (digits.count - index) % 3 == 0 { out.append(".") }
-            out.append(digit)
-        }
-        return out
+        NumberStyle.current.group(digits)
     }
 }

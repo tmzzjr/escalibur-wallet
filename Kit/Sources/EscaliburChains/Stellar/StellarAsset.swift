@@ -151,11 +151,11 @@ public enum StellarMemo: Hashable, Sendable {
     /// Tipo e valor como a tela mostra.
     public var reviewLabel: String {
         switch self {
-        case .none: return "Memo"
-        case .text: return "Memo (texto)"
-        case .id: return "Memo (ID)"
-        case .hash: return "Memo (hash)"
-        case .returnHash: return "Memo (retorno)"
+        case .none: return kitText("Memo")
+        case .text: return kitText("Memo (texto)")
+        case .id: return kitText("Memo (ID)")
+        case .hash: return kitText("Memo (hash)")
+        case .returnHash: return kitText("Memo (retorno)")
         }
     }
 
@@ -167,7 +167,7 @@ public enum StellarMemo: Hashable, Sendable {
 
     public var reviewValue: String {
         switch self {
-        case .none: return "sem memo"
+        case .none: return kitText("sem memo")
         case .text(let bytes):
             // Texto que nao e UTF-8 aparece em hex, marcado, para nunca ser
             // mostrado como outra coisa.

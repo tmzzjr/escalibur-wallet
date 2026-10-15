@@ -65,6 +65,7 @@
 		6555C4EDEBE0DF08F72AE01A /* ResponsibilityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D19676DE10AD70D111052D72 /* ResponsibilityView.swift */; };
 		67C3581CF252367C1BEC66F8 /* SlippageScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B27717125F1CAF51E389386B /* SlippageScaleTests.swift */; };
 		6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B2519CA657D4A05E4C4A06 /* Metrics.swift */; };
+		6ACD198F536824F93FE348BB /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 78634956566339609C141332 /* InfoPlist.xcstrings */; };
 		6DE36F9779659ECEE5EEC272 /* ReceiptWatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4F387C06F2F84E8F145E72E /* ReceiptWatchTests.swift */; };
 		6E8FF2A753324946AF775721 /* BridgeForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA24AF34F52FE0713F3129C1 /* BridgeForm.swift */; };
 		709592474B6D28D167D13C47 /* MarketSortTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E53CBDE23167A0EB7AEB5D4 /* MarketSortTests.swift */; };
@@ -131,6 +132,7 @@
 		EAD6592758D7814329227F15 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7372B2C6D0156F65AA215FE5 /* SettingsView.swift */; };
 		ECDF3B3B1D37C45AF88FD2A8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */; };
 		ED37AE1082FC44B113636E00 /* MarketSearchKeyboardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98C09B212E6179F72538B94D /* MarketSearchKeyboardTests.swift */; };
+		ED7FEAC0B90F26F3EFC4030F /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C9F5E370893F7BFBA8F492FE /* Localizable.xcstrings */; };
 		F188A8EA4A5EBDCD53F891E7 /* CoinActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72C75178B68BC09E156440A1 /* CoinActions.swift */; };
 		F2B74E9DFA78D4082923023D /* AssetDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB2C6C888DAF848A575AD7A /* AssetDetailView.swift */; };
 		F31E9A19BDD8A75BEFD422B9 /* ImportPipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 257E1C63C5F4FC66E542B13F /* ImportPipelineTests.swift */; };
@@ -221,6 +223,7 @@
 		77C53992781573FB54743C00 /* SecureInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureInputField.swift; sourceTree = "<group>"; };
 		781A92DCAC657FBE12804D78 /* PINPad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINPad.swift; sourceTree = "<group>"; };
 		782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenEnvelopeFlow.swift; sourceTree = "<group>"; };
+		78634956566339609C141332 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		7B9EB37901CCCCF752510F2E /* ReceiveNetworkSwitchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveNetworkSwitchTests.swift; sourceTree = "<group>"; };
 		7C28ED1879662A04236281C1 /* termos.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = termos.md; sourceTree = "<group>"; };
 		7E67A652A823737F6EAC7745 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -275,6 +278,7 @@
 		C89672710E00E2856C3A1EB7 /* TokenMarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenMarks.swift; sourceTree = "<group>"; };
 		C9A0D213F5797560FD754C92 /* voz-frase.m4a */ = {isa = PBXFileReference; path = "voz-frase.m4a"; sourceTree = "<group>"; };
 		C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinLogo.swift; sourceTree = "<group>"; };
+		C9F5E370893F7BFBA8F492FE /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CAD9F6152DC6477FF648F72C /* OnboardingFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowTests.swift; sourceTree = "<group>"; };
 		CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		CCCB20AFE4A43091DEB9D551 /* LimitRenewalPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitRenewalPrompt.swift; sourceTree = "<group>"; };
@@ -418,6 +422,8 @@
 			isa = PBXGroup;
 			children = (
 				2D484651018FF5D48FD37087 /* Assets.xcassets */,
+				78634956566339609C141332 /* InfoPlist.xcstrings */,
+				C9F5E370893F7BFBA8F492FE /* Localizable.xcstrings */,
 				8C9605AF6B0175CB6F7E648C /* PrivacyInfo.xcprivacy */,
 				DCCE0E25C9CAF37570F0707C /* Legal */,
 			);
@@ -764,6 +770,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F9AA5C1E81DED2AF9F55AA8C /* Assets.xcassets in Resources */,
+				6ACD198F536824F93FE348BB /* InfoPlist.xcstrings in Resources */,
+				ED7FEAC0B90F26F3EFC4030F /* Localizable.xcstrings in Resources */,
 				AB7B23776FBF7C6424A8874C /* PrivacyInfo.xcprivacy in Resources */,
 				1854C15FE3CC0403A4179218 /* privacidade.md in Resources */,
 				4DA261DD7012A533E034CF1C /* termos.md in Resources */,
@@ -993,12 +1001,14 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
 			};
@@ -1137,6 +1147,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -1144,6 +1155,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
 			};

@@ -147,7 +147,7 @@ struct OpenOrdersSection: View {
         case .failed(let message):
             VStack(alignment: .leading, spacing: Space.xxs) {
                 Text(message).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-                TertiaryButton(title: "Tentar de novo") { Task { await reload() } }
+                TertiaryButton(title: String(localized: "Tentar de novo")) { Task { await reload() } }
             }
         case .loaded(let orders) where shown(orders).isEmpty && finished.isEmpty:
             Text("Nenhuma ordem aberta. A que você criar, em qualquer rede, aparece aqui até executar, vencer ou você cancelar.")
@@ -198,7 +198,7 @@ struct OpenOrdersSection: View {
         let bought = Fmt.double(order.minimumBuy, decimals: buy.decimals)
         guard sold > 0, bought > 0 else { return nil }
         let text = TradeView.priceText(bought / sold)
-        return "Preço: 1 \(sell.symbol) = \(Fmt.compactZeros(text) ?? text) \(buy.symbol)"
+        return String(localized: "Preço: 1 \(sell.symbol) = \(Fmt.compactZeros(text) ?? text) \(buy.symbol)")
     }
 
     private func row(_ order: OpenOrder) -> some View { openRow(order) }
@@ -245,9 +245,9 @@ struct OpenOrdersSection: View {
         let (sell, buy) = assets(order)
         let outcome: String
         switch progress.state {
-        case .filled: outcome = "Executada. Recebido \(Self.amount(progress.receivedBuy, buy))"
-        case .expired: outcome = progress.fraction > 0 ? "Venceu com \(FillRing.percentText(progress.fraction)) preenchido" : "Venceu sem preencher"
-        case .cancelled: outcome = progress.fraction > 0 ? "Cancelada com \(FillRing.percentText(progress.fraction)) preenchido" : "Cancelada"
+        case .filled: outcome = String(localized: "Executada. Recebido \(Self.amount(progress.receivedBuy, buy))")
+        case .expired: outcome = progress.fraction > 0 ? String(localized: "Venceu com \(FillRing.percentText(progress.fraction)) preenchido") : String(localized: "Venceu sem preencher")
+        case .cancelled: outcome = progress.fraction > 0 ? String(localized: "Cancelada com \(FillRing.percentText(progress.fraction)) preenchido") : String(localized: "Cancelada")
         case .open: outcome = ""
         }
         return HStack(spacing: Space.sm) {
@@ -291,7 +291,7 @@ struct OpenOrdersSection: View {
         let answered = results.compactMap { chain, orders in orders.map { (chain, $0) } }
         let failedChains = results.filter { $0.1 == nil }.map(\.0)
         guard !answered.isEmpty || targets.isEmpty else {
-            if initial { load = .failed("Não foi possível ler as ordens agora. Tente de novo.") }
+            if initial { load = .failed(String(localized: "Não foi possível ler as ordens agora. Tente de novo.")) }
             return
         }
         let order = Dictionary(Chain.all.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -327,14 +327,14 @@ struct OpenOrdersSection: View {
     /// Ativo fora da lista (ordem criada fora da carteira) nao ganha nome nem casas da
     /// rede: aparece como tal, sem numero que poderia estar errado.
     static func amount(_ value: BigUInt, _ asset: Asset?) -> String {
-        guard let asset else { return "um token fora da lista" }
+        guard let asset else { return String(localized: "um token fora da lista") }
         return Fmt.crypto(value, decimals: asset.decimals, symbol: asset.symbol)
     }
 
     static func expiry(_ date: Date?) -> String {
-        guard let date else { return "Até cancelar" }
+        guard let date else { return String(localized: "Até cancelar") }
         let relative = date.formatted(Date.RelativeFormatStyle(presentation: .numeric, unitsStyle: .wide).locale(Fmt.locale))
-        return "Vence \(relative)"
+        return String(localized: "Vence \(relative)")
     }
 
     /// Um jeito so de cancelar, o garantido: a transacao na rede, que invalida a ordem
@@ -346,9 +346,9 @@ struct OpenOrdersSection: View {
 
     static func explanation(_ via: OpenOrder.Cancellation?) -> String {
         switch via {
-        case .onchain?: return "A carteira envia uma transação que invalida a ordem de vez, com a taxa da rede. Depois que ela confirmar, a ordem não executa mais, e o que não foi vendido continua na sua carteira."
-        case .offchain?: return "A carteira pede à CoW para parar de oferecer a ordem. O que não foi vendido continua na sua carteira."
-        case nil: return "Esta ordem não pode ser cancelada pela carteira."
+        case .onchain?: return String(localized: "A carteira envia uma transação que invalida a ordem de vez, com a taxa da rede. Depois que ela confirmar, a ordem não executa mais, e o que não foi vendido continua na sua carteira.")
+        case .offchain?: return String(localized: "A carteira pede à CoW para parar de oferecer a ordem. O que não foi vendido continua na sua carteira.")
+        case nil: return String(localized: "Esta ordem não pode ser cancelada pela carteira.")
         }
     }
 }

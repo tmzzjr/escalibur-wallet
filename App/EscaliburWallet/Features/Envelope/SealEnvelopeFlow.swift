@@ -101,10 +101,10 @@ struct SealEnvelopeFlow: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             VStack(alignment: .leading, spacing: Space.md) {
-                EnvelopePoint(icon: "lock.doc", text: "A senha da carteira é cifrada neste iPhone e vira um arquivo.")
-                EnvelopePoint(icon: "key", text: "Você escolhe a senha que abre o arquivo. Ela não sai do iPhone e ninguém mais sabe.")
-                EnvelopePoint(icon: "eye.slash", text: "Nem a Escalibur consegue abrir: não temos a sua senha nem cópia do arquivo.")
-                EnvelopePoint(icon: "externaldrive", text: "Guarde o arquivo onde quiser. Ele só abre no app, com a senha do envelope.")
+                EnvelopePoint(icon: "lock.doc", text: String(localized: "A senha da carteira é cifrada neste iPhone e vira um arquivo."))
+                EnvelopePoint(icon: "key", text: String(localized: "Você escolhe a senha que abre o arquivo. Ela não sai do iPhone e ninguém mais sabe."))
+                EnvelopePoint(icon: "eye.slash", text: String(localized: "Nem a Escalibur consegue abrir: não temos a sua senha nem cópia do arquivo."))
+                EnvelopePoint(icon: "externaldrive", text: String(localized: "Guarde o arquivo onde quiser. Ele só abre no app, com a senha do envelope."))
             }
             .padding(Space.base)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -118,7 +118,7 @@ struct SealEnvelopeFlow: View {
         .scrollIndicators(.hidden)
         // O botao fica preso embaixo; o texto rola por tras dele no iPhone pequeno.
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: "Continuar", loading: working) { Task { await unlockPhrase() } }
+            PrimaryButton(title: String(localized: "Continuar"), loading: working) { Task { await unlockPhrase() } }
                 .padding(.top, Space.xs)
                 .background(Palette.void)
         }
@@ -133,10 +133,10 @@ struct SealEnvelopeFlow: View {
             Text("Só ela abre o envelope, em qualquer aparelho. Não é o PIN e não pode ser a senha da carteira. Não existe redefinir.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
             if customPassword {
-                PasswordBox(buffer: password, length: $passwordLength, placeholder: "Senha do envelope", focusOnAppear: true) { proceedFromCreate() }
+                PasswordBox(buffer: password, length: $passwordLength, placeholder: String(localized: "Senha do envelope"), focusOnAppear: true) { proceedFromCreate() }
                     .padding(.top, Space.lg)
                 strengthLine.padding(.top, Space.sm)
-                EnvelopeOptionButton(title: "Usar 6 palavras sorteadas", icon: "dice") {
+                EnvelopeOptionButton(title: String(localized: "Usar 6 palavras sorteadas"), icon: "dice") {
                     password.wipe()
                     passwordLength = 0
                     error = nil
@@ -157,10 +157,10 @@ struct SealEnvelopeFlow: View {
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: Space.xs) {
-                    EnvelopeOptionButton(title: "Sortear outras", icon: "dice") {
+                    EnvelopeOptionButton(title: String(localized: "Sortear outras"), icon: "dice") {
                         withAnimation(Motion.fade) { suggest() }
                     }
-                    EnvelopeOptionButton(title: "Criar a minha", icon: "pencil") {
+                    EnvelopeOptionButton(title: String(localized: "Criar a minha"), icon: "pencil") {
                         error = nil
                         usingSuggestion = false
                         customPassword = true
@@ -172,9 +172,9 @@ struct SealEnvelopeFlow: View {
             if let error { Text(error).typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.xs).fixedSize(horizontal: false, vertical: true) }
             Spacer()
             if customPassword {
-                PrimaryButton(title: "Continuar", enabled: passwordLength > 0) { proceedFromCreate() }
+                PrimaryButton(title: String(localized: "Continuar"), enabled: passwordLength > 0) { proceedFromCreate() }
             } else {
-                PrimaryButton(title: "Anotei, continuar", enabled: !suggestionIndices.isEmpty) {
+                PrimaryButton(title: String(localized: "Anotei, continuar"), enabled: !suggestionIndices.isEmpty) {
                     // O buffer sai direto das posicoes. As palavras na tela sao String (para
                     // mostrar, nao tem outro jeito: risco aceito no 6) e saem da memoria do
                     // app assim que a tela segue (pentest de 14/10/2026).
@@ -209,7 +209,7 @@ struct SealEnvelopeFlow: View {
                     .typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
-            PrimaryButton(title: "Usar 6 palavras sorteadas") {
+            PrimaryButton(title: String(localized: "Usar 6 palavras sorteadas")) {
                 riskBits = nil
                 password.wipe()
                 passwordLength = 0
@@ -217,7 +217,7 @@ struct SealEnvelopeFlow: View {
                 usingSuggestion = false
                 suggest()
             }
-            HoldButton(title: band.needsHold ? "Segure para usar mesmo assim" : "Usar mesmo assim", holdSeconds: band.needsHold ? 2 : 0) {
+            HoldButton(title: band.needsHold ? String(localized: "Segure para usar mesmo assim") : String(localized: "Usar mesmo assim"), holdSeconds: band.needsHold ? 2 : 0) {
                 riskBits = nil
                 acceptedRisk = true
                 error = nil
@@ -279,7 +279,7 @@ struct SealEnvelopeFlow: View {
     private var repeatStep: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Repita a senha do envelope").typeStyle(.title).foregroundStyle(Palette.ink)
-            PasswordBox(buffer: repeatPassword, length: $repeatLength, placeholder: "Senha do envelope") { Task { await seal() } }
+            PasswordBox(buffer: repeatPassword, length: $repeatLength, placeholder: String(localized: "Senha do envelope")) { Task { await seal() } }
                 .padding(.top, Space.lg)
             if let error { Text(error).typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.xs) }
             Text("Nome dentro do envelope").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
@@ -292,7 +292,7 @@ struct SealEnvelopeFlow: View {
             Text("O nome fica cifrado. O arquivo não diz de quem é.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
             Spacer()
-            PrimaryButton(title: "Lacrar envelope", enabled: repeatLength > 0) { Task { await seal() } }
+            PrimaryButton(title: String(localized: "Lacrar envelope"), enabled: repeatLength > 0) { Task { await seal() } }
         }
     }
 
@@ -306,7 +306,7 @@ struct SealEnvelopeFlow: View {
                 Text("O arquivo se chama \(sealed?.name ?? "") e não diz de quem é nem o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
                 if weakSealed {
-                    Banner(kind: .caution, title: "Senha muito fraca: guarde o arquivo num pendrive ou no seu computador, nunca na nuvem nem por e-mail.")
+                    Banner(kind: .caution, title: String(localized: "Senha muito fraca: guarde o arquivo num pendrive ou no seu computador, nunca na nuvem nem por e-mail."))
                         .padding(.top, Space.md)
                 }
                 Spacer()
@@ -339,7 +339,7 @@ struct SealEnvelopeFlow: View {
         let id = wallet.id
         do {
             guard await VoiceGate.shared.confirm(.envelope, session: session) else { return }
-            let result: (SecureBytes, SecureBytes)? = try await auth.perform(session, reason: "Lacrar a senha de \(wallet.name) num envelope", requirePIN: true) { rk in
+            let result: (SecureBytes, SecureBytes)? = try await auth.perform(session, reason: String(localized: "Lacrar a senha de \(wallet.name) num envelope"), requirePIN: true) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }
                 let phrase = try secret.phrase()
@@ -353,7 +353,7 @@ struct SealEnvelopeFlow: View {
             label = wallet.name
             step = .create
         } catch {
-            self.error = "Não foi possível abrir a carteira agora."
+            self.error = String(localized: "Não foi possível abrir a carteira agora.")
         }
     }
 
@@ -374,12 +374,12 @@ struct SealEnvelopeFlow: View {
         // Palavras da propria frase anulam o backup (o papel da frase abriria o envelope):
         // isso nao e questao de forca, e continua recusado.
         if let phrase, PasswordStrength.reusesPhrase(password, phrase: phrase) {
-            error = "Esta senha usa palavras da própria carteira. Quem achar o papel abre o envelope. Escolha outra."
+            error = String(localized: "Esta senha usa palavras da própria carteira. Quem achar o papel abre o envelope. Escolha outra.")
             return
         }
         switch PasswordStrength.verdict(password) {
         case .tooShort:
-            error = "Use pelo menos 4 caracteres."
+            error = String(localized: "Use pelo menos 4 caracteres.")
         case .strong:
             // O medidor depende do custo do Argon2 deste iPhone: abaixo de forte nele, pede
             // o "sim" como as outras. Antes, 60 bits saiam como "bom" no medidor e lacravam
@@ -401,7 +401,7 @@ struct SealEnvelopeFlow: View {
     private func seal() async {
         let same = Hash.constantTimeEqual(password, repeatPassword)
         guard same else {
-            error = "As duas não conferem. Digite a senha do envelope de novo."
+            error = String(localized: "As duas não conferem. Digite a senha do envelope de novo.")
             repeatPassword.wipe()
             repeatLength = 0
             return
@@ -431,10 +431,10 @@ struct SealEnvelopeFlow: View {
             session.update(updated)
             step = .done
         } catch Envelope.Failure.notEnoughMemory {
-            self.error = "Pouca memória livre agora. Feche outros apps e tente de novo."
+            self.error = String(localized: "Pouca memória livre agora. Feche outros apps e tente de novo.")
             step = .repeatIt
         } catch {
-            self.error = "Não foi possível lacrar o envelope."
+            self.error = String(localized: "Não foi possível lacrar o envelope.")
             step = .repeatIt
         }
     }

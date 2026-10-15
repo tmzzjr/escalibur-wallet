@@ -237,26 +237,26 @@ public enum TradePlanner {
         let native = TradeAsset.native(chain)
         let count = approvalValues.count + 1
         var lines: [PlanReview.Line] = [
-            .init("Rede", chain.name),
-            .init("Sai", TradeText.amount(intent.amountIn, intent.sell)),
-            .init("Entra, no mínimo", TradeText.amount(quote.guaranteedOut, intent.buy)),
-            .init("Estimativa", TradeText.amount(quote.expectedOut, intent.buy)),
-            .init("Preço", TradeText.price(amountIn: intent.amountIn, out: quote.expectedOut, sell: intent.sell, buy: intent.buy)),
-            .init("Tolerância", TradeText.percent(bps: intent.slippageBps)),
-            .init("Provedor", quote.provider.displayName),
-            .init("Contrato do provedor", quote.to.checksummed, verbatim: true),
+            .init(kitText("Rede"), chain.name),
+            .init(kitText("Sai"), TradeText.amount(intent.amountIn, intent.sell), role: .sold),
+            .init(kitText("Entra, no mínimo"), TradeText.amount(quote.guaranteedOut, intent.buy)),
+            .init(kitText("Estimativa"), TradeText.amount(quote.expectedOut, intent.buy)),
+            .init(kitText("Preço"), TradeText.price(amountIn: intent.amountIn, out: quote.expectedOut, sell: intent.sell, buy: intent.buy)),
+            .init(kitText("Tolerância"), TradeText.percent(bps: intent.slippageBps)),
+            .init(kitText("Provedor"), quote.provider.displayName),
+            .init(kitText("Contrato do provedor"), quote.to.checksummed, verbatim: true, role: .assetReference),
         ]
 
         // Autorizacao.
         if intent.sell.isNative {
-            lines.append(.init("Autorização", "Não precisa: moeda nativa"))
+            lines.append(.init(kitText("Autorização"), kitText("Não precisa: moeda nativa")))
         } else if approvalValues.isEmpty {
-            lines.append(.init("Autorização", "Já existe e cobre o valor"))
+            lines.append(.init(kitText("Autorização"), kitText("Já existe e cobre o valor")))
         } else {
-            lines.append(.init("Autorização", "Exata: \(TradeText.amount(intent.amountIn, intent.sell)), nunca ilimitada"))
-            lines.append(.init("Autorizado a gastar", quote.spender.checksummed, verbatim: true))
+            lines.append(.init(kitText("Autorização"), kitText("Exata: \(TradeText.amount(intent.amountIn, intent.sell)), nunca ilimitada")))
+            lines.append(.init(kitText("Autorizado a gastar"), quote.spender.checksummed, verbatim: true))
             if approvalValues.count == 2 {
-                lines.append(.init("Antes", "Zerar a autorização atual (exigência do \(intent.sell.symbol))"))
+                lines.append(.init(kitText("Antes"), kitText("Zerar a autorização atual (exigência do \(intent.sell.symbol))")))
             }
         }
 
@@ -264,46 +264,46 @@ public enum TradePlanner {
         let approveCount = BigUInt(approvalValues.count)
         let expectedFee = swapQuote.expectedCost + (approveQuote?.expectedCost ?? 0) * approveCount
         let maxFee = swapQuote.maxCost + (approveQuote?.maxCost ?? 0) * approveCount
-        lines.append(.init("Taxa da rede (estimada)", TradeText.amount(expectedFee, native)))
-        lines.append(.init("Taxa da rede (máxima)", TradeText.amount(maxFee, native)))
+        lines.append(.init(kitText("Taxa da rede (estimada)"), TradeText.amount(expectedFee, native)))
+        lines.append(.init(kitText("Taxa da rede (máxima)"), TradeText.amount(maxFee, native)))
         let l1 = swapQuote.l1DataFee + (approveQuote?.l1DataFee ?? 0) * approveCount
-        if !l1.isZero { lines.append(.init("Parte da taxa paga à L1", TradeText.amount(l1, native))) }
-        lines.append(.init("Taxa do provedor", providerFeeText(quote)))
+        if !l1.isZero { lines.append(.init(kitText("Parte da taxa paga à L1"), TradeText.amount(l1, native))) }
+        lines.append(.init(kitText("Taxa do provedor"), providerFeeText(quote)))
         let fee = quote.decoded.integratorFee
         if fee.isNone {
-            lines.append(.init("Taxa da Escalibur", "Sem taxa da Escalibur"))
+            lines.append(.init(kitText("Taxa da Escalibur"), kitText("Sem taxa da Escalibur")))
         } else if let recipient = fee.recipient {
-            lines.append(.init("Taxa da Escalibur", TradeText.percent(bps: fee.bps)))
-            lines.append(.init("Recebedor da taxa", recipient.checksummed, verbatim: true))
+            lines.append(.init(kitText("Taxa da Escalibur"), TradeText.percent(bps: fee.bps)))
+            lines.append(.init(kitText("Recebedor da taxa"), recipient.checksummed, verbatim: true))
         }
 
         // Mercado.
         if let impact = quote.assessment.priceImpactBps {
-            lines.append(.init("Impacto no preço", TradeText.percent(bps: impact)))
+            lines.append(.init(kitText("Impacto no preço"), TradeText.percent(bps: impact)))
         }
         if let deviation = quote.assessment.oracleDeviationBps, deviation > TradeRiskAssessment.oracleWarnBps {
-            lines.append(.init("Preço de referência", "\(TradeText.percent(bps: deviation)) pior que o preço médio de mercado"))
+            lines.append(.init(kitText("Preço de referência"), kitText("\(TradeText.percent(bps: deviation)) pior que o preço médio de mercado")))
         }
 
         // Etapas.
         if approvalValues.isEmpty {
-            lines.append(.init("Etapas", "1 transação: a troca"))
+            lines.append(.init(kitText("Etapas"), kitText("1 transação: a troca")))
         } else {
-            lines.append(.init("Etapas", "\(count) transações: autorizar e trocar, nesta ordem"))
+            lines.append(.init(kitText("Etapas"), kitText("\(count) transações: autorizar e trocar, nesta ordem")))
         }
         if let split {
-            lines.append(.init("Divisão", "Etapa \(split.index + 1) de \(split.count): \(TradeText.percent(bps: split.shareBps)) do valor"))
-            lines.append(.init("Transações independentes", split.index + 1 < split.count
-                ? "Se uma etapa seguinte falhar, esta continua valendo: você fica com parte em \(intent.buy.symbol) e parte em \(intent.sell.symbol). Não existe desfazer."
-                : "As etapas anteriores já valeram. Se esta falhar, o restante fica em \(intent.sell.symbol) e você perde só a taxa de rede."))
+            lines.append(.init(kitText("Divisão"), kitText("Etapa \(split.index + 1) de \(split.count): \(TradeText.percent(bps: split.shareBps)) do valor")))
+            lines.append(.init(kitText("Transações independentes"), split.index + 1 < split.count
+                ? kitText("Se uma etapa seguinte falhar, esta continua valendo: você fica com parte em \(intent.buy.symbol) e parte em \(intent.sell.symbol). Não existe desfazer.")
+                : kitText("As etapas anteriores já valeram. Se esta falhar, o restante fica em \(intent.sell.symbol) e você perde só a taxa de rede.")))
         }
         lines.append(deadlineLine(quote))
-        lines.append(.init("Nonce", count == 1 ? "\(firstNonce)" : "\(firstNonce) a \(firstNonce + UInt64(count - 1))"))
+        lines.append(.init(kitText("Nonce"), count == 1 ? String(firstNonce) : kitText("\(String(firstNonce)) a \(String(firstNonce + UInt64(count - 1)))")))
 
         // O que sai, o minimo que entra e quem recebe saem da calldata decodificada da
         // transacao montada (`again == quote.decoded`), nunca da intencao.
         let decoded = quote.decoded
-        let title = "Trocar \(TradeText.amount(decoded.amountIn, intent.sell)) por \(intent.buy.symbol)"
+        let title = kitText("Trocar \(TradeText.amount(decoded.amountIn, intent.sell)) por \(intent.buy.symbol)")
         return PlanReview(
             kind: .swap, title: title, lines: lines, warnings: quote.assessment.warnings, transactionCount: count,
             outgoing: intent.sell.movement(decoded.amountIn), incomingMinimum: intent.buy.movement(decoded.guaranteedOut),
@@ -318,30 +318,26 @@ public enum TradePlanner {
     /// validador ja exige que ele esteja entre agora e 20 minutos.
     static func deadlineLine(_ quote: ValidatedTradeQuote) -> PlanReview.Line {
         guard let deadline = quote.decoded.deadline else {
-            return .init("Prazo na cadeia", "Nenhum que a carteira consiga conferir: o contrato da \(quote.provider.displayName) não tem prazo. Se a transação ficar presa na rede, ela pode executar bem mais tarde, e então vale só o mínimo acima, mesmo que o preço tenha melhorado")
+            return .init(kitText("Prazo na cadeia"), kitText("Nenhum que a carteira consiga conferir: o contrato da \(quote.provider.displayName) não tem prazo. Se a transação ficar presa na rede, ela pode executar bem mais tarde, e então vale só o mínimo acima, mesmo que o preço tenha melhorado"))
         }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "pt_BR")
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        formatter.dateFormat = "dd/MM/yyyy HH:mm 'UTC'"
-        let date = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(deadline)))
-        return .init("Prazo na cadeia", "Até \(date). Depois disso, o contrato da \(quote.provider.displayName) recusa a troca")
+        let date = NumberStyle.current.utcStamp(Date(timeIntervalSince1970: TimeInterval(deadline)))
+        return .init(kitText("Prazo na cadeia"), kitText("Até \(date). Depois disso, o contrato da \(quote.provider.displayName) recusa a troca"))
     }
 
     static func providerFeeText(_ quote: ValidatedTradeQuote) -> String {
         let intent = quote.intent
         switch quote.provider {
         case .lifi:
-            guard !quote.decoded.providerFeeAmount.isZero else { return "Nenhuma" }
-            return "\(TradeText.amount(quote.decoded.providerFeeAmount, intent.sell)) para a LI.FI, já descontada do mínimo"
+            guard !quote.decoded.providerFeeAmount.isZero else { return kitText("Nenhuma") }
+            return kitText("\(TradeText.amount(quote.decoded.providerFeeAmount, intent.sell)) para a LI.FI, já descontada do mínimo")
         case .velora:
             // Sem parceiro, a Augustus manda a sobra acima de `quotedAmount` para a Velora
             // (limitada a 1% dele com a flag de limite). O minimo nao muda.
-            return quote.decoded.integratorFee.isNone ? "Nenhuma; o que vier acima da estimativa fica com a Velora" : "Nenhuma"
+            return quote.decoded.integratorFee.isNone ? kitText("Nenhuma; o que vier acima da estimativa fica com a Velora") : kitText("Nenhuma")
         case .kyberSwap:
-            return "Nenhuma"
+            return kitText("Nenhuma")
         case .de1:
-            return "Embutida na rota; o mínimo já considera"
+            return kitText("Embutida na rota; o mínimo já considera")
         }
     }
 }
@@ -394,21 +390,21 @@ extension TradePlanner {
         let count = plans.reduce(0) { $0 + $1.review.transactionCount }
         let division = quotes.map { quote -> String in
             let share = (quote.decoded.amountIn * BigUInt(10_000) / total).uint64.map(Int.init) ?? 0
-            return "\(TradeText.percent(bps: share)) pela \(quote.provider.displayName)"
+            return kitText("\(TradeText.percent(bps: share)) pela \(quote.provider.displayName)")
         }
         let lead: [PlanReview.Line] = [
-            .init("Rede", reference.chain.name),
-            .init("Sai", TradeText.amount(total, sell)),
-            .init("Entra, no mínimo", TradeText.amount(guaranteed, buy)),
-            .init("Estimativa", TradeText.amount(expected, buy)),
-            .init("Divisão", division.joined(separator: ", ")),
-            .init("Transações", "\(count) transações independentes, em sequência, assinadas de uma vez"),
-            .init("Se uma etapa falhar", "As outras continuam valendo: você fica com parte em \(buy.symbol) e parte em \(sell.symbol). Não existe desfazer, e a etapa que falhou custa só a taxa de rede."),
-            .init("Taxa da Escalibur", "Sem taxa da Escalibur"),
+            .init(kitText("Rede"), reference.chain.name),
+            .init(kitText("Sai"), TradeText.amount(total, sell), role: .sold),
+            .init(kitText("Entra, no mínimo"), TradeText.amount(guaranteed, buy)),
+            .init(kitText("Estimativa"), TradeText.amount(expected, buy)),
+            .init(kitText("Divisão"), division.joined(separator: ", ")),
+            .init(kitText("Transações"), kitText("\(count) transações independentes, em sequência, assinadas de uma vez")),
+            .init(kitText("Se uma etapa falhar"), kitText("As outras continuam valendo: você fica com parte em \(buy.symbol) e parte em \(sell.symbol). Não existe desfazer, e a etapa que falhou custa só a taxa de rede.")),
+            .init(kitText("Taxa da Escalibur"), kitText("Sem taxa da Escalibur")),
         ]
-        let title = "Trocar \(TradeText.amount(total, sell)) por \(buy.symbol) em \(plans.count) etapas"
+        let title = kitText("Trocar \(TradeText.amount(total, sell)) por \(buy.symbol) em \(plans.count) etapas")
         return try SigningPlan.sequence(
-            plans, kind: .swap, title: title, lead: lead, stepPrefix: true, omitting: ["Rede", "Divisão", "Taxa da Escalibur"],
+            plans, kind: .swap, title: title, lead: lead, stepPrefix: true, omitting: [kitText("Rede"), kitText("Divisão"), kitText("Taxa da Escalibur")],
             outgoing: sell.movement(total), incomingMinimum: buy.movement(guaranteed), beneficiary: owner.checksummed
         )
     }

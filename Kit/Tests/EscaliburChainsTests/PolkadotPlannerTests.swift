@@ -50,7 +50,7 @@ struct PolkadotPlannerTests {
         #expect(review.title == "Enviar 1 DOT")
         #expect(review.recipient == Self.alice && review.recipientTag == nil)
         #expect(review.outgoing == PlanReview.Movement(assetID: Asset.native(.polkadot).id, amount: Self.dot))
-        #expect(review.lines.contains(PlanReview.Line("Para", Self.alice, verbatim: true)))
+        #expect(review.lines.contains(PlanReview.Line("Para", Self.alice, verbatim: true, role: .recipient)))
         #expect(review.lines.contains(PlanReview.Line("Taxa estimada", "0,0008808355 DOT")))
         #expect(review.warnings.isEmpty)
         #expect(!review.lines.contains { $0.value.contains("—") || $0.value.contains("–") || $0.label.contains("—") })

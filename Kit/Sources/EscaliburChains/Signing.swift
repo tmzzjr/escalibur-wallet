@@ -193,7 +193,9 @@ public struct SigningPlan: Sendable {
         var lines = lead
         for (index, plan) in plans.enumerated() {
             for line in plan.review.lines where line.verbatim || !labels.contains(line.label) {
-                lines.append(PlanReview.Line(stepPrefix ? "Etapa \(index + 1) · \(line.label)" : line.label, line.value, verbatim: line.verbatim))
+                lines.append(PlanReview.Line(
+                    stepPrefix ? kitText("Etapa \(index + 1) · \(line.label)") : line.label, line.value, verbatim: line.verbatim, role: line.role
+                ))
             }
         }
         var warnings: [PlanReview.Warning] = []
@@ -217,16 +219,31 @@ public struct PlanReview: Sendable, Equatable {
     }
 
     public struct Line: Sendable, Equatable {
+        /// O que a linha e, para quem decide pela linha e nao pelo texto: o rotulo sai
+        /// no idioma do aparelho, o papel nao muda.
+        public enum Role: Sendable, Equatable {
+            case plain
+            /// O destino do envio, como entrou na transacao.
+            case recipient
+            /// O valor que sai na troca, conferido de novo antes de assinar.
+            case sold
+            /// Contrato, mint, emissor ou conta de token: diz qual e o ativo, nao para
+            /// quem vai. A revisao do envio deixa de fora (pedido do dono, 14/10/2026).
+            case assetReference
+        }
+
         public let label: String
         public let value: String
         /// Valor que se confere caractere por caractere (endereco, tag): vai para a
         /// placa clara, em mono.
         public let verbatim: Bool
+        public let role: Role
 
-        public init(_ label: String, _ value: String, verbatim: Bool = false) {
+        public init(_ label: String, _ value: String, verbatim: Bool = false, role: Role = .plain) {
             self.label = label
             self.value = value
             self.verbatim = verbatim
+            self.role = role
         }
     }
 

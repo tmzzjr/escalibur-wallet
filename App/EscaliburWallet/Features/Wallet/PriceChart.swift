@@ -154,7 +154,7 @@ struct PriceChart: View {
     private func accessibilitySummary(_ data: [PricePoint]) -> String {
         let prices = data.map(\.price)
         guard let low = prices.min(), let high = prices.max() else { return "" }
-        return "Mínima \(priceText(low, prices: prices)), máxima \(priceText(high, prices: prices))"
+        return String(localized: "Mínima \(priceText(low, prices: prices)), máxima \(priceText(high, prices: prices))")
     }
 }
 
@@ -166,10 +166,10 @@ struct PeriodPicker: View {
     private func title(_ range: ChartRange) -> String {
         switch range {
         case .day: return "24h"
-        case .week: return "7 dias"
-        case .month: return "30 dias"
-        case .year: return "1 ano"
-        case .all: return "Tudo"
+        case .week: return String(localized: "7 dias")
+        case .month: return String(localized: "30 dias")
+        case .year: return String(localized: "1 ano")
+        case .all: return String(localized: "Tudo")
         }
     }
 

@@ -216,16 +216,16 @@ public enum PolkadotPlanner {
 
         let amountText = PolkadotFormat.dot(amount)
         var lines = [
-            PlanReview.Line("Para", recipient.ss58, verbatim: true),
-            PlanReview.Line("Valor", amountText),
-            PlanReview.Line("Taxa estimada", PolkadotFormat.dot(state.fee)),
-            PlanReview.Line("Rede", "Polkadot (Asset Hub)"),
-            PlanReview.Line("Na sua conta", "Pelo menos \(PolkadotFormat.dot(ed)) fica, o mínimo que a rede exige para a conta existir"),
-            PlanReview.Line("Validade", "Até o bloco \(fields.era.death(current: fields.blockNumber)) da rede, cerca de 9 minutos"),
+            PlanReview.Line(kitText("Para"), recipient.ss58, verbatim: true, role: .recipient),
+            PlanReview.Line(kitText("Valor"), amountText),
+            PlanReview.Line(kitText("Taxa estimada"), PolkadotFormat.dot(state.fee)),
+            PlanReview.Line(kitText("Rede"), "Polkadot (Asset Hub)"),
+            PlanReview.Line(kitText("Na sua conta"), kitText("Pelo menos \(PolkadotFormat.dot(ed)) fica, o mínimo que a rede exige para a conta existir")),
+            PlanReview.Line(kitText("Validade"), kitText("Até o bloco \(String(fields.era.death(current: fields.blockNumber))) da rede, cerca de 9 minutos")),
         ]
         var warnings = [PlanReview.Warning]()
         if createsAccount {
-            lines.append(PlanReview.Line("Destino", "Conta ainda vazia na rede. Este envio a cria"))
+            lines.append(PlanReview.Line(kitText("Destino"), kitText("Conta ainda vazia na rede. Este envio a cria")))
             warnings.append(.activatesAccount(minimum: PolkadotFormat.dot(ed)))
         }
         // Taxa acima de 10% do valor: o dono provavelmente nao quer pagar isso.
@@ -235,7 +235,7 @@ public enum PolkadotPlanner {
         }
 
         let review = PlanReview(
-            kind: .send, title: "Enviar \(amountText)", lines: lines, warnings: warnings,
+            kind: .send, title: kitText("Enviar \(amountText)"), lines: lines, warnings: warnings,
             recipient: recipient.ss58, recipientTag: nil, outgoing: .native(.polkadot, fields.amount)
         )
         return SigningPlan(walletID: walletID, chain: .polkadot, review: review, transactions: [transfer], createdAt: now)
@@ -286,11 +286,7 @@ enum PolkadotFormat {
         let whole = Array(padded[..<cut])
         var fraction = String(padded[cut...])
         while fraction.hasSuffix("0") { fraction.removeLast() }
-        var grouped = ""
-        for (index, digit) in whole.enumerated() {
-            if index > 0, (whole.count - index) % 3 == 0 { grouped.append(".") }
-            grouped.append(digit)
-        }
-        return (fraction.isEmpty ? grouped : "\(grouped),\(fraction)") + " DOT"
+        let grouped = NumberStyle.current.group(String(whole))
+        return NumberStyle.current.decimal(grouped, fraction) + " DOT"
     }
 }

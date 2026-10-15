@@ -26,7 +26,7 @@ struct QRScannerSheet: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Palette.void)
             }
-            SecondaryButton(title: "Cancelar") { dismiss() }.padding(Space.gutter)
+            SecondaryButton(title: String(localized: "Cancelar")) { dismiss() }.padding(Space.gutter)
         }
         .task {
             let status = AVCaptureDevice.authorizationStatus(for: .video)

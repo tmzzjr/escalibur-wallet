@@ -10,6 +10,9 @@ struct EscaliburWalletApp: App {
     @State private var portfolio = Portfolio()
 
     init() {
+        // Antes de qualquer texto: os separadores dos numeros ficam os da regiao, fixos
+        // durante a sessao (`NumberStyle`).
+        Fmt.adoptRegion()
         PlatformGuards.install()
         NotificationRelay.install()
         UITabBar.appearance().unselectedItemTintColor = UIColor(Palette.inkMuted)

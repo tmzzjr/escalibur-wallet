@@ -122,17 +122,17 @@ struct TradeReviewFlow: View {
     private var planning: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             if let error {
-                Text(text(swap: "A troca não foi montada", limit: "A ordem não foi montada", cancel: "O cancelamento não foi montado"))
+                Text(text(swap: String(localized: "A troca não foi montada"), limit: String(localized: "A ordem não foi montada"), cancel: String(localized: "O cancelamento não foi montado")))
                     .typeStyle(.title).foregroundStyle(Palette.ink)
                 Banner(kind: .failure, title: error)
                 Spacer()
-                PrimaryButton(title: "Tentar de novo") { Task { await makePlan() } }
+                PrimaryButton(title: String(localized: "Tentar de novo")) { Task { await makePlan() } }
                     .padding(.bottom, Space.xs)
             } else {
                 Spacer()
                 SwapProcessingIndicator(sell: assets.sell, buy: assets.buy, cancelling: isCancel).frame(maxWidth: .infinity)
-                Text(text(swap: "Recotando e simulando a troca antes de mostrar.", limit: "Montando a ordem e conferindo os dados da rede.",
-                          cancel: "Montando o cancelamento e conferindo a ordem na rede."))
+                Text(text(swap: String(localized: "Recotando e simulando a troca antes de mostrar."), limit: String(localized: "Montando a ordem e conferindo os dados da rede."),
+                          cancel: String(localized: "Montando o cancelamento e conferindo a ordem na rede.")))
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                     .frame(maxWidth: .infinity).multilineTextAlignment(.center)
                     .padding(.top, Space.lg)
@@ -157,11 +157,11 @@ struct TradeReviewFlow: View {
                     }
                     PlanVerbatimPlate(review: plan.review, collapsible: true).padding(.top, Space.lg)
                     PlanDetailLines(review: plan.review, extra: [("De", session.selectedWallet?.name ?? "")]
-                        + (item.renewLimit ? [("Quando vencer", "O app avisa e pergunta se refaz, com o mesmo preço")] : []))
+                        + (item.renewLimit ? [(String(localized: "Quando vencer"), String(localized: "O app avisa e pergunta se refaz, com o mesmo preço"))] : []))
                         .padding(.top, Space.lg)
                     if plan.review.transactionCount > 1 {
-                        Banner(kind: .neutral, title: "Você vai assinar \(plan.review.transactionCount) transações de uma vez",
-                               message: "A autorização do token vai antes e a troca logo depois, em transações separadas. Se a troca não sair, a autorização continua valendo, só para este valor e só para o contrato desta troca.")
+                        Banner(kind: .neutral, title: String(localized: "Você vai assinar \(plan.review.transactionCount) transações de uma vez"),
+                               message: String(localized: "A autorização do token vai antes e a troca logo depois, em transações separadas. Se a troca não sair, a autorização continua valendo, só para este valor e só para o contrato desta troca."))
                             .padding(.top, Space.md)
                     }
                     ForEach(Array(plan.review.warnings.enumerated()), id: \.offset) { _, warning in
@@ -173,7 +173,7 @@ struct TradeReviewFlow: View {
             .padding(.bottom, Space.lg)
         }
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: text(swap: "Confirmar troca", limit: "Criar ordem limite", cancel: "Cancelar a ordem")) {
+            PrimaryButton(title: text(swap: String(localized: "Confirmar troca"), limit: String(localized: "Criar ordem limite"), cancel: String(localized: "Cancelar a ordem"))) {
                 Task { await confirm() }
             }
                 .padding(.top, Space.sm)
@@ -186,7 +186,7 @@ struct TradeReviewFlow: View {
         VStack(alignment: .leading, spacing: Space.md) {
             Spacer()
             SwapProcessingIndicator(sell: assets.sell, buy: assets.buy, cancelling: isCancel).frame(maxWidth: .infinity)
-            Text(text(swap: "Enviando a troca", limit: "Enviando a ordem", cancel: "Enviando o cancelamento")).typeStyle(.title).foregroundStyle(Palette.ink)
+            Text(text(swap: String(localized: "Enviando a troca"), limit: String(localized: "Enviando a ordem"), cancel: String(localized: "Enviando o cancelamento"))).typeStyle(.title).foregroundStyle(Palette.ink)
                 .frame(maxWidth: .infinity).padding(.top, Space.lg)
             Text(sendingNote).typeStyle(.body).foregroundStyle(Palette.inkSoft)
                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
@@ -213,7 +213,7 @@ struct TradeReviewFlow: View {
                 OrderProgressPanel(kind: order.kind, chain: item.chain, orderID: order.id, account: order.account,
                                    sell: assets.sell, buy: assets.buy)
                 Spacer()
-                PrimaryButton(title: "Concluir") { onClose(true) }.padding(.top, Space.sm).padding(.bottom, Space.xs)
+                PrimaryButton(title: String(localized: "Concluir")) { onClose(true) }.padding(.top, Space.sm).padding(.bottom, Space.xs)
             }
         } else {
             plainDone
@@ -225,7 +225,7 @@ struct TradeReviewFlow: View {
             Spacer()
             // A moeda da ordem e o checkmark, girando como uma moeda jogada.
             CoinFlipBadge(asset: assets.sell)
-            Text(text(swap: "Troca enviada", limit: "Ordem limite criada", cancel: "Cancelamento enviado"))
+            Text(text(swap: String(localized: "Troca enviada"), limit: String(localized: "Ordem limite criada"), cancel: String(localized: "Cancelamento enviado")))
                 .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
                 .multilineTextAlignment(.center)
             Text(doneMessage)
@@ -240,7 +240,7 @@ struct TradeReviewFlow: View {
                 }
                 .buttonStyle(SecondaryStyle())
             }
-            PrimaryButton(title: "Concluir") { onClose(true) }.padding(.top, Space.sm).padding(.bottom, Space.xs)
+            PrimaryButton(title: String(localized: "Concluir")) { onClose(true) }.padding(.top, Space.sm).padding(.bottom, Space.xs)
         }
         .sensoryFeedback(.success, trigger: stage == .done)
     }
@@ -249,9 +249,9 @@ struct TradeReviewFlow: View {
     /// autorizacao confirma na rede, e a espera e essa.
     private var sendingNote: String {
         guard let plan, plan.transactions.last is EIP712ValidatedMessage, plan.transactions.count > 1 else {
-            return "Não feche o app até terminar."
+            return String(localized: "Não feche o app até terminar.")
         }
-        return "A autorização vai primeiro. A ordem segue para a CoW assim que ela confirmar na \(item.chain.name). Não feche o app até terminar."
+        return String(localized: "A autorização vai primeiro. A ordem segue para a CoW assim que ela confirmar na \(item.chain.name). Não feche o app até terminar.")
     }
 
     // MARK: Acoes
@@ -263,22 +263,22 @@ struct TradeReviewFlow: View {
 
     private var doneMessage: String {
         switch item.kind {
-        case .swap: return "O saldo novo aparece quando a rede confirmar."
-        case .limit: return "A ordem fica aberta até executar, vencer ou você cancelar."
-        case .cancel(_, .offchain): return "A CoW recebeu o pedido. Se um solver já estava executando a ordem, ela ainda pode sair."
-        case .cancel(_, .onchain): return "A ordem deixa de valer quando a rede confirmar a transação."
+        case .swap: return String(localized: "O saldo novo aparece quando a rede confirmar.")
+        case .limit: return String(localized: "A ordem fica aberta até executar, vencer ou você cancelar.")
+        case .cancel(_, .offchain): return String(localized: "A CoW recebeu o pedido. Se um solver já estava executando a ordem, ela ainda pode sair.")
+        case .cancel(_, .onchain): return String(localized: "A ordem deixa de valer quando a rede confirmar a transação.")
         }
     }
 
     private func makePlan() async {
         guard let engine else {
-            error = "Troca nesta rede ainda não está disponível."
+            error = String(localized: "Troca nesta rede ainda não está disponível.")
             return
         }
         error = nil
         stage = .planning
         guard let wallet = session.selectedWallet, let account = wallet.account(item.chain) else {
-            error = "Esta carteira não tem conta nesta rede."
+            error = String(localized: "Esta carteira não tem conta nesta rede.")
             return
         }
         // A fila de nonces EVM desta conta, sem o que a rede ja confirmou, entra no
@@ -301,7 +301,7 @@ struct TradeReviewFlow: View {
                 built = try await engine.planCancel(order, walletID: wallet.id, account: account, via: via, nonceQueue: queue)
             }
             guard planMatches(built) else {
-                error = "O plano montado não confere com a troca pedida. Nada foi assinado."
+                error = String(localized: "O plano montado não confere com a troca pedida. Nada foi assinado.")
                 return
             }
             plan = built
@@ -310,7 +310,7 @@ struct TradeReviewFlow: View {
             if (error as? SendEngineError)?.isLocalNonceQueueAhead == true {
                 NonceQueue.clear(session, wallet: wallet.id, chain: item.chain, address: account.address)
             }
-            self.error = (error as? LocalizedError)?.errorDescription ?? "Não foi possível montar agora. Tente de novo."
+            self.error = (error as? LocalizedError)?.errorDescription ?? String(localized: "Não foi possível montar agora. Tente de novo.")
         }
     }
 
@@ -353,7 +353,7 @@ struct TradeReviewFlow: View {
         guard let plan, let engine else { return }
         guard !plan.isExpired() else {
             await makePlan()
-            error = "Os dados da rede venceram. Confira de novo."
+            error = String(localized: "Os dados da rede venceram. Confira de novo.")
             return
         }
         guard planMatches(plan) else { return }
@@ -369,8 +369,8 @@ struct TradeReviewFlow: View {
             signed = result
         } catch {
             self.error = (error as? LocalizedError)?.errorDescription
-                ?? text(swap: "A troca não saiu. Nada foi debitado.", limit: "A ordem não saiu. Nada foi debitado.",
-                        cancel: "O cancelamento não saiu. A ordem continua aberta.")
+                ?? text(swap: String(localized: "A troca não saiu. Nada foi debitado."), limit: String(localized: "A ordem não saiu. Nada foi debitado."),
+                        cancel: String(localized: "O cancelamento não saiu. A ordem continua aberta."))
             stage = .review
             return
         }
@@ -421,8 +421,8 @@ struct TradeReviewFlow: View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer()
             Image(systemName: "questionmark.circle").font(.system(size: 44)).foregroundStyle(Palette.caution)
-            Text(text(swap: "Não deu para confirmar a troca", limit: "Não deu para confirmar a ordem",
-                      cancel: "Não deu para confirmar o cancelamento"))
+            Text(text(swap: String(localized: "Não deu para confirmar a troca"), limit: String(localized: "Não deu para confirmar a ordem"),
+                      cancel: String(localized: "Não deu para confirmar o cancelamento")))
                 .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
             Text("A resposta não veio com certeza, e o que foi assinado pode já estar a caminho. Não monte de novo: enviar de novo usa os mesmos dados e não paga duas vezes. Confira na Atividade antes de qualquer outra operação.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
@@ -439,12 +439,12 @@ struct TradeReviewFlow: View {
                 }
                 .buttonStyle(SecondaryStyle())
             }
-            PrimaryButton(title: "Enviar de novo") {
+            PrimaryButton(title: String(localized: "Enviar de novo")) {
                 guard let signed = unsureSigned, let plan, let engine else { return }
                 Task { await transmit(signed, plan: plan, engine: engine) }
             }
             .padding(.top, Space.sm)
-            TertiaryButton(title: "Fechar e acompanhar na Atividade") { onClose(true) }.frame(maxWidth: .infinity)
+            TertiaryButton(title: String(localized: "Fechar e acompanhar na Atividade")) { onClose(true) }.frame(maxWidth: .infinity)
                 .padding(.bottom, Space.xs)
         }
     }

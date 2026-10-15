@@ -85,7 +85,7 @@ struct NewWalletFlow: View {
                 case .promise:
                     SecurityPromiseView { step = .pledge }
                 case .pledge:
-                    ResponsibilityView(continueTitle: "Mostrar as palavras", loading: saving) { Task { await start() } }
+                    ResponsibilityView(continueTitle: String(localized: "Mostrar as palavras"), loading: saving) { Task { await start() } }
                 case .record:
                     if let draft {
                         RecordWordsView(draft: draft, walletName: nil) { step = .confirm }
@@ -141,22 +141,22 @@ struct NewWalletFlow: View {
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: Space.md) {
-                fact("clock", "Leva cerca de 2 minutos.")
-                fact("pencil.and.scribble", "Anote no papel, à mão. Captura de tela vai para a Fototeca e sobe para o iCloud.")
-                fact("eye.slash", "Aparecem 3 palavras por vez. Arraste o cartão para ver as próximas.")
-                fact("iphone.slash", "A carteira não vai para o backup do iPhone. Num iPhone novo, só as palavras ou um envelope trazem ela de volta.")
+                fact("clock", String(localized: "Leva cerca de 2 minutos."))
+                fact("pencil.and.scribble", String(localized: "Anote no papel, à mão. Captura de tela vai para a Fototeca e sobe para o iCloud."))
+                fact("eye.slash", String(localized: "Aparecem 3 palavras por vez. Arraste o cartão para ver as próximas."))
+                fact("iphone.slash", String(localized: "A carteira não vai para o backup do iPhone. Num iPhone novo, só as palavras ou um envelope trazem ela de volta."))
             }
             .padding(.top, Space.lg)
             if let error {
                 Banner(kind: .failure, title: error).padding(.top, Space.md)
             }
             Spacer()
-            Segmented(options: [(12, "12 palavras"), (24, "24 palavras")], selection: $wordCount)
+            Segmented(options: [(12, String(localized: "12 palavras")), (24, String(localized: "24 palavras"))], selection: $wordCount)
                 .frame(width: 220)
             Text("12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
                 .padding(.bottom, Space.lg)
-            PrimaryButton(title: "Continuar") { error = nil; step = .promise }
+            PrimaryButton(title: String(localized: "Continuar")) { error = nil; step = .promise }
         }
         .padding(.horizontal, Space.gutter)
         .padding(.top, Space.md)
@@ -182,9 +182,9 @@ struct NewWalletFlow: View {
             newDraft.phrase.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
             let secret = try WalletSecret.from(phrase: copy, language: .english)
             copy.wipe()
-            let name = session.metadata.wallets.isEmpty ? "Carteira principal" : "Carteira \(session.metadata.wallets.count + 1)"
+            let name = session.metadata.wallets.isEmpty ? String(localized: "Carteira principal") : String(localized: "Carteira \(session.metadata.wallets.count + 1)")
             let words = wordCount
-            guard let saved = try await auth.retrying(reason: "Guardar a carteira nova neste iPhone", { credential in
+            guard let saved = try await auth.retrying(reason: String(localized: "Guardar a carteira nova neste iPhone"), { credential in
                 try await session.addWallet(secret: secret, name: name, origin: .created, wordCount: words, backupConfirmed: false, credential: credential)
             }) else {
                 secret.wipe()
@@ -195,7 +195,7 @@ struct NewWalletFlow: View {
             draft = newDraft
             step = .record
         } catch {
-            self.error = "Não foi possível guardar a carteira. Tente de novo."
+            self.error = String(localized: "Não foi possível guardar a carteira. Tente de novo.")
             step = .before
         }
     }

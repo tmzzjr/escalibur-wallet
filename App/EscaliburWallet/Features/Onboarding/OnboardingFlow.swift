@@ -20,15 +20,15 @@ struct OnboardingFlow: View {
             case .welcome: welcome.transition(.opacity)
             case .choosePIN:
                 PINScreen(
-                    title: "Escolha um PIN",
-                    subtitle: "Seis dígitos para destravar o app e confirmar envios quando o \(KeyServices.biometryName) falhar.",
+                    title: String(localized: "Escolha um PIN"),
+                    subtitle: String(localized: "Seis dígitos para destravar o app e confirmar envios quando o \(KeyServices.biometryName) falhar."),
                     entry: entry, onComplete: choose
                 ) { pinFooter }
                 .transition(.opacity)
             case .repeatPIN:
                 PINScreen(
-                    title: "Repita o PIN",
-                    subtitle: "Os mesmos seis dígitos.",
+                    title: String(localized: "Repita o PIN"),
+                    subtitle: String(localized: "Os mesmos seis dígitos."),
                     entry: entry, working: working, onComplete: { Task { await confirm() } }
                 ) { pinFooter }
                 .transition(.opacity)
@@ -56,16 +56,16 @@ struct OnboardingFlow: View {
             .multilineTextAlignment(.center)
             .padding(.top, Space.lg)
             if DeviceIntegrity.suspicious {
-                Banner(kind: .caution, title: "Este iPhone parece ter jailbreak",
-                       message: "Apps de fora da App Store podem ler o que este app guarda.")
+                Banner(kind: .caution, title: String(localized: "Este iPhone parece ter jailbreak"),
+                       message: String(localized: "Apps de fora da App Store podem ler o que este app guarda."))
                     .padding(.top, Space.md)
             }
             if !KeyServices.deviceIsEligible {
-                Banner(kind: .failure, title: "Este iPhone não tem código",
-                       message: "Configure um código em Ajustes do iPhone. Sem ele, o iOS não protege as chaves da carteira.")
+                Banner(kind: .failure, title: String(localized: "Este iPhone não tem código"),
+                       message: String(localized: "Configure um código em Ajustes do iPhone. Sem ele, o iOS não protege as chaves da carteira."))
                     .padding(.top, Space.md)
             }
-            PrimaryButton(title: "Começar", enabled: KeyServices.deviceIsEligible) {
+            PrimaryButton(title: String(localized: "Começar"), enabled: KeyServices.deviceIsEligible) {
                 step = .choosePIN
             }
             .padding(.top, Space.lg)
@@ -106,7 +106,7 @@ struct OnboardingFlow: View {
         guard same else {
             first.wipe()
             firstPIN = nil
-            entry.fail("Os dois não conferem. Escolha de novo.")
+            entry.fail(String(localized: "Os dois não conferem. Escolha de novo."))
             step = .choosePIN
             return
         }
@@ -116,7 +116,7 @@ struct OnboardingFlow: View {
             firstPIN = nil
             try await session.setUpPIN(first)
         } catch {
-            entry.fail("Não foi possível guardar o PIN neste iPhone.")
+            entry.fail(String(localized: "Não foi possível guardar o PIN neste iPhone."))
             step = .choosePIN
         }
     }
@@ -132,9 +132,9 @@ struct BiometryOfferView: View {
 
     var body: some View {
         if askPIN {
-            PINScreen(title: "Confirme com o PIN", subtitle: "Para ligar o \(KeyServices.biometryName) nesta carteira.", entry: entry, working: working,
+            PINScreen(title: String(localized: "Confirme com o PIN"), subtitle: String(localized: "Para ligar o \(KeyServices.biometryName) nesta carteira."), entry: entry, working: working,
                       onComplete: { Task { await enable() } }) {
-                TertiaryButton(title: "Voltar") {
+                TertiaryButton(title: String(localized: "Voltar")) {
                     entry = PINEntry()
                     askPIN = false
                 }
@@ -154,8 +154,8 @@ struct BiometryOfferView: View {
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
-                PrimaryButton(title: "Usar o \(KeyServices.biometryName)") { askPIN = true }
-                SecondaryButton(title: "Agora não") { onDone() }.padding(.top, Space.sm)
+                PrimaryButton(title: String(localized: "Usar o \(KeyServices.biometryName)")) { askPIN = true }
+                SecondaryButton(title: String(localized: "Agora não")) { onDone() }.padding(.top, Space.sm)
             }
             .multilineTextAlignment(.center)
             .padding(.horizontal, Space.gutter)
@@ -171,13 +171,13 @@ struct BiometryOfferView: View {
             try await session.enableBiometry(pin: entry.take())
             onDone()
         } catch RootKeyVault.Failure.wrongPIN {
-            entry.fail("PIN incorreto.")
+            entry.fail(String(localized: "PIN incorreto."))
         } catch RootKeyVault.Failure.throttled(let seconds) {
-            entry.fail("Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
+            entry.fail(String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds))."))
         } catch RootKeyVault.Failure.cancelled {
-            entry.fail("O \(KeyServices.biometryName) não confirmou. Ele continua desligado; você pode ligar depois nos Ajustes.")
+            entry.fail(String(localized: "O \(KeyServices.biometryName) não confirmou. Ele continua desligado; você pode ligar depois nos Ajustes."))
         } catch {
-            entry.fail("Não foi possível ligar o \(KeyServices.biometryName) agora.")
+            entry.fail(String(localized: "Não foi possível ligar o \(KeyServices.biometryName) agora."))
         }
     }
 }

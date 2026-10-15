@@ -59,7 +59,7 @@ public struct EVMSendEngine: SendEngine {
             let isContract = try await reader.hasCode(chain: chain, address: recipient)
             return DestinationInfo(
                 exists: true, requiresTag: false, isContract: isContract,
-                note: isContract ? "Este endereço é um contrato, não uma carteira comum. Confira se ele aceita \(chain.nativeSymbol) e tokens." : nil
+                note: isContract ? kitText("Este endereço é um contrato, não uma carteira comum. Confira se ele aceita \(chain.nativeSymbol) e tokens.") : nil
             )
         } catch {
             throw EVMEngineMessages.userFacing(error, .destination, chain: self.chain)
@@ -83,7 +83,7 @@ public struct EVMSendEngine: SendEngine {
                     chain: chain, account: context.account.address, intent: .native(to: context.recipient, amount: 0)
                 )
                 let amount = try EVMPlanner.maxNativeSendAmount(chain: chain, state: state, speed: speed)
-                return Spendable(amount: amount, feeNote: "A taxa máxima da rede já está descontada.")
+                return Spendable(amount: amount, feeNote: kitText("A taxa máxima da rede já está descontada."))
             case .token(let token):
                 let tokenState = try await reader.tokenState(token: token, owner: context.account.address)
                 guard !tokenState.balance.isZero else { return Spendable(amount: 0) }
@@ -99,10 +99,10 @@ public struct EVMSendEngine: SendEngine {
                 } catch EVMPlanError.insufficientNativeBalance {
                     return Spendable(
                         amount: 0,
-                        feeNote: "A taxa da rede é paga em \(chain.nativeSymbol), e o saldo de \(chain.nativeSymbol) não cobre a taxa agora."
+                        feeNote: kitText("A taxa da rede é paga em \(chain.nativeSymbol), e o saldo de \(chain.nativeSymbol) não cobre a taxa agora.")
                     )
                 }
-                return Spendable(amount: tokenState.balance, feeNote: "A taxa da rede é paga à parte, em \(chain.nativeSymbol).")
+                return Spendable(amount: tokenState.balance, feeNote: kitText("A taxa da rede é paga à parte, em \(chain.nativeSymbol)."))
             }
         } catch {
             throw EVMEngineMessages.userFacing(error, .spendable, chain: chain)
@@ -249,10 +249,10 @@ public struct EVMSendEngine: SendEngine {
         case .notFound, .pending:
             return .pending
         case .confirmed(_, let confirmations):
-            guard let confirmations, confirmations > 1 else { return .confirmed(detail: "Confirmado na rede.") }
-            return .confirmed(detail: "Confirmado na rede, com \(confirmations) confirmações.")
+            guard let confirmations, confirmations > 1 else { return .confirmed(detail: kitText("Confirmado na rede.")) }
+            return .confirmed(detail: kitText("Confirmado na rede, com \(confirmations) confirmações."))
         case .failed:
-            return .failed(reason: "A transação entrou na rede, mas o contrato recusou. A taxa da rede foi cobrada.")
+            return .failed(reason: kitText("A transação entrou na rede, mas o contrato recusou. A taxa da rede foi cobrada."))
         }
     }
 }

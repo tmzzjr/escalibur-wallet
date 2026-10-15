@@ -28,7 +28,7 @@ final class AuthCoordinator {
             return .biometry(reason: reason)
         }
         let notice = notice ?? (afterRestart && !forcePIN
-            ? "O iPhone reiniciou: o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer."
+            ? String(localized: "O iPhone reiniciou: o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer.")
             : nil)
         return await withCheckedContinuation { continuation in
             let request = PINRequest(reason: reason, notice: notice, error: error, continuation: continuation)
@@ -65,13 +65,13 @@ final class AuthCoordinator {
             } catch RootKeyVault.Failure.cancelled {
                 notice = nil
             } catch RootKeyVault.Failure.biometryChanged {
-                notice = "O \(KeyServices.biometryName) deste iPhone mudou desde que foi ligado aqui. Confirme com o PIN; depois você pode religar."
+                notice = String(localized: "O \(KeyServices.biometryName) deste iPhone mudou desde que foi ligado aqui. Confirme com o PIN; depois você pode religar.")
             } catch RootKeyVault.Failure.pinRequiredAfterRestart {
-                notice = "O iPhone reiniciou: o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer."
+                notice = String(localized: "O iPhone reiniciou: o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer.")
             } catch RootKeyVault.Failure.wrongPIN(let remaining) {
                 error = Self.wrongPINMessage(remaining)
             } catch RootKeyVault.Failure.throttled(let seconds) {
-                error = "Tentativas demais. Tente de novo em \(LockView.duration(seconds))."
+                error = String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
             }
             guard let next = await credential(reason: reason, forcePIN: true, notice: notice, error: error) else { return nil }
             attempt = next
@@ -82,12 +82,12 @@ final class AuthCoordinator {
     static func wrongPINMessage(_ remaining: UInt32?) -> String {
         let failures = KeyServices.root.failureCount()
         if let remaining, remaining <= 3 {
-            return "PIN incorreto. Depois de mais \(remaining), as carteiras deste iPhone são apagadas."
+            return String(localized: "PIN incorreto. Depois de mais \(remaining), as carteiras deste iPhone são apagadas.")
         }
         if failures >= 2 {
-            return "PIN incorreto. Mais um erro e o app pede uma espera de \(LockView.duration(PINPolicy.delay(afterFailures: failures + 1)))."
+            return String(localized: "PIN incorreto. Mais um erro e o app pede uma espera de \(LockView.duration(PINPolicy.delay(afterFailures: failures + 1))).")
         }
-        return "PIN incorreto."
+        return String(localized: "PIN incorreto.")
     }
 
     fileprivate func finish(_ request: PINRequest, with credential: Credential?) {
@@ -104,10 +104,10 @@ struct PINRequestSheet: View {
     @State private var entry = PINEntry()
 
     var body: some View {
-        PINScreen(title: "Confirme com o PIN", subtitle: request.notice.map { "\(request.reason)\n\n\($0)" } ?? request.reason, entry: entry, onComplete: {
+        PINScreen(title: String(localized: "Confirme com o PIN"), subtitle: request.notice.map { "\(request.reason)\n\n\($0)" } ?? request.reason, entry: entry, onComplete: {
             coordinator.finish(request, with: .pin(entry.take()))
         }) {
-            TertiaryButton(title: "Cancelar") { coordinator.finish(request, with: nil) }
+            TertiaryButton(title: String(localized: "Cancelar")) { coordinator.finish(request, with: nil) }
         }
         .onAppear { if let error = request.error { entry.fail(error) } }
         .interactiveDismissDisabled()

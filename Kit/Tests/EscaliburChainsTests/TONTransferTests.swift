@@ -215,7 +215,7 @@ struct TONTransferTests {
         expectRecipient(plan)
         // O que sai e o valor da mensagem interna (conferida abaixo).
         #expect(plan.review.outgoing == PlanReview.Movement(assetID: "ton:native", amount: 1_500_000_000))
-        #expect(plan.review.lines.contains(PlanReview.Line("Para", TONAddressTests.bounceable, verbatim: true)))
+        #expect(plan.review.lines.contains(PlanReview.Line("Para", TONAddressTests.bounceable, verbatim: true, role: .recipient)))
         #expect(plan.review.lines.contains(PlanReview.Line("Comentário", "pedido 42", verbatim: true)))
         #expect(plan.review.lines.contains(PlanReview.Line("Taxa estimada", "0,005 TON")))
         #expect(plan.review.warnings.isEmpty)
@@ -301,7 +301,7 @@ struct TONTransferTests {
         expectRecipient(plan)
         // O que sai e o valor do jetton transfer, com o id do USDT da lista (o mestre em EQ...).
         #expect(plan.review.outgoing == PlanReview.Movement(assetID: "ton:EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs", amount: 12_500_000))
-        #expect(plan.review.lines.contains(PlanReview.Line("Contrato do token", "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs", verbatim: true)))
+        #expect(plan.review.lines.contains(PlanReview.Line("Contrato do token", "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs", verbatim: true, role: .assetReference)))
         let decoded = try Self.signAndDecode(plan)
         let message = try Self.decodeInternal(decoded.message)
         #expect(message.bounce)

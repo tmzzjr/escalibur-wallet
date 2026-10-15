@@ -22,9 +22,9 @@ struct TokenBadge: View {
 
     private var title: String {
         switch kind {
-        case .custom: return "Custom"
-        case .unverified: return "Não verificado"
-        case .suspicious: return "Suspeito"
+        case .custom: return String(localized: "Custom")
+        case .unverified: return String(localized: "Não verificado")
+        case .suspicious: return String(localized: "Suspeito")
         }
     }
 
@@ -61,17 +61,17 @@ struct TokenBadge: View {
 enum TokenReasonText {
     static func text(_ reason: TokenSafety.Reason) -> String {
         switch reason {
-        case .link: return "O nome ou o símbolo traz um site ou um @. É o jeito mais comum de levar alguém a uma página que pede a senha da carteira."
-        case .bait: return "O nome usa isca: resgate, prêmio, bônus, airdrop, visite."
-        case .imitation: return "O símbolo imita o de uma moeda conhecida, com outro contrato."
-        case .dust: return "Chegou uma quantia mínima sem você pedir. Serve para o endereço de quem mandou aparecer no seu histórico."
-        case .flaggedBySource: return "A própria fonte da rede marca este token como golpe."
-        case .hiddenCharacters: return "O nome tem caracteres invisíveis ou que invertem o texto."
+        case .link: return String(localized: "O nome ou o símbolo traz um site ou um @. É o jeito mais comum de levar alguém a uma página que pede a senha da carteira.")
+        case .bait: return String(localized: "O nome usa isca: resgate, prêmio, bônus, airdrop, visite.")
+        case .imitation: return String(localized: "O símbolo imita o de uma moeda conhecida, com outro contrato.")
+        case .dust: return String(localized: "Chegou uma quantia mínima sem você pedir. Serve para o endereço de quem mandou aparecer no seu histórico.")
+        case .flaggedBySource: return String(localized: "A própria fonte da rede marca este token como golpe.")
+        case .hiddenCharacters: return String(localized: "O nome tem caracteres invisíveis ou que invertem o texto.")
         }
     }
 
     /// O aviso que vale para todo token fora da lista.
-    static let anyoneCanCreate = "Qualquer pessoa cria um token com qualquer nome e qualquer símbolo. Este não está na lista conferida da Escalibur: o nome e o símbolo foram escritos por quem criou o contrato. Não abra sites que aparecem no nome e não conecte esta carteira a nada que o token peça."
+    static let anyoneCanCreate = String(localized: "Qualquer pessoa cria um token com qualquer nome e qualquer símbolo. Este não está na lista conferida da Escalibur: o nome e o símbolo foram escritos por quem criou o contrato. Não abra sites que aparecem no nome e não conecte esta carteira a nada que o token peça.")
 }
 
 /// Letras do simbolo para o logo de um token sem logo embarcado: so letras e digitos

@@ -70,7 +70,7 @@ struct OpenEnvelopeFlow: View {
                     ImportPreviewView(preview: pending.preview, hasPassphrase: pending.secret.passphrase.count > 0, saving: importing,
                                       onSave: { Task { await save() } }, onBack: discardPending)
                 } else if let revealDraft, let opened {
-                    RecordWordsView(draft: revealDraft, walletName: opened.label.isEmpty ? "Envelope" : opened.label,
+                    RecordWordsView(draft: revealDraft, walletName: opened.label.isEmpty ? String(localized: "Envelope") : opened.label,
                                     passphrase: opened.passphrase.count > 0 ? opened.passphrase : nil) {
                         close()
                     }
@@ -133,7 +133,7 @@ struct OpenEnvelopeFlow: View {
             .accessibilityIdentifier("envelope-como-funciona")
             if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }
             Spacer()
-            PrimaryButton(title: "Escolher arquivo") { picking = true }
+            PrimaryButton(title: String(localized: "Escolher arquivo")) { picking = true }
         }
         .frame(maxWidth: .infinity)
         .sheet(isPresented: $howItWorks) { EnvelopeHowItWorks() }
@@ -150,13 +150,13 @@ struct OpenEnvelopeFlow: View {
             Text("Senha do envelope").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.xs)
             Text("A senha escolhida quando o envelope foi lacrado. No app Escalibur, é a senha do cofre.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
-            PasswordBox(buffer: password, length: $passwordLength, placeholder: "Senha do envelope") { Task { await open() } }
+            PasswordBox(buffer: password, length: $passwordLength, placeholder: String(localized: "Senha do envelope")) { Task { await open() } }
                 .padding(.top, Space.lg)
             if let error {
                 Text(error).typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
-            PrimaryButton(title: "Abrir envelope", enabled: passwordLength > 0, loading: opening) { Task { await open() } }
+            PrimaryButton(title: String(localized: "Abrir envelope"), enabled: passwordLength > 0, loading: opening) { Task { await open() } }
         }
     }
 
@@ -181,12 +181,12 @@ struct OpenEnvelopeFlow: View {
         let words = contents.phrase.withUnsafeBytes { raw in raw.filter { $0 == 0x20 }.count + 1 }
         Text(verbatim: contents.label.isEmpty ? "Envelope aberto" : contents.label)
             .typeStyle(.title).foregroundStyle(Palette.ink)
-        Text("\(words) palavras, lista em \(contents.language.displayName.lowercased())" + (contents.passphrase.count > 0 ? " · com passphrase" : ""))
+        Text(String(localized: "\(words) palavras, lista em \(contents.language.displayName.lowercased())") + (contents.passphrase.count > 0 ? String(localized: " · com passphrase") : ""))
             .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
         if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }
         Spacer()
-        PrimaryButton(title: "Importar esta carteira", loading: importing) { Task { await importWallet(contents, words: words) } }
-        SecondaryButton(title: "Só ver as palavras") { reveal(contents, words: words) }.padding(.top, Space.sm)
+        PrimaryButton(title: String(localized: "Importar esta carteira"), loading: importing) { Task { await importWallet(contents, words: words) } }
+        SecondaryButton(title: String(localized: "Só ver as palavras")) { reveal(contents, words: words) }.padding(.top, Space.sm)
     }
 
     // MARK: Acoes
@@ -203,20 +203,20 @@ struct OpenEnvelopeFlow: View {
                 await MainActor.run { estimate = max(1, Int(seconds.rounded())) }
             }
         } catch Envelope.Failure.boundToDevice {
-            error = "Este envelope foi lacrado preso ao iPhone que o criou e só abre no app Escalibur daquele aparelho."
+            error = String(localized: "Este envelope foi lacrado preso ao iPhone que o criou e só abre no app Escalibur daquele aparelho.")
         } catch Envelope.Failure.tooExpensiveForThisDevice(let mib) {
             error = Self.memoryMessage(mib)
         } catch EnvelopeFile.Failure.unreadable {
-            error = "Não foi possível ler o arquivo inteiro. Se ele está no iCloud, espere o download terminar e tente de novo."
+            error = String(localized: "Não foi possível ler o arquivo inteiro. Se ele está no iCloud, espere o download terminar e tente de novo.")
         } catch Envelope.Failure.notAnEnvelope, EnvelopeFile.Failure.notEnvelope {
-            error = "Este arquivo não é um envelope Escalibur. Envelopes terminam em .esclbr e têm 16.504 bytes."
+            error = String(localized: "Este arquivo não é um envelope Escalibur. Envelopes terminam em .esclbr e têm 16.504 bytes.")
         } catch {
-            self.error = "Não foi possível ler o arquivo. Confira se ele ainda está no mesmo lugar e tente de novo."
+            self.error = String(localized: "Não foi possível ler o arquivo. Confira se ele ainda está no mesmo lugar e tente de novo.")
         }
     }
 
     static func memoryMessage(_ mib: Int) -> String {
-        "Este envelope exige \(mib) MiB por tentativa, e este iPhone não consegue reservar tanto agora. Feche outros apps e tente de novo. A senha não chegou a ser testada."
+        String(localized: "Este envelope exige \(mib) MiB por tentativa, e este iPhone não consegue reservar tanto agora. Feche outros apps e tente de novo. A senha não chegou a ser testada.")
     }
 
     private func open() async {
@@ -236,21 +236,21 @@ struct OpenEnvelopeFlow: View {
             passwordLength = 0
             opened = contents
         } catch Envelope.Failure.slip39Share {
-            error = "Este envelope guarda uma parte SLIP-39. Uma parte sozinha não abre carteira, e esta versão ainda não junta partes."
+            error = String(localized: "Este envelope guarda uma parte SLIP-39. Uma parte sozinha não abre carteira, e esta versão ainda não junta partes.")
         } catch Envelope.Failure.invalidPhrase {
-            error = "Este envelope está danificado e não abre. Se você tem outra cópia do arquivo, use a outra."
+            error = String(localized: "Este envelope está danificado e não abre. Se você tem outra cópia do arquivo, use a outra.")
         } catch Envelope.Failure.unknownLanguage {
-            error = "O envelope abriu, mas a senha da carteira dentro dele está num idioma que esta versão não reconhece."
+            error = String(localized: "O envelope abriu, mas a senha da carteira dentro dele está num idioma que esta versão não reconhece.")
         } catch Envelope.Failure.tooExpensiveForThisDevice(let mib) {
             error = Self.memoryMessage(mib)
         } catch Envelope.Failure.cannotOpen {
             self.password.wipe()
             passwordLength = 0
-            self.error = "Não abriu. Confira a senha, com maiúsculas, acentos e espaços, e tente de novo."
+            self.error = String(localized: "Não abriu. Confira a senha, com maiúsculas, acentos e espaços, e tente de novo.")
         } catch {
             self.password.wipe()
             passwordLength = 0
-            self.error = "Não foi possível abrir este envelope agora. Tente de novo."
+            self.error = String(localized: "Não foi possível abrir este envelope agora. Tente de novo.")
         }
         opening = false
     }
@@ -267,7 +267,7 @@ struct OpenEnvelopeFlow: View {
             phraseCopy.wipe()
             do {
                 let preview = try await ImportPreview.make(secret)
-                let name = contents.label.isEmpty ? "Carteira \(session.metadata.wallets.count + 1)" : contents.label
+                let name = contents.label.isEmpty ? String(localized: "Carteira \(session.metadata.wallets.count + 1)") : contents.label
                 pending = (secret, preview, name, words)
             } catch {
                 secret.wipe()
@@ -276,7 +276,7 @@ struct OpenEnvelopeFlow: View {
         } catch let walletError as WalletError {
             error = walletError.errorDescription
         } catch {
-            self.error = "Não foi possível importar a carteira."
+            self.error = String(localized: "Não foi possível importar a carteira.")
         }
     }
 
@@ -292,7 +292,7 @@ struct OpenEnvelopeFlow: View {
         importing = true
         defer { importing = false }
         do {
-            guard try await auth.retrying(reason: "Guardar a carteira do envelope neste iPhone", { credential in
+            guard try await auth.retrying(reason: String(localized: "Guardar a carteira do envelope neste iPhone"), { credential in
                 try await session.addWallet(secret: pending.secret, name: pending.name, origin: .importedEnvelope,
                                             wordCount: pending.words, backupConfirmed: true, credential: credential)
             }) != nil else { return }
@@ -303,7 +303,7 @@ struct OpenEnvelopeFlow: View {
             error = walletError.errorDescription
         } catch {
             discardPending()
-            self.error = "Não foi possível importar a carteira."
+            self.error = String(localized: "Não foi possível importar a carteira.")
         }
     }
 

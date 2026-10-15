@@ -664,28 +664,28 @@ public enum SolanaSwapPlanner {
         let quotedText = SolanaAmountText.format(BigUInt(draft.route.quotedOutAmount), decimals: Int(buy.decimals), symbol: buy.symbol)
 
         var lines = [
-            PlanReview.Line("Sai", sellText),
-            PlanReview.Line("Entra, no mínimo", minimumText),
-            PlanReview.Line("Estimativa", quotedText),
-            PlanReview.Line("Preço", priceText(draft)),
-            PlanReview.Line("Tolerância de preço", percentText(bps: intent.slippageBps)),
-            PlanReview.Line("Taxa da rede", SolanaAmountText.sol(fee)),
+            PlanReview.Line(kitText("Sai"), sellText, role: .sold),
+            PlanReview.Line(kitText("Entra, no mínimo"), minimumText),
+            PlanReview.Line(kitText("Estimativa"), quotedText),
+            PlanReview.Line(kitText("Preço"), priceText(draft)),
+            PlanReview.Line(kitText("Tolerância de preço"), percentText(bps: intent.slippageBps)),
+            PlanReview.Line(kitText("Taxa da rede"), SolanaAmountText.sol(fee)),
         ]
         let priority = fee - BigUInt(SolanaLimits.lamportsPerSignature)
-        if !priority.isZero { lines.append(PlanReview.Line("Inclui prioridade", SolanaAmountText.sol(priority))) }
+        if !priority.isZero { lines.append(PlanReview.Line(kitText("Inclui prioridade"), SolanaAmountText.sol(priority))) }
         if !permanentRent.isZero {
-            lines.append(PlanReview.Line("Criação da sua conta de \(buy.symbol)", SolanaAmountText.sol(permanentRent)))
+            lines.append(PlanReview.Line(kitText("Criação da sua conta de \(buy.symbol)"), SolanaAmountText.sol(permanentRent)))
         }
         if TradeMarketReference.warns(draft.referenceDeviationBps), let deviation = draft.referenceDeviationBps {
-            lines.append(PlanReview.Line("Preço de referência", "\(percentText(bps: UInt16(clamping: deviation))) pior que o preço médio de mercado"))
+            lines.append(PlanReview.Line(kitText("Preço de referência"), kitText("\(percentText(bps: UInt16(clamping: deviation))) pior que o preço médio de mercado")))
         }
-        lines.append(PlanReview.Line("Escalibur", "Sem taxa da Escalibur"))
-        lines.append(PlanReview.Line("Provedor", draft.proposal.provider))
+        lines.append(PlanReview.Line(kitText("Escalibur"), kitText("Sem taxa da Escalibur")))
+        lines.append(PlanReview.Line(kitText("Provedor"), draft.proposal.provider))
         if buy.isNativeSOL {
-            lines.append(PlanReview.Line("Recebe em", draft.owner.publicKey.base58, verbatim: true))
+            lines.append(PlanReview.Line(kitText("Recebe em"), draft.owner.publicKey.base58, verbatim: true))
         } else {
-            lines.append(PlanReview.Line("Mint comprado", buy.mint.base58, verbatim: true))
-            lines.append(PlanReview.Line("Recebe na sua conta de token", draft.destinationAccount.base58, verbatim: true))
+            lines.append(PlanReview.Line(kitText("Mint comprado"), buy.mint.base58, verbatim: true, role: .assetReference))
+            lines.append(PlanReview.Line(kitText("Recebe na sua conta de token"), draft.destinationAccount.base58, verbatim: true))
         }
 
         var warnings = [PlanReview.Warning]()
@@ -701,14 +701,14 @@ public enum SolanaSwapPlanner {
         for case .transferFee(let bps, _) in buy.extensions {
             // O emissor retem uma fracao a cada transferencia; o minimo acima ja e
             // conferido na simulacao, na conta do dono.
-            lines.append(PlanReview.Line("Taxa do emissor de \(buy.symbol)", "até " + percentText(bps: bps)))
+            lines.append(PlanReview.Line(kitText("Taxa do emissor de \(buy.symbol)"), kitText("até ") + percentText(bps: bps)))
             warnings.append(.highFee(percentOfAmount: Double(bps) / 100))
         }
         // Os movimentos saem da rota decodificada da mensagem compilada: entra
         // exatamente `inAmount` do mint vendido, sai pelo menos `minimumOut` do comprado,
         // na conta de token do proprio dono (ou no proprio dono, quando compra SOL).
         return PlanReview(
-            kind: .swap, title: "Trocar \(sellText) por \(buy.symbol)", lines: lines, warnings: warnings,
+            kind: .swap, title: kitText("Trocar \(sellText) por \(buy.symbol)"), lines: lines, warnings: warnings,
             outgoing: movement(sell, BigUInt(draft.route.inAmount)), incomingMinimum: movement(buy, BigUInt(draft.route.minimumOut)),
             beneficiary: draft.owner.publicKey.base58
         )
@@ -723,7 +723,7 @@ public enum SolanaSwapPlanner {
     static func priceText(_ draft: SolanaSwapDraft) -> String {
         let (sell, buy) = (draft.intent.sell, draft.intent.buy)
         let scaled = BigUInt(draft.route.quotedOutAmount) * BigUInt.power(of: 10, Int(sell.decimals)) / BigUInt(draft.route.inAmount)
-        return "1 \(sell.symbol) ≈ \(SolanaAmountText.format(scaled, decimals: Int(buy.decimals), symbol: buy.symbol))"
+        return kitText("1 \(sell.symbol) ≈ \(SolanaAmountText.format(scaled, decimals: Int(buy.decimals), symbol: buy.symbol))")
     }
 
     /// 50 -> "0,5%".

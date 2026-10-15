@@ -12,55 +12,55 @@ struct SettingsView: View {
 
     private var alertsValue: String? {
         guard let alerts else { return nil }
-        guard alerts.enabled, !alerts.coins.isEmpty else { return "Desligados" }
-        return alerts.coins.count == 1 ? "1 moeda" : "\(alerts.coins.count) moedas"
+        guard alerts.enabled, !alerts.coins.isEmpty else { return String(localized: "Desligados") }
+        return alerts.coins.count == 1 ? String(localized: "1 moeda") : "\(alerts.coins.count) moedas"
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    TabTitle("Ajustes")
+                    TabTitle(String(localized: "Ajustes"))
 
                     SettingsGroup {
                         NavigationLink { WalletsListView() } label: {
-                            SettingsRow(icon: MainTabs.walletSymbol, title: "Carteiras", value: "\(session.metadata.wallets.count)")
+                            SettingsRow(icon: MainTabs.walletSymbol, title: String(localized: "Carteiras"), value: "\(session.metadata.wallets.count)")
                         }
                         NavigationLink { SecuritySettingsView() } label: {
-                            SettingsRow(icon: "lock", title: "Segurança")
+                            SettingsRow(icon: "lock", title: String(localized: "Segurança"))
                         }
                         NavigationLink { ContactsView() } label: {
-                            SettingsRow(icon: "book.closed", title: "Endereços salvos", value: session.metadata.contacts.isEmpty ? nil : "\(session.metadata.contacts.count)")
+                            SettingsRow(icon: "book.closed", title: String(localized: "Endereços salvos"), value: session.metadata.contacts.isEmpty ? nil : "\(session.metadata.contacts.count)")
                         }
                         Button { openingEnvelope = true } label: {
-                            SettingsRow(icon: "envelope.open", title: "Abrir um envelope")
+                            SettingsRow(icon: "envelope.open", title: String(localized: "Abrir um envelope"))
                         }
                     }
                     .padding(.top, Space.lg)
 
-                    SettingsSection(title: "Preferências") {
+                    SettingsSection(title: String(localized: "Preferências")) {
                         NavigationLink { NetworksSettingsView() } label: {
-                            SettingsRow(icon: "network", title: "Redes",
+                            SettingsRow(icon: "network", title: String(localized: "Redes"),
                                         value: "\(Chain.all.count - session.metadata.settings.disabledChainIDs.count) ligadas")
                         }
                         NavigationLink { PriceAlertsView() } label: {
-                            SettingsRow(icon: "bell", title: "Alertas de preço", value: alertsValue)
+                            SettingsRow(icon: "bell", title: String(localized: "Alertas de preço"), value: alertsValue)
                         }
                         .accessibilityIdentifier("ajustes-alertas")
                         NavigationLink { ReceiptWatchView() } label: {
-                            SettingsRow(icon: "arrow.down.circle", title: "Aviso de recebimento",
-                                        value: receipts.map { $0.enabled ? "Ligado" : "Desligado" })
+                            SettingsRow(icon: "arrow.down.circle", title: String(localized: "Aviso de recebimento"),
+                                        value: receipts.map { $0.enabled ? String(localized: "Ligado") : String(localized: "Desligado") })
                         }
                         .accessibilityIdentifier("ajustes-recebimento")
                     }
 
-                    SettingsSection(title: "Sobre") {
+                    SettingsSection(title: String(localized: "Sobre")) {
                         NavigationLink { SupportView() } label: {
-                            SettingsRow(icon: "questionmark.circle", title: "Suporte")
+                            SettingsRow(icon: "questionmark.circle", title: String(localized: "Suporte"))
                         }
                         .accessibilityIdentifier("ajustes-suporte")
                         NavigationLink { AboutView() } label: {
-                            SettingsRow(icon: "info.circle", title: "Taxas, código aberto e versão")
+                            SettingsRow(icon: "info.circle", title: String(localized: "Taxas, código aberto e versão"))
                         }
                     }
                 }
@@ -147,7 +147,7 @@ struct WalletsListView: View {
                                 WalletGlyph(id: wallet.id, size: 32, selected: true, watchOnly: wallet.isWatchOnly)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
-                                    Text(wallet.hasBackup || wallet.isWatchOnly ? originText(wallet) : "Sem cópia")
+                                    Text(wallet.hasBackup || wallet.isWatchOnly ? originText(wallet) : String(localized: "Sem cópia"))
                                         .typeStyle(.note).foregroundStyle(wallet.hasBackup || wallet.isWatchOnly ? Palette.inkSoft : Palette.caution)
                                 }
                                 Spacer()
@@ -165,7 +165,7 @@ struct WalletsListView: View {
                     Text("Segure uma carteira e arraste para mudar a ordem.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                         .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                 }
-                SecondaryButton(title: "Adicionar carteira") { adding = true }
+                SecondaryButton(title: String(localized: "Adicionar carteira")) { adding = true }
                     .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
             }
         }
@@ -179,9 +179,9 @@ struct WalletsListView: View {
     private func originText(_ wallet: WalletMeta) -> String {
         switch wallet.origin {
         case .created: if case .phrase(let n) = wallet.kind { return "\(n) palavras" }; return ""
-        case .importedPhrase: return "Importada com a senha da carteira"
-        case .importedEnvelope: return "Importada de envelope"
-        case .watch: return "Só observar"
+        case .importedPhrase: return String(localized: "Importada com a senha da carteira")
+        case .importedEnvelope: return String(localized: "Importada de envelope")
+        case .watch: return String(localized: "Só observar")
         }
     }
 }
@@ -211,33 +211,33 @@ struct WalletSettingsView: View {
                         .padding(.horizontal, Space.gutter)
 
                     if !wallet.isWatchOnly {
-                        SettingsSection(title: "Cópias") {
-                            SettingsRow(icon: "doc.text", title: "Papel",
-                                        value: wallet.hasBackup ? (wallet.backupConfirmedAt.map { "confirmado em \(Self.day($0))" } ?? "importada") : "não confirmado",
+                        SettingsSection(title: String(localized: "Cópias")) {
+                            SettingsRow(icon: "doc.text", title: String(localized: "Papel"),
+                                        value: wallet.hasBackup ? (wallet.backupConfirmedAt.map { String(localized: "confirmado em \(Self.day($0))") } ?? "importada") : String(localized: "não confirmado"),
                                         valueColor: wallet.hasBackup ? Palette.inkSoft : Palette.caution, chevron: false)
-                            SettingsRow(icon: "envelope", title: "Envelope Escalibur",
-                                        value: wallet.envelopeSealedAt.map { "lacrado em \(Self.day($0))" } ?? "nenhum", chevron: false)
+                            SettingsRow(icon: "envelope", title: String(localized: "Envelope Escalibur"),
+                                        value: wallet.envelopeSealedAt.map { String(localized: "lacrado em \(Self.day($0))") } ?? "nenhum", chevron: false)
                         }
                         if let last = wallet.lastRevealedAt {
                             Text("Última vez que a senha da carteira foi exibida: \(Fmt.relative(last).lowercased()).")
                                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                         }
                         SettingsGroup {
-                            Button { revealing = true } label: { SettingsRow(icon: "eye", title: "Ver a senha da carteira") }
-                            Button { sealing = true } label: { SettingsRow(icon: "envelope.badge.shield.half.filled", title: "Guardar num envelope Escalibur") }
+                            Button { revealing = true } label: { SettingsRow(icon: "eye", title: String(localized: "Ver a senha da carteira")) }
+                            Button { sealing = true } label: { SettingsRow(icon: "envelope.badge.shield.half.filled", title: String(localized: "Guardar num envelope Escalibur")) }
                             NavigationLink { PassphraseWalletView(base: wallet) } label: {
-                                SettingsRow(icon: "key.horizontal", title: "Abrir ou criar com passphrase")
+                                SettingsRow(icon: "key.horizontal", title: String(localized: "Abrir ou criar com passphrase"))
                             }
                         }
                         .padding(.top, Space.lg)
                     }
 
-                    SettingsSection(title: "Endereços") {
+                    SettingsSection(title: String(localized: "Endereços")) {
                         ForEach(wallet.accounts, id: \.chainID) { account in
                             if let chain = Chain.find(account.chainID) {
                                 Button {
                                     Pasteboard.copyAddress(account.address)
-                                    toasts.show("Endereço copiado.")
+                                    toasts.show(String(localized: "Endereço copiado."))
                                 } label: {
                                     HStack(spacing: Space.sm) {
                                         NetworkBadge(chain: chain, size: 24, ring: Palette.body)
@@ -254,7 +254,7 @@ struct WalletSettingsView: View {
                         }
                     }
 
-                    DestructiveButton(title: "Remover deste iPhone") { confirmRemove = true }
+                    DestructiveButton(title: String(localized: "Remover deste iPhone")) { confirmRemove = true }
                         .padding(.horizontal, Space.gutter).padding(.top, Space.xl)
                 }
                 .padding(.vertical, Space.md)
@@ -294,7 +294,7 @@ struct WalletSettingsView: View {
     private func remove() async {
         guard let wallet else { return }
         if !wallet.isWatchOnly {
-            guard (try? await auth.perform(session, reason: "Remover \(wallet.name) deste iPhone", requirePIN: true, { _ in true })) == true else { return }
+            guard (try? await auth.perform(session, reason: String(localized: "Remover \(wallet.name) deste iPhone"), requirePIN: true, { _ in true })) == true else { return }
         }
         session.remove(wallet)
         dismiss()
@@ -314,7 +314,7 @@ struct SecuritySettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 SettingsGroup {
-                    Button { changingPIN = true } label: { SettingsRow(icon: "circle.grid.3x3", title: "Mudar o PIN") }
+                    Button { changingPIN = true } label: { SettingsRow(icon: "circle.grid.3x3", title: String(localized: "Mudar o PIN")) }
                     Toggle(isOn: Binding(get: { session.biometryEnabled }, set: { on in
                         if on { biometryPIN = true } else { session.disableBiometry() }
                     })) {
@@ -327,17 +327,17 @@ struct SecuritySettingsView: View {
                     .disabled(!KeyServices.biometryAvailable)
                     .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     NavigationLink { VoiceSettingsView() } label: {
-                        SettingsRow(icon: "waveform", title: "Confirmação por voz", value: session.metadata.settings.voice.enabled ? "Ligada" : "Desligada")
+                        SettingsRow(icon: "waveform", title: String(localized: "Confirmação por voz"), value: session.metadata.settings.voice.enabled ? String(localized: "Ligada") : String(localized: "Desligada"))
                     }
                     NavigationLink { AutoLockView() } label: {
-                        SettingsRow(icon: "lock.rotation", title: "Bloquear o app", value: AutoLockView.label(session.metadata.settings.autoLockSeconds))
+                        SettingsRow(icon: "lock.rotation", title: String(localized: "Bloquear o app"), value: AutoLockView.label(session.metadata.settings.autoLockSeconds))
                     }
                 }
                 .padding(.top, Space.md)
 
                 Text(KeyServices.biometryAvailable
-                     ? "Depois de reiniciar o iPhone ou de a bateria acabar, o \(KeyServices.biometryName) só volta a valer depois do PIN digitado uma vez."
-                     : (KeyServices.biometryName == "Touch ID" ? "Para usar o Touch ID aqui, cadastre uma digital em Ajustes do iPhone, em Touch ID e código." : "Para usar o \(KeyServices.biometryName) aqui, cadastre um rosto em Ajustes do iPhone, em \(KeyServices.biometryName) e código."))
+                     ? String(localized: "Depois de reiniciar o iPhone ou de a bateria acabar, o \(KeyServices.biometryName) só volta a valer depois do PIN digitado uma vez.")
+                     : (KeyServices.biometryName == "Touch ID" ? String(localized: "Para usar o Touch ID aqui, cadastre uma digital em Ajustes do iPhone, em Touch ID e código.") : String(localized: "Para usar o \(KeyServices.biometryName) aqui, cadastre um rosto em Ajustes do iPhone, em \(KeyServices.biometryName) e código.")))
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
@@ -345,7 +345,7 @@ struct SecuritySettingsView: View {
                 if let wallet = session.selectedWallet, !wallet.isWatchOnly {
                     SettingsGroup {
                         NavigationLink { PassphraseWalletView(base: wallet) } label: {
-                            SettingsRow(icon: "key.horizontal", title: "Carteira com passphrase")
+                            SettingsRow(icon: "key.horizontal", title: String(localized: "Carteira com passphrase"))
                         }
                     }
                     .padding(.top, Space.lg)
@@ -357,7 +357,7 @@ struct SecuritySettingsView: View {
 
                 SettingsGroup {
                     NavigationLink { WipeSettingsView() } label: {
-                        SettingsRow(icon: "trash", title: "Apagar depois de PINs errados", value: WipeSettingsView.label(KeyServices.root.wipeThreshold))
+                        SettingsRow(icon: "trash", title: String(localized: "Apagar depois de PINs errados"), value: WipeSettingsView.label(KeyServices.root.wipeThreshold))
                     }
                 }
                 .padding(.top, Space.lg)
@@ -386,7 +386,7 @@ struct WipeSettingsView: View {
     static let options: [UInt32?] = [nil] + PINPolicy.wipeOptions.map { Optional($0) }
 
     static func label(_ threshold: UInt32?) -> String {
-        threshold.map { "Depois de \($0) erros" } ?? "Nunca"
+        threshold.map { String(localized: "Depois de \($0) erros") } ?? String(localized: "Nunca")
     }
 
     var body: some View {
@@ -409,7 +409,7 @@ struct WipeSettingsView: View {
                     }
                 }
                 .padding(.top, Space.md)
-                Text(error ?? "Contra quem pega o iPhone e tenta adivinhar o PIN. Depois do número escolhido de PINs errados seguidos, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta. Mudar pede o PIN.")
+                Text(error ?? String(localized: "Contra quem pega o iPhone e tenta adivinhar o PIN. Depois do número escolhido de PINs errados seguidos, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta. Mudar pede o PIN."))
                     .typeStyle(.note).foregroundStyle(error == nil ? Palette.inkMuted : Palette.down)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
@@ -425,17 +425,17 @@ struct WipeSettingsView: View {
     private func choose(_ option: UInt32?) async {
         guard option != current else { return }
         if option != nil, let missing = session.metadata.wallets.first(where: { !$0.hasBackup && !$0.isWatchOnly }) {
-            error = "Confirme a cópia de \(missing.name) antes de ligar."
+            error = String(localized: "Confirme a cópia de \(missing.name) antes de ligar.")
             return
         }
         error = nil
-        let reason = option.map { "Apagar depois de \($0) PINs errados" } ?? "Nunca apagar por PINs errados"
+        let reason = option.map { String(localized: "Apagar depois de \($0) PINs errados") } ?? String(localized: "Nunca apagar por PINs errados")
         guard (try? await auth.perform(session, reason: reason, requirePIN: true, { _ in true })) == true else { return }
         do {
             try KeyServices.root.setWipeAfterErrors(option)
             current = option
         } catch {
-            self.error = "Não foi possível mudar agora. Tente de novo."
+            self.error = String(localized: "Não foi possível mudar agora. Tente de novo.")
         }
     }
 }
@@ -447,7 +447,7 @@ struct EnableBiometrySheet: View {
     @State private var working = false
 
     var body: some View {
-        PINScreen(title: "Confirme com o PIN", subtitle: "Para ligar o \(KeyServices.biometryName).", entry: entry, working: working, onComplete: {
+        PINScreen(title: String(localized: "Confirme com o PIN"), subtitle: String(localized: "Para ligar o \(KeyServices.biometryName)."), entry: entry, working: working, onComplete: {
             Task {
                 working = true
                 defer { working = false }
@@ -455,17 +455,17 @@ struct EnableBiometrySheet: View {
                     try await session.enableBiometry(pin: entry.take())
                     onDone()
                 } catch RootKeyVault.Failure.wrongPIN {
-                    entry.fail("PIN incorreto.")
+                    entry.fail(String(localized: "PIN incorreto."))
                 } catch RootKeyVault.Failure.throttled(let seconds) {
-                    entry.fail("Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
+                    entry.fail(String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds))."))
                 } catch RootKeyVault.Failure.cancelled {
-                    entry.fail("O \(KeyServices.biometryName) não confirmou. Ele continua desligado.")
+                    entry.fail(String(localized: "O \(KeyServices.biometryName) não confirmou. Ele continua desligado."))
                 } catch {
-                    entry.fail("Não foi possível ligar o \(KeyServices.biometryName) agora.")
+                    entry.fail(String(localized: "Não foi possível ligar o \(KeyServices.biometryName) agora."))
                 }
             }
         }) {
-            TertiaryButton(title: "Cancelar", action: onDone)
+            TertiaryButton(title: String(localized: "Cancelar"), action: onDone)
         }
     }
 }
@@ -481,20 +481,20 @@ struct ChangePINFlow: View {
 
     var body: some View {
         PINScreen(
-            title: ["Digite o PIN atual", "Escolha o novo PIN", "Repita o novo PIN"][step],
+            title: [String(localized: "Digite o PIN atual"), String(localized: "Escolha o novo PIN"), String(localized: "Repita o novo PIN")][step],
             subtitle: nil, entry: entry, working: working, onComplete: advance
         ) {
-            TertiaryButton(title: "Cancelar") { current?.wipe(); newPIN?.wipe(); onDone() }
+            TertiaryButton(title: String(localized: "Cancelar")) { current?.wipe(); newPIN?.wipe(); onDone() }
         }
     }
 
     /// Antes do ponto sem volta, qualquer falha deixa o PIN atual valendo.
     static func message(for error: Error) -> String {
         switch error as? RootKeyVault.Failure {
-        case .wrongPIN: return "O PIN atual não confere."
-        case .throttled(let seconds): return "Tentativas demais. Tente de novo em \(LockView.duration(seconds))."
+        case .wrongPIN: return String(localized: "O PIN atual não confere.")
+        case .throttled(let seconds): return String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
         case .malformedPIN: return "O PIN precisa ter 6 números."
-        default: return "Não foi possível trocar. O PIN atual continua valendo."
+        default: return String(localized: "Não foi possível trocar. O PIN atual continua valendo.")
         }
     }
 
@@ -512,7 +512,7 @@ struct ChangePINFlow: View {
             let same = Hash.constantTimeEqual(newPIN, pin)
             pin.wipe()
             guard same else {
-                entry.fail("Os dois não conferem. Escolha de novo.")
+                entry.fail(String(localized: "Os dois não conferem. Escolha de novo."))
                 step = 1
                 return
             }
@@ -551,9 +551,9 @@ struct AutoLockView: View {
 
     static func label(_ seconds: Int) -> String {
         switch clamped(seconds) {
-        case 0: return "Ao sair do app"
-        case 30: return "Depois de 30 segundos"
-        default: return "Depois de 1 minuto"
+        case 0: return String(localized: "Ao sair do app")
+        case 30: return String(localized: "Depois de 30 segundos")
+        default: return String(localized: "Depois de 1 minuto")
         }
     }
 
@@ -576,7 +576,7 @@ struct AutoLockView: View {
                 }
             }
             .padding(.top, Space.md)
-            Text(error ?? "Encurtar vale na hora. Alongar pede o PIN.")
+            Text(error ?? String(localized: "Encurtar vale na hora. Alongar pede o PIN."))
                 .typeStyle(.note).foregroundStyle(error == nil ? Palette.inkMuted : Palette.down)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -593,7 +593,7 @@ struct AutoLockView: View {
         let current = Self.clamped(session.metadata.settings.autoLockSeconds)
         guard seconds != current else { return }
         if seconds > current {
-            guard (try? await auth.perform(session, reason: "Bloquear o app \(Self.label(seconds).lowercased())", requirePIN: true, { _ in true })) == true else { return }
+            guard (try? await auth.perform(session, reason: String(localized: "Bloquear o app \(Self.label(seconds).lowercased())"), requirePIN: true, { _ in true })) == true else { return }
         }
         let previous = session.metadata.settings.autoLockSeconds
         session.metadata.settings.autoLockSeconds = seconds
@@ -601,7 +601,7 @@ struct AutoLockView: View {
             try session.persist()
         } catch {
             session.metadata.settings.autoLockSeconds = previous
-            self.error = "Não foi possível salvar. Tente de novo."
+            self.error = String(localized: "Não foi possível salvar. Tente de novo.")
         }
     }
 }
@@ -666,8 +666,8 @@ struct AboutView: View {
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 }
                 SettingsGroup {
-                    Button { legalDocument = .terms } label: { SettingsRow(icon: "doc.text", title: "Termos de uso") }
-                    Button { legalDocument = .privacy } label: { SettingsRow(icon: "hand.raised", title: "Política de privacidade") }
+                    Button { legalDocument = .terms } label: { SettingsRow(icon: "doc.text", title: String(localized: "Termos de uso")) }
+                    Button { legalDocument = .privacy } label: { SettingsRow(icon: "hand.raised", title: String(localized: "Política de privacidade")) }
                 }
                 // O grupo ja traz a margem da tela; aqui ela vem do VStack, e somar as duas
                 // desalinhava os botoes do texto acima.

@@ -158,7 +158,7 @@ final class SimulatorWrapper: KeyWrapper, @unchecked Sendable {
             let context = LAContext()
             let semaphore = DispatchSemaphore(value: 0)
             nonisolated(unsafe) var allowed = false
-            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason ?? "Destravar") { ok, _ in
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason ?? String(localized: "Destravar")) { ok, _ in
                 allowed = ok
                 semaphore.signal()
             }

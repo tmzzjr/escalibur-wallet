@@ -260,15 +260,15 @@ public enum SuiPlanner {
 
         let amountText = SuiFormat.sui(amount)
         var lines = [
-            PlanReview.Line("Para", recipient.hex, verbatim: true),
-            PlanReview.Line("Valor", amountText),
-            PlanReview.Line("Taxa estimada", estimatedFeeText(estimate)),
-            PlanReview.Line("Taxa máxima", "\(SuiFormat.sui(BigUInt(budget))), o que não for usado volta"),
-            PlanReview.Line("Rede", "Sui"),
-            PlanReview.Line("Validade", "Até o fim da época \(validUntil) da rede, cerca de um a dois dias"),
+            PlanReview.Line(kitText("Para"), recipient.hex, verbatim: true, role: .recipient),
+            PlanReview.Line(kitText("Valor"), amountText),
+            PlanReview.Line(kitText("Taxa estimada"), estimatedFeeText(estimate)),
+            PlanReview.Line(kitText("Taxa máxima"), kitText("\(SuiFormat.sui(BigUInt(budget))), o que não for usado volta")),
+            PlanReview.Line(kitText("Rede"), "Sui"),
+            PlanReview.Line(kitText("Validade"), kitText("Até o fim da época \(String(validUntil)) da rede, cerca de um a dois dias")),
         ]
         if coins.count > 1 {
-            lines.append(PlanReview.Line("Moedas de SUI", "As \(coins.count) moedas da conta viram uma só"))
+            lines.append(PlanReview.Line(kitText("Moedas de SUI"), kitText("As \(coins.count) moedas da conta viram uma só")))
         }
 
         var warnings = [PlanReview.Warning]()
@@ -280,7 +280,7 @@ public enum SuiPlanner {
         }
 
         let review = PlanReview(
-            kind: .send, title: "Enviar \(amountText)", lines: lines, warnings: warnings,
+            kind: .send, title: kitText("Enviar \(amountText)"), lines: lines, warnings: warnings,
             recipient: recipient.hex, recipientTag: nil, outgoing: .native(.sui, amount)
         )
         return SigningPlan(walletID: walletID, chain: .sui, review: review, transactions: [transfer], createdAt: now)
@@ -356,7 +356,7 @@ public enum SuiPlanner {
     static func estimatedFeeText(_ estimate: SuiGasCost) -> String {
         let net = estimate.net
         if net.negative || net.magnitude == 0 {
-            return "Nenhuma: juntar as moedas devolve mais armazenamento do que o envio custa"
+            return kitText("Nenhuma: juntar as moedas devolve mais armazenamento do que o envio custa")
         }
         return SuiFormat.sui(BigUInt(net.magnitude))
     }
@@ -374,11 +374,7 @@ enum SuiFormat {
         let whole = Array(padded[..<cut])
         var fraction = String(padded[cut...])
         while fraction.hasSuffix("0") { fraction.removeLast() }
-        var grouped = ""
-        for (index, digit) in whole.enumerated() {
-            if index > 0, (whole.count - index) % 3 == 0 { grouped.append(".") }
-            grouped.append(digit)
-        }
-        return (fraction.isEmpty ? grouped : "\(grouped),\(fraction)") + " " + symbol
+        let grouped = NumberStyle.current.group(String(whole))
+        return NumberStyle.current.decimal(grouped, fraction) + " " + symbol
     }
 }

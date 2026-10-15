@@ -307,17 +307,17 @@ public protocol TradeEngine: Sendable {
 
 extension TradeEngine {
     public func openOrders(account: DerivedAccount) async throws -> [OpenOrder] {
-        throw SendEngineError.unavailable("Ordens limite ainda não estão disponíveis nesta rede.")
+        throw SendEngineError.unavailable(kitText("Ordens limite ainda não estão disponíveis nesta rede."))
     }
 
     public func planCancel(
         _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
     ) async throws -> SigningPlan {
-        throw SendEngineError.unavailable("Ordens limite ainda não estão disponíveis nesta rede.")
+        throw SendEngineError.unavailable(kitText("Ordens limite ainda não estão disponíveis nesta rede."))
     }
 
     public func orderProgress(id: String, account: DerivedAccount) async throws -> OrderProgress {
-        throw SendEngineError.unavailable("O andamento da ordem não está disponível nesta rede.")
+        throw SendEngineError.unavailable(kitText("O andamento da ordem não está disponível nesta rede."))
     }
 
     /// Cancela pelo jeito escolhido, sem fila local.
@@ -327,7 +327,7 @@ extension TradeEngine {
 
     /// Cancela pelo jeito preferido da ordem.
     public func planCancel(_ order: OpenOrder, walletID: UUID, account: DerivedAccount) async throws -> SigningPlan {
-        guard let via = order.cancellations.first else { throw SendEngineError.unavailable("Esta ordem não pode ser cancelada pela carteira.") }
+        guard let via = order.cancellations.first else { throw SendEngineError.unavailable(kitText("Esta ordem não pode ser cancelada pela carteira.")) }
         return try await planCancel(order, walletID: walletID, account: account, via: via, nonceQueue: nil)
     }
 }

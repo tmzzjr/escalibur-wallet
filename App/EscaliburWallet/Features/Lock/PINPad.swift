@@ -108,7 +108,7 @@ struct PINPad: View {
     private func key(_ value: Int?, column: Int) -> some View {
         switch value {
         case .some(-1):
-            functionKey(systemImage: "delete.left", label: "Apagar") { entry.deleteLast() }
+            functionKey(systemImage: "delete.left", label: String(localized: "Apagar")) { entry.deleteLast() }
         case .some(let digit):
             Button {
                 entry.append(digit)
@@ -125,7 +125,7 @@ struct PINPad: View {
             .accessibilityIdentifier("tecla-\(digit)")
         case .none:
             if let biometryIcon, let onBiometry {
-                functionKey(systemImage: biometryIcon, label: "Usar \(KeyServices.biometryName)", action: onBiometry)
+                functionKey(systemImage: biometryIcon, label: String(localized: "Usar \(KeyServices.biometryName)"), action: onBiometry)
             } else {
                 Color.clear.frame(width: Height.pinKey, height: Height.pinKey)
             }

@@ -30,7 +30,7 @@ enum TradeMath {
 
     static func requireSlippage(_ basisPoints: Int) throws {
         guard (0...maxSlippageBasisPoints).contains(basisPoints) else {
-            throw SendEngineError.message("A tolerância de preço vai de 0% a 5% nesta rede.")
+            throw SendEngineError.message(kitText("A tolerância de preço vai de 0% a 5% nesta rede."))
         }
     }
 
@@ -39,10 +39,10 @@ enum TradeMath {
         guard quote.sell == request.sell, quote.buy == request.buy, quote.amountIn == request.amountIn,
               minimumOut(quote.expectedOut, slippageBasisPoints: request.slippageBasisPoints) == quote.minimumOut
         else { throw SendEngineError.message(priceMoved) }
-        guard quote.expiresAt > now else { throw SendEngineError.message("A cotação venceu. Atualize para ver o preço de agora.") }
+        guard quote.expiresAt > now else { throw SendEngineError.message(kitText("A cotação venceu. Atualize para ver o preço de agora.")) }
     }
 
-    static let priceMoved = "O preço mudou desde a cotação. Atualize para ver o preço de agora."
+    static let priceMoved = kitText("O preço mudou desde a cotação. Atualize para ver o preço de agora.")
 
     private static func double(_ value: BigUInt) -> Double? {
         Double(value.decimalString)

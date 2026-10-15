@@ -40,33 +40,33 @@ enum TONEngineText {
         case .invalidDestination(let problem):
             return address(problem)
         case .destinationIsSelf:
-            return "O destino é a própria conta."
+            return kitText("O destino é a própria conta.")
         case .destinationIsTokenContract:
             return tokenContract
         case .destinationFrozen:
-            return "A conta de destino está congelada na rede TON e não recebe envios."
+            return kitText("A conta de destino está congelada na rede TON e não recebe envios.")
         case .zeroAmount:
-            return "Informe um valor maior que zero."
+            return kitText("Informe um valor maior que zero.")
         case .insufficientBalance:
             return coin == .usdt ? usdtNeedsTON : insufficientTON
         case .insufficientTokenBalance:
-            return "Saldo de USDT insuficiente para este valor."
+            return kitText("Saldo de USDT insuficiente para este valor.")
         case .missingFee, .feeAboveCeiling:
             return feeOutOfRange
         case .accountFrozen:
-            return "Esta conta TON está congelada na rede por falta de pagamento de armazenamento e não consegue enviar agora."
+            return kitText("Esta conta TON está congelada na rede por falta de pagamento de armazenamento e não consegue enviar agora.")
         case .inconsistentState:
-            return "O estado da conta recebido da rede é inconsistente. Tente de novo em instantes."
+            return kitText("O estado da conta recebido da rede é inconsistente. Tente de novo em instantes.")
         case .walletVersionMismatch:
-            return "O contrato desta carteira na rede não é da versão esperada. Nada foi montado."
+            return kitText("O contrato desta carteira na rede não é da versão esperada. Nada foi montado.")
         case .jettonWalletMismatch:
-            return "A carteira de USDT informada pela rede não é a desta conta. Nada foi montado."
+            return kitText("A carteira de USDT informada pela rede não é a desta conta. Nada foi montado.")
         case .commentTooLong:
-            return "O comentário é longo demais para a mensagem."
+            return kitText("O comentário é longo demais para a mensagem.")
         case .commentHasControlCharacters:
-            return "O comentário tem caracteres invisíveis ou de controle. Digite de novo, só com texto comum."
+            return kitText("O comentário tem caracteres invisíveis ou de controle. Digite de novo, só com texto comum.")
         case .commentHasSurroundingSpaces:
-            return "O comentário tem espaço no começo ou no fim. Tire os espaços: a exchange compara o comentário exatamente."
+            return kitText("O comentário tem espaço no começo ou no fim. Tire os espaços: a exchange compara o comentário exatamente.")
         case .invalidPath:
             return keyMismatch
         }
@@ -75,11 +75,11 @@ enum TONEngineText {
     static func reader(_ error: ReaderError) -> String {
         switch error {
         case .providersDisagree:
-            return "Os provedores da rede TON responderam diferente. Por segurança, nada foi montado. Tente de novo em instantes."
+            return kitText("Os provedores da rede TON responderam diferente. Por segurança, nada foi montado. Tente de novo em instantes.")
         case .implausibleValue:
             return feeOutOfRange
         case .invalidInput:
-            return "O destino ou o comentário não puderam ser montados na mensagem. Confira os dois."
+            return kitText("O destino ou o comentário não puderam ser montados na mensagem. Confira os dois.")
         case .broadcastRejected(let reason, _):
             return rejected(reason)
         case .broadcastMismatch:
@@ -93,53 +93,53 @@ enum TONEngineText {
     static func address(_ problem: Address.Problem) -> String {
         switch problem {
         case .empty:
-            return "Informe o endereço de destino."
+            return kitText("Informe o endereço de destino.")
         case .otherNetwork(let chain):
-            return "Este endereço é da rede \(chain.name). Para TON, use um endereço TON."
+            return kitText("Este endereço é da rede \(chain.name). Para TON, use um endereço TON.")
         case .badChecksum:
-            return "Uma letra deste endereço não confere. Ele pode ter sido copiado pela metade ou alterado. Copie de novo, inteiro."
+            return kitText("Uma letra deste endereço não confere. Ele pode ter sido copiado pela metade ou alterado. Copie de novo, inteiro.")
         case .unsupportedType:
-            return "Este endereço TON é de rede de teste ou de um tipo que a carteira não envia."
+            return kitText("Este endereço TON é de rede de teste ou de um tipo que a carteira não envia.")
         case .malformed:
-            return "Endereço TON inválido. Confira se copiou inteiro."
+            return kitText("Endereço TON inválido. Confira se copiou inteiro.")
         }
     }
 
     static func rejected(_ reason: BroadcastRejection) -> String {
         switch reason {
-        case .expired: return "O envio venceu antes de chegar à rede. Nada saiu da conta. Revise e envie de novo."
-        case .insufficientFunds: return "A rede TON recusou o envio por saldo insuficiente. Nada saiu da conta."
-        case .invalidSignature: return "A rede TON recusou a assinatura. Nada saiu da conta."
+        case .expired: return kitText("O envio venceu antes de chegar à rede. Nada saiu da conta. Revise e envie de novo.")
+        case .insufficientFunds: return kitText("A rede TON recusou o envio por saldo insuficiente. Nada saiu da conta.")
+        case .invalidSignature: return kitText("A rede TON recusou a assinatura. Nada saiu da conta.")
         case .nonceTooLow, .nonceTooHigh, .alreadyKnown, .underpriced, .wrongNetwork, .other:
-            return "A rede TON recusou o envio. Nada saiu da conta."
+            return kitText("A rede TON recusou o envio. Nada saiu da conta.")
         }
     }
 
-    static let insufficientTON = "Saldo de TON insuficiente para este valor com a taxa da rede."
-    static let usdtNeedsTON = "Esta conta não tem TON suficiente para a taxa deste envio de USDT. Envie TON para esta conta e tente de novo."
-    static let tokenContract = "Este endereço é um contrato de token, não uma carteira. O que é enviado para ele fica preso."
-    static let feeOutOfRange = "A taxa estimada pela rede está fora do normal. Nada foi montado. Tente de novo em instantes."
-    static let keyMismatch = "A chave desta conta não confere com o endereço. Nada foi montado."
-    static let unsupportedAsset = "Por enquanto, a Escalibur envia só TON e USDT na TON."
-    static let planMismatch = "O envio montado não confere com o destino ou o comentário pedidos. Nada foi assinado."
-    static let notOurTransaction = "A mensagem assinada não confere com a que foi montada. Nada foi transmitido."
-    static let answerMismatch = "A resposta da rede não confere com a mensagem assinada. Confira a Atividade antes de enviar de novo."
-    static let broadcastUnconfirmed = "Não foi possível confirmar a transmissão. Confira a Atividade antes de enviar de novo."
-    static let readFailure = "Não foi possível ler a rede TON agora. Tente de novo em instantes."
-    static let offline = "Sem conexão com a internet. Nada foi montado."
-    static let historyFailure = "Não foi possível ler o histórico da TON agora."
+    static let insufficientTON = kitText("Saldo de TON insuficiente para este valor com a taxa da rede.")
+    static let usdtNeedsTON = kitText("Esta conta não tem TON suficiente para a taxa deste envio de USDT. Envie TON para esta conta e tente de novo.")
+    static let tokenContract = kitText("Este endereço é um contrato de token, não uma carteira. O que é enviado para ele fica preso.")
+    static let feeOutOfRange = kitText("A taxa estimada pela rede está fora do normal. Nada foi montado. Tente de novo em instantes.")
+    static let keyMismatch = kitText("A chave desta conta não confere com o endereço. Nada foi montado.")
+    static let unsupportedAsset = kitText("Por enquanto, a Escalibur envia só TON e USDT na TON.")
+    static let planMismatch = kitText("O envio montado não confere com o destino ou o comentário pedidos. Nada foi assinado.")
+    static let notOurTransaction = kitText("A mensagem assinada não confere com a que foi montada. Nada foi transmitido.")
+    static let answerMismatch = kitText("A resposta da rede não confere com a mensagem assinada. Confira a Atividade antes de enviar de novo.")
+    static let broadcastUnconfirmed = kitText("Não foi possível confirmar a transmissão. Confira a Atividade antes de enviar de novo.")
+    static let readFailure = kitText("Não foi possível ler a rede TON agora. Tente de novo em instantes.")
+    static let offline = kitText("Sem conexão com a internet. Nada foi montado.")
+    static let historyFailure = kitText("Não foi possível ler o histórico da TON agora.")
 
     // MARK: Acompanhamento
 
-    static let confirmed = "Confirmado na rede TON."
+    static let confirmed = kitText("Confirmado na rede TON.")
 
     /// O motivo de uma falha final, pelo que o leitor devolve.
     static func failure(_ code: String) -> String {
         switch code {
         case "expired":
-            return "O envio venceu sem entrar na rede. Nada saiu da conta."
+            return kitText("O envio venceu sem entrar na rede. Nada saiu da conta.")
         default:
-            return "A carteira processou o pedido, mas a transferência não saiu. Só a taxa da rede foi cobrada."
+            return kitText("A carteira processou o pedido, mas a transferência não saiu. Só a taxa da rede foi cobrada.")
         }
     }
 
@@ -148,24 +148,26 @@ enum TONEngineText {
     static func destinationNote(status: TONAccountStatus, tokenContract: Bool) -> String? {
         if tokenContract { return Self.tokenContract }
         switch status {
-        case .frozen: return "Esta conta TON está congelada na rede e não recebe envios."
-        case .uninitialized: return "Esta carteira TON ainda não foi ativada. O valor chega e fica nela, sem devolução automática."
+        case .frozen: return kitText("Esta conta TON está congelada na rede e não recebe envios.")
+        case .uninitialized: return kitText("Esta carteira TON ainda não foi ativada. O valor chega e fica nela, sem devolução automática.")
         case .active: return nil
         }
     }
 
     static func tonFee(_ fee: BigUInt, activatesWallet: Bool) -> String {
-        "Taxa estimada da rede: \(ton(fee))\(activatesWallet ? ", com a ativação da sua carteira" : "")."
+        activatesWallet
+            ? kitText("Taxa estimada da rede: \(ton(fee)), com a ativação da sua carteira.")
+            : kitText("Taxa estimada da rede: \(ton(fee)).")
     }
 
     static func margin(_ margin: BigUInt) -> String {
-        "O máximo deixa \(ton(margin)) na conta como folga: a taxa cobrada de verdade pode passar um pouco da estimativa."
+        kitText("O máximo deixa \(ton(margin)) na conta como folga: a taxa cobrada de verdade pode passar um pouco da estimativa.")
     }
 
     static func usdtFee(attached: BigUInt, fee: BigUInt, balance: BigUInt) -> String {
-        let cost = "Cada envio de USDT leva \(ton(attached)) para a rede, e o que sobra volta, mais a taxa de cerca de \(ton(fee))."
+        let cost = kitText("Cada envio de USDT leva \(ton(attached)) para a rede, e o que sobra volta, mais a taxa de cerca de \(ton(fee)).")
         guard balance < attached + fee else { return cost }
-        return "\(cost) A conta tem \(ton(balance)), menos que isso. Envie TON para esta conta antes."
+        return kitText("\(cost) A conta tem \(ton(balance)), menos que isso. Envie TON para esta conta antes.")
     }
 
     // MARK: Numeros
@@ -181,11 +183,7 @@ enum TONEngineText {
         let whole = Array(padded[..<cut])
         var fraction = String(padded[cut...])
         while fraction.hasSuffix("0") { fraction.removeLast() }
-        var grouped = ""
-        for (index, digit) in whole.enumerated() {
-            if index > 0, (whole.count - index) % 3 == 0 { grouped.append(".") }
-            grouped.append(digit)
-        }
-        return fraction.isEmpty ? grouped : "\(grouped),\(fraction)"
+        let grouped = NumberStyle.current.group(String(whole))
+        return NumberStyle.current.decimal(grouped, fraction)
     }
 }

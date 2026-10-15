@@ -15,12 +15,8 @@ struct PlanVerbatimPlate: View {
     var onlyDestination = false
     @State private var expanded = false
 
-    static func isAssetLine(_ label: String) -> Bool {
-        label.hasPrefix("Contrato") || label.hasPrefix("Mint") || label.contains("emissor") || label.hasPrefix("Conta de token")
-    }
-
     var body: some View {
-        let lines = review.lines.filter { $0.verbatim && !(onlyDestination && Self.isAssetLine($0.label)) }
+        let lines = review.lines.filter { $0.verbatim && !(onlyDestination && $0.role == .assetReference) }
         if !lines.isEmpty, collapsible, !expanded {
             Button { withAnimation(Motion.fade) { expanded = true } } label: {
                 HStack(spacing: Space.sm) {
@@ -40,7 +36,7 @@ struct PlanVerbatimPlate: View {
             VStack(alignment: .leading, spacing: Space.sm) {
                 ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
                     VStack(alignment: .leading, spacing: Space.xs) {
-                        Text(line.label == "Para" ? KnownExchanges.name(for: line.value).map { "Para \($0)" } ?? "Para" : line.label)
+                        Text(line.role == .recipient ? KnownExchanges.name(for: line.value).map { String(localized: "Para \($0)") } ?? line.label : line.label)
                             .typeStyle(.note).foregroundStyle(Palette.plateMuted)
                         if Self.looksLikeAddress(line.value) {
                             AddressBlocks(address: line.value, onPlate: true)
@@ -83,19 +79,30 @@ struct PlanDetailLines: View {
 
 /// O texto de cada aviso do plano, igual em todas as telas que assinam.
 enum PlanWarningText {
-    static func text(_ warning: PlanReview.Warning, tagNoun: String = "tag") -> String {
+    /// O que a rede pede junto do endereco. A frase muda inteira com o nome (genero e
+    /// ordem mudam de idioma para idioma), por isso o tipo e nao o substantivo.
+    enum TagKind { case tag, memo, comment }
+
+    static func text(_ warning: PlanReview.Warning, tag: TagKind = .tag) -> String {
         switch warning {
-        case .firstSendToAddress: return "Primeira vez que você envia para este endereço."
-        case .lookalikeAddress(let known): return "Endereço parecido com \(Fmt.address(known))."
-        case .noDestinationTag: return "Sem \(tagNoun). Se o destino for uma exchange, confira na tela de depósito se ela pede: sem isso o valor não chega na sua conta de lá."
-        case .destinationIsContract: return "O destino é um contrato, não uma carteira comum."
-        case .highFee(let percent): return "A taxa é \(Fmt.grouped(percent, fractionDigits: 1))% do valor."
-        case .activatesAccount(let minimum): return "Este envio ativa a conta de destino (mínimo \(minimum))."
-        case .unverifiedToken(let symbol): return "\(symbol) não está na lista de tokens verificados."
-        case .unlimitedApproval: return "Autorização sem limite."
-        case .highPriceImpact(let percent): return "Impacto no preço de \(Fmt.grouped(percent, fractionDigits: 1))%."
+        case .firstSendToAddress: return String(localized: "Primeira vez que você envia para este endereço.")
+        case .lookalikeAddress(let known): return String(localized: "Endereço parecido com \(Fmt.address(known)).")
+        case .noDestinationTag:
+            switch tag {
+            case .tag: return String(localized: "Sem tag de destino. Se o destino for uma exchange, confira na tela de depósito se ela pede: sem isso o valor não chega na sua conta de lá.")
+            case .memo: return String(localized: "Sem memo. Se o destino for uma exchange, confira na tela de depósito se ela pede: sem isso o valor não chega na sua conta de lá.")
+            case .comment: return String(localized: "Sem comentário. Se o destino for uma exchange, confira na tela de depósito se ela pede: sem isso o valor não chega na sua conta de lá.")
+            }
+        case .destinationIsContract: return String(localized: "O destino é um contrato, não uma carteira comum.")
+        case .highFee(let percent): return String(localized: "A taxa é \(Fmt.grouped(percent, fractionDigits: 1))% do valor.")
+        case .activatesAccount(let minimum): return String(localized: "Este envio ativa a conta de destino (mínimo \(minimum)).")
+        case .unverifiedToken(let symbol): return String(localized: "\(symbol) não está na lista de tokens verificados.")
+        case .unlimitedApproval: return String(localized: "Autorização sem limite.")
+        case .highPriceImpact(let percent): return String(localized: "Impacto no preço de \(Fmt.grouped(percent, fractionDigits: 1))%.")
         case .binancePeg(let symbol):
-            return "Na BNB, o \(symbol) é o da Binance (Binance-Peg). Ele vale enquanto a Binance mantiver o lastro e o resgate: não é o \(symbol == "USDC" ? "USDC da Circle" : symbol == "USDT" ? "USDT da Tether" : "ETH da rede Ethereum")."
+            let original = symbol == "USDC" ? String(localized: "USDC da Circle")
+                : symbol == "USDT" ? String(localized: "USDT da Tether") : String(localized: "ETH da rede Ethereum")
+            return String(localized: "Na BNB, o \(symbol) é o da Binance (Binance-Peg). Ele vale enquanto a Binance mantiver o lastro e o resgate: não é o \(original).")
         }
     }
 }

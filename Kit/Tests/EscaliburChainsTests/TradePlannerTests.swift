@@ -130,8 +130,8 @@ struct TradePlannerTests {
         #expect(joined.review.incomingMinimum == PlanReview.Movement(assetID: "base:native", amount: velora.guaranteedOut + kyber.guaranteedOut))
         #expect(joined.review.beneficiary == S.owner.checksummed)
         // As linhas de conferir de cada etapa continuam la.
-        #expect(joined.review.lines.contains(PlanReview.Line("Etapa 1 · Contrato do provedor", velora.to.checksummed, verbatim: true)))
-        #expect(joined.review.lines.contains(PlanReview.Line("Etapa 2 · Contrato do provedor", kyber.to.checksummed, verbatim: true)))
+        #expect(joined.review.lines.contains(PlanReview.Line("Etapa 1 · Contrato do provedor", velora.to.checksummed, verbatim: true, role: .assetReference)))
+        #expect(joined.review.lines.contains(PlanReview.Line("Etapa 2 · Contrato do provedor", kyber.to.checksummed, verbatim: true, role: .assetReference)))
 
         #expect(throws: SigningPlan.CompositionError.partsDoNotMatch) { try TradePlanner.combineSplit([first, second], quotes: [kyber, velora]) }
         #expect(throws: SigningPlan.CompositionError.partsDoNotMatch) { try TradePlanner.combineSplit([first], quotes: [velora]) }

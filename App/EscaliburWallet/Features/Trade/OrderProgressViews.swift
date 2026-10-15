@@ -92,33 +92,33 @@ struct OrderProgressPanel: View {
     }
 
     private var title: String {
-        guard let progress else { return kind == .swap ? "Troca enviada" : "Ordem limite criada" }
+        guard let progress else { return kind == .swap ? String(localized: "Troca enviada") : String(localized: "Ordem limite criada") }
         switch progress.state {
-        case .filled: return kind == .swap ? "Troca concluída" : "Ordem executada"
-        case .expired: return "Prazo encerrado"
-        case .cancelled: return "Ordem cancelada"
+        case .filled: return kind == .swap ? String(localized: "Troca concluída") : String(localized: "Ordem executada")
+        case .expired: return String(localized: "Prazo encerrado")
+        case .cancelled: return String(localized: "Ordem cancelada")
         case .open:
-            if progress.fraction > 0 { return "Preenchendo" }
-            return kind == .swap ? "No leilão da CoW" : "Esperando o preço"
+            if progress.fraction > 0 { return String(localized: "Preenchendo") }
+            return kind == .swap ? String(localized: "No leilão da CoW") : String(localized: "Esperando o preço")
         }
     }
 
     private var detail: String {
-        guard let progress else { return "Lendo o andamento na CoW." }
+        guard let progress else { return String(localized: "Lendo o andamento na CoW.") }
         let minimum = amount(progress.minimumBuy, buy)
-        let leave = "Pode fechar esta tela: o andamento fica em Ordens abertas."
+        let leave = String(localized: "Pode fechar esta tela: o andamento fica em Ordens abertas.")
         switch progress.state {
         case .filled:
-            return "Saiu inteira, pelo mínimo garantido de \(minimum) ou mais. O saldo novo aparece em instantes."
+            return String(localized: "Saiu inteira, pelo mínimo garantido de \(minimum) ou mais. O saldo novo aparece em instantes.")
         case .expired, .cancelled:
             return progress.fraction > 0
-                ? "\(FillRing.percentText(progress.fraction)) foi preenchido. O restante continua na sua carteira."
-                : "Nada foi preenchido. O valor continua na sua carteira."
+                ? String(localized: "\(FillRing.percentText(progress.fraction)) foi preenchido. O restante continua na sua carteira.")
+                : String(localized: "Nada foi preenchido. O valor continua na sua carteira.")
         case .open:
             if kind == .limit, progress.fraction == 0 {
-                return "Ela executa quando o mercado chegar ao seu preço, de uma vez ou em partes. \(leave)"
+                return String(localized: "Ela executa quando o mercado chegar ao seu preço, de uma vez ou em partes. \(leave)")
             }
-            return "Cada parte sai pelo preço garantido ou melhor. \(leave)"
+            return String(localized: "Cada parte sai pelo preço garantido ou melhor. \(leave)")
         }
     }
 
@@ -160,17 +160,17 @@ struct ExecutionChoice: View {
         let single = Fmt.double(quote.minimumOut, decimals: buy.decimals)
         let better = Fmt.double(parts.minimumOut, decimals: buy.decimals)
         guard single > 0, better > single else { return "" }
-        return "+\(Fmt.grouped((better / single - 1) * 100, fractionDigits: 2))%"
+        return String(localized: "+\(Fmt.grouped((better / single - 1) * 100, fractionDigits: 2))%")
     }
 
     var body: some View {
         VStack(spacing: 4) {
-            option(selected: !inParts, title: "De uma vez", gain: nil,
-                   note: quote.execution == .order ? "Agora, no leilão da CoW" : "Agora, numa transação", amount: quote.minimumOut) {
+            option(selected: !inParts, title: String(localized: "De uma vez"), gain: nil,
+                   note: quote.execution == .order ? String(localized: "Agora, no leilão da CoW") : String(localized: "Agora, numa transação"), amount: quote.minimumOut) {
                 inParts = false
             }
-            option(selected: inParts, title: "Em partes", gain: gainText,
-                   note: "Preço melhor, preenchida pela CoW conforme chega liquidez, em até 1 hora", amount: parts.minimumOut) {
+            option(selected: inParts, title: String(localized: "Em partes"), gain: gainText,
+                   note: String(localized: "Preço melhor, preenchida pela CoW conforme chega liquidez, em até 1 hora"), amount: parts.minimumOut) {
                 inParts = true
             }
         }

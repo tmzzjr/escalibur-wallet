@@ -30,20 +30,20 @@ struct AddWalletView: View {
                 .padding(.horizontal, Space.gutter)
                 .padding(.top, Space.sm)
                 VStack(spacing: 0) {
-                    row("Importar com a senha da carteira", "Você já tem 12 ou 24 palavras de outra carteira.", "text.word.spacing") {
+                    row(String(localized: "Importar com a senha da carteira"), String(localized: "Você já tem 12 ou 24 palavras de outra carteira."), "text.word.spacing") {
                         path.append(.promise)
                     }
-                    row("Importar de um envelope Escalibur", "O arquivo .esclbr e a senha do envelope.", "envelope") {
+                    row(String(localized: "Importar de um envelope Escalibur"), String(localized: "O arquivo .esclbr e a senha do envelope."), "envelope") {
                         openingEnvelope = true
                     }
-                    row("Só observar um endereço", "Acompanhe um saldo sem poder enviar.", "eye") {
+                    row(String(localized: "Só observar um endereço"), String(localized: "Acompanhe um saldo sem poder enviar."), "eye") {
                         path.append(.watch)
                     }
                 }
                 .padding(.top, Space.md)
                 Spacer(minLength: 0)
                 ActionFooter {
-                    PrimaryButton(title: "Criar carteira nova") { creating = true }
+                    PrimaryButton(title: String(localized: "Criar carteira nova")) { creating = true }
                 }
             }
             .background(Palette.void.ignoresSafeArea())
@@ -52,7 +52,7 @@ struct AddWalletView: View {
                 case .promise:
                     SecurityPromiseView { path.append(.responsibility) }
                 case .responsibility:
-                    ResponsibilityView(continueTitle: "Conferir o aparelho") { path.append(.deviceCheck) }
+                    ResponsibilityView(continueTitle: String(localized: "Conferir o aparelho")) { path.append(.deviceCheck) }
                 case .deviceCheck:
                     DeviceCheckView { path.append(.importPhrase) }
                 case .importPhrase: ImportPhraseView(onFinished: onFinished)

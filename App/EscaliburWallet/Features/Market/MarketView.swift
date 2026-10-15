@@ -63,8 +63,8 @@ struct MarketView: View {
         NavigationStack(path: Bindable(router).marketPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    TabTitle("Mercado")
-                    SearchField(prompt: "Buscar moeda", text: $query, focus: $searching)
+                    TabTitle(String(localized: "Mercado"))
+                    SearchField(prompt: String(localized: "Buscar moeda"), text: $query, focus: $searching)
                         .padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: Space.xs) {
@@ -92,14 +92,14 @@ struct MarketView: View {
                         }
                         .padding(.top, Space.sm)
                     } else if coins.isEmpty && failed {
-                        Banner(kind: .neutral, title: "Não foi possível carregar o mercado agora.", actionTitle: "Tentar de novo") {
+                        Banner(kind: .neutral, title: String(localized: "Não foi possível carregar o mercado agora."), actionTitle: String(localized: "Tentar de novo")) {
                             Task { await load() }
                         }
                         .padding(.horizontal, Space.gutter).padding(.top, Space.md)
                     } else if let snapshot, snapshot.isStale {
                         Banner(
-                            kind: .neutral, title: "Sem conexão com os dados de mercado agora.",
-                            message: "Mostrando os preços de \(Fmt.stamp(snapshot.fetchedAt)).", actionTitle: "Tentar de novo"
+                            kind: .neutral, title: String(localized: "Sem conexão com os dados de mercado agora."),
+                            message: String(localized: "Mostrando os preços de \(Fmt.stamp(snapshot.fetchedAt))."), actionTitle: String(localized: "Tentar de novo")
                         ) {
                             Task { await load() }
                         }
@@ -108,12 +108,12 @@ struct MarketView: View {
 
                     LazyVStack(alignment: .leading, spacing: 0) {
                         if !favorites.isEmpty {
-                            sectionTitle("Favoritas")
+                            sectionTitle(String(localized: "Favoritas"))
                             ForEach(favorites) { coin in
                                 NavigationLink(value: coin) { MarketRow(coin: coin, currency: session.currency) }
                                     .buttonStyle(RowStyle())
                             }
-                            sectionTitle("Todas")
+                            sectionTitle(String(localized: "Todas"))
                         }
                         ForEach(others) { coin in
                             NavigationLink(value: coin) { MarketRow(coin: coin, currency: session.currency) }
@@ -346,13 +346,13 @@ struct MarketCoinDetail: View {
                 ActionFooter {
                     HStack(spacing: Space.sm) {
                         if let held {
-                            SecondaryButton(title: "Vender", height: Height.primary) {
+                            SecondaryButton(title: String(localized: "Vender"), height: Height.primary) {
                                 router.tradePreset = (held, true)
                                 router.tab = .trade
                             }
                         }
                         if let tradable {
-                            PrimaryButton(title: "Comprar \(coin.symbol.uppercased())") {
+                            PrimaryButton(title: String(localized: "Comprar \(coin.symbol.uppercased())")) {
                                 router.tradePreset = (tradable, false)
                                 router.tab = .trade
                             }

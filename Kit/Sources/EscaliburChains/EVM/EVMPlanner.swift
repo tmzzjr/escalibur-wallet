@@ -61,12 +61,12 @@ public enum EVMPlanner {
 
         let amountText = EVMText.amount(amount, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol)
         let review = PlanReview(
-            kind: .send, title: "Enviar \(amountText)",
+            kind: .send, title: kitText("Enviar \(amountText)"),
             lines: [
-                .init("Rede", chain.name),
-                .init("Para", recipient.checksummed, verbatim: true),
-                .init("Valor", amountText),
-            ] + feeLines(chain: chain, quote: quote, count: 1) + [.init("Nonce", "\(nonce)")],
+                .init(kitText("Rede"), chain.name),
+                .init(kitText("Para"), recipient.checksummed, verbatim: true, role: .recipient),
+                .init(kitText("Valor"), amountText),
+            ] + feeLines(chain: chain, quote: quote, count: 1) + [.init(kitText("Nonce"), "\(nonce)")],
             warnings: warnings, transactionCount: 1, recipient: recipient.checksummed,
             outgoing: .native(chain, transaction.value)
         )
@@ -123,13 +123,13 @@ public enum EVMPlanner {
 
         let amountText = EVMText.amount(amount, decimals: Int(token.decimals), symbol: token.symbol)
         let review = PlanReview(
-            kind: .send, title: "Enviar \(amountText)",
+            kind: .send, title: kitText("Enviar \(amountText)"),
             lines: [
-                .init("Rede", chain.name),
-                .init("Para", recipient.checksummed, verbatim: true),
-                .init("Valor", amountText),
-                .init("Contrato do token", token.contract.checksummed, verbatim: true),
-            ] + feeLines(chain: chain, quote: quote, count: 1) + [.init("Nonce", "\(nonce)")],
+                .init(kitText("Rede"), chain.name),
+                .init(kitText("Para"), recipient.checksummed, verbatim: true, role: .recipient),
+                .init(kitText("Valor"), amountText),
+                .init(kitText("Contrato do token"), token.contract.checksummed, verbatim: true, role: .assetReference),
+            ] + feeLines(chain: chain, quote: quote, count: 1) + [.init(kitText("Nonce"), "\(nonce)")],
             warnings: warnings, transactionCount: 1, recipient: recipient.checksummed,
             outgoing: .token(chain, contract: token.contract.checksummed, sent.tokenAmount ?? BigUInt())
         )
@@ -188,23 +188,23 @@ public enum EVMPlanner {
         switch amount {
         case .exact(let value):
             valueText = EVMText.amount(value, decimals: Int(token.decimals), symbol: token.symbol)
-            title = "Autorizar \(valueText)"
+            title = kitText("Autorizar \(valueText)")
         case .unlimited:
-            valueText = "Sem limite"
-            title = "Autorizar \(token.symbol) sem limite"
+            valueText = kitText("Sem limite")
+            title = kitText("Autorizar \(token.symbol) sem limite")
             warnings.append(.unlimitedApproval)
         }
         var lines: [PlanReview.Line] = [
-            .init("Rede", chain.name),
-            .init("Autorizado a gastar", spender.checksummed, verbatim: true),
-            .init("Valor autorizado", valueText),
-            .init("Contrato do token", token.contract.checksummed, verbatim: true),
+            .init(kitText("Rede"), chain.name),
+            .init(kitText("Autorizado a gastar"), spender.checksummed, verbatim: true),
+            .init(kitText("Valor autorizado"), valueText),
+            .init(kitText("Contrato do token"), token.contract.checksummed, verbatim: true, role: .assetReference),
         ]
         if resetFirst {
-            lines.append(.init("Etapas", "Zerar a autorização atual e aprovar o novo valor"))
+            lines.append(.init(kitText("Etapas"), kitText("Zerar a autorização atual e aprovar o novo valor")))
         }
         lines += feeLines(chain: chain, quote: quote, count: values.count)
-        lines.append(.init("Nonce", resetFirst ? "\(nonce) e \(nonce + 1)" : "\(nonce)"))
+        lines.append(.init(kitText("Nonce"), resetFirst ? "\(nonce) e \(nonce + 1)" : "\(nonce)"))
         let review = PlanReview(kind: .approve, title: title, lines: lines, warnings: warnings, transactionCount: transactions.count)
         return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: transactions, createdAt: now)
     }
@@ -234,12 +234,12 @@ public enum EVMPlanner {
         try confirm(transaction, decodesTo: .tokenApproval(token: token.contract, spender: spender, amount: 0), policy: EVMCallPolicy())
 
         let review = PlanReview(
-            kind: .revoke, title: "Revogar autorização de \(token.symbol)",
+            kind: .revoke, title: kitText("Revogar autorização de \(token.symbol)"),
             lines: [
-                .init("Rede", chain.name),
-                .init("Autorizado a gastar", spender.checksummed, verbatim: true),
-                .init("Contrato do token", token.contract.checksummed, verbatim: true),
-            ] + feeLines(chain: chain, quote: quote, count: 1) + [.init("Nonce", "\(nonce)")],
+                .init(kitText("Rede"), chain.name),
+                .init(kitText("Autorizado a gastar"), spender.checksummed, verbatim: true),
+                .init(kitText("Contrato do token"), token.contract.checksummed, verbatim: true, role: .assetReference),
+            ] + feeLines(chain: chain, quote: quote, count: 1) + [.init(kitText("Nonce"), "\(nonce)")],
             transactionCount: 1
         )
         return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: [transaction], createdAt: now)
@@ -286,11 +286,11 @@ public enum EVMPlanner {
     static func feeLines(chain: Chain, quote: EVMFeeQuote, count: Int) -> [PlanReview.Line] {
         let factor = BigUInt(count)
         var lines: [PlanReview.Line] = [
-            .init("Taxa estimada", EVMText.amount(quote.expectedCost * factor, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol)),
-            .init("Taxa máxima", EVMText.amount(quote.maxCost * factor, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol)),
+            .init(kitText("Taxa estimada"), EVMText.amount(quote.expectedCost * factor, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol)),
+            .init(kitText("Taxa máxima"), EVMText.amount(quote.maxCost * factor, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol)),
         ]
         if !quote.l1DataFee.isZero {
-            lines.append(.init("Parte da taxa paga à L1", EVMText.amount(quote.l1DataFee * factor, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol)))
+            lines.append(.init(kitText("Parte da taxa paga à L1"), EVMText.amount(quote.l1DataFee * factor, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol)))
         }
         return lines
     }
@@ -310,12 +310,8 @@ enum EVMText {
         let integer = Array(padded.prefix(padded.count - decimals))
         var fraction = Array(padded.suffix(decimals))
         while fraction.last == "0" { fraction.removeLast() }
-        var grouped = [Character]()
-        for (index, digit) in integer.enumerated() {
-            if index > 0, (integer.count - index) % 3 == 0 { grouped.append(".") }
-            grouped.append(digit)
-        }
-        return fraction.isEmpty ? String(grouped) : String(grouped) + "," + String(fraction)
+        let grouped = NumberStyle.current.group(String(integer))
+        return NumberStyle.current.decimal(grouped, String(fraction))
     }
 }
 

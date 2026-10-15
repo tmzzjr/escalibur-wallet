@@ -98,7 +98,7 @@ struct CardanoPlannerTests {
         #expect(review.title == "Enviar 2 ADA")
         #expect(review.recipient == Self.destination)
         #expect(review.recipientTag == nil)
-        #expect(review.lines.first == PlanReview.Line("Para", Self.destination, verbatim: true))
+        #expect(review.lines.first == PlanReview.Line("Para", Self.destination, verbatim: true, role: .recipient))
         #expect(review.lines.contains { $0.label == "Troco" })
         #expect(review.lines.contains { $0.label == "Rede" && $0.value == "Cardano" })
         try PlanIntentCheck.send(review, asset: .native(.cardano), amount: 2_000_000, ceiling: 10_000_000, chain: .cardano)

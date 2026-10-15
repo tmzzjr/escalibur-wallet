@@ -32,13 +32,13 @@ struct StellarSendEngine: SendEngine {
                 let requiresMemo = state.memoRequired && parsed.tag == nil
                 return DestinationInfo(
                     exists: true, requiresTag: requiresMemo,
-                    note: requiresMemo ? "Esta conta exige memo (SEP-29). Sem ele o depósito se perde." : nil
+                    note: requiresMemo ? kitText("Esta conta exige memo (SEP-29). Sem ele o depósito se perde.") : nil
                 )
             }
             let minimum = try StellarEngineSupport.activationMinimum(try await reader.networkState())
             return DestinationInfo(
                 exists: false, activationMinimum: minimum,
-                note: "Esta conta ainda não existe na Stellar. O primeiro envio cria a conta, só pode ser em XLM e precisa ser de pelo menos \(StellarEngineSupport.xlm(minimum))."
+                note: kitText("Esta conta ainda não existe na Stellar. O primeiro envio cria a conta, só pode ser em XLM e precisa ser de pelo menos \(StellarEngineSupport.xlm(minimum)).")
             )
         } catch {
             throw StellarEngineSupport.translate(error)
@@ -67,16 +67,16 @@ struct StellarSendEngine: SendEngine {
                 let locked = account.balance.subtractingReportingUnderflow(free) ?? BigUInt()
                 return Spendable(
                     amount: free.subtractingReportingUnderflow(fee) ?? BigUInt(),
-                    reserveNote: "\(StellarEngineSupport.xlm(locked)) ficam reservados pela rede enquanto a conta, as linhas de confiança e as ofertas dela existirem.",
-                    feeNote: "Já descontada a taxa máxima da rede, de \(StellarEngineSupport.xlm(fee))."
+                    reserveNote: kitText("\(StellarEngineSupport.xlm(locked)) ficam reservados pela rede enquanto a conta, as linhas de confiança e as ofertas dela existirem."),
+                    feeNote: kitText("Já descontada a taxa máxima da rede, de \(StellarEngineSupport.xlm(fee)).")
                 )
             }
             guard let line = account.trustline(for: asset) else {
-                return Spendable(amount: BigUInt(), reserveNote: "A conta ainda não aceita \(asset.code).")
+                return Spendable(amount: BigUInt(), reserveNote: kitText("A conta ainda não aceita \(asset.code)."))
             }
             return Spendable(
                 amount: line.available,
-                feeNote: free >= fee ? "A taxa da rede sai em XLM." : "Falta XLM livre para pagar a taxa da rede."
+                feeNote: free >= fee ? kitText("A taxa da rede sai em XLM.") : kitText("Falta XLM livre para pagar a taxa da rede.")
             )
         } catch {
             throw StellarEngineSupport.translate(error)

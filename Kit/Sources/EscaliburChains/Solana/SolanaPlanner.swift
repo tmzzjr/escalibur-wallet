@@ -276,18 +276,18 @@ public enum SolanaPlanner {
         let feePercent = percent(fee, of: lamports)
         if feePercent > highFeePercent { warnings.append(.highFee(percentOfAmount: feePercent)) }
         var lines = [
-            PlanReview.Line("Para", to.base58, verbatim: true),
-            PlanReview.Line("Valor", SolanaAmountText.sol(lamports)),
-            PlanReview.Line("Taxa da rede", SolanaAmountText.sol(fee)),
+            PlanReview.Line(kitText("Para"), to.base58, verbatim: true, role: .recipient),
+            PlanReview.Line(kitText("Valor"), SolanaAmountText.sol(lamports)),
+            PlanReview.Line(kitText("Taxa da rede"), SolanaAmountText.sol(fee)),
         ]
         let priority = fee - BigUInt(SolanaLimits.lamportsPerSignature)
-        if !priority.isZero { lines.append(PlanReview.Line("Inclui prioridade", SolanaAmountText.sol(priority))) }
-        lines.append(PlanReview.Line("Total", SolanaAmountText.sol(lamports + fee)))
-        lines.append(PlanReview.Line("Saldo depois", SolanaAmountText.sol(network.balance - lamports - fee)))
+        if !priority.isZero { lines.append(PlanReview.Line(kitText("Inclui prioridade"), SolanaAmountText.sol(priority))) }
+        lines.append(PlanReview.Line(kitText("Total"), SolanaAmountText.sol(lamports + fee)))
+        lines.append(PlanReview.Line(kitText("Saldo depois"), SolanaAmountText.sol(network.balance - lamports - fee)))
 
         // O que sai e o valor da instrucao de transferencia montada.
         let review = PlanReview(
-            kind: .send, title: "Enviar \(SolanaAmountText.sol(lamports))", lines: lines, warnings: warnings, recipient: to.base58,
+            kind: .send, title: kitText("Enviar \(SolanaAmountText.sol(lamports))"), lines: lines, warnings: warnings, recipient: to.base58,
             outgoing: .native(.solana, BigUInt(amount))
         )
         return SigningPlan(walletID: walletID, chain: .solana, review: review, transactions: [transaction], createdAt: now)
@@ -413,33 +413,33 @@ public enum SolanaPlanner {
         )
 
         let decimals = Int(token.decimals)
-        var lines = [PlanReview.Line("Para", recipientWallet.base58, verbatim: true)]
+        var lines = [PlanReview.Line(kitText("Para"), recipientWallet.base58, verbatim: true, role: .recipient)]
         if case .tokenAccount = destination {
-            lines.append(PlanReview.Line("Conta de token digitada", destinationAccount.base58, verbatim: true))
+            lines.append(PlanReview.Line(kitText("Conta de token digitada"), destinationAccount.base58, verbatim: true, role: .assetReference))
         } else {
-            lines.append(PlanReview.Line("Conta de token do destino", destinationAccount.base58, verbatim: true))
+            lines.append(PlanReview.Line(kitText("Conta de token do destino"), destinationAccount.base58, verbatim: true, role: .assetReference))
         }
-        lines.append(PlanReview.Line("Token", token.symbol))
-        lines.append(PlanReview.Line("Mint", token.mint.base58, verbatim: true))
-        lines.append(PlanReview.Line("Valor", SolanaAmountText.format(amount, decimals: decimals, symbol: token.symbol)))
+        lines.append(PlanReview.Line(kitText("Token"), token.symbol))
+        lines.append(PlanReview.Line(kitText("Mint"), token.mint.base58, verbatim: true, role: .assetReference))
+        lines.append(PlanReview.Line(kitText("Valor"), SolanaAmountText.format(amount, decimals: decimals, symbol: token.symbol)))
         if let transferFee,
            case let withheld = issuerFee(amount: amount, basisPoints: transferFee.basisPoints, maximum: transferFee.maximumFee),
            !withheld.isZero {
-            lines.append(PlanReview.Line("Taxa do emissor do token", SolanaAmountText.format(withheld, decimals: decimals, symbol: token.symbol)))
-            lines.append(PlanReview.Line("O destino recebe", SolanaAmountText.format(amount - withheld, decimals: decimals, symbol: token.symbol)))
+            lines.append(PlanReview.Line(kitText("Taxa do emissor do token"), SolanaAmountText.format(withheld, decimals: decimals, symbol: token.symbol)))
+            lines.append(PlanReview.Line(kitText("O destino recebe"), SolanaAmountText.format(amount - withheld, decimals: decimals, symbol: token.symbol)))
             warnings.append(.highFee(percentOfAmount: percent(withheld, of: amount)))
         }
         if createsAccount {
-            lines.append(PlanReview.Line("Criação da conta de token do destino", SolanaAmountText.sol(rent)))
+            lines.append(PlanReview.Line(kitText("Criação da conta de token do destino"), SolanaAmountText.sol(rent)))
             warnings.append(.activatesAccount(minimum: SolanaAmountText.sol(rent)))
         }
-        lines.append(PlanReview.Line("Taxa da rede", SolanaAmountText.sol(fee)))
+        lines.append(PlanReview.Line(kitText("Taxa da rede"), SolanaAmountText.sol(fee)))
         let priority = fee - BigUInt(SolanaLimits.lamportsPerSignature)
-        if !priority.isZero { lines.append(PlanReview.Line("Inclui prioridade", SolanaAmountText.sol(priority))) }
-        lines.append(PlanReview.Line("Saldo de SOL depois", SolanaAmountText.sol(network.balance - fee - rent)))
+        if !priority.isZero { lines.append(PlanReview.Line(kitText("Inclui prioridade"), SolanaAmountText.sol(priority))) }
+        lines.append(PlanReview.Line(kitText("Saldo de SOL depois"), SolanaAmountText.sol(network.balance - fee - rent)))
         if !token.isVerified { warnings.append(.unverifiedToken(symbol: token.symbol)) }
 
-        let title = "Enviar \(SolanaAmountText.format(amount, decimals: decimals, symbol: token.symbol))"
+        let title = kitText("Enviar \(SolanaAmountText.format(amount, decimals: decimals, symbol: token.symbol))")
         // O que sai e o valor do TransferChecked montado, no mint conferido.
         let review = PlanReview(
             kind: .send, title: title, lines: lines, warnings: warnings, recipient: recipientWallet.base58,
@@ -569,16 +569,11 @@ public enum SolanaAmountText {
         let integer = grouped(String(padded.dropLast(decimals)))
         var fraction = String(padded.suffix(decimals))
         while fraction.hasSuffix("0") { fraction.removeLast() }
-        return fraction.isEmpty ? "\(integer) \(symbol)" : "\(integer),\(fraction) \(symbol)"
+        return NumberStyle.current.decimal(integer, fraction) + " " + symbol
     }
 
     /// Milhar com ponto, como no pt_BR: "1.234.567".
     static func grouped(_ digits: String) -> String {
-        var out = ""
-        for (index, c) in digits.enumerated() {
-            if index > 0, (digits.count - index) % 3 == 0 { out.append(".") }
-            out.append(c)
-        }
-        return out
+        NumberStyle.current.group(digits)
     }
 }

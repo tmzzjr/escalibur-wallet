@@ -91,18 +91,18 @@ struct LimitRenewalSheet: View {
 
     static func validity(_ seconds: TimeInterval) -> String {
         switch seconds {
-        case 86_400: return "1 dia"
-        case 604_800: return "7 dias"
-        case 2_592_000: return "30 dias"
+        case 86_400: return String(localized: "1 dia")
+        case 604_800: return String(localized: "7 dias")
+        case 2_592_000: return String(localized: "30 dias")
         default:
             let days = max(1, Int((seconds / 86_400).rounded()))
-            return days == 1 ? "1 dia" : "\(days) dias"
+            return days == 1 ? String(localized: "1 dia") : "\(days) dias"
         }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Uma ordem limite venceu") { onLater() }
+            SheetHeader(title: String(localized: "Uma ordem limite venceu")) { onLater() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     HStack(spacing: Space.sm) {
@@ -140,8 +140,8 @@ struct LimitRenewalSheet: View {
                 .padding(.top, Space.md)
             }
             VStack(spacing: Space.xs) {
-                PrimaryButton(title: "Refazer a ordem") { onRenew() }
-                TertiaryButton(title: "Não refazer") { onDrop() }
+                PrimaryButton(title: String(localized: "Refazer a ordem")) { onRenew() }
+                TertiaryButton(title: String(localized: "Não refazer")) { onDrop() }
                 if more > 0 {
                     Text(more == 1 ? "Mais 1 ordem vencida depois desta" : "Mais \(more) ordens vencidas depois desta")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)

@@ -189,50 +189,50 @@ public enum TronPlanError: Error, Equatable, Sendable {
     public var message: String {
         switch self {
         case .invalidOwnerKey, .ownerKeyMismatch:
-            return "A chave desta conta não confere. Nada foi assinado."
+            return kitText("A chave desta conta não confere. Nada foi assinado.")
         case .invalidBlockReference:
-            return "O bloco recebido da rede é inconsistente. Tente de novo em instantes."
+            return kitText("O bloco recebido da rede é inconsistente. Tente de novo em instantes.")
         case .parameterOutOfRange:
-            return "Os parâmetros de taxa recebidos da rede estão fora do normal. Tente de novo em instantes."
+            return kitText("Os parâmetros de taxa recebidos da rede estão fora do normal. Tente de novo em instantes.")
         case .controlForOtherAccount:
-            return "A verificação de permissões não corresponde a esta conta. Tente de novo."
+            return kitText("A verificação de permissões não corresponde a esta conta. Tente de novo.")
         case .accountCompromised:
-            return "Esta conta Tron é controlada por outra chave. Quem tem a frase não consegue mover o saldo, e qualquer TRX enviado para cá pode ser levado. É o golpe da frase com USDT: não envie nada para esta conta."
+            return kitText("Esta conta Tron é controlada por outra chave. Quem tem a frase não consegue mover o saldo, e qualquer TRX enviado para cá pode ser levado. É o golpe da frase com USDT: não envie nada para esta conta.")
         case .ownerNotActivated:
-            return "Esta conta ainda não existe na rede Tron. Ela passa a existir quando recebe TRX."
+            return kitText("Esta conta ainda não existe na rede Tron. Ela passa a existir quando recebe TRX.")
         case .invalidDestination(let problem):
             if case .otherNetwork(let chain) = problem {
-                return "Este endereço é da rede \(chain.name). Para Tron, use um endereço que começa com T."
+                return kitText("Este endereço é da rede \(chain.name). Para Tron, use um endereço que começa com T.")
             }
-            return "Endereço Tron inválido. Confira se ele começa com T e tem 34 caracteres."
+            return kitText("Endereço Tron inválido. Confira se ele começa com T e tem 34 caracteres.")
         case .destinationIsOwner:
-            return "O destino é a própria conta."
+            return kitText("O destino é a própria conta.")
         case .destinationIsTokenContract:
-            return "O destino é o contrato do USDT. O que é enviado para ele fica preso para sempre."
+            return kitText("O destino é o contrato do USDT. O que é enviado para ele fica preso para sempre.")
         case .destinationIsBurnAddress:
-            return "O destino é o endereço de queima da Tron. O que é enviado para ele se perde."
+            return kitText("O destino é o endereço de queima da Tron. O que é enviado para ele se perde.")
         case .destinationIsContract:
-            return "O destino é um contrato. A rede Tron não aceita TRX enviado direto para contrato."
+            return kitText("O destino é um contrato. A rede Tron não aceita TRX enviado direto para contrato.")
         case .zeroAmount:
-            return "Informe um valor maior que zero."
+            return kitText("Informe um valor maior que zero.")
         case .amountTooLarge:
-            return "Valor acima do que a rede aceita."
+            return kitText("Valor acima do que a rede aceita.")
         case .memoTooLong(let max):
-            return "O memo passa de \(max) bytes."
+            return kitText("O memo passa de \(max) bytes.")
         case .insufficientTRX(let needed, let available):
-            return "Saldo insuficiente. Este envio precisa de \(TronFormat.trx(needed)) com as taxas, e a conta tem \(TronFormat.trx(available))."
+            return kitText("Saldo insuficiente. Este envio precisa de \(TronFormat.trx(needed)) com as taxas, e a conta tem \(TronFormat.trx(available)).")
         case .insufficientUSDT(let needed, let available):
-            return "Saldo de USDT insuficiente: \(TronFormat.usdt(needed)) pedidos, \(TronFormat.usdt(available)) disponíveis."
+            return kitText("Saldo de USDT insuficiente: \(TronFormat.usdt(needed)) pedidos, \(TronFormat.usdt(available)) disponíveis.")
         case .noTRXForFees(let needed):
-            return "Para enviar USDT na Tron é preciso ter TRX: cada envio queima TRX para pagar a energia da rede (cerca de \(TronFormat.trx(needed)) neste). A Escalibur não paga essa taxa por você. Envie TRX para esta conta e tente de novo."
+            return kitText("Para enviar USDT na Tron é preciso ter TRX: cada envio queima TRX para pagar a energia da rede (cerca de \(TronFormat.trx(needed)) neste). A Escalibur não paga essa taxa por você. Envie TRX para esta conta e tente de novo.")
         case .insufficientTRXForFees(let needed, let available):
-            return "TRX insuficiente para as taxas da rede: este envio queima cerca de \(TronFormat.trx(needed)), e a conta tem \(TronFormat.trx(available)). A Escalibur não paga essa taxa por você."
+            return kitText("TRX insuficiente para as taxas da rede: este envio queima cerca de \(TronFormat.trx(needed)), e a conta tem \(TronFormat.trx(available)). A Escalibur não paga essa taxa por você.")
         case .missingEnergyEstimate, .energyEstimateOutOfRange:
-            return "Não foi possível estimar a energia deste envio. Tente de novo em instantes."
+            return kitText("Não foi possível estimar a energia deste envio. Tente de novo em instantes.")
         case .feeLimitAboveCeiling(let limit):
-            return "A taxa máxima calculada (\(TronFormat.trx(limit))) passa do teto de segurança da carteira. Nada foi assinado."
+            return kitText("A taxa máxima calculada (\(TronFormat.trx(limit))) passa do teto de segurança da carteira. Nada foi assinado.")
         case .deviceClockSkew:
-            return "O relógio do aparelho está diferente do horário da rede Tron. Ative data e hora automáticas e tente de novo. Nada foi assinado."
+            return kitText("O relógio do aparelho está diferente do horário da rede Tron. Ative data e hora automáticas e tente de novo. Nada foi assinado.")
         }
     }
 }
@@ -304,22 +304,22 @@ public enum TronPlanner {
         }
 
         var lines: [PlanReview.Line] = [
-            .init("Para", to.base58, verbatim: true),
-            .init("Rede", "Tron"),
-            .init("Valor", TronFormat.trx(amount)),
+            .init(kitText("Para"), to.base58, verbatim: true, role: .recipient),
+            .init(kitText("Rede"), "Tron"),
+            .init(kitText("Valor"), TronFormat.trx(amount)),
         ]
         if !memoBytes.isEmpty {
-            lines.append(.init("Memo", memo ?? "", verbatim: true))
-            lines.append(.init("Taxa do memo", TronFormat.trx(fees.memoFee)))
+            lines.append(.init(kitText("Memo"), memo ?? "", verbatim: true))
+            lines.append(.init(kitText("Taxa do memo"), TronFormat.trx(fees.memoFee)))
         }
         var warnings: [PlanReview.Warning] = []
         if !state.destinationActivated {
-            lines.append(.init("Ativação da conta de destino", TronFormat.trx(activationFee)))
+            lines.append(.init(kitText("Ativação da conta de destino"), TronFormat.trx(activationFee)))
             warnings.append(.activatesAccount(minimum: TronFormat.trx(activationFee)))
         }
         lines.append(bandwidthLine(fees: fees))
-        lines.append(.init("Custo estimado", "\(TronFormat.trx(fees.totalBurn)) queimados"))
-        lines.append(.init("Sai da conta", TronFormat.trx(needed)))
+        lines.append(.init(kitText("Custo estimado"), kitText("\(TronFormat.trx(fees.totalBurn)) queimados")))
+        lines.append(.init(kitText("Sai da conta"), TronFormat.trx(needed)))
         if !fees.totalBurn.isZero {
             let percent = TronFormat.ratio(fees.totalBurn * 100, amount)
             if percent > 10 { warnings.append(.highFee(percentOfAmount: percent)) }
@@ -328,7 +328,7 @@ public enum TronPlanner {
         // O que sai e o `amount` do TransferContract montado.
         guard case .transfer(_, _, let sent) = raw.contract else { throw TronPlanError.zeroAmount }
         let review = PlanReview(
-            kind: .send, title: "Enviar \(TronFormat.trx(amount))", lines: lines, warnings: warnings,
+            kind: .send, title: kitText("Enviar \(TronFormat.trx(amount))"), lines: lines, warnings: warnings,
             recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo,
             outgoing: .native(.tron, sent)
         )
@@ -390,40 +390,40 @@ public enum TronPlanner {
         }
 
         var lines: [PlanReview.Line] = [
-            .init("Para", to.base58, verbatim: true),
-            .init("Rede", "Tron (TRC-20)"),
-            .init("Contrato do USDT", TRC20.usdt.contract.base58, verbatim: true),
-            .init("Valor", TronFormat.usdt(amount)),
+            .init(kitText("Para"), to.base58, verbatim: true, role: .recipient),
+            .init(kitText("Rede"), "Tron (TRC-20)"),
+            .init(kitText("Contrato do USDT"), TRC20.usdt.contract.base58, verbatim: true, role: .assetReference),
+            .init(kitText("Valor"), TronFormat.usdt(amount)),
         ]
         if !memoBytes.isEmpty {
-            lines.append(.init("Memo", memo ?? "", verbatim: true))
-            lines.append(.init("Taxa do memo", TronFormat.trx(fees.memoFee)))
+            lines.append(.init(kitText("Memo"), memo ?? "", verbatim: true))
+            lines.append(.init(kitText("Taxa do memo"), TronFormat.trx(fees.memoFee)))
         }
         var warnings: [PlanReview.Warning] = []
         if state.destinationHoldsUSDT == false {
             lines.append(.init(
-                "Destino sem USDT",
-                "A primeira transferência para este endereço grava um saldo novo no contrato e gasta cerca do dobro de energia."
+                kitText("Destino sem USDT"),
+                kitText("A primeira transferência para este endereço grava um saldo novo no contrato e gasta cerca do dobro de energia.")
             ))
         }
         if !state.destinationActivated {
             lines.append(.init(
-                "Destino sem conta ativa",
-                "O USDT chega, mas para movimentá-lo o dono do endereço vai precisar de TRX."
+                kitText("Destino sem conta ativa"),
+                kitText("O USDT chega, mas para movimentá-lo o dono do endereço vai precisar de TRX.")
             ))
         }
         if state.destinationIsContract { warnings.append(.destinationIsContract) }
         lines.append(energyLine(fees: fees))
         lines.append(bandwidthLine(fees: fees))
-        lines.append(.init("Custo estimado", "\(TronFormat.trx(fees.totalBurn)) queimados"))
-        lines.append(.init("Taxa máxima (fee_limit)", TronFormat.trx(feeLimit)))
+        lines.append(.init(kitText("Custo estimado"), kitText("\(TronFormat.trx(fees.totalBurn)) queimados")))
+        lines.append(.init(kitText("Taxa máxima (fee_limit)"), TronFormat.trx(feeLimit)))
 
         // O que sai e o valor da calldata `transfer` montada, no contrato compilado.
         guard case .triggerSmartContract(_, let contract, _, let data) = raw.contract, contract == TRC20.usdt.contract,
               let decoded = TRC20.decodeTransfer(data)
         else { throw TronPlanError.zeroAmount }
         let review = PlanReview(
-            kind: .send, title: "Enviar \(TronFormat.usdt(amount))", lines: lines, warnings: warnings,
+            kind: .send, title: kitText("Enviar \(TronFormat.usdt(amount))"), lines: lines, warnings: warnings,
             recipient: to.base58, recipientTag: memoBytes.isEmpty ? nil : memo,
             outgoing: .token(.tron, contract: TRC20.usdt.contract.base58, decoded.amount)
         )
@@ -487,22 +487,22 @@ public enum TronPlanner {
     }
 
     private static func bandwidthLine(fees: TronFeeEstimate) -> PlanReview.Line {
-        let usage = "\(TronFormat.integer(fees.bandwidthBytes)) bytes"
+        let usage = kitText("\(TronFormat.integer(fees.bandwidthBytes)) bytes")
         if fees.activationFee > 0 {
-            return .init("Banda", "\(usage), incluída na ativação")
+            return .init(kitText("Banda"), kitText("\(usage), incluída na ativação"))
         }
         if fees.bandwidthBurn.isZero {
-            return .init("Banda", "\(usage), coberta pela cota da conta")
+            return .init(kitText("Banda"), kitText("\(usage), coberta pela cota da conta"))
         }
-        return .init("Banda", "\(usage), \(TronFormat.trx(fees.bandwidthBurn)) queimados")
+        return .init(kitText("Banda"), kitText("\(usage), \(TronFormat.trx(fees.bandwidthBurn)) queimados"))
     }
 
     private static func energyLine(fees: TronFeeEstimate) -> PlanReview.Line {
-        let usage = "\(TronFormat.integer(fees.energy)) de energia"
+        let usage = kitText("\(TronFormat.integer(fees.energy)) de energia")
         if fees.energyBurn.isZero {
-            return .init("Energia", "\(usage), coberta pelo stake")
+            return .init(kitText("Energia"), kitText("\(usage), coberta pelo stake"))
         }
-        return .init("Energia", "\(usage), \(TronFormat.trx(fees.energyBurn)) queimados")
+        return .init(kitText("Energia"), kitText("\(usage), \(TronFormat.trx(fees.energyBurn)) queimados"))
     }
 }
 
@@ -523,7 +523,7 @@ enum TronFormat {
         }
         while fraction.hasSuffix("0") { fraction.removeLast() }
         let grouped = group(whole)
-        return fraction.isEmpty ? grouped : "\(grouped),\(fraction)"
+        return NumberStyle.current.decimal(grouped, fraction)
     }
 
     static func trx(_ sun: BigUInt) -> String { "\(units(sun, decimals: 6)) TRX" }
@@ -539,11 +539,6 @@ enum TronFormat {
     }
 
     private static func group(_ digits: String) -> String {
-        var out = ""
-        for (index, c) in digits.reversed().enumerated() {
-            if index > 0, index % 3 == 0 { out.append(".") }
-            out.append(c)
-        }
-        return String(out.reversed())
+        NumberStyle.current.group(digits)
     }
 }

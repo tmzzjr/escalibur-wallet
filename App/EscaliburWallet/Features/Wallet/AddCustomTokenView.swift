@@ -83,9 +83,9 @@ struct AddCustomTokenView: View {
 
             if let chain {
                 if CustomToken.usesIssuer(chain) {
-                    field(title: "Código da moeda", id: "campo-codigo", text: $code, prompt: chain.family == .xrpl ? "USD, SOLO ou 40 caracteres hex" : "AQUA, USDC...")
+                    field(title: String(localized: "Código da moeda"), id: "campo-codigo", text: $code, prompt: chain.family == .xrpl ? String(localized: "USD, SOLO ou 40 caracteres hex") : "AQUA, USDC...")
                         .padding(.top, Space.lg)
-                    field(title: "Emissor", id: "campo-emissor", text: $issuer, prompt: chain.family == .xrpl ? "Endereço r..." : "Endereço G...")
+                    field(title: String(localized: "Emissor"), id: "campo-emissor", text: $issuer, prompt: chain.family == .xrpl ? String(localized: "Endereço r...") : String(localized: "Endereço G..."))
                         .padding(.top, Space.md)
                 } else {
                     field(title: CustomToken.addressLabel(chain), id: "campo-endereco", text: $address, prompt: prompt(chain))
@@ -100,7 +100,7 @@ struct AddCustomTokenView: View {
                 Banner(kind: .failure, title: error).padding(.top, Space.md)
             }
 
-            PrimaryButton(title: "Ler na rede", enabled: canRead, loading: reading) { Task { await read() } }
+            PrimaryButton(title: String(localized: "Ler na rede"), enabled: canRead, loading: reading) { Task { await read() } }
                 .padding(.top, Space.lg)
                 .accessibilityIdentifier("ler-na-rede")
         }
@@ -124,9 +124,9 @@ struct AddCustomTokenView: View {
     private func prompt(_ chain: Chain) -> String {
         switch chain.family {
         case .evm: return "0x..."
-        case .solana: return "Endereço do mint"
+        case .solana: return String(localized: "Endereço do mint")
         case .tron: return "T..."
-        case .ton: return "EQ... ou UQ..."
+        case .ton: return String(localized: "EQ... ou UQ...")
         default: return ""
         }
     }
@@ -170,11 +170,11 @@ struct AddCustomTokenView: View {
             error = Self.message(problem, chain: chain)
             return
         } catch {
-            self.error = "Endereço inválido para a rede \(chain.name)."
+            self.error = String(localized: "Endereço inválido para a rede \(chain.name).")
             return
         }
         if session.metadata.customTokens.contains(where: { $0.chainID == chain.id && $0.kind == kind }) {
-            error = "Esta moeda já está na carteira."
+            error = String(localized: "Esta moeda já está na carteira.")
             return
         }
         reading = true
@@ -182,18 +182,18 @@ struct AddCustomTokenView: View {
         do {
             facts = try await TokenInspector.shared.inspect(chain: chain, kind: kind)
         } catch {
-            self.error = (error as? LocalizedError)?.errorDescription ?? "Não foi possível ler a moeda na rede agora."
+            self.error = (error as? LocalizedError)?.errorDescription ?? String(localized: "Não foi possível ler a moeda na rede agora.")
         }
     }
 
     static func message(_ problem: CustomToken.Problem, chain: Chain) -> String {
         switch problem {
-        case .unsupportedChain: return "A rede \(chain.name) ainda não aceita moeda custom."
-        case .empty: return "Cole o endereço do token."
-        case .invalidAddress: return "Este não é um endereço válido na rede \(chain.name). Confira se copiou inteiro e se a rede é essa."
-        case .invalidCode: return "Este código de moeda não vale na rede \(chain.name)."
-        case .alreadyListed(let listed): return "\(listed.symbol) com este contrato já está na lista verificada. Ele aparece sozinho na Carteira quando houver saldo."
-        case .notAToken: return "Este endereço é de um programa da rede, não de um token."
+        case .unsupportedChain: return String(localized: "A rede \(chain.name) ainda não aceita moeda custom.")
+        case .empty: return String(localized: "Cole o endereço do token.")
+        case .invalidAddress: return String(localized: "Este não é um endereço válido na rede \(chain.name). Confira se copiou inteiro e se a rede é essa.")
+        case .invalidCode: return String(localized: "Este código de moeda não vale na rede \(chain.name).")
+        case .alreadyListed(let listed): return String(localized: "\(listed.symbol) com este contrato já está na lista verificada. Ele aparece sozinho na Carteira quando houver saldo.")
+        case .notAToken: return String(localized: "Este endereço é de um programa da rede, não de um token.")
         }
     }
 
@@ -216,9 +216,9 @@ struct AddCustomTokenView: View {
             }
 
             VStack(spacing: 0) {
-                infoRow("Rede", asset.chain?.name ?? asset.chainID)
-                infoRow("Casas decimais", "\(asset.decimals)")
-                infoRow("Conferido em", facts.sources.joined(separator: " e "))
+                infoRow(String(localized: "Rede"), asset.chain?.name ?? asset.chainID)
+                infoRow(String(localized: "Casas decimais"), "\(asset.decimals)")
+                infoRow(String(localized: "Conferido em"), facts.sources.joined(separator: " e "))
             }
             .padding(.top, Space.md)
             if let note = facts.decimalsNote {
@@ -232,7 +232,7 @@ struct AddCustomTokenView: View {
 
             ContractPanel(asset: asset).padding(.top, Space.md)
 
-            Banner(kind: .caution, title: "Não verificado pela Escalibur", message: TokenReasonText.anyoneCanCreate)
+            Banner(kind: .caution, title: String(localized: "Não verificado pela Escalibur"), message: TokenReasonText.anyoneCanCreate)
                 .padding(.top, Space.md)
 
             if !facts.reasons.isEmpty {
@@ -254,10 +254,10 @@ struct AddCustomTokenView: View {
                 bullet(reason, icon: "arrow.up.circle", color: Palette.ink).padding(.top, Space.md)
             }
 
-            PrimaryButton(title: "Adicionar à carteira") { save(asset) }
+            PrimaryButton(title: String(localized: "Adicionar à carteira")) { save(asset) }
                 .padding(.top, Space.lg)
                 .accessibilityIdentifier("adicionar-a-carteira")
-            TertiaryButton(title: "Voltar e corrigir") {
+            TertiaryButton(title: String(localized: "Voltar e corrigir")) {
                 self.facts = nil
             }
             .frame(maxWidth: .infinity)
@@ -290,12 +290,12 @@ struct AddCustomTokenView: View {
             try session.persist()
         } catch {
             session.metadata.customAssets = list.filter { $0.id != asset.id }
-            self.error = "Não foi possível salvar agora. Tente de novo."
+            self.error = String(localized: "Não foi possível salvar agora. Tente de novo.")
             self.facts = nil
             return
         }
         portfolio.customChanged(session.selectedWallet, session: session)
-        toasts.show("\(asset.symbol) adicionada. Ela aparece na Carteira, em Receber e em Enviar.")
+        toasts.show(String(localized: "\(asset.symbol) adicionada. Ela aparece na Carteira, em Receber e em Enviar."))
         let wallet = session.selectedWallet
         Task {
             if let chain = asset.chain { await portfolio.refreshChain(chain, wallet: wallet, session: session) }

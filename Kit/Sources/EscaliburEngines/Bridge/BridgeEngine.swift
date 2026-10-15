@@ -238,40 +238,40 @@ enum BridgeEngineMessages {
         if let refusal = error as? BridgeRefusal, let message = text(for: refusal, chain: chain) { return .message(message) }
         if let message = EVMEngineMessages.specific(error, chain: chain) { return .message(message) }
         switch operation {
-        case .quote: return .message("Não foi possível cotar a ponte agora. Tente de novo em instantes.")
-        case .plan: return .message("Não foi possível preparar a ponte agora. Nada foi assinado.")
-        case .submit: return .message("A transmissão não foi concluída. Confira a Atividade antes de tentar de novo.")
+        case .quote: return .message(kitText("Não foi possível cotar a ponte agora. Tente de novo em instantes."))
+        case .plan: return .message(kitText("Não foi possível preparar a ponte agora. Nada foi assinado."))
+        case .submit: return .message(kitText("A transmissão não foi concluída. Confira a Atividade antes de tentar de novo."))
         }
     }
 
     static func text(for refusal: BridgeRefusal, chain: Chain) -> String? {
-        let blocked = "Nada foi assinado."
+        let blocked = kitText("Nada foi assinado.")
         switch refusal {
-        case .sameChain: return "Escolha uma rede de destino diferente da origem."
-        case .unsupportedRoute: return "A ponte ainda não leva esta moeda entre estas redes."
-        case .zeroAmount: return "Digite um valor."
+        case .sameChain: return kitText("Escolha uma rede de destino diferente da origem.")
+        case .unsupportedRoute: return kitText("A ponte ainda não leva esta moeda entre estas redes.")
+        case .zeroAmount: return kitText("Digite um valor.")
         case .aboveBurnLimit(let limit):
-            return "O CCTP da Circle leva até \(EVMEngineText.amount(limit, decimals: 6, symbol: "USDC")) por vez. Faça em partes."
-        case .belowMinimum(let minimum): return "Valor abaixo do mínimo desta rota agora (\(minimum.decimalString) na menor unidade)."
-        case .aboveRouteLimit: return "Valor acima do que esta rota do Across aceita agora. Tente um valor menor ou divida em partes."
-        case .fastUnavailable: return "A transferência rápida da Circle está sem limite agora. Use a padrão."
-        case .feeAboveCap: return "A taxa cotada passou do teto da carteira. \(blocked)"
-        case .feeTooHigh(let percent): return "A taxa da ponte levaria \(String(format: "%.1f", percent).replacingOccurrences(of: ".", with: ","))% do valor. Aumente o valor. \(blocked)"
-        case .quoteMismatch, .quoteExpired: return "A cotação venceu ou não passou na conferência. Cote de novo. \(blocked)"
-        case .ownerMismatch: return "A ponte só leva para a sua própria conta, e o endereço de destino desta carteira é outro. \(blocked)"
-        case .missingTokenState: return "Não foi possível ler o saldo agora. \(blocked)"
-        case .insufficientTokenBalance: return "Saldo insuficiente para este valor."
-        case .contractHasNoCode: return "O contrato da ponte não respondeu como esperado. \(blocked)"
+            return kitText("O CCTP da Circle leva até \(EVMEngineText.amount(limit, decimals: 6, symbol: "USDC")) por vez. Faça em partes.")
+        case .belowMinimum(let minimum): return kitText("Valor abaixo do mínimo desta rota agora (\(minimum.decimalString) na menor unidade).")
+        case .aboveRouteLimit: return kitText("Valor acima do que esta rota do Across aceita agora. Tente um valor menor ou divida em partes.")
+        case .fastUnavailable: return kitText("A transferência rápida da Circle está sem limite agora. Use a padrão.")
+        case .feeAboveCap: return kitText("A taxa cotada passou do teto da carteira. \(blocked)")
+        case .feeTooHigh(let percent): return kitText("A taxa da ponte levaria \(String(format: "%.1f", percent).replacingOccurrences(of: ".", with: NumberStyle.current.decimal))% do valor. Aumente o valor. \(blocked)")
+        case .quoteMismatch, .quoteExpired: return kitText("A cotação venceu ou não passou na conferência. Cote de novo. \(blocked)")
+        case .ownerMismatch: return kitText("A ponte só leva para a sua própria conta, e o endereço de destino desta carteira é outro. \(blocked)")
+        case .missingTokenState: return kitText("Não foi possível ler o saldo agora. \(blocked)")
+        case .insufficientTokenBalance: return kitText("Saldo insuficiente para este valor.")
+        case .contractHasNoCode: return kitText("O contrato da ponte não respondeu como esperado. \(blocked)")
         case .implementationChanged(let what):
-            return "O código do contrato da ponte mudou (\(what)). Por segurança, a ponte fica desligada até a próxima atualização da Escalibur. \(blocked)"
-        case .destinationDoesNotMint: return "A rede de destino não confirmou que cunha este USDC. Ponte bloqueada. \(blocked)"
+            return kitText("O código do contrato da ponte mudou (\(what)). Por segurança, a ponte fica desligada até a próxima atualização da Escalibur. \(blocked)")
+        case .destinationDoesNotMint: return kitText("A rede de destino não confirmou que cunha este USDC. Ponte bloqueada. \(blocked)")
         case .destinationHasCode:
-            return "A sua conta na rede de destino tem código instalado (uma delegação ou contrato). Isso pode ser um varredor posto por quem conhece a sua frase. Ponte bloqueada. \(blocked)"
-        case .destinationBlacklisted: return "O USDC da rede de destino bloqueou esta conta: a cunhagem falharia. \(blocked)"
-        case .simulationUnavailable: return "A simulação de segurança não respondeu em duas fontes agora. \(blocked) Tente de novo em instantes."
+            return kitText("A sua conta na rede de destino tem código instalado (uma delegação ou contrato). Isso pode ser um varredor posto por quem conhece a sua frase. Ponte bloqueada. \(blocked)")
+        case .destinationBlacklisted: return kitText("O USDC da rede de destino bloqueou esta conta: a cunhagem falharia. \(blocked)")
+        case .simulationUnavailable: return kitText("A simulação de segurança não respondeu em duas fontes agora. \(blocked) Tente de novo em instantes.")
         case .simulationShape, .simulationFailed, .simulationUnexpectedTransfer, .simulationUnexpectedApproval, .simulationSpentWrong,
              .simulationEventMissing:
-            return "A simulação mostrou um movimento diferente do que a ponte prometia. Ponte bloqueada. \(blocked)"
+            return kitText("A simulação mostrou um movimento diferente do que a ponte prometia. Ponte bloqueada. \(blocked)")
         case .plan(let error): return EVMEngineMessages.plan(error, chain: chain)
         }
     }

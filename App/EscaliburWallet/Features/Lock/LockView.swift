@@ -18,9 +18,9 @@ struct LockView: View {
 
     var body: some View {
         PINScreen(
-            title: "Digite o seu PIN",
+            title: String(localized: "Digite o seu PIN"),
             subtitle: restartNeedsPIN
-                ? "O iPhone reiniciou. Depois de reiniciar ou de a bateria acabar, o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer."
+                ? String(localized: "O iPhone reiniciou. Depois de reiniciar ou de a bateria acabar, o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer.")
                 : nil,
             entry: entry,
             showsBadge: true,
@@ -29,7 +29,7 @@ struct LockView: View {
             working: working,
             onComplete: { Task { await submit() } }
         ) {
-            TertiaryButton(title: "Esqueci o PIN") { forgotPIN = true }
+            TertiaryButton(title: String(localized: "Esqueci o PIN")) { forgotPIN = true }
         }
         // O alerta de preco abre o app em segundo plano, as vezes com o iPhone
         // bloqueado: ai nao ha rosto para ler e o chaveiro nao responde. O Face ID
@@ -55,7 +55,7 @@ struct LockView: View {
         } catch let failure as RootKeyVault.Failure {
             handle(failure)
         } catch {
-            entry.fail("Não foi possível destravar. Tente de novo.")
+            entry.fail(String(localized: "Não foi possível destravar. Tente de novo."))
         }
     }
 
@@ -64,9 +64,9 @@ struct LockView: View {
         do {
             try await session.unlockWithBiometry()
         } catch RootKeyVault.Failure.pinRequiredAfterRestart {
-            entry.fail("O iPhone reiniciou. Digite o PIN uma vez para o \(KeyServices.biometryName) voltar a valer.")
+            entry.fail(String(localized: "O iPhone reiniciou. Digite o PIN uma vez para o \(KeyServices.biometryName) voltar a valer."))
         } catch RootKeyVault.Failure.biometryChanged {
-            entry.fail("O \(KeyServices.biometryName) deste iPhone mudou desde que foi ligado aqui. Entre com o PIN; depois você pode religar.")
+            entry.fail(String(localized: "O \(KeyServices.biometryName) deste iPhone mudou desde que foi ligado aqui. Entre com o PIN; depois você pode religar."))
         } catch {
             // Cancelado: o teclado continua ali.
         }
@@ -78,12 +78,12 @@ struct LockView: View {
             entry.fail(AuthCoordinator.wrongPINMessage(remaining))
             showThrottleIfNeeded()
         case .throttled(let seconds):
-            entry.fail("Tentativas demais. Tente de novo em \(Self.duration(seconds)).")
+            entry.fail(String(localized: "Tentativas demais. Tente de novo em \(Self.duration(seconds))."))
             showThrottleIfNeeded()
         case .wiped:
             session.eraseEverything()
         default:
-            entry.fail("Não foi possível destravar. Tente de novo.")
+            entry.fail(String(localized: "Não foi possível destravar. Tente de novo."))
         }
     }
 
@@ -97,7 +97,7 @@ struct LockView: View {
                     entry.error = nil
                     return
                 }
-                entry.error = "Tentativas demais. Tente de novo em \(Self.duration(left))."
+                entry.error = String(localized: "Tentativas demais. Tente de novo em \(Self.duration(left)).")
                 try? await Task.sleep(for: .seconds(1))
             }
         }
@@ -105,11 +105,11 @@ struct LockView: View {
 
     static func duration(_ seconds: TimeInterval) -> String {
         let s = Int(seconds.rounded(.up))
-        if s < 60 { return s == 1 ? "1 segundo" : "\(s) segundos" }
+        if s < 60 { return s == 1 ? String(localized: "1 segundo") : "\(s) segundos" }
         let m = Int((Double(s) / 60).rounded(.up))
-        if m < 60 { return m == 1 ? "1 minuto" : "\(m) minutos" }
+        if m < 60 { return m == 1 ? String(localized: "1 minuto") : "\(m) minutos" }
         let h = Int((Double(m) / 60).rounded(.up))
-        return h == 1 ? "1 hora" : "\(h) horas"
+        return h == 1 ? String(localized: "1 hora") : "\(h) horas"
     }
 
     private var forgotSheet: some View {
@@ -130,9 +130,9 @@ struct LockView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, Space.xs)
                     VStack(alignment: .leading, spacing: Space.md) {
-                        ForgotStep(number: 1, text: "Tenha em mãos a senha de cada carteira (as 12 ou 24 palavras) ou o envelope Escalibur.")
-                        ForgotStep(number: 2, text: "Apague as carteiras deste iPhone.")
-                        ForgotStep(number: 3, text: "Crie um PIN novo e importe cada carteira de novo.")
+                        ForgotStep(number: 1, text: String(localized: "Tenha em mãos a senha de cada carteira (as 12 ou 24 palavras) ou o envelope Escalibur."))
+                        ForgotStep(number: 2, text: String(localized: "Apague as carteiras deste iPhone."))
+                        ForgotStep(number: 3, text: String(localized: "Crie um PIN novo e importe cada carteira de novo."))
                     }
                     .padding(Space.base)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -145,8 +145,8 @@ struct LockView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
             VStack(spacing: Space.sm) {
-                DestructiveButton(title: "Apagar as carteiras deste iPhone") { confirmErase = true }
-                SecondaryButton(title: "Voltar e tentar o PIN") { forgotPIN = false }
+                DestructiveButton(title: String(localized: "Apagar as carteiras deste iPhone")) { confirmErase = true }
+                SecondaryButton(title: String(localized: "Voltar e tentar o PIN")) { forgotPIN = false }
             }
             .padding(.horizontal, Space.gutter)
             .padding(.top, Space.sm)

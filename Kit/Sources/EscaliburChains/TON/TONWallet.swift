@@ -200,8 +200,8 @@ public struct TONDerivationScheme: Sendable, Hashable {
         let standard = DefaultPaths.path(for: .ton, account: account)
         let ledger = DerivationPath(components: [h(44), h(607), h(0), h(0), h(account), h(0)])
         return [
-            TONDerivationScheme(path: standard, version: .v4r2, origin: "Escalibur, Trust Wallet, Tonkeeper e MyTonWallet (V4R2)"),
-            TONDerivationScheme(path: standard, version: .v5r1, origin: "Tonkeeper e MyTonWallet (W5)"),
+            TONDerivationScheme(path: standard, version: .v4r2, origin: kitText("Escalibur, Trust Wallet, Tonkeeper e MyTonWallet (V4R2)")),
+            TONDerivationScheme(path: standard, version: .v5r1, origin: kitText("Tonkeeper e MyTonWallet (W5)")),
             TONDerivationScheme(path: ledger, version: .v4r2, origin: "Ledger Live (V4R2)"),
         ]
     }

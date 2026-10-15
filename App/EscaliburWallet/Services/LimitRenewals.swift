@@ -155,8 +155,8 @@ final class LimitRenewalCenter {
     /// O aviso nao diz ativo nem valor: a tela bloqueada nao conta o que a carteira tem.
     static func scheduleNotice(_ record: LimitRenewal) {
         let content = UNMutableNotificationContent()
-        content.title = "O prazo de uma ordem limite acabou"
-        content.body = "Abra a Escalibur: se ainda faltar vender, o app pergunta se refaz com o mesmo preço."
+        content.title = String(localized: "O prazo de uma ordem limite acabou")
+        content.body = String(localized: "Abra a Escalibur: se ainda faltar vender, o app pergunta se refaz com o mesmo preço.")
         content.categoryIdentifier = category
         content.userInfo = ["ordem": record.orderID]
         let interval = max(60, record.expiresAt.timeIntervalSinceNow + 60)

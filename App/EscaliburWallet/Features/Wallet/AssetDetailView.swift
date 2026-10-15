@@ -81,10 +81,10 @@ struct AssetDetailView: View {
             if session.selectedWallet?.isWatchOnly != true {
                 ActionFooter {
                     HStack(spacing: Space.sm) {
-                        SecondaryButton(title: "Enviar", height: Height.primary) { router.present(.send(row.positions.first?.asset)) }
-                        SecondaryButton(title: "Receber", height: Height.primary) { receiving = true }
+                        SecondaryButton(title: String(localized: "Enviar"), height: Height.primary) { router.present(.send(row.positions.first?.asset)) }
+                        SecondaryButton(title: String(localized: "Receber"), height: Height.primary) { receiving = true }
                         if canTrade, let asset = row.positions.first?.asset {
-                            PrimaryButton(title: "Trocar") {
+                            PrimaryButton(title: String(localized: "Trocar")) {
                                 router.tradePreset = (asset, true)
                                 router.tab = .trade
                             }
@@ -106,12 +106,12 @@ struct AssetDetailView: View {
     private func customDetails(_ asset: Asset) -> some View {
         VStack(alignment: .leading, spacing: Space.md) {
             Text(customPriceLine(asset)).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-            Banner(kind: .caution, title: "Moeda custom, não verificada", message: TokenReasonText.anyoneCanCreate)
+            Banner(kind: .caution, title: String(localized: "Moeda custom, não verificada"), message: TokenReasonText.anyoneCanCreate)
             ContractPanel(asset: asset)
             if let chain = asset.chain, let reason = CustomToken.sendUnavailableReason(chain) {
-                Banner(kind: .neutral, title: "Envio indisponível nesta rede", message: reason)
+                Banner(kind: .neutral, title: String(localized: "Envio indisponível nesta rede"), message: reason)
             }
-            TertiaryButton(title: "Remover moeda custom") { removing = true }
+            TertiaryButton(title: String(localized: "Remover moeda custom")) { removing = true }
                 .accessibilityIdentifier("remover-moeda-custom")
         }
     }
@@ -120,8 +120,8 @@ struct AssetDetailView: View {
     /// conferida. Mostra de onde vem o nome e o contrato inteiro de cada rede.
     private var recognizedDetails: some View {
         VStack(alignment: .leading, spacing: Space.md) {
-            Banner(kind: .neutral, title: "Listada no CoinGecko, não conferida pela Escalibur",
-                   message: "O nome, o símbolo e a logo vêm do CoinGecko, que lista este contrato. A troca fica só para as moedas da lista conferida. Ao enviar, confira o contrato inteiro.")
+            Banner(kind: .neutral, title: String(localized: "Listada no CoinGecko, não conferida pela Escalibur"),
+                   message: String(localized: "O nome, o símbolo e a logo vêm do CoinGecko, que lista este contrato. A troca fica só para as moedas da lista conferida. Ao enviar, confira o contrato inteiro."))
             ForEach(row.positions, id: \.asset.id) { holding in
                 ContractPanel(asset: holding.asset)
             }
@@ -129,8 +129,8 @@ struct AssetDetailView: View {
     }
 
     private func customPriceLine(_ asset: Asset) -> String {
-        guard let price = row.price else { return "Sem preço confiável por contrato. Fica fora do saldo total." }
-        return "Preço por contrato: \(Fmt.price(price, session.currency)) cada."
+        guard let price = row.price else { return String(localized: "Sem preço confiável por contrato. Fica fora do saldo total.") }
+        return String(localized: "Preço por contrato: \(Fmt.price(price, session.currency)) cada.")
     }
 
     private func removeCustom() {
@@ -146,7 +146,7 @@ struct AssetDetailView: View {
         let hidden = session.metadata.settings.hideBalances
         return VStack(alignment: .leading, spacing: Space.xxs) {
             Text("Sua posição").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-            Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.fiat($0, session.currency) } ?? "sem preço"))
+            Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.fiat($0, session.currency) } ?? String(localized: "sem preço")))
                 .typeStyle(.figure).foregroundStyle(Palette.ink)
                 .contentTransition(.numericText())
             Text(hidden ? Redaction.short : Fmt.crypto(row.totalAmount, decimals: row.decimals, symbol: row.symbol, style: .full))
@@ -176,13 +176,13 @@ struct AssetDetailView: View {
         if let asset = row.positions.first?.asset, case .token(let address) = asset.kind, let chain = asset.chain {
             HStack(spacing: Space.xs) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Contrato \(chain.id == "xrpl" ? "no" : "na") \(chain.name)").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                    Text(chain.id == "xrpl" ? "Contrato no \(chain.name)" : "Contrato na \(chain.name)").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     Text(verbatim: Fmt.address(address)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
                 }
                 Spacer()
                 Button {
                     Pasteboard.copyAddress(address)
-                    toasts.show("Contrato copiado.")
+                    toasts.show(String(localized: "Contrato copiado."))
                 } label: {
                     Image(systemName: "doc.on.doc").font(.system(size: 15)).foregroundStyle(Palette.inkSoft)
                         .frame(width: Height.touch, height: Height.touch)
@@ -342,11 +342,11 @@ struct MarketChartSection: View {
 
     private var periodLabel: String {
         switch range {
-        case .day: return "em 24h"
-        case .week: return "em 7 dias"
-        case .month: return "em 30 dias"
-        case .year: return "em 1 ano"
-        case .all: return "desde o início"
+        case .day: return String(localized: "em 24h")
+        case .week: return String(localized: "em 7 dias")
+        case .month: return String(localized: "em 30 dias")
+        case .year: return String(localized: "em 1 ano")
+        case .all: return String(localized: "desde o início")
         }
     }
 
@@ -354,10 +354,10 @@ struct MarketChartSection: View {
     private var sourceNote: String? {
         switch tokenSource {
         case .coingecko?:
-            return "Gráfico do CoinGecko, pelo contrato. O token não está na lista conferida da Escalibur."
+            return String(localized: "Gráfico do CoinGecko, pelo contrato. O token não está na lista conferida da Escalibur.")
         case .dex(let pool)?:
             let liquidity = "US$\(Fmt.nbsp)\(Fmt.compact(pool.reserveUSD))"
-            return "Preço da pool \(pool.name) na \(pool.dex), com \(liquidity) de liquidez, pelo GeckoTerminal. É preço de DEX: qualquer um cria uma pool, e por isso ele não entra no saldo total."
+            return String(localized: "Preço da pool \(pool.name) na \(pool.dex), com \(liquidity) de liquidez, pelo GeckoTerminal. É preço de DEX: qualquer um cria uma pool, e por isso ele não entra no saldo total.")
         default:
             return nil
         }
@@ -450,8 +450,8 @@ struct ContractNoticeBanner: View {
     var body: some View {
         Group {
             if let notice {
-                Banner(kind: .caution, title: "O CoinGecko marca este token com um aviso",
-                       message: "O aviso, como o CoinGecko publica: \u{201C}\(notice)\u{201D}")
+                Banner(kind: .caution, title: String(localized: "O CoinGecko marca este token com um aviso"),
+                       message: String(localized: "O aviso, como o CoinGecko publica: \u{201C}\(notice)\u{201D}"))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

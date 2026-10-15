@@ -56,12 +56,12 @@ struct MarketFacts: View {
 
     private var marketItems: [Fact] {
         var items = [
-            Fact("Capitalização", (details?.marketCap ?? coin.marketCap).map { Fmt.compact($0, currency) }),
-            Fact("Volume em 24h", (details?.volume24h ?? coin.volume24h).map { Fmt.compact($0, currency) }),
-            Fact("Posição no mercado", (details?.rank ?? coin.rank).map { "\($0)º" }),
+            Fact(String(localized: "Capitalização"), (details?.marketCap ?? coin.marketCap).map { Fmt.compact($0, currency) }),
+            Fact(String(localized: "Volume em 24h"), (details?.volume24h ?? coin.volume24h).map { Fmt.compact($0, currency) }),
+            Fact(String(localized: "Posição no mercado"), (details?.rank ?? coin.rank).map { "\($0)º" }),
         ]
         if let diluted = details?.fullyDilutedValuation {
-            items.append(Fact("Valor totalmente diluído", Fmt.compact(diluted, currency)))
+            items.append(Fact(String(localized: "Valor totalmente diluído"), Fmt.compact(diluted, currency)))
         }
         return items
     }
@@ -90,9 +90,9 @@ struct MarketFacts: View {
 
     /// "87% abaixo da máxima"; perto dela, "Na máxima".
     static func distance(_ percent: Double) -> String {
-        guard percent < -0.5 else { return "Na máxima" }
+        guard percent < -0.5 else { return String(localized: "Na máxima") }
         let value = abs(percent)
-        return "\(Fmt.grouped(value, fractionDigits: value < 10 ? 1 : 0, trimZeros: true))% abaixo da máxima"
+        return String(localized: "\(Fmt.grouped(value, fractionDigits: value < 10 ? 1 : 0, trimZeros: true))% abaixo da máxima")
     }
 
     // MARK: Oferta
@@ -101,12 +101,12 @@ struct MarketFacts: View {
         let symbol = coin.symbol.uppercased()
         let amount: (Double) -> String = { "\(Fmt.compact($0)) \(symbol)" }
         var items: [Fact] = []
-        if let circulating = details.circulatingSupply { items.append(Fact("Em circulação", amount(circulating))) }
-        if let total = details.totalSupply { items.append(Fact("Oferta total", amount(total))) }
+        if let circulating = details.circulatingSupply { items.append(Fact(String(localized: "Em circulação"), amount(circulating))) }
+        if let total = details.totalSupply { items.append(Fact(String(localized: "Oferta total"), amount(total))) }
         if let maximum = details.maxSupply {
-            items.append(Fact("Oferta máxima", amount(maximum)))
+            items.append(Fact(String(localized: "Oferta máxima"), amount(maximum)))
         } else if details.unlimitedSupply {
-            items.append(Fact("Oferta máxima", "Sem teto"))
+            items.append(Fact(String(localized: "Oferta máxima"), String(localized: "Sem teto")))
         }
         return items
     }
@@ -159,7 +159,7 @@ struct Fact: Hashable {
 
     init(_ label: String, _ value: String?) {
         self.label = label
-        self.value = value ?? "sem dado"
+        self.value = value ?? String(localized: "sem dado")
     }
 }
 

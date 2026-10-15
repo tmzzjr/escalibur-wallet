@@ -110,19 +110,19 @@ final class VoiceGate {
     /// Uma linha para a tela: em que linguas o iPhone ouve a frase.
     static func languageNote(_ languages: [VoiceLanguage]) -> String {
         let missing = VoiceLanguage.allCases.filter { !languages.contains($0) }
-        if languages.isEmpty { return "Este iPhone não reconhece fala sem internet agora." }
-        if missing.isEmpty { return "Entendo a frase em português ou em inglês." }
+        if languages.isEmpty { return String(localized: "Este iPhone não reconhece fala sem internet agora.") }
+        if missing.isEmpty { return String(localized: "Entendo a frase em português ou em inglês.") }
         let on = languages.map(\.name).joined(separator: " e ")
         let off = missing.map(\.name).joined(separator: " e ")
-        return "Entendo só em \(on): o \(off) não está disponível sem internet neste iPhone."
+        return String(localized: "Entendo só em \(on): o \(off) não está disponível sem internet neste iPhone.")
     }
 
     /// Uma linha para a tela: a lingua escolhida, e o que fazer quando o iPhone nao a
     /// reconhece sem internet.
     static func languageLine(_ language: VoiceLanguage) -> String {
         language.onDevice
-            ? "Ouço em \(language.name). A língua se troca em Ajustes, Confirmação por voz."
-            : "O \(language.name) sem internet não está disponível neste iPhone agora. Costuma ficar disponível quando você adiciona um teclado em \(language.name) nos Ajustes do iPhone."
+            ? String(localized: "Ouço em \(language.name). A língua se troca em Ajustes, Confirmação por voz.")
+            : String(localized: "O \(language.name) sem internet não está disponível neste iPhone agora. Costuma ficar disponível quando você adiciona um teclado em \(language.name) nos Ajustes do iPhone.")
     }
 
     /// O envio pede a frase? Com o pedido em envios desligado, nunca. Sem cotacao, o
@@ -294,8 +294,8 @@ enum VoiceLanguage: String, CaseIterable, Sendable, Codable {
     case english = "en-US"
 
     var locale: Locale { Locale(identifier: rawValue) }
-    var name: String { self == .portuguese ? "português" : "inglês" }
-    var title: String { self == .portuguese ? "Português" : "Inglês" }
+    var name: String { self == .portuguese ? String(localized: "português") : String(localized: "inglês") }
+    var title: String { self == .portuguese ? String(localized: "Português") : String(localized: "Inglês") }
     /// O iPhone reconhece esta lingua sem internet? Criar um reconhecedor so para
     /// perguntar e lento, e a tela pergunta a cada redesenho (o teclado do PIN perdia
     /// toques): o "sim" vale 30 s. O "nao" e conferido de novo a cada vez, porque o iOS
@@ -701,7 +701,7 @@ struct VoiceChallengeSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Diga a sua frase de voz") { close() }
+            SheetHeader(title: String(localized: "Diga a sua frase de voz")) { close() }
             if let until = challenge.lockedUntil {
                 Text("Muitas tentativas de voz seguidas. As operações que pedem voz voltam às \(until.formatted(date: .omitted, time: .shortened)).")
                     .typeStyle(.body).foregroundStyle(Palette.down).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
@@ -710,7 +710,7 @@ struct VoiceChallengeSheet: View {
             Text("Fale a frase que você gravou. Depois dela vem o \(KeyServices.biometryName) ou o PIN. O iPhone reconhece a frase, não a sua voz.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
-            VoiceListeningPanel(listener: listener, idle: locked ? "Em espera" : "Toque em Falar agora e diga a frase.",
+            VoiceListeningPanel(listener: listener, idle: locked ? String(localized: "Em espera") : String(localized: "Toque em Falar agora e diga a frase."),
                                 outcome: passed ? .passed : nil)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
             if let message {
@@ -719,14 +719,14 @@ struct VoiceChallengeSheet: View {
                     .accessibilityIdentifier("voz-mensagem")
             }
             if needsPermission {
-                TertiaryButton(title: "Abrir os Ajustes do iPhone") { VoicePermission.openSettings() }
+                TertiaryButton(title: String(localized: "Abrir os Ajustes do iPhone")) { VoicePermission.openSettings() }
                     .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
             }
             Spacer(minLength: Space.md)
             Text(VoiceGate.languageLine(challenge.session.metadata.settings.voice.phraseLanguage))
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.horizontal, Space.gutter).padding(.bottom, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
-            PrimaryButton(title: listener.listening ? "Terminei de falar" : "Falar agora",
+            PrimaryButton(title: listener.listening ? String(localized: "Terminei de falar") : String(localized: "Falar agora"),
                           enabled: !locked && !passed, loading: listener.busy && !listener.listening) {
                 if listener.listening { listener.stop() } else { Task { await listen() } }
             }
@@ -761,7 +761,7 @@ struct VoiceChallengeSheet: View {
         do {
             try VoiceGate.shared.recordAttempt(challenge.session)
         } catch {
-            message = "Não foi possível registrar a tentativa neste iPhone. Libere espaço e tente de novo."
+            message = String(localized: "Não foi possível registrar a tentativa neste iPhone. Libere espaço e tente de novo.")
             return
         }
         if VoiceGate.matches(any: heard.alternatives, expected: challenge.expected, salt: challenge.salt) {
@@ -774,22 +774,22 @@ struct VoiceChallengeSheet: View {
         if left <= 0 {
             VoiceGate.shared.finish(challenge, passed: false, exhausted: true)
         } else {
-            message = left == 1 ? "Não conferiu. Mais 1 tentativa antes da pausa de 15 minutos."
-                : left <= VoiceGate.attemptsPerChallenge ? "Não conferiu. Mais \(left) tentativas antes da pausa de 15 minutos."
-                : "Não conferiu. Tente de novo."
+            message = left == 1 ? String(localized: "Não conferiu. Mais 1 tentativa antes da pausa de 15 minutos.")
+                : left <= VoiceGate.attemptsPerChallenge ? String(localized: "Não conferiu. Mais \(left) tentativas antes da pausa de 15 minutos.")
+                : String(localized: "Não conferiu. Tente de novo.")
         }
     }
 }
 
 /// Textos e atalhos de permissao e de falha, iguais no cadastro e na conferencia.
 enum VoicePermission {
-    static let deniedMessage = "Para usar a voz, permita o microfone e o reconhecimento de fala para este app nos Ajustes do iPhone."
+    static let deniedMessage = String(localized: "Para usar a voz, permita o microfone e o reconhecimento de fala para este app nos Ajustes do iPhone.")
 
     static func message(for failure: SpeechListener.Heard.Failure) -> String {
         switch failure {
-        case .nothing: return "Não ouvi nada. Toque em falar e diga a frase perto do iPhone."
-        case .microphone: return "O microfone não abriu. Se outro app estiver usando o microfone, feche e tente de novo."
-        case .unavailable: return "O reconhecimento de fala sem internet não respondeu. Tente de novo em instantes."
+        case .nothing: return String(localized: "Não ouvi nada. Toque em falar e diga a frase perto do iPhone.")
+        case .microphone: return String(localized: "O microfone não abriu. Se outro app estiver usando o microfone, feche e tente de novo.")
+        case .unavailable: return String(localized: "O reconhecimento de fala sem internet não respondeu. Tente de novo em instantes.")
         }
     }
 

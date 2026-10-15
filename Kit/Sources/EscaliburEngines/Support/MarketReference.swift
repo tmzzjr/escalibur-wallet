@@ -56,6 +56,6 @@ enum MarketReference {
     /// A frase da recusa por preco longe da referencia.
     static func farText(deviationBps: Int) -> String {
         let percent = EngineFormat.decimal(BigUInt(UInt64(max(0, deviationBps))), decimals: 2)
-        return "A cotação está \(percent)% pior que o preço de referência do mercado. Troca bloqueada."
+        return kitText("A cotação está \(percent)% pior que o preço de referência do mercado. Troca bloqueada.")
     }
 }

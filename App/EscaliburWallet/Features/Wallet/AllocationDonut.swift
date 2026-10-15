@@ -25,7 +25,7 @@ struct AllocationDonut: View {
         .sorted { $0.value > $1.value }
         guard valued.count > 6 else { return valued }
         let rest = valued.dropFirst(5).reduce(0) { $0 + $1.value }
-        return Array(valued.prefix(5)) + [Slice(id: "outros", symbol: "Outros", value: rest, color: Palette.inkDead, coingeckoID: nil)]
+        return Array(valued.prefix(5)) + [Slice(id: "outros", symbol: String(localized: "Outros"), value: rest, color: Palette.inkDead, coingeckoID: nil)]
     }
 
     private var total: Double { slices.reduce(0) { $0 + $1.value } }

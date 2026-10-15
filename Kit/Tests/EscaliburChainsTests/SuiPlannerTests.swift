@@ -78,7 +78,7 @@ struct SuiPlannerTests {
         #expect(review.recipient == Self.destination)
         #expect(review.recipientTag == nil)
         #expect(review.outgoing == PlanReview.Movement(assetID: "sui:native", amount: 1_500_000_000))
-        #expect(review.lines.contains(PlanReview.Line("Para", Self.destination, verbatim: true)))
+        #expect(review.lines.contains(PlanReview.Line("Para", Self.destination, verbatim: true, role: .recipient)))
         #expect(review.lines.contains(PlanReview.Line("Taxa máxima", "0,0024912 SUI, o que não for usado volta")))
         #expect(review.lines.contains(PlanReview.Line("Taxa estimada", "0,00109788 SUI")))
         #expect(review.warnings.isEmpty)

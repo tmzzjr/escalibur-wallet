@@ -307,12 +307,12 @@ public enum CoWPlanner {
         let typed = try cancellationTypedData(chain: chain, uids: uids)
         let message = try EIP712ValidatedMessage(typed, chain: chain, account: account, allowlist: [cancellationRule(chain: chain)])
         var lines: [PlanReview.Line] = [
-            .init("Rede", chain.name),
-            .init("Como", "Pedido assinado à CoW, sem taxa de rede"),
-            .init("Garantia", "Não é garantido: se um solver já estiver liquidando, a ordem ainda pode executar. Para ter certeza, cancele na cadeia."),
+            .init(kitText("Rede"), chain.name),
+            .init(kitText("Como"), kitText("Pedido assinado à CoW, sem taxa de rede")),
+            .init(kitText("Garantia"), kitText("Não é garantido: se um solver já estiver liquidando, a ordem ainda pode executar. Para ter certeza, cancele na cadeia.")),
         ]
-        for uid in uids { lines.append(.init("Ordem", Hex.encode(uid, prefix: true), verbatim: true)) }
-        let review = PlanReview(kind: .cancelOrder, title: uids.count == 1 ? "Cancelar ordem limite" : "Cancelar \(uids.count) ordens limite",
+        for uid in uids { lines.append(.init(kitText("Ordem"), Hex.encode(uid, prefix: true), verbatim: true)) }
+        let review = PlanReview(kind: .cancelOrder, title: uids.count == 1 ? kitText("Cancelar ordem limite") : kitText("Cancelar \(uids.count) ordens limite"),
                                 lines: lines, transactionCount: 1)
         return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: [message], createdAt: now)
     }
@@ -372,14 +372,14 @@ public enum CoWPlanner {
                 throw EVMPlanError.refused(refusal)
             }
             let review = PlanReview(
-                kind: .cancelOrder, title: "Cancelar ordem limite na cadeia",
+                kind: .cancelOrder, title: kitText("Cancelar ordem limite na cadeia"),
                 lines: [
-                    .init("Rede", chain.name),
-                    .init("Como", "invalidateOrder no contrato da CoW"),
-                    .init("Garantia", "Garantido depois que a transação confirmar: o contrato marca a ordem como executada"),
-                    .init("Contrato", CoWProtocol.settlement.checksummed, verbatim: true),
-                    .init("Ordem", Hex.encode(uid, prefix: true), verbatim: true),
-                ] + EVMPlanner.feeLines(chain: chain, quote: quote, count: 1) + [.init("Nonce", "\(nonce)")],
+                    .init(kitText("Rede"), chain.name),
+                    .init(kitText("Como"), kitText("invalidateOrder no contrato da CoW")),
+                    .init(kitText("Garantia"), kitText("Garantido depois que a transação confirmar: o contrato marca a ordem como executada")),
+                    .init(kitText("Contrato"), CoWProtocol.settlement.checksummed, verbatim: true, role: .assetReference),
+                    .init(kitText("Ordem"), Hex.encode(uid, prefix: true), verbatim: true),
+                ] + EVMPlanner.feeLines(chain: chain, quote: quote, count: 1) + [.init(kitText("Nonce"), "\(nonce)")],
                 transactionCount: 1
             )
             return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: [transaction], createdAt: now)
@@ -403,45 +403,45 @@ public enum CoWPlanner {
         let native = TradeAsset.native(chain)
         let minutes = Int(intent.validFor / 60)
         var lines: [PlanReview.Line] = [
-            .init("Rede", chain.name),
-            .init("Sai", TradeText.amount(intent.sellAmount, intent.sell)),
-            .init("Entra, no mínimo", TradeText.amount(order.buyAmount, intent.buy)),
-            .init("Como", intent.style == .parts
-                ? "Ordem na CoW preenchida em partes, conforme chega liquidez neste preço. Cada parte sai pelo mínimo ou mais."
-                : "Leilão da CoW: os solvers disputam a ordem com a liquidez das corretoras descentralizadas e dos formadores de mercado. Se não couber de uma vez, ela é preenchida em partes, cada uma pelo mínimo ou mais."),
-            .init("Prazo", "\(minutes) minutos. O que não for preenchido até lá continua na sua carteira, sem custo"),
-            .init("Destinatário", order.receiver.checksummed, verbatim: true),
-            .init("Contrato da CoW", CoWProtocol.settlement.checksummed, verbatim: true),
+            .init(kitText("Rede"), chain.name),
+            .init(kitText("Sai"), TradeText.amount(intent.sellAmount, intent.sell), role: .sold),
+            .init(kitText("Entra, no mínimo"), TradeText.amount(order.buyAmount, intent.buy)),
+            .init(kitText("Como"), intent.style == .parts
+                ? kitText("Ordem na CoW preenchida em partes, conforme chega liquidez neste preço. Cada parte sai pelo mínimo ou mais.")
+                : kitText("Leilão da CoW: os solvers disputam a ordem com a liquidez das corretoras descentralizadas e dos formadores de mercado. Se não couber de uma vez, ela é preenchida em partes, cada uma pelo mínimo ou mais.")),
+            .init(kitText("Prazo"), kitText("\(minutes) minutos. O que não for preenchido até lá continua na sua carteira, sem custo")),
+            .init(kitText("Destinatário"), order.receiver.checksummed, verbatim: true),
+            .init(kitText("Contrato da CoW"), CoWProtocol.settlement.checksummed, verbatim: true, role: .assetReference),
         ]
         if wrapping {
-            lines.append(.init("Antes", "Converter \(TradeText.amount(intent.sellAmount, intent.sell)) em \(sellToken.symbol): a ordem vende \(sellToken.symbol)"))
+            lines.append(.init(kitText("Antes"), kitText("Converter \(TradeText.amount(intent.sellAmount, intent.sell)) em \(sellToken.symbol): a ordem vende \(sellToken.symbol)")))
         }
         if needsApproval {
-            lines.append(.init("Autorização", "Exata: \(EVMText.amount(approvalTotal, decimals: Int(sellToken.decimals), symbol: sellToken.symbol)), nunca ilimitada"))
-            lines.append(.init("Autorizado a gastar", CoWProtocol.vaultRelayer.checksummed, verbatim: true))
+            lines.append(.init(kitText("Autorização"), kitText("Exata: \(EVMText.amount(approvalTotal, decimals: Int(sellToken.decimals), symbol: sellToken.symbol)), nunca ilimitada")))
+            lines.append(.init(kitText("Autorizado a gastar"), CoWProtocol.vaultRelayer.checksummed, verbatim: true))
             if reducing {
-                lines.append(.init("Autorização atual", "Maior que esta troca. Ela é reduzida para o valor exato, e nenhuma ordem assinada antes consegue usar a diferença"))
+                lines.append(.init(kitText("Autorização atual"), kitText("Maior que esta troca. Ela é reduzida para o valor exato, e nenhuma ordem assinada antes consegue usar a diferença")))
             }
         } else {
-            lines.append(.init("Autorização", "Já existe e é exatamente o valor da troca"))
+            lines.append(.init(kitText("Autorização"), kitText("Já existe e é exatamente o valor da troca")))
         }
         if !feeQuotes.isEmpty {
             let expected = feeQuotes.reduce(BigUInt()) { $0 + $1.expectedCost }
             let maximum = feeQuotes.reduce(BigUInt()) { $0 + $1.maxCost }
-            lines.append(.init("Taxa da rede (estimada)", TradeText.amount(expected, native)))
-            lines.append(.init("Taxa da rede (máxima)", TradeText.amount(maximum, native)))
+            lines.append(.init(kitText("Taxa da rede (estimada)"), TradeText.amount(expected, native)))
+            lines.append(.init(kitText("Taxa da rede (máxima)"), TradeText.amount(maximum, native)))
         }
         lines += [
-            .init("Taxa da CoW", "Já descontada do mínimo, junto com a taxa da rede da troca"),
-            .init("Taxa da Escalibur", "Sem taxa da Escalibur"),
-            .init("Envio", feeQuotes.isEmpty
-                ? "A ordem assinada vai direto para a CoW"
-                : "A ordem assinada vai para a CoW depois que as transações acima confirmarem"),
-            .init("Cancelar", "Enquanto não terminar, em Ordens abertas: pedido à CoW, grátis mas sem garantia, ou na rede, garantido, pagando taxa"),
+            .init(kitText("Taxa da CoW"), kitText("Já descontada do mínimo, junto com a taxa da rede da troca")),
+            .init(kitText("Taxa da Escalibur"), kitText("Sem taxa da Escalibur")),
+            .init(kitText("Envio"), feeQuotes.isEmpty
+                ? kitText("A ordem assinada vai direto para a CoW")
+                : kitText("A ordem assinada vai para a CoW depois que as transações acima confirmarem")),
+            .init(kitText("Cancelar"), kitText("Enquanto não terminar, em Ordens abertas: pedido à CoW, grátis mas sem garantia, ou na rede, garantido, pagando taxa")),
         ]
         let title = intent.style == .parts
-            ? "Trocar \(TradeText.amount(order.sellAmount, intent.sell)) por \(intent.buy.symbol) em partes"
-            : "Trocar \(TradeText.amount(order.sellAmount, intent.sell)) por \(intent.buy.symbol)"
+            ? kitText("Trocar \(TradeText.amount(order.sellAmount, intent.sell)) por \(intent.buy.symbol) em partes")
+            : kitText("Trocar \(TradeText.amount(order.sellAmount, intent.sell)) por \(intent.buy.symbol)")
         return PlanReview(
             kind: .swap, title: title, lines: lines, transactionCount: feeQuotes.count + 1,
             outgoing: intent.sell.movement(order.sellAmount), incomingMinimum: intent.buy.movement(order.buyAmount),
@@ -455,56 +455,52 @@ public enum CoWPlanner {
     ) -> PlanReview {
         let chain = intent.chain
         let native = TradeAsset.native(chain)
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "pt_BR")
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        formatter.dateFormat = "dd/MM/yyyy HH:mm 'UTC'"
-        let expiry = formatter.string(from: Date(timeIntervalSince1970: TimeInterval(order.validTo)))
+        let expiry = NumberStyle.current.utcStamp(Date(timeIntervalSince1970: TimeInterval(order.validTo)))
 
         var lines: [PlanReview.Line] = [
-            .init("Rede", chain.name),
-            .init("Vende", TradeText.amount(intent.sellAmount, intent.sell)),
-            .init("Recebe, no mínimo", TradeText.amount(order.buyAmount, intent.buy)),
-            .init("Preço-alvo", TradeText.price(amountIn: order.buyAmount, out: intent.sellAmount, sell: intent.buy, buy: intent.sell)),
-            .init("Válida até", intent.isUntilCancelled
-                ? "\(expiry), o prazo mais longo que a CoW aceita. Até lá, fica aberta até executar ou você cancelar"
+            .init(kitText("Rede"), chain.name),
+            .init(kitText("Vende"), TradeText.amount(intent.sellAmount, intent.sell)),
+            .init(kitText("Recebe, no mínimo"), TradeText.amount(order.buyAmount, intent.buy)),
+            .init(kitText("Preço-alvo"), TradeText.price(amountIn: order.buyAmount, out: intent.sellAmount, sell: intent.buy, buy: intent.sell)),
+            .init(kitText("Válida até"), intent.isUntilCancelled
+                ? kitText("\(expiry), o prazo mais longo que a CoW aceita. Até lá, fica aberta até executar ou você cancelar")
                 : expiry),
-            .init("Execução parcial", intent.partiallyFillable ? "Permitida" : "Só inteira"),
-            .init("Destinatário", order.receiver.checksummed, verbatim: true),
-            .init("Contrato da CoW", CoWProtocol.settlement.checksummed, verbatim: true),
+            .init(kitText("Execução parcial"), intent.partiallyFillable ? kitText("Permitida") : kitText("Só inteira")),
+            .init(kitText("Destinatário"), order.receiver.checksummed, verbatim: true),
+            .init(kitText("Contrato da CoW"), CoWProtocol.settlement.checksummed, verbatim: true, role: .assetReference),
         ]
         if wrapping {
-            lines.append(.init("Antes", "Converter \(TradeText.amount(intent.sellAmount, intent.sell)) em \(sellToken.symbol): a ordem vende \(sellToken.symbol)"))
+            lines.append(.init(kitText("Antes"), kitText("Converter \(TradeText.amount(intent.sellAmount, intent.sell)) em \(sellToken.symbol): a ordem vende \(sellToken.symbol)")))
         }
         if needsApproval {
-            lines.append(.init("Autorização", "Exata: \(EVMText.amount(approvalTotal, decimals: Int(sellToken.decimals), symbol: sellToken.symbol)), nunca ilimitada"))
-            lines.append(.init("Autorizado a gastar", CoWProtocol.vaultRelayer.checksummed, verbatim: true))
+            lines.append(.init(kitText("Autorização"), kitText("Exata: \(EVMText.amount(approvalTotal, decimals: Int(sellToken.decimals), symbol: sellToken.symbol)), nunca ilimitada")))
+            lines.append(.init(kitText("Autorizado a gastar"), CoWProtocol.vaultRelayer.checksummed, verbatim: true))
             if reducing {
-                lines.append(.init("Autorização atual", "Maior que esta ordem. Ela é reduzida para o valor exato, e nenhuma ordem assinada antes consegue usar a diferença"))
+                lines.append(.init(kitText("Autorização atual"), kitText("Maior que esta ordem. Ela é reduzida para o valor exato, e nenhuma ordem assinada antes consegue usar a diferença")))
             }
         } else {
-            lines.append(.init("Autorização", "Já existe e é exatamente o valor da ordem"))
+            lines.append(.init(kitText("Autorização"), kitText("Já existe e é exatamente o valor da ordem")))
         }
         if stacked {
-            lines.append(.init("Outras ordens", "Já há ordens abertas vendendo \(EVMText.amount(approvalTotal - intent.sellAmount, decimals: Int(sellToken.decimals), symbol: sellToken.symbol)). A autorização cobre exatamente a soma com esta, e as ordens juntas nunca tiram mais que isso da carteira"))
+            lines.append(.init(kitText("Outras ordens"), kitText("Já há ordens abertas vendendo \(EVMText.amount(approvalTotal - intent.sellAmount, decimals: Int(sellToken.decimals), symbol: sellToken.symbol)). A autorização cobre exatamente a soma com esta, e as ordens juntas nunca tiram mais que isso da carteira")))
         } else {
-            lines.append(.init("Outras ordens", "A lista de ordens abertas vem só da CoW. Na cadeia, a autorização ao contrato da CoW fica exatamente no valor desta ordem: juntas, as ordens que vendem \(sellToken.symbol) não tiram mais que isso da carteira"))
+            lines.append(.init(kitText("Outras ordens"), kitText("A lista de ordens abertas vem só da CoW. Na cadeia, a autorização ao contrato da CoW fica exatamente no valor desta ordem: juntas, as ordens que vendem \(sellToken.symbol) não tiram mais que isso da carteira")))
         }
         if !feeQuotes.isEmpty {
             let expected = feeQuotes.reduce(BigUInt()) { $0 + $1.expectedCost }
             let maximum = feeQuotes.reduce(BigUInt()) { $0 + $1.maxCost }
-            lines.append(.init("Taxa da rede (estimada)", TradeText.amount(expected, native)))
-            lines.append(.init("Taxa da rede (máxima)", TradeText.amount(maximum, native)))
+            lines.append(.init(kitText("Taxa da rede (estimada)"), TradeText.amount(expected, native)))
+            lines.append(.init(kitText("Taxa da rede (máxima)"), TradeText.amount(maximum, native)))
         }
         lines += [
-            .init("Taxa da CoW", "Sem cobrança à parte: a ordem só executa se entregar pelo menos o mínimo"),
-            .init("Taxa da Escalibur", "Sem taxa da Escalibur"),
-            .init("Envio", feeQuotes.isEmpty
-                ? "A ordem assinada vai direto para a CoW"
-                : "A ordem assinada vai para a CoW depois que as transações acima confirmarem"),
-            .init("Cancelar", "Nas ordens abertas da carteira: pedido à CoW, grátis mas sem garantia, ou na cadeia, garantido, pagando taxa de rede"),
+            .init(kitText("Taxa da CoW"), kitText("Sem cobrança à parte: a ordem só executa se entregar pelo menos o mínimo")),
+            .init(kitText("Taxa da Escalibur"), kitText("Sem taxa da Escalibur")),
+            .init(kitText("Envio"), feeQuotes.isEmpty
+                ? kitText("A ordem assinada vai direto para a CoW")
+                : kitText("A ordem assinada vai para a CoW depois que as transações acima confirmarem")),
+            .init(kitText("Cancelar"), kitText("Nas ordens abertas da carteira: pedido à CoW, grátis mas sem garantia, ou na cadeia, garantido, pagando taxa de rede")),
         ]
-        let title = "Ordem limite: vender \(TradeText.amount(order.sellAmount, intent.sell)) por \(intent.buy.symbol)"
+        let title = kitText("Ordem limite: vender \(TradeText.amount(order.sellAmount, intent.sell)) por \(intent.buy.symbol)")
         // Os movimentos saem da ordem assinada: vende `sellAmount` (o nativo, quando o
         // embrulho vem antes, pelo mesmo valor), recebe pelo menos `buyAmount`, e quem
         // recebe e o `receiver` gravado.

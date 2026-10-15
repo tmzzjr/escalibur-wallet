@@ -166,11 +166,11 @@ struct ImportPhraseView: View {
 
                     HStack {
                         if entry.filledCount > 0 {
-                            TertiaryButton(title: "Limpar") { confirmClear = true }
+                            TertiaryButton(title: String(localized: "Limpar")) { confirmClear = true }
                                 .accessibilityIdentifier("limpar-palavras")
                         }
                         Spacer()
-                        TertiaryButton(title: reveal ? "Esconder palavras" : "Mostrar palavras") { reveal.toggle() }
+                        TertiaryButton(title: reveal ? String(localized: "Esconder palavras") : String(localized: "Mostrar palavras")) { reveal.toggle() }
                     }
 
                     VStack(alignment: .leading, spacing: 0) {
@@ -182,8 +182,8 @@ struct ImportPhraseView: View {
                             Text("Com a passphrase errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes. Segure o dedo num campo para conferir as duas.")
                                 .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                                 .fixedSize(horizontal: false, vertical: true)
-                            PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "Passphrase", reveal: $revealPassphrase).padding(.top, Space.sm)
-                            PasswordBox(buffer: passphraseAgain, length: $passphraseAgainLength, placeholder: "Repita a passphrase", reveal: $revealPassphrase).padding(.top, Space.xs)
+                            PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: String(localized: "Passphrase"), reveal: $revealPassphrase).padding(.top, Space.sm)
+                            PasswordBox(buffer: passphraseAgain, length: $passphraseAgainLength, placeholder: String(localized: "Repita a passphrase"), reveal: $revealPassphrase).padding(.top, Space.xs)
                         }
                         if let message {
                             Banner(kind: .failure, title: message).padding(.top, Space.md)
@@ -210,7 +210,7 @@ struct ImportPhraseView: View {
                 suggestionBar
             } else {
                 ActionFooter {
-                    PrimaryButton(title: "Importar", enabled: entry.filledCount == entry.count, loading: working) {
+                    PrimaryButton(title: String(localized: "Importar"), enabled: entry.filledCount == entry.count, loading: working) {
                         Task { await importWallet() }
                     }
                 }
@@ -355,7 +355,7 @@ struct ImportPhraseView: View {
                     }
                 }
             }
-            TertiaryButton(title: "Pronto") { focused = false }
+            TertiaryButton(title: String(localized: "Pronto")) { focused = false }
         }
         .padding(.horizontal, Space.gutter)
         .frame(height: 56)
@@ -415,7 +415,7 @@ struct ImportPhraseView: View {
             if usesPassphrase {
                 let same = Hash.constantTimeEqual(passphrase, passphraseAgain)
                 guard same, passphraseLength > 0 else {
-                    message = "As duas versões da passphrase não conferem."
+                    message = String(localized: "As duas versões da passphrase não conferem.")
                     phrase.wipe()
                     return
                 }
@@ -434,19 +434,19 @@ struct ImportPhraseView: View {
                     throw error
                 }
             } catch {
-                message = "Não foi possível importar a carteira." + Self.debugDetail(error)
+                message = String(localized: "Não foi possível importar a carteira.") + Self.debugDetail(error)
             }
         case .wrongLength(let count):
-            message = "Faltam palavras: \(count) de \(entry.count)."
+            message = String(localized: "Faltam palavras: \(count) de \(entry.count).")
         case .unknownWords(let positions, _):
             let first = (positions.first ?? 0) + 1
-            message = "A palavra \(first) não existe na lista. Confira no papel."
+            message = String(localized: "A palavra \(first) não existe na lista. Confira no papel.")
         case .checksumFailed:
-            message = "Todas as palavras existem, mas a conferência da frase não fecha. Alguma está trocada ou fora de ordem. Confira no papel."
+            message = String(localized: "Todas as palavras existem, mas a conferência da frase não fecha. Alguma está trocada ou fora de ordem. Confira no papel.")
         case .mixedLanguages:
-            message = "As palavras são de idiomas diferentes. Confira no papel."
+            message = String(localized: "As palavras são de idiomas diferentes. Confira no papel.")
         case .ambiguousLanguage:
-            message = "Esta frase vale em mais de um idioma, e a escolha muda a carteira. Importe pela versão em inglês da frase."
+            message = String(localized: "Esta frase vale em mais de um idioma, e a escolha muda a carteira. Importe pela versão em inglês da frase.")
         }
         phrase.wipe()
     }
@@ -457,10 +457,10 @@ struct ImportPhraseView: View {
         working = true
         defer { working = false }
         do {
-            let name = session.metadata.wallets.isEmpty ? "Carteira principal" : "Carteira \(session.metadata.wallets.count + 1)"
+            let name = session.metadata.wallets.isEmpty ? String(localized: "Carteira principal") : String(localized: "Carteira \(session.metadata.wallets.count + 1)")
             let words = entry.count
             // Desistiu da confirmacao: a conferencia dos enderecos continua na tela.
-            guard try await auth.retrying(reason: "Guardar a carteira importada neste iPhone", { credential in
+            guard try await auth.retrying(reason: String(localized: "Guardar a carteira importada neste iPhone"), { credential in
                 try await session.addWallet(secret: pending.secret, name: name, origin: .importedPhrase, wordCount: words,
                                             backupConfirmed: true, credential: credential)
             }) != nil else { return }
@@ -472,7 +472,7 @@ struct ImportPhraseView: View {
             message = walletError.errorDescription
         } catch {
             discardPending()
-            message = "Não foi possível importar a carteira." + Self.debugDetail(error)
+            message = String(localized: "Não foi possível importar a carteira.") + Self.debugDetail(error)
         }
     }
 
@@ -570,7 +570,7 @@ private struct PhraseSlot: View {
         .contentShape(Rectangle())
         .onTapGesture { isFocused = true }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Palavra \(index + 1), \(display == nil ? "vazia" : "preenchida")")
+        .accessibilityLabel(display == nil ? "Palavra \(index + 1), vazia" : "Palavra \(index + 1), preenchida")
         .accessibilityIdentifier("palavra-\(index + 1)")
     }
 }

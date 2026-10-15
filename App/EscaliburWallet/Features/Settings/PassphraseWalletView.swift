@@ -44,9 +44,9 @@ struct PassphraseWalletView: View {
                 .padding(.top, Space.md)
 
                 VStack(alignment: .leading, spacing: Space.md) {
-                    PassphrasePoint(icon: "eye.slash", text: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não esta.")
-                    PassphrasePoint(icon: "pencil.and.list.clipboard", text: "Anote a passphrase longe das \(wordCount). Para abrir esta carteira em outro aparelho, você vai precisar das duas.")
-                    PassphrasePoint(icon: "exclamationmark.triangle", text: "Esquecer a passphrase é perder o que estiver nesta carteira. Ninguém recupera, nem a Escalibur.", caution: true)
+                    PassphrasePoint(icon: "eye.slash", text: String(localized: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não esta."))
+                    PassphrasePoint(icon: "pencil.and.list.clipboard", text: String(localized: "Anote a passphrase longe das \(wordCount). Para abrir esta carteira em outro aparelho, você vai precisar das duas."))
+                    PassphrasePoint(icon: "exclamationmark.triangle", text: String(localized: "Esquecer a passphrase é perder o que estiver nesta carteira. Ninguém recupera, nem a Escalibur."), caution: true)
                 }
                 .padding(Space.base)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -55,8 +55,8 @@ struct PassphraseWalletView: View {
 
                 VStack(alignment: .leading, spacing: Space.xs) {
                     Text("Passphrase").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                    PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "Passphrase", reveal: $revealPassphrase)
-                    PasswordBox(buffer: again, length: $againLength, placeholder: "Repita a passphrase", reveal: $revealPassphrase) { Task { await create() } }
+                    PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: String(localized: "Passphrase"), reveal: $revealPassphrase)
+                    PasswordBox(buffer: again, length: $againLength, placeholder: String(localized: "Repita a passphrase"), reveal: $revealPassphrase) { Task { await create() } }
                         .id("repita")
                     Text("Diferença de maiúscula, acento ou espaço já abre outra carteira. Segure o dedo num campo para conferir as duas.")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
@@ -85,7 +85,7 @@ struct PassphraseWalletView: View {
         }
         .safeAreaInset(edge: .bottom) {
             ActionFooter {
-                PrimaryButton(title: "Abrir carteira", enabled: passphraseLength > 0 && againLength > 0, loading: working) {
+                PrimaryButton(title: String(localized: "Abrir carteira"), enabled: passphraseLength > 0 && againLength > 0, loading: working) {
                     Task { await create() }
                 }
             }
@@ -94,7 +94,7 @@ struct PassphraseWalletView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .guardedAgainstCapture()
-        .onAppear { if name.isEmpty { name = "\(base.name) com passphrase" } }
+        .onAppear { if name.isEmpty { name = String(localized: "\(base.name) com passphrase") } }
         .onDisappear {
             passphrase.wipe()
             again.wipe()
@@ -105,7 +105,7 @@ struct PassphraseWalletView: View {
         guard !working, passphraseLength > 0 else { return }
         message = nil
         guard Hash.constantTimeEqual(passphrase, again) else {
-            message = "As duas versões da passphrase não conferem."
+            message = String(localized: "As duas versões da passphrase não conferem.")
             return
         }
         working = true
@@ -115,23 +115,23 @@ struct PassphraseWalletView: View {
         passphrase.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
         defer { copy.wipe() }
         let title = String(name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(40))
-        let walletName = title.isEmpty ? "\(base.name) com passphrase" : title
+        let walletName = title.isEmpty ? String(localized: "\(base.name) com passphrase") : title
         let before = Set(session.metadata.wallets.map(\.id))
         do {
-            guard let opened = try await auth.retrying(reason: "Abrir a carteira com passphrase", { credential in
+            guard let opened = try await auth.retrying(reason: String(localized: "Abrir a carteira com passphrase"), { credential in
                 try await session.addPassphraseWallet(base: base, passphrase: copy, name: walletName, credential: credential)
             }) else { return }
             passphrase.wipe()
             again.wipe()
             // A mesma frase com a mesma passphrase e a mesma carteira: ela ja estava aqui.
             if before.contains(opened.id) {
-                toasts.show("Esta carteira já está aberta, como \(opened.name). Ela passa a ser a carteira em uso.")
+                toasts.show(String(localized: "Esta carteira já está aberta, como \(opened.name). Ela passa a ser a carteira em uso."))
             }
             dismiss()
         } catch let error as WalletError {
             message = error.errorDescription
         } catch {
-            message = "Não foi possível criar a carteira agora."
+            message = String(localized: "Não foi possível criar a carteira agora.")
         }
     }
 }

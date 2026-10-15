@@ -23,7 +23,7 @@ enum UTXOEngineSupport {
               let kind = UTXOInputKind(purpose: c[0] - h)
         else { throw SendEngineError.message(NetworkFailureText.wrongAccount) }
         guard let xpub = derived.accountXPub else {
-            throw SendEngineError.message("Falta a chave pública desta conta nos dados da carteira. Nada foi montado.")
+            throw SendEngineError.message(kitText("Falta a chave pública desta conta nos dados da carteira. Nada foi montado."))
         }
         let account: UTXOAccount
         do {
@@ -32,7 +32,7 @@ enum UTXOEngineSupport {
             throw SendEngineError.message(NetworkFailureText.wrongAccount)
         }
         guard (try? account.address(change: c[3] == 1, index: c[4]).address) == derived.address else {
-            throw SendEngineError.message("A chave pública guardada não gera o endereço desta conta. Por segurança, nada foi montado.")
+            throw SendEngineError.message(kitText("A chave pública guardada não gera o endereço desta conta. Por segurança, nada foi montado."))
         }
         return account
     }
@@ -90,9 +90,9 @@ enum UTXOEngineSupport {
     /// "1,069 sat/vB"; no Dogecoin, que conta por kB, "0,01 DOGE/kB".
     static func rateText(_ rate: UTXOFeeRate, chain: Chain) -> String {
         if chain.id == Chain.dogecoin.id {
-            return "\(EngineFormat.decimal(BigUInt(rate.satPerKvB), decimals: 8)) DOGE/kB"
+            return kitText("\(EngineFormat.decimal(BigUInt(rate.satPerKvB), decimals: 8)) DOGE/kB")
         }
-        return "\(EngineFormat.decimal(BigUInt(rate.satPerKvB), decimals: 3)) sat/vB"
+        return kitText("\(EngineFormat.decimal(BigUInt(rate.satPerKvB), decimals: 3)) sat/vB")
     }
 
     static func summary(_ plan: SigningPlan) -> UTXOSendSummary? {
@@ -120,47 +120,47 @@ enum UTXOEngineSupport {
         case .invalidDestination(let problem):
             return destinationText(problem, chain: chain)
         case .amountZero:
-            return "O valor precisa ser maior que zero."
+            return kitText("O valor precisa ser maior que zero.")
         case .amountAboveMaximum:
-            return "O valor passa do máximo que a rede \(chain.name) aceita."
+            return kitText("O valor passa do máximo que a rede \(chain.name) aceita.")
         case .amountBelowDust:
-            return "O valor fica abaixo do mínimo que a rede repassa, depois da taxa. Envie um valor maior."
+            return kitText("O valor fica abaixo do mínimo que a rede repassa, depois da taxa. Envie um valor maior.")
         case .insufficientFunds:
-            return "Saldo insuficiente para este valor mais a taxa da rede."
+            return kitText("Saldo insuficiente para este valor mais a taxa da rede.")
         case .noSpendableCoins:
-            return "Nenhuma moeda confirmada cobre a taxa da rede agora. Moedas pequenas ou ainda sem confirmação ficam de fora."
+            return kitText("Nenhuma moeda confirmada cobre a taxa da rede agora. Moedas pequenas ou ainda sem confirmação ficam de fora.")
         case .duplicateCoin, .previousTransactionMalformed, .previousTransactionMismatch, .outputIndexOutOfRange, .coinNotOurs,
              .unsupportedCoinType, .coinValueOutOfRange, .balanceOutOfRange, .badDerivationPath, .mixedAccounts, .coinControlUnknown:
-            return "Uma das moedas lidas não confere com a transação que a criou. Por segurança, nada foi montado."
+            return kitText("Uma das moedas lidas não confere com a transação que a criou. Por segurança, nada foi montado.")
         case .needTwoFeeEstimates:
             return NetworkFailureText.fewSources
         case .feeEstimatesDisagree:
-            return "As fontes de taxa da rede \(chain.name) discordam demais agora. Nada foi montado. Tente de novo em instantes."
+            return kitText("As fontes de taxa da rede \(chain.name) discordam demais agora. Nada foi montado. Tente de novo em instantes.")
         case .feeRateAboveNetworkCap:
-            return "A taxa da rede \(chain.name) está acima do teto da carteira agora. Espere a rede acalmar e tente de novo."
+            return kitText("A taxa da rede \(chain.name) está acima do teto da carteira agora. Espere a rede acalmar e tente de novo.")
         case .feeRateBelowMinimum:
-            return "A taxa escolhida fica abaixo do mínimo da rede."
+            return kitText("A taxa escolhida fica abaixo do mínimo da rede.")
         case .feeRateAboveCeiling:
-            return "A taxa escolhida passa do teto da carteira, que é o dobro da maior estimativa da rede."
+            return kitText("A taxa escolhida passa do teto da carteira, que é o dobro da maior estimativa da rede.")
         case .feeAboveAbsoluteCap:
-            return "A taxa deste envio passaria do teto absoluto da carteira. Nada foi montado."
+            return kitText("A taxa deste envio passaria do teto absoluto da carteira. Nada foi montado.")
         case .changeRequired, .changeNotOurs, .changeAccountNotSpent:
-            return "O endereço de troco não confere com a chave da carteira. Por segurança, nada foi montado."
+            return kitText("O endereço de troco não confere com a chave da carteira. Por segurança, nada foi montado.")
         case .invalidTipHeight:
             return NetworkFailureText.malformed
         case .transactionTooLarge:
-            return "Este envio junta moedas demais para uma transação só. Envie um valor menor."
+            return kitText("Este envio junta moedas demais para uma transação só. Envie um valor menor.")
         case .internalCheckFailed:
-            return "A conferência final da transação não fechou. Nada foi montado."
+            return kitText("A conferência final da transação não fechou. Nada foi montado.")
         }
     }
 
     static func destinationText(_ problem: Address.Problem, chain: Chain) -> String {
         switch problem {
         case .empty, .malformed: return "Este não é um endereço da rede \(chain.name)."
-        case .otherNetwork(let other): return "Este endereço é da rede \(other.name), não da rede \(chain.name)."
-        case .badChecksum: return "Um caractere deste endereço não confere. Copie de novo, inteiro."
-        case .unsupportedType: return "Este tipo de endereço ainda não recebe envios desta carteira."
+        case .otherNetwork(let other): return kitText("Este endereço é da rede \(other.name), não da rede \(chain.name).")
+        case .badChecksum: return kitText("Um caractere deste endereço não confere. Copie de novo, inteiro.")
+        case .unsupportedType: return kitText("Este tipo de endereço ainda não recebe envios desta carteira.")
         }
     }
 

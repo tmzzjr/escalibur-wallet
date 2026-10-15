@@ -179,7 +179,7 @@ actor LimitOrderWatch {
         guard fireIn >= warningFloor else { return }
         let request = UNNotificationRequest(
             identifier: warningID(id),
-            content: content(id: id, title: "Sua ordem limite vence em 24 horas", body: "Se ela ainda não executou, abra a Escalibur para ver ou mudar o preço."),
+            content: content(id: id, title: String(localized: "Sua ordem limite vence em 24 horas"), body: String(localized: "Se ela ainda não executou, abra a Escalibur para ver ou mudar o preço.")),
             trigger: UNTimeIntervalNotificationTrigger(timeInterval: fireIn, repeats: false)
         )
         UNUserNotificationCenter.current().add(request)
@@ -190,7 +190,7 @@ actor LimitOrderWatch {
         guard await center.notificationSettings().authorizationStatus == .authorized else { return }
         let request = UNNotificationRequest(
             identifier: "ordem-limite.executada.\(id)",
-            content: content(id: id, title: "Sua ordem limite foi executada", body: "A troca saiu no seu preço. O saldo novo já está na carteira."),
+            content: content(id: id, title: String(localized: "Sua ordem limite foi executada"), body: String(localized: "A troca saiu no seu preço. O saldo novo já está na carteira.")),
             trigger: nil
         )
         try? await center.add(request)

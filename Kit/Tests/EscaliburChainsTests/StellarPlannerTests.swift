@@ -53,7 +53,7 @@ struct StellarPlannerTests {
         #expect(plan.review.title == "Enviar 12,5 XLM")
         expectRecipient(plan)
         #expect(plan.review.outgoing == PlanReview.Movement(assetID: "stellar:native", amount: 125_000_000))
-        #expect(plan.review.lines.contains(PlanReview.Line("Para", StellarTestKeys.sep5Account1, verbatim: true)))
+        #expect(plan.review.lines.contains(PlanReview.Line("Para", StellarTestKeys.sep5Account1, verbatim: true, role: .recipient)))
         #expect(plan.review.lines.contains(PlanReview.Line("Memo (texto)", "pedido 42", verbatim: true)))
         #expect(plan.review.lines.contains(PlanReview.Line("Taxa máxima", "0,00001 XLM")))
         #expect(plan.review.warnings.isEmpty)
@@ -223,7 +223,7 @@ struct StellarPlannerTests {
         #expect(plan.review.outgoing == PlanReview.Movement(
             assetID: "stellar:USDC:GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", amount: 200_000_000
         ))
-        #expect(plan.review.lines.contains(PlanReview.Line("Emissor", "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", verbatim: true)))
+        #expect(plan.review.lines.contains(PlanReview.Line("Emissor", "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN", verbatim: true, role: .assetReference)))
         #expect(try transaction(plan).tx.operations == [StellarOperation(.payment(
             destination: try StellarTestKeys.muxed(StellarTestKeys.sep5Account1), asset: Self.usdc, amount: 200_000_000))])
 

@@ -160,7 +160,7 @@ struct SlippageSlider: View {
     }
 
     static func label(_ bps: Int) -> String {
-        "\(Fmt.grouped(Double(bps) / 100, fractionDigits: 2, trimZeros: true))%"
+        String(localized: "\(Fmt.grouped(Double(bps) / 100, fractionDigits: 2, trimZeros: true))%")
     }
 
     private var isAuto: Bool { automatic?.wrappedValue == true }
@@ -170,11 +170,11 @@ struct SlippageSlider: View {
     private var fraction: CGFloat { isAuto ? 0 : Self.position(basisPoints) }
 
     private func markLabel(_ mark: Int) -> String {
-        automatic != nil && mark == Self.marks.first ? "Auto" : Self.label(mark)
+        automatic != nil && mark == Self.marks.first ? String(localized: "Auto") : Self.label(mark)
     }
 
     private var percentText: String {
-        isAuto ? "Auto · \(Self.label(autoValue))" : Self.label(basisPoints)
+        isAuto ? String(localized: "Auto · \(Self.label(autoValue))") : Self.label(basisPoints)
     }
 
     /// Muda para o valor do controle; a ponta esquerda, com o automatico disponivel, e
@@ -190,15 +190,15 @@ struct SlippageSlider: View {
 
     private var explanation: String {
         if isAuto {
-            return "Automática: a menor tolerância que costuma passar para este par, agora \(Self.label(autoValue)). Recalculada a cada cotação: entre stablecoins fica perto de 0,1%; moeda de pouca liquidez ou dia agitado ganha mais folga."
+            return String(localized: "Automática: a menor tolerância que costuma passar para este par, agora \(Self.label(autoValue)). Recalculada a cada cotação: entre stablecoins fica perto de 0,1%; moeda de pouca liquidez ou dia agitado ganha mais folga.")
         }
         switch basisPoints {
         case ..<30:
-            return "Protege mais o preço, mas a troca pode falhar se o mercado se mexer, e a taxa da rede é cobrada mesmo assim."
+            return String(localized: "Protege mais o preço, mas a troca pode falhar se o mercado se mexer, e a taxa da rede é cobrada mesmo assim.")
         case ..<101:
-            return "Equilíbrio: passa na maioria das trocas sem deixar espaço grande para robôs."
+            return String(localized: "Equilíbrio: passa na maioria das trocas sem deixar espaço grande para robôs.")
         default:
-            return "Passa mesmo com o mercado agitado ou com pouca liquidez. Em troca, você aceita receber até \(percentText) a menos, e robôs podem explorar essa diferença."
+            return String(localized: "Passa mesmo com o mercado agitado ou com pouca liquidez. Em troca, você aceita receber até \(percentText) a menos, e robôs podem explorar essa diferença.")
         }
     }
 
@@ -440,7 +440,7 @@ struct TradeDirectionHeader: View {
             Image(systemName: "arrow.right")
                 .font(.system(size: 18, weight: .semibold)).foregroundStyle(Palette.inkSoft)
                 .frame(width: 36, height: 52)
-            side(buy, amount: buyMinimum, prefix: "no mínimo ")
+            side(buy, amount: buyMinimum, prefix: String(localized: "no mínimo "))
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)

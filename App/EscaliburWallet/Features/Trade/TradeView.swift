@@ -120,9 +120,9 @@ struct TradeView: View {
     /// 11/10/2026). No XRP Ledger a oferta pode ir sem prazo de verdade. Na Stellar nao ha
     /// prazo nenhum: a oferta fica ate executar ou o dono cancelar.
     static func validities(_ chain: Chain) -> [(seconds: TimeInterval?, title: String)] {
-        let days: [(seconds: TimeInterval?, title: String)] = [(86_400, "1 dia"), (604_800, "7 dias"), (2_592_000, "30 dias")]
+        let days: [(seconds: TimeInterval?, title: String)] = [(86_400, String(localized: "1 dia")), (604_800, String(localized: "7 dias")), (2_592_000, String(localized: "30 dias"))]
         switch chain.family {
-        case .xrpl: return days + [(nil, "Até cancelar")]
+        case .xrpl: return days + [(nil, String(localized: "Até cancelar"))]
         case .stellar: return []
         default: return days
         }
@@ -140,7 +140,7 @@ struct TradeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    TabTitle(title: "Trocar") {
+                    TabTitle(title: String(localized: "Trocar")) {
                         if !tradeChains.isEmpty, router.tradeMode != .bridge {
                             NetworkMenu(chains: tradeChains, selected: model.chain) { chain in
                                 withAnimation(Motion.fade) { model.reset(to: chain) }
@@ -156,11 +156,11 @@ struct TradeView: View {
                         .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
                     } else {
                         VStack(alignment: .leading, spacing: 0) {
-                            Segmented(options: [(Router.TradeMode.now, "Imediata"), (.limit, "Limite"), (.bridge, "Ponte")],
+                            Segmented(options: [(Router.TradeMode.now, String(localized: "Imediata")), (.limit, String(localized: "Limite")), (.bridge, String(localized: "Ponte"))],
                                       selection: Bindable(router).tradeMode)
                                 .padding(.top, Space.sm)
                             if session.selectedWallet?.isWatchOnly == true {
-                                Banner(kind: .neutral, title: "Esta carteira só observa. Escolha outra carteira para trocar.").padding(.top, Space.md)
+                                Banner(kind: .neutral, title: String(localized: "Esta carteira só observa. Escolha outra carteira para trocar.")).padding(.top, Space.md)
                             }
                             switch router.tradeMode {
                             case .now: nowForm.padding(.top, Space.md)
@@ -306,11 +306,11 @@ struct TradeView: View {
     private var nowForm: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(spacing: 4) {
-                AmountBox(title: "Você paga", asset: model.sell, amount: Binding(get: { model.amountText }, set: { model.typePay($0) }),
+                AmountBox(title: String(localized: "Você paga"), asset: model.sell, amount: Binding(get: { model.amountText }, set: { model.typePay($0) }),
                           balance: balance(model.sell), fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
                           loading: model.exactOut && model.solving, computed: model.exactOut,
                           onPick: { picking = .sell }, onFraction: fractionAction)
-                AmountBox(title: "Você recebe", asset: model.buy, amount: receiveBinding(computed: receiveText),
+                AmountBox(title: String(localized: "Você recebe"), asset: model.buy, amount: receiveBinding(computed: receiveText),
                           balance: balance(model.buy), fiat: fiat(model.exactOut ? model.wantOut : model.shownMinimum, model.buy),
                           editable: true, over: false,
                           loading: !model.exactOut && model.quoting && model.quote == nil && model.amountIn != nil,
@@ -376,11 +376,11 @@ struct TradeView: View {
 
     private var routeText: String {
         guard let quote = model.quote else { return "" }
-        if model.inParts, quote.parts != nil { return "Em partes pela CoW, conforme chega liquidez" }
-        if quote.execution == .order { return "Leilão da CoW, o melhor entre \(quote.providersCompared)" }
+        if model.inParts, quote.parts != nil { return String(localized: "Em partes pela CoW, conforme chega liquidez") }
+        if quote.execution == .order { return String(localized: "Leilão da CoW, o melhor entre \(quote.providersCompared)") }
         return quote.legs.count > 1
-            ? "Dividida entre \(quote.legs.count) provedores para você receber mais"
-            : "\(quote.legs.first?.provider ?? ""), o melhor entre \(quote.providersCompared)"
+            ? String(localized: "Dividida entre \(quote.legs.count) provedores para você receber mais")
+            : String(localized: "\(quote.legs.first?.provider ?? ""), o melhor entre \(quote.providersCompared)")
     }
 
     @ViewBuilder
@@ -426,14 +426,14 @@ struct TradeView: View {
                 .buttonStyle(.plain)
                 if model.showDetails {
                     let inParts = model.inParts && quote.parts != nil
-                    detail("Garantido", Fmt.crypto(model.shownMinimum ?? quote.minimumOut, decimals: buy.decimals, symbol: buy.symbol, style: .full))
-                    detail("Cotação do provedor", Fmt.crypto(inParts ? quote.parts?.expectedOut ?? quote.expectedOut : quote.expectedOut,
+                    detail(String(localized: "Garantido"), Fmt.crypto(model.shownMinimum ?? quote.minimumOut, decimals: buy.decimals, symbol: buy.symbol, style: .full))
+                    detail(String(localized: "Cotação do provedor"), Fmt.crypto(inParts ? quote.parts?.expectedOut ?? quote.expectedOut : quote.expectedOut,
                                                              decimals: buy.decimals, symbol: buy.symbol, style: .full))
                     if quote.execution == .order || inParts {
-                        detail("Prazo da ordem", inParts ? "1 hora" : "30 minutos")
+                        detail(String(localized: "Prazo da ordem"), inParts ? String(localized: "1 hora") : String(localized: "30 minutos"))
                     }
-                    if let impact = quote.priceImpactPercent { detail("Impacto no preço", "\(Fmt.grouped(impact, fractionDigits: 2))%") }
-                    if model.chain == .ethereum, session.metadata.settings.mevProtection { detail("Proteção contra robôs", "ligada") }
+                    if let impact = quote.priceImpactPercent { detail(String(localized: "Impacto no preço"), "\(Fmt.grouped(impact, fractionDigits: 2))%") }
+                    if model.chain == .ethereum, session.metadata.settings.mevProtection { detail(String(localized: "Proteção contra robôs"), "ligada") }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -485,15 +485,15 @@ struct TradeView: View {
     }
 
     private func feeText(_ quote: TradeQuote) -> String {
-        guard let fee = quote.networkFeeFiat else { return "Sem taxa da Escalibur. A taxa da rede aparece na revisão." }
-        return "Taxas: rede \(Fmt.fiat(fee, session.currency)) · sem taxa da Escalibur"
+        guard let fee = quote.networkFeeFiat else { return String(localized: "Sem taxa da Escalibur. A taxa da rede aparece na revisão.") }
+        return String(localized: "Taxas: rede \(Fmt.fiat(fee, session.currency)) · sem taxa da Escalibur")
     }
 
     // MARK: Ordem limite
 
     private var limitForm: some View {
         VStack(alignment: .leading, spacing: 4) {
-            AmountBox(title: "Você vende", asset: model.sell, amount: Binding(get: { model.amountText }, set: { model.typePay($0) }),
+            AmountBox(title: String(localized: "Você vende"), asset: model.sell, amount: Binding(get: { model.amountText }, set: { model.typePay($0) }),
                       balance: balance(model.sell), fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
                       computed: model.exactOut && model.limitDerives == .amount,
                       onPick: { picking = .sell }, onFraction: setFraction)
@@ -511,7 +511,7 @@ struct TradeView: View {
                 }
                 HStack(spacing: Space.xs) {
                     ForEach([0, 5, 10, 20], id: \.self) { percent in
-                        Chip(title: percent == 0 ? "Atual" : "+\(percent)%") { setTarget(percent) }
+                        Chip(title: percent == 0 ? String(localized: "Atual") : "+\(percent)%") { setTarget(percent) }
                     }
                 }
             }
@@ -519,7 +519,7 @@ struct TradeView: View {
             .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
                 .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
             limitSanityLine
-            AmountBox(title: "Você recebe", asset: model.buy, amount: receiveBinding(computed: limitReceiveText), balance: balance(model.buy),
+            AmountBox(title: String(localized: "Você recebe"), asset: model.buy, amount: receiveBinding(computed: limitReceiveText), balance: balance(model.buy),
                       fiat: nil, editable: true, over: false, computed: !model.exactOut, placeholder: receivePlaceholder(limitReceiveText),
                       keyboardDone: false, onFocusChange: receiveFocus, onPick: { picking = .buy }, onFraction: nil)
             VStack(alignment: .leading, spacing: Space.xs) {
@@ -604,7 +604,7 @@ struct TradeView: View {
             while text.hasSuffix("0") { text.removeLast() }
             if text.hasSuffix(".") { text.removeLast() }
         }
-        return text.replacingOccurrences(of: ".", with: ",")
+        return text.replacingOccurrences(of: ".", with: Fmt.decimal)
     }
 
     /// O preco de agora no campo, se ele esta vazio ou ainda com o que o app preencheu.
@@ -797,7 +797,7 @@ struct TradeView: View {
                 Text("Nova cotação em \(model.nextRefresh) s").typeStyle(.note).foregroundStyle(Palette.inkMuted)
             }
             if !hasBalance(model.sell), let sell = model.sell {
-                AccentButton(title: "Receber \(sell.symbol)", systemImage: "arrow.down") { receivingAsset = sell }
+                AccentButton(title: String(localized: "Receber \(sell.symbol)"), systemImage: "arrow.down") { receivingAsset = sell }
             } else {
                 PrimaryButton(title: primaryTitle, enabled: primaryEnabled, loading: model.quoting && model.quote == nil && model.amountIn != nil) {
                     startReview()
@@ -809,17 +809,17 @@ struct TradeView: View {
     }
 
     private var primaryTitle: String {
-        guard engine != nil else { return "Troca indisponível nesta rede" }
-        guard let amount = model.amountIn, !amount.isZero else { return "Digite um valor" }
-        if over { return "Saldo de \(model.sell?.symbol ?? "") insuficiente" }
+        guard engine != nil else { return String(localized: "Troca indisponível nesta rede") }
+        guard let amount = model.amountIn, !amount.isZero else { return String(localized: "Digite um valor") }
+        if over { return String(localized: "Saldo de \(model.sell?.symbol ?? "") insuficiente") }
         if router.tradeMode == .limit {
-            if case .farBelow = limitSanity { return "Preço muito abaixo do mercado" }
-            return "Revisar ordem"
+            if case .farBelow = limitSanity { return String(localized: "Preço muito abaixo do mercado") }
+            return String(localized: "Revisar ordem")
         }
-        if model.quoting && model.quote == nil { return "Buscando o melhor preço" }
-        if model.inParts, model.quote?.parts != nil { return "Revisar troca em partes" }
-        if PriceImpact.level(model.quote?.priceImpactPercent) == .blocked { return "Impacto no preço alto demais" }
-        return model.quote?.needsApproval == true ? "Autorizar \(model.sell?.symbol ?? "") e trocar" : "Revisar troca"
+        if model.quoting && model.quote == nil { return String(localized: "Buscando o melhor preço") }
+        if model.inParts, model.quote?.parts != nil { return String(localized: "Revisar troca em partes") }
+        if PriceImpact.level(model.quote?.priceImpactPercent) == .blocked { return String(localized: "Impacto no preço alto demais") }
+        return model.quote?.needsApproval == true ? String(localized: "Autorizar \(model.sell?.symbol ?? "") e trocar") : String(localized: "Revisar troca")
     }
 
     private var primaryEnabled: Bool {
@@ -845,12 +845,12 @@ struct TradeView: View {
         guard let asset else { return nil }
         let amount = free(asset)
         if router.tradeMode == .limit, asset.id == model.sell?.id, !OpenOrdersBook.shared.lockedSell(asset).isZero {
-            return "Livre \(Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol, style: .list)), o resto em ordens"
+            return String(localized: "Livre \(Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol, style: .list)), o resto em ordens")
         }
         if let held = holding(asset), held.amount > portfolio.available(held) {
-            return "Disponível \(Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol, style: .list))"
+            return String(localized: "Disponível \(Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol, style: .list))")
         }
-        return "Saldo \(Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol, style: .list))"
+        return String(localized: "Saldo \(Fmt.crypto(amount, decimals: asset.decimals, symbol: asset.symbol, style: .list))")
     }
 
     private func hasBalance(_ asset: Asset?) -> Bool {
@@ -859,7 +859,7 @@ struct TradeView: View {
 
     private func fiat(_ amount: BigUInt?, _ asset: Asset?) -> String? {
         guard let asset, let price = asset.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) else { return nil }
-        return "≈ \(Fmt.fiat(Fmt.double(amount ?? 0, decimals: asset.decimals) * price, session.currency))"
+        return String(localized: "≈ \(Fmt.fiat(Fmt.double(amount ?? 0, decimals: asset.decimals) * price, session.currency))")
     }
 
     private func setFraction(_ fraction: Double) {
@@ -918,7 +918,9 @@ struct TradeView: View {
             } catch {
                 model.quote = nil
                 model.error = (error as? LocalizedError)?.errorDescription
-                    ?? "Nenhum provedor troca \(sell.symbol) por \(buy.symbol) \(model.chain.id == "xrpl" ? "no" : "na") \(model.chain.name) agora. Tente um valor menor ou outro par."
+                    ?? (model.chain.id == "xrpl"
+                        ? String(localized: "Nenhum provedor troca \(sell.symbol) por \(buy.symbol) no \(model.chain.name) agora. Tente um valor menor ou outro par.")
+                        : String(localized: "Nenhum provedor troca \(sell.symbol) por \(buy.symbol) na \(model.chain.name) agora. Tente um valor menor ou outro par."))
             }
             model.quoting = false
             for second in stride(from: 15, through: 1, by: -1) {
@@ -963,7 +965,9 @@ struct TradeView: View {
                 model.quote = nil
                 model.amountText = ""
                 model.error = (error as? LocalizedError)?.errorDescription
-                    ?? "Nenhum provedor troca \(sell.symbol) por \(buy.symbol) \(model.chain.id == "xrpl" ? "no" : "na") \(model.chain.name) agora. Tente um valor menor ou outro par."
+                    ?? (model.chain.id == "xrpl"
+                        ? String(localized: "Nenhum provedor troca \(sell.symbol) por \(buy.symbol) no \(model.chain.name) agora. Tente um valor menor ou outro par.")
+                        : String(localized: "Nenhum provedor troca \(sell.symbol) por \(buy.symbol) na \(model.chain.name) agora. Tente um valor menor ou outro par."))
             }
             model.quoting = false
             model.solving = false
@@ -1078,7 +1082,7 @@ struct AmountBox: View {
                 Text(fiat ?? " ").typeStyle(.note).foregroundStyle(amount.isEmpty ? Palette.inkMuted : Palette.inkSoft)
                 Spacer()
                 if let onFraction {
-                    ForEach([(0.25, "25%"), (0.5, "50%"), (1.0, "Máx")], id: \.0) { fraction, label in
+                    ForEach([(0.25, "25%"), (0.5, "50%"), (1.0, String(localized: "Máx"))], id: \.0) { fraction, label in
                         Button { onFraction(fraction) } label: {
                             Text(label).typeStyle(.label).foregroundStyle(Palette.inkSoft)
                                 .padding(.horizontal, Space.xs).frame(height: 28)
@@ -1157,7 +1161,7 @@ struct TokenPickerSheet: View {
         let verified = TokenRegistry.assets(on: chain).filter { $0.id != exclude?.id && matches($0) }
         let others = unlisted.filter { $0.id != exclude?.id && matches($0) }
         VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Escolher token") { dismiss() }
+            SheetHeader(title: String(localized: "Escolher token")) { dismiss() }
             TextField("", text: $query, prompt: Text("Buscar por nome").foregroundColor(Palette.inkDead))
                 .typeStyle(.body).foregroundStyle(Palette.ink)
                 .padding(.horizontal, Space.md).frame(height: 44)
@@ -1166,9 +1170,9 @@ struct TokenPickerSheet: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     if !others.isEmpty {
-                        section("Fora da lista verificada")
+                        section(String(localized: "Fora da lista verificada"))
                         ForEach(others) { row($0) }
-                        section("Verificadas")
+                        section(String(localized: "Verificadas"))
                     }
                     ForEach(verified) { row($0) }
                     if TradeAccess.supportsUnlisted(chain) {
@@ -1240,16 +1244,16 @@ struct RouteSheet: View {
 
     private var explanation: String {
         if quote.execution == .order {
-            return "Uma ordem assinada no leilão da CoW: os solvers disputam com a liquidez das corretoras descentralizadas e dos formadores de mercado. Se não couber de uma vez, ela é preenchida em partes, cada uma pelo mínimo garantido ou mais. O que não sair em 30 minutos continua na sua carteira, sem custo."
+            return String(localized: "Uma ordem assinada no leilão da CoW: os solvers disputam com a liquidez das corretoras descentralizadas e dos formadores de mercado. Se não couber de uma vez, ela é preenchida em partes, cada uma pelo mínimo garantido ou mais. O que não sair em 30 minutos continua na sua carteira, sem custo.")
         }
         return quote.legs.count > 1
-            ? "São \(quote.legs.count) transações, uma por provedor, confirmadas com um único \(KeyServices.biometryName). Cada parte é independente: se uma não passar, você fica com o que foi trocado, e o saldo daquela parte continua na sua carteira."
-            : "Tudo acontece numa transação só. Ou executa inteira, ou nada sai da sua carteira."
+            ? String(localized: "São \(quote.legs.count) transações, uma por provedor, confirmadas com um único \(KeyServices.biometryName). Cada parte é independente: se uma não passar, você fica com o que foi trocado, e o saldo daquela parte continua na sua carteira.")
+            : String(localized: "Tudo acontece numa transação só. Ou executa inteira, ou nada sai da sua carteira.")
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: quote.legs.count > 1 ? "Como a sua ordem foi dividida" : "Rota da troca") { dismiss() }
+            SheetHeader(title: quote.legs.count > 1 ? String(localized: "Como a sua ordem foi dividida") : String(localized: "Rota da troca")) { dismiss() }
             VStack(alignment: .leading, spacing: Space.sm) {
                 ForEach(Array(quote.legs.enumerated()), id: \.offset) { _, leg in
                     HStack {

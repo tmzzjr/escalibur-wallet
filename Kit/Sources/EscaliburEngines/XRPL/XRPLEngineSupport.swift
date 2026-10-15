@@ -24,7 +24,7 @@ enum XRPLEngineSupport {
     static func tag(_ text: String?) throws -> UInt32? {
         guard let text, !text.isEmpty else { return nil }
         guard text.utf8.allSatisfy({ (0x30...0x39).contains($0) }), let tag = UInt32(text) else {
-            throw SendEngineError.message("A tag de destino é um número de 0 a 4.294.967.295. Confira com quem pediu o envio.")
+            throw SendEngineError.message(kitText("A tag de destino é um número de 0 a 4.294.967.295. Confira com quem pediu o envio."))
         }
         return tag
     }
@@ -99,51 +99,51 @@ enum XRPLEngineSupport {
         case .ledgerIndexMismatch:
             return NetworkFailureText.disagree
         case .masterKeyDisabled:
-            return "Esta conta desativou a chave mestra no XRP Ledger. A carteira não tem a chave que assina por ela."
+            return kitText("Esta conta desativou a chave mestra no XRP Ledger. A carteira não tem a chave que assina por ela.")
         case .sequenceUnconfirmed, .destinationUnconfirmed:
             return NetworkFailureText.fewSources
         case .sequenceMismatch, .destinationReadingsDisagree:
             return NetworkFailureText.disagree
         case .feeAboveCap:
-            return "A taxa da rede está acima do teto da carteira agora. Espere a rede acalmar e tente de novo."
+            return kitText("A taxa da rede está acima do teto da carteira agora. Espere a rede acalmar e tente de novo.")
         case .insufficientFunds:
-            return "XRP livre insuficiente para este valor mais a taxa. A reserva da conta fica presa pela rede."
+            return kitText("XRP livre insuficiente para este valor mais a taxa. A reserva da conta fica presa pela rede.")
         case .invalidDestination(let problem):
             switch problem {
-            case .badChecksum: return "Um caractere deste endereço não confere. Copie de novo, inteiro."
-            case .otherNetwork(let other): return "Este endereço é da rede \(other.name), não do XRP Ledger."
-            default: return "Este não é um endereço do XRP Ledger."
+            case .badChecksum: return kitText("Um caractere deste endereço não confere. Copie de novo, inteiro.")
+            case .otherNetwork(let other): return kitText("Este endereço é da rede \(other.name), não do XRP Ledger.")
+            default: return kitText("Este não é um endereço do XRP Ledger.")
             }
         case .sendToSelf:
-            return "O destino é a própria conta."
+            return kitText("O destino é a própria conta.")
         case .conflictingDestinationTag:
-            return "O endereço já traz uma tag, e a tag digitada é outra. Confira com quem pediu o envio."
+            return kitText("O endereço já traz uma tag, e a tag digitada é outra. Confira com quem pediu o envio.")
         case .destinationTagRequired:
-            return "Esta conta exige tag de destino. Sem ela o depósito se perde."
+            return kitText("Esta conta exige tag de destino. Sem ela o depósito se perde.")
         case .destinationDisallowsXRP:
-            return "Esta conta pediu para não receber XRP. Nesta versão a carteira não envia para ela."
+            return kitText("Esta conta pediu para não receber XRP. Nesta versão a carteira não envia para ela.")
         case .depositNotAuthorized:
-            return "Esta conta só aceita depósitos de quem ela autorizou antes, e esta carteira não está entre eles."
+            return kitText("Esta conta só aceita depósitos de quem ela autorizou antes, e esta carteira não está entre eles.")
         case .belowActivationReserve:
-            return "A conta de destino ainda não existe. O primeiro envio precisa ser do mínimo que ativa a conta."
+            return kitText("A conta de destino ainda não existe. O primeiro envio precisa ser do mínimo que ativa a conta.")
         case .zeroAmount:
-            return "O valor precisa ser maior que zero."
+            return kitText("O valor precisa ser maior que zero.")
         case .amountTooLarge:
-            return "O valor passa do máximo que o XRP Ledger representa."
+            return kitText("O valor passa do máximo que o XRP Ledger representa.")
         case .invalidValue, .invalidMemo:
-            return "O valor tem casas demais para o XRP Ledger."
+            return kitText("O valor tem casas demais para o XRP Ledger.")
         case .assetNotCurated:
-            return "Este token não está na lista de ativos da carteira."
+            return kitText("Este token não está na lista de ativos da carteira.")
         case .sameAssetBothSides, .xrpBothSides:
-            return "Os dois lados da troca são o mesmo ativo."
+            return kitText("Os dois lados da troca são o mesmo ativo.")
         case .expirationInPast:
-            return "A validade da ordem precisa ser de pelo menos um minuto."
+            return kitText("A validade da ordem precisa ser de pelo menos um minuto.")
         case .expirationTooFar(let maxDays):
-            return "A validade máxima de uma ordem é de \(maxDays) dias."
+            return kitText("A validade máxima de uma ordem é de \(maxDays) dias.")
         case .invalidOfferSequence:
-            return "Oferta inválida."
+            return kitText("Oferta inválida.")
         case .transaction:
-            return "A transação não passou na conferência de montagem. Nada foi montado."
+            return kitText("A transação não passou na conferência de montagem. Nada foi montado.")
         }
     }
 

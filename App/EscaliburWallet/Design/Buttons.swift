@@ -220,8 +220,8 @@ struct AccentStyle: ButtonStyle {
 /// clara atravessa a capsula da esquerda para a direita. Depois de 2 segundos volta,
 /// pelo caminho inverso. Com Reduzir Movimento, so troca o icone e o texto.
 struct CopyButton: View {
-    var title = "Copiar endereço"
-    var doneTitle = "Endereço copiado"
+    var title = String(localized: "Copiar endereço")
+    var doneTitle = String(localized: "Endereço copiado")
     let action: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

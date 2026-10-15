@@ -86,7 +86,7 @@ struct RevealFlow: View {
             .padding(.top, Space.xxs)
             if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }
             Spacer()
-            PrimaryButton(title: "Ver as palavras", enabled: acknowledged.count == Self.statements.count, loading: working) {
+            PrimaryButton(title: String(localized: "Ver as palavras"), enabled: acknowledged.count == Self.statements.count, loading: working) {
                 Task { await open() }
             }
         }
@@ -97,9 +97,9 @@ struct RevealFlow: View {
 
     /// Cada item continua a frase "Estou ciente que:".
     static let statements = [
-        "quem tem as palavras tem o saldo",
-        "a Escalibur nunca pede as palavras",
-        "devo ver as palavras sozinho, longe de câmeras",
+        String(localized: "quem tem as palavras tem o saldo"),
+        String(localized: "a Escalibur nunca pede as palavras"),
+        String(localized: "devo ver as palavras sozinho, longe de câmeras"),
     ]
 
     private func open() async {
@@ -109,7 +109,7 @@ struct RevealFlow: View {
         let id = wallet.id
         do {
             guard await VoiceGate.shared.confirm(.reveal, session: session) else { return }
-            let result: (SecureBytes, SecureBytes?)? = try await auth.perform(session, reason: "Ver a senha de \(wallet.name)", requirePIN: true) { rk in
+            let result: (SecureBytes, SecureBytes?)? = try await auth.perform(session, reason: String(localized: "Ver a senha de \(wallet.name)"), requirePIN: true) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }
                 var pass: SecureBytes?
@@ -125,7 +125,7 @@ struct RevealFlow: View {
             passphrase = pass
             draft = PhraseDraft(phrase: phrase, wordCount: words)
         } catch {
-            self.error = "Não foi possível abrir a carteira agora."
+            self.error = String(localized: "Não foi possível abrir a carteira agora.")
         }
     }
 

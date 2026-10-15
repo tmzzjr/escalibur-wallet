@@ -286,7 +286,7 @@ struct SendAssetPicker: View {
             .multilineTextAlignment(.center)
             .padding(.top, Space.md)
             Spacer(minLength: Space.md)
-            PrimaryButton(title: "Receber") { receiving = true }
+            PrimaryButton(title: String(localized: "Receber")) { receiving = true }
         }
         .padding(.horizontal, Space.gutter)
         .padding(.bottom, Space.xs)
@@ -347,11 +347,12 @@ struct SendStages: View {
 
     private var ownWalletsSheet: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Minhas carteiras") { pickingWallet = false }
+            SheetHeader(title: String(localized: "Minhas carteiras")) { pickingWallet = false }
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.xs) {
                     if ownWallets.isEmpty {
-                        Text("Nenhuma outra carteira deste app tem conta \(model.chain.map { "\(Self.of($0) == "do" ? "no" : "na") \($0.name)" } ?? "nesta rede").")
+                        Text(model.chain.map { $0.id == "xrpl" ? String(localized: "Nenhuma outra carteira deste app tem conta no \($0.name).") : String(localized: "Nenhuma outra carteira deste app tem conta na \($0.name).") }
+                             ?? String(localized: "Nenhuma outra carteira deste app tem conta nesta rede."))
                             .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                     }
                     ForEach(ownWallets, id: \.wallet.id) { item in
@@ -447,12 +448,12 @@ struct SendStages: View {
                 optionalTag.id("tag-opcional")
 
                 if let lookalike = model.lookalike, let destination = model.destination, let chain = model.chain {
-                    Banner(kind: .caution, title: "Endereço parecido com um que você já usou",
-                           message: "As pontas são iguais, o meio é diferente. Golpistas mandam centavos de um endereço assim para ele aparecer no seu histórico.")
+                    Banner(kind: .caution, title: String(localized: "Endereço parecido com um que você já usou"),
+                           message: String(localized: "As pontas são iguais, o meio é diferente. Golpistas mandam centavos de um endereço assim para ele aparecer no seu histórico."))
                         .padding(.top, Space.md)
                     VStack(alignment: .leading, spacing: Space.sm) {
-                        comparedAddress("Você colou", destination.address, model.lookalikeSegment)
-                        comparedAddress("Você já usou", lookalike,
+                        comparedAddress(String(localized: "Você colou"), destination.address, model.lookalikeSegment)
+                        comparedAddress(String(localized: "Você já usou"), lookalike,
                                         AddressPoisoning.differingSegment(lookalike, from: destination.address, chain: chain))
                     }
                     .padding(.top, Space.sm)
@@ -470,10 +471,10 @@ struct SendStages: View {
                 }
 
                 if model.lookalike == nil, let segment = model.blindSegment, let destination = model.destination {
-                    Banner(kind: .neutral, title: "Primeiro envio para este endereço",
-                           message: "O histórico desta rede não pôde ser lido agora, então o app não consegue comparar com os endereços que você já usou. Confira o endereço com quem vai receber.")
+                    Banner(kind: .neutral, title: String(localized: "Primeiro envio para este endereço"),
+                           message: String(localized: "O histórico desta rede não pôde ser lido agora, então o app não consegue comparar com os endereços que você já usou. Confira o endereço com quem vai receber."))
                         .padding(.top, Space.md)
-                    comparedAddress("Você colou", destination.address, segment).padding(.top, Space.sm)
+                    comparedAddress(String(localized: "Você colou"), destination.address, segment).padding(.top, Space.sm)
                     Text("Para seguir, digite os 6 caracteres marcados.")
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                         .fixedSize(horizontal: false, vertical: true)
@@ -503,7 +504,7 @@ struct SendStages: View {
         }
         }
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: "Continuar", enabled: model.destination != nil && model.lookalikeCleared && tagProblem == nil
+            PrimaryButton(title: String(localized: "Continuar"), enabled: model.destination != nil && model.lookalikeCleared && tagProblem == nil
                           && (!model.needsNetworkConfirmation || model.networkConfirmed), loading: model.working) {
                 Task { await continueFromDestination() }
             }
@@ -518,7 +519,7 @@ struct SendStages: View {
             VStack(alignment: .leading, spacing: Space.sm) {
                 Text(problem).typeStyle(.note).foregroundStyle(Palette.down).fixedSize(horizontal: false, vertical: true)
                 if let suggestion = model.networkSuggestion, let other = suggestion.asset.chain {
-                    SecondaryButton(title: "Enviar \(suggestion.asset.symbol) pela \(other.name)") { switchNetwork(to: suggestion) }
+                    SecondaryButton(title: String(localized: "Enviar \(suggestion.asset.symbol) pela \(other.name)")) { switchNetwork(to: suggestion) }
                 }
             }
         } else if let destination = model.destination, let chain = model.chain {
@@ -526,10 +527,11 @@ struct SendStages: View {
                 // O endereco como ele vai para a transacao, com o comeco e o fim marcados
                 // para conferir contra a origem.
                 AddressBlocks(address: destination.address).padding(.bottom, Space.xxs)
-                Text(KnownExchanges.name(for: destination.address).map { "\($0), endereço de depósito" } ?? "Endereço \(Self.of(chain)) \(chain.name)")
+                Text(KnownExchanges.name(for: destination.address).map { String(localized: "\($0), endereço de depósito") }
+                     ?? (chain.id == "xrpl" ? String(localized: "Endereço do \(chain.name)") : String(localized: "Endereço da \(chain.name)")))
                     .typeStyle(.note).foregroundStyle(Palette.up)
                 if let tag = destination.tag {
-                    Text("A tag de destino \(tag) veio junto no endereço.").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    Text("A tag de destino \(String(tag)) veio junto no endereço.").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 }
                 if model.isFirstSend {
                     Text("Primeira vez que você envia para este endereço.").typeStyle(.note).foregroundStyle(Palette.inkSoft)
@@ -559,8 +561,6 @@ struct SendStages: View {
             }
         }
     }
-
-    static func of(_ chain: Chain) -> String { chain.id == "xrpl" ? "do" : "da" }
 
     /// A mesma moeda na rede do endereco colado, se a carteira tem saldo dela la. Na EVM
     /// o endereco nao diz a rede: com o token em varias, a Ethereum primeiro, e a etapa
@@ -600,7 +600,7 @@ struct SendStages: View {
                 Text(Self.networkConfirmationNote(chain, symbol: holding.asset.symbol))
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 Toggle(isOn: $model.networkConfirmed) {
-                    Text(chain.family == .near ? "Este endereço é de uma conta NEAR" : "Quem vai receber aceita \(holding.asset.symbol) pela \(chain.name)")
+                    Text(chain.family == .near ? String(localized: "Este endereço é de uma conta NEAR") : String(localized: "Quem vai receber aceita \(holding.asset.symbol) pela \(chain.name)"))
                         .typeStyle(.note).foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -617,13 +617,13 @@ struct SendStages: View {
     static func networkConfirmationNote(_ chain: Chain, symbol: String) -> String {
         switch chain.family {
         case .sui:
-            return "Endereços Sui têm o mesmo formato dos endereços Aptos, então o endereço não diz a rede. Se quem vai receber espera o valor pela Aptos ou por outra rede, ele não chega."
+            return String(localized: "Endereços Sui têm o mesmo formato dos endereços Aptos, então o endereço não diz a rede. Se quem vai receber espera o valor pela Aptos ou por outra rede, ele não chega.")
         case .aptos:
-            return "Endereços Aptos têm o mesmo formato dos endereços Sui, então o endereço não diz a rede. Se quem vai receber espera o valor pela Sui ou por outra rede, ele não chega."
+            return String(localized: "Endereços Aptos têm o mesmo formato dos endereços Sui, então o endereço não diz a rede. Se quem vai receber espera o valor pela Sui ou por outra rede, ele não chega.")
         case .near:
-            return "Contas NEAR sem nome têm 64 letras e números, o mesmo formato de um endereço Sui ou Aptos sem o 0x. Se este endereço é de outra rede, o valor vai para uma conta NEAR que ninguém controla e se perde."
+            return String(localized: "Contas NEAR sem nome têm 64 letras e números, o mesmo formato de um endereço Sui ou Aptos sem o 0x. Se este endereço é de outra rede, o valor vai para uma conta NEAR que ninguém controla e se perde.")
         default:
-            return "Endereços EVM são iguais em todas as redes EVM, então o endereço não diz a rede. Se quem vai receber só aceita \(symbol) por outra rede (uma exchange que recebe só pela Ethereum, por exemplo), o valor não chega."
+            return String(localized: "Endereços EVM são iguais em todas as redes EVM, então o endereço não diz a rede. Se quem vai receber só aceita \(symbol) por outra rede (uma exchange que recebe só pela Ethereum, por exemplo), o valor não chega.")
         }
     }
 
@@ -670,8 +670,8 @@ struct SendStages: View {
     private func apply(_ reading: PaymentURI.Reading) {
         var problem = reading.problem
         if problem == nil, let asked = reading.chainID, let chain = model.chain, asked != chain.id {
-            let name = Chain.find(asked)?.name ?? "outra rede"
-            problem = "Este pedido é da rede \(name), e o envio é pela \(chain.name). Confira com quem pediu antes de enviar."
+            let name = Chain.find(asked)?.name ?? String(localized: "outra rede")
+            problem = String(localized: "Este pedido é da rede \(name), e o envio é pela \(chain.name). Confira com quem pediu antes de enviar.")
         }
         model.linkProblem = problem.map { (text: reading.address, message: $0) }
         model.destinationText = reading.address
@@ -700,7 +700,7 @@ struct SendStages: View {
         switch Address.validate(text, for: chain) {
         case .success(let destination):
             if model.wallet.accounts.contains(where: { $0.address == destination.address }) {
-                model.destinationProblem = "Este endereço é desta mesma carteira."
+                model.destinationProblem = String(localized: "Este endereço é desta mesma carteira.")
                 return
             }
             model.destination = destination
@@ -729,11 +729,16 @@ struct SendStages: View {
         switch problem {
         case .empty: return ""
         case .otherNetwork(let other):
-            let name = other.family == .evm ? "EVM (Ethereum, Base e outras)" : other.name
-            return "Este é um endereço \(name). Para enviar pela rede \(chain.name), use um endereço \(of(chain)) \(chain.name)."
-        case .badChecksum: return "Uma letra deste endereço não confere. Ele pode ter sido copiado pela metade ou alterado. Copie de novo, inteiro."
-        case .unsupportedType: return "Este tipo de endereço ainda não recebe envios desta carteira."
-        case .malformed: return "Este endereço não é \(of(chain)) \(chain.name). Confira se copiou inteiro."
+            let name = other.family == .evm ? String(localized: "EVM (Ethereum, Base e outras)") : other.name
+            return chain.id == "xrpl"
+                ? String(localized: "Este é um endereço \(name). Para enviar pela rede \(chain.name), use um endereço do \(chain.name).")
+                : String(localized: "Este é um endereço \(name). Para enviar pela rede \(chain.name), use um endereço da \(chain.name).")
+        case .badChecksum: return String(localized: "Uma letra deste endereço não confere. Ele pode ter sido copiado pela metade ou alterado. Copie de novo, inteiro.")
+        case .unsupportedType: return String(localized: "Este tipo de endereço ainda não recebe envios desta carteira.")
+        case .malformed:
+            return chain.id == "xrpl"
+                ? String(localized: "Este endereço não é do \(chain.name). Confira se copiou inteiro.")
+                : String(localized: "Este endereço não é da \(chain.name). Confira se copiou inteiro.")
         }
     }
 
@@ -749,7 +754,7 @@ struct SendStages: View {
             model.destinationInfo = try await engine.destination(destination.address, chain: chain)
             model.stage = model.needsTagStep && destination.tag == nil ? .tag : .amount
         } catch {
-            model.destinationProblem = (error as? LocalizedError)?.errorDescription ?? "Não foi possível consultar o destino agora."
+            model.destinationProblem = (error as? LocalizedError)?.errorDescription ?? String(localized: "Não foi possível consultar o destino agora.")
         }
     }
 
@@ -786,44 +791,75 @@ struct SendStages: View {
     /// O nome como a exchange mostra, para o dono achar o mesmo campo dos dois lados.
     private var tagTitle: String {
         switch model.chain?.destinationTag {
-        case .stellarMemo: return "Memo (MEMO)"
-        case .tonComment: return "Comentário (Memo)"
-        default: return "Tag de destino (Destination Tag)"
+        case .stellarMemo: return String(localized: "Memo (MEMO)")
+        case .tonComment: return String(localized: "Comentário (Memo)")
+        default: return String(localized: "Tag de destino (Destination Tag)")
         }
     }
 
     private var tagExplanation: String {
-        let exchange = "Exchanges pedem para saber de quem é o depósito. Se quem pediu o envio deu"
+        let exchange = String(localized: "Exchanges pedem para saber de quem é o depósito. Se quem pediu o envio deu")
         switch model.chain?.destinationTag {
-        case .stellarMemo: return "\(exchange) um memo, cole aqui exatamente igual. Para uma carteira pessoal, deixe vazio."
-        case .tonComment: return "\(exchange) um comentário ou memo, cole aqui exatamente igual. Para uma carteira pessoal, deixe vazio."
-        default: return "\(exchange) uma tag (um número), cole aqui. Sem ela, a exchange pode não achar o depósito. Para uma carteira pessoal, deixe vazio."
+        case .stellarMemo: return String(localized: "\(exchange) um memo, cole aqui exatamente igual. Para uma carteira pessoal, deixe vazio.")
+        case .tonComment: return String(localized: "\(exchange) um comentário ou memo, cole aqui exatamente igual. Para uma carteira pessoal, deixe vazio.")
+        default: return String(localized: "\(exchange) uma tag (um número), cole aqui. Sem ela, a exchange pode não achar o depósito. Para uma carteira pessoal, deixe vazio.")
         }
     }
 
     private var tagPlaceholder: String {
-        model.chain?.destinationTag == .xrplTag ? "Ex.: 123456789" : "Cole aqui, se tiver"
+        model.chain?.destinationTag == .xrplTag ? "Ex.: 123456789" : String(localized: "Cole aqui, se tiver")
     }
 
-    private var tagNoun: String {
+    private var tagKind: PlanWarningText.TagKind {
         switch model.chain?.destinationTag {
-        case .stellarMemo: return "memo"
-        case .tonComment: return "comentário"
-        default: return "tag de destino"
+        case .stellarMemo: return .memo
+        case .tonComment: return .comment
+        default: return .tag
+        }
+    }
+
+    /// As frases da etapa da tag, inteiras para cada tipo: o nome muda o genero e a ordem
+    /// da frase em cada idioma.
+    private func tagText(required: Bool, exchange: String?) -> (title: String, body: String, placeholder: String, skip: String) {
+        let title: String
+        if required {
+            switch tagKind {
+            case .tag: title = String(localized: "Esta conta exige tag de destino")
+            case .memo: title = String(localized: "Esta conta exige memo")
+            case .comment: title = String(localized: "Esta conta exige comentário")
+            }
+        } else {
+            title = exchange.map { String(localized: "Este endereço é da \($0)") } ?? String(localized: "Este endereço é de uma exchange")
+        }
+        switch tagKind {
+        case .tag:
+            return (title,
+                    required ? String(localized: "A exchange usa a tag de destino para saber que este envio é seu. Copie da tela de depósito da exchange, a mesma onde está o endereço.")
+                        : String(localized: "Exchanges quase sempre pedem tag de destino. Sem ela, o valor chega na exchange mas não na sua conta, e recuperar leva semanas de suporte."),
+                    String(localized: "Tag de destino"), String(localized: "A exchange não pediu tag de destino"))
+        case .memo:
+            return (title,
+                    required ? String(localized: "A exchange usa o memo para saber que este envio é seu. Copie da tela de depósito da exchange, a mesma onde está o endereço.")
+                        : String(localized: "Exchanges quase sempre pedem memo. Sem ele, o valor chega na exchange mas não na sua conta, e recuperar leva semanas de suporte."),
+                    String(localized: "Memo"), String(localized: "A exchange não pediu memo"))
+        case .comment:
+            return (title,
+                    required ? String(localized: "A exchange usa o comentário para saber que este envio é seu. Copie da tela de depósito da exchange, a mesma onde está o endereço.")
+                        : String(localized: "Exchanges quase sempre pedem comentário. Sem ele, o valor chega na exchange mas não na sua conta, e recuperar leva semanas de suporte."),
+                    String(localized: "Comentário"), String(localized: "A exchange não pediu comentário"))
         }
     }
 
     private var tagStage: some View {
         let exchange = KnownExchanges.name(for: model.destination?.address ?? "")
         let required = model.destinationInfo?.requiresTag == true
+        let words = tagText(required: required, exchange: exchange)
         return VStack(alignment: .leading, spacing: 0) {
-            Text(required ? "Esta conta exige \(tagNoun)" : "Este endereço é da \(exchange ?? "exchange")")
+            Text(words.title)
                 .typeStyle(.title).foregroundStyle(Palette.ink).fixedSize(horizontal: false, vertical: true)
-            Text(required
-                 ? "A exchange usa a \(tagNoun) para saber que este envio é seu. Copie da tela de depósito da exchange, a mesma onde está o endereço."
-                 : "Exchanges quase sempre pedem \(tagNoun). Sem ela, o valor chega na exchange mas não na sua conta, e recuperar leva semanas de suporte.")
+            Text(words.body)
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
-            TextField("", text: $model.tagText, prompt: Text(tagNoun.capitalized).foregroundColor(Palette.inkDead))
+            TextField("", text: $model.tagText, prompt: Text(words.placeholder).foregroundColor(Palette.inkDead))
                 .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
                 .keyboardType(model.chain?.destinationTag == .xrplTag ? .numberPad : .asciiCapable)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -835,9 +871,9 @@ struct SendStages: View {
                 Text(problem).typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.xs)
             }
             Spacer()
-            PrimaryButton(title: "Continuar", enabled: !model.tagText.isEmpty && tagProblem == nil) { model.stage = .amount }
+            PrimaryButton(title: String(localized: "Continuar"), enabled: !model.tagText.isEmpty && tagProblem == nil) { model.stage = .amount }
             if !required {
-                SecondaryButton(title: "A exchange não pediu \(tagNoun)") {
+                SecondaryButton(title: words.skip) {
                     model.skippedTag = true
                     model.tagText = ""
                     model.stage = .amount
@@ -851,9 +887,9 @@ struct SendStages: View {
         guard !model.tagText.isEmpty, let chain = model.chain else { return nil }
         switch chain.destinationTag {
         case .xrplTag:
-            return UInt32(model.tagText) == nil ? "A tag é um número de 0 a 4.294.967.295. Confira na exchange." : nil
+            return UInt32(model.tagText) == nil ? String(localized: "A tag é um número de 0 a 4.294.967.295. Confira na exchange.") : nil
         case .stellarMemo:
-            return model.tagText.utf8.count > 28 && UInt64(model.tagText) == nil ? "O memo cabe até 28 caracteres." : nil
+            return model.tagText.utf8.count > 28 && UInt64(model.tagText) == nil ? String(localized: "O memo cabe até 28 caracteres.") : nil
         default:
             return nil
         }
@@ -914,14 +950,17 @@ struct SendStages: View {
                 Text(note).typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xxs)
             }
             if let minimum = model.destinationInfo?.activationMinimum, let chain = model.chain {
-                Text("Esta conta ainda não existe \(chain.id == "xrpl" ? "no" : "na") \(chain.name). Para ativá-la, o primeiro envio precisa ser de \(Fmt.crypto(minimum, decimals: holding.asset.decimals, symbol: holding.asset.symbol)) ou mais.")
+                let minimumText = Fmt.crypto(minimum, decimals: holding.asset.decimals, symbol: holding.asset.symbol)
+                Text(chain.id == "xrpl"
+                     ? String(localized: "Esta conta ainda não existe no \(chain.name). Para ativá-la, o primeiro envio precisa ser de \(minimumText) ou mais.")
+                     : String(localized: "Esta conta ainda não existe na \(chain.name). Para ativá-la, o primeiro envio precisa ser de \(minimumText) ou mais."))
                     .typeStyle(.note).foregroundStyle(Palette.caution).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
             }
             if let error = model.error {
                 Banner(kind: .failure, title: error).padding(.top, Space.md)
             }
             Spacer()
-            PrimaryButton(title: over ? "Saldo insuficiente" : "Revisar", enabled: (model.amount.map { !$0.isZero } ?? false) && !over, loading: model.working) {
+            PrimaryButton(title: over ? String(localized: "Saldo insuficiente") : String(localized: "Revisar"), enabled: (model.amount.map { !$0.isZero } ?? false) && !over, loading: model.working) {
                 // Parte do valor esta numa ordem de venda: antes, a tela de liberar.
                 if lockedOver { model.showingLockedOrders = true } else { Task { await review() } }
             }
@@ -1001,7 +1040,7 @@ struct SendStages: View {
             let plan = try await engine.plan(request)
             guard planMatches(plan) else {
                 model.plan = nil
-                model.error = "O envio montado não confere com o destino digitado. Nada foi assinado."
+                model.error = String(localized: "O envio montado não confere com o destino digitado. Nada foi assinado.")
                 return
             }
             model.plan = plan
@@ -1013,7 +1052,7 @@ struct SendStages: View {
             if (error as? SendEngineError)?.isLocalNonceQueueAhead == true {
                 NonceQueue.clear(session, wallet: model.wallet.id, chain: chain, address: account.address)
             }
-            model.error = (error as? LocalizedError)?.errorDescription ?? "Não foi possível preparar o envio."
+            model.error = (error as? LocalizedError)?.errorDescription ?? String(localized: "Não foi possível preparar o envio.")
         }
     }
 
@@ -1037,9 +1076,9 @@ struct SendStages: View {
             .accessibilityLabel("Quanto do disponível enviar")
             .accessibilityValue("\(Int((typed * 100).rounded())) por cento")
             HStack {
-                ForEach(["0%", "25%", "50%", "75%", "Máx"], id: \.self) { label in
+                ForEach(["0%", "25%", "50%", "75%", String(localized: "Máx")], id: \.self) { label in
                     Text(label).typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                    if label != "Máx" { Spacer() }
+                    if label != String(localized: "Máx") { Spacer() }
                 }
             }
         }
@@ -1095,7 +1134,7 @@ struct SendStages: View {
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Space.sm) {
                 irreversibleCheck
-                PrimaryButton(title: model.plan?.review.title ?? "Enviar", enabled: model.irreversibleAcknowledged, loading: model.working) {
+                PrimaryButton(title: model.plan?.review.title ?? String(localized: "Enviar"), enabled: model.irreversibleAcknowledged, loading: model.working) {
                     Task { await send() }
                 }
                 if model.isFirstSend {
@@ -1139,13 +1178,17 @@ struct SendStages: View {
 
     private func warnings(_ plan: SigningPlan) -> [String] {
         var out: [String] = []
-        if let lookalike = model.lookalike { out.append("Endereço parecido com \(Fmt.address(lookalike)). Confira o endereço inteiro.") }
+        if let lookalike = model.lookalike { out.append(String(localized: "Endereço parecido com \(Fmt.address(lookalike)). Confira o endereço inteiro.")) }
         if model.skippedTag {
-            out.append("Envio sem \(tagNoun), por sua escolha.")
+            switch tagKind {
+            case .tag: out.append(String(localized: "Envio sem tag de destino, por sua escolha."))
+            case .memo: out.append(String(localized: "Envio sem memo, por sua escolha."))
+            case .comment: out.append(String(localized: "Envio sem comentário, por sua escolha."))
+            }
         } else if let chain = model.chain, chain.destinationTag != .none, model.tagText.isEmpty, model.isFirstSend {
             // Primeiro envio para este destino, sem tag, numa rede que tem: se for uma
             // exchange que nao liga a flag da rede, o valor se perde la dentro.
-            out.append(PlanWarningText.text(.noDestinationTag, tagNoun: tagNoun))
+            out.append(PlanWarningText.text(.noDestinationTag, tag: tagKind))
         }
         for warning in plan.review.warnings {
             // O aviso de primeiro envio ja aparece embaixo do botao.
@@ -1153,7 +1196,7 @@ struct SendStages: View {
             // O aviso de token fora da lista saiu do envio (pedido do dono, 14/10/2026): a
             // moeda e do saldo do dono, e o ativo do plano e conferido em `planMatches`.
             if case .unverifiedToken = warning { continue }
-            out.append(PlanWarningText.text(warning, tagNoun: tagNoun))
+            out.append(PlanWarningText.text(warning, tag: tagKind))
         }
         return out
     }
@@ -1161,12 +1204,12 @@ struct SendStages: View {
     private func send() async {
         guard let plan = model.plan, let engine, let chain = model.chain, let holding = model.holding else { return }
         guard planMatches(plan) else {
-            model.error = "O envio montado não confere com o destino digitado. Nada foi assinado."
+            model.error = String(localized: "O envio montado não confere com o destino digitado. Nada foi assinado.")
             return
         }
         guard !plan.isExpired() else {
             model.stage = .amount
-            model.error = "Os dados da rede venceram. Revise de novo."
+            model.error = String(localized: "Os dados da rede venceram. Revise de novo.")
             return
         }
         // Sem cotacao, o valor em reais e desconhecido e a voz e pedida (falha fechada).
@@ -1183,7 +1226,7 @@ struct SendStages: View {
             }) else { return }
             signed = result
         } catch {
-            model.error = (error as? LocalizedError)?.errorDescription ?? "O envio não saiu. Nada foi debitado."
+            model.error = (error as? LocalizedError)?.errorDescription ?? String(localized: "O envio não saiu. Nada foi debitado.")
             model.stage = .review
             return
         }
@@ -1277,8 +1320,8 @@ struct SendStages: View {
                 }
                 .buttonStyle(SecondaryStyle())
             }
-            PrimaryButton(title: "Transmitir de novo", loading: model.working) { Task { await retransmit() } }.padding(.top, Space.sm)
-            TertiaryButton(title: "Fechar e acompanhar na Atividade", action: close).frame(maxWidth: .infinity)
+            PrimaryButton(title: String(localized: "Transmitir de novo"), loading: model.working) { Task { await retransmit() } }.padding(.top, Space.sm)
+            TertiaryButton(title: String(localized: "Fechar e acompanhar na Atividade"), action: close).frame(maxWidth: .infinity)
         }
         .task(id: model.resultID) { await watchUnsure() }
     }
@@ -1329,7 +1372,7 @@ struct SendStages: View {
                 .buttonStyle(SecondaryStyle())
             }
             if model.stage != .sending {
-                PrimaryButton(title: "Concluir", action: close).padding(.top, Space.sm)
+                PrimaryButton(title: String(localized: "Concluir"), action: close).padding(.top, Space.sm)
             }
         }
         .sensoryFeedback(.success, trigger: model.stage == .done)
@@ -1341,7 +1384,7 @@ struct SendStages: View {
         let amount = model.plan?.review.outgoing?.amount ?? model.amount ?? 0
         let value = Fmt.crypto(amount, decimals: holding.asset.decimals, symbol: holding.asset.symbol, style: .full)
         guard let address = model.destination?.address else { return value }
-        return "\(value) para \(KnownExchanges.name(for: address) ?? Fmt.address(address))"
+        return String(localized: "\(value) para \(KnownExchanges.name(for: address) ?? Fmt.address(address))")
     }
 
     @ViewBuilder
@@ -1349,14 +1392,15 @@ struct SendStages: View {
         if case .confirmed(let detail) = model.status {
             HStack(spacing: Space.xs) {
                 Image(systemName: "checkmark.seal.fill").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.up)
-                Text(detail ?? "Confirmado na rede.").typeStyle(.note).foregroundStyle(Palette.ink)
+                Text(detail ?? String(localized: "Confirmado na rede.")).typeStyle(.note).foregroundStyle(Palette.ink)
             }
         } else if let chain = model.chain {
             HStack(spacing: Space.xs) {
                 ProgressView().controlSize(.small).tint(Palette.inkSoft)
                 Text(chain.family == .utxo
                      ? "A primeira confirmação leva cerca de \(chain.typicalConfirmationSeconds / 60) minutos. Pode fechar o app."
-                     : "Confirmando \(chain.id == "xrpl" ? "no" : "na") \(chain.name), cerca de \(chain.typicalConfirmationSeconds) segundos.")
+                     : chain.id == "xrpl" ? "Confirmando no \(chain.name), cerca de \(chain.typicalConfirmationSeconds) segundos."
+                     : "Confirmando na \(chain.name), cerca de \(chain.typicalConfirmationSeconds) segundos.")
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1388,9 +1432,9 @@ enum PaymentURI {
             let reading = try PaymentLink.read(text)
             return Reading(address: reading.address, chainID: reading.chainID, problem: nil)
         } catch PaymentLink.Problem.tooLong {
-            return Reading(address: "", chainID: nil, problem: "Este código é longo demais para ser um endereço.")
+            return Reading(address: "", chainID: nil, problem: String(localized: "Este código é longo demais para ser um endereço."))
         } catch {
-            return Reading(address: "", chainID: nil, problem: "Este pedido de pagamento não pôde ser lido com segurança. Peça só o endereço.")
+            return Reading(address: "", chainID: nil, problem: String(localized: "Este pedido de pagamento não pôde ser lido com segurança. Peça só o endereço."))
         }
     }
 }
@@ -1420,7 +1464,7 @@ struct LockedOrdersSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Moeda em ordem de venda") { dismiss() }
+            SheetHeader(title: String(localized: "Moeda em ordem de venda")) { dismiss() }
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.md) {
                     Text(summary).typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
@@ -1428,7 +1472,7 @@ struct LockedOrdersSheet: View {
                         ForEach(model.sellingOrders) { order in row(order) }
                     }
                     if released {
-                        Banner(kind: .neutral, title: "Liberado. O valor que você digitou já pode ser enviado.")
+                        Banner(kind: .neutral, title: String(localized: "Liberado. O valor que você digitou já pode ser enviado."))
                     }
                 }
                 .padding(.horizontal, Space.gutter)
@@ -1437,9 +1481,9 @@ struct LockedOrdersSheet: View {
             }
             VStack(spacing: Space.sm) {
                 if released {
-                    PrimaryButton(title: "Continuar o envio") { dismiss() }
+                    PrimaryButton(title: String(localized: "Continuar o envio")) { dismiss() }
                 } else if !free.isZero {
-                    SecondaryButton(title: "Enviar só o livre, \(amount(free))") {
+                    SecondaryButton(title: String(localized: "Enviar só o livre, \(amount(free))")) {
                         model.sendAll = false
                         model.amountText = Fmt.plainDecimal(free, decimals: asset?.decimals ?? 0)
                         dismiss()
@@ -1474,8 +1518,8 @@ struct LockedOrdersSheet: View {
 
     private var summary: String {
         let wanted = model.amount.map(amount) ?? ""
-        return "Do disponível de \(amount(limit)), \(amount(min(model.locked, limit))) estão reservados em ordens de venda abertas. "
-            + "Para enviar \(wanted), cancele a ordem antes. O que ela não vendeu volta a ficar livre na carteira assim que a rede confirmar."
+        return String(localized: "Do disponível de \(amount(limit)), \(amount(min(model.locked, limit))) estão reservados em ordens de venda abertas. ")
+            + String(localized: "Para enviar \(wanted), cancele a ordem antes. O que ela não vendeu volta a ficar livre na carteira assim que a rede confirmar.")
     }
 
     private func row(_ order: OpenOrder) -> some View {
@@ -1486,7 +1530,7 @@ struct LockedOrdersSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Vende \(OpenOrdersSection.amount(order.remainingSell, sell))").typeStyle(.row).foregroundStyle(Palette.ink)
                 Text("por no mínimo \(OpenOrdersSection.amount(order.minimumBuy, buy))").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                Text(sent ? "Cancelamento enviado. Esperando a rede confirmar." : OpenOrdersSection.expiry(order.expiresAt))
+                Text(sent ? String(localized: "Cancelamento enviado. Esperando a rede confirmar.") : OpenOrdersSection.expiry(order.expiresAt))
                     .typeStyle(.note).foregroundStyle(sent ? Palette.caution : Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: Space.sm)

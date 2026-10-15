@@ -82,7 +82,7 @@ struct BridgeReviewFlow: View {
                 Text("A ponte não foi montada").typeStyle(.title).foregroundStyle(Palette.ink)
                 Banner(kind: .failure, title: error)
                 Spacer()
-                PrimaryButton(title: "Tentar de novo") { Task { await makePlan() } }
+                PrimaryButton(title: String(localized: "Tentar de novo")) { Task { await makePlan() } }
                     .padding(.bottom, Space.xs)
             } else {
                 Spacer()
@@ -109,11 +109,11 @@ struct BridgeReviewFlow: View {
                         Text("cerca de \(Fmt.fiat(fiat, session.currency))").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, 2)
                     }
                     PlanVerbatimPlate(review: plan.review, collapsible: true).padding(.top, Space.lg)
-                    PlanDetailLines(review: plan.review, extra: [("Carteira", session.selectedWallet?.name ?? "")])
+                    PlanDetailLines(review: plan.review, extra: [(String(localized: "Carteira"), session.selectedWallet?.name ?? "")])
                         .padding(.top, Space.lg)
                     if plan.review.transactionCount > 1 {
-                        Banner(kind: .neutral, title: "Você vai assinar \(plan.review.transactionCount) transações de uma vez",
-                               message: "A autorização vai antes e o depósito logo depois. Se o depósito não sair, a autorização continua valendo, só para este valor e só para o contrato da ponte.")
+                        Banner(kind: .neutral, title: String(localized: "Você vai assinar \(plan.review.transactionCount) transações de uma vez"),
+                               message: String(localized: "A autorização vai antes e o depósito logo depois. Se o depósito não sair, a autorização continua valendo, só para este valor e só para o contrato da ponte."))
                             .padding(.top, Space.md)
                     }
                     ForEach(Array(plan.review.warnings.enumerated()), id: \.offset) { _, warning in
@@ -125,7 +125,7 @@ struct BridgeReviewFlow: View {
             .padding(.bottom, Space.lg)
         }
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: "Confirmar ponte") { Task { await confirm() } }
+            PrimaryButton(title: String(localized: "Confirmar ponte")) { Task { await confirm() } }
                 .padding(.top, Space.sm)
                 .padding(.bottom, Space.xs)
                 .background(Palette.void)
@@ -149,7 +149,7 @@ struct BridgeReviewFlow: View {
             Spacer()
             if let record { BridgeProgressPanel(recordID: record.id) }
             Spacer()
-            PrimaryButton(title: "Concluir") { onClose(true) }.padding(.top, Space.sm).padding(.bottom, Space.xs)
+            PrimaryButton(title: String(localized: "Concluir")) { onClose(true) }.padding(.top, Space.sm).padding(.bottom, Space.xs)
         }
     }
 
@@ -166,12 +166,12 @@ struct BridgeReviewFlow: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
-            PrimaryButton(title: "Enviar de novo") {
+            PrimaryButton(title: String(localized: "Enviar de novo")) {
                 guard let signed = unsureSigned, let plan, let quote else { return }
                 Task { await transmit(signed, plan: plan, quote: quote) }
             }
             .padding(.top, Space.sm)
-            TertiaryButton(title: "Fechar e acompanhar na Atividade") { onClose(true) }.frame(maxWidth: .infinity)
+            TertiaryButton(title: String(localized: "Fechar e acompanhar na Atividade")) { onClose(true) }.frame(maxWidth: .infinity)
                 .padding(.bottom, Space.xs)
         }
     }
@@ -183,7 +183,7 @@ struct BridgeReviewFlow: View {
         stage = .planning
         guard let wallet = session.selectedWallet, !wallet.isWatchOnly,
               let account = wallet.account(intent.from.chain), let destination = wallet.account(intent.to.chain) else {
-            error = "Esta carteira não tem conta nas duas redes."
+            error = String(localized: "Esta carteira não tem conta nas duas redes.")
             return
         }
         await NonceQueue.prune(session, wallet: wallet.id, chain: intent.from.chain, address: account.address)
@@ -191,12 +191,12 @@ struct BridgeReviewFlow: View {
         do {
             let options = try await BridgeEngine.shared.quotes(intent)
             guard let fresh = options.first(where: { $0.route == item.route }) ?? options.first else {
-                error = "A ponte não cotou esta rota agora. Tente de novo."
+                error = String(localized: "A ponte não cotou esta rota agora. Tente de novo.")
                 return
             }
             let built = try await BridgeEngine.shared.plan(fresh, walletID: wallet.id, account: account, destination: destination, nonceQueue: queue)
             guard planMatches(built, quote: fresh) else {
-                error = "O plano montado não confere com a ponte pedida. Nada foi assinado."
+                error = String(localized: "O plano montado não confere com a ponte pedida. Nada foi assinado.")
                 return
             }
             quote = fresh
@@ -206,7 +206,7 @@ struct BridgeReviewFlow: View {
             if (error as? SendEngineError)?.isLocalNonceQueueAhead == true {
                 NonceQueue.clear(session, wallet: wallet.id, chain: intent.from.chain, address: account.address)
             }
-            self.error = (error as? LocalizedError)?.errorDescription ?? "Não foi possível montar agora. Tente de novo."
+            self.error = (error as? LocalizedError)?.errorDescription ?? String(localized: "Não foi possível montar agora. Tente de novo.")
         }
     }
 
@@ -233,7 +233,7 @@ struct BridgeReviewFlow: View {
         guard let plan, let quote else { return }
         guard !plan.isExpired() else {
             await makePlan()
-            error = "Os dados da rede venceram. Confira de novo."
+            error = String(localized: "Os dados da rede venceram. Confira de novo.")
             return
         }
         guard planMatches(plan, quote: quote) else { return }
@@ -245,7 +245,7 @@ struct BridgeReviewFlow: View {
             }) else { return }
             signed = result
         } catch {
-            self.error = (error as? LocalizedError)?.errorDescription ?? "A ponte não saiu. Nada foi debitado."
+            self.error = (error as? LocalizedError)?.errorDescription ?? String(localized: "A ponte não saiu. Nada foi debitado.")
             stage = .review
             return
         }

@@ -81,8 +81,8 @@ final class BridgeCenter {
         let content = UNMutableNotificationContent()
         // Sem valor nem moeda (pentest de 14/10/2026, B1): a tela bloqueada nao conta o
         // que a carteira tem. O valor esta na lista de pontes, com o app aberto.
-        content.title = "Sua ponte chegou"
-        content.body = "Conferido na \(to.chain.name). Abra a Escalibur para ver."
+        content.title = String(localized: "Sua ponte chegou")
+        content.body = String(localized: "Conferido na \(to.chain.name). Abra a Escalibur para ver.")
         content.sound = .default
         content.categoryIdentifier = Self.category
         try? await center.add(UNNotificationRequest(identifier: "ponte.\(record.id.uuidString)", content: content, trigger: nil))
@@ -99,26 +99,26 @@ enum BridgeText {
             let amount = record.receivedAmount.flatMap(BigUInt.init(decimal:)).map {
                 Fmt.crypto($0, decimals: record.to.map { record.asset.decimals(on: $0) } ?? 18, symbol: record.asset.symbol)
             } ?? record.asset.symbol
-            return ("Chegou na \(to)", "\(amount), conferido na rede de destino.", true)
+            return (String(localized: "Chegou na \(to)"), String(localized: "\(amount), conferido na rede de destino."), true)
         case .refunded:
-            return ("Devolvido na \(from)", "Nenhum relayer entregou no prazo, e o Across devolveu o depósito para a sua conta.", true)
+            return (String(localized: "Devolvido na \(from)"), String(localized: "Nenhum relayer entregou no prazo, e o Across devolveu o depósito para a sua conta."), true)
         case .failed:
-            return ("O depósito não saiu", "A transação falhou na \(from). Só a taxa de rede foi cobrada.", true)
+            return (String(localized: "O depósito não saiu"), String(localized: "A transação falhou na \(from). Só a taxa de rede foi cobrada."), true)
         case .pending:
             switch progress {
             case .depositPending?, nil:
-                return ("Confirmando na \(from)", "O depósito está entrando na rede.", false)
+                return (String(localized: "Confirmando na \(from)"), String(localized: "O depósito está entrando na rede."), false)
             case .needsClaim?:
-                return ("A entrega da Circle falhou", "O USDC queimado só pode ser cunhado para a sua conta. Abra de novo mais tarde; se continuar assim, a carteira resgata com a sua assinatura.", false)
+                return (String(localized: "A entrega da Circle falhou"), String(localized: "O USDC queimado só pode ser cunhado para a sua conta. Abra de novo mais tarde; se continuar assim, a carteira resgata com a sua assinatura."), false)
             case .mismatch?:
-                return ("A entrega não confere", "O destino mostrou algo diferente do que você assinou. Confira a Atividade das duas redes.", false)
+                return (String(localized: "A entrega não confere"), String(localized: "O destino mostrou algo diferente do que você assinou. Confira a Atividade das duas redes."), false)
             default:
                 if record.route.isCCTP {
-                    return ("A caminho da \(to)", record.route == .cctpFast
-                        ? "A Circle atesta e entrega em menos de 1 minuto."
-                        : "A Circle espera a finalidade da \(from), uns 20 minutos, e entrega.", false)
+                    return (String(localized: "A caminho da \(to)"), record.route == .cctpFast
+                        ? String(localized: "A Circle atesta e entrega em menos de 1 minuto.")
+                        : String(localized: "A Circle espera a finalidade da \(from), uns 20 minutos, e entrega."), false)
                 }
-                return ("A caminho da \(to)", "Um relayer do Across entrega em segundos.", false)
+                return (String(localized: "A caminho da \(to)"), String(localized: "Um relayer do Across entrega em segundos."), false)
             }
         }
     }

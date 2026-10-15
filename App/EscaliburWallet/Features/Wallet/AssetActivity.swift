@@ -100,7 +100,7 @@ struct AssetActivitySection: View {
                     .buttonStyle(RowStyle())
                 }
                 if loader.entries.count > Self.shown {
-                    TertiaryButton(title: "Ver tudo na Atividade") { router.tab = .activity }
+                    TertiaryButton(title: String(localized: "Ver tudo na Atividade")) { router.tab = .activity }
                         .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                 }
             }
@@ -128,14 +128,14 @@ struct AssetActivitySection: View {
         } else if let reason = loader.unavailable {
             note(reason)
         } else if loader.failed {
-            Banner(kind: .neutral, title: "Não foi possível ler os movimentos agora.", actionTitle: "Tentar de novo") {
+            Banner(kind: .neutral, title: String(localized: "Não foi possível ler os movimentos agora."), actionTitle: String(localized: "Tentar de novo")) {
                 Task {
                     await loader.load(wallet: session.selectedWallet, assetIDs: Set(row.positions.map(\.asset.id)), chains: row.chains)
                 }
             }
             .padding(.horizontal, Space.gutter)
         } else {
-            note("Nenhum movimento de \(row.symbol) ainda. Envios, recebimentos e trocas aparecem aqui.")
+            note(String(localized: "Nenhum movimento de \(row.symbol) ainda. Envios, recebimentos e trocas aparecem aqui."))
         }
     }
 

@@ -72,7 +72,7 @@ struct ReceiptWatchView: View {
 
                 SettingsGroup {
                     Toggle(isOn: Binding(get: { file.enabled }, set: { setEnabled($0) })) {
-                        label("bell", "Avisar quando chegar moeda")
+                        label("bell", String(localized: "Avisar quando chegar moeda"))
                     }
                     .tint(Palette.accent)
                     .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
@@ -82,7 +82,7 @@ struct ReceiptWatchView: View {
                             file.showDetails = on
                             Task { await ReceiptWatchCenter.shared.setShowDetails(on) }
                         })) {
-                            label("eye", "Valor e moeda no aviso", file.showDetails ? "Ex.: Recebeu 100 USDT, na Tron" : "A tela bloqueada só diz que entrou moeda")
+                            label("eye", String(localized: "Valor e moeda no aviso"), file.showDetails ? String(localized: "Ex.: Recebeu 100 USDT, na Tron") : String(localized: "A tela bloqueada só diz que entrou moeda"))
                         }
                         .tint(Palette.accent)
                         .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
@@ -91,18 +91,18 @@ struct ReceiptWatchView: View {
                 .padding(.top, Space.lg)
 
                 if denied {
-                    Banner(kind: .caution, title: "As notificações da Escalibur estão desligadas no iPhone.",
-                           message: "Ligue em Ajustes do iPhone, Notificações, Escalibur Wallet.",
-                           actionTitle: "Abrir Ajustes do iPhone") {
+                    Banner(kind: .caution, title: String(localized: "As notificações da Escalibur estão desligadas no iPhone."),
+                           message: String(localized: "Ligue em Ajustes do iPhone, Notificações, Escalibur Wallet."),
+                           actionTitle: String(localized: "Abrir Ajustes do iPhone")) {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) }
                     }
                     .padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                 }
 
                 VStack(alignment: .leading, spacing: Space.sm) {
-                    note("Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois de a moeda entrar. Com o app aberto, a conferência é a cada 2 minutos.")
-                    note("Para conferir com o iPhone bloqueado, os endereços públicos das suas contas e o último saldo visto de cada moeda ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Nenhuma chave, frase ou nome de carteira entra nele. Vem ligado; desligar apaga o arquivo.")
-                    note("Contam a moeda de cada rede e os tokens da lista conferida. Token fora da lista não avisa: é por ele que chega o spam.")
+                    note(String(localized: "Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois de a moeda entrar. Com o app aberto, a conferência é a cada 2 minutos."))
+                    note(String(localized: "Para conferir com o iPhone bloqueado, os endereços públicos das suas contas e o último saldo visto de cada moeda ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Nenhuma chave, frase ou nome de carteira entra nele. Vem ligado; desligar apaga o arquivo."))
+                    note(String(localized: "Contam a moeda de cada rede e os tokens da lista conferida. Token fora da lista não avisa: é por ele que chega o spam."))
                 }
                 .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
             }

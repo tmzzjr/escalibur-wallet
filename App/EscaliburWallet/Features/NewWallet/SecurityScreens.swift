@@ -26,16 +26,16 @@ struct SecurityPromiseView: View {
     }
 
     private static let points: [Point] = [
-        .init(id: 0, icon: "server.rack", title: "Sem servidor",
-              text: "A Escalibur não tem servidor nem conta. Ninguém do nosso lado vê, guarda ou consegue recuperar nada seu."),
-        .init(id: 1, icon: "iphone", title: "Tudo só neste iPhone",
-              text: "A senha da carteira nasce e fica aqui, cifrada com uma chave do Secure Enclave, o chip de segurança do iPhone. Ela nunca vai para a internet."),
-        .init(id: 2, icon: "chevron.left.forwardslash.chevron.right", title: "Código aberto, para qualquer um auditar",
-              text: "O código está público no GitHub. Dá para conferir, linha por linha, que a senha e as chaves nunca saem do aparelho."),
-        .init(id: 3, icon: "eye.slash", title: "Sem rastreamento",
-              text: "Nenhum SDK de análise, de anúncio ou de relatório de falhas. O app não conta a ninguém o que você faz."),
-        .init(id: 4, icon: "faceid", title: "Nada sai sem você",
-              text: "Toda transação passa pela sua revisão e pelo seu Face ID ou PIN. Sem você, ninguém assina nada."),
+        .init(id: 0, icon: "server.rack", title: String(localized: "Sem servidor"),
+              text: String(localized: "A Escalibur não tem servidor nem conta. Ninguém do nosso lado vê, guarda ou consegue recuperar nada seu.")),
+        .init(id: 1, icon: "iphone", title: String(localized: "Tudo só neste iPhone"),
+              text: String(localized: "A senha da carteira nasce e fica aqui, cifrada com uma chave do Secure Enclave, o chip de segurança do iPhone. Ela nunca vai para a internet.")),
+        .init(id: 2, icon: "chevron.left.forwardslash.chevron.right", title: String(localized: "Código aberto, para qualquer um auditar"),
+              text: String(localized: "O código está público no GitHub. Dá para conferir, linha por linha, que a senha e as chaves nunca saem do aparelho.")),
+        .init(id: 3, icon: "eye.slash", title: String(localized: "Sem rastreamento"),
+              text: String(localized: "Nenhum SDK de análise, de anúncio ou de relatório de falhas. O app não conta a ninguém o que você faz.")),
+        .init(id: 4, icon: "faceid", title: String(localized: "Nada sai sem você"),
+              text: String(localized: "Toda transação passa pela sua revisão e pelo seu Face ID ou PIN. Sem você, ninguém assina nada.")),
     ]
 
     var body: some View {
@@ -69,7 +69,7 @@ struct SecurityPromiseView: View {
             .padding(.bottom, Space.lg)
         }
         .safeAreaInset(edge: .bottom) {
-            ActionFooter { PrimaryButton(title: "Continuar", enabled: shown >= Self.points.count) { onContinue() } }
+            ActionFooter { PrimaryButton(title: String(localized: "Continuar"), enabled: shown >= Self.points.count) { onContinue() } }
         }
         .background(Palette.void.ignoresSafeArea())
         .task {
@@ -223,24 +223,24 @@ struct DeviceCheck: Identifiable, Equatable {
     static func passcode() -> DeviceCheck {
         var error: NSError?
         let set = LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: &error)
-        return .init(id: "codigo", title: "Código do iPhone ativo",
-                     outcome: set ? .pass : .fail("Sem código, a proteção de dados do iOS não cifra os arquivos do app. Ative em Ajustes > Face ID e Código."))
+        return .init(id: "codigo", title: String(localized: "Código do iPhone ativo"),
+                     outcome: set ? .pass : .fail(String(localized: "Sem código, a proteção de dados do iOS não cifra os arquivos do app. Ative em Ajustes > Face ID e Código.")))
     }
 
     static func secureEnclave() -> DeviceCheck {
-        .init(id: "enclave", title: "Secure Enclave disponível",
-              outcome: SecureEnclave.isAvailable ? .pass : .caution("Este aparelho não tem o chip de segurança disponível agora."))
+        .init(id: "enclave", title: String(localized: "Secure Enclave disponível"),
+              outcome: SecureEnclave.isAvailable ? .pass : .caution(String(localized: "Este aparelho não tem o chip de segurança disponível agora.")))
     }
 
     /// Os caminhos e a escrita fora da caixa de areia que so existem num iPhone com
     /// jailbreak.
     static func jailbreak() -> DeviceCheck {
         #if targetEnvironment(simulator)
-        return .init(id: "jailbreak", title: "Sem jailbreak", outcome: .caution("Simulador: a checagem só vale num iPhone de verdade."))
+        return .init(id: "jailbreak", title: String(localized: "Sem jailbreak"), outcome: .caution(String(localized: "Simulador: a checagem só vale num iPhone de verdade.")))
         #else
         // No Mac, `/bin/bash` e `/usr/sbin/sshd` existem de fabrica: o aviso seria falso.
         if DeviceIntegrity.onMac {
-            return .init(id: "jailbreak", title: "Sem jailbreak", outcome: .caution("No Mac, a checagem só vale num iPhone de verdade."))
+            return .init(id: "jailbreak", title: String(localized: "Sem jailbreak"), outcome: .caution(String(localized: "No Mac, a checagem só vale num iPhone de verdade.")))
         }
         let paths = ["/Applications/Cydia.app", "/Applications/Sileo.app", "/Applications/Zebra.app", "/bin/bash", "/usr/sbin/sshd",
                      "/etc/apt", "/private/var/lib/apt", "/usr/bin/ssh", "/var/jb", "/private/preboot/jb", "/.bootstrapped"]
@@ -249,10 +249,10 @@ struct DeviceCheck: Identifiable, Equatable {
         let writable = (try? "x".write(toFile: probe, atomically: false, encoding: .utf8)) != nil
         if writable { try? FileManager.default.removeItem(atPath: probe) }
         guard found == nil, !writable else {
-            return .init(id: "jailbreak", title: "Sem jailbreak",
-                         outcome: .fail("Este iPhone parece ter jailbreak. Num aparelho assim, outro app pode ler a memória e o que você digita."))
+            return .init(id: "jailbreak", title: String(localized: "Sem jailbreak"),
+                         outcome: .fail(String(localized: "Este iPhone parece ter jailbreak. Num aparelho assim, outro app pode ler a memória e o que você digita.")))
         }
-        return .init(id: "jailbreak", title: "Sem jailbreak", outcome: .pass)
+        return .init(id: "jailbreak", title: String(localized: "Sem jailbreak"), outcome: .pass)
         #endif
     }
 
@@ -270,10 +270,10 @@ struct DeviceCheck: Identifiable, Equatable {
         }
         let inserted = ProcessInfo.processInfo.environment["DYLD_INSERT_LIBRARIES"] != nil
         guard hit == nil, !inserted else {
-            return .init(id: "injecao", title: "Nenhum código injetado no app",
-                         outcome: .fail("Há uma biblioteca de interceptação carregada no app (\(hit ?? "DYLD_INSERT_LIBRARIES")). Alguém pode estar lendo o que a tela mostra."))
+            return .init(id: "injecao", title: String(localized: "Nenhum código injetado no app"),
+                         outcome: .fail(String(localized: "Há uma biblioteca de interceptação carregada no app (\(hit ?? "DYLD_INSERT_LIBRARIES")). Alguém pode estar lendo o que a tela mostra.")))
         }
-        return .init(id: "injecao", title: "Nenhum código injetado no app", outcome: .pass)
+        return .init(id: "injecao", title: String(localized: "Nenhum código injetado no app"), outcome: .pass)
     }
 
     /// `P_TRACED`: um depurador preso ao processo.
@@ -285,8 +285,8 @@ struct DeviceCheck: Identifiable, Equatable {
         #if DEBUG
         if traced { return .init(id: "depurador", title: "Nenhum depurador conectado", outcome: .caution("Build de teste rodando pelo Xcode.")) }
         #endif
-        return .init(id: "depurador", title: "Nenhum depurador conectado",
-                     outcome: traced ? .fail("Um depurador está preso ao app e pode ler a memória dele.") : .pass)
+        return .init(id: "depurador", title: String(localized: "Nenhum depurador conectado"),
+                     outcome: traced ? .fail(String(localized: "Um depurador está preso ao app e pode ler a memória dele.")) : .pass)
     }
 
     @MainActor
@@ -295,13 +295,13 @@ struct DeviceCheck: Identifiable, Equatable {
         // Tela externa sem espelhar (cabo ou AirPlay estendido) abre uma sessao propria.
         let external = UIApplication.shared.openSessions.contains { $0.role == .windowExternalDisplayNonInteractive }
         let captured = scenes.contains { $0.screen.isCaptured || $0.traitCollection.sceneCaptureState == .active } || external
-        return .init(id: "tela", title: "Tela sem gravação nem espelhamento",
-                     outcome: captured ? .fail("A tela está sendo gravada ou espelhada. Pare a gravação ou o AirPlay para seguir.") : .pass)
+        return .init(id: "tela", title: String(localized: "Tela sem gravação nem espelhamento"),
+                     outcome: captured ? .fail(String(localized: "A tela está sendo gravada ou espelhada. Pare a gravação ou o AirPlay para seguir.")) : .pass)
     }
 
     static func keyboards() -> DeviceCheck {
         // O app recusa todo teclado de terceiros (PlatformGuards): so o da Apple digita aqui.
-        .init(id: "teclado", title: "Só o teclado da Apple", outcome: .pass)
+        .init(id: "teclado", title: String(localized: "Só o teclado da Apple"), outcome: .pass)
     }
 
     /// O iOS contra a versao com que este build foi feito: abaixo dela, o aparelho pode
@@ -311,21 +311,21 @@ struct DeviceCheck: Identifiable, Equatable {
         let current = "\(version.majorVersion).\(version.minorVersion)"
         let behind = (version.majorVersion, version.minorVersion) < (26, 5)
         return .init(id: "sistema", title: "iOS \(current)",
-                     outcome: behind ? .caution("Existe iOS mais novo, com correções de segurança. Atualize quando puder.") : .pass)
+                     outcome: behind ? .caution(String(localized: "Existe iOS mais novo, com correções de segurança. Atualize quando puder.")) : .pass)
     }
 
     @MainActor
     static func clipboard() -> DeviceCheck {
-        .init(id: "copia", title: "Área de transferência",
+        .init(id: "copia", title: String(localized: "Área de transferência"),
               outcome: UIPasteboard.general.hasStrings
-                ? .caution("Há texto copiado. Se for a senha da carteira, apague depois de colar: a cópia pode ir para outros aparelhos Apple.")
+                ? .caution(String(localized: "Há texto copiado. Se for a senha da carteira, apague depois de colar: a cópia pode ir para outros aparelhos Apple."))
                 : .pass)
     }
 
     @MainActor
     static func voiceOver() -> DeviceCheck {
-        .init(id: "leitor", title: "Leitor de tela",
-              outcome: UIAccessibility.isVoiceOverRunning ? .caution("O VoiceOver está ligado e lê as palavras em voz alta. Use fone de ouvido.") : .pass)
+        .init(id: "leitor", title: String(localized: "Leitor de tela"),
+              outcome: UIAccessibility.isVoiceOverRunning ? .caution(String(localized: "O VoiceOver está ligado e lê as palavras em voz alta. Use fone de ouvido.")) : .pass)
     }
 }
 
@@ -349,7 +349,7 @@ struct DeviceCheckView: View {
                 ScanRing(progress: results.isEmpty ? 0 : Double(revealed) / Double(results.count), done: finished,
                          alert: finished && !blocking.isEmpty)
                     .frame(height: 220).frame(maxWidth: .infinity)
-                Text(finished ? (blocking.isEmpty ? "Aparelho conferido" : "Atenção antes de seguir") : "Conferindo este iPhone")
+                Text(finished ? (blocking.isEmpty ? String(localized: "Aparelho conferido") : String(localized: "Atenção antes de seguir")) : String(localized: "Conferindo este iPhone"))
                     .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.sm)
                     .contentTransition(.opacity)
                 Text(finished ? "Tudo foi checado aqui, sem internet. Nada desta checagem sai do aparelho."
@@ -376,9 +376,9 @@ struct DeviceCheckView: View {
         .safeAreaInset(edge: .bottom) {
             ActionFooter {
                 if finished, screenBlocked {
-                    SecondaryButton(title: "Checar de novo") { Task { await run() } }
+                    SecondaryButton(title: String(localized: "Checar de novo")) { Task { await run() } }
                 }
-                PrimaryButton(title: finished ? "Digitar as palavras" : "Conferindo", enabled: canContinue, loading: !finished) { onContinue() }
+                PrimaryButton(title: finished ? String(localized: "Digitar as palavras") : String(localized: "Conferindo"), enabled: canContinue, loading: !finished) { onContinue() }
             }
         }
         .background(Palette.void.ignoresSafeArea())

@@ -45,9 +45,9 @@ struct RecordWordsView: View {
             Spacer()
             HStack(spacing: Space.sm) {
                 if group > 0 {
-                    SecondaryButton(title: "Anteriores", height: Height.primary) { move(-1) }
+                    SecondaryButton(title: String(localized: "Anteriores"), height: Height.primary) { move(-1) }
                 }
-                PrimaryButton(title: isLast ? (walletName == nil ? "Já anotei as \(draft.wordCount)" : "Fechar") : "Próximas") {
+                PrimaryButton(title: isLast ? (walletName == nil ? String(localized: "Já anotei as \(draft.wordCount)") : String(localized: "Fechar")) : String(localized: "Próximas")) {
                     isLast ? onDone() : move(1)
                 }
             }
@@ -88,11 +88,11 @@ struct RecordWordsView: View {
     }
 
     private var subtitle: String {
-        if isPassphrase(group) { return "Passphrase" }
+        if isPassphrase(group) { return String(localized: "Passphrase") }
         let first = group * perGroup + 1
         let last = min(first + perGroup - 1, draft.wordCount)
         let prefix = walletName.map { "\($0) · " } ?? ""
-        return "\(prefix)Palavras \(first) a \(last) de \(draft.wordCount)"
+        return String(localized: "\(prefix)Palavras \(first) a \(last) de \(draft.wordCount)")
     }
 
     /// Uma placa por grupo, em paginas de verdade: arrastar para a esquerda mostra as
@@ -251,14 +251,14 @@ struct ConfirmWordsView: View {
                     Text(error).typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.sm)
                         .fixedSize(horizontal: false, vertical: true)
                     if (misses[positions[current]] ?? 0) >= 2 {
-                        TertiaryButton(title: "Ver as palavras de novo", action: onBack)
+                        TertiaryButton(title: String(localized: "Ver as palavras de novo"), action: onBack)
                     }
                 }
             }
             Spacer()
-            PrimaryButton(title: "Confirmar", enabled: !typed.isEmpty, action: check)
+            PrimaryButton(title: String(localized: "Confirmar"), enabled: !typed.isEmpty, action: check)
             if let onLater {
-                TertiaryButton(title: "Anotar e confirmar depois", action: onLater)
+                TertiaryButton(title: String(localized: "Anotar e confirmar depois"), action: onLater)
                     .frame(maxWidth: .infinity)
                     .padding(.top, Space.xxs)
             }
@@ -294,7 +294,7 @@ struct ConfirmWordsView: View {
             if current + 1 < positions.count { current += 1 } else { onConfirmed() }
         } else {
             misses[position, default: 0] += 1
-            error = "Não é a palavra \(position + 1). Confira a posição \(position + 1) no seu papel."
+            error = String(localized: "Não é a palavra \(position + 1). Confira a posição \(position + 1) no seu papel.")
         }
     }
 }
@@ -358,10 +358,10 @@ struct WalletCreatedView: View {
                 .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
             .padding(.top, Space.xs)
             Spacer()
-            PrimaryButton(title: "Ir para a carteira") { save(); onFinish() }
+            PrimaryButton(title: String(localized: "Ir para a carteira")) { save(); onFinish() }
             HStack {
                 Spacer()
-                TertiaryButton(title: "Guardar também num envelope Escalibur") { sealing = true }
+                TertiaryButton(title: String(localized: "Guardar também num envelope Escalibur")) { sealing = true }
                 Spacer()
             }
             .padding(.top, Space.xs)

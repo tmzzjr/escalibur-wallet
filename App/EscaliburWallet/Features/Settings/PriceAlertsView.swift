@@ -12,7 +12,7 @@ struct PriceAlertsView: View {
     @State private var adding = false
     @State private var market: [MarketCoin] = []
 
-    private var coinCount: String { file.coins.count == 1 ? "1 moeda" : "\(file.coins.count) moedas" }
+    private var coinCount: String { file.coins.count == 1 ? String(localized: "1 moeda") : "\(file.coins.count) moedas" }
 
     var body: some View {
         ScrollView {
@@ -21,7 +21,7 @@ struct PriceAlertsView: View {
 
                 SettingsGroup {
                     Toggle(isOn: Binding(get: { file.enabled }, set: { setEnabled($0) })) {
-                        rowLabel("bell", "Avisar sobre preços")
+                        rowLabel("bell", String(localized: "Avisar sobre preços"))
                     }
                     .tint(Palette.accent)
                     .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
@@ -30,9 +30,9 @@ struct PriceAlertsView: View {
                 .padding(.top, Space.lg)
 
                 if denied {
-                    Banner(kind: .caution, title: "As notificações da Escalibur estão desligadas no iPhone.",
-                           message: "Ligue em Ajustes do iPhone, Notificações, Escalibur Wallet.",
-                           actionTitle: "Abrir Ajustes do iPhone") {
+                    Banner(kind: .caution, title: String(localized: "As notificações da Escalibur estão desligadas no iPhone."),
+                           message: String(localized: "Ligue em Ajustes do iPhone, Notificações, Escalibur Wallet."),
+                           actionTitle: String(localized: "Abrir Ajustes do iPhone")) {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) }
                     }
                     .padding(.horizontal, Space.gutter).padding(.top, Space.sm)
@@ -45,9 +45,9 @@ struct PriceAlertsView: View {
                 }
 
                 VStack(alignment: .leading, spacing: Space.sm) {
-                    note("Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois do preço passar.")
-                    note("Um alerta só sai quando o CoinGecko e o CoinPaprika concordam no preço.")
-                    note("A lista de moedas fica neste iPhone fora do cofre, para o alerta funcionar com a tela bloqueada. Nela não entra saldo nem endereço.")
+                    note(String(localized: "Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois do preço passar."))
+                    note(String(localized: "Um alerta só sai quando o CoinGecko e o CoinPaprika concordam no preço."))
+                    note(String(localized: "A lista de moedas fica neste iPhone fora do cofre, para o alerta funcionar com a tela bloqueada. Nela não entra saldo nem endereço."))
                 }
                 .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
             }
@@ -91,14 +91,14 @@ struct PriceAlertsView: View {
     }
 
     private var rules: some View {
-        SettingsSection(title: "Quando avisar") {
+        SettingsSection(title: String(localized: "Quando avisar")) {
             Toggle(isOn: Binding(get: { file.roundNumbers }, set: { on in apply { $0.roundNumbers = on } })) {
-                rowLabel("number", "Números redondos", "Ex.: Bitcoin passou de \(exampleLevel)")
+                rowLabel("number", String(localized: "Números redondos"), String(localized: "Ex.: Bitcoin passou de \(exampleLevel)"))
             }
             .tint(Palette.accent)
             .padding(.horizontal, Space.md).frame(minHeight: Height.row)
             Toggle(isOn: Binding(get: { file.moveThreshold != nil }, set: { on in apply { $0.moveThreshold = on ? 10 : nil } })) {
-                rowLabel("arrow.up.arrow.down", "Alta ou queda forte", "Variação em 24 h acima do limite")
+                rowLabel("arrow.up.arrow.down", String(localized: "Alta ou queda forte"), String(localized: "Variação em 24 h acima do limite"))
             }
             .tint(Palette.accent)
             .padding(.horizontal, Space.md).frame(minHeight: Height.row)
@@ -116,7 +116,7 @@ struct PriceAlertsView: View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text("Na tela bloqueada").typeStyle(.note).foregroundStyle(Palette.inkSoft)
             Segmented(
-                options: [(true, "Moeda e preço"), (false, "Só o aviso")],
+                options: [(true, String(localized: "Moeda e preço")), (false, String(localized: "Só o aviso"))],
                 selection: Binding(get: { file.showDetails }, set: { value in apply { $0.showDetails = value } })
             )
             Text(file.showDetails
@@ -131,7 +131,7 @@ struct PriceAlertsView: View {
 
     private var coins: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsSection(title: file.coins.isEmpty ? "Moedas" : "Moedas, \(coinCount)") {
+            SettingsSection(title: file.coins.isEmpty ? String(localized: "Moedas") : "Moedas, \(coinCount)") {
                 ForEach(file.coins) { coin in
                     HStack(spacing: Space.sm) {
                         CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 32, remoteURL: image(coin), ringColor: Palette.body)
@@ -153,7 +153,7 @@ struct PriceAlertsView: View {
                     .frame(minHeight: Height.row)
                 }
                 Button { adding = true } label: {
-                    SettingsRow(icon: "plus", title: "Adicionar moeda")
+                    SettingsRow(icon: "plus", title: String(localized: "Adicionar moeda"))
                 }
                 .disabled(file.coins.count >= PriceAlertFile.maxCoins)
                 .accessibilityIdentifier("alertas-adicionar")
@@ -296,10 +296,10 @@ private struct AddAlertCoinSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    SearchField(prompt: "Buscar moeda", text: $query)
+                    SearchField(prompt: String(localized: "Buscar moeda"), text: $query)
                         .padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                     if market.isEmpty {
-                        Banner(kind: .neutral, title: "Não foi possível carregar a lista de moedas agora.")
+                        Banner(kind: .neutral, title: String(localized: "Não foi possível carregar a lista de moedas agora."))
                             .padding(.horizontal, Space.gutter).padding(.top, Space.md)
                     }
                     LazyVStack(spacing: 0) {
@@ -384,7 +384,7 @@ struct PriceAlertBell: View {
         if watching {
             await PriceAlertCenter.shared.update { $0.coins.removeAll { $0.id == watched.id } }
             watching = false
-            toasts.show("Alertas de \(coin.symbol.uppercased()) desligados", kind: .info)
+            toasts.show(String(localized: "Alertas de \(coin.symbol.uppercased()) desligados"), kind: .info)
             return
         }
         guard await PriceAlertCenter.requestPermission() else {
@@ -401,11 +401,11 @@ struct PriceAlertBell: View {
             if !file.watches(watched.id), file.coins.count < PriceAlertFile.maxCoins { file.coins.append(watched) }
         }
         guard file.watches(watched.id) else {
-            toasts.show("A lista de alertas já tem \(PriceAlertFile.maxCoins) moedas", kind: .failure)
+            toasts.show(String(localized: "A lista de alertas já tem \(PriceAlertFile.maxCoins) moedas"), kind: .failure)
             return
         }
         watching = true
-        toasts.show("Alertas de \(coin.symbol.uppercased()) ligados")
+        toasts.show(String(localized: "Alertas de \(coin.symbol.uppercased()) ligados"))
         await PriceAlertCenter.shared.check(force: true)
     }
 }

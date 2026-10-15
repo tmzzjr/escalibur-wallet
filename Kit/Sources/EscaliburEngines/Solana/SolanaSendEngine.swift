@@ -51,9 +51,9 @@ struct SolanaSendEngine: SendEngine {
 
     static func note(for key: SolanaPublicKey, exists: Bool) -> String? {
         if !key.isOnCurve {
-            return "Este endereço é de uma conta de programa, como um cofre multiassinatura. Envio de SOL passa com aviso; envio de token não."
+            return kitText("Este endereço é de uma conta de programa, como um cofre multiassinatura. Envio de SOL passa com aviso; envio de token não.")
         }
-        return exists ? nil : "Este endereço ainda não existe na Solana. Um envio de SOL precisa cobrir a reserva mínima da rede."
+        return exists ? nil : kitText("Este endereço ainda não existe na Solana. Um envio de SOL precisa cobrir a reserva mínima da rede.")
     }
 
     // MARK: Quanto pode sair
@@ -89,8 +89,8 @@ struct SolanaSendEngine: SendEngine {
         let amount = state.balance.subtractingReportingUnderflow(fee + reserve) ?? BigUInt()
         return Spendable(
             amount: amount,
-            reserveNote: "\(SolanaAmountText.sol(reserve)) ficam na conta: é a reserva mínima que a rede exige para ela continuar existindo.",
-            feeNote: "Taxa da rede de até \(SolanaAmountText.sol(fee)) já descontada."
+            reserveNote: kitText("\(SolanaAmountText.sol(reserve)) ficam na conta: é a reserva mínima que a rede exige para ela continuar existindo."),
+            feeNote: kitText("Taxa da rede de até \(SolanaAmountText.sol(fee)) já descontada.")
         )
     }
 
@@ -134,13 +134,13 @@ struct SolanaSendEngine: SendEngine {
         let note: String
         switch (covered, createsAccount) {
         case (true, true):
-            note = "A taxa da rede e a criação da conta de \(symbol) do destino, até \(SolanaAmountText.sol(needed)), saem do seu saldo de SOL."
+            note = kitText("A taxa da rede e a criação da conta de \(symbol) do destino, até \(SolanaAmountText.sol(needed)), saem do seu saldo de SOL.")
         case (true, false):
-            note = "A taxa da rede, até \(SolanaAmountText.sol(fee)), sai do seu saldo de SOL."
+            note = kitText("A taxa da rede, até \(SolanaAmountText.sol(fee)), sai do seu saldo de SOL.")
         case (false, true):
-            note = "Falta SOL para a taxa da rede e para criar a conta de \(symbol) do destino. Deposite SOL nesta carteira para enviar \(symbol)."
+            note = kitText("Falta SOL para a taxa da rede e para criar a conta de \(symbol) do destino. Deposite SOL nesta carteira para enviar \(symbol).")
         case (false, false):
-            note = "Falta SOL para a taxa da rede. Deposite SOL nesta carteira para enviar \(symbol)."
+            note = kitText("Falta SOL para a taxa da rede. Deposite SOL nesta carteira para enviar \(symbol).")
         }
         return Spendable(amount: covered ? token.source.amount : BigUInt(), reserveNote: nil, feeNote: note)
     }

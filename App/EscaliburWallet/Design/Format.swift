@@ -3,18 +3,60 @@ import Foundation
 
 /// Toda formatacao de numero, valor e data que o usuario le, num lugar so.
 ///
-/// Regras (docs/design/sistema-visual.md): pt_BR, NBSP depois do simbolo, sinal de
-/// menos U+2212 e nunca hifen ou travessao, cripto truncado para baixo (o "Max"
-/// nunca passa do saldo real), abreviacao so em dado de mercado.
+/// Regras (docs/design/sistema-visual.md): o formato da regiao do aparelho (no Brasil,
+/// "R$ 1.234,56"), sempre com algarismos latinos, NBSP entre simbolo e numero, sinal de
+/// menos U+2212 e nunca hifen ou travessao, cripto truncado para baixo (o "Max" nunca
+/// passa do saldo real), abreviacao so em dado de mercado.
 enum Fmt {
-    static let locale = Locale(identifier: "pt_BR")
+    /// A regiao do aparelho, lida uma vez ao abrir. Algarismos latinos em qualquer idioma:
+    /// endereco, valor e PIN ficam nos mesmos algarismos que a rede e o papel usam.
+    static let locale: Locale = {
+        var components = Locale.Components(locale: .autoupdatingCurrent)
+        components.numberingSystem = "latn"
+        return Locale(components: components)
+    }()
     static let minus = "\u{2212}"
     static let nbsp = "\u{00A0}"
+
+    /// Separadores da sessao, os mesmos do texto que o Kit monta (`NumberStyle`).
+    static var decimal: String { NumberStyle.current.decimal }
+
+    /// Chamado uma vez, ao abrir o app.
+    static func adoptRegion() {
+        NumberStyle.adopt(NumberStyle(locale: locale))
+    }
+
+    /// Onde a regiao poe o simbolo da moeda: antes ("R$ 10,00", "$10.00") ou depois
+    /// ("10,00 €").
+    static let symbolFirst: Bool = {
+        let formatter = NumberFormatter()
+        formatter.locale = locale
+        formatter.numberStyle = .currency
+        return (formatter.positiveFormat ?? "¤").trimmingCharacters(in: .whitespaces).hasPrefix("¤")
+    }()
+
+    /// Simbolo e numero na ordem da regiao, com NBSP entre os dois.
+    static func money(_ body: String, symbol: String, sign: String = "") -> String {
+        symbolFirst ? "\(sign)\(symbol)\(nbsp)\(body)" : "\(sign)\(body)\(nbsp)\(symbol)"
+    }
+
+    /// O simbolo de cada moeda como a regiao escreve: "US$" no Brasil, "$" nos EUA.
+    static func currencySymbol(_ code: String) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = locale
+        formatter.numberStyle = .currency
+        formatter.currencyCode = code
+        return formatter.currencySymbol ?? code
+    }
+
+    fileprivate static let symbols: [String: String] = Dictionary(
+        uniqueKeysWithValues: ["BRL", "USD", "EUR"].map { ($0, currencySymbol($0)) }
+    )
 
     /// "cerca de 1 segundo", "cerca de 4 segundos": estimativa de espera.
     static func aboutSeconds(_ seconds: Double) -> String {
         let n = max(1, Int(seconds.rounded()))
-        return n == 1 ? "cerca de 1 segundo" : "cerca de \(n) segundos"
+        return n == 1 ? String(localized: "cerca de 1 segundo") : String(localized: "cerca de \(n) segundos")
     }
 
     /// Em que unidade o saldo total aparece: as duas moedas do app, o euro e o bitcoin.
@@ -22,22 +64,15 @@ enum Fmt {
     enum DisplayUnit: String, CaseIterable, Codable, Sendable {
         case brl, usd, eur, btc
 
-        var symbol: String {
-            switch self {
-            case .brl: return "R$"
-            case .usd: return "US$"
-            case .eur: return "€"
-            case .btc: return "₿"
-            }
-        }
+        var symbol: String { self == .btc ? "₿" : fiat.symbol }
 
         var fractionDigits: Int { self == .btc ? 8 : 2 }
 
         var name: String {
             switch self {
-            case .brl: return "Real"
-            case .usd: return "Dólar"
-            case .eur: return "Euro"
+            case .brl: return String(localized: "Real")
+            case .usd: return String(localized: "Dólar")
+            case .eur: return String(localized: "Euro")
             case .btc: return "Bitcoin"
             }
         }
@@ -66,13 +101,7 @@ enum Fmt {
         case usd = "USD"
         case eur = "EUR"
 
-        var symbol: String {
-            switch self {
-            case .brl: return "R$"
-            case .usd: return "US$"
-            case .eur: return "€"
-            }
-        }
+        var symbol: String { Fmt.symbols[rawValue] ?? rawValue }
 
         var coingeckoID: String { rawValue.lowercased() }
     }
@@ -81,35 +110,35 @@ enum Fmt {
 
     /// "R$ 1.234,56", "< R$ 0,01", "−R$ 12,30".
     static func fiat(_ value: Double, _ currency: Currency = .brl, signed: Bool = false) -> String {
-        guard value.isFinite else { return "\(currency.symbol)\(nbsp)0,00" }
+        guard value.isFinite else { return money("0\(decimal)00", symbol: currency.symbol) }
         let magnitude = abs(value)
         if magnitude > 0, magnitude < 0.01 {
-            return "< \(currency.symbol)\(nbsp)0,01"
+            return "< " + money("0\(decimal)01", symbol: currency.symbol)
         }
         let body = grouped(magnitude, fractionDigits: 2)
         let sign = value < 0 ? minus : (signed && value > 0 ? "+" : "")
-        return "\(sign)\(currency.symbol)\(nbsp)\(body)"
+        return money(body, symbol: currency.symbol, sign: sign)
     }
 
     /// Um valor na unidade escolhida no total da Carteira: R$, US$, € com centavos e
     /// "< R$ 0,01" abaixo disso; ₿ com ate 8 casas.
     static func value(_ value: Double, unit: DisplayUnit) -> String {
-        guard value.isFinite else { return "\(unit.symbol)\(nbsp)0" }
+        guard value.isFinite else { return money("0", symbol: unit.symbol) }
         if unit == .btc {
             let magnitude = abs(value)
-            if magnitude > 0, magnitude < 0.00000001 { return "< \(unit.symbol)\(nbsp)0,00000001" }
-            return "\(value < 0 ? minus : "")\(unit.symbol)\(nbsp)\(grouped(magnitude, fractionDigits: 8, trimZeros: true))"
+            if magnitude > 0, magnitude < 0.00000001 { return "< " + money("0\(decimal)00000001", symbol: unit.symbol) }
+            return money(grouped(magnitude, fractionDigits: 8, trimZeros: true), symbol: unit.symbol, sign: value < 0 ? minus : "")
         }
         let magnitude = abs(value)
-        if magnitude > 0, magnitude < 0.01 { return "< \(unit.symbol)\(nbsp)0,01" }
-        return "\(value < 0 ? minus : "")\(unit.symbol)\(nbsp)\(grouped(magnitude, fractionDigits: 2))"
+        if magnitude > 0, magnitude < 0.01 { return "< " + money("0\(decimal)01", symbol: unit.symbol) }
+        return money(grouped(magnitude, fractionDigits: 2), symbol: unit.symbol, sign: value < 0 ? minus : "")
     }
 
     /// Preco unitario na unidade escolhida no total, com as casas pela faixa.
     static func price(_ value: Double, unit: DisplayUnit) -> String {
         guard unit != .btc else {
-            guard value.isFinite, value > 0 else { return "\(unit.symbol)\(nbsp)0" }
-            return value >= 0.00000001 ? "\(unit.symbol)\(nbsp)\(grouped(value, fractionDigits: 8, trimZeros: true))" : "\(unit.symbol)\(nbsp)\(subscriptZeros(value))"
+            guard value.isFinite, value > 0 else { return money("0", symbol: unit.symbol) }
+            return money(value >= 0.00000001 ? grouped(value, fractionDigits: 8, trimZeros: true) : subscriptZeros(value), symbol: unit.symbol)
         }
         return priceBody(value, symbol: unit.symbol)
     }
@@ -120,7 +149,7 @@ enum Fmt {
     }
 
     private static func priceBody(_ value: Double, symbol: String) -> String {
-        guard value.isFinite, value > 0 else { return "\(symbol)\(nbsp)0,00" }
+        guard value.isFinite, value > 0 else { return money("0\(decimal)00", symbol: symbol) }
         let body: String
         switch value {
         case 1...: body = grouped(value, fractionDigits: 2)
@@ -128,30 +157,27 @@ enum Fmt {
         case 0.0001..<0.01: body = grouped(value, fractionDigits: 6)
         default: body = subscriptZeros(value)
         }
-        return "\(symbol)\(nbsp)\(body)"
+        return money(body, symbol: symbol)
     }
 
     /// "+2,31%". Zero sai sem sinal. A partir de 1.000%, sem casas.
     static func percent(_ value: Double) -> String {
-        guard value.isFinite else { return "0,00%" }
+        guard value.isFinite else { return "0\(decimal)00%" }
         let rounded = (value * 100).rounded() / 100
-        if rounded == 0 { return "0,00%" }
+        if rounded == 0 { return "0\(decimal)00%" }
         let sign = rounded > 0 ? "+" : minus
         let digits = abs(rounded) >= 1000 ? 0 : 2
         return "\(sign)\(grouped(abs(rounded), fractionDigits: digits))%"
     }
 
-    /// "12,3 mil", "812 mi", "45,2 bi". So para capitalizacao, volume e liquidez.
+    /// "12,3 mil", "812 mi", "45,2 bi" no Brasil; "12.3K", "812M", "45.2B" nos EUA. So
+    /// para capitalizacao, volume e liquidez.
     static func compact(_ value: Double, _ currency: Currency? = nil) -> String {
-        let units: [(Double, String)] = [(1e12, "tri"), (1e9, "bi"), (1e6, "mi"), (1e3, "mil")]
         var text = grouped(value, fractionDigits: 0)
-        for (threshold, name) in units where value >= threshold {
-            let scaled = value / threshold
-            let digits = scaled >= 100 ? 0 : (scaled >= 10 ? 1 : 2)
-            text = "\(grouped(scaled, fractionDigits: digits, trimZeros: true)) \(name)"
-            break
+        if value >= 1000 {
+            text = value.formatted(.number.notation(.compactName).precision(.significantDigits(1...3)).locale(locale))
         }
-        if let currency { return "\(currency.symbol)\(nbsp)\(text)" }
+        if let currency { return money(text, symbol: currency.symbol) }
         return text
     }
 
@@ -194,9 +220,9 @@ enum Fmt {
         let isZeroShown = whole == "0" && fractionText.allSatisfy { $0 == "0" }
         var text: String
         if isZeroShown && !amount.isZero {
-            text = "< 0," + String(repeating: "0", count: max(fractionDigits - 1, 0)) + "1"
+            text = "< 0" + decimal + String(repeating: "0", count: max(fractionDigits - 1, 0)) + "1"
         } else {
-            text = groupedInteger(whole) + (fractionText.isEmpty ? "" : "," + fractionText)
+            text = NumberStyle.current.decimal(groupedInteger(whole), fractionText)
         }
         if let symbol { text += " \(symbol)" }
         return text
@@ -210,9 +236,12 @@ enum Fmt {
     }
 
     /// Le o valor digitado ("1,5" ou "1.5") para o inteiro da rede, sem passar por
-    /// ponto flutuante. Casas demais sao recusadas, nao arredondadas.
+    /// ponto flutuante. Casas demais sao recusadas, nao arredondadas. Onde a virgula separa
+    /// milhar (ingles, japones), ela nao vale como decimal: "1,000" colado seria lido como 1.
     static func parseAmount(_ text: String, decimals: Int) -> BigUInt? {
-        let cleaned = text.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: ".", with: ",")
+        let raw = text.replacingOccurrences(of: " ", with: "")
+        if decimal == ".", raw.contains(",") { return nil }
+        let cleaned = raw.replacingOccurrences(of: ".", with: ",")
         let parts = cleaned.split(separator: ",", omittingEmptySubsequences: false)
         guard parts.count <= 2 else { return nil }
         let whole = parts[0].isEmpty ? "0" : String(parts[0])
@@ -227,7 +256,7 @@ enum Fmt {
         let (whole, fraction) = split(amount, decimals: decimals)
         var trimmed = fraction
         while trimmed.hasSuffix("0") { trimmed.removeLast() }
-        return trimmed.isEmpty ? whole : "\(whole),\(trimmed)"
+        return NumberStyle.current.decimal(whole, trimmed)
     }
 
     // MARK: Endereco e data
@@ -241,32 +270,45 @@ enum Fmt {
     /// "14:32", ou "ontem, 14:32" e "3 out, 14:32" quando nao e de hoje: a hora de um
     /// dado de mercado que ficou antigo.
     static func stamp(_ date: Date, now: Date = .now) -> String {
-        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(locale))
+        let time = clock(date)
         let calendar = Calendar(identifier: .gregorian)
         if calendar.isDate(date, inSameDayAs: now) { return time }
-        if calendar.isDateInYesterday(date) { return "ontem, \(time)" }
-        let day = date.formatted(.dateTime.day().month(.abbreviated).locale(locale)).replacingOccurrences(of: ".", with: "")
-        return "\(day), \(time)"
+        if calendar.isDateInYesterday(date) { return String(localized: "ontem, \(time)") }
+        return String(localized: "\(shortDay(date)), \(time)")
     }
 
     /// "7 de mai de 2021".
     static func longDay(_ date: Date) -> String {
-        let day = date.formatted(.dateTime.day().month(.abbreviated).year().locale(locale)).replacingOccurrences(of: ".", with: "")
-        return day
+        withoutAbbreviationDots(date.formatted(.dateTime.day().month(.abbreviated).year().locale(locale)))
     }
 
     static func relative(_ date: Date, now: Date = .now) -> String {
         let seconds = now.timeIntervalSince(date)
-        if seconds < 60 { return "agora" }
-        if seconds < 3600 { return "há \(Int(seconds / 60)) min" }
+        if seconds < 60 { return String(localized: "agora") }
+        if seconds < 3600 { return String(localized: "há \(Int(seconds / 60)) min") }
         let calendar = Calendar(identifier: .gregorian)
-        let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits).locale(locale))
-        if calendar.isDateInToday(date) { return "Hoje, \(time)" }
-        if calendar.isDateInYesterday(date) { return "Ontem, \(time)" }
+        let time = clock(date)
+        if calendar.isDateInToday(date) { return String(localized: "Hoje, \(time)") }
+        if calendar.isDateInYesterday(date) { return String(localized: "Ontem, \(time)") }
         let sameYear = calendar.component(.year, from: date) == calendar.component(.year, from: now)
-        var day = date.formatted(.dateTime.day().month(.abbreviated).locale(locale)).replacingOccurrences(of: ".", with: "")
-        if !sameYear { day += " \(calendar.component(.year, from: date))" }
-        return sameYear ? "\(day), \(time)" : day
+        if !sameYear { return withoutAbbreviationDots(date.formatted(.dateTime.day().month(.abbreviated).year().locale(locale))) }
+        return String(localized: "\(shortDay(date)), \(time)")
+    }
+
+    /// "14:32" no Brasil, "2:32 PM" nos EUA.
+    static func clock(_ date: Date) -> String {
+        date.formatted(.dateTime.hour().minute().locale(locale))
+    }
+
+    /// "3 out" no Brasil, "Oct 3" nos EUA.
+    private static func shortDay(_ date: Date) -> String {
+        withoutAbbreviationDots(date.formatted(.dateTime.day().month(.abbreviated).locale(locale)))
+    }
+
+    /// O portugues abrevia o mes com ponto ("out."); na tela fica sem. Em outros idiomas o
+    /// ponto pode ser parte da data ("3. Okt."), e fica.
+    private static func withoutAbbreviationDots(_ text: String) -> String {
+        locale.language.languageCode == .portuguese ? text.replacingOccurrences(of: ".", with: "") : text
     }
 
     // MARK: Interno
@@ -282,12 +324,7 @@ enum Fmt {
     }
 
     private static func groupedInteger(_ digits: String) -> String {
-        var out = ""
-        for (index, c) in digits.reversed().enumerated() {
-            if index > 0, index % 3 == 0 { out.append(".") }
-            out.append(c)
-        }
-        return String(out.reversed())
+        NumberStyle.current.group(digits)
     }
 
     static func grouped(_ value: Double, fractionDigits: Int, trimZeros: Bool = false) -> String {
@@ -311,7 +348,7 @@ enum Fmt {
         guard zeros >= 4, !rest.isEmpty else { return nil }
         let subscripts = Array("₀₁₂₃₄₅₆₇₈₉")
         let sub = String(zeros).compactMap { $0.wholeNumberValue.map { subscripts[$0] } }
-        return "0,0" + String(sub) + rest.prefix(8)
+        return "0\(decimal)0" + String(sub) + rest.prefix(8)
     }
 
     static func subscriptZeros(_ value: Double) -> String {
@@ -325,6 +362,6 @@ enum Fmt {
         let zeros = -exponent - 1
         let subscripts = Array("₀₁₂₃₄₅₆₇₈₉")
         let sub = String(zeros).compactMap { $0.wholeNumberValue.map { subscripts[$0] } }
-        return "0,0" + String(sub) + significant
+        return "0\(decimal)0" + String(sub) + significant
     }
 }

@@ -218,7 +218,7 @@ actor ReceiptWatchCenter {
         let center = UNUserNotificationCenter.current()
         guard await center.notificationSettings().authorizationStatus == .authorized else { return }
         guard showDetails else {
-            let content = content(title: "Entrou moeda na carteira", body: "Abra a Escalibur para ver.")
+            let content = content(title: String(localized: "Entrou moeda na carteira"), body: String(localized: "Abra a Escalibur para ver."))
             try? await center.add(UNNotificationRequest(identifier: "recebimento.discreto", content: content, trigger: nil))
             return
         }
@@ -230,7 +230,7 @@ actor ReceiptWatchCenter {
         if events.count > maxPerCheck {
             let rest = events.count - maxPerCheck
             try? await center.add(UNNotificationRequest(
-                identifier: "recebimento.mais", content: content(title: "Mais \(rest) recebimentos", body: "Abra a Atividade para ver."), trigger: nil
+                identifier: "recebimento.mais", content: content(title: "Mais \(rest) recebimentos", body: String(localized: "Abra a Atividade para ver.")), trigger: nil
             ))
         }
     }
@@ -253,7 +253,7 @@ enum ReceiptText {
         let chain = Chain.all.first { $0.id == event.chainID }?.name ?? event.chainID
         let symbol = PriceAlertText.safeSymbol(event.symbol)
         let amount = Fmt.crypto(event.amount, decimals: event.decimals, symbol: symbol)
-        return ("Recebeu \(amount)", "Na \(chain). O saldo novo já está na carteira.")
+        return (String(localized: "Recebeu \(amount)"), String(localized: "Na \(chain). O saldo novo já está na carteira."))
     }
 }
 

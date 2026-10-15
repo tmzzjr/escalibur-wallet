@@ -68,17 +68,17 @@ struct BridgeForm: View {
         VStack(alignment: .leading, spacing: 0) {
             networks
             VStack(spacing: 4) {
-                AmountBox(title: "Você envia", asset: model.sellAsset, amount: $model.amountText, balance: balanceText,
+                AmountBox(title: String(localized: "Você envia"), asset: model.sellAsset, amount: $model.amountText, balance: balanceText,
                           fiat: fiatText(model.amount, decimals: model.sellDecimals), editable: true, over: over,
                           onPick: { pickingAsset = true }, onFraction: fractionAction)
-                AmountBox(title: "Chega na \(model.to.name)", asset: model.receiveAsset, amount: .constant(receiveText), balance: nil,
+                AmountBox(title: String(localized: "Chega na \(model.to.name)"), asset: model.receiveAsset, amount: .constant(receiveText), balance: nil,
                           fiat: fiatText(model.selected?.minimumReceived, decimals: model.receiveDecimals), editable: false, over: false,
                           loading: model.quoting && model.options.isEmpty && model.amount != nil,
                           onPick: { pickingAsset = true }, onFraction: nil)
             }
             .padding(.top, Space.md)
             if model.asset == .usdc, model.options.count > 1 {
-                Segmented(options: model.options.map { ($0.route, $0.route == .cctpFast ? "Rápida" : "Padrão") }, selection: $model.route)
+                Segmented(options: model.options.map { ($0.route, $0.route == .cctpFast ? String(localized: "Rápida") : String(localized: "Padrão")) }, selection: $model.route)
                     .padding(.top, Space.md)
             }
             details.padding(.top, Space.lg)
@@ -123,15 +123,16 @@ struct BridgeForm: View {
     private var details: some View {
         if let quote = model.selected {
             VStack(alignment: .leading, spacing: Space.xs) {
-                line(quote.route.isCCTP ? "Pelo CCTP da Circle: queima aqui e a própria Circle cunha o mesmo USDC na \(model.to.name)"
-                                        : "Pelo Across: um relayer entrega na \(model.to.name) em segundos")
-                line("Taxa da ponte\(quote.route.isCCTP ? ", no máximo" : ""): \(Fmt.crypto(quote.bridgeFee, decimals: model.sellDecimals, symbol: model.asset.symbol, style: .full))")
-                line("Tempo: \(timeText(quote))")
-                line("Vai para a sua própria conta na \(model.to.name), o mesmo endereço")
+                line(quote.route.isCCTP ? String(localized: "Pelo CCTP da Circle: queima aqui e a própria Circle cunha o mesmo USDC na \(model.to.name)")
+                                        : String(localized: "Pelo Across: um relayer entrega na \(model.to.name) em segundos"))
+                let bridgeFee = Fmt.crypto(quote.bridgeFee, decimals: model.sellDecimals, symbol: model.asset.symbol, style: .full)
+                line(quote.route.isCCTP ? String(localized: "Taxa da ponte, no máximo: \(bridgeFee)") : String(localized: "Taxa da ponte: \(bridgeFee)"))
+                line(String(localized: "Tempo: \(timeText(quote))"))
+                line(String(localized: "Vai para a sua própria conta na \(model.to.name), o mesmo endereço"))
                 if model.from == .bnb || model.to == .bnb {
-                    line("Na BNB, o \(model.asset.symbol) é o da Binance (Binance-Peg): vale enquanto a Binance mantiver o lastro")
+                    line(String(localized: "Na BNB, o \(model.asset.symbol) é o da Binance (Binance-Peg): vale enquanto a Binance mantiver o lastro"))
                 }
-                line("Sem taxa da Escalibur")
+                line(String(localized: "Sem taxa da Escalibur"))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else if let error = model.error {
@@ -150,9 +151,9 @@ struct BridgeForm: View {
 
     private func timeText(_ quote: ValidatedBridgeQuote) -> String {
         switch quote.route {
-        case .cctpFast: return "menos de 1 minuto"
-        case .cctpStandard: return "uns 20 minutos (sem taxa do protocolo)"
-        case .across: return quote.estimatedSeconds < 120 ? "segundos" : "uns \(quote.estimatedSeconds / 60) minutos"
+        case .cctpFast: return String(localized: "menos de 1 minuto")
+        case .cctpStandard: return String(localized: "uns 20 minutos (sem taxa do protocolo)")
+        case .across: return quote.estimatedSeconds < 120 ? "segundos" : String(localized: "uns \(quote.estimatedSeconds / 60) minutos")
         }
     }
 
@@ -172,7 +173,7 @@ struct BridgeForm: View {
 
     private var balanceText: String? {
         guard let asset = model.sellAsset else { return nil }
-        return "Saldo \(Fmt.crypto(holding, decimals: asset.decimals, symbol: asset.symbol, style: .list))"
+        return String(localized: "Saldo \(Fmt.crypto(holding, decimals: asset.decimals, symbol: asset.symbol, style: .list))")
     }
 
     private var fractionAction: ((Double) -> Void)? {
@@ -192,7 +193,7 @@ struct BridgeForm: View {
     /// o que sai da Base 6 (revisao da ponte BNB, B3).
     private func fiatText(_ amount: BigUInt?, decimals: Int) -> String? {
         guard let amount, let asset = model.sellAsset, let price = asset.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) else { return nil }
-        return "≈ \(Fmt.fiat(Fmt.double(amount, decimals: decimals) * price, session.currency))"
+        return String(localized: "≈ \(Fmt.fiat(Fmt.double(amount, decimals: decimals) * price, session.currency))")
     }
 
     // MARK: Cotacao
@@ -218,7 +219,7 @@ struct BridgeForm: View {
             model.error = BridgeRefusalText.text(refusal)
         } catch {
             guard !Task.isCancelled else { return }
-            model.error = (error as? LocalizedError)?.errorDescription ?? "Não foi possível cotar a ponte agora."
+            model.error = (error as? LocalizedError)?.errorDescription ?? String(localized: "Não foi possível cotar a ponte agora.")
         }
     }
 }
@@ -227,10 +228,10 @@ struct BridgeForm: View {
 enum BridgeRefusalText {
     static func text(_ refusal: BridgeRefusal) -> String {
         switch refusal {
-        case .aboveBurnLimit: return "O CCTP da Circle leva até 10 milhões de USDC por vez. Faça em partes."
-        case .unsupportedRoute: return "A ponte ainda não leva esta moeda entre estas redes."
-        case .sameChain: return "Escolha redes diferentes."
-        default: return "A ponte recusou este pedido."
+        case .aboveBurnLimit: return String(localized: "O CCTP da Circle leva até 10 milhões de USDC por vez. Faça em partes.")
+        case .unsupportedRoute: return String(localized: "A ponte ainda não leva esta moeda entre estas redes.")
+        case .sameChain: return String(localized: "Escolha redes diferentes.")
+        default: return String(localized: "A ponte recusou este pedido.")
         }
     }
 }
@@ -257,10 +258,10 @@ struct BridgeFooter: View {
     }
 
     private var title: String {
-        guard let amount = model.amount, !amount.isZero else { return "Digite um valor" }
-        if over { return "Saldo de \(model.asset.symbol) insuficiente na \(model.from.name)" }
-        if model.quoting && model.options.isEmpty { return "Cotando a ponte" }
-        return "Revisar ponte"
+        guard let amount = model.amount, !amount.isZero else { return String(localized: "Digite um valor") }
+        if over { return String(localized: "Saldo de \(model.asset.symbol) insuficiente na \(model.from.name)") }
+        if model.quoting && model.options.isEmpty { return String(localized: "Cotando a ponte") }
+        return String(localized: "Revisar ponte")
     }
 
     private var enabled: Bool {
@@ -330,7 +331,7 @@ struct BridgeAssetSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Moeda") { dismiss() }
+            SheetHeader(title: String(localized: "Moeda")) { dismiss() }
             Text("Da \(model.from.name) para a \(model.to.name)").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
             ScrollView {
@@ -346,16 +347,16 @@ struct BridgeAssetSheet: View {
     }
 
     private func reason(_ asset: BridgeAsset) -> String? {
-        guard let from = model.fromBridge, let to = model.toBridge else { return "Rede fora da ponte." }
+        guard let from = model.fromBridge, let to = model.toBridge else { return String(localized: "Rede fora da ponte.") }
         guard !asset.available(from: from, to: to) else { return nil }
         switch asset {
-        case .usdc: return "Fora da ponte nestas redes."
+        case .usdc: return String(localized: "Fora da ponte nestas redes.")
         case .eth:
-            if from.across == nil || to.across == nil { return "O Across não atende \(from.across == nil ? from.chain.name : to.chain.name)." }
-            return "ETH só entre redes em que ele é a moeda nativa, e na BNB, onde é o da Binance."
+            if from.across == nil || to.across == nil { return String(localized: "O Across não atende \(from.across == nil ? from.chain.name : to.chain.name).") }
+            return String(localized: "ETH só entre redes em que ele é a moeda nativa, e na BNB, onde é o da Binance.")
         case .usdt:
-            if from.across == nil || to.across == nil { return "O Across não atende \(from.across == nil ? from.chain.name : to.chain.name)." }
-            return "USDT só onde o Across entrega o USDT da Tether (Ethereum, Arbitrum, Unichain e Plasma) ou o da Binance, na BNB."
+            if from.across == nil || to.across == nil { return String(localized: "O Across não atende \(from.across == nil ? from.chain.name : to.chain.name).") }
+            return String(localized: "USDT só onde o Across entrega o USDT da Tether (Ethereum, Arbitrum, Unichain e Plasma) ou o da Binance, na BNB.")
         }
     }
 
@@ -369,7 +370,7 @@ struct BridgeAssetSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(asset.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
                     Text(why ?? (model.fromBridge.flatMap { from in model.toBridge.map { BridgeAsset.usesCCTP(asset, from: from, to: $0) } } == true
-                                 ? "Pelo CCTP da Circle" : "Pelo Across")).typeStyle(.note)
+                                 ? String(localized: "Pelo CCTP da Circle") : String(localized: "Pelo Across"))).typeStyle(.note)
                         .foregroundStyle(why == nil ? Palette.inkSoft : Palette.inkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }

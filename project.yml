@@ -16,6 +16,10 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     DEAD_CODE_STRIPPING: YES
+    # Traducao: o compilador lista os textos de Text, String(localized:) e kitText, e o
+    # catalogo (Localizable.xcstrings) guarda cada um em todos os idiomas.
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
 targets:
   EscaliburWallet:
     type: application
@@ -81,6 +85,10 @@ schemes:
       targets:
         EscaliburWallet: all
     test:
+      # Os testes leem os textos em portugues e os valores no formato do Brasil, em
+      # qualquer simulador.
+      language: pt-BR
+      region: BR
       targets:
         - EscaliburWalletTests
         - EscaliburWalletUITests

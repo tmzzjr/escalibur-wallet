@@ -32,11 +32,11 @@ public enum TokenInspectionError: LocalizedError, Equatable, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .notAToken: return "Este endereço não é de um token nesta rede. Confira a rede escolhida e o endereço inteiro."
-        case .providersDisagree: return "As fontes da rede responderam casas decimais diferentes. Por segurança, a moeda não foi adicionada."
-        case .notEnoughSources: return "Não foi possível confirmar em duas fontes da rede agora. Tente de novo em instantes."
-        case .unknownAsset: return "Este emissor não tem esta moeda em circulação. Confira o código e o emissor."
-        case .unsupported: return "Esta rede ainda não aceita moeda custom."
+        case .notAToken: return kitText("Este endereço não é de um token nesta rede. Confira a rede escolhida e o endereço inteiro.")
+        case .providersDisagree: return kitText("As fontes da rede responderam casas decimais diferentes. Por segurança, a moeda não foi adicionada.")
+        case .notEnoughSources: return kitText("Não foi possível confirmar em duas fontes da rede agora. Tente de novo em instantes.")
+        case .unknownAsset: return kitText("Este emissor não tem esta moeda em circulação. Confira o código e o emissor.")
+        case .unsupported: return kitText("Esta rede ainda não aceita moeda custom.")
         }
     }
 }
@@ -168,19 +168,22 @@ public actor TokenInspector {
         for ext in first.info.extensions {
             switch ext {
             case .transferFee(let basisPoints, _):
-                notes.append("O emissor cobra \(Double(basisPoints) / 100)% de cada transferência deste token (Token-2022).")
+                var fraction = String(format: "%02d", basisPoints % 100)
+                while fraction.hasSuffix("0") { fraction.removeLast() }
+                let percent = NumberStyle.current.decimal(String(basisPoints / 100), fraction)
+                notes.append(kitText("O emissor cobra \(percent)% de cada transferência deste token (Token-2022)."))
             case .permanentDelegate:
-                notes.append("O emissor pode mover ou queimar este token em qualquer conta, inclusive na sua.")
+                notes.append(kitText("O emissor pode mover ou queimar este token em qualquer conta, inclusive na sua."))
             case .transferHook:
-                notes.append("Cada transferência chama um programa do emissor. A Escalibur não envia token com esse gancho.")
+                notes.append(kitText("Cada transferência chama um programa do emissor. A Escalibur não envia token com esse gancho."))
             case .nonTransferable:
-                notes.append("Este token não pode ser transferido.")
+                notes.append(kitText("Este token não pode ser transferido."))
             case .defaultAccountStateFrozen:
-                notes.append("Contas novas deste token nascem congeladas pelo emissor.")
+                notes.append(kitText("Contas novas deste token nascem congeladas pelo emissor."))
             case .paused:
-                notes.append("O emissor pausou este token.")
+                notes.append(kitText("O emissor pausou este token."))
             case .unknown:
-                notes.append("O token tem extensões do Token-2022 que a carteira não conhece.")
+                notes.append(kitText("O token tem extensões do Token-2022 que a carteira não conhece."))
             }
         }
         return Self.facts(
@@ -255,7 +258,7 @@ public actor TokenInspector {
         }
         guard first.decimals == second.decimals else { throw TokenInspectionError.providersDisagree }
         var notes: [String] = []
-        if first.verification == "blacklist" { notes.append("A tonapi marca este jetton como golpe.") }
+        if first.verification == "blacklist" { notes.append(kitText("A tonapi marca este jetton como golpe.")) }
         return Self.facts(
             .ton, .token(contract: parsed.address.friendly(bounceable: true)), symbol: first.symbol, name: first.name,
             decimals: first.decimals, sources: ["tonapi", "toncenter"], notes: notes, flagged: first.verification == "blacklist"
@@ -312,7 +315,7 @@ public actor TokenInspector {
         return Self.facts(
             .xrpl, .issued(code: code, issuer: issuer), symbol: symbol, name: symbol, decimals: BalanceService.xrplDisplayDecimals,
             sources: readings.map(\.provider.name),
-            decimalsNote: "No XRP Ledger o token não tem casas decimais fixas. A carteira mostra até \(BalanceService.xrplDisplayDecimals) casas."
+            decimalsNote: kitText("No XRP Ledger o token não tem casas decimais fixas. A carteira mostra até \(BalanceService.xrplDisplayDecimals) casas.")
         )
     }
 
@@ -333,7 +336,7 @@ public actor TokenInspector {
         guard readings.allSatisfy(\.value) else { throw TokenInspectionError.unknownAsset }
         return Self.facts(
             .stellar, .issued(code: code, issuer: issuer), symbol: code, name: code, decimals: 7, sources: readings.map(\.provider.name),
-            decimalsNote: "Na Stellar todo ativo tem 7 casas decimais, pela própria rede."
+            decimalsNote: kitText("Na Stellar todo ativo tem 7 casas decimais, pela própria rede.")
         )
     }
 }

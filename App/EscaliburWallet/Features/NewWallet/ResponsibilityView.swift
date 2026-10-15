@@ -26,14 +26,14 @@ struct ResponsibilityView: View {
                 VStack(spacing: 0) {
                     header
                     VStack(alignment: .leading, spacing: Space.md) {
-                        point("lock.iphone", "Cifrada, só neste iPhone",
-                              "Tudo da carteira é cifrado e fica guardado aqui, em nenhum outro lugar.")
-                        point("eye.slash", "A Escalibur não vê nada",
-                              "Não temos servidor com as suas chaves. Não temos como ver, mover nem recuperar nada.")
-                        point("key.horizontal", "As palavras recuperam",
-                              "A senha da carteira, as 12 ou 24 palavras, é a única forma de trazer a carteira de volta.")
-                        point("hand.raised", "Ninguém da Escalibur pede",
-                              "Nem por suporte, e-mail ou mensagem. Quem pedir as palavras quer o seu saldo.")
+                        point("lock.iphone", String(localized: "Cifrada, só neste iPhone"),
+                              String(localized: "Tudo da carteira é cifrado e fica guardado aqui, em nenhum outro lugar."))
+                        point("eye.slash", String(localized: "A Escalibur não vê nada"),
+                              String(localized: "Não temos servidor com as suas chaves. Não temos como ver, mover nem recuperar nada."))
+                        point("key.horizontal", String(localized: "As palavras recuperam"),
+                              String(localized: "A senha da carteira, as 12 ou 24 palavras, é a única forma de trazer a carteira de volta."))
+                        point("hand.raised", String(localized: "Ninguém da Escalibur pede"),
+                              String(localized: "Nem por suporte, e-mail ou mensagem. Quem pedir as palavras quer o seu saldo."))
                     }
                     .padding(.top, Space.lg)
                     acceptance
@@ -47,7 +47,7 @@ struct ResponsibilityView: View {
             ActionFooter {
                 // Desligado, o botao diz o que falta: no iPhone pequeno a caixa fica
                 // abaixo da dobra.
-                PrimaryButton(title: accepted ? continueTitle : "Marque o aceite para continuar",
+                PrimaryButton(title: accepted ? continueTitle : String(localized: "Marque o aceite para continuar"),
                               enabled: accepted, loading: loading) { accept() }
             }
         }

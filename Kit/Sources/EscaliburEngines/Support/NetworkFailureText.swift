@@ -1,4 +1,5 @@
 import EscaliburChains
+import EscaliburCore
 import EscaliburNetwork
 import Foundation
 
@@ -9,16 +10,16 @@ import Foundation
 /// frase fixa, em portugues, sem travessao. Erro que o motor ja traduziu passa direto,
 /// e cancelamento continua cancelamento.
 enum NetworkFailureText {
-    static let offline = "Não foi possível falar com a rede agora. Confira a conexão e tente de novo."
-    static let busy = "Os provedores da rede pediram uma pausa. Tente de novo em um minuto."
-    static let fewSources = "Menos provedores responderam do que a carteira exige para seguir com segurança. Nada foi montado. Tente de novo em instantes."
-    static let disagree = "Os provedores da rede deram respostas diferentes. Por segurança, nada foi montado. Tente de novo em instantes."
+    static let offline = kitText("Não foi possível falar com a rede agora. Confira a conexão e tente de novo.")
+    static let busy = kitText("Os provedores da rede pediram uma pausa. Tente de novo em um minuto.")
+    static let fewSources = kitText("Menos provedores responderam do que a carteira exige para seguir com segurança. Nada foi montado. Tente de novo em instantes.")
+    static let disagree = kitText("Os provedores da rede deram respostas diferentes. Por segurança, nada foi montado. Tente de novo em instantes.")
     static let malformed = "Um provedor da rede respondeu fora do esperado. Por segurança, nada foi montado."
-    static let inconsistent = "A transação assinada não confere com o que foi revisado. Nada foi transmitido."
-    static let refused = "A rede recusou a transação. Nada foi debitado."
-    static let wrongAccount = "Esta conta não serve para esta rede."
-    static let scanLimit = "A busca pelos endereços desta carteira passou do limite. Nada foi montado."
-    static let xrplAccountMissing = "Esta conta ainda não existe no XRP Ledger. Ela passa a existir quando receber o primeiro XRP."
+    static let inconsistent = kitText("A transação assinada não confere com o que foi revisado. Nada foi transmitido.")
+    static let refused = kitText("A rede recusou a transação. Nada foi debitado.")
+    static let wrongAccount = kitText("Esta conta não serve para esta rede.")
+    static let scanLimit = kitText("A busca pelos endereços desta carteira passou do limite. Nada foi montado.")
+    static let xrplAccountMissing = kitText("Esta conta ainda não existe no XRP Ledger. Ela passa a existir quando receber o primeiro XRP.")
 
     /// O erro que sai do motor.
     static func error(_ error: Error) -> Error {
@@ -70,13 +71,13 @@ enum NetworkFailureText {
 
     static func text(_ rejection: BroadcastRejection) -> String {
         switch rejection {
-        case .nonceTooLow: return "Outra transação desta conta entrou antes desta. Revise de novo."
-        case .nonceTooHigh: return "A rede ainda não viu a transação anterior desta conta. Tente de novo em instantes."
-        case .insufficientFunds: return "Saldo insuficiente na rede para esta transação. Nada foi debitado."
-        case .underpriced: return "A taxa ficou abaixo do mínimo que a rede pede agora. Revise de novo."
-        case .expired: return "O prazo da transação venceu antes de ela entrar na rede. Nada foi debitado. Revise de novo."
-        case .invalidSignature: return "A rede não aceitou a assinatura. Nada foi debitado."
-        case .wrongNetwork: return "A transação foi montada para outra rede. Nada foi transmitido."
+        case .nonceTooLow: return kitText("Outra transação desta conta entrou antes desta. Revise de novo.")
+        case .nonceTooHigh: return kitText("A rede ainda não viu a transação anterior desta conta. Tente de novo em instantes.")
+        case .insufficientFunds: return kitText("Saldo insuficiente na rede para esta transação. Nada foi debitado.")
+        case .underpriced: return kitText("A taxa ficou abaixo do mínimo que a rede pede agora. Revise de novo.")
+        case .expired: return kitText("O prazo da transação venceu antes de ela entrar na rede. Nada foi debitado. Revise de novo.")
+        case .invalidSignature: return kitText("A rede não aceitou a assinatura. Nada foi debitado.")
+        case .wrongNetwork: return kitText("A transação foi montada para outra rede. Nada foi transmitido.")
         case .alreadyKnown, .other: return refused
         }
     }

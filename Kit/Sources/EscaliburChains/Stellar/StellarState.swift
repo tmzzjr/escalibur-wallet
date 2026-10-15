@@ -218,7 +218,7 @@ public enum StellarAmount {
         let integer = padded.dropLast(decimals)
         var fraction = padded.suffix(decimals)
         while fraction.last == "0" { fraction = fraction.dropLast() }
-        return fraction.isEmpty ? String(integer) : "\(integer),\(fraction)"
+        return NumberStyle.current.decimal(integer, fraction)
     }
 
     public static func format(_ stroops: BigUInt, _ asset: StellarAsset) -> String {

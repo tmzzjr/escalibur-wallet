@@ -38,10 +38,10 @@ struct StellarTradeEngine: TradeEngine {
     var supportsLimitOrders: Bool { true }
 
     var limitCustodyNote: String {
-        "O valor fica na sua conta, reservado pela oferta, até executar ou você cancelar pelas ordens abertas. A Stellar não tem prazo para ofertas: ela fica aberta até executar ou ser cancelada, e prende uma reserva de XLM enquanto isso."
+        kitText("O valor fica na sua conta, reservado pela oferta, até executar ou você cancelar pelas ordens abertas. A Stellar não tem prazo para ofertas: ela fica aberta até executar ou ser cancelada, e prende uma reserva de XLM enquanto isso.")
     }
 
-    static let provider = "DEX da Stellar"
+    static let provider = kitText("DEX da Stellar")
 
     // MARK: Cotacao
 
@@ -52,7 +52,7 @@ struct StellarTradeEngine: TradeEngine {
     func quote(_ request: TradeRequest) async throws -> TradeQuote {
         let (sell, buy) = try pair(request.chain, request.sell, request.buy)
         try TradeMath.requireSlippage(request.slippageBasisPoints)
-        guard !request.amountIn.isZero else { throw SendEngineError.message("Digite um valor maior que zero.") }
+        guard !request.amountIn.isZero else { throw SendEngineError.message(kitText("Digite um valor maior que zero.")) }
         let referenceIn = request.amountIn / BigUInt(1_000)
         do {
             async let both = reader.quoteStrictSendOnBoth(send: sell, amount: request.amountIn, receive: buy, allowedPath: Self.allowedPath)
@@ -69,7 +69,7 @@ struct StellarTradeEngine: TradeEngine {
             return TradeQuote(
                 sell: request.sell, buy: request.buy, amountIn: request.amountIn,
                 expectedOut: route.receiveAmount, minimumOut: minimum, priceImpactPercent: impact, networkFeeFiat: nil,
-                providerFeeNote: "Sem taxa de provedor: a troca acontece direto na DEX da Stellar.",
+                providerFeeNote: kitText("Sem taxa de provedor: a troca acontece direto na DEX da Stellar."),
                 legs: [.init(provider: Self.provider, fraction: 1, amountIn: request.amountIn, expectedOut: route.receiveAmount)],
                 alternatives: [], providersCompared: 1, needsApproval: false,
                 expiresAt: Date().addingTimeInterval(TradeMath.quoteLifetime)
@@ -195,7 +195,7 @@ struct StellarTradeEngine: TradeEngine {
         _ order: OpenOrder, walletID: UUID, account: DerivedAccount, via: OpenOrder.Cancellation, nonceQueue: PendingNonceQueue?
     ) async throws -> SigningPlan {
         guard via == .onchain, order.chain == .stellar, let offerID = Int64(order.id) else {
-            throw SendEngineError.message("Esta oferta não é da Stellar.")
+            throw SendEngineError.message(kitText("Esta oferta não é da Stellar."))
         }
         let source = try StellarEngineSupport.source(account)
         do {
@@ -203,7 +203,7 @@ struct StellarTradeEngine: TradeEngine {
             async let owner = reader.ownerAccount(source.account)
             async let networkState = reader.networkState()
             guard let offer = try await offers.first(where: { $0.offer.id == offerID })?.offer else {
-                throw SendEngineError.message("Esta oferta não está mais aberta: já executou ou foi cancelada.")
+                throw SendEngineError.message(kitText("Esta oferta não está mais aberta: já executou ou foi cancelada."))
             }
             guard let state = try await owner else { throw SendEngineError.message(StellarEngineSupport.accountMissing) }
             let context = StellarPlanContext(
@@ -263,6 +263,6 @@ struct StellarTradeEngine: TradeEngine {
     }
 
     static func noRoute(_ request: TradeRequest) -> String {
-        "Nenhuma rota troca \(request.sell.symbol) por \(request.buy.symbol) na Stellar agora. Tente um valor menor."
+        kitText("Nenhuma rota troca \(request.sell.symbol) por \(request.buy.symbol) na Stellar agora. Tente um valor menor.")
     }
 }

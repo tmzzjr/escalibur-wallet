@@ -164,7 +164,7 @@ struct OtherTokenDetailView: View {
                     ContractNoticeBanner(asset: asset).padding(.top, Space.md)
                 }
 
-                Banner(kind: .caution, title: holding.isSuspicious ? "Este token tem cara de golpe" : "Token não verificado",
+                Banner(kind: .caution, title: holding.isSuspicious ? String(localized: "Este token tem cara de golpe") : String(localized: "Token não verificado"),
                        message: TokenReasonText.anyoneCanCreate)
                     .padding(.top, Space.lg)
 
@@ -186,7 +186,7 @@ struct OtherTokenDetailView: View {
                 ContractPanel(asset: asset).padding(.top, Space.lg)
 
                 if !holding.isSuspicious, TradeAccess.allows(asset), session.selectedWallet?.isWatchOnly != true {
-                    PrimaryButton(title: "Trocar \(asset.symbol)") {
+                    PrimaryButton(title: String(localized: "Trocar \(asset.symbol)")) {
                         router.tradePreset = (asset, true)
                         router.tab = .trade
                     }
@@ -197,7 +197,7 @@ struct OtherTokenDetailView: View {
                     VStack(alignment: .leading, spacing: Space.xs) {
                         Text("Se você conhece este token e confere o contrato com a fonte oficial dele, pode adicioná-lo como moeda custom. A carteira lê o token de novo na rede antes de salvar.")
                             .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-                        SecondaryButton(title: "Adicionar como moeda custom") { adding = true }
+                        SecondaryButton(title: String(localized: "Adicionar como moeda custom")) { adding = true }
                     }
                     .padding(.top, Space.lg)
                 }
@@ -218,10 +218,10 @@ struct OtherTokenDetailView: View {
     }
 
     private var priceLine: String {
-        if holding.isSuspicious { return "Sem preço: token suspeito nunca entra no saldo total." }
-        guard let quote else { return "Sem preço confiável por contrato. Fica fora do saldo total." }
+        if holding.isSuspicious { return String(localized: "Sem preço: token suspeito nunca entra no saldo total.") }
+        guard let quote else { return String(localized: "Sem preço confiável por contrato. Fica fora do saldo total.") }
         let value = Fmt.double(holding.amount, decimals: asset.decimals) * quote.price
-        return "\(Fmt.fiat(value, session.currency)) pelo preço do contrato, \(Fmt.price(quote.price, session.currency)) cada."
+        return String(localized: "\(Fmt.fiat(value, session.currency)) pelo preço do contrato, \(Fmt.price(quote.price, session.currency)) cada.")
     }
 }
 
@@ -238,10 +238,10 @@ struct ContractPanel: View {
                     Text("Código da moeda").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     Text(verbatim: code).typeStyle(.monoSmall).foregroundStyle(Palette.ink).textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Emissor \(chain.id == "xrpl" ? "no" : "na") \(chain.name)").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                    Text(chain.id == "xrpl" ? "Emissor no \(chain.name)" : "Emissor na \(chain.name)").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                         .padding(.top, Space.xxs)
                 } else {
-                    Text("\(CustomToken.addressLabel(chain)) \(chain.id == "xrpl" ? "no" : "na") \(chain.name)")
+                    Text(chain.id == "xrpl" ? "\(CustomToken.addressLabel(chain)) no \(chain.name)" : "\(CustomToken.addressLabel(chain)) na \(chain.name)")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 }
                 if reference.count >= 26, reference.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) }) {
@@ -255,7 +255,7 @@ struct ContractPanel: View {
                 HStack(spacing: Space.sm) {
                     Button {
                         Pasteboard.copyAddress(reference)
-                        toasts.show("Copiado. Confira o endereço inteiro com a fonte oficial do token.")
+                        toasts.show(String(localized: "Copiado. Confira o endereço inteiro com a fonte oficial do token."))
                     } label: {
                         Label("Copiar", systemImage: "doc.on.doc").typeStyle(.note).foregroundStyle(Palette.ink)
                             .frame(minHeight: Height.touch)

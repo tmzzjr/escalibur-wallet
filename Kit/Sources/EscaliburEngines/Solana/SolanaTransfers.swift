@@ -44,16 +44,16 @@ enum SolanaTransfers {
             return .pending
         case .confirmed:
             await book.finished(id)
-            return .confirmed(detail: "Confirmada na rede Solana.")
+            return .confirmed(detail: kitText("Confirmada na rede Solana."))
         case .finalized:
             await book.finished(id)
-            return .confirmed(detail: "Finalizada na rede Solana.")
+            return .confirmed(detail: kitText("Finalizada na rede Solana."))
         case .failed:
             await book.finished(id)
-            return .failed(reason: "A transação entrou num bloco e falhou. A taxa da rede foi cobrada e o valor não saiu.")
+            return .failed(reason: kitText("A transação entrou num bloco e falhou. A taxa da rede foi cobrada e o valor não saiu."))
         case .expired:
             await book.finished(id)
-            return .failed(reason: "A transação venceu antes de entrar num bloco. Nada foi debitado. Pode enviar de novo.")
+            return .failed(reason: kitText("A transação venceu antes de entrar num bloco. Nada foi debitado. Pode enviar de novo."))
         }
     }
 

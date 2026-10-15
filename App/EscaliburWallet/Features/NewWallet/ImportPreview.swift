@@ -67,8 +67,8 @@ struct ImportPreviewView: View {
         }
         .safeAreaInset(edge: .bottom) {
             ActionFooter {
-                PrimaryButton(title: "Guardar esta carteira", loading: saving, action: onSave)
-                TertiaryButton(title: "Voltar e conferir", action: onBack)
+                PrimaryButton(title: String(localized: "Guardar esta carteira"), loading: saving, action: onSave)
+                TertiaryButton(title: String(localized: "Voltar e conferir"), action: onBack)
             }
         }
         .background(Palette.void.ignoresSafeArea())

@@ -13,19 +13,19 @@ struct EnvelopeHowItWorks: View {
     }
 
     static let pages = [
-        Page(title: "A senha da carteira entra no envelope",
-             text: "O envelope pega as palavras da sua carteira e tranca tudo com uma senha que você escolhe. O resultado é um arquivo .esclbr."),
-        Page(title: "Sem a senha, o arquivo é ruído",
-             text: "Dentro do arquivo, as palavras viram dados cifrados. Ele não diz de quem é, nem quantas palavras guarda, nem o que tem dentro."),
-        Page(title: "Só a sua senha abre",
-             text: "Ninguém abre sem ela, nem a Escalibur, e ninguém recupera uma senha esquecida. Quem tiver uma cópia do arquivo pode tentar senhas à vontade, por isso a sugerida tem seis palavras sorteadas."),
-        Page(title: "Para abrir, só o app",
-             text: "Em Ajustes, Abrir um envelope, neste ou em outro iPhone com a Escalibur. Com a senha certa, a carteira volta. Guarde o arquivo e a senha em lugares diferentes."),
+        Page(title: String(localized: "A senha da carteira entra no envelope"),
+             text: String(localized: "O envelope pega as palavras da sua carteira e tranca tudo com uma senha que você escolhe. O resultado é um arquivo .esclbr.")),
+        Page(title: String(localized: "Sem a senha, o arquivo é ruído"),
+             text: String(localized: "Dentro do arquivo, as palavras viram dados cifrados. Ele não diz de quem é, nem quantas palavras guarda, nem o que tem dentro.")),
+        Page(title: String(localized: "Só a sua senha abre"),
+             text: String(localized: "Ninguém abre sem ela, nem a Escalibur, e ninguém recupera uma senha esquecida. Quem tiver uma cópia do arquivo pode tentar senhas à vontade, por isso a sugerida tem seis palavras sorteadas.")),
+        Page(title: String(localized: "Para abrir, só o app"),
+             text: String(localized: "Em Ajustes, Abrir um envelope, neste ou em outro iPhone com a Escalibur. Com a senha certa, a carteira volta. Guarde o arquivo e a senha em lugares diferentes.")),
     ]
 
     var body: some View {
         VStack(spacing: 0) {
-            SheetHeader(title: "Como funciona") { dismiss() }
+            SheetHeader(title: String(localized: "Como funciona")) { dismiss() }
             TabView(selection: $page) {
                 ForEach(Self.pages.indices, id: \.self) { index in
                     VStack(spacing: 0) {
@@ -49,7 +49,7 @@ struct EnvelopeHowItWorks: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
             .indexViewStyle(.page(backgroundDisplayMode: .never))
-            PrimaryButton(title: page < Self.pages.count - 1 ? "Próximo" : "Entendi") {
+            PrimaryButton(title: page < Self.pages.count - 1 ? String(localized: "Próximo") : String(localized: "Entendi")) {
                 if page < Self.pages.count - 1 { withAnimation(Motion.fade) { page += 1 } } else { dismiss() }
             }
             .padding(.horizontal, Space.gutter)

@@ -47,7 +47,7 @@ public struct EVMActivitySource: ActivitySource {
 
 extension EVMActivitySource {
     static func blockedReason(_ chain: Chain) -> String {
-        "O indexador público da \(chain.name) está recusando pedidos de aplicativos agora. O histórico dela fica no explorador."
+        kitText("O indexador público da \(chain.name) está recusando pedidos de aplicativos agora. O histórico dela fica no explorador.")
     }
 }
 
@@ -63,7 +63,7 @@ public struct EVMUnavailableActivitySource: ActivitySource {
     }
 
     public func history(chain: Chain, account: DerivedAccount, usage: UTXOUsage?) async throws -> [ActivityEntry] {
-        throw SendEngineError.unavailable("O histórico da \(self.chain.name) ainda não está disponível nesta versão.")
+        throw SendEngineError.unavailable(kitText("O histórico da \(self.chain.name) ainda não está disponível nesta versão."))
     }
 }
 

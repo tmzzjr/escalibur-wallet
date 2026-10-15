@@ -64,7 +64,7 @@ struct NEARPlannerTests {
         #expect(review.title == "Enviar 1 NEAR")
         #expect(review.recipient == Self.named && review.recipientTag == nil)
         #expect(review.outgoing == PlanReview.Movement(assetID: Asset.native(.near).id, amount: Self.near))
-        #expect(review.lines.contains(PlanReview.Line("Para", Self.named, verbatim: true)))
+        #expect(review.lines.contains(PlanReview.Line("Para", Self.named, verbatim: true, role: .recipient)))
         #expect(review.lines.contains(PlanReview.Line("Taxa estimada", "0,0000446365125 NEAR")))
         #expect(review.lines.contains { $0.label == "Reservado para a taxa" && $0.value.hasPrefix("0,00024996447 NEAR. ") })
         #expect(review.warnings.isEmpty)

@@ -143,8 +143,8 @@ struct ReceiveSheet: View {
             .multilineTextAlignment(.center)
             .padding(.top, Space.md)
             Spacer(minLength: Space.md)
-            PrimaryButton(title: "Gravar agora") { backingUp = true }
-            SecondaryButton(title: "Agora não") { dismiss() }.padding(.top, Space.sm)
+            PrimaryButton(title: String(localized: "Gravar agora")) { backingUp = true }
+            SecondaryButton(title: String(localized: "Agora não")) { dismiss() }.padding(.top, Space.sm)
         }
         .padding(.horizontal, Space.gutter).padding(.top, Space.md).padding(.bottom, Space.xs)
     }
@@ -174,17 +174,17 @@ struct ReceiveSheet: View {
         let others = filtered.filter { coin in !coin.assets.contains { held.contains($0.id) } }
         let listedIDs = Set(coins.compactMap(\.coingeckoID))
         return VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: "Receber") { dismiss() }
-            SearchField(prompt: "Buscar qualquer moeda", text: $query, surface: Palette.rail)
+            SheetHeader(title: String(localized: "Receber")) { dismiss() }
+            SearchField(prompt: String(localized: "Buscar qualquer moeda"), text: $query, surface: Palette.rail)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.md)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     if !inWallet.isEmpty {
-                        sectionTitle("Na carteira")
+                        sectionTitle(String(localized: "Na carteira"))
                         ForEach(inWallet) { coinRow($0) }
                     }
                     if !others.isEmpty {
-                        if !inWallet.isEmpty || searching { sectionTitle(searching ? "Verificadas" : "Todas") }
+                        if !inWallet.isEmpty || searching { sectionTitle(searching ? String(localized: "Verificadas") : String(localized: "Todas")) }
                         ForEach(others) { coinRow($0) }
                     }
                     if searching {
@@ -218,26 +218,26 @@ struct ReceiveSheet: View {
         case .loaded(let results)?:
             let shown = results.filter { !listedIDs.contains($0.id) }
             if !shown.isEmpty {
-                sectionTitle("Mais moedas, fora da lista verificada")
+                sectionTitle(String(localized: "Mais moedas, fora da lista verificada"))
                 ForEach(shown) { resultRow($0) }
             } else if nothingListed {
-                searchNote("Nenhuma moeda com esse nome ou símbolo.")
+                searchNote(String(localized: "Nenhuma moeda com esse nome ou símbolo."))
             }
         case .failed?:
             VStack(alignment: .leading, spacing: Space.xs) {
-                searchNote("O CoinGecko não respondeu agora. Aparecem só as moedas verificadas.")
-                TertiaryButton(title: "Buscar de novo") {
+                searchNote(String(localized: "O CoinGecko não respondeu agora. Aparecem só as moedas verificadas."))
+                TertiaryButton(title: String(localized: "Buscar de novo")) {
                     search.retry(query)
                     Task { await search.search(query) }
                 }
                     .padding(.horizontal, Space.gutter)
             }
         case .retrying?:
-            sectionTitle("Mais moedas, fora da lista verificada")
+            sectionTitle(String(localized: "Mais moedas, fora da lista verificada"))
             ForEach(0..<3, id: \.self) { _ in placeholderRow }
-            searchNote("O CoinGecko pediu uma pausa. Tentando de novo.")
+            searchNote(String(localized: "O CoinGecko pediu uma pausa. Tentando de novo."))
         case .loading?, nil:
-            sectionTitle("Mais moedas, fora da lista verificada")
+            sectionTitle(String(localized: "Mais moedas, fora da lista verificada"))
             ForEach(0..<3, id: \.self) { _ in placeholderRow }
         }
     }
@@ -296,7 +296,7 @@ struct ReceiveSheet: View {
                     Text("Receber \(result.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
                     Text("O CoinGecko não respondeu agora, e sem ele a carteira não sabe em que rede esta moeda existe.")
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-                    SecondaryButton(title: "Tentar de novo") { Task { await search.coin(result.id) } }
+                    SecondaryButton(title: String(localized: "Tentar de novo")) { Task { await search.coin(result.id) } }
                     Spacer()
                 }
                 .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
@@ -538,8 +538,8 @@ struct ReceiveSheet: View {
                 if wallet?.isWatchOnly == true {
                     // Golpe comum: alguem pede para "observar" o endereco dele e depositar ali.
                     // O app nao tem a chave deste endereco (auditoria 3, B3).
-                    Banner(kind: .caution, title: "Carteira só de observação",
-                           message: "Este app não tem a chave deste endereço: o que chegar aqui não sai por este app. Se alguém pediu para você observar um endereço e depositar nele, é golpe.")
+                    Banner(kind: .caution, title: String(localized: "Carteira só de observação"),
+                           message: String(localized: "Este app não tem a chave deste endereço: o que chegar aqui não sai por este app. Se alguém pediu para você observar um endereço e depositar nele, é golpe."))
                         .padding(.top, Space.md)
                         .accessibilityIdentifier("receber-observacao")
                 }
@@ -560,7 +560,7 @@ struct ReceiveSheet: View {
                     VStack(alignment: .leading, spacing: Space.xs) {
                         HStack(spacing: 6) {
                             TokenBadge(.custom)
-                            Text("Quem envia tem de usar exatamente \(CustomToken.usesIssuer(chain) ? "este emissor" : "este contrato"):")
+                            Text(CustomToken.usesIssuer(chain) ? "Quem envia tem de usar exatamente este emissor:" : "Quem envia tem de usar exatamente este contrato:")
                                 .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                         }
                         AddressBlocks(address: reference)
@@ -581,7 +581,7 @@ struct ReceiveSheet: View {
 
                 CopyButton {
                     Pasteboard.copyAddress(address)
-                    toasts.show("Endereço copiado. Depois de colar, confira o endereço inteiro, inclusive o meio.")
+                    toasts.show(String(localized: "Endereço copiado. Depois de colar, confira o endereço inteiro, inclusive o meio."))
                 }
                 .padding(.top, Space.lg)
                 ShareLink(item: address) {
@@ -613,7 +613,7 @@ struct ReceiveSheet: View {
             AddressBlocks(address: CustomToken.reference(asset.kind) ?? network.contract)
             Text("Contrato listado pelo CoinGecko, fora da lista verificada da Escalibur. Para o saldo aparecer na carteira, adicione a moeda: a carteira lê nome, símbolo e casas na própria rede antes de salvar.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
-            SecondaryButton(title: "Adicionar \(asset.symbol) à carteira") {
+            SecondaryButton(title: String(localized: "Adicionar \(asset.symbol) à carteira")) {
                 adding = AddPick(preset: AddCustomTokenView.Preset(chain: chain, kind: asset.kind))
             }
             .padding(.top, Space.xxs)
@@ -640,39 +640,39 @@ struct ReceiveSheet: View {
         let text: String = {
             switch chain.family {
             case .evm:
-                return "Na exchange, escolha a rede \(chain.name). Se vier por outra rede EVM, o saldo aparece naquela rede, desde que ela esteja ligada em Ajustes."
+                return String(localized: "Na exchange, escolha a rede \(chain.name). Se vier por outra rede EVM, o saldo aparece naquela rede, desde que ela esteja ligada em Ajustes.")
             case .utxo:
-                return "Envie só \(chain.nativeName.lowercased()), pela rede \(chain.name). Outra moeda enviada para este endereço se perde."
+                return String(localized: "Envie só \(chain.nativeName.lowercased()), pela rede \(chain.name). Outra moeda enviada para este endereço se perde.")
             case .xrpl:
                 return exists
-                    ? "Não precisa de tag de destino. Se a exchange pedir, marque que o endereço não tem tag."
-                    : "Esta conta ainda não existe no XRP Ledger. O primeiro recebimento precisa ser de 1 XRP ou mais, e 1 XRP fica reservado pela rede."
+                    ? String(localized: "Não precisa de tag de destino. Se a exchange pedir, marque que o endereço não tem tag.")
+                    : String(localized: "Esta conta ainda não existe no XRP Ledger. O primeiro recebimento precisa ser de 1 XRP ou mais, e 1 XRP fica reservado pela rede.")
             case .stellar:
                 return exists
-                    ? "Não precisa de memo. Se a exchange pedir, marque que o endereço não tem memo."
-                    : "Esta conta ainda não existe na Stellar. O primeiro recebimento precisa ser de 1 XLM ou mais, e parte fica reservada pela rede."
+                    ? String(localized: "Não precisa de memo. Se a exchange pedir, marque que o endereço não tem memo.")
+                    : String(localized: "Esta conta ainda não existe na Stellar. O primeiro recebimento precisa ser de 1 XLM ou mais, e parte fica reservada pela rede.")
             case .solana:
-                return "Envie só pela rede Solana. Tokens de outras redes enviados para este endereço se perdem."
+                return String(localized: "Envie só pela rede Solana. Tokens de outras redes enviados para este endereço se perdem.")
             case .tron:
                 return exists
-                    ? "Envie só pela rede Tron (TRC-20). USDT de outra rede enviado para este endereço se perde."
-                    : "Esta conta Tron ainda não está ativa. Ela ativa no primeiro recebimento de TRX ou de token."
+                    ? String(localized: "Envie só pela rede Tron (TRC-20). USDT de outra rede enviado para este endereço se perde.")
+                    : String(localized: "Esta conta Tron ainda não está ativa. Ela ativa no primeiro recebimento de TRX ou de token.")
             case .ton:
-                return "Envie só pela rede TON. Não precisa de comentário."
+                return String(localized: "Envie só pela rede TON. Não precisa de comentário.")
             case .sui:
-                return "Na exchange, escolha a rede Sui. O endereço tem o mesmo formato dos endereços Aptos, e um envio pela Aptos não chega aqui."
+                return String(localized: "Na exchange, escolha a rede Sui. O endereço tem o mesmo formato dos endereços Aptos, e um envio pela Aptos não chega aqui.")
             case .cardano:
-                return "Na exchange, escolha a rede Cardano. Envie só ADA: tokens nativos que chegarem aqui ainda não podem ser movidos pela Escalibur."
+                return String(localized: "Na exchange, escolha a rede Cardano. Envie só ADA: tokens nativos que chegarem aqui ainda não podem ser movidos pela Escalibur.")
             case .polkadot:
                 return exists
-                    ? "Na exchange, escolha a rede Polkadot Asset Hub e envie só DOT. DOT enviado pela relay chain antiga não aparece aqui."
-                    : "Na exchange, escolha a rede Polkadot Asset Hub. O primeiro recebimento precisa ser de 0,01 DOT ou mais, o mínimo da rede para a conta existir."
+                    ? String(localized: "Na exchange, escolha a rede Polkadot Asset Hub e envie só DOT. DOT enviado pela relay chain antiga não aparece aqui.")
+                    : String(localized: "Na exchange, escolha a rede Polkadot Asset Hub. O primeiro recebimento precisa ser de 0,01 DOT ou mais, o mínimo da rede para a conta existir.")
             case .near:
                 return exists
-                    ? "Na exchange, escolha a rede NEAR e envie só NEAR. Esta é a conta implícita da carteira, com 64 caracteres, e não precisa de memo."
-                    : "Na exchange, escolha a rede NEAR. Esta é a conta implícita da carteira: ela passa a existir no primeiro recebimento, de qualquer valor, e não precisa de memo."
+                    ? String(localized: "Na exchange, escolha a rede NEAR e envie só NEAR. Esta é a conta implícita da carteira, com 64 caracteres, e não precisa de memo.")
+                    : String(localized: "Na exchange, escolha a rede NEAR. Esta é a conta implícita da carteira: ela passa a existir no primeiro recebimento, de qualquer valor, e não precisa de memo.")
             case .aptos:
-                return "Na exchange, escolha a rede Aptos e envie só APT. O endereço tem o mesmo formato dos endereços Sui, e um envio pela Sui não chega aqui. A conta passa a existir no primeiro recebimento, de qualquer valor."
+                return String(localized: "Na exchange, escolha a rede Aptos e envie só APT. O endereço tem o mesmo formato dos endereços Sui, e um envio pela Sui não chega aqui. A conta passa a existir no primeiro recebimento, de qualquer valor.")
             }
         }()
         Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
@@ -786,8 +786,8 @@ struct ReceiveCoin: Identifiable, Hashable {
         case .evm: return chain.id == "bnb" ? "BEP-20" : "ERC-20"
         case .tron: return "TRC-20"
         case .solana: return "SPL"
-        case .ton: return "Jetton"
-        case .stellar, .xrpl: return "Ativo emitido"
+        case .ton: return String(localized: "Jetton")
+        case .stellar, .xrpl: return String(localized: "Ativo emitido")
         case .utxo: return ""
         // A carteira ainda nao lista moeda da Sui alem do SUI.
         case .sui: return ""

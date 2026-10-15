@@ -75,7 +75,7 @@ struct XRPLPlannerTests {
         #expect(plan.review.kind == .send)
         #expect(plan.review.title == "Enviar 50 XRP")
         expectRecipient(plan)
-        #expect(Self.line(plan, "Para") == PlanReview.Line("Para", Self.destination, verbatim: true))
+        #expect(Self.line(plan, "Para") == PlanReview.Line("Para", Self.destination, verbatim: true, role: .recipient))
         #expect(Self.line(plan, "Tag de destino") == PlanReview.Line("Tag de destino", "7", verbatim: true))
         #expect(Self.line(plan, "Taxa da rede")?.value == "0,000012 XRP")
         #expect(Self.line(plan, "Memo")?.value == "aluguel")
@@ -269,7 +269,7 @@ struct XRPLPlannerTests {
         #expect(tx.flags == XRPLTransactionFlags.fullyCanonicalSig | XRPLTransactionFlags.setNoRipple)
         #expect(tx.unsigned[.limitAmount] == .amount(.issued(try XRPLIssuedAmount(value: XRPLDecimal("1000000"), currency: usd, issuer: Self.bitstamp))))
         #expect(plan.review.kind == .trustline && plan.review.title == "Aceitar USD de Bitstamp")
-        #expect(Self.line(plan, "Endereço do emissor") == PlanReview.Line("Endereço do emissor", Self.bitstamp, verbatim: true))
+        #expect(Self.line(plan, "Endereço do emissor") == PlanReview.Line("Endereço do emissor", Self.bitstamp, verbatim: true, role: .assetReference))
         #expect(Self.line(plan, "Reserva")?.value == "0,2 XRP ficam presos enquanto a linha existir")
         _ = try XRPLTestKeys.sign(tx)
 
@@ -328,7 +328,7 @@ struct XRPLPlannerTests {
         #expect(plan.review.title == "Ordem limite: 100 XRP por 50,5 USD")
         #expect(Self.line(plan, "Você entrega")?.value == "100 XRP")
         #expect(Self.line(plan, "Você recebe no mínimo")?.value == "50,5 USD")
-        #expect(Self.line(plan, "Endereço do emissor de USD") == PlanReview.Line("Endereço do emissor de USD", Self.bitstamp, verbatim: true))
+        #expect(Self.line(plan, "Endereço do emissor de USD") == PlanReview.Line("Endereço do emissor de USD", Self.bitstamp, verbatim: true, role: .assetReference))
         #expect(Self.line(plan, "Expira em")?.value == "28/09/2026 14:13 UTC")
         _ = try XRPLTestKeys.sign(tx)
 
@@ -422,7 +422,7 @@ struct XRPLPlannerTests {
         #expect(joined.review.kind == .swap && joined.review.title == "Trocar 10 XRP por USD")
         #expect(joined.review.transactionCount == 2 && joined.transactions.count == 2)
         #expect(joined.review.lines.first == PlanReview.Line("Transações", "2: primeiro aceitar USD, depois a troca"))
-        #expect(joined.review.lines.contains(PlanReview.Line("Endereço do emissor", Self.bitstamp, verbatim: true)))
+        #expect(joined.review.lines.contains(PlanReview.Line("Endereço do emissor", Self.bitstamp, verbatim: true, role: .assetReference)))
         #expect(joined.review.outgoing == PlanReview.Movement(assetID: "xrpl:native", amount: 10 * Self.xrp))
         #expect(joined.review.incomingMinimum == PlanReview.Movement(assetID: "xrpl:USD:\(Self.bitstamp)", amount: 5_000_000))
 

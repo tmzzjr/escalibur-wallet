@@ -92,7 +92,7 @@ struct VoiceSettingsView: View {
         .onDisappear { listener.stop() }
         .task {
             guard !authorized else { return }
-            let ok = (try? await auth.perform(session, reason: "Mudar a confirmação por voz", requirePIN: true, { _ in true })) == true
+            let ok = (try? await auth.perform(session, reason: String(localized: "Mudar a confirmação por voz"), requirePIN: true, { _ in true })) == true
             guard ok else { dismiss(); return }
             await requirePhrase()
         }
@@ -139,13 +139,13 @@ struct VoiceSettingsView: View {
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
             if let left = resetLeft, left > 0 {
-                Banner(kind: .neutral, title: "Troca pedida",
-                       message: "Em \(Self.hours(left)), os ajustes da voz abrem só com o PIN. Reiniciar o iPhone recomeça a espera.")
+                Banner(kind: .neutral, title: String(localized: "Troca pedida"),
+                       message: String(localized: "Em \(Self.hours(left)), os ajustes da voz abrem só com o PIN. Reiniciar o iPhone recomeça a espera."))
             }
-            PrimaryButton(title: "Falar a frase") { Task { await requirePhrase() } }
+            PrimaryButton(title: String(localized: "Falar a frase")) { Task { await requirePhrase() } }
                 .padding(.top, Space.sm)
             if resetLeft == nil {
-                TertiaryButton(title: "Esqueci a frase") { confirmReset = true }
+                TertiaryButton(title: String(localized: "Esqueci a frase")) { confirmReset = true }
                     .frame(maxWidth: .infinity)
             }
         }
@@ -156,7 +156,7 @@ struct VoiceSettingsView: View {
 
     static func hours(_ seconds: TimeInterval) -> String {
         let hours = Int((seconds / 3600).rounded(.up))
-        return hours <= 1 ? "cerca de 1 hora" : "cerca de \(hours) horas"
+        return hours <= 1 ? String(localized: "cerca de 1 hora") : String(localized: "cerca de \(hours) horas")
     }
 
     private var intro: some View {
@@ -164,8 +164,8 @@ struct VoiceSettingsView: View {
             Text("Uma confirmação a mais nas operações que você escolher: você fala uma frase que só você sabe, e depois confirma com o \(KeyServices.biometryName) ou o PIN, como sempre.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                 .fixedSize(horizontal: false, vertical: true)
-            Banner(kind: .neutral, title: "O iPhone reconhece a frase, não a sua voz",
-                   message: "Quem ouvir você falar pode repetir a frase. Ela protege contra quem viu o seu PIN, não contra quem está perto. A voz é processada neste iPhone e não sai dele.")
+            Banner(kind: .neutral, title: String(localized: "O iPhone reconhece a frase, não a sua voz"),
+                   message: String(localized: "Quem ouvir você falar pode repetir a frase. Ela protege contra quem viu o seu PIN, não contra quem está perto. A voz é processada neste iPhone e não sai dele."))
                 .padding(.top, Space.md)
         }
     }
@@ -175,7 +175,7 @@ struct VoiceSettingsView: View {
             try session.persist()
             message = nil
         } catch {
-            message = "Não foi possível salvar. Tente de novo."
+            message = String(localized: "Não foi possível salvar. Tente de novo.")
         }
     }
 
@@ -197,41 +197,41 @@ struct VoiceSettingsView: View {
 
     private var stepLabel: String {
         switch step {
-        case .speak: return "Passo 1 de 3"
-        case .review: return "Passo 2 de 3"
-        case .confirm: return "Passo 3 de 3"
+        case .speak: return String(localized: "Passo 1 de 3")
+        case .review: return String(localized: "Passo 2 de 3")
+        case .confirm: return String(localized: "Passo 3 de 3")
         }
     }
 
     private var stepTitle: String {
         switch step {
-        case .speak: return replacing ? "Diga a frase nova" : "Diga a sua frase"
-        case .review: return "Confira o que eu ouvi"
-        case .confirm: return "Fale a frase de novo"
+        case .speak: return replacing ? String(localized: "Diga a frase nova") : String(localized: "Diga a sua frase")
+        case .review: return String(localized: "Confira o que eu ouvi")
+        case .confirm: return String(localized: "Fale a frase de novo")
         }
     }
 
     private var stepHint: String {
         switch step {
-        case .speak: return "Escolha 3 palavras ou mais que só você saiba e fale em voz normal, perto do iPhone. Eu paro de ouvir sozinho quando você terminar."
-        case .review: return "Se alguma palavra saiu errada, corrija digitando. Na hora de confirmar uma operação não tem teclado: só vale falar."
-        case .confirm: return "Para conferir que o iPhone escreve a frase sempre do mesmo jeito."
+        case .speak: return String(localized: "Escolha 3 palavras ou mais que só você saiba e fale em voz normal, perto do iPhone. Eu paro de ouvir sozinho quando você terminar.")
+        case .review: return String(localized: "Se alguma palavra saiu errada, corrija digitando. Na hora de confirmar uma operação não tem teclado: só vale falar.")
+        case .confirm: return String(localized: "Para conferir que o iPhone escreve a frase sempre do mesmo jeito.")
         }
     }
 
     private var speakStep: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VoiceListeningPanel(listener: listener, idle: "Toque em Começar a falar.")
+            VoiceListeningPanel(listener: listener, idle: String(localized: "Toque em Começar a falar."))
                 .padding(.top, Space.md)
             feedback
             languagePicker.padding(.top, Space.md)
-            PrimaryButton(title: listener.listening ? "Terminei de falar" : "Começar a falar",
+            PrimaryButton(title: listener.listening ? String(localized: "Terminei de falar") : String(localized: "Começar a falar"),
                           loading: listener.busy && !listener.listening) {
                 listenOrStop { await hearPhrase() }
             }
             .padding(.top, Space.md)
             if replacing {
-                TertiaryButton(title: "Manter a frase atual") {
+                TertiaryButton(title: String(localized: "Manter a frase atual")) {
                     listener.stop()
                     replacing = false
                     message = nil
@@ -268,7 +268,7 @@ struct VoiceSettingsView: View {
                 Text("Ouvi em \(heardIn.name).").typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
             }
             if let other {
-                TertiaryButton(title: "Foi em \(other.language.name)? Usar “\(other.text)”") {
+                TertiaryButton(title: String(localized: "Foi em \(other.language.name)? Usar “\(other.text)”")) {
                     let current = heardIn.map { SpeechListener.Reading(language: $0, text: draft, confidence: 0) }
                     draft = other.text
                     heardIn = other.language
@@ -278,7 +278,7 @@ struct VoiceSettingsView: View {
             if words < 3 {
                 Text("Use 3 palavras ou mais.").typeStyle(.note).foregroundStyle(Palette.caution).padding(.top, Space.xs)
             }
-            PrimaryButton(title: "Continuar", enabled: words >= 3) {
+            PrimaryButton(title: String(localized: "Continuar"), enabled: words >= 3) {
                 editing = false
                 misses = 0
                 message = nil
@@ -286,7 +286,7 @@ struct VoiceSettingsView: View {
                 step = .confirm
             }
             .padding(.top, Space.md)
-            SecondaryButton(title: "Falar de novo") {
+            SecondaryButton(title: String(localized: "Falar de novo")) {
                 editing = false
                 step = .speak
                 Task { await hearPhrase() }
@@ -304,15 +304,15 @@ struct VoiceSettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
                 .padding(.top, Space.md)
-            VoiceListeningPanel(listener: listener, idle: "Toque em Falar a frase.")
+            VoiceListeningPanel(listener: listener, idle: String(localized: "Toque em Falar a frase."))
                 .padding(.top, Space.sm)
             feedback
-            PrimaryButton(title: listener.listening ? "Terminei de falar" : "Falar a frase",
+            PrimaryButton(title: listener.listening ? String(localized: "Terminei de falar") : String(localized: "Falar a frase"),
                           loading: listener.busy && !listener.listening) {
                 listenOrStop { await confirmPhrase() }
             }
             .padding(.top, Space.md)
-            TertiaryButton(title: "Mudar a frase") {
+            TertiaryButton(title: String(localized: "Mudar a frase")) {
                 listener.stop()
                 message = nil
                 step = .review
@@ -328,7 +328,7 @@ struct VoiceSettingsView: View {
                 .accessibilityIdentifier("voz-mensagem")
         }
         if needsPermission {
-            TertiaryButton(title: "Abrir os Ajustes do iPhone") { VoicePermission.openSettings() }
+            TertiaryButton(title: String(localized: "Abrir os Ajustes do iPhone")) { VoicePermission.openSettings() }
         }
     }
 
@@ -426,14 +426,14 @@ struct VoiceSettingsView: View {
         guard heard.alternatives.contains(where: { VoiceGate.normalize($0) == target }) else {
             misses += 1
             message = misses < 2
-                ? "Não conferiu com a frase acima. Fale de novo, do mesmo jeito."
-                : "Ainda não conferiu. Se o iPhone escreve uma palavra de outro jeito, toque em Mudar a frase e deixe como ele escreveu."
+                ? String(localized: "Não conferiu com a frase acima. Fale de novo, do mesmo jeito.")
+                : String(localized: "Ainda não conferiu. Se o iPhone escreve uma palavra de outro jeito, toque em Mudar a frase e deixe como ele escreveu.")
             return
         }
         // Sem sal aleatorio, nada e gravado: um sal vazio faria a frase valer igual em
         // qualquer aparelho (auditoria 3, B5).
         guard let saltBytes = try? SecureBytes.random(count: 16).withUnsafeBytes({ Array($0) }), saltBytes.count == 16 else {
-            message = "Não foi possível gravar a frase agora. Tente de novo."
+            message = String(localized: "Não foi possível gravar a frase agora. Tente de novo.")
             return
         }
         let salt = Hex.encode(saltBytes)
@@ -469,8 +469,8 @@ struct VoiceSettingsView: View {
                 .accessibilityIdentifier("voz-gravada")
             }
             SettingsGroup {
-                toggle("Pedir para ver a senha da carteira", \.onReveal)
-                toggle("Pedir para lacrar envelope", \.onEnvelope)
+                toggle(String(localized: "Pedir para ver a senha da carteira"), \.onReveal)
+                toggle(String(localized: "Pedir para lacrar envelope"), \.onEnvelope)
                 Toggle(isOn: Binding(get: { settings.onSendAboveFiat != nil }, set: { on in
                     session.metadata.settings.voice.onSendAboveFiat = on ? 5000 : nil
                     session.metadata.settings.voice.limitCurrency = on ? session.metadata.settings.currency : nil
@@ -492,7 +492,7 @@ struct VoiceSettingsView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, Space.md).padding(.top, Space.xs).padding(.bottom, Space.sm)
                     if limitCurrencyChanged {
-                        TertiaryButton(title: "Usar este valor em \(session.currency.symbol)") {
+                        TertiaryButton(title: String(localized: "Usar este valor em \(session.currency.symbol)")) {
                             session.metadata.settings.voice.limitCurrency = session.metadata.settings.currency
                             save()
                         }
@@ -516,7 +516,7 @@ struct VoiceSettingsView: View {
                             save()
                         }), in: 1...20) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(max == 1 ? "No máximo 1 envio seguido" : "No máximo \(max) envios seguidos").typeStyle(.body).foregroundStyle(Palette.ink)
+                                Text(max == 1 ? String(localized: "No máximo 1 envio seguido") : String(localized: "No máximo \(max) envios seguidos")).typeStyle(.body).foregroundStyle(Palette.ink)
                                 Text(streakLine(max)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
                             }
                         }
@@ -534,26 +534,26 @@ struct VoiceSettingsView: View {
                 if testing {
                     Text("Teste a frase").typeStyle(.heading).foregroundStyle(Palette.ink).padding(.top, Space.lg).id("teste")
                     Text("Aqui errar não conta como tentativa.").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
-                    VoiceListeningPanel(listener: listener, idle: "Toque em Falar a frase.", outcome: testPassed ? .passed : nil)
+                    VoiceListeningPanel(listener: listener, idle: String(localized: "Toque em Falar a frase."), outcome: testPassed ? .passed : nil)
                         .padding(.top, Space.sm)
                     if let testResult {
                         Text(testResult).typeStyle(.note).foregroundStyle(testPassed ? Palette.inkSoft : Palette.down).padding(.top, Space.sm)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("voz-teste")
                     }
-                    PrimaryButton(title: listener.listening ? "Terminei de falar" : "Falar a frase",
+                    PrimaryButton(title: listener.listening ? String(localized: "Terminei de falar") : String(localized: "Falar a frase"),
                                   loading: listener.busy && !listener.listening) {
                         listenOrStop { await test() }
                     }
                     .padding(.top, Space.md)
                 } else {
-                    SecondaryButton(title: "Testar a minha frase") {
+                    SecondaryButton(title: String(localized: "Testar a minha frase")) {
                         testing = true
                         Task { await test() }
                     }
                     .padding(.top, Space.lg)
                 }
-                SecondaryButton(title: "Gravar outra frase") {
+                SecondaryButton(title: String(localized: "Gravar outra frase")) {
                     listener.stop()
                     listener.reset()
                     replacing = true
@@ -564,7 +564,7 @@ struct VoiceSettingsView: View {
                     step = .speak
                 }
                 .padding(.top, Space.xs)
-                DestructiveButton(title: "Desligar a confirmação por voz") {
+                DestructiveButton(title: String(localized: "Desligar a confirmação por voz")) {
                     listener.stop()
                     session.metadata.settings.voice.enabled = false
                     session.metadata.voicePhraseHash = nil
@@ -586,20 +586,20 @@ struct VoiceSettingsView: View {
     /// O limite e a soma das ultimas 24 h, e quanto ja saiu sem a frase.
     private func limitLine(_ limit: Double) -> String {
         if limitCurrencyChanged {
-            return "A moeda do app mudou. Até você conferir o valor, todo envio pede a frase."
+            return String(localized: "A moeda do app mudou. Até você conferir o valor, todo envio pede a frase.")
         }
         let spent = VoiceGate.recentTotal(settings)
-        let base = "Conta a soma dos envios sem a frase nas últimas 24 horas."
+        let base = String(localized: "Conta a soma dos envios sem a frase nas últimas 24 horas.")
         guard spent > 0 else { return base }
-        return base + " Já saíram \(Fmt.fiat(spent, session.currency)) de \(Fmt.fiat(limit, session.currency))."
+        return base + String(localized: " Já saíram \(Fmt.fiat(spent, session.currency)) de \(Fmt.fiat(limit, session.currency)).")
     }
 
     /// Quantos envios ja sairam sem a frase, e o que acontece no proximo.
     private func streakLine(_ max: Int) -> String {
         let done = settings.sendsWithoutVoice ?? 0
-        if done >= max { return "O próximo envio pede a frase." }
+        if done >= max { return String(localized: "O próximo envio pede a frase.") }
         let left = max - done
-        return left == 1 ? "Falta 1 envio sem a frase." : "Faltam \(left) envios sem a frase."
+        return left == 1 ? String(localized: "Falta 1 envio sem a frase.") : String(localized: "Faltam \(left) envios sem a frase.")
     }
 
     private func toggle(_ title: String, _ key: WritableKeyPath<VoiceSettings, Bool>) -> some View {
@@ -626,8 +626,8 @@ struct VoiceSettingsView: View {
         }
         testPassed = VoiceGate.matches(any: heard.alternatives, expected: hash, salt: salt)
         testResult = testPassed
-            ? "Conferiu. É assim que a frase vai ser pedida."
-            : "Não conferiu. Numa operação, isto contaria como uma tentativa errada."
+            ? String(localized: "Conferiu. É assim que a frase vai ser pedida.")
+            : String(localized: "Não conferiu. Numa operação, isto contaria como uma tentativa errada.")
     }
 }
 

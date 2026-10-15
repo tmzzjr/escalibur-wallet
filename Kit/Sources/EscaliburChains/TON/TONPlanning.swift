@@ -134,14 +134,14 @@ public enum TONPlanner {
         let message = TONOutgoingMessage(destination: parsed.address, amount: amount, bounce: bounce, body: body)
         let transfer = try context.transfer(messages: [message], now: now)
 
-        var lines = [PlanReview.Line("Para", displayAddress(parsed), verbatim: true)]
-        lines.append(PlanReview.Line("Valor", TONFormat.amount(amount, decimals: 9, symbol: "TON")))
+        var lines = [PlanReview.Line(kitText("Para"), displayAddress(parsed), verbatim: true, role: .recipient)]
+        lines.append(PlanReview.Line(kitText("Valor"), TONFormat.amount(amount, decimals: 9, symbol: "TON")))
         if let comment = context.comment {
-            lines.append(PlanReview.Line("Comentário", comment, verbatim: true))
+            lines.append(PlanReview.Line(kitText("Comentário"), comment, verbatim: true))
         }
         lines += context.commonLines(fee: state.estimatedFee)
         if !bounce {
-            lines.append(PlanReview.Line("Se o destino recusar", "O valor não volta"))
+            lines.append(PlanReview.Line(kitText("Se o destino recusar"), kitText("O valor não volta")))
         }
 
         var warnings = [PlanReview.Warning]()
@@ -155,7 +155,7 @@ public enum TONPlanner {
 
         let review = PlanReview(
             kind: .send,
-            title: "Enviar \(TONFormat.amount(amount, decimals: 9, symbol: "TON"))",
+            title: kitText("Enviar \(TONFormat.amount(amount, decimals: 9, symbol: "TON"))"),
             lines: lines,
             warnings: warnings,
             recipient: parsed.address.raw, recipientTag: context.comment,
@@ -213,16 +213,16 @@ public enum TONPlanner {
         let transfer = try context.transfer(messages: [message], now: now)
 
         let amountText = TONFormat.amount(amount, decimals: TONJetton.usdtDecimals, symbol: TONJetton.usdtSymbol)
-        var lines = [PlanReview.Line("Para", displayAddress(parsed), verbatim: true)]
-        lines.append(PlanReview.Line("Valor", amountText))
-        lines.append(PlanReview.Line("Token", "USDT (Tether) na TON"))
-        lines.append(PlanReview.Line("Contrato do token", TONJetton.usdtMaster.friendly(bounceable: true), verbatim: true))
+        var lines = [PlanReview.Line(kitText("Para"), displayAddress(parsed), verbatim: true, role: .recipient)]
+        lines.append(PlanReview.Line(kitText("Valor"), amountText))
+        lines.append(PlanReview.Line(kitText("Token"), kitText("USDT (Tether) na TON")))
+        lines.append(PlanReview.Line(kitText("Contrato do token"), TONJetton.usdtMaster.friendly(bounceable: true), verbatim: true, role: .assetReference))
         if let comment = context.comment {
-            lines.append(PlanReview.Line("Comentário", comment, verbatim: true))
+            lines.append(PlanReview.Line(kitText("Comentário"), comment, verbatim: true))
         }
         lines.append(PlanReview.Line(
-            "TON para o envio",
-            "\(TONFormat.amount(TONJetton.attachedTON, decimals: 9, symbol: "TON")), o que sobrar volta"
+            kitText("TON para o envio"),
+            kitText("\(TONFormat.amount(TONJetton.attachedTON, decimals: 9, symbol: "TON")), o que sobrar volta")
         ))
         lines += context.commonLines(fee: state.estimatedFee)
 
@@ -233,7 +233,7 @@ public enum TONPlanner {
             return false
         }
         let review = PlanReview(
-            kind: .send, title: "Enviar \(amountText)", lines: lines, recipient: parsed.address.raw, recipientTag: context.comment,
+            kind: .send, title: kitText("Enviar \(amountText)"), lines: lines, recipient: parsed.address.raw, recipientTag: context.comment,
             outgoing: .token(.ton, amount, fallback: TONJetton.usdtMaster.friendly(bounceable: true), matching: listedMaster)
         )
         return SigningPlan(walletID: walletID, chain: .ton, review: review, transactions: [transfer], createdAt: now)
@@ -278,12 +278,12 @@ public enum TONPlanner {
 
         func commonLines(fee: BigUInt) -> [PlanReview.Line] {
             var lines = [
-                PlanReview.Line("Taxa estimada", TONFormat.amount(fee, decimals: 9, symbol: "TON")),
-                PlanReview.Line("Rede", "TON"),
-                PlanReview.Line("Carteira", wallet.version.displayName),
+                PlanReview.Line(kitText("Taxa estimada"), TONFormat.amount(fee, decimals: 9, symbol: "TON")),
+                PlanReview.Line(kitText("Rede"), "TON"),
+                PlanReview.Line(kitText("Carteira"), wallet.version.displayName),
             ]
             if deploys {
-                lines.append(PlanReview.Line("Ativação", "Este envio também ativa a sua carteira TON"))
+                lines.append(PlanReview.Line(kitText("Ativação"), kitText("Este envio também ativa a sua carteira TON")))
             }
             return lines
         }
@@ -347,12 +347,7 @@ enum TONFormat {
         let whole = String(padded[..<cut])
         var fraction = String(padded[cut...])
         while fraction.hasSuffix("0") { fraction.removeLast() }
-        var grouped = ""
-        for (index, c) in whole.reversed().enumerated() {
-            if index > 0, index % 3 == 0 { grouped.append(".") }
-            grouped.append(c)
-        }
-        let number = String(grouped.reversed()) + (fraction.isEmpty ? "" : "," + fraction)
+        let number = NumberStyle.current.decimal(NumberStyle.current.group(whole), fraction)
         return "\(number) \(symbol)"
     }
 }
