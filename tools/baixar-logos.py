@@ -8,6 +8,8 @@ para o repositorio e passa por revisao como qualquer outro arquivo.
     python3 tools/baixar-logos.py              todos
     python3 tools/baixar-logos.py celo linea   so os nomes dados (id do CoinGecko da
                                                moeda ou id da rede em Chain.swift)
+    python3 tools/baixar-logos.py --paprika    os da lista de reserva do Mercado (CoinPaprika)
+                                               ligados a um id do CoinGecko e ainda sem logo
     python3 tools/baixar-logos.py --mercado 250
                                                as 250 maiores do Mercado que ainda nao
                                                tem logo, em 128 px: com o CoinGecko em
@@ -58,24 +60,27 @@ REDES["near"] = "near-protocol"
 REDES["aptos"] = "aptos"
 ARGS = sys.argv[1:]
 MERCADO = 0
+PAPRIKA = ARGS[:1] == ["--paprika"]
+if PAPRIKA: ARGS = []
 if ARGS[:1] == ["--mercado"]:
     MERCADO = int(ARGS[1]) if len(ARGS) > 1 else 250
     ARGS = []
 SO = set(ARGS)
 ORIGENS = ("https://coin-images.coingecko.com/", "https://assets.coingecko.com/")
 API = "https://api.coingecko.com/api/v3/"
+PAPRIKA_API = "https://api.coinpaprika.com/v1/"
 ID = re.compile(r"^[a-z0-9-]{1,80}$")
 LIMITE = 160 * 1024
 
 def get(url):
-    if not (url.startswith(API) or url.startswith(ORIGENS)):
+    if not (url.startswith(API) or url.startswith(PAPRIKA_API) or url.startswith(ORIGENS)):
         raise SystemExit("host recusado: " + url)
     req = urllib.request.Request(url, headers={"User-Agent": "EscaliburWallet-tools"})
     # O CoinGecko sem chave limita por minuto: 429 espera e tenta de novo.
     for tentativa in range(6):
         try:
             with urllib.request.urlopen(req, timeout=30) as resposta:
-                return resposta.read(LIMITE + 1 if not url.startswith(API) else 8 * 1024 * 1024)
+                return resposta.read(LIMITE + 1 if not url.startswith((API, PAPRIKA_API)) else 16 * 1024 * 1024)
         except urllib.error.HTTPError as erro:
             if erro.code != 429 or tentativa == 5: raise
             time.sleep(20 * (tentativa + 1))
@@ -122,6 +127,32 @@ def salvar(nome, url, lado=None):
 os.makedirs(ASSETS, exist_ok=True)
 json.dump({"info": {"author": "xcode", "version": 1}, "properties": {"provides-namespace": False}},
           open(os.path.join(ASSETS, "Contents.json"), "w"))
+if PAPRIKA:
+    # As moedas da lista de reserva do Mercado (CoinPaprika) ligadas a um id do CoinGecko
+    # que ainda nao tem logo: os derivados que o CoinGecko deixa sem posicao (o stETH)
+    # nunca entram no --mercado.
+    tabela = open(os.path.join(RAIZ, "Kit/Sources/EscaliburNetwork/PaprikaGeckoIDs.swift")).read()
+    mapa = dict(re.findall(r'"([a-z0-9-]+)": "([a-z0-9-]+)"', tabela))
+    # As 300 maiores do CoinPaprika, com o id do CoinGecko pela mesma regra do app
+    # (Market.geckoID(forPaprika:)): a tabela, ou o nome depois do simbolo.
+    tickers = json.loads(get(PAPRIKA_API + "tickers"))
+    ranked = sorted((t for t in tickers if (t.get("rank") or 0) > 0), key=lambda t: t["rank"])[:300]
+    def gecko(pid):
+        if pid in mapa: return mapa[pid]
+        return pid.split("-", 1)[1] if "-" in pid else pid
+    ids = sorted({gecko(t["id"]) for t in ranked if ID.match(gecko(t["id"]))} | set(mapa.values()))
+    simbolos = {}
+    for t in tickers: simbolos.setdefault(gecko(t["id"]), set()).add(str(t.get("symbol", "")).upper())
+    faltam = [i for i in ids if not os.path.exists(os.path.join(ASSETS, "logo-" + i + ".imageset"))]
+    print(len(ids), "ids no mapa,", len(faltam), "sem logo")
+    for inicio in range(0, len(faltam), 100):
+        lote = faltam[inicio:inicio + 100]
+        for m in json.loads(get(API + "coins/markets?vs_currency=usd&per_page=100&ids=" + ",".join(lote))):
+            # So com o mesmo simbolo nas duas fontes: um id adivinhado que cai noutra moeda
+            # poria o logo errado na linha (na duvida, sem logo).
+            if m.get("id") in lote and str(m.get("symbol", "")).upper() in simbolos.get(m["id"], set()):
+                salvar("logo-" + m["id"], m.get("image"), lado=128)
+    sys.exit(0)
 if MERCADO:
     # As maiores do Mercado, na ordem da lista, que ainda nao tem logo no app.
     feitos = 0
