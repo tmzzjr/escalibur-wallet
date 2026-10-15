@@ -182,6 +182,10 @@ public enum BridgeValidator {
     /// Across: a taxa ate 0,5% do valor ou US$ 3, o que for maior.
     public static let acrossFeeCapBps = 50
     public static let acrossFeeCapUSD = 3
+    /// Teto absoluto da parte em dolar no ETH, compilado: 0,002 ETH. O preco vem de uma
+    /// fonte so, e um preco errado para baixo subia o teto ate o bloqueio de 5% (pentest
+    /// de 14/10/2026, B5). Preco errado para cima so baixa o teto: a ponte recusa.
+    public static let acrossFeeCapETHWei = BigUInt(2_000_000_000_000_000)
     /// Acima disso a ponte nao monta: a taxa come demais do valor.
     public static let blockFeePercent = 5.0
     /// Prazo para o relayer do Across entregar: 2 h depois da cotacao. Sem entrega, o
@@ -277,7 +281,7 @@ public enum BridgeValidator {
         return validated
     }
 
-    /// O maior entre 0,5% do valor e US$ 3 na moeda movida.
+    /// O maior entre 0,5% do valor e US$ 3 na moeda movida (no ETH, no maximo 0,002 ETH).
     static func acrossFeeCap(_ amount: BigUInt, asset: BridgeAsset, usdPrice: TradeDecimal?) -> BigUInt {
         let percentCap = amount * BigUInt(acrossFeeCapBps) / BigUInt(10_000)
         let unit = BigUInt.power(of: 10, asset.decimals)
@@ -288,7 +292,7 @@ public enum BridgeValidator {
         case .eth:
             // US$ 3 / preco, em wei: 3 * 10^18 * 10^escala / mantissa.
             if let price = usdPrice, !price.mantissa.isZero {
-                usdCap = BigUInt(acrossFeeCapUSD) * unit * BigUInt.power(of: 10, price.scale) / price.mantissa
+                usdCap = min(BigUInt(acrossFeeCapUSD) * unit * BigUInt.power(of: 10, price.scale) / price.mantissa, acrossFeeCapETHWei)
             }
         }
         return max(percentCap, usdCap)

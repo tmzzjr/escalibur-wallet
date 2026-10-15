@@ -124,6 +124,42 @@ struct ReaderBUTXOTests {
         #expect(try UTXOPreviousOutput.verify(previousTransaction: coin.previousTransaction, outpoint: coin.outpoint).value == 98_089)
     }
 
+    /// Moedas de um endereco numa resposta Esplora: (valor, confirmada).
+    static func esploraUTXO(_ coins: [(UInt64, Bool)]) -> Data {
+        let items = coins.enumerated().map { index, coin in
+            let status = coin.1 ? "{\"confirmed\":true,\"block_height\":968627,\"block_hash\":\"\(String(repeating: "0", count: 64))\",\"block_time\":1760000000}" : "{\"confirmed\":false}"
+            return "{\"txid\":\"\(String(repeating: String(index % 10), count: 64))\",\"vout\":\(index),\"status\":\(status),\"value\":\(coin.0)}"
+        }
+        return Data("[\(items.joined(separator: ","))]".utf8)
+    }
+
+    @Test("Aviso de recebimento: so o confirmado, em dois provedores, o menor (pentest M1)")
+    func confirmedBalanceForReceipts() async throws {
+        let address = T.abandonReceive0
+        let transport = ReaderBFakeTransport()
+        // A: 50.000 confirmados e 40.000 na mempool (o pagamento que o RBF desfaz).
+        transport.on("esplora-a.test/api/address/\(address)/utxo", data: Self.esploraUTXO([(50_000, true), (40_000, false)]))
+        // B mente para cima: 90.000 confirmados. Vale o menor.
+        transport.on("esplora-b.test/api/address/\(address)/utxo", data: Self.esploraUTXO([(90_000, true)]))
+        transport.on("esplora-c.test/api/address/\(address)/utxo", status: 500)
+        let reader = try UTXOReader(chain: .bitcoin, transport: transport, providers: T.esploraProviders)
+        #expect(try await reader.confirmedBalance(addresses: [address]) == 50_000)
+
+        // Um provedor so respondendo: nao basta, nada de aviso.
+        let lonely = ReaderBFakeTransport()
+        lonely.on("esplora-a.test/api/address/\(address)/utxo", data: Self.esploraUTXO([(50_000, true)]))
+        lonely.on("esplora-b.test/api/address/\(address)/utxo", status: 500)
+        lonely.on("esplora-c.test/api/address/\(address)/utxo", status: 500)
+        let single = try UTXOReader(chain: .bitcoin, transport: lonely, providers: T.esploraProviders)
+        await #expect(throws: ChainReaderError.notEnoughSources(needed: 2, got: 1)) {
+            _ = try await single.confirmedBalance(addresses: [address])
+        }
+        let alone = try UTXOReader(chain: .bitcoin, transport: transport, providers: [T.esploraProviders[0]])
+        await #expect(throws: ChainReaderError.notEnoughSources(needed: 2, got: 1)) {
+            _ = try await alone.confirmedBalance(addresses: [address])
+        }
+    }
+
     @Test("O que nao confere e descartado, com o motivo")
     func coinsRejected() async throws {
         let address = try T.derived(publicKeyHex: T.fundedPublicKey)

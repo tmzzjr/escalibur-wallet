@@ -369,6 +369,19 @@ public actor BalanceService {
     /// Pelo `UTXOReader`: a mesma lista de provedores, a mesma contingencia e o mesmo
     /// banco por rede da varredura e do envio (Litecoin e Dogecoin tem cinco e quatro
     /// fontes; antes o saldo do Litecoin dependia so do litecoinspace).
+    /// O saldo que o aviso de recebimento compara. Nas redes UTXO, so o confirmado e em
+    /// dois provedores (`UTXOReader.confirmedBalance`); nas outras, o mesmo da exibicao, ja
+    /// sem mempool (EVM em `latest`, Solana `confirmed`, XRP Ledger e Stellar validados).
+    public func receiptBalance(chain: Chain, addresses: [String]) async throws -> ChainBalance {
+        guard chain.family == .utxo else { return try await balance(chain: chain, addresses: addresses) }
+        let reader = try UTXOReader(chain: chain, transport: utxoTransport)
+        let total = try await reader.confirmedBalance(addresses: addresses)
+        return ChainBalance(
+            chainID: chain.id, holdings: [Holding(asset: .native(chain), amount: BigUInt(total))],
+            accountExists: true, unknownTokenCount: 0, fetchedAt: .now
+        )
+    }
+
     private func utxo(_ chain: Chain, addresses: [String]) async throws -> ChainBalance {
         let reader = try UTXOReader(chain: chain, transport: utxoTransport)
         let total = try await reader.balance(addresses: addresses)

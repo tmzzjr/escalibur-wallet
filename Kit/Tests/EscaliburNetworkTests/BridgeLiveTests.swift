@@ -157,8 +157,13 @@ struct BridgeLiveTests {
             chain: .arbitrum, hash: "0x29813d5c09bb51f493bda3067aac3bccab77e6eeb0b3eba62a0e8cc104d1841c")
         let logs = try #require(receipt).logs
         let spoke = BridgeAllowlist.arbitrum.across!.spokePool
-        #expect(BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: spoke))
-        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(output: 1), destinationSpoke: spoke))
-        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: BridgeAllowlist.base.across!.spokePool))
+        // O depositId da entrega real (o do recibo de deposito na origem; aqui, lido da
+        // propria entrega, para conferir que o id amarra).
+        let fill = try #require(logs.first { $0.address == spoke && $0.topics.first == BridgeArrival.filledRelayTopic })
+        let id = BigUInt(bigEndian: fill.topics[2])
+        #expect(BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: spoke, depositID: id))
+        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: spoke, depositID: id + 1))
+        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(output: 1), destinationSpoke: spoke, depositID: id))
+        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: BridgeAllowlist.base.across!.spokePool, depositID: id))
     }
 }

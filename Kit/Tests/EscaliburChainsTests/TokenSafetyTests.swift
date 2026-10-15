@@ -51,6 +51,16 @@ struct TokenSafetyTests {
         ).isEmpty)
     }
 
+    @Test("Letra de outro alfabeto no simbolo vira imitacao onde o token chega sem pedir (pentest B2)")
+    func foreignLetters() {
+        for symbol in ["ꓴꓢꓓꓚ", "USDϹ", "ᴜꜱᴅᴄ", "ՍSDC", "UՏDT", "ꓰꓔꓧ"] {
+            #expect(Self.reasons(symbol, "Token").contains(.imitation), "\(symbol)")
+        }
+        // ₮ e o cirilico que o mapa conhece continuam como antes; ASCII comum passa limpo.
+        #expect(Self.reasons("PEPE2", "Pepe Two").isEmpty)
+        #expect(Self.reasons("USD₮0", "USDT0").contains(.imitation) == Self.reasons("USDT0", "USDT0").contains(.imitation))
+    }
+
     @Test("Poeira so conta onde o token chega sem pedir")
     func dust() {
         // BUSD.e na Avalanche: 500000000 com 18 casas, 0,0000000005 unidade.

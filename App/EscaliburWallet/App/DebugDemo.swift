@@ -304,7 +304,7 @@ struct DemoEnvelopes: ViewModifier {
                 guard !shown, let first = session.metadata.wallets.first else { return }
                 shown = true
                 if DebugDemo.screen == "lacrar" { sealing = first }
-                if DebugDemo.screen == "abrir" { opening = true }
+                if ["abrir", "envelope-como"].contains(DebugDemo.screen) { opening = true }
                 if DebugDemo.screen == "voz" { voice = true }
                 if DebugDemo.screen == "alertas" { alerts = true }
                 if ["suporte", "sobre"].contains(DebugDemo.screen) { support = true }

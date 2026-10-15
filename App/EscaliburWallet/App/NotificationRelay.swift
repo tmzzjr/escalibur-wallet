@@ -29,6 +29,10 @@ final class NotificationRelay: NSObject, UNUserNotificationCenterDelegate, Senda
                 identifier: ReceiptWatchCenter.category, actions: [], intentIdentifiers: [],
                 hiddenPreviewsBodyPlaceholder: "Recebimento", options: []
             ),
+            UNNotificationCategory(
+                identifier: BridgeCenter.category, actions: [], intentIdentifiers: [],
+                hiddenPreviewsBodyPlaceholder: "Ponte", options: []
+            ),
         ])
     }
 

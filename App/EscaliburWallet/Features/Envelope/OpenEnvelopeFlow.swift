@@ -45,6 +45,7 @@ struct OpenEnvelopeFlow: View {
     let onClose: () -> Void
 
     @State private var picking = false
+    @State private var howItWorks = false
     @State private var fileName: String?
     @State private var data: Data?
     @State private var password = SecureBytes(capacity: 256)
@@ -112,16 +113,33 @@ struct OpenEnvelopeFlow: View {
         .onAppear { if let initialURL { load(initialURL) } }
     }
 
+    /// O texto no centro, embaixo da ilustracao, e o "Como funciona" (pedido do dono,
+    /// 14/10/2026).
     private var chooseView: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: 0) {
             EnvelopeChain(mode: .idle, direction: .outward).padding(.top, Space.sm).padding(.bottom, Space.xl)
             Text("Abrir um envelope").typeStyle(.title).foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.center)
             Text("Escolha o arquivo .esclbr no app Arquivos. O original continua onde está.")
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
+                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            Button { howItWorks = true } label: {
+                Label("Como funciona", systemImage: "play.circle").typeStyle(.label).foregroundStyle(Palette.ink)
+                    .padding(.horizontal, Space.sm).frame(height: 34)
+                    .background(Capsule(style: .continuous).fill(Palette.rail))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, Space.md)
+            .accessibilityIdentifier("envelope-como-funciona")
             if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }
             Spacer()
             PrimaryButton(title: "Escolher arquivo") { picking = true }
         }
+        .frame(maxWidth: .infinity)
+        .sheet(isPresented: $howItWorks) { EnvelopeHowItWorks() }
+        #if DEBUG
+        .onAppear { if DebugDemo.screen == "envelope-como" { howItWorks = true } }
+        #endif
     }
 
     private var passwordView: some View {

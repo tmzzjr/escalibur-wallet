@@ -42,7 +42,11 @@ public enum TokenSafety {
         if texts.contains(where: hasHiddenCharacters) { out.append(.hiddenCharacters) }
         if texts.contains(where: hasLink) { out.append(.link) }
         if texts.contains(where: hasBait) { out.append(.bait) }
-        if imitates(symbol: symbol, chainID: chainID, kind: kind) { out.append(.imitation) }
+        // Letra de outro alfabeto no simbolo, onde token chega sem pedir: imitacao mesmo
+        // sem casar com um simbolo protegido (pentest de 14/10/2026, B2).
+        if imitates(symbol: symbol, chainID: chainID, kind: kind) || (unsolicited && hasForeignLetters(symbol)) {
+            out.append(.imitation)
+        }
         if unsolicited, isDust(amount, decimals: decimals) { out.append(.dust) }
         if flaggedBySource { out.append(.flaggedBySource) }
         return out
@@ -143,6 +147,14 @@ public enum TokenSafety {
         // NEAR: USDC (Circle) e USDt (Tether).
         "near:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1", "near:usdt.tether-token.near",
     ]
+
+    /// Letra fora do ASCII no simbolo, depois de desfazer as parecidas que o mapa conhece.
+    /// "ꓴꓢꓓꓚ" (lisu), "USDϹ" (sigma lunado), "ᴜꜱᴅᴄ" (versaletes) e "ՍSDC" (armenio)
+    /// imitam USDC com letras que nenhum mapa cobre inteiro. Simbolo legitimo em outro
+    /// alfabeto tambem cai aqui: fica em "Mostrar suspeitos", ainda visivel.
+    static func hasForeignLetters(_ symbol: String) -> Bool {
+        fold(symbol).unicodeScalars.contains { !$0.isASCII && $0.properties.isAlphabetic }
+    }
 
     static func protectedSymbols(chainID: String) -> Set<String> {
         var out = Set(TokenRegistry.tokens.filter(\.isStablecoin).map { normalizedSymbol($0.symbol) })

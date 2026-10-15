@@ -33,7 +33,9 @@ struct ReceiptWatchFile: Codable, Equatable {
 
     var enabled = false
     /// Valor e moeda na notificacao. Desligado, a tela bloqueada so diz que entrou moeda.
-    var showDetails = true
+    /// Comeca desligado (pentest de 14/10/2026, B1): o aviso vem ligado por padrao, e
+    /// "Recebeu 10.000 USDT" na tela bloqueada, no relogio ou no Mac marca o dono como alvo.
+    var showDetails = false
     var accounts: [Account] = []
     /// "rede|endereco|ativo" -> o ultimo saldo visto.
     var seen: [String: Seen] = [:]
@@ -169,7 +171,9 @@ actor ReceiptWatchCenter {
         let balances = await withTaskGroup(of: (ReceiptWatchFile.Account, ChainBalance?).self) { group in
             for account in before.accounts {
                 guard let chain = Chain.all.first(where: { $0.id == account.chainID }), !account.addresses.isEmpty else { continue }
-                group.addTask { (account, try? await BalanceService.shared.balance(chain: chain, addresses: account.addresses)) }
+                // So o que ja entrou num bloco, e nas redes UTXO em dois provedores: o aviso
+                // diz que o saldo ja esta na carteira (pentest de 14/10/2026, M1).
+                group.addTask { (account, try? await BalanceService.shared.receiptBalance(chain: chain, addresses: account.addresses)) }
             }
             var out: [(ReceiptWatchFile.Account, ChainBalance)] = []
             for await (account, balance) in group { if let balance { out.append((account, balance)) } }

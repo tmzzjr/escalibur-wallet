@@ -79,8 +79,10 @@ final class BridgeCenter {
         let center = UNUserNotificationCenter.current()
         guard await center.notificationSettings().authorizationStatus == .authorized, let to = record.to else { return }
         let content = UNMutableNotificationContent()
-        content.title = "Chegou na \(to.chain.name)"
-        content.body = "\(Fmt.crypto(amount, decimals: record.asset.decimals, symbol: record.asset.symbol)) pela ponte, conferido na rede."
+        // Sem valor nem moeda (pentest de 14/10/2026, B1): a tela bloqueada nao conta o
+        // que a carteira tem. O valor esta na lista de pontes, com o app aberto.
+        content.title = "Sua ponte chegou"
+        content.body = "Conferido na \(to.chain.name). Abra a Escalibur para ver."
         content.sound = .default
         content.categoryIdentifier = Self.category
         try? await center.add(UNNotificationRequest(identifier: "ponte.\(record.id.uuidString)", content: content, trigger: nil))

@@ -97,22 +97,47 @@ public struct BridgeRecord: Codable, Sendable, Equatable, Identifiable {
 }
 
 public enum BridgeArrival {
-    static let filledRelayTopic = Hash.keccak256(Array(
+    public static let filledRelayTopic = Hash.keccak256(Array(
         "FilledRelay(bytes32,bytes32,uint256,uint256,uint256,uint256,uint256,uint32,uint32,bytes32,bytes32,bytes32,bytes32,bytes32,(bytes32,bytes32,uint256,uint8))".utf8))
     static let filledRelayData = try! ABIFunction(
         "e(bytes32,bytes32,uint256,uint256,uint256,uint32,uint32,bytes32,bytes32,bytes32,bytes32,(bytes32,bytes32,uint256,uint8))")
 
+    /// O `depositId` que o SpokePool da origem deu a este deposito, lido do FundsDeposited
+    /// do proprio recibo do deposito (`logs` de dois RPCs concordando), com os campos que
+    /// o app assinou. nil: o recibo nao tem este deposito.
+    public static func acrossDepositID(_ logs: [TradeSimulatedLog], transfer: AcrossTransfer, originSpoke: EVMAddress) -> BigUInt? {
+        let owner = CCTPMessage.word(transfer.owner)
+        let data = BridgeSimulationCheck.fundsDepositedData
+        for log in logs {
+            guard log.address == originSpoke, log.topics.count == 4, log.topics[0] == BridgeSimulationCheck.fundsDepositedTopic,
+                  BigUInt(bigEndian: log.topics[1]) == BigUInt(transfer.destinationChainID), log.topics[3] == owner,
+                  let fields = try? data.decodeCall(data.selector + log.data), fields.count == 10,
+                  fields[0] == .fixedBytes(CCTPMessage.word(transfer.inputToken)),
+                  fields[1] == .fixedBytes(CCTPMessage.word(transfer.outputToken)),
+                  fields[2] == .uint(transfer.inputAmount), fields[3] == .uint(transfer.outputAmount),
+                  fields[5] == .uint(BigUInt(transfer.fillDeadline)),
+                  fields[7] == .fixedBytes(CCTPMessage.word(transfer.recipient))
+            else { continue }
+            return BigUInt(bigEndian: log.topics[2])
+        }
+        return nil
+    }
+
     /// O recibo de entrega tem o FilledRelay deste deposito, sem alteracao de destino nem
-    /// de valor? `logs` vem de dois RPCs concordando.
-    public static func acrossDelivered(_ logs: [TradeSimulatedLog], transfer: AcrossTransfer, destinationSpoke: EVMAddress) -> Bool {
+    /// de valor? `logs` vem de dois RPCs concordando. O `depositId` e o `fillDeadline`
+    /// amarram a entrega ao deposito do dono: uma entrega antiga de mesmo valor, devolvida
+    /// por uma API comprometida, nao passa (pentest de 14/10/2026, B4).
+    public static func acrossDelivered(_ logs: [TradeSimulatedLog], transfer: AcrossTransfer, destinationSpoke: EVMAddress, depositID: BigUInt) -> Bool {
         let owner = CCTPMessage.word(transfer.owner)
         return logs.contains { log in
             guard log.address == destinationSpoke, log.topics.count == 4, log.topics[0] == filledRelayTopic,
                   BigUInt(bigEndian: log.topics[1]) == BigUInt(transfer.originChainID),
+                  BigUInt(bigEndian: log.topics[2]) == depositID,
                   let fields = try? filledRelayData.decodeCall(filledRelayData.selector + log.data), fields.count == 12,
                   case .tuple(let info) = fields[11], info.count == 4
             else { return false }
             return fields[0] == .fixedBytes(CCTPMessage.word(transfer.inputToken))
+                && fields[5] == .uint(BigUInt(transfer.fillDeadline))
                 && fields[1] == .fixedBytes(CCTPMessage.word(transfer.outputToken))
                 && fields[2] == .uint(transfer.inputAmount)
                 && fields[3] == .uint(transfer.outputAmount)

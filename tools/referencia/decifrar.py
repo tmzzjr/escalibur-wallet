@@ -108,6 +108,14 @@ import struct
 import sys
 import unicodedata
 
+
+def visivel(texto):
+    """O texto do envelope pronto para o terminal: controle (C*) e separador de linha ou
+    paragrafo viram U+FFFD. Um envelope de "presente" com sequencia de escape apagava
+    linhas e gravava a area de transferencia pelo OSC 52 (pentest de 14/10/2026, B3)."""
+    return "".join("\ufffd" if unicodedata.category(c).startswith("C") or unicodedata.category(c) in ("Zl", "Zp") else c
+                   for c in str(texto))
+
 try:
     from argon2.low_level import Type, hash_secret_raw
     from cryptography.hazmat.primitives import hashes
@@ -296,15 +304,15 @@ def main():
             print()
             continue
         print(f"  compartimento {indice}")
-        print(f"  tipo          {conteudo['tipo']}")
-        print(f"  nome          {conteudo['nome']}")
-        print(f"  idioma        {conteudo['idioma']}")
+        print(f"  tipo          {visivel(conteudo['tipo'])}")
+        print(f"  nome          {visivel(conteudo['nome'])}")
+        print(f"  idioma        {visivel(conteudo['idioma'])}")
         if conteudo["anotacoes"]:
-            print(f"  anotações     {conteudo['anotacoes']}")
+            print(f"  anotações     {visivel(conteudo['anotacoes'])}")
         if conteudo["passphrase"]:
-            print(f"  25ª palavra   {conteudo['passphrase']}")
+            print(f"  25ª palavra   {visivel(conteudo['passphrase'])}")
         print()
-        palavras = conteudo["frase"].split()
+        palavras = [visivel(palavra) for palavra in conteudo["frase"].split()]
         for numero, palavra in enumerate(palavras, start=1):
             print(f"    {numero:2d}. {palavra}")
         print()

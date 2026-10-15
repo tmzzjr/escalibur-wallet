@@ -189,6 +189,14 @@ struct BridgePlannerTests {
         }
         // US$ 3 vale mais que 0,5% num deposito pequeno.
         #expect(BridgeValidator.acrossFeeCap(BigUInt(100_000_000), asset: .usdt, usdPrice: nil) == BigUInt(3_000_000))
+        // Preco de uma fonte so, errado para baixo: o teto do ETH para em 0,002 ETH, e nao
+        // sobe ate os 5% do bloqueio (pentest B5). 10 ETH: o maior e o 0,5%, 0,05 ETH.
+        let tiny = TradeDecimal("0.000001")
+        let ether = BigUInt.power(of: 10, 18)
+        #expect(BridgeValidator.acrossFeeCap(ether / BigUInt(10), asset: .eth, usdPrice: tiny) == BridgeValidator.acrossFeeCapETHWei)
+        #expect(BridgeValidator.acrossFeeCap(ether * BigUInt(10), asset: .eth, usdPrice: tiny) == ether * BigUInt(10) * BigUInt(50) / BigUInt(10_000))
+        // Preco honesto (US$ 3.000): US$ 3 sao 0,001 ETH, abaixo do teto absoluto.
+        #expect(BridgeValidator.acrossFeeCap(ether / BigUInt(10), asset: .eth, usdPrice: TradeDecimal("3000")) == ether / BigUInt(1_000))
     }
 
     // MARK: Plano
@@ -312,4 +320,58 @@ struct BridgePlannerTests {
 
 extension AcrossTransfer {
     var depositorIsOwner: Bool { owner == recipient }
+}
+
+/// A chegada pelo Across amarrada ao deposito do dono (pentest de 14/10/2026, B4).
+@Suite("Ponte: a entrega do Across e a do deposito do dono")
+struct AcrossArrivalBindingTests {
+    typealias S = TradeTestSupport
+    static let owner = try! EVMAddress("0x411580947c337770994174855f8cbf56936e3062")
+    static let zero = [UInt8](repeating: 0, count: 32)
+
+    static func transfer(fillDeadline: UInt32 = 1_791_772_367) -> AcrossTransfer {
+        AcrossTransfer(originChainID: 8453, destinationChainID: 42161, owner: owner, recipient: owner,
+                       inputToken: BridgeAllowlist.base.across!.wrappedNative, outputToken: BridgeAllowlist.arbitrum.across!.wrappedNative,
+                       inputAmount: BigUInt(2_992_129_562_251_732), outputAmount: BigUInt(2_986_913_403_912_798), exclusiveRelayer: nil,
+                       quoteTimestamp: 1_791_765_167, fillDeadline: fillDeadline, exclusivityDeadline: 0, nativeInput: true)
+    }
+
+    static func filledRelay(_ transfer: AcrossTransfer, depositID: BigUInt, fillDeadline: UInt32? = nil) -> TradeSimulatedLog {
+        let owner = CCTPMessage.word(transfer.owner)
+        let data = try! BridgeArrival.filledRelayData.encodeCall([
+            .fixedBytes(CCTPMessage.word(transfer.inputToken)), .fixedBytes(CCTPMessage.word(transfer.outputToken)),
+            .uint(transfer.inputAmount), .uint(transfer.outputAmount), .uint(BigUInt(transfer.destinationChainID)),
+            .uint(BigUInt(fillDeadline ?? transfer.fillDeadline)), .uint(0), .fixedBytes(zero),
+            .fixedBytes(owner), .fixedBytes(owner), .fixedBytes(zero),
+            .tuple([.fixedBytes(owner), .fixedBytes(zero), .uint(transfer.outputAmount), .uint(0)]),
+        ])
+        return TradeSimulatedLog(
+            address: BridgeAllowlist.arbitrum.across!.spokePool,
+            topics: [BridgeArrival.filledRelayTopic, S.word(BigUInt(transfer.originChainID)), S.word(depositID), S.word(1)],
+            data: Array(data.dropFirst(4))
+        )
+    }
+
+    @Test("O depositId sai do FundsDeposited do proprio recibo, com os campos assinados")
+    func depositID() {
+        let transfer = Self.transfer()
+        let spoke = BridgeAllowlist.base.across!.spokePool
+        let deposit = BridgePlannerTests.fundsDepositedLog(transfer, spoke: spoke)
+        #expect(BridgeArrival.acrossDepositID([deposit], transfer: transfer, originSpoke: spoke) == BigUInt(7))
+        // Outro destinatario, outro prazo ou outro contrato: nao e este deposito.
+        #expect(BridgeArrival.acrossDepositID([BridgePlannerTests.fundsDepositedLog(transfer, spoke: spoke, recipient: S.stranger)],
+                                              transfer: transfer, originSpoke: spoke) == nil)
+        #expect(BridgeArrival.acrossDepositID([deposit], transfer: Self.transfer(fillDeadline: 1), originSpoke: spoke) == nil)
+        #expect(BridgeArrival.acrossDepositID([deposit], transfer: transfer, originSpoke: BridgeAllowlist.arbitrum.across!.spokePool) == nil)
+    }
+
+    @Test("Entrega antiga de mesmo valor, com outro depositId ou outro prazo, nao conta como chegada")
+    func delivery() {
+        let transfer = Self.transfer()
+        let spoke = BridgeAllowlist.arbitrum.across!.spokePool
+        #expect(BridgeArrival.acrossDelivered([Self.filledRelay(transfer, depositID: 7)], transfer: transfer, destinationSpoke: spoke, depositID: 7))
+        #expect(!BridgeArrival.acrossDelivered([Self.filledRelay(transfer, depositID: 6)], transfer: transfer, destinationSpoke: spoke, depositID: 7))
+        #expect(!BridgeArrival.acrossDelivered([Self.filledRelay(transfer, depositID: 7, fillDeadline: 1)], transfer: transfer,
+                                               destinationSpoke: spoke, depositID: 7))
+    }
 }

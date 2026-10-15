@@ -40,6 +40,7 @@
 		3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09712057581F9378B87996C5 /* PasswordCost.swift */; };
 		39A4945DC4DAEFEDE0DBEB1F /* PINPad.swift in Sources */ = {isa = PBXBuildFile; fileRef = 781A92DCAC657FBE12804D78 /* PINPad.swift */; };
 		3E25AAAF8F41385BA8FCFC03 /* PriceAlertTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 923ECBE19CCD67EE592B54AA /* PriceAlertTextTests.swift */; };
+		3E8349E3BD6D903122396BAF /* EnvelopeHowItWorks.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF8FC12457C9F9A1A205F7AB /* EnvelopeHowItWorks.swift */; };
 		3E9B59FEC10974F0AF152882 /* LimitOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811D8AF3EF3BDDB831240B3A /* LimitOrderTests.swift */; };
 		412FAF815F7D38218E963E9D /* PriceFormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D952868D0D6E51EB2C9FD93A /* PriceFormatTests.swift */; };
 		423716FB0CCE7B2E2778312E /* Bridges.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D88AA69992E5B71F258F14 /* Bridges.swift */; };
@@ -266,6 +267,7 @@
 		BAE7F2431E841450CA0BCE4D /* MarketFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketFacts.swift; sourceTree = "<group>"; };
 		BC0C91AC7C8CD9C5B8D31703 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		BEDF5B057ACFC03FB7CA324E /* PriceChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceChart.swift; sourceTree = "<group>"; };
+		BF8FC12457C9F9A1A205F7AB /* EnvelopeHowItWorks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeHowItWorks.swift; sourceTree = "<group>"; };
 		C10914896D99BB58942178E3 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
 		C114911EA7725CA6C7171D11 /* VoiceGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceGate.swift; sourceTree = "<group>"; };
 		C89672710E00E2856C3A1EB7 /* TokenMarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenMarks.swift; sourceTree = "<group>"; };
@@ -545,6 +547,7 @@
 			isa = PBXGroup;
 			children = (
 				9533E741733252A8A22C3477 /* EnvelopeChain.swift */,
+				BF8FC12457C9F9A1A205F7AB /* EnvelopeHowItWorks.swift */,
 				782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */,
 				31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */,
 			);
@@ -853,6 +856,7 @@
 				DAC0E966C277EFDAF466D0EB /* DeviceIntegrity.swift in Sources */,
 				5921DC5AA483FB6C6E65C073 /* EmptySendArt.swift in Sources */,
 				AF3BC69E48877AAA3F75D755 /* EnvelopeChain.swift in Sources */,
+				3E8349E3BD6D903122396BAF /* EnvelopeHowItWorks.swift in Sources */,
 				17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */,
 				2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */,
 				F8EA2B1B268220A255B30FAB /* ImportPhraseView.swift in Sources */,

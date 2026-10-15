@@ -5,6 +5,7 @@ import EscaliburKeys
 import EscaliburNetwork
 import Observation
 import SwiftUI
+import UserNotifications
 
 /// Como o dono prova presenca para uma operacao que precisa da chave raiz.
 enum Credential: Sendable {
@@ -48,6 +49,25 @@ final class AppSession {
         // configurado, e o app abre travado, nunca na criacao do PIN.
         if UIApplication.shared.isProtectedDataAvailable { KeyServices.root.rebaseAttempts() }
         phase = KeyServices.root.isSetUp ? .locked : .onboarding
+        // Sem chaves (o codigo do iPhone foi tirado e o chaveiro apagou o cofre): o que o
+        // segundo plano guardava fora do cofre nao tem mais dono (pentest de 14/10/2026, B6).
+        if phase == .onboarding, UIApplication.shared.isProtectedDataAvailable {
+            Self.eraseBackgroundFiles()
+            Preferences.receiptWatchChosen = false
+        }
+    }
+
+    /// O que o segundo plano guarda fora do cofre (enderecos e ultimo saldo do aviso de
+    /// recebimento, UIDs das ordens, alertas de preco), apagado na hora, com a agenda e os
+    /// avisos pendentes junto. Nada disso espera um `Task`: o app pode fechar antes.
+    static func eraseBackgroundFiles() {
+        ReceiptWatchStore.erase()
+        LimitOrderWatchStore.erase()
+        PriceAlertStore.erase()
+        let center = UNUserNotificationCenter.current()
+        center.removeAllPendingNotificationRequests()
+        center.removeAllDeliveredNotifications()
+        BackgroundCheck.reschedule()
     }
 
     var selectedWallet: WalletMeta? { metadata.selectedWallet }
@@ -339,8 +359,9 @@ final class AppSession {
     func eraseEverything() {
         KeyServices.root.wipeAll()
         MetadataStore.deleteFile()
-        PriceAlertStore.erase()
+        Self.eraseBackgroundFiles()
         Preferences.receiptWatchChosen = false
+        // Os atores zeram o que tinham em memoria; os arquivos ja sairam acima.
         Task {
             await ReceiptWatchCenter.shared.disable()
             await LimitOrderWatch.shared.erase()

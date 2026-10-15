@@ -134,6 +134,55 @@ public struct UTXOReader: Sendable {
         return total
     }
 
+    /// Saldo so do que ja entrou num bloco, lido em dois provedores diferentes, o menor
+    /// dos dois. E o do aviso de recebimento (pentest de 14/10/2026, M1): o saldo de
+    /// exibicao conta a mempool, e um pagamento com taxa baixa trocado por RBF depois do
+    /// aviso devolvia as moedas a quem pagou. Um provedor sozinho tambem nao inventa
+    /// recebimento: vale o menor.
+    public func confirmedBalance(addresses: [String]) async throws -> UInt64 {
+        let providers = await pool.available()
+        guard providers.count >= 2 else { throw ChainReaderError.notEnoughSources(needed: 2, got: providers.count) }
+        let values = try await ReaderConcurrency.map(Array(addresses.enumerated()), limit: Self.parallelism) { entry in
+            try await self.confirmedInTwo(entry.element, providers: providers, start: entry.offset)
+        }
+        var total: UInt64 = 0
+        for value in values {
+            let (sum, overflow) = total.addingReportingOverflow(value)
+            guard !overflow else { throw ChainReaderError.malformedResponse(field: "balance") }
+            total = sum
+        }
+        return total
+    }
+
+    /// Dois provedores diferentes, a partir de `start` (espalha a carga entre enderecos);
+    /// um que falha da a vez ao seguinte.
+    private func confirmedInTwo(_ address: String, providers: [ProviderPool.Provider], start: Int) async throws -> UInt64 {
+        var readings: [UInt64] = []
+        var lastError: Error = ChainReaderError.notEnoughSources(needed: 2, got: 0)
+        for step in 0..<providers.count where readings.count < 2 {
+            let provider = providers[(start + step) % providers.count]
+            do {
+                let claims = try await client(provider).unspent(address)
+                var sum: UInt64 = 0
+                for claim in claims where claim.height != nil {
+                    let (next, overflow) = sum.addingReportingOverflow(claim.claimedValue)
+                    guard !overflow else { throw ChainReaderError.malformedResponse(field: "value") }
+                    sum = next
+                }
+                readings.append(sum)
+                await pool.reportSuccess(provider)
+            } catch {
+                await report(provider, error)
+                lastError = error
+            }
+        }
+        guard readings.count == 2 else {
+            if readings.isEmpty { throw lastError }
+            throw ChainReaderError.notEnoughSources(needed: 2, got: readings.count)
+        }
+        return readings.min() ?? 0
+    }
+
     // MARK: Descoberta
 
     /// Varre recebimento (cadeia 0) e troco (cadeia 1) ate `gapLimit` enderecos

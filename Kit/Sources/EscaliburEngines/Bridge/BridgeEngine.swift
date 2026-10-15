@@ -189,9 +189,16 @@ public struct BridgeEngine: Sendable {
             guard let hash = status.refundTxHash else { return .inFlight }
             return .refunded(txHash: hash)
         case .filled:
+            // O deposito do dono, no recibo dele na origem: o `depositId` que a entrega tem
+            // de carregar.
+            guard let originSpoke = from.across?.spokePool,
+                  let deposit = try await reader.receiptLogs(chain: from.chain, hash: record.depositTxHash) else { return .inFlight }
+            guard deposit.success, let depositID = BridgeArrival.acrossDepositID(deposit.logs, transfer: transfer, originSpoke: originSpoke) else {
+                return .mismatch
+            }
             guard let hash = status.fillTxHash, let receipt = try await reader.receiptLogs(chain: to.chain, hash: hash) else { return .inFlight }
             guard receipt.success, let spoke = to.across?.spokePool,
-                  BridgeArrival.acrossDelivered(receipt.logs, transfer: transfer, destinationSpoke: spoke) else {
+                  BridgeArrival.acrossDelivered(receipt.logs, transfer: transfer, destinationSpoke: spoke, depositID: depositID) else {
                 return .mismatch
             }
             return .arrived(txHash: hash, amount: transfer.outputAmount)

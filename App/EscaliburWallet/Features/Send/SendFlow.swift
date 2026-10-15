@@ -334,12 +334,13 @@ struct SendStages: View {
     }
 
     /// As outras carteiras deste app com conta nesta rede: o endereco vem da propria
-    /// carteira, nada de colar.
+    /// carteira, nada de colar. A que so observa fica de fora: ela nao e sua chave, e
+    /// "observe meu endereco e deposite nele" e golpe (pentest de 14/10/2026).
     private var ownWallets: [(wallet: WalletMeta, address: String)] {
         guard let chain = model.chain else { return [] }
         let current = session.selectedWallet?.id
         return session.metadata.wallets.compactMap { wallet in
-            guard wallet.id != current, let address = wallet.account(chain)?.address, !address.isEmpty else { return nil }
+            guard wallet.id != current, !wallet.isWatchOnly, let address = wallet.account(chain)?.address, !address.isEmpty else { return nil }
             return (wallet, address)
         }
     }
@@ -361,7 +362,7 @@ struct SendStages: View {
                             validate()
                         } label: {
                             HStack(spacing: Space.sm) {
-                                Image(systemName: item.wallet.isWatchOnly ? "eye" : "wallet.bifold")
+                                Image(systemName: "wallet.bifold")
                                     .font(.system(size: 17, weight: .semibold)).foregroundStyle(Palette.inkSoft)
                                     .frame(width: 36, height: 36).background(Circle().fill(Palette.rail))
                                 VStack(alignment: .leading, spacing: 2) {

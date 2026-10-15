@@ -7,3 +7,6 @@ xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 .swiftpm/
 Kit/.swiftpm/
+
+# Copias de trabalho dos agentes do Claude Code (git worktree).
+.claude/worktrees/

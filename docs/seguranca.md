@@ -104,8 +104,9 @@ No Escalibur de hoje nenhum destes achados é grave, porque lá o PIN não prote
 **T7. Cadeia de suprimentos**
 - Defesa:
   - Nenhum pacote remoto e nenhum binário de terceiro. Todo C vendorizado tem lock SHA-256 e vetores de teste.
-  - `verificar.sh` roda no CI e bloqueia merge.
-  - Duas pessoas revisam chaves, cadeias e allowlists. Tags são assinadas.
+  - `verificar.sh` roda no CI a cada push na main.
+  - No GitHub, desde 14/10/2026 (pentest, M2): a main não aceita force push nem ser apagada; ações só da GitHub e fixadas por SHA (o repositório exige); varredura de segredos com bloqueio no push; relato privado de vulnerabilidade ligado.
+  - Ainda não: commit e tag assinados obrigatórios, check do CI obrigatório antes de entrar na main e segundo revisor. Um mantenedor só, empurrando direto na main, não passa por revisão; um token do GitHub vazado empurra código. Ligar commit assinado (chave SSH em chave de hardware) e release só de tag assinada, conferida com `git verify-tag` antes do archive, é o próximo passo.
   - Build determinístico, com Xcode fixado.
   - A conta da App Store Connect usa chave de segurança de hardware e tem 2 administradores.
 - O que sobra: uma atualização maliciosa publicada com a conta da ASC chega sozinha a quem tem atualização automática. Só terceiros verificando o binário detectam.

@@ -101,7 +101,7 @@ struct ReceiptWatchView: View {
 
                 VStack(alignment: .leading, spacing: Space.sm) {
                     note("Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois de a moeda entrar. Com o app aberto, a conferência é a cada 2 minutos.")
-                    note("Para conferir com o iPhone bloqueado, os endereços públicos das suas contas ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Nenhuma chave, frase ou nome de carteira entra nele. Vem ligado; desligar apaga o arquivo.")
+                    note("Para conferir com o iPhone bloqueado, os endereços públicos das suas contas e o último saldo visto de cada moeda ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Nenhuma chave, frase ou nome de carteira entra nele. Vem ligado; desligar apaga o arquivo.")
                     note("Contam a moeda de cada rede e os tokens da lista conferida. Token fora da lista não avisa: é por ele que chega o spam.")
                 }
                 .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
