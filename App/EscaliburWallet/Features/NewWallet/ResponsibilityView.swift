@@ -92,10 +92,11 @@ struct ResponsibilityView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// A caixa e a frase sao um botao so (tocar em qualquer parte marca); o link dos
-    /// Termos fica logo abaixo, separado, para nao marcar a caixa sem querer.
+    /// A caixa e a frase sao um botao so (tocar em qualquer parte marca), sozinhos no
+    /// cartao; o link dos Termos fica embaixo do cartao, em cinza e sem seta (pedido do
+    /// dono, 15/10/2026), longe o bastante para nao marcar a caixa sem querer.
     private var acceptance: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: Space.xs) {
             Button { toggle() } label: {
                 HStack(alignment: .top, spacing: Space.sm) {
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
@@ -115,7 +116,14 @@ struct ResponsibilityView: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                 }
+                .padding(Space.md)
                 .contentShape(Rectangle())
+                .background(
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                        .fill(Palette.body)
+                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                            .stroke(accepted ? Palette.edgeStrong : Palette.edge, lineWidth: 1))
+                )
             }
             .buttonStyle(.plain)
             .accessibilityValue(accepted ? "Marcado" : "Desmarcado")
@@ -124,29 +132,16 @@ struct ResponsibilityView: View {
             .sensoryFeedback(.selection, trigger: accepted)
 
             Button { legalDocument = .terms } label: {
-                HStack(spacing: Space.xxs) {
-                    Text("Ler os Termos de uso").typeStyle(.note).fontWeight(.semibold).underline()
-                    Image(systemName: "arrow.up.right").font(.system(size: 11, weight: .semibold))
-                }
-                .foregroundStyle(Palette.ink)
-                .frame(minHeight: Height.touch)
-                .contentShape(Rectangle())
+                Text("Ler os Termos de uso").typeStyle(.note).fontWeight(.semibold).underline()
+                    .foregroundStyle(Palette.inkMuted)
+                    .frame(minHeight: Height.touch)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .padding(.leading, 24 + Space.sm)
-            .padding(.top, Space.xxs)
             .accessibilityRemoveTraits(.isButton)
             .accessibilityAddTraits(.isLink)
             .accessibilityIdentifier("link-termos")
         }
-        .padding(.horizontal, Space.md)
-        .padding(.top, Space.md)
-        .background(
-            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .fill(Palette.body)
-                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                    .stroke(accepted ? Palette.edgeStrong : Palette.edge, lineWidth: 1))
-        )
         .animation(Motion.select, value: accepted)
     }
 

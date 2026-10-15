@@ -334,9 +334,10 @@ struct HoldButton: View {
 
 /// Deslizar para seguir: o trilho com o cadeado que o dedo leva ate o fim. Para passos
 /// que pedem atencao (digitar as palavras): um toque sem querer nao segue. O verde
-/// solido cresce atras do cadeado, o texto escurece onde o verde passa por baixo, e em
-/// repouso o cadeado da uma espiada para a direita de tempos em tempos. Soltou antes do
-/// fim, volta. No VoiceOver, o toque duplo confirma.
+/// cresce atras do cadeado em pixels quadrados (`PixelFill`, pedido do dono, 15/10/2026),
+/// o texto escurece onde o verde ja firmou, e em repouso o cadeado da uma espiada para a
+/// direita de tempos em tempos. Soltou antes do fim, volta. No VoiceOver, o toque duplo
+/// confirma.
 struct SlideToConfirm: View {
     let title: String
     var enabled: Bool = true
@@ -345,6 +346,9 @@ struct SlideToConfirm: View {
     @State private var hint: CGFloat = 0
     @State private var dragging = false
     @State private var done = false
+    @State private var doneAt: Date?
+    /// Depois da onda final a grade nao muda mais: a linha do tempo para.
+    @State private var settled = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let height: CGFloat = 64
 
@@ -363,20 +367,23 @@ struct SlideToConfirm: View {
             let knob = height - 8
             let travel = max(geo.size.width - knob - 8, 1)
             let shift = min(offset + hint, travel)
-            let fill = knob + 8 + shift
             let showing = enabled && (shift > 0 || done)
             ZStack(alignment: .leading) {
                 Capsule().fill(Palette.rail)
-                Capsule().fill(Palette.success)
-                    .frame(width: done ? geo.size.width : fill)
-                    .opacity(showing ? 1 : 0)
-                label(enabled ? Palette.ink : Palette.inkMuted, knob: knob)
-                // A mesma frase, escura, so onde o verde ja passou.
-                label(Palette.void, knob: knob)
-                    .mask(alignment: .leading) {
-                        Capsule().frame(width: done ? geo.size.width : fill)
+                TimelineView(.animation(minimumInterval: 1.0 / 24, paused: reduceMotion || !showing || settled)) { timeline in
+                    let pixels = PixelFill(edge: 4 + shift + knob / 2, width: geo.size.width, doneAt: done ? doneAt ?? .distantPast : nil,
+                                           now: timeline.date, still: reduceMotion)
+                    ZStack(alignment: .leading) {
+                        Canvas { context, size in pixels.draw(&context, size: size) }
+                            .clipShape(Capsule())
+                            .opacity(showing ? 1 : 0)
+                        label(enabled ? Palette.ink : Palette.inkMuted, knob: knob)
+                        // A mesma frase, escura, so onde o verde ja firmou.
+                        label(Palette.void, knob: knob)
+                            .mask(alignment: .leading) { Rectangle().frame(width: max(pixels.solid, 0)) }
+                            .opacity(showing ? 1 : 0)
                     }
-                    .opacity(showing ? 1 : 0)
+                }
                 Circle()
                     .fill(enabled ? Color.white : Palette.control)
                     .frame(width: knob, height: knob)
@@ -399,6 +406,7 @@ struct SlideToConfirm: View {
                                 dragging = false
                                 guard enabled, !done else { return }
                                 if offset > travel * 0.85 {
+                                    doneAt = Date()
                                     withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
                                         offset = travel
                                         done = true
@@ -406,6 +414,8 @@ struct SlideToConfirm: View {
                                     Task {
                                         try? await Task.sleep(for: .milliseconds(320))
                                         action()
+                                        try? await Task.sleep(for: .milliseconds(Int(PixelFill.finale * 1000)))
+                                        settled = true
                                     }
                                 } else {
                                     withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { offset = 0 }
@@ -422,6 +432,8 @@ struct SlideToConfirm: View {
             offset = 0
             hint = 0
             done = false
+            doneAt = nil
+            settled = false
         }
         // A espiada: o cadeado anda um pouco e volta, para dizer que desliza.
         .task(id: enabled) {
@@ -440,6 +452,109 @@ struct SlideToConfirm: View {
         .accessibilityAction { if enabled { action() } }
         // Depois do elemento montado: assim o VoiceOver (e o teste) le "desabilitado".
         .disabled(!enabled)
+    }
+}
+
+/// O verde do `SlideToConfirm` em pixels quadrados, como dado sendo cifrado. Longe do
+/// cadeado, a grade firme; na frente que avanca, os pixels acendem e apagam, mais cheios
+/// quanto mais perto do verde firme, e uns poucos escapam na frente. No fim, uma onda
+/// acende o resto do trilho e as juntas da grade fecham num verde so. So desenho: o
+/// sorteio dos pixels sai de um contador, nada sai de chave.
+struct PixelFill {
+    /// Ate onde o verde chega: o centro do cadeado.
+    let edge: CGFloat
+    let width: CGFloat
+    /// Quando o dedo levou o cadeado ate o fim; nil enquanto nao chegou.
+    let doneAt: Date?
+    let now: Date
+    /// Reduzir Movimento: os mesmos pixels, parados.
+    let still: Bool
+
+    static let cell: CGFloat = 6
+    static let gap: CGFloat = 1.5
+    /// A largura da frente que pisca, atras do cadeado.
+    static let frontier: CGFloat = 76
+    /// Quanto os pixels soltos escapam na frente do verde.
+    static let sparks: CGFloat = 16
+    /// A onda do fim e o fechar das juntas, em segundos.
+    static let wave = 0.34
+    static let finale = 0.8
+
+    private var elapsed: Double? { doneAt.map { now.timeIntervalSince($0) } }
+
+    /// A borda do verde, ja com a onda do fim.
+    var reach: CGFloat {
+        guard let elapsed else { return edge }
+        let end = width + Self.frontier + Self.sparks
+        return edge + (end - edge) * CGFloat(Self.easeOut(elapsed / Self.wave))
+    }
+
+    /// Ate onde o verde ja firmou: o texto escurece ate aqui.
+    var solid: CGFloat { reach - Self.frontier }
+
+    /// As juntas da grade: 0 com a grade marcada, 1 com o verde inteiro.
+    private var merge: Double {
+        guard let elapsed else { return 0 }
+        return Self.smooth((elapsed - Self.wave * 0.8) / (Self.finale - Self.wave))
+    }
+
+    func draw(_ context: inout GraphicsContext, size: CGSize) {
+        let pitch = Self.cell + Self.gap
+        let columns = Int((size.width / pitch).rounded(.up))
+        let rows = Int(((size.height + Self.gap) / pitch).rounded(.up))
+        let top = (size.height - (CGFloat(rows) * pitch - Self.gap)) / 2
+        let tick = still ? 0 : UInt64(max(now.timeIntervalSinceReferenceDate * 18, 0))
+        let green = Palette.success
+        let reach = self.reach
+
+        // Por baixo da parte firme, as juntas: um verde mais fundo que fecha no fim.
+        if solid > 0 {
+            context.fill(Path(CGRect(x: 0, y: 0, width: min(solid, size.width), height: size.height)),
+                         with: .color(green.opacity(0.5 + 0.5 * merge)))
+        }
+        for column in 0..<columns {
+            let x = CGFloat(column) * pitch
+            let distance = reach - (x + Self.cell / 2)
+            if distance < -Self.sparks { break }
+            let level = Double(min(max(distance / Self.frontier, 0), 1))
+            for row in 0..<rows {
+                let square = Path(CGRect(x: x, y: top + CGFloat(row) * pitch, width: Self.cell, height: Self.cell))
+                if level >= 1 {
+                    context.fill(square, with: .color(green))
+                    continue
+                }
+                let roll = Self.noise(column, row, tick)
+                if distance < 0 {
+                    // Os que escapam na frente: poucos, e cada vez menos.
+                    let chance = 0.14 * Double(1 + distance / Self.sparks)
+                    if roll < chance { context.fill(square, with: .color(green.opacity(0.4))) }
+                    continue
+                }
+                // Na frente: mais pixels e mais fortes quanto mais perto do verde firme.
+                guard roll < 0.1 + 0.9 * level * level else { continue }
+                let shade = 0.35 + 0.65 * max(Self.noise(column &+ 131, row &+ 17, tick / 2), level)
+                context.fill(square, with: .color(green.opacity(shade)))
+            }
+        }
+    }
+
+    /// Um numero de 0 a 1 por pixel e por quadro (SplitMix64).
+    static func noise(_ column: Int, _ row: Int, _ tick: UInt64) -> Double {
+        var x = UInt64(bitPattern: Int64(column &* 73_856_093 ^ row &* 19_349_663)) &+ tick &* 0x9E37_79B9_7F4A_7C15
+        x = (x ^ (x >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        x = (x ^ (x >> 27)) &* 0x94D0_49BB_1331_11EB
+        x ^= x >> 31
+        return Double(x >> 11) / Double(1 << 53)
+    }
+
+    private static func smooth(_ x: Double) -> Double {
+        let t = min(max(x, 0), 1)
+        return t * t * (3 - 2 * t)
+    }
+
+    private static func easeOut(_ x: Double) -> Double {
+        let t = min(max(x, 0), 1)
+        return 1 - (1 - t) * (1 - t) * (1 - t)
     }
 }
 
