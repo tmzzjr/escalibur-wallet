@@ -53,13 +53,14 @@ public struct AcrossQuote: Sendable, Equatable {
     public let minDeposit: BigUInt
     public let spokePool: EVMAddress
     public let destinationSpokePool: EVMAddress
-
-    public var fee: BigUInt { inputAmount - outputAmount }
+    /// As casas dos tokens de cada lado, como a API disse; o validador exige as compiladas.
+    public let inputDecimals: Int?
+    public let outputDecimals: Int?
 
     public init(
         inputAmount: BigUInt, outputAmount: BigUInt, quoteTimestamp: UInt32, fillDeadline: UInt32, exclusiveRelayer: EVMAddress?,
         exclusivityDeadline: UInt32, estimatedFillSeconds: Int?, maxDeposit: BigUInt, maxDepositInstant: BigUInt, minDeposit: BigUInt,
-        spokePool: EVMAddress, destinationSpokePool: EVMAddress
+        spokePool: EVMAddress, destinationSpokePool: EVMAddress, inputDecimals: Int? = nil, outputDecimals: Int? = nil
     ) {
         self.inputAmount = inputAmount
         self.outputAmount = outputAmount
@@ -73,6 +74,8 @@ public struct AcrossQuote: Sendable, Equatable {
         self.minDeposit = minDeposit
         self.spokePool = spokePool
         self.destinationSpokePool = destinationSpokePool
+        self.inputDecimals = inputDecimals
+        self.outputDecimals = outputDecimals
     }
 }
 

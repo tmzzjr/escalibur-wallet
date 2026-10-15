@@ -22,13 +22,41 @@ public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
         }
     }
 
-    public var decimals: Int { self == .eth ? 18 : 6 }
+    /// As casas desta moeda nesta rede: o ETH tem 18 em toda parte; o USDC e o USDT, 6
+    /// nos da Circle e da Tether e 18 nos da Binance (BNB).
+    public func decimals(on chain: BridgeChain) -> Int { self == .eth ? 18 : chain.stableDecimals }
+
+    /// Um valor de `from` casas em `to` casas, arredondado para baixo.
+    public static func rescale(_ amount: BigUInt, from: Int, to: Int) -> BigUInt {
+        if from == to { return amount }
+        if from > to { return amount / BigUInt.power(of: 10, from - to) }
+        return amount * BigUInt.power(of: 10, to - from)
+    }
+
+    /// O que chega (casas do destino) nao passa do que sai (casas da origem), comparado na
+    /// unidade mais fina: arredondar para baixo deixava chegar ate 10^12 - 1 unidades a
+    /// mais (revisao da ponte BNB, I1).
+    public static func fits(_ output: BigUInt, outputDecimals: Int, within input: BigUInt, inputDecimals: Int) -> Bool {
+        let finest = max(outputDecimals, inputDecimals)
+        return rescale(output, from: outputDecimals, to: finest) <= rescale(input, from: inputDecimals, to: finest)
+    }
+
+    /// Sai como moeda nativa (ETH com `value`, sem approve)? So o ETH, e so onde ele e a
+    /// moeda da rede: na BNB o ETH e token, com approve exato ao SpokePool.
+    public func isNativeInput(on chain: BridgeChain) -> Bool {
+        self == .eth && contract(on: chain) == nil
+    }
+
+    /// O USDC vai pelo CCTP quando as duas redes tem; senao, pelo Across.
+    public static func usesCCTP(_ asset: BridgeAsset, from: BridgeChain, to: BridgeChain) -> Bool {
+        asset == .usdc && from.cctp != nil && to.cctp != nil
+    }
 
     /// O contrato nesta rede; `nil` para o ETH nativo ou onde a ponte nao move esta moeda.
     public func contract(on chain: BridgeChain) -> EVMAddress? {
         switch self {
         case .usdc: return chain.usdc
-        case .eth: return nil
+        case .eth: return chain.ethToken
         case .usdt: return chain.usdt
         }
     }
@@ -37,8 +65,9 @@ public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
     public func available(from: BridgeChain, to: BridgeChain) -> Bool {
         guard from.chain.id != to.chain.id else { return false }
         switch self {
-        case .usdc: return true
-        case .eth: return from.nativeETH && to.nativeETH && from.across != nil && to.across != nil
+        case .usdc: return BridgeAsset.usesCCTP(self, from: from, to: to) || (from.across != nil && to.across != nil)
+        case .eth:
+            return (from.nativeETH || from.ethToken != nil) && (to.nativeETH || to.ethToken != nil) && from.across != nil && to.across != nil
         case .usdt: return from.usdt != nil && to.usdt != nil && from.across != nil && to.across != nil
         }
     }
@@ -55,7 +84,7 @@ public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
     /// O ativo do app nesta rede: o id que a revisao e a conferencia usam.
     public func tradeAsset(on chain: BridgeChain) -> TradeAsset {
         guard let contract = contract(on: chain) else { return .native(chain.chain) }
-        return .token(EVMToken(chain: chain.chain, contract: contract, symbol: symbol, decimals: UInt8(decimals)))
+        return .token(EVMToken(chain: chain.chain, contract: contract, symbol: symbol, decimals: UInt8(decimals(on: chain))))
     }
 }
 
@@ -120,7 +149,7 @@ public struct BridgeIntent: Sendable, Equatable {
               asset.available(from: source, to: destination)
         else { throw BridgeRefusal.unsupportedRoute }
         guard !amount.isZero else { throw BridgeRefusal.zeroAmount }
-        if asset == .usdc, amount > BridgeAllowlist.burnLimitPerMessage {
+        if BridgeAsset.usesCCTP(asset, from: source, to: destination), amount > BridgeAllowlist.burnLimitPerMessage {
             throw BridgeRefusal.aboveBurnLimit(limit: BridgeAllowlist.burnLimitPerMessage)
         }
         self.owner = owner
@@ -167,6 +196,18 @@ public struct ValidatedBridgeQuote: Sendable, Equatable {
         now.timeIntervalSince(createdAt) > Self.lifetime
     }
 
+    /// A rota, a chamada e o pedido dizem a mesma coisa: CCTP so com queima e entre redes
+    /// com CCTP; Across so com deposito. O plano e o leitor de estado conferem antes de
+    /// tudo (revisao da ponte BNB, I2: o reencode era a unica barreira).
+    public var callMatchesRoute: Bool {
+        let burns: Bool
+        if case .cctp = call { burns = true } else { burns = false }
+        return route.isCCTP == burns && burns == BridgeAsset.usesCCTP(intent.asset, from: intent.from, to: intent.to)
+    }
+
+    /// A rota toca a BNB, onde as moedas da ponte sao as da Binance.
+    public var touchesBinancePeg: Bool { intent.from.chain.id == "bnb" || intent.to.chain.id == "bnb" }
+
     public var feePercent: Double {
         let amount = Double(intent.amount.decimalString) ?? 0
         return amount > 0 ? (Double(bridgeFee.decimalString) ?? 0) / amount * 100 : 0
@@ -198,7 +239,8 @@ public enum BridgeValidator {
     /// transferencia rapida agora (Iris).
     public static func cctp(_ intent: BridgeIntent, route: BridgeRoute, fees: CCTPFees, fastAllowance: BigUInt?, now: Date = .now) throws
         -> ValidatedBridgeQuote {
-        guard intent.asset == .usdc, route.isCCTP else { throw BridgeRefusal.unsupportedRoute }
+        guard BridgeAsset.usesCCTP(intent.asset, from: intent.from, to: intent.to), route.isCCTP,
+              let source = intent.from.cctp, let destination = intent.to.cctp else { throw BridgeRefusal.unsupportedRoute }
         let level: CCTPFees.Level
         switch route {
         case .cctpFast:
@@ -219,7 +261,7 @@ public enum BridgeValidator {
         guard maxFee < intent.amount else { throw BridgeRefusal.feeTooHigh(percent: 100) }
 
         let transfer = CCTPTransfer(
-            sourceDomain: intent.from.cctpDomain, destinationDomain: intent.to.cctpDomain, usdc: intent.from.usdc,
+            sourceDomain: source.domain, destinationDomain: destination.domain, usdc: intent.from.usdc,
             owner: intent.owner, recipient: intent.owner, amount: intent.amount, maxFee: maxFee,
             finality: route == .cctpFast ? CCTPCalldata.fastFinality : CCTPCalldata.standardFinality
         )
@@ -239,20 +281,34 @@ public enum BridgeValidator {
     /// de US$ 3; sem preco, vale so o teto de 0,5%.
     public static func across(_ intent: BridgeIntent, quote: AcrossQuote, usdPrice: TradeDecimal?, now: Date = .now) throws
         -> ValidatedBridgeQuote {
-        guard intent.asset != .usdc, let fromAcross = intent.from.across, let toAcross = intent.to.across else {
+        guard !BridgeAsset.usesCCTP(intent.asset, from: intent.from, to: intent.to), let fromAcross = intent.from.across,
+              let toAcross = intent.to.across else {
             throw BridgeRefusal.unsupportedRoute
         }
         guard quote.spokePool == fromAcross.spokePool, quote.destinationSpokePool == toAcross.spokePool else {
             throw BridgeRefusal.quoteMismatch("SpokePool")
         }
-        guard quote.inputAmount == intent.amount, quote.outputAmount <= intent.amount, !quote.outputAmount.isZero else {
+        // O que chega e na moeda do destino, com as casas de la (18 no USDC da BNB, 6 no da
+        // Base): a comparacao e a taxa sao na unidade da origem, arredondando o que chega
+        // para baixo.
+        let inputDecimals = intent.asset.decimals(on: intent.from)
+        let outputDecimals = intent.asset.decimals(on: intent.to)
+        // Casas que a API diz diferentes das compiladas: o token nao e o que o app pensa.
+        guard quote.inputDecimals.map({ $0 == inputDecimals }) ?? true, quote.outputDecimals.map({ $0 == outputDecimals }) ?? true else {
+            throw BridgeRefusal.quoteMismatch("casas")
+        }
+        let delivered = BridgeAsset.rescale(quote.outputAmount, from: outputDecimals, to: inputDecimals)
+        guard quote.inputAmount == intent.amount, delivered <= intent.amount, !quote.outputAmount.isZero, !delivered.isZero,
+              BridgeAsset.fits(quote.outputAmount, outputDecimals: outputDecimals, within: intent.amount, inputDecimals: inputDecimals) else {
             throw BridgeRefusal.quoteMismatch("valor")
         }
         guard intent.amount >= quote.minDeposit else { throw BridgeRefusal.belowMinimum(minimum: quote.minDeposit) }
         guard intent.amount <= quote.maxDeposit else { throw BridgeRefusal.aboveRouteLimit(maximum: quote.maxDeposit) }
 
-        let fee = intent.amount - quote.outputAmount
-        guard fee <= acrossFeeCap(intent.amount, asset: intent.asset, usdPrice: usdPrice) else { throw BridgeRefusal.feeAboveCap }
+        let fee = intent.amount - delivered
+        guard fee <= acrossFeeCap(intent.amount, asset: intent.asset, decimals: inputDecimals, usdPrice: usdPrice) else {
+            throw BridgeRefusal.feeAboveCap
+        }
 
         let clock = UInt32(now.timeIntervalSince1970)
         guard quote.quoteTimestamp <= clock + 120, clock <= quote.quoteTimestamp + 3_600 else { throw BridgeRefusal.quoteMismatch("horário") }
@@ -269,11 +325,11 @@ public enum BridgeValidator {
             owner: intent.owner, recipient: intent.owner, inputToken: input, outputToken: output,
             inputAmount: intent.amount, outputAmount: quote.outputAmount, exclusiveRelayer: nil,
             quoteTimestamp: quote.quoteTimestamp, fillDeadline: fillDeadline, exclusivityDeadline: 0,
-            nativeInput: intent.asset == .eth
+            nativeInput: intent.asset.isNativeInput(on: intent.from)
         )
         let validated = ValidatedBridgeQuote(
             intent: intent, route: .across, call: .across(transfer), to: fromAcross.spokePool, value: transfer.value,
-            data: try AcrossCalldata.encode(transfer), spender: intent.asset == .eth ? nil : fromAcross.spokePool,
+            data: try AcrossCalldata.encode(transfer), spender: intent.asset.isNativeInput(on: intent.from) ? nil : fromAcross.spokePool,
             minimumReceived: quote.outputAmount, expectedReceived: quote.outputAmount, bridgeFee: fee,
             estimatedSeconds: max(5, min(quote.estimatedFillSeconds ?? 60, 3_600)), createdAt: now
         )
@@ -282,9 +338,9 @@ public enum BridgeValidator {
     }
 
     /// O maior entre 0,5% do valor e US$ 3 na moeda movida (no ETH, no maximo 0,002 ETH).
-    static func acrossFeeCap(_ amount: BigUInt, asset: BridgeAsset, usdPrice: TradeDecimal?) -> BigUInt {
+    static func acrossFeeCap(_ amount: BigUInt, asset: BridgeAsset, decimals: Int, usdPrice: TradeDecimal?) -> BigUInt {
         let percentCap = amount * BigUInt(acrossFeeCapBps) / BigUInt(10_000)
-        let unit = BigUInt.power(of: 10, asset.decimals)
+        let unit = BigUInt.power(of: 10, decimals)
         var usdCap = BigUInt()
         switch asset {
         case .usdt, .usdc:

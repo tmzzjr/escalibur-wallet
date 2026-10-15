@@ -95,7 +95,7 @@ struct BridgePlannerTests {
         return BridgeChainState(
             network: S.network(intent.from.chain), token: intent.sell.isNative ? nil : EVMTokenState(contractHasCode: true, balance: intent.amount, allowance: 0),
             implementations: implementations ?? BridgePlanner.pins(for: quote).map(\.implementation),
-            destinationDomain: cctp ? (domain ?? intent.to.cctpDomain) : nil,
+            destinationDomain: cctp ? (domain ?? intent.to.cctp!.domain) : nil,
             destinationLocalToken: cctp ? (localToken ?? intent.to.usdc) : nil,
             destinationBlacklisted: cctp ? blacklisted : nil, ownerHasCodeAtDestination: ownerCode,
             simulations: simulations ?? [simulation(quote, source: "a"), simulation(quote, source: "b")],
@@ -113,13 +113,101 @@ struct BridgePlannerTests {
     @Test("So as quatro redes, so a mesma moeda do emissor")
     func intents() throws {
         #expect(throws: BridgeRefusal.sameChain) { try BridgeIntent(owner: Self.owner, asset: .usdc, from: .base, to: .base, amount: 1) }
-        // A BNB queima mas nao cunha: fica fora da lista.
-        #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .usdc, from: .ethereum, to: .bnb, amount: 1) }
+        // A BNB nao cunha USDC da Circle: o USDC para la vai pelo Across, nunca pelo CCTP.
+        let toBNB = try BridgeIntent(owner: Self.owner, asset: .usdc, from: .ethereum, to: .bnb, amount: 1)
+        #expect(!BridgeAsset.usesCCTP(.usdc, from: toBNB.from, to: toBNB.to))
         #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .usdt, from: .ethereum, to: .base, amount: 1) }
         _ = try BridgeIntent(owner: Self.owner, asset: .usdt, from: .ethereum, to: .arbitrum, amount: 1)
         #expect(throws: BridgeRefusal.zeroAmount) { try BridgeIntent(owner: Self.owner, asset: .eth, from: .base, to: .optimism, amount: 0) }
         #expect(throws: BridgeRefusal.aboveBurnLimit(limit: BridgeAllowlist.burnLimitPerMessage)) {
             try Self.usdcIntent(BridgeAllowlist.burnLimitPerMessage + 1)
+        }
+    }
+
+    @Test("BNB pelo Across: 18 casas no USDC, no USDT e no ETH de la, a taxa na unidade da origem, e o ETH entra como token")
+    func bnbAcross() throws {
+        let bnb = BridgeAllowlist.bnb
+        #expect(BridgeAsset.usdc.decimals(on: bnb) == 18 && BridgeAsset.usdc.decimals(on: BridgeAllowlist.base) == 6)
+        #expect(BridgeAsset.rescale(BigUInt(1_000_000), from: 6, to: 18) == BigUInt.power(of: 10, 18))
+        #expect(BridgeAsset.rescale(BigUInt.power(of: 10, 18) + 999, from: 18, to: 6) == BigUInt(1_000_000))
+
+        // 100 USDC da Base (6 casas) para a BNB: chegam 99,8 USDC da BNB (18 casas).
+        let intent = try BridgeIntent(owner: Self.owner, asset: .usdc, from: .base, to: .bnb, amount: BigUInt(100_000_000))
+        let output = BigUInt(decimal: "99800000000000000000")!
+        let quote = try BridgeValidator.across(intent, quote: Self.acrossQuote(intent, output: output), usdPrice: nil, now: Self.now)
+        #expect(quote.route == .across && quote.bridgeFee == BigUInt(200_000) && quote.minimumReceived == output)
+        guard case .across(let transfer) = quote.call else { Issue.record("rota"); return }
+        #expect(transfer.outputToken == bnb.usdc && transfer.inputToken == BridgeAllowlist.base.usdc && !transfer.nativeInput)
+        // Chegar mais do que saiu, na unidade da origem, e erro da cotacao.
+        #expect(throws: BridgeRefusal.quoteMismatch("valor")) {
+            try BridgeValidator.across(intent, quote: Self.acrossQuote(intent, output: BigUInt(decimal: "100000001000000000000")!), usdPrice: nil, now: Self.now)
+        }
+        // Taxa acima do teto (US$ 3 em 100 USDC), contada nas 6 casas da origem.
+        #expect(throws: BridgeRefusal.feeAboveCap) {
+            try BridgeValidator.across(intent, quote: Self.acrossQuote(intent, output: BigUInt(decimal: "96000000000000000000")!), usdPrice: nil, now: Self.now)
+        }
+
+        // A API dizendo 6 casas para o USDC da BNB: o token nao e o compilado, recusa.
+        let honest = Self.acrossQuote(intent, output: output)
+        let lying = AcrossQuote(
+            inputAmount: honest.inputAmount, outputAmount: honest.outputAmount, quoteTimestamp: honest.quoteTimestamp,
+            fillDeadline: honest.fillDeadline, exclusiveRelayer: honest.exclusiveRelayer, exclusivityDeadline: honest.exclusivityDeadline,
+            estimatedFillSeconds: honest.estimatedFillSeconds, maxDeposit: honest.maxDeposit, maxDepositInstant: honest.maxDepositInstant,
+            minDeposit: honest.minDeposit, spokePool: honest.spokePool, destinationSpokePool: honest.destinationSpokePool,
+            inputDecimals: 6, outputDecimals: 6
+        )
+        #expect(throws: BridgeRefusal.quoteMismatch("casas")) { try BridgeValidator.across(intent, quote: lying, usdPrice: nil, now: Self.now) }
+
+        // Da BNB para a Base: o USDT de la tem 18 casas, o teto de US$ 3 tambem.
+        let back = try BridgeIntent(owner: Self.owner, asset: .usdt, from: .bnb, to: .arbitrum, amount: BigUInt.power(of: 10, 20))
+        let fair = try BridgeValidator.across(back, quote: Self.acrossQuote(back, output: BigUInt(99_000_000)), usdPrice: nil, now: Self.now)
+        #expect(fair.bridgeFee == BigUInt.power(of: 10, 18))
+
+        // ETH saindo da BNB e token (approve exato, sem value); chegando na Base, e nativo.
+        let eth = try BridgeIntent(owner: Self.owner, asset: .eth, from: .bnb, to: .base, amount: BigUInt.power(of: 10, 17))
+        let ethQuote = try BridgeValidator.across(eth, quote: Self.acrossQuote(eth, output: BigUInt.power(of: 10, 17) - BigUInt.power(of: 10, 14)),
+                                                  usdPrice: TradeDecimal("3000"), now: Self.now)
+        guard case .across(let ethTransfer) = ethQuote.call else { Issue.record("rota"); return }
+        #expect(!ethTransfer.nativeInput && ethQuote.value.isZero && ethQuote.spender == bnb.across!.spokePool)
+        #expect(ethTransfer.inputToken == bnb.ethToken && ethTransfer.outputToken == BridgeAllowlist.base.across!.wrappedNative)
+        // Para a Polygon nao: la o ETH e WETH de ponte, fora da lista da ponte.
+        #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .eth, from: .bnb, to: .polygon, amount: 1) }
+        // CCTP para a BNB nunca: a rota rapida ou padrao recusa.
+        #expect(throws: BridgeRefusal.unsupportedRoute) {
+            try BridgeValidator.cctp(intent, route: .cctpStandard, fees: CCTPFees(fast: nil, standard: .init(protocolBps: TradeDecimal("0")!, forwardFee: 0)),
+                                     fastAllowance: nil, now: Self.now)
+        }
+    }
+
+    @Test("Revisao da ponte BNB: pin do USDC da Binance, aviso Binance-Peg, unidade mais fina e rota igual a chamada")
+    func bnbReviewFixes() throws {
+        let intent = try BridgeIntent(owner: Self.owner, asset: .usdc, from: .base, to: .bnb, amount: BigUInt(100_000_000))
+        let output = BigUInt(decimal: "99800000000000000000")!
+        let quote = try BridgeValidator.across(intent, quote: Self.acrossQuote(intent, output: output), usdPrice: nil, now: Self.now)
+        // B1: o USDC da BNB e proxy; a implementacao entra nos pins.
+        let pins = BridgePlanner.pins(for: quote)
+        #expect(pins.count == 3 && pins.last?.proxy == BridgeAllowlist.bnb.usdc && pins.last?.chain.id == "bnb")
+        #expect(pins.last?.implementation == BridgeAllowlist.bnb.usdcImplementation)
+        // M1: a revisao diz que na BNB e o da Binance.
+        let plan = try Self.plan(quote, Self.state(quote))
+        #expect(plan.review.warnings.contains(.binancePeg(symbol: "USDC")))
+        #expect(plan.review.lines.contains { $0.label == "Na BNB" })
+        // I1: 1 wei de 18 casas acima do que saiu de 6 casas e recusado.
+        #expect(!BridgeAsset.fits(BigUInt.power(of: 10, 20) + 1, outputDecimals: 18, within: BigUInt(100_000_000), inputDecimals: 6))
+        #expect(BridgeAsset.fits(BigUInt.power(of: 10, 20), outputDecimals: 18, within: BigUInt(100_000_000), inputDecimals: 6))
+        #expect(throws: BridgeRefusal.quoteMismatch("valor")) {
+            try BridgeValidator.across(intent, quote: Self.acrossQuote(intent, output: BigUInt.power(of: 10, 20) + 1), usdPrice: nil, now: Self.now)
+        }
+        // I2: uma queima rotulada como Across (ou o contrario) nao vira pino nem plano.
+        guard case .across(let transfer) = quote.call else { Issue.record("rota"); return }
+        let lying = ValidatedBridgeQuote(
+            intent: quote.intent, route: .cctpStandard, call: .across(transfer), to: quote.to, value: quote.value, data: quote.data,
+            spender: quote.spender, minimumReceived: quote.minimumReceived, expectedReceived: quote.expectedReceived,
+            bridgeFee: quote.bridgeFee, estimatedSeconds: quote.estimatedSeconds, createdAt: quote.createdAt
+        )
+        #expect(!lying.callMatchesRoute && BridgePlanner.pins(for: lying).isEmpty)
+        #expect(throws: BridgeRefusal.unsupportedRoute) {
+            try Self.plan(lying, Self.state(quote))
         }
     }
 
@@ -136,8 +224,10 @@ struct BridgePlannerTests {
         #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .eth, from: .base, to: .sonic, amount: 1) }
         #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .usdt, from: .ethereum, to: .polygon, amount: 1) }
         #expect(throws: BridgeRefusal.unsupportedRoute) { try BridgeIntent(owner: Self.owner, asset: .usdt, from: .ethereum, to: .linea, amount: 1) }
-        // Dominios do CCTP, cada um diferente.
-        #expect(Set(BridgeAllowlist.chains.map(\.cctpDomain)).count == BridgeAllowlist.chains.count)
+        // Dominios do CCTP, cada um diferente; a BNB nao tem CCTP (a Circle nao cunha la).
+        let domains = BridgeAllowlist.chains.compactMap(\.cctp?.domain)
+        #expect(Set(domains).count == domains.count)
+        #expect(BridgeAllowlist.bnb.cctp == nil && domains.count == BridgeAllowlist.chains.count - 1)
     }
 
     // MARK: Validador
@@ -188,15 +278,15 @@ struct BridgePlannerTests {
             try BridgeValidator.across(intent, quote: Self.acrossQuote(intent, output: fair.outputAmount, maxDeposit: 1), usdPrice: price, now: Self.now)
         }
         // US$ 3 vale mais que 0,5% num deposito pequeno.
-        #expect(BridgeValidator.acrossFeeCap(BigUInt(100_000_000), asset: .usdt, usdPrice: nil) == BigUInt(3_000_000))
+        #expect(BridgeValidator.acrossFeeCap(BigUInt(100_000_000), asset: .usdt, decimals: 6, usdPrice: nil) == BigUInt(3_000_000))
         // Preco de uma fonte so, errado para baixo: o teto do ETH para em 0,002 ETH, e nao
         // sobe ate os 5% do bloqueio (pentest B5). 10 ETH: o maior e o 0,5%, 0,05 ETH.
         let tiny = TradeDecimal("0.000001")
         let ether = BigUInt.power(of: 10, 18)
-        #expect(BridgeValidator.acrossFeeCap(ether / BigUInt(10), asset: .eth, usdPrice: tiny) == BridgeValidator.acrossFeeCapETHWei)
-        #expect(BridgeValidator.acrossFeeCap(ether * BigUInt(10), asset: .eth, usdPrice: tiny) == ether * BigUInt(10) * BigUInt(50) / BigUInt(10_000))
+        #expect(BridgeValidator.acrossFeeCap(ether / BigUInt(10), asset: .eth, decimals: 18, usdPrice: tiny) == BridgeValidator.acrossFeeCapETHWei)
+        #expect(BridgeValidator.acrossFeeCap(ether * BigUInt(10), asset: .eth, decimals: 18, usdPrice: tiny) == ether * BigUInt(10) * BigUInt(50) / BigUInt(10_000))
         // Preco honesto (US$ 3.000): US$ 3 sao 0,001 ETH, abaixo do teto absoluto.
-        #expect(BridgeValidator.acrossFeeCap(ether / BigUInt(10), asset: .eth, usdPrice: TradeDecimal("3000")) == ether / BigUInt(1_000))
+        #expect(BridgeValidator.acrossFeeCap(ether / BigUInt(10), asset: .eth, decimals: 18, usdPrice: TradeDecimal("3000")) == ether / BigUInt(1_000))
     }
 
     // MARK: Plano
@@ -365,13 +455,41 @@ struct AcrossArrivalBindingTests {
         #expect(BridgeArrival.acrossDepositID([deposit], transfer: transfer, originSpoke: BridgeAllowlist.arbitrum.across!.spokePool) == nil)
     }
 
+    @Test("Token que chega como token: o recibo tem de ter o Transfer cheio para o dono (B2); reembolso conferido na origem (B4)")
+    func tokenDeliveryAndRefund() {
+        let usdt = AcrossTransfer(originChainID: 1, destinationChainID: 42161, owner: Self.owner, recipient: Self.owner,
+                                  inputToken: BridgeAllowlist.ethereum.usdt!, outputToken: BridgeAllowlist.arbitrum.usdt!,
+                                  inputAmount: BigUInt(100_000_000), outputAmount: BigUInt(99_900_000), exclusiveRelayer: nil,
+                                  quoteTimestamp: 1_791_765_167, fillDeadline: 1_791_772_367, exclusivityDeadline: 0, nativeInput: false)
+        let spoke = BridgeAllowlist.arbitrum.across!.spokePool
+        let weth = BridgeAllowlist.arbitrum.across!.wrappedNative
+        func transferLog(_ token: EVMAddress, from: EVMAddress, to: EVMAddress, value: BigUInt) -> TradeSimulatedLog {
+            TradeSimulatedLog(address: token, topics: [TradeSimulationCheck.transferTopic, S.topic(from), S.topic(to)],
+                              data: value.bigEndianBytes(padTo: 32)!)
+        }
+        let fill = Self.filledRelay(usdt, depositID: 7)
+        let relayer = S.stranger
+        #expect(!BridgeArrival.acrossDelivered([fill], transfer: usdt, destinationSpoke: spoke, depositID: 7, destinationWrappedNative: weth))
+        #expect(!BridgeArrival.acrossDelivered([fill, transferLog(usdt.outputToken, from: relayer, to: Self.owner, value: 1)], transfer: usdt,
+                                               destinationSpoke: spoke, depositID: 7, destinationWrappedNative: weth))
+        #expect(BridgeArrival.acrossDelivered([fill, transferLog(usdt.outputToken, from: relayer, to: Self.owner, value: usdt.outputAmount)],
+                                              transfer: usdt, destinationSpoke: spoke, depositID: 7, destinationWrappedNative: weth))
+        let origin = BridgeAllowlist.ethereum.across!.spokePool
+        #expect(BridgeArrival.acrossRefunded([transferLog(usdt.inputToken, from: origin, to: Self.owner, value: usdt.inputAmount)],
+                                             transfer: usdt, originSpoke: origin))
+        #expect(!BridgeArrival.acrossRefunded([transferLog(usdt.inputToken, from: relayer, to: Self.owner, value: usdt.inputAmount)],
+                                              transfer: usdt, originSpoke: origin))
+        #expect(!BridgeArrival.acrossRefunded([transferLog(usdt.inputToken, from: origin, to: Self.owner, value: 1)], transfer: usdt, originSpoke: origin))
+    }
+
     @Test("Entrega antiga de mesmo valor, com outro depositId ou outro prazo, nao conta como chegada")
     func delivery() {
         let transfer = Self.transfer()
         let spoke = BridgeAllowlist.arbitrum.across!.spokePool
-        #expect(BridgeArrival.acrossDelivered([Self.filledRelay(transfer, depositID: 7)], transfer: transfer, destinationSpoke: spoke, depositID: 7))
-        #expect(!BridgeArrival.acrossDelivered([Self.filledRelay(transfer, depositID: 6)], transfer: transfer, destinationSpoke: spoke, depositID: 7))
+        #expect(BridgeArrival.acrossDelivered([Self.filledRelay(transfer, depositID: 7)], transfer: transfer, destinationSpoke: spoke, depositID: 7,
+                                              destinationWrappedNative: BridgeAllowlist.arbitrum.across!.wrappedNative))
+        #expect(!BridgeArrival.acrossDelivered([Self.filledRelay(transfer, depositID: 6)], transfer: transfer, destinationSpoke: spoke, depositID: 7, destinationWrappedNative: BridgeAllowlist.arbitrum.across!.wrappedNative))
         #expect(!BridgeArrival.acrossDelivered([Self.filledRelay(transfer, depositID: 7, fillDeadline: 1)], transfer: transfer,
-                                               destinationSpoke: spoke, depositID: 7))
+                                               destinationSpoke: spoke, depositID: 7, destinationWrappedNative: BridgeAllowlist.arbitrum.across!.wrappedNative))
     }
 }

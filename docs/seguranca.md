@@ -546,11 +546,15 @@ Revisado em 12/10/2026 com o agente de segurança, antes do código. Pontes são
   - ETH pelo Across só na Linea e na Unichain. Na Polygon o Across entrega WETH de ponte, e na Plasma o nativo é XPL.
   - USDT0 pelo Across na Unichain e na Plasma. O USDT da Linea é de ponte, e o da Polygon ainda não tem a conferência de emissor registrada.
   - A Sonic fica só com USDC: o Across não tem SpokePool lá.
-- Terceira leva, 14/10/2026: a BNB, só pelo Across, sem CCTP (`BridgeAllowlist.bnb.cctp` é nulo).
+- Terceira leva, 14/10/2026: a BNB, só pelo Across, sem CCTP (`BridgeAllowlist.bnb.cctp` é nulo). Revisada pelo agente de segurança antes de ir para o app; o médio (M1) e os baixos foram corrigidos.
+  - **A BNB fica fora da regra "a mesma moeda, na versão do emissor".** Lá o USDC, o USDT e o ETH são os da Binance (Binance-Peg): recibos que valem enquanto a Binance mantiver o lastro e o resgate. A tela, a lista de moedas ("Binance-Peg" no nome) e a revisão (linha "Na BNB" e aviso) dizem isso.
+  - O USDC da Binance é proxy EIP-1967 com admin numa chave só (EOA); a implementação entra nos pins da rota, nos dois sentidos, lida em dois RPCs. O USDT e o ETH de lá não são proxy, mas o dono (EOA) cunha quanto quiser.
   - Lá o USDC, o USDT e o ETH são os da Binance, com 18 casas, e são os contratos que o Across entrega (`available-routes`). O SpokePool, a implementação no slot EIP-1967 e o `wrappedNativeToken()` (WBNB) foram lidos em dois RPCs; o endereço bate com o `deployed-addresses.json` do Across e com a API.
   - A comparação de valores e a taxa são feitas na unidade da origem (`BridgeAsset.rescale`, arredondando o que chega para baixo): uma cotação que entregasse mais do que saiu, ou com taxa acima do teto, é recusada com 6 de um lado e 18 do outro.
   - Na BNB o ETH é token: sai com approve exato ao SpokePool e sem `value`; para a Polygon continua fora.
-  - A chegada pelo Across confere o `depositId` do FundsDeposited do próprio recibo e o `fillDeadline` assinado (pentest de 14/10/2026, B4).
+  - A chegada pelo Across confere o `depositId` do FundsDeposited do próprio recibo e o `fillDeadline` assinado (pentest de 14/10/2026, B4) e, quando a moeda chega como token, o Transfer dela para o dono com o valor cheio. "Devolvido" só com o reembolso conferido na origem, em dois RPCs.
+  - Chegar mais do que saiu é recusado na unidade mais fina (`BridgeAsset.fits`), e rota, chamada e pedido têm de concordar antes do plano e da leitura de estado (`callMatchesRoute`).
+  - Risco aceito: a custódia da Binance e as chaves únicas dos tokens. Deixa de ser aceitável se a Binance suspender saque ou resgate, se o USDC da BNB ficar mais de 1% abaixo do USDC da Circle por mais de um dia, ou se o admin ou a implementação do proxy do USDC mudarem (a ponte já para sozinha no último caso).
 - A mesma moeda dos dois lados, na versão do emissor:
   - USDC só pelo CCTP V2 da Circle, que queima numa rede e cunha na outra. Não há cofre de ponte nem token embrulhado, e a única confiança nova é na Circle, que quem segura USDC já tem.
   - ETH pelo Across, entre as quatro redes.

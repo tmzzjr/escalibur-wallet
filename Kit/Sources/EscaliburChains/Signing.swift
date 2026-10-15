@@ -240,6 +240,9 @@ public struct PlanReview: Sendable, Equatable {
         case highFee(percentOfAmount: Double)
         case unverifiedToken(symbol: String)
         case activatesAccount(minimum: String)
+        /// A ponte toca a BNB: la o USDC, o USDT e o ETH sao os da Binance (Binance-Peg),
+        /// nao os da Circle nem os da Tether (revisao da ponte BNB, 14/10/2026, M1).
+        case binancePeg(symbol: String)
     }
 
     /// Quanto de qual ativo, em unidades da rede. O ativo e o `Asset.id` da lista

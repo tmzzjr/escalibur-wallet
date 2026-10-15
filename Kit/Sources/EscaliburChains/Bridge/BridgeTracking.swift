@@ -74,10 +74,10 @@ public struct BridgeRecord: Codable, Sendable, Equatable, Identifiable {
 
     /// A queima como foi assinada.
     public var cctpTransfer: CCTPTransfer? {
-        guard route.isCCTP, let from, let to, let owner = ownerAddress, let amount = BigUInt(decimal: amount),
-              let maxFee = maxFee.flatMap(BigUInt.init(decimal:)), let finality
+        guard route.isCCTP, let from, let to, let source = from.cctp, let destination = to.cctp, let owner = ownerAddress,
+              let amount = BigUInt(decimal: amount), let maxFee = maxFee.flatMap(BigUInt.init(decimal:)), let finality
         else { return nil }
-        return CCTPTransfer(sourceDomain: from.cctpDomain, destinationDomain: to.cctpDomain, usdc: from.usdc, owner: owner,
+        return CCTPTransfer(sourceDomain: source.domain, destinationDomain: destination.domain, usdc: from.usdc, owner: owner,
                             recipient: owner, amount: amount, maxFee: maxFee, finality: finality)
     }
 
@@ -91,7 +91,7 @@ public struct BridgeRecord: Codable, Sendable, Equatable, Identifiable {
             originChainID: from.chain.evmChainID ?? 0, destinationChainID: to.chain.evmChainID ?? 0, owner: owner, recipient: owner,
             inputToken: asset.contract(on: from) ?? fromAcross.wrappedNative, outputToken: asset.contract(on: to) ?? toAcross.wrappedNative,
             inputAmount: amount, outputAmount: output, exclusiveRelayer: nil, quoteTimestamp: quoteTimestamp, fillDeadline: fillDeadline,
-            exclusivityDeadline: 0, nativeInput: asset == .eth
+            exclusivityDeadline: 0, nativeInput: asset.isNativeInput(on: from)
         )
     }
 }
@@ -123,11 +123,36 @@ public enum BridgeArrival {
         return nil
     }
 
+    /// O reembolso na origem: o recibo tem o Transfer do token de entrada saindo do SpokePool
+    /// para o dono, com pelo menos o valor do deposito (o reembolso pode vir junto com
+    /// outros). O ETH nativo volta como WETH. So a API dizer "refunded" nao basta (revisao
+    /// da ponte BNB, B4).
+    public static func acrossRefunded(_ logs: [TradeSimulatedLog], transfer: AcrossTransfer, originSpoke: EVMAddress) -> Bool {
+        logs.contains { log in
+            log.address == transfer.inputToken
+                && TradeSimulationCheck.parseTransfer(log).map {
+                    $0.from == originSpoke && $0.to == transfer.owner && $0.value >= transfer.inputAmount
+                } == true
+        }
+    }
+
     /// O recibo de entrega tem o FilledRelay deste deposito, sem alteracao de destino nem
     /// de valor? `logs` vem de dois RPCs concordando. O `depositId` e o `fillDeadline`
     /// amarram a entrega ao deposito do dono: uma entrega antiga de mesmo valor, devolvida
     /// por uma API comprometida, nao passa (pentest de 14/10/2026, B4).
-    public static func acrossDelivered(_ logs: [TradeSimulatedLog], transfer: AcrossTransfer, destinationSpoke: EVMAddress, depositID: BigUInt) -> Bool {
+    public static func acrossDelivered(
+        _ logs: [TradeSimulatedLog], transfer: AcrossTransfer, destinationSpoke: EVMAddress, depositID: BigUInt, destinationWrappedNative: EVMAddress
+    ) -> Bool {
+        // Token que chega como token (nao o WETH que o SpokePool desembrulha): o mesmo recibo
+        // tem o Transfer dele para o dono, com o valor cheio. So o FilledRelay deixava "conferido"
+        // um token trocado que entregasse menos (revisao da ponte BNB, B2).
+        if transfer.outputToken != destinationWrappedNative {
+            let paid = logs.contains { log in
+                log.address == transfer.outputToken
+                    && TradeSimulationCheck.parseTransfer(log).map { $0.to == transfer.recipient && $0.value == transfer.outputAmount } == true
+            }
+            guard paid else { return false }
+        }
         let owner = CCTPMessage.word(transfer.owner)
         return logs.contains { log in
             guard log.address == destinationSpoke, log.topics.count == 4, log.topics[0] == filledRelayTopic,

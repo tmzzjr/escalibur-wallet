@@ -73,19 +73,32 @@ public enum BridgePlanner {
     public static func pins(for quote: ValidatedBridgeQuote) -> [BridgePin] {
         let from = quote.intent.from
         let to = quote.intent.to
-        if quote.route.isCCTP {
+        guard quote.callMatchesRoute else { return [] }
+        if case .cctp = quote.call {
+            // Rede sem CCTP nao tem o que fixar: lista vazia, e o plano recusa.
+            guard let source = from.cctp, let destination = to.cctp else { return [] }
             return [
-                BridgePin(chain: from.chain, proxy: BridgeAllowlist.tokenMessenger, implementation: from.messengerImplementation, name: "TokenMessengerV2"),
-                BridgePin(chain: from.chain, proxy: BridgeAllowlist.messageTransmitter, implementation: from.transmitterImplementation, name: "MessageTransmitterV2"),
-                BridgePin(chain: to.chain, proxy: BridgeAllowlist.tokenMessenger, implementation: to.messengerImplementation, name: "TokenMessengerV2"),
-                BridgePin(chain: to.chain, proxy: BridgeAllowlist.messageTransmitter, implementation: to.transmitterImplementation, name: "MessageTransmitterV2"),
+                BridgePin(chain: from.chain, proxy: BridgeAllowlist.tokenMessenger, implementation: source.messengerImplementation, name: "TokenMessengerV2"),
+                BridgePin(chain: from.chain, proxy: BridgeAllowlist.messageTransmitter, implementation: source.transmitterImplementation, name: "MessageTransmitterV2"),
+                BridgePin(chain: to.chain, proxy: BridgeAllowlist.tokenMessenger, implementation: destination.messengerImplementation, name: "TokenMessengerV2"),
+                BridgePin(chain: to.chain, proxy: BridgeAllowlist.messageTransmitter, implementation: destination.transmitterImplementation, name: "MessageTransmitterV2"),
             ]
         }
         guard let fromAcross = from.across, let toAcross = to.across else { return [] }
-        return [
+        var pins = [
             BridgePin(chain: from.chain, proxy: fromAcross.spokePool, implementation: fromAcross.implementation, name: "SpokePool"),
             BridgePin(chain: to.chain, proxy: toAcross.spokePool, implementation: toAcross.implementation, name: "SpokePool"),
         ]
+        // O USDC da BNB e proxy com admin numa chave so: a implementacao fixada, nos dois
+        // sentidos (chegando la nao ha simulacao do token).
+        if quote.intent.asset == .usdc {
+            for side in [from, to] {
+                if let implementation = side.usdcImplementation {
+                    pins.append(BridgePin(chain: side.chain, proxy: side.usdc, implementation: implementation, name: "USDC da Binance"))
+                }
+            }
+        }
+        return pins
     }
 
     public static let localDomainFunction = try! ABIFunction("localDomain()")
@@ -94,7 +107,8 @@ public enum BridgePlanner {
 
     /// `getLocalToken(dominio da origem, USDC da origem)`, para o TokenMinterV2 do destino.
     public static func localTokenQuery(_ intent: BridgeIntent) -> [UInt8] {
-        (try? getLocalTokenFunction.encodeCall([.uint(BigUInt(intent.from.cctpDomain)), .fixedBytes(CCTPMessage.word(intent.from.usdc))])) ?? []
+        guard let source = intent.from.cctp else { return [] }
+        return (try? getLocalTokenFunction.encodeCall([.uint(BigUInt(source.domain)), .fixedBytes(CCTPMessage.word(intent.from.usdc))])) ?? []
     }
 
     public static func blacklistQuery(_ owner: EVMAddress) -> [UInt8] {
@@ -133,6 +147,7 @@ public enum BridgePlanner {
     ) throws -> SigningPlan {
         let intent = quote.intent
         let chain = intent.from.chain
+        guard quote.callMatchesRoute else { throw BridgeRefusal.unsupportedRoute }
         guard account.address == intent.owner else { throw BridgeRefusal.ownerMismatch }
         guard !quote.isExpired(now: now) else { throw BridgeRefusal.quoteExpired }
         guard state.network.chain.id == chain.id else { throw BridgeRefusal.plan(.chainMismatch) }
@@ -150,8 +165,8 @@ public enum BridgePlanner {
         }
 
         // O destino.
-        if quote.route.isCCTP {
-            guard state.destinationDomain == intent.to.cctpDomain else { throw BridgeRefusal.destinationDoesNotMint }
+        if case .cctp = quote.call {
+            guard let destination = intent.to.cctp, state.destinationDomain == destination.domain else { throw BridgeRefusal.destinationDoesNotMint }
             guard state.destinationLocalToken == intent.to.usdc else { throw BridgeRefusal.destinationDoesNotMint }
             guard state.destinationBlacklisted == false else { throw BridgeRefusal.destinationBlacklisted }
         }
@@ -233,11 +248,12 @@ public enum BridgePlanner {
         let intent = quote.intent
         switch quote.call {
         case .cctp(let transfer):
-            guard quote.route.isCCTP, quote.to == BridgeAllowlist.tokenMessenger, quote.value.isZero,
+            guard quote.route.isCCTP, let source = intent.from.cctp, let destination = intent.to.cctp,
+                  quote.to == BridgeAllowlist.tokenMessenger, quote.value.isZero,
                   quote.spender == BridgeAllowlist.tokenMessenger,
                   transfer.owner == intent.owner, transfer.recipient == intent.owner, transfer.amount == intent.amount,
-                  transfer.usdc == intent.from.usdc, transfer.sourceDomain == intent.from.cctpDomain,
-                  transfer.destinationDomain == intent.to.cctpDomain, transfer.sourceDomain != transfer.destinationDomain,
+                  transfer.usdc == intent.from.usdc, transfer.sourceDomain == source.domain,
+                  transfer.destinationDomain == destination.domain, transfer.sourceDomain != transfer.destinationDomain,
                   transfer.maxFee < transfer.amount,
                   [CCTPCalldata.fastFinality, CCTPCalldata.standardFinality].contains(transfer.finality),
                   try CCTPCalldata.encodeDeposit(transfer) == quote.data
@@ -249,11 +265,13 @@ public enum BridgePlanner {
             guard quote.route == .across, quote.to == fromAcross.spokePool,
                   transfer.owner == intent.owner, transfer.recipient == intent.owner,
                   transfer.inputToken == input, transfer.outputToken == output, transfer.inputAmount == intent.amount,
-                  transfer.outputAmount <= transfer.inputAmount,
+                  // Na unidade mais fina: o USDC da BNB tem 18 casas, o da Base 6.
+                  BridgeAsset.fits(transfer.outputAmount, outputDecimals: intent.asset.decimals(on: intent.to),
+                                   within: transfer.inputAmount, inputDecimals: intent.asset.decimals(on: intent.from)),
                   transfer.originChainID == intent.from.chain.evmChainID, transfer.destinationChainID == intent.to.chain.evmChainID,
                   transfer.exclusiveRelayer == nil, transfer.exclusivityDeadline == 0,
-                  transfer.nativeInput == (intent.asset == .eth), quote.value == transfer.value,
-                  quote.spender == (intent.asset == .eth ? nil : fromAcross.spokePool),
+                  transfer.nativeInput == intent.asset.isNativeInput(on: intent.from), quote.value == transfer.value,
+                  quote.spender == (intent.asset.isNativeInput(on: intent.from) ? nil : fromAcross.spokePool),
                   try AcrossCalldata.encode(transfer) == quote.data
             else { throw BridgeRefusal.quoteMismatch("depósito") }
         }

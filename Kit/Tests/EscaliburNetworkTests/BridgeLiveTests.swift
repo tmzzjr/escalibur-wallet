@@ -63,13 +63,13 @@ struct BridgeLiveTests {
         let amount = BigUInt(100_000_000)
         let intent = try BridgeIntent(owner: account.address, asset: .usdc, from: Chain.find(from)!, to: Chain.find(to)!, amount: amount)
         let iris = CircleIrisClient()
-        let fees = try await iris.fees(sourceDomain: intent.from.cctpDomain, destinationDomain: intent.to.cctpDomain)
+        let fees = try await iris.fees(sourceDomain: intent.from.cctp!.domain, destinationDomain: intent.to.cctp!.domain)
         let allowance = try await iris.fastAllowance()
         let quote = try BridgeValidator.cctp(intent, route: fast ? .cctpFast : .cctpStandard, fees: fees, fastAllowance: allowance)
         let reader = TradeStateReader()
         let state = try await reader.readBridge(for: quote, localNextNonce: nil,
                                                 stateOverrides: Self.overrides(owner: account.address, usdc: intent.from.usdc, amount: amount))
-        #expect(state.destinationDomain == intent.to.cctpDomain)
+        #expect(state.destinationDomain == intent.to.cctp!.domain)
         #expect(state.destinationLocalToken == intent.to.usdc)
         #expect(state.destinationBlacklisted == false)
         #expect(!state.ownerHasCodeAtDestination)
@@ -107,13 +107,83 @@ struct BridgeLiveTests {
         }
     }
 
+    @Test("BNB pelo Across: cotacao real, validador, simulacao em dois RPCs e plano, da Base para a BNB",
+          arguments: [("usdc", "100000000"), ("eth", "50000000000000000")])
+    func acrossToBNB(asset: String, amount: String) async throws {
+        let account = try TradeLiveTests.account()
+        let value = BigUInt(decimal: amount)!
+        let moved = BridgeAsset(rawValue: asset)!
+        let intent = try BridgeIntent(owner: account.address, asset: moved, from: .base, to: .bnb, amount: value)
+        #expect(!BridgeAsset.usesCCTP(moved, from: intent.from, to: intent.to))
+        let across = try await AcrossClient().quote(
+            inputToken: moved.contract(on: intent.from) ?? intent.from.across!.wrappedNative,
+            outputToken: moved.contract(on: intent.to) ?? intent.to.across!.wrappedNative,
+            originChainID: 8453, destinationChainID: 56, amount: value
+        )
+        let price = try? await MarketService().quotes(ids: ["ethereum"], currency: "usd")["ethereum"]?.price
+        let quote = try BridgeValidator.across(intent, quote: across, usdPrice: price.flatMap { TradeDecimal(String(format: "%.2f", $0)) })
+        // O que chega tem as 18 casas da BNB: na unidade da origem, menos do que saiu.
+        #expect(BridgeAsset.rescale(quote.minimumReceived, from: moved.decimals(on: intent.to), to: moved.decimals(on: intent.from)) < value)
+        let reader = TradeStateReader()
+        let state = try await reader.readBridge(for: quote, localNextNonce: nil,
+                                                stateOverrides: Self.overrides(owner: account.address, usdc: moved == .usdc ? intent.from.usdc : nil, amount: value))
+        // Os dois SpokePools e, no USDC, a implementacao do USDC da Binance.
+        #expect(state.implementations.count == (moved == .usdc ? 3 : 2))
+        do {
+            let plan = try BridgePlanner.planDeposit(walletID: UUID(), account: account, quote: quote, state: Self.funded(state, amount: value))
+            try Self.check(plan, quote)
+        } catch {
+            Issue.record("base -> bnb \(asset): \(error) \(state.simulations.flatMap { $0.calls.compactMap(\.error) })")
+        }
+    }
+
+    @Test("Da BNB de volta: o validador aceita a cotacao real de USDC, USDT e ETH da BNB para a Base",
+          arguments: [("usdc", "100000000000000000000"), ("usdt", "100000000000000000000"), ("eth", "50000000000000000")])
+    func acrossFromBNB(asset: String, amount: String) async throws {
+        let account = try TradeLiveTests.account()
+        let value = BigUInt(decimal: amount)!
+        let moved = BridgeAsset(rawValue: asset)!
+        let to: Chain = moved == .usdt ? .arbitrum : .base
+        let intent = try BridgeIntent(owner: account.address, asset: moved, from: .bnb, to: to, amount: value)
+        let across = try await AcrossClient().quote(
+            inputToken: moved.contract(on: intent.from)!, outputToken: moved.contract(on: intent.to) ?? intent.to.across!.wrappedNative,
+            originChainID: 56, destinationChainID: intent.to.chain.evmChainID!, amount: value
+        )
+        let price = try? await MarketService().quotes(ids: ["ethereum"], currency: "usd")["ethereum"]?.price
+        let quote = try BridgeValidator.across(intent, quote: across, usdPrice: price.flatMap { TradeDecimal(String(format: "%.2f", $0)) })
+        guard case .across(let transfer) = quote.call else { Issue.record("rota"); return }
+        #expect(!transfer.nativeInput && quote.value.isZero && quote.spender == intent.from.across!.spokePool)
+        // Approve exato e deposito no SpokePool da BNB, simulados em dois RPCs, com o saldo do
+        // token so na simulacao (BEP-20 da Binance: `_balances` no slot 1).
+        let token = moved.contract(on: intent.from)!
+        let key = Hash.keccak256([UInt8](repeating: 0, count: 12) + account.address.bytes + (BigUInt(1).bigEndianBytes(padTo: 32) ?? []))
+        let overrides = JSONValue.object([
+            "0x" + Hex.encode(account.address.bytes): .object(["balance": .string(Self.ten.hexString)]),
+            "0x" + Hex.encode(token.bytes): .object(["stateDiff": .object([
+                Hex.encode(key, prefix: true): .string(Hex.encode(value.bigEndianBytes(padTo: 32)!, prefix: true)),
+            ])]),
+        ])
+        let state = try await TradeStateReader().readBridge(for: quote, localNextNonce: nil, stateOverrides: overrides)
+        do {
+            let plan = try BridgePlanner.planDeposit(walletID: UUID(), account: account, quote: quote, state: Self.funded(state, amount: value))
+            #expect(plan.transactions.count == 2)
+            try Self.check(plan, quote)
+        } catch {
+            Issue.record("bnb -> \(to.id) \(asset): \(error) \(state.simulations.flatMap { $0.calls.compactMap(\.error) })")
+        }
+    }
+
     @Test("Os proxies da allowlist ainda tem a implementacao fixada")
     func pins() async throws {
         let reader = TradeStateReader()
         for bridge in BridgeAllowlist.chains {
-            var proxies = [(BridgeAllowlist.tokenMessenger, bridge.messengerImplementation),
-                           (BridgeAllowlist.messageTransmitter, bridge.transmitterImplementation)]
+            var proxies: [(EVMAddress, EVMAddress)] = []
+            if let cctp = bridge.cctp {
+                proxies += [(BridgeAllowlist.tokenMessenger, cctp.messengerImplementation),
+                            (BridgeAllowlist.messageTransmitter, cctp.transmitterImplementation)]
+            }
             if let across = bridge.across { proxies.append((across.spokePool, across.implementation)) }
+            if let usdc = bridge.usdcImplementation { proxies.append((bridge.usdc, usdc)) }
             for (proxy, expected) in proxies {
                 let found = try await reader.pin(chain: bridge.chain, router: proxy, query: .storage(slot: TradeRouterPin.eip1967ImplementationSlot))
                 #expect(found == expected, "\(bridge.chain.name) \(proxy.checksummed)")
@@ -161,9 +231,9 @@ struct BridgeLiveTests {
         // propria entrega, para conferir que o id amarra).
         let fill = try #require(logs.first { $0.address == spoke && $0.topics.first == BridgeArrival.filledRelayTopic })
         let id = BigUInt(bigEndian: fill.topics[2])
-        #expect(BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: spoke, depositID: id))
-        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: spoke, depositID: id + 1))
-        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(output: 1), destinationSpoke: spoke, depositID: id))
-        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: BridgeAllowlist.base.across!.spokePool, depositID: id))
+        #expect(BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: spoke, depositID: id, destinationWrappedNative: BridgeAllowlist.arbitrum.across!.wrappedNative))
+        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: spoke, depositID: id + 1, destinationWrappedNative: BridgeAllowlist.arbitrum.across!.wrappedNative))
+        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(output: 1), destinationSpoke: spoke, depositID: id, destinationWrappedNative: BridgeAllowlist.arbitrum.across!.wrappedNative))
+        #expect(!BridgeArrival.acrossDelivered(logs, transfer: transfer(), destinationSpoke: BridgeAllowlist.base.across!.spokePool, depositID: id, destinationWrappedNative: BridgeAllowlist.arbitrum.across!.wrappedNative))
     }
 }

@@ -4,12 +4,12 @@ import Foundation
 // A allowlist da ponte, compilada e rede por rede (docs/seguranca.md 4.12).
 //
 // Primeira leva: Ethereum, Arbitrum, Base e Optimism (CCTP V2 rapido, SpokePool do
-// Across, ETH nativo e simulacao em dois RPCs). Segunda leva abaixo. O resto fica de
-// fora ate fechar tudo:
-// - BNB: o TokenMessengerV2 da Ethereum aceita o dominio 17, mas na BNB o USDC nao e
-//   cunhado (`getLocalToken` zero para todas as origens, `burnLimitsPerMessage` zero).
-//   Uma queima para la se perderia; o app confere `getLocalToken` no destino antes de
-//   assinar qualquer queima, mesmo nas redes desta lista.
+// Across, ETH nativo e simulacao em dois RPCs). Segunda leva abaixo. Terceira (14/10/2026):
+// a BNB, so pelo Across. O resto fica de fora ate fechar tudo:
+// - BNB sem CCTP: o TokenMessengerV2 da Ethereum aceita o dominio 17, mas na BNB o USDC
+//   nao e cunhado (`getLocalToken` zero para todas as origens, `burnLimitsPerMessage`
+//   zero). Uma queima para la se perderia: a BNB nao tem `cctp` aqui, e o app ainda
+//   confere `getLocalToken` no destino antes de assinar qualquer queima.
 // - Celo: sem CCTP. Sonic, X Layer e Celo: sem SpokePool.
 // - O SpokePool da Base, 0x09ae...bEC64, tem codigo com o mesmo endereco na X Layer e na
 //   Celo, e la nao e SpokePool (`chainId()` reverte). Endereco vale so na rede listada.
@@ -26,18 +26,32 @@ import Foundation
 /// O que a ponte usa numa rede.
 public struct BridgeChain: Sendable, Equatable {
     public let chain: Chain
-    /// O dominio do CCTP. Nao e o chainId: a Base e 6.
-    public let cctpDomain: UInt32
-    /// O USDC nativo da Circle nesta rede.
+    /// O CCTP V2 da Circle nesta rede; `nil` onde a Circle nao cunha USDC nativo (BNB).
+    public let cctp: CCTP?
+    /// O USDC que a ponte move nesta rede: o nativo da Circle onde ha CCTP; na BNB, o da
+    /// Binance, que so anda pelo Across.
     public let usdc: EVMAddress
-    public let messengerImplementation: EVMAddress
-    public let transmitterImplementation: EVMAddress
     /// O Across nesta rede; `nil` onde ele nao tem SpokePool (Sonic).
     public let across: Across?
     /// O USDT do emissor, so onde o Across entrega exatamente este contrato.
     public let usdt: EVMAddress?
     /// A moeda nativa da rede e o ETH: o Across move ETH nativo de ponta a ponta.
     public let nativeETH: Bool
+    /// O ETH em token onde a moeda nativa nao e ETH e o Across entrega este contrato (na
+    /// BNB, o da Binance). `nil` onde o ETH e nativo ou a ponte nao move ETH.
+    public let ethToken: EVMAddress?
+    /// Casas do USDC e do USDT nesta rede: 6 nos da Circle e da Tether, 18 nos da Binance.
+    public let stableDecimals: Int
+    /// O USDC desta rede e um proxy fora do CCTP (na BNB, o da Binance): a implementacao
+    /// fixada, conferida como as da ponte. Trocada, a ponte para (revisao de 14/10/2026, B1).
+    public let usdcImplementation: EVMAddress?
+
+    public struct CCTP: Sendable, Equatable {
+        /// O dominio do CCTP. Nao e o chainId: a Base e 6.
+        public let domain: UInt32
+        public let messengerImplementation: EVMAddress
+        public let transmitterImplementation: EVMAddress
+    }
 
     public struct Across: Sendable, Equatable {
         public let spokePool: EVMAddress
@@ -46,18 +60,29 @@ public struct BridgeChain: Sendable, Equatable {
         public let wrappedNative: EVMAddress
     }
 
+    /// Rede com CCTP: USDC e USDT de 6 casas, ETH nativo ou nenhum.
     public init(
         chain: Chain, cctpDomain: UInt32, usdc: EVMAddress, messengerImplementation: EVMAddress, transmitterImplementation: EVMAddress,
         across: Across?, usdt: EVMAddress?, nativeETH: Bool
     ) {
+        self.init(chain: chain, cctp: CCTP(domain: cctpDomain, messengerImplementation: messengerImplementation,
+                                           transmitterImplementation: transmitterImplementation),
+                  usdc: usdc, across: across, usdt: usdt, nativeETH: nativeETH, ethToken: nil, stableDecimals: 6)
+    }
+
+    public init(
+        chain: Chain, cctp: CCTP?, usdc: EVMAddress, across: Across?, usdt: EVMAddress?, nativeETH: Bool, ethToken: EVMAddress?,
+        stableDecimals: Int, usdcImplementation: EVMAddress? = nil
+    ) {
+        self.usdcImplementation = usdcImplementation
         self.chain = chain
-        self.cctpDomain = cctpDomain
+        self.cctp = cctp
         self.usdc = usdc
-        self.messengerImplementation = messengerImplementation
-        self.transmitterImplementation = transmitterImplementation
         self.across = across
         self.usdt = usdt
         self.nativeETH = nativeETH
+        self.ethToken = ethToken
+        self.stableDecimals = stableDecimals
     }
 }
 
@@ -179,13 +204,32 @@ public enum BridgeAllowlist {
         usdt: address("B8CE59FC3717ada4C02eaDF9682A9e934F625ebb"), nativeETH: false
     )
 
-    public static let chains: [BridgeChain] = [ethereum, arbitrum, base, optimism, polygon, linea, unichain, sonic, plasma]
+    /// BNB Chain, so pelo Across. O USDC, o USDT e o ETH daqui sao os da Binance, com 18
+    /// casas, e sao os contratos que o Across entrega (`available-routes`, 14/10/2026).
+    /// Conferido em 14/10/2026: endereco do SpokePool em across-protocol/contracts
+    /// (broadcast/deployed-addresses.json) e na API do Across; na cadeia, em dois RPCs
+    /// (bsc-dataseed.bnbchain.org e bsc-rpc.publicnode.com), `chainId()` 56, a
+    /// implementacao no slot EIP-1967, `wrappedNativeToken()` (o WBNB) e `decimals()` 18
+    /// nos tres tokens.
+    public static let bnb = BridgeChain(
+        chain: .bnb, cctp: nil,
+        usdc: address("8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"),
+        across: .init(spokePool: address("4e8E101924eDE233C13e2D8622DC8aED2872d505"), implementation: address("c7b7029373f504949553106c9eb2dafdd48ef086"),
+                      wrappedNative: address("bb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")),
+        usdt: address("55d398326f99059fF775485246999027B3197955"), nativeETH: false,
+        ethToken: address("2170Ed0880ac9A755fd29B2688956BD959F933F8"), stableDecimals: 18,
+        // O USDC da Binance e proxy EIP-1967 com admin numa chave so; o USDT e o ETH de la nao
+        // sao proxy. Implementacao lida em dois RPCs em 14/10/2026.
+        usdcImplementation: address("ba5fe23f8a3a24bed3236f05f2fcf35fd0bf0b5c")
+    )
+
+    public static let chains: [BridgeChain] = [ethereum, arbitrum, base, optimism, polygon, linea, unichain, sonic, plasma, bnb]
 
     public static func chain(_ chain: Chain) -> BridgeChain? {
         chains.first { $0.chain.id == chain.id }
     }
 
     public static func chain(domain: UInt32) -> BridgeChain? {
-        chains.first { $0.cctpDomain == domain }
+        chains.first { $0.cctp?.domain == domain }
     }
 }

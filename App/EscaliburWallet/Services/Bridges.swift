@@ -97,7 +97,7 @@ enum BridgeText {
         switch record.state {
         case .arrived:
             let amount = record.receivedAmount.flatMap(BigUInt.init(decimal:)).map {
-                Fmt.crypto($0, decimals: record.asset.decimals, symbol: record.asset.symbol)
+                Fmt.crypto($0, decimals: record.to.map { record.asset.decimals(on: $0) } ?? 18, symbol: record.asset.symbol)
             } ?? record.asset.symbol
             return ("Chegou na \(to)", "\(amount), conferido na rede de destino.", true)
         case .refunded:

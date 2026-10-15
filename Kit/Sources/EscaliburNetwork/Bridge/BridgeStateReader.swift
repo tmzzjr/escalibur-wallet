@@ -27,6 +27,8 @@ extension TradeStateReader {
     /// `stateOverrides` so existe para os testes ao vivo darem saldo a conta de teste
     /// dentro da simulacao; o app nunca passa.
     func readBridge(for quote: ValidatedBridgeQuote, localNextNonce: UInt64?, stateOverrides: JSONValue?) async throws -> BridgeChainState {
+        // Rota, chamada e pedido dizendo a mesma coisa, antes de ler qualquer estado.
+        guard quote.callMatchesRoute else { throw BridgeRefusal.unsupportedRoute }
         let intent = quote.intent
         let from = intent.from.chain
         let to = intent.to.chain
@@ -45,7 +47,7 @@ extension TradeStateReader {
         var domain: UInt32?
         var localToken: EVMAddress?
         var blacklisted: Bool?
-        if quote.route.isCCTP {
+        if case .cctp = quote.call {
             let domainWord = try await agreedWord(chain: to, to: BridgeAllowlist.messageTransmitter,
                                                   data: BridgePlanner.localDomainFunction.selector, what: "dominio")
             domain = BigUInt(bigEndian: domainWord).uint64.flatMap { UInt32(exactly: $0) }

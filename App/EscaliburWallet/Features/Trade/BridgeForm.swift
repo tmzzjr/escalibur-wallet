@@ -21,10 +21,13 @@ final class BridgeFormModel {
     var toBridge: BridgeChain? { BridgeAllowlist.chain(to) }
     var sellAsset: Asset? { fromBridge.flatMap { asset.asset(on: $0) } }
     var receiveAsset: Asset? { toBridge.flatMap { asset.asset(on: $0) } }
+    /// As casas do que sai e do que chega: o USDC e o USDT da BNB tem 18, os outros 6.
+    var sellDecimals: Int { fromBridge.map { asset.decimals(on: $0) } ?? 18 }
+    var receiveDecimals: Int { toBridge.map { asset.decimals(on: $0) } ?? 18 }
 
     var amount: BigUInt? {
-        guard let parsed = TradeDecimal(amountText), parsed.scale <= asset.decimals else { return nil }
-        return parsed.mantissa * BigUInt.power(of: 10, asset.decimals - parsed.scale)
+        guard let parsed = TradeDecimal(amountText), parsed.scale <= sellDecimals else { return nil }
+        return parsed.mantissa * BigUInt.power(of: 10, sellDecimals - parsed.scale)
     }
 
     /// A opcao escolhida, ou a primeira cotada.
@@ -66,10 +69,10 @@ struct BridgeForm: View {
             networks
             VStack(spacing: 4) {
                 AmountBox(title: "Você envia", asset: model.sellAsset, amount: $model.amountText, balance: balanceText,
-                          fiat: fiatText(model.amount), editable: true, over: over,
+                          fiat: fiatText(model.amount, decimals: model.sellDecimals), editable: true, over: over,
                           onPick: { pickingAsset = true }, onFraction: fractionAction)
                 AmountBox(title: "Chega na \(model.to.name)", asset: model.receiveAsset, amount: .constant(receiveText), balance: nil,
-                          fiat: fiatText(model.selected?.minimumReceived), editable: false, over: false,
+                          fiat: fiatText(model.selected?.minimumReceived, decimals: model.receiveDecimals), editable: false, over: false,
                           loading: model.quoting && model.options.isEmpty && model.amount != nil,
                           onPick: { pickingAsset = true }, onFraction: nil)
             }
@@ -122,16 +125,21 @@ struct BridgeForm: View {
             VStack(alignment: .leading, spacing: Space.xs) {
                 line(quote.route.isCCTP ? "Pelo CCTP da Circle: queima aqui e a própria Circle cunha o mesmo USDC na \(model.to.name)"
                                         : "Pelo Across: um relayer entrega na \(model.to.name) em segundos")
-                line("Taxa da ponte\(quote.route.isCCTP ? ", no máximo" : ""): \(Fmt.crypto(quote.bridgeFee, decimals: model.asset.decimals, symbol: model.asset.symbol, style: .full))")
+                line("Taxa da ponte\(quote.route.isCCTP ? ", no máximo" : ""): \(Fmt.crypto(quote.bridgeFee, decimals: model.sellDecimals, symbol: model.asset.symbol, style: .full))")
                 line("Tempo: \(timeText(quote))")
                 line("Vai para a sua própria conta na \(model.to.name), o mesmo endereço")
+                if model.from == .bnb || model.to == .bnb {
+                    line("Na BNB, o \(model.asset.symbol) é o da Binance (Binance-Peg): vale enquanto a Binance mantiver o lastro")
+                }
                 line("Sem taxa da Escalibur")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else if let error = model.error {
             Banner(kind: .neutral, title: error)
         } else {
-            Text("Leva a mesma moeda para a sua conta em outra rede. USDC pelo CCTP da própria Circle; ETH e USDT pelo Across. Sem taxa da Escalibur.")
+            Text(model.from == .bnb || model.to == .bnb
+                 ? "Leva a moeda para a sua conta em outra rede, pelo Across. Na BNB, o USDC, o USDT e o ETH são os da Binance (Binance-Peg): valem enquanto a Binance mantiver o lastro, e não são os da Circle nem os da Tether. Sem taxa da Escalibur."
+                 : "Leva a mesma moeda para a sua conta em outra rede. USDC pelo CCTP da própria Circle; ETH e USDT pelo Across. Sem taxa da Escalibur.")
                 .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -150,7 +158,7 @@ struct BridgeForm: View {
 
     private var receiveText: String {
         guard let quote = model.selected else { return "" }
-        return Fmt.plainDecimal(quote.minimumReceived, decimals: model.asset.decimals)
+        return Fmt.plainDecimal(quote.minimumReceived, decimals: model.receiveDecimals)
     }
 
     // MARK: Saldo
@@ -171,18 +179,20 @@ struct BridgeForm: View {
         guard !holding.isZero else { return nil }
         return { fraction in
             var part = fraction >= 1 ? holding : holding * BigUInt(UInt64(fraction * 100)) / BigUInt(100)
-            // ETH: deixa o gas do deposito na conta.
-            if model.asset == .eth, fraction >= 1 {
+            // ETH nativo: deixa o gas do deposito na conta (na BNB o ETH e token, e o gas e BNB).
+            if let from = model.fromBridge, model.asset.isNativeInput(on: from), fraction >= 1 {
                 let reserve = BigUInt(decimal: model.from == .ethereum ? "5000000000000000" : "300000000000000")!
                 part = part > reserve ? part - reserve : 0
             }
-            model.amountText = Fmt.plainDecimal(part, decimals: model.asset.decimals)
+            model.amountText = Fmt.plainDecimal(part, decimals: model.sellDecimals)
         }
     }
 
-    private func fiatText(_ amount: BigUInt?) -> String? {
+    /// O valor na moeda do app, com as casas do lado do valor: o que chega na BNB tem 18,
+    /// o que sai da Base 6 (revisao da ponte BNB, B3).
+    private func fiatText(_ amount: BigUInt?, decimals: Int) -> String? {
         guard let amount, let asset = model.sellAsset, let price = asset.coingeckoID.flatMap({ portfolio.quotes[$0]?.price }) else { return nil }
-        return "≈ \(Fmt.fiat(Fmt.double(amount, decimals: asset.decimals) * price, session.currency))"
+        return "≈ \(Fmt.fiat(Fmt.double(amount, decimals: decimals) * price, session.currency))"
     }
 
     // MARK: Cotacao
@@ -237,7 +247,7 @@ struct BridgeFooter: View {
             guard let quote = model.selected else { return }
             let price = model.sellAsset?.coingeckoID.flatMap { portfolio.quotes[$0]?.price }
             onReview(.init(intent: quote.intent, route: quote.route,
-                           fiat: price.map { Fmt.double(quote.intent.amount, decimals: model.asset.decimals) * $0 }))
+                           fiat: price.map { Fmt.double(quote.intent.amount, decimals: model.sellDecimals) * $0 }))
         }
     }
 
@@ -289,7 +299,8 @@ struct BridgeList: View {
 
     private func row(_ record: BridgeRecord) -> some View {
         let text = BridgeText.status(record, BridgeCenter.shared.progress[record.id])
-        let amount = BigUInt(decimal: record.amount).map { Fmt.crypto($0, decimals: record.asset.decimals, symbol: record.asset.symbol, style: .list) } ?? ""
+        let decimals = record.from.map { record.asset.decimals(on: $0) } ?? 18
+        let amount = BigUInt(decimal: record.amount).map { Fmt.crypto($0, decimals: decimals, symbol: record.asset.symbol, style: .list) } ?? ""
         return HStack(spacing: Space.sm) {
             if let from = record.from?.chain, let to = record.to?.chain {
                 HStack(spacing: -6) {
@@ -341,10 +352,10 @@ struct BridgeAssetSheet: View {
         case .usdc: return "Fora da ponte nestas redes."
         case .eth:
             if from.across == nil || to.across == nil { return "O Across não atende \(from.across == nil ? from.chain.name : to.chain.name)." }
-            return "ETH só entre redes em que ele é a moeda nativa."
+            return "ETH só entre redes em que ele é a moeda nativa, e na BNB, onde é o da Binance."
         case .usdt:
             if from.across == nil || to.across == nil { return "O Across não atende \(from.across == nil ? from.chain.name : to.chain.name)." }
-            return "USDT só onde é o da Tether (USDT0) dos dois lados: Ethereum, Arbitrum, Unichain e Plasma."
+            return "USDT só onde o Across entrega o USDT da Tether (Ethereum, Arbitrum, Unichain e Plasma) ou o da Binance, na BNB."
         }
     }
 
@@ -357,13 +368,14 @@ struct BridgeAssetSheet: View {
                 CoinLogo(coingeckoID: listed?.coingeckoID, symbol: asset.symbol, size: 40, network: model.from, ringColor: Palette.body)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(asset.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
-                    Text(why ?? (asset == .usdc ? "Pelo CCTP da Circle" : "Pelo Across")).typeStyle(.note)
+                    Text(why ?? (model.fromBridge.flatMap { from in model.toBridge.map { BridgeAsset.usesCCTP(asset, from: from, to: $0) } } == true
+                                 ? "Pelo CCTP da Circle" : "Pelo Across")).typeStyle(.note)
                         .foregroundStyle(why == nil ? Palette.inkSoft : Palette.inkMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
                 if let held, why == nil {
-                    Text(Fmt.crypto(portfolio.available(held), decimals: asset.decimals, symbol: asset.symbol, style: .list))
+                    Text(Fmt.crypto(portfolio.available(held), decimals: held.asset.decimals, symbol: asset.symbol, style: .list))
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 }
                 if asset == model.asset {

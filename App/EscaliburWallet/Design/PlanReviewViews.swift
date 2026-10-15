@@ -94,6 +94,8 @@ enum PlanWarningText {
         case .unverifiedToken(let symbol): return "\(symbol) não está na lista de tokens verificados."
         case .unlimitedApproval: return "Autorização sem limite."
         case .highPriceImpact(let percent): return "Impacto no preço de \(Fmt.grouped(percent, fractionDigits: 1))%."
+        case .binancePeg(let symbol):
+            return "Na BNB, o \(symbol) é o da Binance (Binance-Peg). Ele vale enquanto a Binance mantiver o lastro e o resgate: não é o \(symbol == "USDC" ? "USDC da Circle" : symbol == "USDT" ? "USDT da Tether" : "ETH da rede Ethereum")."
         }
     }
 }

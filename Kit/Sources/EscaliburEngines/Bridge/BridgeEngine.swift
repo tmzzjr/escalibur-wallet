@@ -48,12 +48,13 @@ public struct BridgeEngine: Sendable {
 
     // MARK: Cotacao
 
-    /// As opcoes da ponte para o pedido: no USDC, a rapida (quando cabe) e a padrao; nas
-    /// outras moedas, o Across. A primeira e a recomendada.
+    /// As opcoes da ponte para o pedido: no USDC entre redes com CCTP, a rapida (quando
+    /// cabe) e a padrao; no resto (USDC de ou para a BNB, ETH, USDT), o Across. A primeira
+    /// e a recomendada.
     public func quotes(_ intent: BridgeIntent, now: Date = .now) async throws -> [ValidatedBridgeQuote] {
         do {
-            if intent.asset == .usdc {
-                async let fees = iris.fees(sourceDomain: intent.from.cctpDomain, destinationDomain: intent.to.cctpDomain)
+            if BridgeAsset.usesCCTP(intent.asset, from: intent.from, to: intent.to), let source = intent.from.cctp, let destination = intent.to.cctp {
+                async let fees = iris.fees(sourceDomain: source.domain, destinationDomain: destination.domain)
                 async let allowance = try? iris.fastAllowance()
                 let (levels, fast) = (try await fees, await allowance)
                 var options = [ValidatedBridgeQuote]()
@@ -155,10 +156,10 @@ public struct BridgeEngine: Sendable {
         }
 
         if record.route.isCCTP {
-            guard let transfer = record.cctpTransfer else { return .mismatch }
+            guard let transfer = record.cctpTransfer, let source = from.cctp else { return .mismatch }
             let attested: CCTPAttested
             do {
-                attested = try await iris.attested(sourceDomain: from.cctpDomain, burnTxHash: record.depositTxHash)
+                attested = try await iris.attested(sourceDomain: source.domain, burnTxHash: record.depositTxHash)
             } catch CircleIrisError.notFound {
                 return .inFlight
             }
@@ -186,7 +187,11 @@ public struct BridgeEngine: Sendable {
         case .pending, .expired:
             return .inFlight
         case .refunded:
-            guard let hash = status.refundTxHash else { return .inFlight }
+            // So com o reembolso conferido na origem, em dois RPCs.
+            guard let hash = status.refundTxHash, let originSpoke = from.across?.spokePool,
+                  let refund = try await reader.receiptLogs(chain: from.chain, hash: hash), refund.success,
+                  BridgeArrival.acrossRefunded(refund.logs, transfer: transfer, originSpoke: originSpoke)
+            else { return .inFlight }
             return .refunded(txHash: hash)
         case .filled:
             // O deposito do dono, no recibo dele na origem: o `depositId` que a entrega tem
@@ -198,7 +203,8 @@ public struct BridgeEngine: Sendable {
             }
             guard let hash = status.fillTxHash, let receipt = try await reader.receiptLogs(chain: to.chain, hash: hash) else { return .inFlight }
             guard receipt.success, let spoke = to.across?.spokePool,
-                  BridgeArrival.acrossDelivered(receipt.logs, transfer: transfer, destinationSpoke: spoke, depositID: depositID) else {
+                  BridgeArrival.acrossDelivered(receipt.logs, transfer: transfer, destinationSpoke: spoke, depositID: depositID,
+                                                destinationWrappedNative: to.across?.wrappedNative ?? .zero) else {
                 return .mismatch
             }
             return .arrived(txHash: hash, amount: transfer.outputAmount)

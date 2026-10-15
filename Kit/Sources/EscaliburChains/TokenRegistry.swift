@@ -105,8 +105,14 @@ public enum TokenRegistry {
         erc20("polygon", "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "USDC", "USD Coin", 6, "usd-coin", stable: true),
         erc20("polygon", "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", "USDT", "Tether", 6, "tether", stable: true),
         // BNB Chain: os stablecoins da Binance-Peg tem 18 casas, nao 6.
-        erc20("bnb", "0x55d398326f99059fF775485246999027B3197955", "USDT", "Tether", 18, "tether", stable: true),
-        erc20("bnb", "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", "USDC", "USD Coin", 18, "usd-coin", stable: true),
+        // Os da Binance (Binance-Peg): valem enquanto a Binance mantiver o lastro; nao sao o
+        // USDT da Tether nem o USDC da Circle (revisao da ponte BNB, 14/10/2026, M1).
+        erc20("bnb", "0x55d398326f99059fF775485246999027B3197955", "USDT", "Tether (Binance-Peg)", 18, "tether", stable: true),
+        erc20("bnb", "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", "USDC", "USD Coin (Binance-Peg)", 18, "usd-coin", stable: true),
+        // ETH na BNB: o token da Binance, o que o Across entrega e recebe la (API do Across,
+        // available-routes). Conferido na cadeia em dois RPCs em 14/10/2026: symbol() "ETH",
+        // decimals() 18. Preco pelo WETH.
+        erc20("bnb", "0x2170Ed0880ac9A755fd29B2688956BD959F933F8", "ETH", "Ether (Binance-Peg)", 18, "weth"),
         // Avalanche
         erc20("avalanche", "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", "USDC", "USD Coin", 6, "usd-coin", stable: true),
         erc20("avalanche", "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7", "USDT", "Tether", 6, "tether", stable: true),

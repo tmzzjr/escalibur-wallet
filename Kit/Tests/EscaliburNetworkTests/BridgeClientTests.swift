@@ -78,7 +78,7 @@ struct BridgeClientTests {
     func acrossFees() throws {
         let quote = try Self.acrossQuote(try Self.fixture("across-fees-usdc-eth-base"))
         #expect(quote.outputAmount == BigUInt(999_896_537))
-        #expect(quote.fee == BigUInt(103_463))
+        #expect(quote.inputAmount - quote.outputAmount == BigUInt(103_463))
         #expect(quote.quoteTimestamp == 1_791_769_979)
         #expect(quote.fillDeadline == 1_791_777_179)
         #expect(quote.exclusivityDeadline == 1_791_770_139)

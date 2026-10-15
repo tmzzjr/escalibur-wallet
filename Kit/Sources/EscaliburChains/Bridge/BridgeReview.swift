@@ -70,6 +70,11 @@ enum BridgeReview {
 
         var warnings: [PlanReview.Warning] = []
         if quote.feePercent >= 1 { warnings.append(.highFee(percentOfAmount: quote.feePercent)) }
+        if quote.touchesBinancePeg {
+            // A moeda nao e a mesma dos dois lados: na BNB e a da Binance (revisao, M1).
+            lines.append(.init("Na BNB", "\(intent.asset.symbol) da Binance (Binance-Peg): vale enquanto a Binance mantiver o lastro e o resgate"))
+            warnings.append(.binancePeg(symbol: intent.asset.symbol))
+        }
         return PlanReview(
             kind: .bridge, title: "Levar \(TradeText.amount(intent.amount, sell)) para a \(to.name)", lines: lines, warnings: warnings,
             transactionCount: count, outgoing: sell.movement(intent.amount), incomingMinimum: receive.movement(quote.minimumReceived),

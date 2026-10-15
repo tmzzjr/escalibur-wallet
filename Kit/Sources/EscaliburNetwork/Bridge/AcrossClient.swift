@@ -39,7 +39,7 @@ public struct AcrossClient: Sendable {
 
     struct FeesResponse: Decodable {
         struct Limits: Decodable { let minDeposit, maxDeposit, maxDepositInstant: String }
-        struct Token: Decodable { let address: String; let chainId: UInt64 }
+        struct Token: Decodable { let address: String; let chainId: UInt64; let decimals: Int? }
         let outputAmount: String
         let timestamp: String
         let fillDeadline: String
@@ -66,6 +66,11 @@ public struct AcrossClient: Sendable {
             // Sem depositante nem destinatario: a API nao precisa saber quem pergunta
             // (docs/privacidade.md). O app poe a propria conta na calldata que ele monta.
             URLQueryItem(name: "amount", value: amount.decimalString),
+            // O USDC e o USDT da BNB tem 18 casas, e os das outras redes 6: sem isto a API
+            // recusa a rota (guia de migracao da BNB do Across). As casas de cada lado sao as
+            // compiladas no app (`BridgeAsset.decimals(on:)`), e o validador compara e cobra a
+            // taxa na unidade da origem; o `outputAmount` vem na unidade do destino.
+            URLQueryItem(name: "allowUnmatchedDecimals", value: "true"),
         ]
         let data = try await client.get(components.url!, timeout: 10)
         return try Self.quote(data, inputToken: inputToken, outputToken: outputToken, originChainID: originChainID,
@@ -89,7 +94,12 @@ public struct AcrossClient: Sendable {
         guard address(response.inputToken.address) == inputToken, response.inputToken.chainId == originChainID,
               address(response.outputToken.address) == outputToken, response.outputToken.chainId == destinationChainID
         else { throw AcrossClientError.mismatch("tokens") }
-        guard let output = BigUInt(decimal: response.outputAmount), !output.isZero, output <= amount,
+        // As casas de cada lado, como a API diz (o validador exige as compiladas): o que chega
+        // vem nas casas do destino, e so se compara ao que sai na unidade da origem.
+        let inputDecimals = response.inputToken.decimals, outputDecimals = response.outputToken.decimals
+        guard let output = BigUInt(decimal: response.outputAmount), !output.isZero,
+              Self.comparable(output, from: outputDecimals, to: inputDecimals) <= amount,
+              outputDecimals.flatMap { out in inputDecimals.map { BridgeAsset.fits(output, outputDecimals: out, within: amount, inputDecimals: $0) } } ?? true,
               let timestamp = UInt32(response.timestamp), let deadline = UInt32(response.fillDeadline),
               let minDeposit = BigUInt(decimal: response.limits.minDeposit),
               let maxDeposit = BigUInt(decimal: response.limits.maxDeposit),
@@ -110,8 +120,16 @@ public struct AcrossClient: Sendable {
         return AcrossQuote(
             inputAmount: amount, outputAmount: output, quoteTimestamp: timestamp, fillDeadline: deadline, exclusiveRelayer: exclusive,
             exclusivityDeadline: exclusivity, estimatedFillSeconds: response.estimatedFillTimeSec, maxDeposit: maxDeposit,
-            maxDepositInstant: maxInstant, minDeposit: minDeposit, spokePool: spoke, destinationSpokePool: destinationSpoke
+            maxDepositInstant: maxInstant, minDeposit: minDeposit, spokePool: spoke, destinationSpokePool: destinationSpoke,
+            inputDecimals: inputDecimals, outputDecimals: outputDecimals
         )
+    }
+
+    /// O valor do destino na unidade da origem; sem as casas na resposta, o valor como veio
+    /// (e a comparacao so passa com casas iguais).
+    static func comparable(_ output: BigUInt, from outputDecimals: Int?, to inputDecimals: Int?) -> BigUInt {
+        guard let outputDecimals, let inputDecimals, (0...36).contains(outputDecimals), (0...36).contains(inputDecimals) else { return output }
+        return BridgeAsset.rescale(output, from: outputDecimals, to: inputDecimals)
     }
 
     // MARK: Andamento
