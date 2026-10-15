@@ -17,18 +17,22 @@ final class ReceiveOtherFormsTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-reset", "-demo"]
         app.launch()
-        let receive = app.buttons["Receber"].firstMatch
+        // O botao pelo identificador, e so depois de a carteira assentar: a lista de saldos
+        // que chega mexe a tela, e um toque pelo texto caia numa linha de moeda.
+        let receive = app.buttons["acao-receber"]
         XCTAssertTrue(receive.waitForExistence(timeout: 30))
-        sleep(3)
+        sleep(6)
         receive.tap()
 
-        let btc = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'BTC'")).firstMatch
-        XCTAssertTrue(btc.waitForExistence(timeout: 10))
+        let btc = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'BTC,'")).firstMatch
+        if !btc.waitForExistence(timeout: 20) { shot("receber-sem-btc", app); print("ROTULOS:", app.buttons.allElementsBoundByIndex.prefix(25).map { $0.label }) }
+        XCTAssertTrue(btc.exists)
         btc.tap()
         XCTAssertTrue(app.staticTexts["Outras formas de BTC"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Bitcoin'")).firstMatch.exists)
         let wbtc = app.buttons["outra-forma-WBTC-ethereum"]
         XCTAssertTrue(wbtc.exists)
+        XCTAssertTrue(app.buttons["outra-forma-BTCB-bnb"].exists)
         shot("receber-btc-formas", app)
         wbtc.tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'WBTC'")).firstMatch.waitForExistence(timeout: 5))
@@ -43,5 +47,16 @@ final class ReceiveOtherFormsTests: XCTestCase {
         XCTAssertTrue(app.buttons["outra-forma-ETH-bnb"].exists)
         app.swipeUp()
         shot("receber-eth-formas", app)
+
+        // XRP: a rede XRP Ledger como rede, e o XRP da Binance so em "Outras formas".
+        app.navigationBars.buttons.firstMatch.tap()
+        let xrp = app.buttons["XRP, XRP"]
+        XCTAssertTrue(xrp.waitForExistence(timeout: 10))
+        // O XRP da Binance nao e linha propria na lista de moedas.
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'XRP, XRP (Binance-Peg)'")).firstMatch.exists)
+        xrp.tap()
+        XCTAssertTrue(app.staticTexts["Outras formas de XRP"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["outra-forma-XRP-bnb"].exists)
+        shot("receber-xrp-formas", app)
     }
 }

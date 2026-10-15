@@ -505,7 +505,39 @@ public enum TokenRegistry {
         erc20("ethereum", "0x3845badAde8e6dFF049820680d1F14bD3903a5d0", "SAND", "The Sandbox", 18, "the-sandbox"),
         // Golem (GLM), Ethereum. Fonte do emissor: golem.network/glm.
         erc20("ethereum", "0x7DD9c5Cba05E151C895FDe1CF355C9A1D5DA6429", "GLM", "Golem", 18, "golem"),
+        // Quarta leva, conferida em 15/10/2026 (pedido do dono: receber BTC, XRP e as outras
+        // moedas tambem pelas redes EVM). `symbol()`, `name()` e `decimals()` iguais em dois
+        // RPCs de Endpoints.evm de cada rede, e o emissor conferido na propria cadeia:
+        // - Binance-Peg na BNB Chain: `getOwner()` = 0xF68a4b64162906efF0fF6aE34E2bB1Cd42FEf62d,
+        //   o mesmo dono do USDT e do ETH da Binance que ja estao na lista. O "SOL" da BNB tem
+        //   outro dono, e o TRX e o TON de la nao tem dono legivel: ficam de fora. Preco e
+        //   logo pelo id da moeda de origem, como o USDT da Binance; no Receber aparecem como
+        //   "Outras formas" da moeda (`pegged`), nunca como mais uma rede dela.
+        erc20("bnb", "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", "BTCB", "Bitcoin (Binance-Peg)", 18, "binance-bitcoin"),
+        erc20("bnb", "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE", "XRP", "XRP (Binance-Peg)", 18, "ripple"),
+        erc20("bnb", "0xbA2aE424d960c26247Dd6c32edC70B295c744C43", "DOGE", "Dogecoin (Binance-Peg)", 8, "dogecoin"),
+        erc20("bnb", "0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47", "ADA", "Cardano (Binance-Peg)", 18, "cardano"),
+        erc20("bnb", "0x7083609fCE4d1d8Dc0C979AAb8c869Ea2C873402", "DOT", "Polkadot (Binance-Peg)", 18, "polkadot"),
+        erc20("bnb", "0x4338665CBB7B2485A8855A139b75D5e34AB0DB94", "LTC", "Litecoin (Binance-Peg)", 18, "litecoin"),
+        erc20("bnb", "0x1CE0c2827e2eF14D5C4f29a091d735A204794041", "AVAX", "Avalanche (Binance-Peg)", 18, "avalanche-2"),
+        erc20("bnb", "0x1Fa4a73a3F0133f0025378af00236f3aBDEE5D63", "NEAR", "NEAR (Binance-Peg)", 18, "near"),
+        // - WBTC das pontes oficiais de cada rede: na Arbitrum, `l1Address()` e na Optimism,
+        //   `l1Token()` devolvem o WBTC da Ethereum (0x2260...C599); na Polygon, a lista
+        //   "Mapped Tokens" da Polygon Labs (api-polygon-tokens.polygon.technology) liga o
+        //   WBTC da Ethereum ao 0x1BFD...BfD6 da ponte PoS. O WBTC que o CoinGecko lista em
+        //   outras redes (0x0555...2B9c, ponte OFT) fica de fora ate o emissor publicar.
+        erc20("arbitrum", "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f", "WBTC", "Wrapped Bitcoin", 8, "wrapped-bitcoin"),
+        erc20("optimism", "0x68f180fcCe6836688e9084f035309E29Bf0A2095", "WBTC", "Wrapped Bitcoin", 8, "wrapped-bitcoin"),
+        erc20("polygon", "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6", "WBTC", "Wrapped Bitcoin", 8, "wrapped-bitcoin"),
+        // - cbBTC na Arbitrum: o mesmo endereco da Ethereum e da Base, com o mesmo `owner()`
+        //   (0xbBc9B6001cF0A4FCcFfAb7bDDa1aB16cAfb9DB4F) que o da Ethereum.
+        erc20("arbitrum", "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", "cbBTC", "Coinbase Wrapped BTC", 8, "coinbase-wrapped-btc"),
     ]
+
+    /// Os tokens que representam a moeda nativa de outra rede pelo lastro de um emissor
+    /// (Binance-Peg), com o mesmo id de preco dela. No Receber ficam em "Outras formas"
+    /// da moeda: o seletor de rede embaixo do QR nunca troca a moeda nativa por eles.
+    public static let pegged: Set<String> = Set(tokens.filter { $0.name.hasSuffix("(Binance-Peg)") && $0.chainID == "bnb" }.map(\.id))
 
     /// Todos os ativos de uma rede: a moeda nativa e os tokens da lista.
     public static func assets(on chain: Chain) -> [Asset] {

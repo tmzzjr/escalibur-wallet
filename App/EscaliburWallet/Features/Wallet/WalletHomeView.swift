@@ -217,6 +217,7 @@ struct WalletHomeView: View {
                 QuickAction(title: String(localized: "Enviar"), systemImage: "arrow.up") { router.present(.send(nil)) }
             }
             QuickAction(title: String(localized: "Receber"), systemImage: "arrow.down") { receiving = true }
+                .accessibilityIdentifier("acao-receber")
             if wallet?.isWatchOnly != true, !TradeEngines.chains.isEmpty {
                 QuickAction(title: String(localized: "Trocar"), systemImage: "arrow.left.arrow.right") { router.tab = .trade }
             }

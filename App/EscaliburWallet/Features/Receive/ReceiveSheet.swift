@@ -381,7 +381,8 @@ struct ReceiveSheet: View {
     /// o seletor embaixo do QR so troca de rede dentro dela, nunca de volta para a nativa.
     private func otherForms(_ coin: ReceiveCoin) -> [Asset] {
         guard let id = coin.coingeckoID, coin.assets.contains(where: { $0.kind == .native }) else { return [] }
-        return receivable.filter { asset in asset.coingeckoID.flatMap { ReceiveCoin.wrappedForms[$0] } == id }
+        let pegged = receivable.filter { TokenRegistry.pegged.contains($0.id) && $0.coingeckoID == id }
+        return pegged + receivable.filter { asset in asset.coingeckoID.flatMap { ReceiveCoin.wrappedForms[$0] } == id }
     }
 
     private func otherFormRow(_ asset: Asset) -> some View {
@@ -805,13 +806,19 @@ struct ReceiveCoin: Identifiable, Hashable {
     static func group(_ assets: [Asset]) -> [ReceiveCoin] {
         var order: [String] = []
         var byKey: [String: [Asset]] = [:]
+        // O XRP da Binance tem o id de preco do XRP, mas e outra moeda: fica num grupo so
+        // dele, para o seletor embaixo do QR nunca trocar o XRP nativo por ele.
+        let nativeIDs = Set(assets.filter { $0.kind == .native }.compactMap(\.coingeckoID))
         for asset in assets {
-            let key = asset.coingeckoID ?? (asset.isCustom ? asset.id : "\(asset.symbol):\(asset.chainID)")
+            var key = asset.coingeckoID ?? (asset.isCustom ? asset.id : "\(asset.symbol):\(asset.chainID)")
+            if TokenRegistry.pegged.contains(asset.id), nativeIDs.contains(key) { key += "|peg" }
             if byKey[key] == nil { order.append(key) }
             byKey[key, default: []].append(asset)
         }
         let coins: [ReceiveCoin] = order.compactMap { key in
             guard let items = byKey[key], let first = items.first else { return nil }
+            // Aparece dentro da moeda de origem, em "Outras formas", nao como linha propria.
+            if key.hasSuffix("|peg") { return nil }
             let native = items.first { $0.kind == .native }
             let name = native.map { $0.chain?.nativeName ?? $0.name } ?? first.name
             return ReceiveCoin(id: key, symbol: first.symbol, name: name, coingeckoID: first.coingeckoID, assets: items)
