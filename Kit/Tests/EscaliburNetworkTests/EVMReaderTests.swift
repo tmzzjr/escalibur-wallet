@@ -474,6 +474,97 @@ struct EVMReaderTests {
         #expect(!page.items.contains { $0.direction == .sent && $0.asset.kind != .native && $0.fee == nil })
     }
 
+    /// Responde a Alchemy pelas gravacoes de 15/10/2026: uma por categoria e lado, e o
+    /// lote de recibos (um corpo que e lista).
+    private func alchemyTransport(_ chain: String, receipts: Bool = true) -> FixtureTransport {
+        FixtureTransport([{ request, body in
+            if case .array? = body { return receipts ? try ReaderFixtures.data("evm", "alchemy-recibos-\(chain)") : nil }
+            guard FixtureTransport.method(body) == "alchemy_getAssetTransfers",
+                  case .object(let query)? = FixtureTransport.params(body).first,
+                  case .array(let categories)? = query["category"], categories.count == 1, case .string(let category) = categories[0]
+            else { return nil }
+            let side = query["fromAddress"] != nil ? "from" : "to"
+            return try ReaderFixtures.data("evm", "alchemy-\(category)-\(side)-\(chain)")
+        }])
+    }
+
+    @Test("Alchemy (Ethereum): uma consulta por categoria e lado, endereco so no corpo, taxa pelos recibos")
+    func alchemyHistory() async throws {
+        let owner = try EVMAddress("0x9858EfFD232B4033E47d90003D41EC34EcaEda94")
+        let transport = alchemyTransport("ethereum")
+        let provider = ProviderPool.Provider(name: "alchemy", baseURL: URL(string: "https://alchemy.test/v2/chave")!)
+        let reader = EVMReader(transport: transport, rpc: [:], history: ["ethereum": [provider]], privateRelays: [])
+        let page = try await reader.history(chain: .ethereum, address: owner)
+
+        // Envio e recebimento nativos, token de e para, internas e o lote de recibos.
+        #expect(transport.requests.count == 6)
+        #expect(transport.requests.allSatisfy { !$0.url.absoluteString.lowercased().contains(owner.checksummed.lowercased()) })
+        #expect(page.isComplete)
+        #expect(page.items.allSatisfy { $0.chainID == "ethereum" })
+        #expect(page.items.allSatisfy { $0.asset.kind == .native || TokenRegistry.tokens.contains($0.asset) })
+        #expect(page.items.allSatisfy { $0.status == .confirmed })
+        // As "saidas" falsas de token e os recebimentos de token desconhecido ficam fora.
+        #expect(page.suspicious.unknownAsset > 0)
+        #expect(page.items.contains { $0.direction == .sent && $0.fee != nil })
+        #expect(!page.items.contains { $0.direction == .received && $0.fee != nil })
+    }
+
+    @Test("Alchemy (Base): sem a categoria interna, e a taxa soma a da L1")
+    func alchemyHistoryBase() async throws {
+        let owner = try EVMAddress("0x9858EfFD232B4033E47d90003D41EC34EcaEda94")
+        let transport = alchemyTransport("base")
+        let provider = ProviderPool.Provider(name: "alchemy", baseURL: URL(string: "https://alchemy.test/v2/chave")!)
+        let reader = EVMReader(transport: transport, rpc: [:], history: ["base": [provider]], privateRelays: [])
+        let page = try await reader.history(chain: .base, address: owner)
+        #expect(transport.requests.count == 5)
+        #expect(page.items.allSatisfy { $0.chainID == "base" })
+
+        let receipts = try ReaderFixtures.json("evm", "alchemy-recibos-base")
+        let fees = EVMReader.parseReceiptFees(receipts)
+        let first = try receipts.array("r")[0].field("result", "r")
+        let used = try first.field("gasUsed", "r").quantity("r")
+        let price = try first.field("effectiveGasPrice", "r").quantity("r")
+        let l1 = try first.field("l1Fee", "r").quantity("r")
+        #expect(l1 > 0)
+        #expect(fees[try first.field("transactionHash", "r").string("r").lowercased()] == used * price + l1)
+    }
+
+    @Test("Alchemy: o valor vem do rawContract em hex, nunca do numero arredondado")
+    func alchemyExactAmounts() throws {
+        let owner = try EVMAddress("0x9858EfFD232B4033E47d90003D41EC34EcaEda94")
+        let received = try ReaderFixtures.json("evm", "alchemy-external-to-ethereum").field("result", "result")
+        let page = try EVMReader.parseAlchemyHistory(chain: .ethereum, owner: owner, transactions: [received], tokenTransfers: [])
+        let rawValues = Set(try received.field("transfers", "t").array("t").map {
+            try $0.field("rawContract", "t").field("value", "t").quantity("t")
+        })
+        #expect(page.items.contains { $0.direction == .received && $0.asset.kind == .native })
+        for item in page.items where item.direction == .received && item.asset.kind == .native {
+            #expect(rawValues.contains(item.amount))
+        }
+    }
+
+    @Test("Alchemy: sem os tokens a pagina e parcial, e sem os recibos os envios saem sem taxa")
+    func alchemyPartial() async throws {
+        let owner = try EVMAddress("0x9858EfFD232B4033E47d90003D41EC34EcaEda94")
+        let page = try EVMReader.parseAlchemyHistory(
+            chain: .ethereum, owner: owner,
+            transactions: [
+                try ReaderFixtures.json("evm", "alchemy-external-from-ethereum").field("result", "result"),
+                try ReaderFixtures.json("evm", "alchemy-external-to-ethereum").field("result", "result"),
+            ],
+            tokenTransfers: [], complete: false
+        )
+        #expect(!page.isComplete)
+        #expect(!page.items.isEmpty)
+
+        let transport = alchemyTransport("ethereum", receipts: false)
+        let provider = ProviderPool.Provider(name: "alchemy", baseURL: URL(string: "https://alchemy.test/v2/chave")!)
+        let reader = EVMReader(transport: transport, rpc: [:], history: ["ethereum": [provider]], privateRelays: [])
+        let withoutFees = try await reader.history(chain: .ethereum, address: owner)
+        #expect(!withoutFees.items.isEmpty)
+        #expect(withoutFees.items.allSatisfy { $0.fee == nil })
+    }
+
     @Test("NodeReal: sem os tokens, a pagina sai marcada como parcial")
     func nodeRealPartial() throws {
         let owner = try EVMAddress("0x9858EfFD232B4033E47d90003D41EC34EcaEda94")

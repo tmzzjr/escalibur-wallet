@@ -1,0 +1,552 @@
+[
+ {
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": {
+   "transactionHash": "0x5477ac7dca6fe735f786d2afd1394d9e6022edff328435c9290c3e09bb7190c3",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x4c4b40",
+   "l1Fee": "0x20924d70",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+   "transactionHash": "0x177b8c1b159cff283ea8855c8ee9fe5f2e2a88004478f178a98f963b965b4c45",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0xbb34231",
+   "l1Fee": "0x22176778",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+   "transactionHash": "0xd1be0284ed42ffdc31145e3cc72f5acb1e0a68f7a6051fc800f5a8437b4ea5ae",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x5b8d80",
+   "l1Fee": "0x2b60d306",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 3,
+  "result": {
+   "transactionHash": "0x8c6076ac4801b2ac805b6a0d65e9547b423dfe576be95785dac56c3a1ad8fd4b",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x5b8d80",
+   "l1Fee": "0x1e9e476c",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+   "transactionHash": "0x04dc8cfc42aaf3deb1588fafb91ae5d6ee7516b6c81c6899e48eefefc3afc7ee",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x10d86d1fd",
+   "l1Fee": "0x253bb7395",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 5,
+  "result": {
+   "transactionHash": "0xa892236b747b146c6804994e06e6322e99c28bc76ea4ab42b48bc6bf10accfa8",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0xca7ce0",
+   "l1Fee": "0x3131192d",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 6,
+  "result": {
+   "transactionHash": "0xec8e66c499493d6d11413bc60d606c8377178f120b2a60c7a0c2362133611d5d",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x102757",
+   "l1Fee": "0x5caba08e",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 7,
+  "result": {
+   "transactionHash": "0xdae9a8ed8c92bcbb118f66465a91df881441392a4f9df93d4ccd56351762fa40",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x24c97d",
+   "l1Fee": "0x3ed2a53d1",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 8,
+  "result": {
+   "transactionHash": "0x15bd83c800a1d836eda9f9c3e02b602ee09f5fb9c171ea243a98e6738f9a1d0f",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x25b0bc",
+   "l1Fee": "0xa3f7409a",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 9,
+  "result": {
+   "transactionHash": "0x8e5c6140e51c1a237c2203a045c033e7fed377b929d500a06f688c469d9bec70",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x5273d2",
+   "l1Fee": "0xa04dd696",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 10,
+  "result": {
+   "transactionHash": "0x1817faec21b9bdb7354c342da0014b498342643940b4e9fb5646da11ea21c927",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x5273d2",
+   "l1Fee": "0xa04dd696",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 11,
+  "result": {
+   "transactionHash": "0xb5395c468c2d7d31312a17f8c94138bf5b6382f3808762d660b83a6de677ecf0",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x4d3869",
+   "l1Fee": "0x482e6ad18",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 12,
+  "result": {
+   "transactionHash": "0x07fd6c332c15aa57f1c202ec7ff7870c2851a99319d83258e3576da5d58240dd",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x64fe35",
+   "l1Fee": "0x8db3332162f",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 13,
+  "result": {
+   "transactionHash": "0x9ca5b75207d566b39066401f819e74024f2e9f2f0467024649d094e4705a55a0",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x1688e47",
+   "l1Fee": "0x935fb2c1bb5",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 14,
+  "result": {
+   "transactionHash": "0xcc6c09bd677159a7433c7540023a5f78fc27a0712a1bdde53913f1093a24f129",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x3884da1",
+   "l1Fee": "0x8847d1b2651",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 15,
+  "result": {
+   "transactionHash": "0x107fb77a93d66d2396c2785752a2882967e8c65c21777373e0604636c05d76a9",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x16fd777c",
+   "l1Fee": "0x8847d1b2651",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 16,
+  "result": {
+   "transactionHash": "0x96ce678a7e74416d7c635fc4791f5e8c56d87381a6affec41fb831b1dab703fe",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x8d5ec4",
+   "l1Fee": "0x4fc0f8f44",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 17,
+  "result": {
+   "transactionHash": "0xacc404269ed1d77f9cf2d1dbf83557fa988f1060cb9569bc38360952df9ff8cf",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x25b3150",
+   "l1Fee": "0x66f2d82dac",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 18,
+  "result": {
+   "transactionHash": "0xc3763ecf117d99efda9bbd8c8726cf4321eb56a1c88bc4a2934520677d77867a",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x5f5e100",
+   "l1Fee": "0x75720c0024a",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 19,
+  "result": {
+   "transactionHash": "0x3bb27343c9efe8572db8f907015dabf2ba5680d49102a9529403e9373ce2e3ba",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x1c5bff9",
+   "l1Fee": "0x7a5b40a04",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 20,
+  "result": {
+   "transactionHash": "0x48233dae555b805cf2546081a147eb224852fccad4490e4c1176ef148a49daf8",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x5f5e100",
+   "l1Fee": "0x72007beec",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 21,
+  "result": {
+   "transactionHash": "0x560d8b2db9bd41e0f71c6dae0d4418b0790423625e100c1996479d910c2a6a92",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x26efb684",
+   "l1Fee": "0x7cfaa10d2",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 22,
+  "result": {
+   "transactionHash": "0xd199c5978fe11cd5115a24bf64f831dbcc03f159ee4d117a31a98ecfdffc3ab0",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x38abcd9e",
+   "l1Fee": "0x7cfaa10d2",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 23,
+  "result": {
+   "transactionHash": "0x27fab314f3980bda5b12c2d433f959ef454eae8e8610f702a8aa38a419a08eaf",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x5f5e100",
+   "l1Fee": "0x7cfaa10d2",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 24,
+  "result": {
+   "transactionHash": "0xf2b6ba69ccc51164c1b573bb8c3de56e75f90d1066ebdf50ca790083fe394b6e",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x2c0ce508",
+   "l1Fee": "0x7cfaa10d2",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 25,
+  "result": {
+   "transactionHash": "0xad11afdfc8357d7f05881befe16a1cab83a9da20fd254a00f324ac65d5137a6b",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x93ee768f",
+   "l1Fee": "0x7aa7eb7f3",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 26,
+  "result": {
+   "transactionHash": "0x3e154fb92f6ba810aa945936a116931c5ef50d742aab1b12184087f2b8c46246",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x60c4ba",
+   "l1Fee": "0x22fcefa6302",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 27,
+  "result": {
+   "transactionHash": "0xd6cd1c309bcc05a23c6b951083f5e55f34fc42752c65c7a84c946f290609eb67",
+   "gasUsed": "0xcaff",
+   "effectiveGasPrice": "0x989680",
+   "l1Fee": "0x37b4165ccdf",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 28,
+  "result": {
+   "transactionHash": "0xd9f075a5b2adaed190c692e1e165054ad80ddc5d25bbdac774adc014747d4cc3",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x1b69f1c",
+   "l1Fee": "0x37bbc57c674",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 29,
+  "result": {
+   "transactionHash": "0x49a09925515de63a5ce3047ebfb7327f70aff55ad00bc347367f23b8c36d65e9",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x1b69f1c",
+   "l1Fee": "0x39e42c7e043",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 30,
+  "result": {
+   "transactionHash": "0x5c3bbb5fcb3c13cd665c10c29a51d1d855881df227896ab2b2d3b13d898d6f65",
+   "gasUsed": "0xcaff",
+   "effectiveGasPrice": "0x989680",
+   "l1Fee": "0x39fc6863f79",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 31,
+  "result": {
+   "transactionHash": "0xe0ff25cd849fc9dc5532796bffd8e60828661dc6cbe3297293616419003d8c77",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x1b69f1c",
+   "l1Fee": "0x3ea18304a57",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 32,
+  "result": {
+   "transactionHash": "0xeedcb01436b9e970b72abdf37a7b4666ddd364bcdfcd41a37ef75076e2dc4a21",
+   "gasUsed": "0xcaff",
+   "effectiveGasPrice": "0x989680",
+   "l1Fee": "0x3ea0a20ff68",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 33,
+  "result": {
+   "transactionHash": "0xdab6500a9de560150832277443d130a3adc4b9757cd5a61fc46dee4e8e45178e",
+   "gasUsed": "0xcaf0",
+   "effectiveGasPrice": "0x435120",
+   "l1Fee": "0x557f508975d",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 34,
+  "result": {
+   "transactionHash": "0x9182ee1f37097c014e04e06c0252c013bf86ebf9e8bdef645d67daebf187a372",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x12de07b",
+   "l1Fee": "0x10f69aa37d",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 35,
+  "result": {
+   "transactionHash": "0x443c898a932224ab4c26f73cce66b5f567c036a3b21519a31b5df769889b73cc",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x389ae9d",
+   "l1Fee": "0x10f69aa37d",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 36,
+  "result": {
+   "transactionHash": "0x953c98836419da1ad75452f1bcdbf038c7ec2763a249f03c3bb768003a6beaf5",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x12f3cff",
+   "l1Fee": "0xef8fa8601",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 37,
+  "result": {
+   "transactionHash": "0xa53340bdcd94d95e33e4d8a09af5994368d07fd746dfd4f6b0b208667e22d67e",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x15afde1c",
+   "l1Fee": "0xef8fa8601",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 38,
+  "result": {
+   "transactionHash": "0x1eea5ad1c19b9ae265610ab9cdd2abf0094ecb91e100da17327691f9b73be3a4",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x398fd99",
+   "l1Fee": "0xf17e05727",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 39,
+  "result": {
+   "transactionHash": "0xe01ddd2a4e61c08a152a816b5b73dd8c408be9d345598430aafdb6b1ff87d07d",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x1391e01",
+   "l1Fee": "0xf39e3b554",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 40,
+  "result": {
+   "transactionHash": "0xb1a0e6319c703d3161e505af019df819d39b6dce793f0c733e621d48fcc70753",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x5bcc71",
+   "l1Fee": "0x763ff19f1",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 41,
+  "result": {
+   "transactionHash": "0x805186566c2932a3843760a7374767e65d6cede1cfc4218739db81da5065736d",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x614957",
+   "l1Fee": "0x8fced8f3a",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 42,
+  "result": {
+   "transactionHash": "0x9af82560c0354181cbbb3201327c82ef78892c1c761f52e86f21a3f790969199",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x231b770",
+   "l1Fee": "0x38a66c151",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 43,
+  "result": {
+   "transactionHash": "0x3ca6c72dbf5aff1aaaf6ef4c9cb28a4ccbca91035f5b100b205706c264cad4ec",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x3b9aca00",
+   "l1Fee": "0xa10d67733",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 44,
+  "result": {
+   "transactionHash": "0xcfa7b093ba5600c1a7648fe4e7ff864c136b45a59722503ef46647665848a238",
+   "gasUsed": "0x766e",
+   "effectiveGasPrice": "0x5f110a6c",
+   "l1Fee": "0xc0c154645",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 45,
+  "result": {
+   "transactionHash": "0x5d50370ddd6d8e9164c149d26a66ee57e5d4da12fe40382ed5866a8a00a23731",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x31b8698c",
+   "l1Fee": "0xa60a236fb",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 46,
+  "result": {
+   "transactionHash": "0x0c445e50c89d55229bc291df285aa8f75e5f8982bfba5d2d05e976e5e07f1fb4",
+   "gasUsed": "0x766e",
+   "effectiveGasPrice": "0x631b5970",
+   "l1Fee": "0xefffd5a63",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 47,
+  "result": {
+   "transactionHash": "0x9d4fd29e9f9149632f12ad5fc0c7720a2745b48c2a3bbc2b21ec2d471fe6b057",
+   "gasUsed": "0x766e",
+   "effectiveGasPrice": "0x198525a9",
+   "l1Fee": "0x1b0abf9b80",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 48,
+  "result": {
+   "transactionHash": "0xef20ea356fb03808f710411499f215262daf4905e4b167a75f52fa7cda34fdf8",
+   "gasUsed": "0x5208",
+   "effectiveGasPrice": "0x5f5e100",
+   "l1Fee": "0xd22bbaa76",
+   "status": "0x1"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 49,
+  "result": {
+   "transactionHash": "0xbc92a9ce8973fef874898f98e37bf08782940fe7e06b0e9fc8f15423b959ad3c",
+   "gasUsed": "0x766e",
+   "effectiveGasPrice": "0xb14de88",
+   "l1Fee": "0x11cf3d8c07",
+   "status": "0x1"
+  }
+ }
+]

@@ -327,12 +327,25 @@ public enum Endpoints {
     /// (`txlist` e `tokentx` da rede 9745). X Layer e Sonic nao tem indexador sem chave
     /// (OKLink e Etherscan v2 pedem chave; nem Blockscout nem Routescan atendem) e ficam
     /// sem historico, como a BNB Chain.
+    ///
+    /// Base, Arbitrum e Polygon: o Blockscout passou a responder 403 com o desafio do
+    /// Cloudflare (conferido em 15/10/2026) e nao ha indexador sem chave que atenda as
+    /// tres. Vao pela Alchemy (`alchemyHistory`), com o Blockscout de reserva.
     public static let evmHistory: [String: [ProviderPool.Provider]] = [
         "ethereum": [.init(name: "blockscout", baseURL: url("https://eth.blockscout.com/api/v2"))],
-        "base": [.init(name: "blockscout", baseURL: url("https://base.blockscout.com/api/v2"))],
+        "base": [
+            .init(name: "alchemy", baseURL: alchemyHistory["base"]!),
+            .init(name: "blockscout", baseURL: url("https://base.blockscout.com/api/v2")),
+        ],
         "optimism": [.init(name: "blockscout", baseURL: url("https://explorer.optimism.io/api/v2"))],
-        "arbitrum": [.init(name: "blockscout", baseURL: url("https://arbitrum.blockscout.com/api/v2"))],
-        "polygon": [.init(name: "blockscout", baseURL: url("https://polygon.blockscout.com/api/v2"))],
+        "arbitrum": [
+            .init(name: "alchemy", baseURL: alchemyHistory["arbitrum"]!),
+            .init(name: "blockscout", baseURL: url("https://arbitrum.blockscout.com/api/v2")),
+        ],
+        "polygon": [
+            .init(name: "alchemy", baseURL: alchemyHistory["polygon"]!),
+            .init(name: "blockscout", baseURL: url("https://polygon.blockscout.com/api/v2")),
+        ],
         "avalanche": [.init(name: "routescan", baseURL: url("https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api"))],
         "plasma": [.init(name: "routescan", baseURL: url("https://api.routescan.io/v2/network/mainnet/evm/9745/etherscan/api"))],
         "linea": [.init(name: "blockscout", baseURL: url("https://api-explorer.linea.build/api/v2"))],
@@ -348,6 +361,18 @@ public enum Endpoints {
     /// historico da BNB; saldo, envio e troca nao passam por aqui. Conferido ao vivo em
     /// 15/10/2026 com a conta publica de teste do BIP-39.
     public static let nodeRealBNB = url("https://bsc-mainnet.nodereal.io/v1/f0c15aadeef94b9ba1ea7d52310cedaf")
+
+    /// Historico de Base, Arbitrum e Polygon pela API de transferencias da Alchemy
+    /// (`alchemy_getAssetTransfers`, JSON-RPC por POST, o endereco vai no corpo). Chave
+    /// gratuita em nome da Escalibur, publica neste codigo como a da NodeReal: identifica
+    /// o app, nao o dono, e so le a rede. Quem esgotar a cota tira do ar so o historico
+    /// dessas tres; saldo, envio e troca nao passam por aqui. Conferido ao vivo em
+    /// 15/10/2026 com a conta publica de teste do BIP-39.
+    public static let alchemyHistory: [String: URL] = [
+        "base": url("https://base-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
+        "arbitrum": url("https://arb-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
+        "polygon": url("https://polygon-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
+    ]
 
     /// Quais ERC-20 uma conta tem, sem chave (`TokenIndex`). As mesmas instancias do
     /// Blockscout do historico e, na Avalanche e na Plasma, a API propria do Routescan.

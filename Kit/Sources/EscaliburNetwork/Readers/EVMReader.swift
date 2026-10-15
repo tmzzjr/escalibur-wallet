@@ -443,9 +443,10 @@ public actor EVMReader {
     // MARK: Historico
 
     /// Os ultimos movimentos da conta na rede, pelo indexador publico (Blockscout; na
-    /// Avalanche e na Plasma, Routescan; na BNB Chain, NodeReal). O endereco vai no
-    /// caminho do GET no Blockscout e no Routescan, que nao tem consulta por POST
-    /// (docs/seguranca.md §5.3); na NodeReal, no corpo do POST.
+    /// Avalanche e na Plasma, Routescan; na BNB Chain, NodeReal; na Base, Arbitrum e
+    /// Polygon, Alchemy). O endereco vai no caminho do GET no Blockscout e no Routescan,
+    /// que nao tem consulta por POST (docs/seguranca.md §5.3); na NodeReal e na Alchemy,
+    /// no corpo do POST.
     public func history(chain: Chain, address: EVMAddress) async throws -> ActivityPage {
         guard chain.family == .evm else { throw ReaderError.invalidInput("rede nao EVM") }
         guard let providers = historyProviders[chain.id], !providers.isEmpty else {
@@ -481,6 +482,38 @@ public actor EVMReader {
                 return try Self.parseNodeRealHistory(
                     chain: chain, owner: address, transactions: transactions, tokenTransfers: tokens.compactMap { $0 },
                     complete: !tokens.contains { $0 == nil }, internals: await internals
+                )
+            }
+            if provider.name == "alchemy" {
+                // A Alchemy lista so o que de fato se moveu: transacao revertida nao
+                // aparece (conferido na Base em 15/10/2026). Uma consulta por categoria e
+                // lado, como na NodeReal: as "saidas" de token falsas do envenenamento nao
+                // empurram os envios do dono para fora da pagina. As transacoes do dono
+                // sao obrigatorias; tokens, internas e taxas, opcionais.
+                @Sendable func query(_ side: String, _ category: String) async throws -> StrictJSON {
+                    try await Self.call(transport, provider.baseURL, "alchemy_getAssetTransfers", [.object([
+                        side: .string(address.checksummed), "category": .array([.string(category)]),
+                        "order": .string("desc"), "withMetadata": .bool(true), "excludeZeroValue": .bool(false),
+                        "maxCount": .string("0x32"),
+                    ])])
+                }
+                // So a Ethereum e a Polygon tem a categoria `internal` na Alchemy.
+                @Sendable func internalTransfers() async -> StrictJSON? {
+                    guard Self.alchemyInternalChains.contains(chain.id) else { return nil }
+                    return try? await query("toAddress", "internal")
+                }
+                async let sent = query("fromAddress", "external")
+                async let received = query("toAddress", "external")
+                async let tokensIn = try? query("toAddress", "erc20")
+                async let tokensOut = try? query("fromAddress", "erc20")
+                async let internals = internalTransfers()
+                let outgoing = try await sent
+                let fees = await Self.alchemyFees(transport, provider.baseURL, sent: outgoing)
+                let transactions = [outgoing, try await received]
+                let tokens = [await tokensIn, await tokensOut]
+                return try Self.parseAlchemyHistory(
+                    chain: chain, owner: address, transactions: transactions, tokenTransfers: tokens.compactMap { $0 },
+                    complete: !tokens.contains { $0 == nil }, internals: await internals, fees: fees
                 )
             }
             if provider.name == "routescan" {
@@ -1083,6 +1116,116 @@ public actor EVMReader {
             inner.append(InternalRow(hash: hash, index: "i\(offset)", date: date, from: from, to: to, value: value))
         }
         return assemble(chain: chain, owner: owner, rows: rows, tokens: tokens, internals: inner, complete: complete)
+    }
+
+    /// Redes em que a Alchemy tem transferencias internas (documentacao da Alchemy,
+    /// "Transfers API": so Ethereum e Polygon).
+    static let alchemyInternalChains: Set<String> = ["ethereum", "polygon"]
+
+    /// Alchemy (`alchemy_getAssetTransfers`): cada resposta e uma categoria e um lado.
+    /// `external` e a transacao; `erc20`, a transferencia de token, com o indice do evento
+    /// no fim do `uniqueId` ("hash:log:12"); `internal`, o valor nativo que um contrato
+    /// mandou. O valor exato vem de `rawContract.value` (hex): o campo `value` e um numero
+    /// com casas decimais, arredondado, e nunca e lido. Nome e simbolo que o provedor
+    /// manda sao ignorados: o ativo vem da lista curada. A Alchemy so lista o que se
+    /// moveu, entao tudo sai confirmado; a taxa vem dos recibos (`fees`), quando vierem.
+    static func parseAlchemyHistory(
+        chain: Chain, owner: EVMAddress, transactions: [StrictJSON], tokenTransfers: [StrictJSON], complete: Bool = true,
+        internals: StrictJSON? = nil, fees: [String: BigUInt] = [:]
+    ) throws -> ActivityPage {
+        func transfers(_ json: StrictJSON, _ path: String) throws -> [StrictJSON] {
+            try json.field("transfers", path).array(path + ".transfers")
+        }
+        func date(_ item: StrictJSON, _ path: String) throws -> Date {
+            let text = try item.field("metadata", path).field("blockTimestamp", path + ".metadata").string(path + ".metadata.blockTimestamp")
+            return try isoDate(text, path + ".metadata.blockTimestamp")
+        }
+        /// `rawContract.value`; nulo so em NFT, que nao e pedido.
+        func amount(_ item: StrictJSON, _ path: String) throws -> BigUInt {
+            try item.field("rawContract", path).field("value", path + ".rawContract").quantity(path + ".rawContract.value")
+        }
+        var rows: [TransactionRow] = []
+        for (list, json) in transactions.enumerated() {
+            for (offset, item) in try transfers(json, "external[\(list)]").enumerated() {
+                let path = "external[\(list)][\(offset)]"
+                let hash = try item.field("hash", path).string(path + ".hash")
+                let from = try address(try item.field("from", path), path + ".from")
+                rows.append(TransactionRow(
+                    hash: hash, date: try date(item, path), status: .confirmed, from: from,
+                    to: try item.optionalField("to").map { try address($0, path + ".to") },
+                    value: try amount(item, path),
+                    fee: from == owner ? fees[hash.lowercased()] : nil
+                ))
+            }
+        }
+        var tokens: [TokenRow] = []
+        var seenEvents = Set<String>()
+        for (list, json) in tokenTransfers.enumerated() {
+            for (offset, item) in try transfers(json, "erc20[\(list)]").enumerated() {
+                let path = "erc20[\(list)][\(offset)]"
+                let hash = try item.field("hash", path).string(path + ".hash")
+                let unique = try item.field("uniqueId", path).string(path + ".uniqueId")
+                guard let log = unique.split(separator: ":").last, unique.contains(":log:"), let number = UInt64(log) else {
+                    throw ReaderError.malformed(field: path + ".uniqueId")
+                }
+                let index = "l" + String(number)
+                // De e para o proprio dono vem nas duas listas: o mesmo evento conta uma vez.
+                guard seenEvents.insert(hash.lowercased() + "|" + index).inserted else { continue }
+                tokens.append(TokenRow(
+                    hash: hash, index: index, date: try date(item, path),
+                    from: try address(try item.field("from", path), path + ".from"),
+                    to: try address(try item.field("to", path), path + ".to"),
+                    contract: try address(try item.field("rawContract", path).field("address", path + ".rawContract"), path + ".rawContract.address"),
+                    amount: try amount(item, path)
+                ))
+            }
+        }
+        var inner: [InternalRow] = []
+        let internalItems = (try? internals.map { try transfers($0, "internal") }) ?? []
+        for (offset, item) in internalItems.enumerated() {
+            let path = "internal[\(offset)]"
+            guard let hash = try? item.field("hash", path).string(path + ".hash"),
+                  let date = try? date(item, path),
+                  let from = try? address(try item.field("from", path), path + ".from"),
+                  let to = try? address(try item.field("to", path), path + ".to"),
+                  let value = try? amount(item, path), !value.isZero
+            else { continue }
+            inner.append(InternalRow(hash: hash, index: "i\(offset)", date: date, from: from, to: to, value: value))
+        }
+        return assemble(chain: chain, owner: owner, rows: rows, tokens: tokens, internals: inner, complete: complete)
+    }
+
+    /// A taxa das transacoes do dono, pelos recibos num lote JSON-RPC so: `gasUsed` vezes
+    /// `effectiveGasPrice`, mais a taxa da L1 (`l1Fee`) na OP Stack. Opcional: sem
+    /// resposta, os itens saem sem a linha da taxa.
+    static func alchemyFees(_ transport: ReaderTransport, _ url: URL, sent: StrictJSON) async -> [String: BigUInt] {
+        guard let items = try? sent.field("transfers", "sent").array("sent.transfers") else { return [:] }
+        var hashes: [String] = []
+        for item in items {
+            guard let hash = try? item.field("hash", "sent").string("sent.hash").lowercased(), !hashes.contains(hash) else { continue }
+            hashes.append(hash)
+        }
+        guard !hashes.isEmpty else { return [:] }
+        let batch: StrictJSON = .array(hashes.enumerated().map { id, hash in
+            .object(["jsonrpc": .string("2.0"), "id": .int(id), "method": .string("eth_getTransactionReceipt"), "params": .array([.string(hash)])])
+        })
+        guard let data = try? await transport.send(.post(url, batch)), let json = try? StrictJSON.parse(data) else { return [:] }
+        return parseReceiptFees(json)
+    }
+
+    static func parseReceiptFees(_ json: StrictJSON) -> [String: BigUInt] {
+        guard let answers = try? json.array("recibos") else { return [:] }
+        var fees: [String: BigUInt] = [:]
+        for answer in answers {
+            guard let receipt = answer.optionalField("result"),
+                  let hash = try? receipt.field("transactionHash", "recibo").string("recibo.transactionHash"),
+                  let used = try? receipt.field("gasUsed", "recibo").quantity("recibo.gasUsed"),
+                  let price = try? receipt.field("effectiveGasPrice", "recibo").quantity("recibo.effectiveGasPrice")
+            else { continue }
+            let l1 = (try? receipt.optionalField("l1Fee")?.quantity("recibo.l1Fee")) ?? 0
+            fees[hash.lowercased()] = used * price + l1
+        }
+        return fees
     }
 
     /// Contratos ERC-20 que sao a propria moeda nativa. Celo: o CELO e nativo e ERC-20

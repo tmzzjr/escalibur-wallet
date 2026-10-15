@@ -24,6 +24,7 @@ https://api.velora.xyz
 https://api.yoroiwallet.com
 https://app.across.to
 https://aptos-rest.publicnode.com
+https://arb-mainnet.g.alchemy.com
 https://arb1.arbitrum.io
 https://arbitrum-one-rpc.publicnode.com
 https://arbitrum.blockscout.com
@@ -33,6 +34,7 @@ https://asset-hub-polkadot-rpc.n.dwellir.com
 https://assets.coingecko.com
 https://avalanche-c-chain-rpc.publicnode.com
 https://avalanche.drpc.org
+https://base-mainnet.g.alchemy.com
 https://base-rpc.publicnode.com
 https://base.blockscout.com
 https://base.drpc.org
@@ -76,6 +78,7 @@ https://plasma.gateway.tenderly.co
 https://polkadot-asset-hub-public-sidecar.parity-chains.parity.io
 https://polkadot-asset-hub-rpc.polkadot.io
 https://polygon-bor-rpc.publicnode.com
+https://polygon-mainnet.g.alchemy.com
 https://polygon.blockscout.com
 https://polygon.drpc.org
 https://public.rpc.solanavibestation.com
