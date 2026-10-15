@@ -98,7 +98,7 @@ struct OnboardingFlow: View {
                 step = .welcome
             }
         } label: {
-            Image(systemName: "chevron.left")
+            Image(systemName: "chevron.backward")
                 .font(.system(size: 19, weight: .semibold))
                 .foregroundStyle(Palette.inkSoft)
                 .frame(width: 44, height: 44)

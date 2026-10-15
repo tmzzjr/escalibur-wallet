@@ -437,7 +437,7 @@ struct TradeDirectionHeader: View {
     var body: some View {
         HStack(alignment: .top, spacing: Space.sm) {
             side(sell, amount: sellAmount, prefix: "")
-            Image(systemName: "arrow.right")
+            Image(systemName: "arrow.forward")
                 .font(.system(size: 18, weight: .semibold)).foregroundStyle(Palette.inkSoft)
                 .frame(width: 36, height: 52)
             side(buy, amount: buyMinimum, prefix: String(localized: "no mínimo "))

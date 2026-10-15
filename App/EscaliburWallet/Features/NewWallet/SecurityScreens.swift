@@ -277,7 +277,7 @@ private struct ScanRing: View {
                 }
                 Image(systemName: done ? (alert ? "exclamationmark.shield.fill" : "checkmark.shield.fill") : "shield.lefthalf.filled")
                     .font(.system(size: 54, weight: .semibold))
-                    .foregroundStyle(done ? (alert ? Palette.caution : Palette.accent) : Palette.ink)
+                    .foregroundStyle(done ? (alert ? Palette.caution : Palette.success) : Palette.ink)
                     .contentTransition(.symbolEffect(.replace))
                     .scaleEffect(done ? 1.08 : 1)
                     .animation(.spring(response: 0.45, dampingFraction: 0.55), value: done)

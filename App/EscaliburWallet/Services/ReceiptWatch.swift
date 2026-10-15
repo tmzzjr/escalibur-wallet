@@ -90,6 +90,9 @@ struct ReceiptEvent: Equatable {
     let symbol: String
     let decimals: Int
     let amount: BigUInt
+    /// Para o widget passar a mostrar a moeda que chegou (so ids da lista curada).
+    var coingeckoID: String? = nil
+    var name: String? = nil
 }
 
 /// Quem confere e avisa. Um ator: a checagem do segundo plano, a da abertura e a tela
@@ -188,6 +191,9 @@ actor ReceiptWatchCenter {
         try? ReceiptWatchStore.save(value)
         guard !events.isEmpty else { return }
         await Self.post(events, showDetails: value.showDetails)
+        if let event = events.first(where: { $0.coingeckoID != nil }), let id = event.coingeckoID {
+            await WidgetFeed.shared.received(coinID: id, symbol: event.symbol, name: event.name ?? event.symbol)
+        }
     }
 
     /// O que subiu desde o ultimo saldo visto, atualizando o visto. Ativo visto pela
@@ -204,7 +210,8 @@ actor ReceiptWatchCenter {
                 let key = "\(prefix)\(holding.asset.id)"
                 if let previous = seen[key], holding.amount > previous.amount {
                     events.append(ReceiptEvent(chainID: account.chainID, symbol: holding.asset.symbol, decimals: holding.asset.decimals,
-                                               amount: holding.amount - previous.amount))
+                                               amount: holding.amount - previous.amount,
+                                               coingeckoID: holding.asset.coingeckoID, name: holding.asset.name))
                 }
                 seen[key] = .init(amount: holding.amount, symbol: holding.asset.symbol, decimals: holding.asset.decimals)
             }
@@ -230,7 +237,7 @@ actor ReceiptWatchCenter {
         if events.count > maxPerCheck {
             let rest = events.count - maxPerCheck
             try? await center.add(UNNotificationRequest(
-                identifier: "recebimento.mais", content: content(title: "Mais \(rest) recebimentos", body: String(localized: "Abra a Atividade para ver.")), trigger: nil
+                identifier: "recebimento.mais", content: content(title: String(localized: "Mais \(rest) recebimentos"), body: String(localized: "Abra a Atividade para ver.")), trigger: nil
             ))
         }
     }
@@ -263,7 +270,8 @@ enum BackgroundCheck {
     static func reschedule() {
         let prices = PriceAlertStore.load()
         let receipts = ReceiptWatchStore.load()
-        if (prices.enabled && !prices.coins.isEmpty) || receipts.enabled || !LimitOrderWatchStore.load().orders.isEmpty {
+        if (prices.enabled && !prices.coins.isEmpty) || receipts.enabled || !LimitOrderWatchStore.load().orders.isEmpty
+            || WidgetSnapshot.read() != nil {
             PriceAlertCenter.schedule()
         } else {
             PriceAlertCenter.cancelSchedule()

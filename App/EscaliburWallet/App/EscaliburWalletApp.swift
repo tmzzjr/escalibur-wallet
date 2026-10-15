@@ -16,6 +16,9 @@ struct EscaliburWalletApp: App {
         PlatformGuards.install()
         NotificationRelay.install()
         UITabBar.appearance().unselectedItemTintColor = UIColor(Palette.inkMuted)
+        // Alertas e menus de confirmacao do sistema: botoes em branco. Sem isto, o alerta
+        // aberto de uma tela com tint rosa (campo, alternador) herdava o rosa da acao.
+        UIView.appearance(whenContainedInInstancesOf: [UIAlertController.self]).tintColor = UIColor(Palette.ink)
     }
 
     var body: some Scene {
@@ -40,6 +43,7 @@ struct EscaliburWalletApp: App {
             await PriceAlertCenter.shared.backgroundRun()
             await ReceiptWatchCenter.shared.backgroundRun()
             await LimitOrderWatch.shared.check()
+            await WidgetFeed.shared.refresh()
         }
     }
 }

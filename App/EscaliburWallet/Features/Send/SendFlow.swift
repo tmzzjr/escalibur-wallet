@@ -371,7 +371,7 @@ struct SendStages: View {
                                     Text(verbatim: Fmt.address(item.address)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
                                 }
                                 Spacer()
-                                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                                Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
                             }
                             .padding(Space.sm)
                             .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
@@ -936,7 +936,7 @@ struct SendStages: View {
                     HStack(spacing: Space.xxs) {
                         Text("\(Fmt.crypto(min(model.locked, limit), decimals: holding.asset.decimals, symbol: holding.asset.symbol)) em ordens de venda abertas")
                             .typeStyle(.note).foregroundStyle(lockedOver ? Palette.caution : Palette.inkSoft)
-                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                        Image(systemName: "chevron.forward").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkMuted)
                     }
                 }
                 .buttonStyle(.plain)

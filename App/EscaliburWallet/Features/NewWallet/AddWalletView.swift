@@ -92,7 +92,7 @@ struct AddWalletView: View {
                     Text(subtitle).typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 }
                 Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
             }
             .padding(.horizontal, Space.gutter)
             .frame(height: 72)

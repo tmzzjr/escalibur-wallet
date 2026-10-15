@@ -110,8 +110,17 @@ struct Contact: Codable, Equatable, Identifiable, Hashable {
 struct Settings: Codable, Equatable {
     /// A moeda em que os precos sao buscados ("brl", "usd", "eur"). Segue a unidade
     /// escolhida em Ativos (`choose`), a unica escolha de moeda do app desde 12/10/2026;
-    /// com o bitcoin escolhido, o dolar.
-    var currency: String = "brl"
+    /// com o bitcoin escolhido, o dolar. Quem instala comeca na moeda da regiao do aparelho.
+    var currency: String = Settings.regionCurrency
+
+    /// Real no Brasil, euro na zona do euro, dolar no resto do mundo.
+    static var regionCurrency: String {
+        switch Locale.current.currency?.identifier {
+        case "BRL": return "brl"
+        case "EUR": return "eur"
+        default: return "usd"
+        }
+    }
     /// Unidade escolhida em Ativos (`Fmt.DisplayUnit`). Nil: a moeda do app.
     var totalUnit: String?
 

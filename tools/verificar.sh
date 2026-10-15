@@ -230,11 +230,21 @@ grep -q 'sceneCaptureState' "$APP/App/PlatformGuards.swift" && grep -q 'isCaptur
 grep -q 'isExcludedFromBackup = true' "$APP/Services/Metadata.swift" && ok "metadados fora do backup do iCloud" || aviso "metadados podem ir para o backup"
 # Protecao mais fraca que a Complete: so o marcador de instalacao, o arquivo dos
 # alertas de preco (nao diz o que a carteira tem), o do aviso de recebimento (so os
-# enderecos publicos) e o das ordens limite abertas (so o UID de cada uma), que precisam
-# abrir com o iPhone bloqueado.
+# enderecos publicos), o das ordens limite abertas (so o UID de cada uma) e o do widget
+# (so a moeda e o preco), que precisam abrir com o iPhone bloqueado.
 achados=$(procurar 'UntilFirstUserAuthentication|completeUnlessOpen|CompleteUnlessOpen|FileProtectionType\.none|noFileProtection' "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET" "$ENG" \
-    | grep -vE "^$APP/(Services/KeyServices|Services/PriceAlerts|Services/ReceiptWatch|Services/LimitOrderWatch)\.swift:")
-[ -n "$achados" ] && { aviso "protecao de arquivo mais fraca fora das quatro excecoes"; echo "$achados"; } || ok "protecao abaixo da Complete so no marcador de instalacao, nos alertas de preco, no aviso de recebimento e nas ordens abertas"
+    | grep -vE "^$APP/(Services/KeyServices|Services/PriceAlerts|Services/ReceiptWatch|Services/LimitOrderWatch|Services/WidgetFeed)\.swift:")
+[ -n "$achados" ] && { aviso "protecao de arquivo mais fraca fora das cinco excecoes"; echo "$achados"; } || ok "protecao abaixo da Complete so no marcador de instalacao, nos alertas de preco, no aviso de recebimento, nas ordens abertas e no widget"
+# O widget: so o arquivo publico do preco. Quem grava nao toca cofre, chaveiro,
+# metadados nem saldo; o widget nao importa o Kit, nao fala com a rede e nao le chaveiro.
+widget_feed="$APP/Services/WidgetFeed.swift"
+achados=$(grep -nE 'import (EscaliburKeys|EscaliburEngines|Security|LocalAuthentication)|KeyServices|RootKeyVault|SecretStore|MetadataStore|SecureBytes|AppSession|Portfolio|WalletMeta|DerivedAccount|balance|address' "$widget_feed" 2>/dev/null | grep -vE '^[0-9]+:[[:space:]]*//')
+[ -n "$achados" ] && { aviso "o arquivo do widget toca cofre, chaveiro, metadados, saldo ou endereco"; echo "$achados"; } || ok "o arquivo do widget so leva a moeda e o preco, sem cofre, chaveiro, metadados, saldo nem endereco"
+achados=$(find App/EscaliburWidgets App/Shared -name '*.swift' | xargs grep -nE 'import (Escalibur|Security|LocalAuthentication|Network)|URLSession|URLRequest|NWConnection|SecItem|Keychain|UserDefaults' 2>/dev/null)
+[ -n "$achados" ] && { aviso "o widget importa o Kit, fala com a rede ou le o chaveiro"; echo "$achados"; } || ok "o widget so le o arquivo do App Group: sem Kit, sem rede, sem chaveiro"
+chaves=$(/usr/libexec/PlistBuddy -c "Print" App/EscaliburWidgets/EscaliburWidgets.entitlements | grep -E '^\s+[a-z][^ ]* = ' | awk '{print $1}' | sort | tr '\n' ' ')
+grupos=$(/usr/libexec/PlistBuddy -c "Print :com.apple.security.application-groups" App/EscaliburWidgets/EscaliburWidgets.entitlements 2>/dev/null | grep -c 'group.com.thomazjr.escalibur.wallet$')
+[ "$chaves" = "com.apple.security.application-groups " ] && [ "$grupos" = "1" ] && ok "entitlements do widget: so o App Group da carteira" || aviso "entitlements do widget inesperados: $chaves"
 recebimento="$APP/Services/ReceiptWatch.swift"
 achados=$(grep -nE 'import (EscaliburKeys|Security|LocalAuthentication)|KeyServices|RootKeyVault|SecretStore|MetadataStore|SecureBytes|AppSession|Portfolio|WalletMeta|privateKey|mnemonic' "$recebimento" 2>/dev/null | grep -vE '^[0-9]+:[[:space:]]*//')
 [ -n "$achados" ] && { aviso "o aviso de recebimento toca cofre, chaveiro ou metadados"; echo "$achados"; } || ok "o aviso de recebimento (segundo plano) so le enderecos publicos e saldo, sem cofre, chaveiro nem metadados"
@@ -259,8 +269,10 @@ if plutil -lint "$manifesto" >/dev/null 2>&1 \
 else
     aviso "manifesto de privacidade ausente, invalido ou fora do projeto"
 fi
-chaves=$(/usr/libexec/PlistBuddy -c "Print" "$APP/Resources/EscaliburWallet.entitlements" | grep -E '^\s+[a-z]' | awk '{print $1}' | sort | tr '\n' ' ')
-[ "$chaves" = "com.apple.developer.default-data-protection " ] && ok "entitlements: so a protecao de dados" || aviso "entitlements inesperados: $chaves"
+chaves=$(/usr/libexec/PlistBuddy -c "Print" "$APP/Resources/EscaliburWallet.entitlements" | grep -E '^\s+[a-z][^ ]* = ' | awk '{print $1}' | sort | tr '\n' ' ')
+grupos=$(/usr/libexec/PlistBuddy -c "Print :com.apple.security.application-groups" "$APP/Resources/EscaliburWallet.entitlements" 2>/dev/null | grep -cE '^\s+group\.')
+[ "$chaves" = "com.apple.developer.default-data-protection com.apple.security.application-groups " ] && [ "$grupos" = "1" ] \
+    && ok "entitlements: a protecao de dados e um App Group so (o do widget)" || aviso "entitlements inesperados: $chaves"
 achados=$(grep -oE 'NS[A-Za-z]+UsageDescription' "$APP/Resources/Info.plist" | sort -u | grep -vE 'NSFaceIDUsageDescription|NSCameraUsageDescription|NSMicrophoneUsageDescription|NSSpeechRecognitionUsageDescription')
 [ -n "$achados" ] && { aviso "permissao fora da lista"; echo "$achados"; } || ok "permissoes: Face ID, camera, microfone e fala, nada mais"
 achados=$(swift_em "$APP" | xargs grep -lE 'UIPasteboard' 2>/dev/null | grep -vE 'Receive/ReceiveSheet\.swift|NewWallet/ImportPhraseView\.swift|NewWallet/SecurityScreens\.swift')
@@ -295,14 +307,17 @@ fi
 secao "privacidade"
 faltando=""
 for host in $(sed 's|https://||' hosts.lock); do
-    grep -qF "\`$host\`" "$APP/Resources/Legal/privacidade.md" || faltando="$faltando $host"
+    for politica in privacidade.md privacidade-en.md; do
+        grep -qF "\`$host\`" "$APP/Resources/Legal/$politica" || faltando="$faltando $host($politica)"
+    done
 done
-[ -n "$faltando" ] && aviso "host fora da Politica de privacidade:$faltando" || ok "todo host do hosts.lock esta na Politica de privacidade"
+[ -n "$faltando" ] && aviso "host fora da Politica de privacidade:$faltando" || ok "todo host do hosts.lock esta na Politica de privacidade, em portugues e em ingles"
 # Contato (diretriz 1.5 da App Store e LGPD, art. 9): o e-mail do app e o mesmo da
 # pagina de suporte, dos Termos e da Politica.
 email=$(grep -oE 'static let email = "[^"]+"' "$APP/Features/Settings/SupportView.swift" 2>/dev/null | sed -E 's/.*"(.*)"/\1/')
 faltando=""
-for arquivo in site/suporte.md "$APP/Resources/Legal/termos.md" "$APP/Resources/Legal/privacidade.md"; do
+for arquivo in site/suporte.md "$APP/Resources/Legal/termos.md" "$APP/Resources/Legal/privacidade.md" \
+    "$APP/Resources/Legal/termos-en.md" "$APP/Resources/Legal/privacidade-en.md"; do
     grep -qF "$email" "$arquivo" 2>/dev/null || faltando="$faltando $arquivo"
 done
 if [ -z "$email" ]; then

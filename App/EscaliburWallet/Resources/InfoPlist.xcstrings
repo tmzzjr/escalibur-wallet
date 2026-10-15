@@ -18,10 +18,82 @@
       "comment" : "Privacy - Camera Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تقرأ الكاميرا رمز QR الخاص بالعنوان. لا يتم حفظ أي صورة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Kamera liest den QR-Code einer Adresse. Es wird kein Bild gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera reads an address QR code. No image is saved."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La cámara lee el código QR de una dirección. No se guarda ninguna imagen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’appareil photo lit le QR code d’une adresse. Aucune image n’est conservée."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कैमरा किसी पते का QR कोड पढ़ता है। कोई इमेज सेव नहीं की जाती।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera membaca kode QR sebuah alamat. Tidak ada gambar yang disimpan."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラはアドレスのQRコードを読み取ります。画像は保存されません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카메라로 주소 QR 코드를 읽습니다. 이미지는 저장되지 않습니다."
+          }
+        },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "A câmera lê o QR de um endereço. Nenhuma imagem é guardada."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera bir adresin QR kodunu okur. Hiçbir görüntü kaydedilmez."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera dùng để đọc mã QR của một địa chỉ. Không hình ảnh nào được lưu."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相机用于读取地址二维码，不会保存任何图像。"
           }
         }
       }
@@ -30,10 +102,82 @@
       "comment" : "Privacy - Face ID Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يفتح Face ID التطبيق ويؤكد عمليات الإرسال. يظل رمز PIN صالحًا إذا تعذّر Face ID."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID entsperrt die App und bestätigt Transaktionen. Deine PIN funktioniert weiter, falls Face ID fehlschlägt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID unlocks the app and confirms sends. Your PIN still works if Face ID fails."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID desbloquea la app y confirma los envíos. Tu PIN sigue funcionando si Face ID falla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID déverrouille l’app et confirme les envois. Votre code PIN reste valable si Face ID échoue."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID ऐप अनलॉक करता है और भेजने की पुष्टि करता है। Face ID काम न करे, तो भी आपका PIN चलता है।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID membuka kunci aplikasi dan mengonfirmasi pengiriman. PIN tetap berlaku jika Face ID gagal."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face IDでAppのロックを解除し、送金を確認します。Face IDが使えないときもPINを使えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID로 앱 잠금을 해제하고 전송을 확인합니다. Face ID가 실패해도 PIN을 사용할 수 있습니다."
+          }
+        },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "O Face ID destrava o app e confirma envios. O PIN continua valendo quando ele falhar."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID uygulamanın kilidini açar ve gönderimleri onaylar. Face ID başarısız olursa PIN'in geçerli kalır."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID mở khóa ứng dụng và xác nhận giao dịch gửi. Mã PIN vẫn dùng được nếu Face ID không thành công."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Face ID 用于解锁 App 并确认发送。Face ID 失败时，PIN 仍然有效。"
           }
         }
       }
@@ -42,10 +186,82 @@
       "comment" : "Privacy - Microphone Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستمع الميكروفون إلى عبارة التأكيد الصوتي، فقط عندما تفعّل هذه الطبقة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Mikrofon hört deinen Bestätigungssatz, nur wenn du die Sprachbestätigung aktivierst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The microphone listens for your voice confirmation phrase, only when you turn that layer on."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El micrófono escucha tu frase de confirmación por voz, solo cuando activas esa capa."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le micro écoute votre phrase de confirmation vocale, uniquement si vous activez cette protection."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "माइक्रोफ़ोन आपका वॉइस पुष्टि वाक्यांश सुनता है, सिर्फ़ तब जब आप यह सुरक्षा चालू करते हैं।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon mendengarkan frasa konfirmasi suara Anda, hanya saat Anda mengaktifkan lapisan ini."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイクは、音声確認をオンにしたときだけ確認フレーズを聞き取ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "마이크는 음성 확인을 켰을 때만 확인 문구를 듣습니다."
+          }
+        },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "O microfone ouve a frase de confirmação por voz, só quando você liga essa camada."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon, sesli onay ifadeni yalnızca bu katmanı açtığında dinler."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrô chỉ nghe cụm từ xác nhận bằng giọng nói khi bạn bật lớp bảo vệ này."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在你开启语音确认后，麦克风才会聆听你的确认短语。"
           }
         }
       }
@@ -54,10 +270,82 @@
       "comment" : "Privacy - Speech Recognition Usage Description",
       "extractionState" : "extracted_with_value",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يتم التعرّف على عبارة التأكيد الصوتي على هذا الـ iPhone، دون إرسال الصوت إلى أي خادم."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Bestätigungssatz wird auf diesem iPhone erkannt, ohne Audio an einen Server zu senden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your voice confirmation phrase is recognized on this iPhone, without sending the audio to any server."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu frase de confirmación por voz se reconoce en este iPhone, sin enviar el audio a ningún servidor."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre phrase de confirmation vocale est reconnue sur cet iPhone, sans envoyer l’audio à aucun serveur."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपका वॉइस पुष्टि वाक्यांश इसी iPhone पर पहचाना जाता है, ऑडियो किसी सर्वर पर भेजे बिना।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frasa konfirmasi suara Anda dikenali di iPhone ini, tanpa mengirim audio ke server mana pun."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声確認フレーズはこのiPhone上で認識され、音声がサーバに送られることはありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "음성 확인 문구는 이 iPhone에서 인식되며, 오디오는 어떤 서버로도 전송되지 않습니다."
+          }
+        },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "A frase de confirmação por voz é reconhecida neste iPhone, sem enviar o áudio para servidor nenhum."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sesli onay ifaden bu iPhone'da tanınır, ses hiçbir sunucuya gönderilmez."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cụm từ xác nhận bằng giọng nói được nhận dạng ngay trên iPhone này, không gửi âm thanh đến máy chủ nào."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音确认短语在此 iPhone 上识别，不会将音频发送到任何服务器。"
           }
         }
       }

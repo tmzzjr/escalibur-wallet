@@ -16,6 +16,10 @@ struct SealEnvelopeFlow: View {
     let onClose: () -> Void
 
     @State private var step: Step = .intro
+    /// Em que parte do lacre estamos, para a tela dizer: 0 a senha fica cara de adivinhar
+    /// (o Argon2, quase todo o tempo), 1 cifra a senha da carteira, 2 grava o arquivo.
+    @State private var sealPart = 0
+    @State private var sealStarted = Date()
     @State private var phrase: SecureBytes?
     @State private var passphrase: SecureBytes?
     @State private var password = SecureBytes(capacity: 256)
@@ -74,6 +78,20 @@ struct SealEnvelopeFlow: View {
             // Na mesma prioridade do lacre: em `.utility` o iOS mede nos nucleos de
             // eficiencia e a calibracao escolhe menos passes do que cabem.
             kdf = await Task.detached(priority: .userInitiated) { KDFCalibration.calibrate() }.value
+            #if DEBUG
+            // `-tela lacrando`: o lacre de mentira, para ver a tela (nada e cifrado).
+            if DebugDemo.screen == "lacrando" {
+                sealStarted = .now
+                step = .sealing
+                try? await Task.sleep(for: .seconds(KDFCalibration.estimatedSeconds(for: kdf)))
+                sealPart = 1
+                try? await Task.sleep(for: .milliseconds(450))
+                sealPart = 2
+                sealed = SealedFile(url: FileManager.default.temporaryDirectory.appendingPathComponent("envelope-7F3A.esclbr"), name: "envelope-7F3A.esclbr")
+                try? await Task.sleep(for: .milliseconds(450))
+                step = .done
+            }
+            #endif
         }
     }
 
@@ -297,19 +315,32 @@ struct SealEnvelopeFlow: View {
     }
 
     /// Lacrando e lacrado dividem a ilustracao, para a aba fechar na mesma cena em
-    /// que os blocos estavam caindo.
+    /// que os blocos estavam caindo. Tudo centrado: a ilustracao, o que esta acontecendo
+    /// e, no fim, o arquivo.
     private var sealStage: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            EnvelopeChain(mode: step == .done ? .sealed : .working).padding(.top, Space.sm).padding(.bottom, Space.xl)
+        VStack(spacing: 0) {
+            Spacer(minLength: Space.md)
+            EnvelopeChain(mode: step == .done ? .sealed : .working).padding(.bottom, Space.lg)
             if step == .done {
-                Text("Envelope lacrado").typeStyle(.title).foregroundStyle(Palette.ink)
-                Text("O arquivo se chama \(sealed?.name ?? "") e não diz de quem é nem o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira.")
-                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
+                VStack(spacing: Space.sm) {
+                    Text("Envelope lacrado").typeStyle(.title).foregroundStyle(Palette.ink)
+                    if let sealed {
+                        HStack(spacing: Space.xs) {
+                            Image(systemName: "lock.doc").font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                            Text(verbatim: sealed.name).font(TypeStyle.mono.font).foregroundStyle(Palette.ink).lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    Text("O arquivo não diz de quem é nem o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira.")
+                        .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                }
+                .multilineTextAlignment(.center)
+                .transition(.opacity.combined(with: .offset(y: 8)))
                 if weakSealed {
                     Banner(kind: .caution, title: String(localized: "Senha muito fraca: guarde o arquivo num pendrive ou no seu computador, nunca na nuvem nem por e-mail."))
                         .padding(.top, Space.md)
                 }
-                Spacer()
+                Spacer(minLength: Space.md)
                 if let sealed {
                     ShareLink(item: sealed.url) {
                         Text("Salvar ou enviar o arquivo").typeStyle(.action)
@@ -318,16 +349,40 @@ struct SealEnvelopeFlow: View {
                     .buttonStyle(PrimaryStyle())
                 }
                 Text("Para abrir: Ajustes, Abrir um envelope, neste ou em outro iPhone com o app.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).multilineTextAlignment(.center)
+                    .padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text("Lacrando o envelope").typeStyle(.title).foregroundStyle(Palette.ink)
-                Text("Leva \(Fmt.aboutSeconds(KDFCalibration.estimatedSeconds(for: kdf))), só neste iPhone. A senha do envelope não sai dele.")
-                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
-                Spacer()
+                VStack(spacing: Space.sm) {
+                    Text("Lacrando o envelope").typeStyle(.title).foregroundStyle(Palette.ink)
+                    Text(sealPartText)
+                        .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                        .contentTransition(.opacity)
+                        .animation(Motion.fade, value: sealPart)
+                    SealProgress(started: sealStarted, estimate: KDFCalibration.estimatedSeconds(for: kdf), finished: sealPart > 0)
+                        .frame(width: 220)
+                        .padding(.top, Space.sm)
+                    Text("Leva \(Fmt.aboutSeconds(KDFCalibration.estimatedSeconds(for: kdf))), só neste iPhone, sem internet.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                }
+                .multilineTextAlignment(.center)
+                Spacer(minLength: Space.md)
+                Text("A senha do envelope não sai deste iPhone.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).multilineTextAlignment(.center)
+                    .padding(.bottom, Space.sm)
             }
         }
+        .frame(maxWidth: .infinity)
+        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: step)
         .sensoryFeedback(.success, trigger: sealed?.id)
+    }
+
+    private var sealPartText: String {
+        switch sealPart {
+        case 0: return String(localized: "Deixando a senha difícil de adivinhar")
+        case 1: return String(localized: "Cifrando a senha da carteira")
+        default: return String(localized: "Gravando o arquivo")
+        }
     }
 
     // MARK: Acoes
@@ -408,6 +463,8 @@ struct SealEnvelopeFlow: View {
         }
         guard let phrase else { return }
         error = nil
+        sealPart = 0
+        sealStarted = .now
         step = .sealing
         let (password, label, passphrase, kdf) = (self.password, String(self.label.prefix(64)), self.passphrase, self.kdf)
         let generated: Double? = usingSuggestion ? PasswordStrength.suggestionBits() : nil
@@ -425,10 +482,16 @@ struct SealEnvelopeFlow: View {
             passphrase?.wipe()
             self.phrase = nil
             self.passphrase = nil
+            // A cifra e a gravacao levam milissegundos: a tela mostra cada uma por um
+            // instante, para o dono ver o que aconteceu, e so entao o envelope fecha.
+            sealPart = 1
+            try? await Task.sleep(for: .milliseconds(450))
+            sealPart = 2
             sealed = try write(data)
             var updated = wallet
             updated.envelopeSealedAt = .now
             session.update(updated)
+            try? await Task.sleep(for: .milliseconds(450))
             step = .done
         } catch Envelope.Failure.notEnoughMemory {
             self.error = String(localized: "Pouca memória livre agora. Feche outros apps e tente de novo.")
@@ -503,5 +566,33 @@ private struct EnvelopeOptionButton: View {
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// A barra do lacre: anda pelo tempo que este iPhone costuma levar e para em 92% ate o
+/// Argon2 terminar de verdade; dai enche. O tempo e estimado, o fim nao.
+private struct SealProgress: View {
+    let started: Date
+    let estimate: Double
+    let finished: Bool
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: finished)) { timeline in
+            let elapsed = timeline.date.timeIntervalSince(started)
+            let raw = min(max(elapsed / max(estimate, 0.5), 0), 1)
+            // Desacelera perto do fim: 1 - (1 - t)^2, ate 92%.
+            let fraction = finished ? 1 : 0.92 * (1 - (1 - raw) * (1 - raw))
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Palette.edge)
+                    Capsule().fill(Palette.accent)
+                        .frame(width: max(6, geo.size.width * fraction))
+                        .animation(.easeOut(duration: 0.3), value: finished)
+                }
+            }
+            .frame(height: 6)
+        }
+        .accessibilityElement()
+        .accessibilityLabel(String(localized: "Lacrando"))
     }
 }

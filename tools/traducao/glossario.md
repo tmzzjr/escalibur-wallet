@@ -1,0 +1,83 @@
+# Glossário de tradução
+
+O catálogo (`App/EscaliburWallet/Resources/Localizable.xcstrings`) tem o português do Brasil
+como origem e doze idiomas: en, es, fr, de, hi, zh-Hans, ja, ko, tr, id, vi, ar. Este arquivo
+fixa os termos para que a mesma coisa tenha o mesmo nome em todas as telas. Em cada idioma, o
+nome é o que as grandes carteiras usam nele (Trust Wallet, MetaMask, Coinbase Wallet, OKX
+Wallet), nunca uma tradução literal que ninguém usa.
+
+## Regras
+
+- Os campos ficam: `%@`, `%lld`, `%llu`, `%u`, `%%`. A ordem pode mudar com posição
+  (`%2$@ ... %1$@`). O conferidor (`tools/traducao/conferir.py`) recusa o que não bater.
+- Espaço no começo ou no fim do original fica: o texto é colado em outro.
+- Sem travessão nem meia-risca, em idioma nenhum. Reescrever a frase.
+- Tom: frases curtas, diretas, de produto de consumo (como a Apple escreve). Sem
+  exclamação, sem "por favor" sobrando, sem jargão onde há palavra comum.
+- Tratamento: informal onde o idioma usa assim em app (en "you", es "tú", fr "vous",
+  de "du", tr "sen"; ja, ko e zh no registro neutro e educado de app; ar no padrão
+  moderno, masculino genérico como os apps fazem).
+- Não se traduz: Escalibur, Escalibur Wallet, Face ID, Touch ID, Optic ID, iPhone,
+  iCloud, App Store, Secure Enclave, GitHub, nomes de rede (Bitcoin, Ethereum, BNB Chain,
+  Solana, XRP Ledger, Stellar, Tron, TON, Sui, Cardano, Polkadot, NEAR, Aptos...),
+  símbolos (BTC, ETH, USDT, USDC...), provedores (CoW, Across, CCTP, Circle, Velora,
+  KyberSwap, LI.FI, De¹, Jupiter, NodeReal, CoinGecko), padrões (BIP-39, EIP-712,
+  ERC-20, TRC-20, Token-2022, SEP-0005), formatos (`.esclbr`).
+- Palavras da frase de recuperação (BIP-39) nunca aparecem no catálogo: a lista é sempre
+  a do padrão, em inglês, e não se traduz.
+
+## Termos
+
+| Português (origem) | English | Nota |
+|---|---|---|
+| senha da carteira (as 12 ou 24 palavras) | recovery phrase | O app chama assim para o leigo; nos idiomas, o termo das carteiras. |
+| palavras (da senha da carteira) | words | |
+| PIN | PIN | |
+| frase de voz / confirmação por voz | voice phrase / voice confirmation | |
+| Envelope Escalibur / envelope | Escalibur Envelope / envelope | Arquivo cifrado com a senha da carteira. |
+| lacrar o envelope / abrir o envelope | seal the envelope / open the envelope | |
+| senha do envelope | envelope password | |
+| passphrase | passphrase | A 25ª palavra do BIP-39. |
+| Carteira (aba) / carteira | Wallet / wallet | |
+| Mercado (aba) | Market | |
+| Trocar (aba) / troca | Swap / swap | |
+| Atividade (aba) | Activity | |
+| Ajustes (aba) | Settings | |
+| Enviar / Receber | Send / Receive | |
+| ordem limite | limit order | |
+| ponte (entre redes) | bridge | |
+| rede | network | |
+| endereço | address | |
+| tag de destino (XRP) | destination tag | Nas exchanges: "Destination Tag". |
+| memo | memo | |
+| comentário (TON) | comment | |
+| taxa da rede | network fee | |
+| taxa da Escalibur | Escalibur fee | |
+| cotação | quote | |
+| tolerância de preço | slippage | |
+| impacto no preço | price impact | |
+| mínimo garantido | minimum received | |
+| provedor | provider | |
+| autorização (approve) / autorizar | approval / approve | |
+| sem limite (autorização) | unlimited | |
+| revisar / revisão | review | |
+| assinar / assinado | sign / signed | |
+| transmitir | broadcast | |
+| confirmação (da rede) | confirmation | |
+| linha de confiança (XRPL, Stellar) | trustline | |
+| reserva (XRPL, Stellar) | reserve | |
+| conta de token (Solana) | token account | |
+| mint (Solana) | mint | |
+| emissor | issuer | |
+| contrato | contract | |
+| golpe | scam | |
+| suspeito | suspicious | |
+| verificado | verified | |
+| moeda custom | custom token | |
+| só observar | watch-only | |
+| aviso de recebimento | incoming alert | |
+| alerta de preço | price alert | |
+| apagar depois de PINs errados | erase after failed PINs | |
+| modo reforçado | reinforced mode | |
+| saldo | balance | |
+| explorador da rede | block explorer | |

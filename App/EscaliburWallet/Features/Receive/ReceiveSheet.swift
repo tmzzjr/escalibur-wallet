@@ -270,7 +270,7 @@ struct ReceiveSheet: View {
                     Text(verbatim: result.name).typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
                 }
                 Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
             }
             .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
         }
@@ -401,7 +401,7 @@ struct ReceiveSheet: View {
                         Text("\(ReceiveCoin.standard(chain)) · não verificado").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                     }
                     Spacer()
-                    Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                    Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
                 }
                 .frame(minHeight: Height.row)
                 .contentShape(Rectangle())
@@ -433,7 +433,7 @@ struct ReceiveSheet: View {
                 if coin.assets.count > 1 {
                     Text("\(coin.assets.count) redes").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 }
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
             }
             .padding(.horizontal, Space.gutter).frame(minHeight: Height.row)
         }
@@ -464,7 +464,7 @@ struct ReceiveSheet: View {
                                         }
                                     }
                                     Spacer()
-                                    Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                                    Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
                                 }
                                 .frame(minHeight: Height.row)
                                 .contentShape(Rectangle())

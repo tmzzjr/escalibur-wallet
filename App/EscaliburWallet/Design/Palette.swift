@@ -28,6 +28,9 @@ enum Palette {
     // Mercado e estado.
     // Alta em lima, a cor da marca junto do roxo (decisao do dono, 27/09/2026).
     static let up = Color(hex: 0xC4F135)
+    /// Conferido e aprovado: o verde do sistema no escuro, so para o "tudo certo" de uma
+    /// checagem (o lima fica para alta e ganho).
+    static let success = Color(hex: 0x32D74B)
     static let upTint = Color(hex: 0x1F260B)
     static let down = Color(hex: 0xFF4D3D)
     static let downTint = Color(hex: 0x2D1413)

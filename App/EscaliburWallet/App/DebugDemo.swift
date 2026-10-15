@@ -246,6 +246,7 @@ struct DemoEnvelopes: ViewModifier {
     @State private var progress = false
     @State private var reviewPreview = false
     @State private var animationPreview = false
+    @State private var widgetPreview = false
     @State private var tradeStage: TradeReviewFlow.Stage?
     @State private var shown = false
 
@@ -289,6 +290,7 @@ struct DemoEnvelopes: ViewModifier {
                 }
             }
             .fullScreenCover(item: $sealing) { wallet in SealEnvelopeFlow(wallet: wallet) { sealing = nil } }
+            .fullScreenCover(isPresented: $widgetPreview) { WidgetPreviewScreen() }
             .fullScreenCover(isPresented: $opening) { OpenEnvelopeFlow(initialURL: DebugDemo.envelopeURL) { opening = false } }
             .fullScreenCover(item: $newWallet) { screen in
                 switch screen {
@@ -312,7 +314,7 @@ struct DemoEnvelopes: ViewModifier {
                 guard !shown, let first = session.metadata.wallets.first else { return }
                 shown = true
                 await DebugDemo.settle()
-                if DebugDemo.screen == "lacrar" { sealing = first }
+                if ["lacrar", "lacrando"].contains(DebugDemo.screen) { sealing = first }
                 if ["abrir", "envelope-como"].contains(DebugDemo.screen) { opening = true }
                 if DebugDemo.screen == "voz" { voice = true }
                 if DebugDemo.screen == "alertas" { alerts = true }
@@ -320,6 +322,7 @@ struct DemoEnvelopes: ViewModifier {
                 if DebugDemo.screen == "andamento" { progress = true }
                 if DebugDemo.screen == "revisao" { reviewPreview = true }
                 if DebugDemo.screen == "animacao" { animationPreview = true }
+                if DebugDemo.screen == "widgets" { widgetPreview = true }
                 if DebugDemo.screen == "carregando" { tradeStage = .planning }
                 if DebugDemo.screen == "enviando" { tradeStage = .sending }
                 newWallet = DebugDemo.screen.flatMap(DemoNewWallet.init(rawValue:))
@@ -391,6 +394,48 @@ struct DemoReviewPreview: View {
             PrimaryButton(title: "Criar ordem limite") {}.padding(.horizontal, Space.gutter).padding(.bottom, Space.xs)
         }
         .background(Palette.void.ignoresSafeArea())
+    }
+}
+
+/// `-tela widgets`: os cinco tamanhos do widget com o arquivo que o app gravou (ou o
+/// exemplo), na medida de um iPhone de 6,9 polegadas, para conferir sem montar a tela
+/// bloqueada do simulador.
+struct WidgetPreviewScreen: View {
+    var body: some View {
+        let snapshot = WidgetSnapshot.read()
+        let entry = PriceEntry(date: .now, snapshot: snapshot ?? .sample,
+                               logo: WidgetSnapshot.logo.flatMap { UIImage(contentsOfFile: $0.path) })
+        ScrollView {
+            VStack(spacing: 18) {
+                Text(snapshot == nil ? "Exemplo (sem arquivo)" : "Arquivo do widget: \(snapshot?.coinID ?? "")")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                // Tela bloqueada: sobre um papel de parede escuro, como o sistema mostra.
+                VStack(spacing: 12) {
+                    PriceWidgetView(entry: entry, family: .accessoryInline).frame(width: 240, height: 22)
+                    Text("09:41").font(.system(size: 86, weight: .bold, design: .rounded)).foregroundStyle(.white.opacity(0.9))
+                    HStack(spacing: 10) {
+                        PriceWidgetView(entry: entry, family: .accessoryCircular).frame(width: 76, height: 76)
+                        PriceWidgetView(entry: entry, family: .accessoryRectangular).frame(width: 172, height: 76)
+                    }
+                    .foregroundStyle(.white)
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity)
+                .background(LinearGradient(colors: [Color(hex: 0x3A1030), Color(hex: 0x101018)], startPoint: .top, endPoint: .bottom))
+                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                HStack(spacing: 16) {
+                    PriceWidgetView(entry: entry, family: .systemSmall).padding(16)
+                        .frame(width: 170, height: 170).background(WidgetColor.void)
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    Spacer(minLength: 0)
+                }
+                PriceWidgetView(entry: entry, family: .systemMedium).padding(16)
+                    .frame(width: 364, height: 170).background(WidgetColor.void)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            }
+            .padding(Space.gutter)
+        }
+        .background(Color(hex: 0x2A2A30).ignoresSafeArea())
     }
 }
 #endif

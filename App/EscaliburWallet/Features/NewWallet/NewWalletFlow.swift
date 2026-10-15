@@ -107,7 +107,7 @@ struct NewWalletFlow: View {
                             default: step = .record
                             }
                         } label: {
-                            Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                            Image(systemName: "chevron.backward").font(.system(size: 17, weight: .semibold)).foregroundStyle(Palette.inkSoft)
                         }
                         .accessibilityLabel("Voltar")
                     }

@@ -375,6 +375,11 @@ struct MarketChartSection: View {
                 points = snapshot.points
                 staleSince = snapshot.isStale ? snapshot.fetchedAt : nil
                 failed = false
+                // A ultima moeda aberta vira a dos widgets, com a linha que acabou de chegar.
+                if range == .day, !snapshot.isStale, let fiat = Fmt.Currency(rawValue: currency.uppercased()) {
+                    WidgetFeed.shared.viewed(coinID: coingeckoID, symbol: symbol, name: name, points: snapshot.points,
+                                             price: livePrice, change: liveChange, currency: fiat)
+                }
             } catch {
                 failed = true
             }

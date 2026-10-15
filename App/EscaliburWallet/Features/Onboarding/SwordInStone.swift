@@ -58,13 +58,19 @@ struct SwordInStone: View {
         .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .accessibilityHidden(true)
         .sensoryFeedback(.impact(weight: .heavy, intensity: 0.9), trigger: seated) { _, new in new && !reduceMotion }
+        // A espada nunca falta: se a tela sai no meio da queda, ou a queda e cortada, ela
+        // volta ja cravada.
+        .onDisappear {
+            landed = true
+            seated = true
+        }
         .task {
             guard !landed else { return }
             if reduceMotion { landed = true; seated = true; return }
-            try? await Task.sleep(nanoseconds: 250_000_000)
+            do { try await Task.sleep(nanoseconds: 250_000_000) } catch { landed = true; seated = true; return }
             // Cai acelerando e para seco na pedra; o painel desce um tico e volta.
             withAnimation(.easeIn(duration: 0.34)) { landed = true }
-            try? await Task.sleep(nanoseconds: 340_000_000)
+            do { try await Task.sleep(nanoseconds: 340_000_000) } catch { seated = true; return }
             seated = true
             jolt = 4
             withAnimation(.spring(response: 0.22, dampingFraction: 0.32)) { jolt = 0 }
@@ -184,12 +190,13 @@ struct SwordInStone: View {
                                 shade: Color(hex: 0xA6761A), deep: Color(hex: 0x6B4A0D))
     }
 
-    /// Aco. Em DEBUG, `-espada ouro` mostra a de ouro, para comparar.
+    /// Ouro (escolha do dono, 15/10/2026). Em DEBUG, `-espada aco` mostra a de aco, para
+    /// comparar.
     static let metal: Metal = {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("ouro") { return .gold }
+        if ProcessInfo.processInfo.arguments.contains("aco") { return .steel }
         #endif
-        return .steel
+        return .gold
     }()
 
     static func drawSword(_ context: GraphicsContext, _ size: CGSize, glint: CGFloat?) {

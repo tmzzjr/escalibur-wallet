@@ -530,7 +530,7 @@ private struct PhraseSlot: View {
                             .font(.system(size: 15, weight: .medium, design: .monospaced))
                             .foregroundStyle(Palette.ink).lineLimit(1).allowsHitTesting(false)
                     } else if let sealed {
-                        glyphRow(sealed, color: Palette.accent)
+                        glyphRow(sealed, color: Palette.inkSoft)
                     } else {
                         Text(verbatim: display ?? "palavra")
                             .font(.system(size: 15, weight: .medium, design: .monospaced))
@@ -541,7 +541,7 @@ private struct PhraseSlot: View {
                 } else if let typing {
                     // O que esta sendo digitado, cifrado: o campo de verdade fica por baixo,
                     // invisivel, so com o cursor.
-                    glyphRow(typing, color: Palette.ink)
+                    glyphRow(typing, color: Palette.inkSoft)
                 }
                 WordInputField(text: $text, isFocused: $isFocused, fontSize: 15, returnKey: .next, masked: typing != nil, onSubmit: onSubmit)
                 // Posicao preenchida e fora de edicao: segurar mostra a palavra enquanto

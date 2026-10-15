@@ -22,11 +22,17 @@ enum LegalDocument: String, Identifiable {
         case paragraph(String)
     }
 
+    /// Em portugues, o original; nos outros idiomas, a traducao em ingles, que diz no
+    /// comeco que o portugues prevalece.
     var blocks: [Block] {
-        let url = Bundle.main.url(forResource: rawValue, withExtension: "md")
-            ?? Bundle.main.url(forResource: rawValue, withExtension: "md", subdirectory: "Legal")
-        guard let url, let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
-        return Self.parse(text)
+        let portuguese = Bundle.main.preferredLocalizations.first?.hasPrefix("pt") ?? true
+        let names = portuguese ? [rawValue] : [rawValue + "-en", rawValue]
+        for name in names {
+            let url = Bundle.main.url(forResource: name, withExtension: "md")
+                ?? Bundle.main.url(forResource: name, withExtension: "md", subdirectory: "Legal")
+            if let url, let text = try? String(contentsOf: url, encoding: .utf8) { return Self.parse(text) }
+        }
+        return []
     }
 
     static func parse(_ text: String) -> [Block] {

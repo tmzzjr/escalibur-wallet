@@ -29,7 +29,10 @@ targets:
         excludes:
           - "Resources/Info.plist"
           - "Resources/EscaliburWallet.entitlements"
+      - path: App/Shared
+      - path: App/EscaliburWidgets/PriceWidgetViews.swift
     dependencies:
+      - target: EscaliburWidgets
       - package: EscaliburKit
         product: EscaliburCore
       - package: EscaliburKit
@@ -50,6 +53,27 @@ targets:
         CODE_SIGN_ENTITLEMENTS: App/EscaliburWallet/Resources/EscaliburWallet.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_STRICT_CONCURRENCY: complete
+  # Os widgets do preco recente (tela bloqueada e de inicio). So leem o arquivo que o app
+  # grava na pasta do App Group: sem o Kit, sem rede, sem chaveiro.
+  EscaliburWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: App/EscaliburWidgets
+        excludes:
+          - "Info.plist"
+          - "EscaliburWidgets.entitlements"
+      - path: App/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.thomazjr.escalibur.wallet.widgets
+        PRODUCT_NAME: EscaliburWidgets
+        DEVELOPMENT_TEAM: 2UNWMDD93S
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_FILE: App/EscaliburWidgets/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/EscaliburWidgets/EscaliburWidgets.entitlements
+        SWIFT_STRICT_CONCURRENCY: complete
+        SKIP_INSTALL: YES
   EscaliburWalletTests:
     type: bundle.unit-test
     platform: iOS

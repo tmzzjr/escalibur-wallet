@@ -183,7 +183,14 @@ struct EnvelopeChain: View {
             lockFade = 1 - smooth((t - 0.84) / 0.05)
         }
 
-        drawChain(context, f, sealing: sealing, opening: opening)
+        // Lacrado, a corrente some: fica so o envelope trancado (pedido do dono, 15/10/2026).
+        // Numa camada: a corrente define a opacidade de cada elo por conta propria, e o
+        // apagar vale para o conjunto.
+        var chain = context
+        if mode == .sealed { chain.opacity = 1 - smooth((f.since - 0.25) / 0.5) }
+        if chain.opacity > 0 {
+            chain.drawLayer { layer in drawChain(layer, f, sealing: sealing, opening: opening) }
+        }
 
         // O envelope da um leve assentar quando um bloco termina de entrar (ou sai).
         let kickT = (f.p - G.fall) / 0.2

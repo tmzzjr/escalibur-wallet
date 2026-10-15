@@ -121,7 +121,7 @@ struct SettingsRow: View {
             Text(title).typeStyle(.body).foregroundStyle(Palette.ink)
             Spacer()
             if let value { Text(value).typeStyle(.note).foregroundStyle(valueColor) }
-            if chevron { Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted) }
+            if chevron { Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted) }
         }
         .padding(.horizontal, Space.md)
         .frame(minHeight: Height.rowCompact)
@@ -151,7 +151,7 @@ struct WalletsListView: View {
                                         .typeStyle(.note).foregroundStyle(wallet.hasBackup || wallet.isWatchOnly ? Palette.inkSoft : Palette.caution)
                                 }
                                 Spacer()
-                                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                                Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
                             }
                             .padding(.horizontal, Space.md).frame(height: Height.row)
                             .background(reorder.dragging == wallet.id ? Palette.rail : Color.clear)

@@ -289,7 +289,7 @@ struct WalletHomeView: View {
                 HStack(spacing: 4) {
                     Text(portfolio.unknownTokens == 1 ? "1 token sem leitura escondido" : "\(portfolio.unknownTokens) tokens sem leitura escondidos")
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                    Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                    Image(systemName: "chevron.forward").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.inkMuted)
                 }
                 .frame(minHeight: Height.touch)
             }
