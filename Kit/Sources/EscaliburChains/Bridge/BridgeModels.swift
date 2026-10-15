@@ -65,7 +65,9 @@ public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
     public func available(from: BridgeChain, to: BridgeChain) -> Bool {
         guard from.chain.id != to.chain.id else { return false }
         switch self {
-        case .usdc: return BridgeAsset.usesCCTP(self, from: from, to: to) || (from.across != nil && to.across != nil)
+        case .usdc:
+            return BridgeAsset.usesCCTP(self, from: from, to: to)
+                || (from.across != nil && to.across != nil && from.acrossUSDC && to.acrossUSDC)
         case .eth:
             return (from.nativeETH || from.ethToken != nil) && (to.nativeETH || to.ethToken != nil) && from.across != nil && to.across != nil
         case .usdt: return from.usdt != nil && to.usdt != nil && from.across != nil && to.across != nil

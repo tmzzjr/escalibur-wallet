@@ -45,6 +45,9 @@ public struct BridgeChain: Sendable, Equatable {
     /// O USDC desta rede e um proxy fora do CCTP (na BNB, o da Binance): a implementacao
     /// fixada, conferida como as da ponte. Trocada, a ponte para (revisao de 14/10/2026, B1).
     public let usdcImplementation: EVMAddress?
+    /// O Across move o USDC desta rede. Na Plasma nao: la ele so leva USDT0, e o USDC
+    /// chega pelo CCTP (`available-routes`, 14/10/2026).
+    public let acrossUSDC: Bool
 
     public struct CCTP: Sendable, Equatable {
         /// O dominio do CCTP. Nao e o chainId: a Base e 6.
@@ -63,18 +66,19 @@ public struct BridgeChain: Sendable, Equatable {
     /// Rede com CCTP: USDC e USDT de 6 casas, ETH nativo ou nenhum.
     public init(
         chain: Chain, cctpDomain: UInt32, usdc: EVMAddress, messengerImplementation: EVMAddress, transmitterImplementation: EVMAddress,
-        across: Across?, usdt: EVMAddress?, nativeETH: Bool
+        across: Across?, usdt: EVMAddress?, nativeETH: Bool, acrossUSDC: Bool = true
     ) {
         self.init(chain: chain, cctp: CCTP(domain: cctpDomain, messengerImplementation: messengerImplementation,
                                            transmitterImplementation: transmitterImplementation),
-                  usdc: usdc, across: across, usdt: usdt, nativeETH: nativeETH, ethToken: nil, stableDecimals: 6)
+                  usdc: usdc, across: across, usdt: usdt, nativeETH: nativeETH, ethToken: nil, stableDecimals: 6, acrossUSDC: acrossUSDC)
     }
 
     public init(
         chain: Chain, cctp: CCTP?, usdc: EVMAddress, across: Across?, usdt: EVMAddress?, nativeETH: Bool, ethToken: EVMAddress?,
-        stableDecimals: Int, usdcImplementation: EVMAddress? = nil
+        stableDecimals: Int, usdcImplementation: EVMAddress? = nil, acrossUSDC: Bool = true
     ) {
         self.usdcImplementation = usdcImplementation
+        self.acrossUSDC = acrossUSDC
         self.chain = chain
         self.cctp = cctp
         self.usdc = usdc
@@ -153,7 +157,8 @@ public enum BridgeAllowlist {
     // - Linea: USDC e ETH. O USDT da Linea e de ponte (TokenRegistry).
     // - Unichain: USDC, ETH e USDT0.
     // - Sonic: so USDC; o Across nao tem SpokePool la.
-    // - Plasma: USDC e USDT0; a moeda nativa e o XPL.
+    // - Plasma: USDC e USDT0; a moeda nativa e o XPL. O USDC so pelo CCTP: o Across de la
+    //   nao leva USDC, e por isso nao ha USDC entre a Plasma e a BNB.
     public static let polygon = BridgeChain(
         chain: .polygon, cctpDomain: 7,
         usdc: address("3c499c542cEF5E3811e1192ce70d8cC03d5c3359"),
@@ -201,7 +206,7 @@ public enum BridgeAllowlist {
         transmitterImplementation: address("d683965f427af258f5eec40f950a95a62edc8ca6"),
         across: .init(spokePool: address("50039fAEfebef707cFD94D6d462fE6D10B39207a"), implementation: address("af10c33de0aee6df661b9bfb25e829871ab87a41"),
                       wrappedNative: address("6100e367285b01f48d07953803a2d8dca5d19873")),
-        usdt: address("B8CE59FC3717ada4C02eaDF9682A9e934F625ebb"), nativeETH: false
+        usdt: address("B8CE59FC3717ada4C02eaDF9682A9e934F625ebb"), nativeETH: false, acrossUSDC: false
     )
 
     /// BNB Chain, so pelo Across. O USDC, o USDT e o ETH daqui sao os da Binance, com 18

@@ -191,6 +191,33 @@ struct BridgeLiveTests {
         }
     }
 
+    @Test("Toda rota do Across que o app oferece existe no Across, com os contratos compilados")
+    func acrossRoutesExist() async throws {
+        struct Route: Decodable { let originChainId, destinationChainId: UInt64; let originToken, destinationToken: String }
+        let data = try await HTTPClient.shared.get(URL(string: "https://app.across.to/api/available-routes")!, timeout: 20)
+        let routes = Set(try JSONDecoder().decode([Route].self, from: data).map {
+            "\($0.originChainId):\($0.originToken.lowercased())>\($0.destinationChainId):\($0.destinationToken.lowercased())"
+        })
+        var offered = 0
+        for asset in BridgeAsset.allCases {
+            for from in BridgeAllowlist.chains {
+                for to in BridgeAllowlist.chains where asset.available(from: from, to: to) && !BridgeAsset.usesCCTP(asset, from: from, to: to) {
+                    // O ETH nativo entra e sai como o WETH do SpokePool.
+                    let input = TradeWire.lower(asset.contract(on: from) ?? from.across!.wrappedNative)
+                    let output = TradeWire.lower(asset.contract(on: to) ?? to.across!.wrappedNative)
+                    let key = "\(from.chain.evmChainID!):\(input)>\(to.chain.evmChainID!):\(output)"
+                    #expect(routes.contains(key), "\(asset.symbol) da \(from.chain.name) para a \(to.chain.name) nao existe no Across")
+                    offered += 1
+                }
+            }
+        }
+        #expect(offered > 50, "o laco passou pelas rotas")
+        // A Plasma e a BNB nao trocam USDC: o Across nao leva USDC na Plasma.
+        #expect(!BridgeAsset.usdc.available(from: BridgeAllowlist.bnb, to: BridgeAllowlist.plasma))
+        #expect(!BridgeAsset.usdc.available(from: BridgeAllowlist.plasma, to: BridgeAllowlist.bnb))
+        #expect(BridgeAsset.usdc.available(from: BridgeAllowlist.plasma, to: BridgeAllowlist.base))
+    }
+
     @Test("Chegada real pelo CCTP: a mensagem bate com a queima e o recibo da entrega tem o USDC")
     func cctpArrival() async throws {
         // Uma queima real na Base para a Arbitrum, com encaminhamento (12/10/2026).
