@@ -75,15 +75,13 @@ struct NewWalletFlow: View {
     @State private var askingLater = false
 
     /// `pledge` e o aceite de responsabilidade, logo antes de a frase nascer.
-    enum Step { case before, promise, pledge, record, confirm, created }
+    enum Step { case before, pledge, record, confirm, created }
 
     var body: some View {
         NavigationStack {
             Group {
                 switch step {
                 case .before: before
-                case .promise:
-                    SecurityPromiseView { step = .pledge }
                 case .pledge:
                     ResponsibilityView(continueTitle: String(localized: "Mostrar as palavras"), loading: saving) { Task { await start() } }
                 case .record:
@@ -100,13 +98,12 @@ struct NewWalletFlow: View {
             }
             .background(Palette.void.ignoresSafeArea())
             .toolbar {
-                if step == .promise || step == .pledge || step == .confirm {
+                if step == .pledge || step == .confirm {
                     // Voltar um passo: a carteira em criacao e as palavras continuam.
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
                             switch step {
-                            case .promise: step = .before
-                            case .pledge: step = .promise
+                            case .pledge: step = .before
                             default: step = .record
                             }
                         } label: {
@@ -156,7 +153,7 @@ struct NewWalletFlow: View {
             Text("12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
                 .padding(.bottom, Space.lg)
-            PrimaryButton(title: String(localized: "Continuar")) { error = nil; step = .promise }
+            PrimaryButton(title: String(localized: "Continuar")) { error = nil; step = .pledge }
         }
         .padding(.horizontal, Space.gutter)
         .padding(.top, Space.md)

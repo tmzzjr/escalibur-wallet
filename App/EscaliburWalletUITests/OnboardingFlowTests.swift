@@ -29,6 +29,34 @@ final class OnboardingFlowTests: XCTestCase {
         }
     }
 
+    /// PIN repetido diferente: os pontos apagam, a mensagem fica, e o voltar leva de
+    /// "Repita" para "Escolha" e de la para a abertura.
+    func testPINMismatchClearsDotsAndBackWorks() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Começar"].waitForExistence(timeout: 15))
+        app.buttons["Começar"].tap()
+        XCTAssertTrue(app.staticTexts["Escolha um PIN"].waitForExistence(timeout: 5))
+        type(pin: pin, in: app)
+        XCTAssertTrue(app.staticTexts["Repita o PIN"].waitForExistence(timeout: 5))
+        app.buttons["pin-voltar"].tap()
+        XCTAssertTrue(app.staticTexts["Escolha um PIN"].waitForExistence(timeout: 5))
+        type(pin: pin, in: app)
+        XCTAssertTrue(app.staticTexts["Repita o PIN"].waitForExistence(timeout: 5))
+        type(pin: "222222", in: app)
+        XCTAssertTrue(app.staticTexts["Os dois não conferem. Escolha de novo."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Escolha um PIN"].exists)
+        XCTAssertTrue(app.otherElements["0 de 6 dígitos"].exists || app.staticTexts["0 de 6 dígitos"].exists
+                      || app.descendants(matching: .any)["0 de 6 dígitos"].exists, "os pontos nao apagaram")
+        shot("02e-pin-diferente", app)
+        // A mensagem continua enquanto o PIN novo e digitado.
+        app.buttons.matching(identifier: "tecla-1").firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Os dois não conferem. Escolha de novo."].exists)
+        app.buttons["pin-voltar"].tap()
+        XCTAssertTrue(app.buttons["Começar"].waitForExistence(timeout: 5))
+    }
+
     func testCreateWalletFromScratch() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-reset"]
@@ -44,6 +72,20 @@ final class OnboardingFlowTests: XCTestCase {
         shot("02-repita-pin", app)
         type(pin: pin, in: app)
 
+        // O tour de tres passos, logo depois do PIN.
+        XCTAssertTrue(app.staticTexts["Suas chaves nascem e ficam aqui"].waitForExistence(timeout: 10))
+        sleep(4)
+        shot("02b-tour-chaves", app)
+        app.buttons["tour-continuar"].tap()
+        XCTAssertTrue(app.staticTexts["Suas moedas, todas aqui"].waitForExistence(timeout: 5))
+        sleep(2)
+        shot("02c-tour-redes", app)
+        app.buttons["tour-continuar"].tap()
+        XCTAssertTrue(app.staticTexts["Nada sai sem você"].waitForExistence(timeout: 5))
+        sleep(4)
+        shot("02d-tour-assinatura", app)
+        app.buttons["tour-continuar"].tap()
+
         if app.buttons["Agora não"].waitForExistence(timeout: 8) {
             shot("03-face-id", app)
             app.buttons["Agora não"].tap()
@@ -56,7 +98,6 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertTrue(app.buttons["Continuar"].waitForExistence(timeout: 5))
         shot("05-antes-das-palavras", app)
         app.buttons["Continuar"].tap()
-        app.passSecurityPromise()
 
         // Seguranca e responsabilidade: so segue com a caixa marcada.
         XCTAssertTrue(app.buttons["aceite-responsabilidade"].waitForExistence(timeout: 5))

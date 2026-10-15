@@ -12,7 +12,7 @@ struct AddWalletView: View {
     @State private var openingEnvelope = false
 
     /// Importar passa antes pela tela de seguranca e responsabilidade.
-    enum Route: Hashable { case promise, responsibility, deviceCheck, importPhrase, watch }
+    enum Route: Hashable { case responsibility, deviceCheck, importPhrase, watch }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -31,7 +31,7 @@ struct AddWalletView: View {
                 .padding(.top, Space.sm)
                 VStack(spacing: 0) {
                     row(String(localized: "Importar com a senha da carteira"), String(localized: "Você já tem 12 ou 24 palavras de outra carteira."), "text.word.spacing") {
-                        path.append(.promise)
+                        path.append(.responsibility)
                     }
                     row(String(localized: "Importar de um envelope Escalibur"), String(localized: "O arquivo .esclbr e a senha do envelope."), "envelope") {
                         openingEnvelope = true
@@ -49,8 +49,6 @@ struct AddWalletView: View {
             .background(Palette.void.ignoresSafeArea())
             .navigationDestination(for: Route.self) { route in
                 switch route {
-                case .promise:
-                    SecurityPromiseView { path.append(.responsibility) }
                 case .responsibility:
                     ResponsibilityView(continueTitle: String(localized: "Conferir o aparelho")) { path.append(.deviceCheck) }
                 case .deviceCheck:

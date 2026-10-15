@@ -296,7 +296,7 @@ struct DemoEnvelopes: ViewModifier {
                 case .seguranca: NavigationStack { ResponsibilityView(continueTitle: "Digitar as palavras") {} }
                 case .observar: NavigationStack { WatchAddressView { newWallet = nil } }
                 case .adicionar: AddWalletView(isFirst: false) { newWallet = nil }
-                case .promessa: NavigationStack { SecurityPromiseView {} }
+                case .promessa: WelcomeTour { newWallet = nil }
                 case .checagem: NavigationStack { DeviceCheckView {} }
                 case .frase: NavigationStack { ImportPhraseView { newWallet = nil } }
                 case .selo: VStack(spacing: Space.lg) {

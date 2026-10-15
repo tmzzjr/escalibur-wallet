@@ -1,18 +1,8 @@
 import XCTest
 
-/// As telas de seguranca que vem antes das palavras (14/10/2026): "Sua carteira, so sua",
-/// com os pontos aparecendo um a um e o Continuar ligando no fim, e, ao importar, a
-/// checagem do aparelho antes de digitar.
+/// A checagem do aparelho antes de digitar a frase, ao importar (14/10/2026). A antiga
+/// "Sua carteira, so sua" virou o tour depois do primeiro PIN (15/10/2026).
 extension XCUIApplication {
-    /// Passa por "Sua carteira, so sua", se ela aparecer.
-    func passSecurityPromise() {
-        guard staticTexts["Sua carteira, só sua"].waitForExistence(timeout: 8) else { return }
-        let next = buttons["Continuar"]
-        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: next)
-        _ = XCTWaiter.wait(for: [enabled], timeout: 15)
-        next.tap()
-    }
-
     /// A checagem do aparelho: espera terminar e segue. Com aviso (simulador: jailbreak so
     /// vale no iPhone), marca o "Entendo o risco" quando ele aparece.
     func passDeviceCheck() {

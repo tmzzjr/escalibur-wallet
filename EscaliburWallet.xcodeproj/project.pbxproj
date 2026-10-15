@@ -55,6 +55,7 @@
 		5143A0046AF4070D0D0A5686 /* MarketCoinFactsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51574B877B1EE0EC055AEBA8 /* MarketCoinFactsTests.swift */; };
 		534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD4DB38ABFB63662F684831D /* LegalTests.swift */; };
 		53F96070D034447AEEA27845 /* AllocationDonut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A71DEB35D1AAC25A23037D /* AllocationDonut.swift */; };
+		564AB9F25C8CB94332799B46 /* WelcomeTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = 819BEE3A0CD63184F9209C22 /* WelcomeTour.swift */; };
 		57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C53992781573FB54743C00 /* SecureInputField.swift */; };
 		5848F371CF905048C9ABA616 /* RecordWordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5287E825D53043F109D791D /* RecordWordsView.swift */; };
 		5921DC5AA483FB6C6E65C073 /* EmptySendArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53CECA7890449A2051DB3B96 /* EmptySendArt.swift */; };
@@ -228,6 +229,7 @@
 		7C28ED1879662A04236281C1 /* termos.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = termos.md; sourceTree = "<group>"; };
 		7E67A652A823737F6EAC7745 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		811D8AF3EF3BDDB831240B3A /* LimitOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitOrderTests.swift; sourceTree = "<group>"; };
+		819BEE3A0CD63184F9209C22 /* WelcomeTour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeTour.swift; sourceTree = "<group>"; };
 		839F9C92169FD1A8C5C69A3B /* ImportPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPreview.swift; sourceTree = "<group>"; };
 		85AD68422B44E0DD96545710 /* ContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsView.swift; sourceTree = "<group>"; };
 		86B74EDB87479FBC14EC1F7E /* privacidade.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = privacidade.md; sourceTree = "<group>"; };
@@ -548,6 +550,7 @@
 			children = (
 				B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */,
 				FDDF2E10A05978EE32252CD4 /* SwordInStone.swift */,
+				819BEE3A0CD63184F9209C22 /* WelcomeTour.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -932,6 +935,7 @@
 				26ABABDDB73200E71CD0D50F /* WalletHomeView.swift in Sources */,
 				2D73A0117C1A454535DEA85B /* WalletOrbit.swift in Sources */,
 				018964FF48D0175DEDF8AB78 /* WatchAddressView.swift in Sources */,
+				564AB9F25C8CB94332799B46 /* WelcomeTour.swift in Sources */,
 				4311115E36CE8A987E173E93 /* WordInputField.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

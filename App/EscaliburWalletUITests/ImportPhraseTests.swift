@@ -33,9 +33,8 @@ final class ImportPhraseTests: XCTestCase {
 
         // Antes de digitar, o aceite de responsabilidade. Com a carteira ainda
         // carregando atras, o primeiro toque as vezes chega antes da folha assentar.
-        app.passSecurityPromise()
         let accept = app.buttons["aceite-responsabilidade"]
-        if !accept.waitForExistence(timeout: 8) { option.tap(); app.passSecurityPromise() }
+        if !accept.waitForExistence(timeout: 8) { option.tap() }
         XCTAssertTrue(accept.waitForExistence(timeout: 10))
         accept.tap()
         app.buttons["Conferir o aparelho"].tap()
@@ -99,9 +98,8 @@ final class ImportPhraseTests: XCTestCase {
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: settled, object: option)], timeout: 5)
         sleep(1)
         option.tap()
-        app.passSecurityPromise()
         let accept = app.buttons["aceite-responsabilidade"]
-        if !accept.waitForExistence(timeout: 8) { option.tap(); app.passSecurityPromise() }
+        if !accept.waitForExistence(timeout: 8) { option.tap() }
         XCTAssertTrue(accept.waitForExistence(timeout: 10))
         accept.tap()
         app.buttons["Conferir o aparelho"].tap()

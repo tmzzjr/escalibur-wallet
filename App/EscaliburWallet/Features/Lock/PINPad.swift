@@ -13,11 +13,12 @@ final class PINEntry {
     var error: String?
     var shake = 0
 
+    /// O erro fica na tela enquanto o PIN novo e digitado e sai quando ele fica completo:
+    /// os pontos ja apagaram, e a mensagem diz o que aconteceu.
     func append(_ digit: Int) {
         guard count < PINPolicy.digits else { return }
         buffer.append(UInt8(0x30 + digit))
         count = buffer.count
-        error = nil
     }
 
     func deleteLast() {
@@ -32,6 +33,7 @@ final class PINEntry {
         let taken = buffer
         buffer = SecureBytes(capacity: PINPolicy.digits)
         count = 0
+        error = nil
         return taken
     }
 
@@ -49,7 +51,8 @@ final class PINEntry {
     }
 }
 
-/// Os seis pontos. Erro: pontos em vermelho e uma sacudida curta.
+/// Os seis pontos. Erro: os pontos apagam, os aros ficam vermelhos ate o primeiro
+/// digito novo, e uma sacudida curta.
 struct PINDots: View {
     let filled: Int
     var failed: Bool = false
@@ -61,9 +64,9 @@ struct PINDots: View {
                 ZStack {
                     Circle().stroke(failed ? Palette.down : Palette.inkMuted, lineWidth: 1.5)
                     Circle()
-                        .fill(failed ? Palette.down : Palette.purple)
-                        .scaleEffect(index < filled || failed ? 1 : 0.6)
-                        .opacity(index < filled || failed ? 1 : 0)
+                        .fill(Palette.purple)
+                        .scaleEffect(index < filled ? 1 : 0.6)
+                        .opacity(index < filled ? 1 : 0)
                         .animation(.easeOut(duration: 0.12), value: filled)
                 }
                 .frame(width: 12, height: 12)
@@ -72,7 +75,7 @@ struct PINDots: View {
         .modifier(Shake(animatableData: CGFloat(shake)))
         .animation(.easeOut(duration: 0.26), value: shake)
         .accessibilityElement()
-        .accessibilityLabel("\(filled) de \(PINPolicy.digits) digitos")
+        .accessibilityLabel("\(filled) de \(PINPolicy.digits) dígitos")
     }
 }
 
@@ -157,6 +160,9 @@ private struct PINKeyStyle: ButtonStyle {
 struct PINScreen<Footer: View>: View {
     let title: String
     let subtitle: String?
+    /// O texto mais longo que o subtitulo pode ter nesta sequencia (escolher e repetir):
+    /// a altura fica reservada, e o teclado nao muda de lugar quando o texto troca.
+    var subtitleSpace: String? = nil
     let entry: PINEntry
     /// O selo so no desbloqueio: nas telas de criar e confirmar ele tira o olhar
     /// dos pontos.
@@ -174,9 +180,12 @@ struct PINScreen<Footer: View>: View {
                 if showsBadge { WalletBadge(size: 44).padding(.bottom, Space.md) }
                 Text(title).typeStyle(.title).foregroundStyle(Palette.ink).multilineTextAlignment(.center)
                 if let subtitle {
-                    Text(subtitle).typeStyle(.body).foregroundStyle(Palette.inkSoft)
-                        .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, Space.xl)
+                    ZStack(alignment: .top) {
+                        if let subtitleSpace { Text(subtitleSpace).typeStyle(.body).hidden() }
+                        Text(subtitle).typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                    }
+                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, Space.xl)
                 }
             }
             Spacer(minLength: Space.lg)
@@ -184,7 +193,7 @@ struct PINScreen<Footer: View>: View {
                 if working {
                     ProgressView().tint(Palette.inkSoft)
                 } else {
-                    PINDots(filled: entry.count, failed: entry.error != nil, shake: entry.shake)
+                    PINDots(filled: entry.count, failed: entry.error != nil && entry.count == 0, shake: entry.shake)
                 }
             }
             .frame(height: 24)

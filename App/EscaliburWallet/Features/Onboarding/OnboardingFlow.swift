@@ -18,19 +18,18 @@ struct OnboardingFlow: View {
             Palette.void.ignoresSafeArea()
             switch step {
             case .welcome: welcome.transition(.opacity)
-            case .choosePIN:
+            case .choosePIN, .repeatPIN:
+                // Uma tela so para escolher e repetir: so o titulo e o texto trocam. Duas
+                // telas com fade piscavam, e o teclado mudava de altura com o texto.
+                let chooseText = String(localized: "Seis dígitos para destravar o app e confirmar envios quando o \(KeyServices.biometryName) falhar.")
                 PINScreen(
-                    title: String(localized: "Escolha um PIN"),
-                    subtitle: String(localized: "Seis dígitos para destravar o app e confirmar envios quando o \(KeyServices.biometryName) falhar."),
-                    entry: entry, onComplete: choose
+                    title: step == .choosePIN ? String(localized: "Escolha um PIN") : String(localized: "Repita o PIN"),
+                    subtitle: step == .choosePIN ? chooseText : String(localized: "Os mesmos seis dígitos."),
+                    subtitleSpace: chooseText,
+                    entry: entry, working: working,
+                    onComplete: { if step == .choosePIN { choose() } else { Task { await confirm() } } }
                 ) { pinFooter }
-                .transition(.opacity)
-            case .repeatPIN:
-                PINScreen(
-                    title: String(localized: "Repita o PIN"),
-                    subtitle: String(localized: "Os mesmos seis dígitos."),
-                    entry: entry, working: working, onComplete: { Task { await confirm() } }
-                ) { pinFooter }
+                .overlay(alignment: .topLeading) { backButton }
                 .transition(.opacity)
             }
         }
@@ -83,6 +82,32 @@ struct OnboardingFlow: View {
         }
         .padding(.horizontal, Space.gutter)
         .padding(.bottom, Space.xs)
+    }
+
+    /// Escolher volta para a abertura; repetir volta para escolher, e o primeiro PIN e
+    /// apagado.
+    private var backButton: some View {
+        Button {
+            if step == .repeatPIN {
+                firstPIN?.wipe()
+                firstPIN = nil
+                entry.reset()
+                step = .choosePIN
+            } else {
+                entry.reset()
+                step = .welcome
+            }
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(Palette.inkSoft)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .padding(.leading, Space.xs)
+        .disabled(working)
+        .accessibilityLabel("Voltar")
+        .accessibilityIdentifier("pin-voltar")
     }
 
     private var pinFooter: some View {

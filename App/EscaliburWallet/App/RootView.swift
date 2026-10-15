@@ -8,6 +8,8 @@ struct RootView: View {
     @Environment(Portfolio.self) private var portfolio
     @Environment(\.scenePhase) private var scenePhase
     @State private var offeredBiometry = false
+    /// O tour de tres passos ja foi visto nesta abertura (vem logo depois do primeiro PIN).
+    @State private var toured = false
     /// A primeira carteira e guardada antes de as palavras aparecerem. Sem esta
     /// marca, a raiz trocava para a tela principal no instante do guardar e derrubava
     /// o fluxo em tela cheia: o dono caia na carteira sem ver as palavras.
@@ -108,7 +110,10 @@ struct RootView: View {
         case .unlocked:
             if session.metadata.wallets.isEmpty || firstRun {
                 Group {
-                    if !offeredBiometry, KeyServices.biometryAvailable, !session.biometryEnabled {
+                    if session.metadata.wallets.isEmpty, !toured, !Self.isDemo {
+                        WelcomeTour { withAnimation(Motion.fade) { toured = true } }
+                            .transition(.opacity)
+                    } else if !offeredBiometry, KeyServices.biometryAvailable, !session.biometryEnabled {
                         BiometryOfferView { offeredBiometry = true }
                     } else {
                         AddWalletView(isFirst: true) { firstRun = false }

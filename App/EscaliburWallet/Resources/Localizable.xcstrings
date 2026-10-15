@@ -455,12 +455,12 @@
         }
       }
     },
-    "%lld de %lld digitos" : {
+    "%lld de %lld dígitos" : {
       "localizations" : {
         "pt-BR" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$lld de %2$lld digitos"
+            "value" : "%1$lld de %2$lld dígitos"
           }
         }
       }
@@ -504,6 +504,9 @@
 
     },
     "%lld redes" : {
+
+    },
+    "%lld redes, cada uma direto dos provedores públicos." : {
 
     },
     "%lld tokens chegaram numa rede em que a carteira ainda só conta quantos são, sem ler nome e contrato. Eles ficam escondidos." : {
@@ -683,9 +686,6 @@
       }
     },
     "A Escalibur não cobra taxa sobre envios, recebimentos, trocas ou ordens. Você paga só a taxa da rede e, nas trocas, a do provedor, que já vem dentro do valor que você recebe." : {
-
-    },
-    "A Escalibur não tem servidor nem conta. Ninguém do nosso lado vê, guarda ou consegue recuperar nada seu." : {
 
     },
     "A Escalibur não vê nada" : {
@@ -1125,9 +1125,6 @@
     "A senha da carteira entra no envelope" : {
 
     },
-    "A senha da carteira nasce e fica aqui, cifrada com uma chave do Secure Enclave, o chip de segurança do iPhone. Ela nunca vai para a internet." : {
-
-    },
     "A senha da carteira são %lld palavras, em ordem. Quem tiver as palavras tem o saldo. Sem elas, ninguém recupera a carteira, nem a Escalibur." : {
 
     },
@@ -1561,9 +1558,6 @@
     "Antes" : {
 
     },
-    "Antes de começar, o que protege o seu dinheiro aqui." : {
-
-    },
     "Antes de ver as palavras" : {
 
     },
@@ -1607,6 +1601,9 @@
 
     },
     "Aparecem 3 palavras por vez. Arraste o cartão para ver as próximas." : {
+
+    },
+    "Aparelho conferido" : {
 
     },
     "Apps de fora da App Store podem ler o que este app guarda." : {
@@ -1683,6 +1680,12 @@
 
     },
     "As transações assinadas não conferem com o plano revisado. Nada foi transmitido." : {
+
+    },
+    "Assinado neste iPhone" : {
+
+    },
+    "Atenção antes de seguir" : {
 
     },
     "Ativação" : {
@@ -1792,6 +1795,9 @@
     "Banda" : {
 
     },
+    "Bitcoin, Ethereum, Solana e mais %lld redes. Envie, receba, troque e leve entre redes, com a taxa à vista antes de assinar." : {
+
+    },
     "Bloquear o app" : {
 
     },
@@ -1849,6 +1855,9 @@
 
     },
     "Cada envio de USDT queima TRX para pagar energia e banda: cerca de %@ neste." : {
+
+    },
+    "Cada envio passa pela sua revisão e pelo seu %@ ou PIN. O código é aberto: qualquer pessoa pode conferir." : {
 
     },
     "Cada etapa é recotada só depois que a anterior confirmar, com o seu próprio mínimo garantido" : {
@@ -2144,10 +2153,16 @@
     "Confirme a senha da carteira" : {
 
     },
+    "Confirme com o %@" : {
+
+    },
     "Confirme com o PIN" : {
 
     },
     "Confirme o %@ para ligar" : {
+
+    },
+    "Conta" : {
 
     },
     "Conta NEAR inválida. Ela tem 64 caracteres de 0 a 9 e de a até f, ou é um nome como alice.near, só com letras minúsculas. Confira se copiou inteira." : {
@@ -2308,9 +2323,6 @@
     "Código aberto" : {
 
     },
-    "Código aberto, para qualquer um auditar" : {
-
-    },
     "Código da moeda" : {
 
     },
@@ -2381,6 +2393,9 @@
 
     },
     "Depois de 30 segundos" : {
+
+    },
+    "Depois de reiniciar o iPhone ou de a bateria acabar, o %@ só volta a valer depois do PIN digitado uma vez." : {
 
     },
     "Depois deste envio sobrariam %@ na conta, abaixo do mínimo de %@ que a rede aceita. %@" : {
@@ -2511,6 +2526,9 @@
     "Dúvidas, problemas ou sugestões: escreva para este endereço." : {
 
     },
+    "E-mail" : {
+
+    },
     "EQ... ou UQ..." : {
 
     },
@@ -2585,6 +2603,9 @@
 
     },
     "Endereço Cardano inválido. Ele começa com addr1. Confira se copiou inteiro." : {
+
+    },
+    "Endereço EVM" : {
 
     },
     "Endereço G..." : {
@@ -3262,6 +3283,9 @@
 
     },
     "Este endereço é de um programa da rede, não de uma carteira. O valor ficaria preso." : {
+
+    },
+    "Este endereço é de uma conta NEAR" : {
 
     },
     "Este endereço é de uma conta de programa, como um cofre multiassinatura. Envio de SOL passa com aviso; envio de token não." : {
@@ -4209,9 +4233,6 @@
     "Nenhum" : {
 
     },
-    "Nenhum SDK de análise, de anúncio ou de relatório de falhas. O app não conta a ninguém o que você faz." : {
-
-    },
     "Nenhum app de e-mail abriu. Toque e segure o endereço acima para copiar." : {
 
     },
@@ -4344,6 +4365,9 @@
     "No máximo %lld envios seguidos" : {
 
     },
+    "No máximo 1 envio seguido" : {
+
+    },
     "No mínimo 4 caracteres." : {
 
     },
@@ -4372,6 +4396,9 @@
 
     },
     "Nunca mande as palavras da carteira" : {
+
+    },
+    "Nuvem" : {
 
     },
     "Não abriu. Confira a senha, com maiúsculas, acentos e espaços, e tente de novo." : {
@@ -4793,9 +4820,6 @@
           }
         }
       }
-    },
-    "O código está público no GitHub. Dá para conferir, linha por linha, que a senha e as chaves nunca saem do aparelho." : {
-
     },
     "O depósito está entrando na rede." : {
 
@@ -5409,6 +5433,9 @@
         }
       }
     },
+    "Para usar o Touch ID aqui, cadastre uma digital em Ajustes do iPhone, em Touch ID e código." : {
+
+    },
     "Parece um endereço da %@. Usar a %@?" : {
       "localizations" : {
         "pt-BR" : {
@@ -5427,6 +5454,16 @@
     },
     "Passa mesmo com o mercado agitado ou com pouca liquidez. Em troca, você aceita receber até %@ a menos, e robôs podem explorar essa diferença." : {
 
+    },
+    "Passo %lld de %lld" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Passo %1$lld de %2$lld"
+          }
+        }
+      }
     },
     "Passo 1 de 3" : {
 
@@ -5634,6 +5671,9 @@
     "Próximo" : {
 
     },
+    "Pular" : {
+
+    },
     "QR do endereço" : {
 
     },
@@ -5823,6 +5863,9 @@
 
     },
     "Revisar troca em partes" : {
+
+    },
+    "Revisão" : {
 
     },
     "Revogar autorização de %@" : {
@@ -6150,22 +6193,19 @@
     "Sem preço: token suspeito nunca entra no saldo total." : {
 
     },
-    "Sem rastreamento" : {
-
-    },
     "Sem resposta agora: %@. A lista tenta de novo sozinha." : {
 
     },
     "Sem resposta da CoW agora. O andamento volta a aparecer sozinho, e as ordens abertas mostram o mesmo." : {
 
     },
-    "Sem servidor" : {
-
-    },
     "Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois de a moeda entrar. Com o app aberto, a conferência é a cada 2 minutos." : {
 
     },
     "Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois do preço passar." : {
+
+    },
+    "Sem servidor, sem conta e sem e-mail. A Escalibur não vê, não guarda e não consegue mover nada seu." : {
 
     },
     "Sem tag de destino. Se o destino for uma exchange, confira na tela de depósito se ela pede: sem isso o valor não chega na sua conta de lá." : {
@@ -6198,6 +6238,9 @@
     "Senha muito fraca: guarde o arquivo num pendrive ou no seu computador, nunca na nuvem nem por e-mail." : {
 
     },
+    "Servidor" : {
+
+    },
     "Simulador: a checagem só vale num iPhone de verdade." : {
 
     },
@@ -6222,9 +6265,6 @@
     "Sua atividade aparece aqui" : {
 
     },
-    "Sua carteira, só sua" : {
-
-    },
     "Sua ordem limite foi executada" : {
 
     },
@@ -6238,6 +6278,12 @@
 
     },
     "Sua primeira carteira" : {
+
+    },
+    "Suas chaves nascem e ficam aqui" : {
+
+    },
+    "Suas moedas, todas aqui" : {
 
     },
     "Suas pontes" : {
@@ -6462,9 +6508,6 @@
     "Tirar dos favoritos" : {
 
     },
-    "Toda transação passa pela sua revisão e pelo seu Face ID ou PIN. Sem você, ninguém assina nada." : {
-
-    },
     "Todas" : {
 
     },
@@ -6614,9 +6657,6 @@
 
     },
     "Tudo pela %@ numa transação só" : {
-
-    },
-    "Tudo só neste iPhone" : {
 
     },
     "USD, SOLO ou 40 caracteres hex" : {
