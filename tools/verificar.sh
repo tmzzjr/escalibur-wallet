@@ -314,7 +314,43 @@ else
 fi
 saida_site=$(mktemp -d)
 python3 tools/gerar-site.py "$saida_site/site" >/dev/null 2>&1 && [ -f "$saida_site/site/privacidade/index.html" ] && [ -f "$saida_site/site/suporte/index.html" ] \
+    && [ -f "$saida_site/site/termos/index.html" ] \
     && ok "paginas publicas (suporte, privacidade, termos) geradas dos mesmos textos do app" || aviso "tools/gerar-site.py falhou"
+
+# O site (tools/gerar-site.py) le redes e tokens do codigo por expressao regular. Se o
+# codigo mudar de forma e o leitor ficar para tras, a contagem diverge e isto falha, em
+# vez de o site publicar uma lista pela metade.
+secao "site"
+redes_codigo=$(awk '/static let all: \[Chain\] = \[/{f=1;next} f&&/\]/{exit} f' "$CHAINS/Chain.swift" | grep -oE '\.[a-z0-9]+' | wc -l | tr -d ' ')
+tokens_codigo=$(awk '/public static let tokens: \[Asset\] = \[/{f=1;next} f&&/^    \]$/{exit} f' "$CHAINS/TokenRegistry.swift" | grep -cE '^[[:space:]]*(erc20|spl|issued|Asset)\(')
+contagem=$(python3 tools/gerar-site.py --contagem 2>&1)
+if [ "$contagem" = "redes $redes_codigo tokens $tokens_codigo" ]; then
+    ok "o site lista as $redes_codigo redes de Chain.swift e os $tokens_codigo tokens de TokenRegistry.swift"
+else
+    aviso "o site leu \"$contagem\", e o codigo tem $redes_codigo redes e $tokens_codigo tokens (tools/gerador_site/dados.py)"
+fi
+paginas_site=$(find "$saida_site/site" -name '*.html' 2>/dev/null)
+if [ -z "$paginas_site" ]; then
+    aviso "o site nao foi gerado"
+else
+    sem_csp=$(echo "$paginas_site" | xargs grep -L "content=\"default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; base-uri 'none'; form-action 'none'\"" 2>/dev/null)
+    de_fora=$(echo "$paginas_site" | xargs grep -noE '(src|poster)="https?://|<link rel="(stylesheet|icon|apple-touch-icon|preload|modulepreload|manifest)"[^>]*href="https?://|<script>|<script [^>]*>[^<]|style="| on[a-z]+="' 2>/dev/null)
+    de_fora="$de_fora$(grep -noE 'url\(["'"'"']?(https?:)?//|@import' "$saida_site/site/estilo.css" 2>/dev/null)"
+    if [ -n "$sem_csp$de_fora" ]; then
+        aviso "pagina do site sem a Content Security Policy, ou com script, estilo ou recurso de fora"; echo "$sem_csp$de_fora"
+    else
+        ok "todas as paginas do site com Content Security Policy, sem script em linha e sem nada carregado de outro site"
+    fi
+    # Codigo citado nas paginas de auditoria sai como entidade HTML: o que sobra e texto.
+    achados=$(echo "$paginas_site" | xargs grep -lE '—|–' 2>/dev/null)
+    [ -n "$achados" ] && { aviso "travessao nas paginas do site"; echo "$achados"; } || ok "nenhum travessao nas paginas do site"
+    # O selo oficial da Apple so pode levar a um app que esta na loja.
+    if grep -qE '^APP_STORE_URL = None' tools/gerar-site.py && echo "$paginas_site" | xargs grep -l 'src="[^"]*baixar-na-app-store.svg"' >/dev/null 2>&1; then
+        aviso "selo da App Store no site sem o app na loja"
+    else
+        ok "selo da App Store so com o link do app na loja (APP_STORE_URL em tools/gerar-site.py)"
+    fi
+fi
 rm -rf "$saida_site"
 
 secao "texto"

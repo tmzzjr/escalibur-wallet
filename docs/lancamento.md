@@ -13,12 +13,20 @@ do dono com o advogado.
   PARTICIPACOES LTDA, CNPJ 64.019.520/0001-29 (conferido na base pública da Receita em
   14/10/2026: ativa, aberta em 11/12/2025), e o contato. A Política ganhou a seção Contato,
   que diz o que acontece com um e-mail para o suporte.
-- **Páginas públicas no GitHub Pages**, geradas dos mesmos textos do app por
-  `tools/gerar-site.py` e publicadas pelo `.github/workflows/site.yml` a cada mudança:
+- **Site no GitHub Pages**, gerado do repositório por `tools/gerar-site.py` e publicado
+  pelo `.github/workflows/site.yml` a cada push na main e de novo quando o CI termina:
   - Marketing: https://tmzzjr.github.io/escalibur-wallet/
   - Suporte: https://tmzzjr.github.io/escalibur-wallet/suporte/
   - Política de privacidade: https://tmzzjr.github.io/escalibur-wallet/privacidade/
   - Termos: https://tmzzjr.github.io/escalibur-wallet/termos/
+  - Também: `/seguranca/`, `/auditoria/` (verificações, hosts, dependências travadas,
+    commit e CI, código das chaves linha a linha), `/redes/` e `/novidades/`.
+  - As telas em vídeo saem de `tools/gravar-site/gravar.sh` (simulador, modo demo).
+  - **No dia do lançamento:** pôr o link do app em `APP_STORE_URL`, no topo de
+    `tools/gerar-site.py`. O site troca "Em breve na App Store" pelo selo oficial da Apple
+    (`site/selos/baixar-na-app-store.svg`, baixado do site de marketing da Apple, sem
+    alteração) com o link, e liga o banner do Safari. O selo nunca aparece sem o link: o
+    `verificar.sh` confere.
 - **Código que a revisão olharia:** o botão de troca sem motor dizia "chega em breve"
   (diretriz 2.1) e agora diz "Troca indisponível nesta rede"; os caminhos de jailbreak
   não valem mais no Mac (davam alarme falso com `/usr/sbin/sshd`); o manifesto declara o

@@ -1,16 +1,19 @@
-# As paginas publicas que a App Store pede (suporte e politica de privacidade), no
-# GitHub Pages: tmzzjr.github.io/escalibur-wallet. Saem dos mesmos textos que o app
-# mostra, pelo tools/gerar-site.py, a cada mudanca deles na main.
+# O site (tmzzjr.github.io/escalibur-wallet), gerado do repositorio pelo
+# tools/gerar-site.py e publicado no GitHub Pages.
+#
+# Publica a cada push na main: as novidades saem do historico de commits, a versao do
+# project.yml, as redes e os tokens do codigo. E de novo quando o workflow `verificar`
+# termina na main, para a pagina de auditoria mostrar o resultado do CI do commit
+# publicado. As paginas /suporte/, /privacidade/ e /termos/ estao na App Store Connect.
 name: site
 
 on:
   push:
     branches: [main]
-    paths:
-      - site/**
-      - App/EscaliburWallet/Resources/Legal/**
-      - tools/gerar-site.py
-      - .github/workflows/site.yml
+  workflow_run:
+    workflows: [verificar]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,22 +25,43 @@ concurrency:
 
 jobs:
   publicar:
+    # Pelo workflow_run, so o verificar de um push na main deste repositorio: um PR de
+    # fork com um ramo chamado main tambem terminaria um `verificar` com head_branch main.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
       pages: write
       id-token: write
+      actions: read
     environment:
       name: github-pages
       url: ${{ steps.publicacao.outputs.page_url }}
     steps:
-      # Acoes fixadas por commit, nunca por tag movel.
+      # Acoes fixadas por commit, nunca por tag movel (cada SHA conferido contra a tag).
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+          # O historico inteiro: a pagina de novidades sai dele.
+          fetch-depth: 0
 
-      - name: Gerar as paginas
+      # So leitura, pela API, com o token do proprio workflow. O JSON vai para o gerador;
+      # nada dele vira comando.
+      - name: Estado do CI do commit publicado
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          sha=$(git rev-parse HEAD)
+          gh api "repos/$REPO/actions/workflows/verificar.yml/runs?head_sha=$sha&per_page=1" > "$RUNNER_TEMP/ci.json" \
+            || echo '{}' > "$RUNNER_TEMP/ci.json"
+
+      - name: Gerar o site
+        env:
+          SITE_CI: ${{ runner.temp }}/ci.json
         run: python3 tools/gerar-site.py "$RUNNER_TEMP/site"
 
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0

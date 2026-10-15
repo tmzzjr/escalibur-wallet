@@ -1,0 +1,79 @@
+<header class="cabeca-pagina">
+<div class="wrap">
+<p class="sobretitulo">Segurança</p>
+<h1 class="titulo-pagina">O que protege a sua carteira, e onde a proteção para.</h1>
+<p class="lead">Nenhuma defesa é absoluta. Cada uma tem um custo para quem ataca e um limite, e esta página diz os dois. O modelo de ameaça completo, com os números, está em <a href="{{repo}}/blob/main/docs/seguranca.md">docs/seguranca.md</a>.</p>
+</div>
+</header>
+
+<section class="bloco" aria-labelledby="t-promessas">
+<div class="wrap">
+<h2 id="t-promessas">O que o app promete</h2>
+<p class="lead intro">E que o código confere a cada mudança, nas {{n_verificacoes}} verificações da <a href="{{base}}auditoria/">auditoria</a>.</p>
+<ul class="promessas">
+<li><h3>As palavras nunca saem do iPhone em claro.</h3><p>Cifradas, só saem por ação sua, num envelope com senha própria. O app não tem conta, não tem servidor e não manda nada da carteira para lugar nenhum.</p></li>
+<li><h3>Nenhum verificador de PIN gravado.</h3><p>A chave raiz vai cifrada por uma chave derivada do PIN, com Argon2id de 256 MiB, dentro de um embrulho que só abre neste Secure Enclave. Cada tentativa passa por este aparelho, uma de cada vez.</p></li>
+<li><h3>Face ID que não abre com outro rosto.</h3><p>O atalho do Face ID vale só para os rostos cadastrados hoje: cadastrar um rosto novo no iPhone destrói o atalho em vez de abri-lo. O código do iPhone não abre nada aqui.</p></li>
+<li><h3>Uma chave por carteira.</h3><p>A chave raiz desembrulha só a chave da carteira que vai assinar. O que se guarda é a entropia, não as palavras, e ela sai da memória assim que a assinatura termina.</p></li>
+<li><h3>Nada é assinado às cegas.</h3><p>O assinador só aceita um plano que passou pela validação da rede: destino, valor, taxa com teto, tag e memo, e chamada de contrato decodificada contra uma lista compilada no app. A assinatura é verificada antes de sair.</p></li>
+<li><h3>Nenhum provedor decide nada.</h3><p>O chainId, a passphrase de rede, os contratos de token, os roteadores e os emissores são constantes compiladas. Saldo, nonce e sequence só valem com dois provedores concordando.</p></li>
+</ul>
+<p class="apoio links-bloco">{{codigo chave-raiz | Ler a chave raiz e o PIN}} · {{codigo assinador | Ler o assinador}} · {{codigo conferencia-do-plano | Ler a conferência do plano}}</p>
+</div>
+</section>
+
+<section class="bloco" aria-labelledby="t-ameacas">
+<div class="wrap estreito">
+<h2 id="t-ameacas">Contra quem</h2>
+<p class="lead intro">Os casos reais, do mais comum ao mais raro, com o que o app faz e o que sobra.</p>
+<div class="ameacas">
+<article class="ameaca">
+<h3>Alguém que viu o código do seu iPhone e levou o aparelho.</h3>
+<p class="defesa">É o caso mais comum de roubo. O código do iPhone não abre nada aqui: o app pede o PIN ou o rosto ao abrir e trava ao sair. A espera entre erros de PIN cresce até tornar inviável tentar todos pela tela. Ver ou exportar as palavras pede o PIN.</p>
+<p class="sobra"><b>O que sobra:</b> nada, sem o PIN, sem o rosto do dono e sem um exploit para o iOS.</p>
+</article>
+<article class="ameaca">
+<h3>Ladrão com o iPhone bloqueado.</h3>
+<p class="defesa">Tudo fica protegido pelo código do iPhone, preso a este aparelho, e a chave raiz só existe embrulhada pelo Secure Enclave. As chaves de proteção de arquivo somem segundos depois do bloqueio.</p>
+<p class="sobra"><b>O que sobra:</b> um código do iPhone fraco, somado a uma ferramenta forense, leva ao caso seguinte.</p>
+</article>
+<article class="ameaca">
+<h3>Exploit com execução de código no iPhone desbloqueado.</h3>
+<p class="defesa">Nenhum byte gravado abre fora deste Secure Enclave, e o PIN não tem verificador para levar embora: o ataque fica preso ao aparelho, uma tentativa por vez. A chave da carteira só existe na memória durante a assinatura.</p>
+<p class="sobra"><b>O que sobra:</b> nesse cenário, o PIN de 6 dígitos cai em até 3 dias. Um programa malicioso dentro do app durante uma assinatura vê a chave. Nenhuma carteira de software se defende disso. Para valores altos, use uma carteira de hardware.</p>
+</article>
+<article class="ameaca">
+<h3>Rede hostil ou provedor mentindo.</h3>
+<p class="defesa">ATS padrão, sem exceção, e nenhuma decisão de assinatura tomada com dado de rede. A chamada de contrato é decodificada no próprio iPhone, a aprovação é no valor exato, o mínimo é garantido pelo contrato, a taxa tem teto e saldo e nonce exigem consenso entre provedores.</p>
+<p class="sobra"><b>O que sobra:</b> uma rota pior dentro da tolerância de preço que você escolheu. E um provedor pode ficar fora do ar.</p>
+</article>
+<article class="ameaca">
+<h3>Golpe: endereço falso, token falso, área de transferência.</h3>
+<p class="defesa">Sem navegador de dapps e sem conexão com sites: só se assina o que o app monta. Endereço parecido com um do seu histórico é marcado, transferência de valor zero e token fora da lista ficam à parte, e o endereço colado aparece inteiro para conferir.</p>
+<p class="sobra"><b>O que sobra:</b> quem passa por cima de um aviso que bloqueia o envio.</p>
+</article>
+<article class="ameaca">
+<h3>Código de terceiros adulterado.</h3>
+<p class="defesa">Nenhum pacote remoto e nenhum binário de terceiro. O código de fora está no repositório, compilado do fonte e travado por SHA-256, e o verificador roda no CI a cada mudança, com a versão do Xcode fixada.</p>
+<p class="sobra"><b>O que sobra:</b> uma atualização maliciosa publicada com a conta da App Store chegaria a quem atualiza sozinho. Só quem confere o binário detecta.</p>
+</article>
+</div>
+</div>
+</section>
+
+<section class="bloco" aria-labelledby="t-auditar">
+<div class="wrap estreito">
+<h2 id="t-auditar">Conferido por script, a cada mudança</h2>
+<p class="lead intro">O que esta página afirma, o <code>tools/verificar.sh</code> confere no código: rede só no módulo de rede, chave só no módulo de chaves, chaveiro só em dois arquivos, nenhum SDK de análise, nenhum host fora da lista. São {{n_verificacoes}} verificações, e o CI para o merge se uma falhar.</p>
+<div class="botoes links-bloco"><a class="botao botao-principal" href="{{base}}auditoria/">Abrir a auditoria</a></div>
+</div>
+</section>
+
+<section class="bloco" aria-labelledby="t-relatar">
+<div class="wrap estreito">
+<h2 id="t-relatar">Achou uma falha?</h2>
+<p class="lead intro">Relate em particular pelo <a href="{{repo}}/security/advisories/new">GitHub</a>, sem abrir issue pública. Os prazos que assumimos:</p>
+{{prazos_seguranca}}
+<p class="apoio links-bloco">Pesquisa de boa-fé dentro do escopo não é tratada como violação. O escopo completo está no <a href="{{repo}}/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+</div>
+</section>
