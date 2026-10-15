@@ -218,7 +218,7 @@ struct AddCustomTokenView: View {
             VStack(spacing: 0) {
                 infoRow(String(localized: "Rede"), asset.chain?.name ?? asset.chainID)
                 infoRow(String(localized: "Casas decimais"), "\(asset.decimals)")
-                infoRow(String(localized: "Conferido em"), facts.sources.joined(separator: " e "))
+                infoRow(String(localized: "Conferido em"), facts.sources.formatted(.list(type: .and).locale(Fmt.locale)))
             }
             .padding(.top, Space.md)
             if let note = facts.decimalsNote {

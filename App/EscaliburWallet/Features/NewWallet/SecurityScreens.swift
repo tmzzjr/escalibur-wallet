@@ -164,7 +164,7 @@ struct DeviceCheckView: View {
                     .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.sm)
                     .contentTransition(.opacity)
                 Text(finished ? "Tudo foi checado aqui, sem internet. Nada desta checagem sai do aparelho."
-                     : (revealed < results.count ? "Checando: \(results[revealed].title.lowercased())" : "Preparando a checagem"))
+                     : (revealed < results.count ? "Checando: \(results[revealed].title)" : "Preparando a checagem"))
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
                     .fixedSize(horizontal: false, vertical: true)
                 VStack(spacing: 0) {

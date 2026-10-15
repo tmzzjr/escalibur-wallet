@@ -12,7 +12,7 @@ struct PriceAlertsView: View {
     @State private var adding = false
     @State private var market: [MarketCoin] = []
 
-    private var coinCount: String { file.coins.count == 1 ? String(localized: "1 moeda") : "\(file.coins.count) moedas" }
+    private var coinCount: String { file.coins.count == 1 ? String(localized: "1 moeda") : String(localized: "\(file.coins.count) moedas") }
 
     var body: some View {
         ScrollView {
@@ -131,7 +131,7 @@ struct PriceAlertsView: View {
 
     private var coins: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsSection(title: file.coins.isEmpty ? String(localized: "Moedas") : "Moedas, \(coinCount)") {
+            SettingsSection(title: file.coins.isEmpty ? String(localized: "Moedas") : String(localized: "Moedas, \(coinCount)")) {
                 ForEach(file.coins) { coin in
                     HStack(spacing: Space.sm) {
                         CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 32, remoteURL: image(coin), ringColor: Palette.body)

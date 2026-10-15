@@ -64,6 +64,8 @@ targets:
           - "Info.plist"
           - "EscaliburWidgets.entitlements"
       - path: App/Shared
+      # As traducoes do widget sao as do app (um catalogo so).
+      - path: App/EscaliburWallet/Resources/Localizable.xcstrings
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thomazjr.escalibur.wallet.widgets

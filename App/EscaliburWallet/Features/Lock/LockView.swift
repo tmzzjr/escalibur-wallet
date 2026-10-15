@@ -105,11 +105,11 @@ struct LockView: View {
 
     static func duration(_ seconds: TimeInterval) -> String {
         let s = Int(seconds.rounded(.up))
-        if s < 60 { return s == 1 ? String(localized: "1 segundo") : "\(s) segundos" }
+        if s < 60 { return s == 1 ? String(localized: "1 segundo") : String(localized: "\(s) segundos") }
         let m = Int((Double(s) / 60).rounded(.up))
-        if m < 60 { return m == 1 ? String(localized: "1 minuto") : "\(m) minutos" }
+        if m < 60 { return m == 1 ? String(localized: "1 minuto") : String(localized: "\(m) minutos") }
         let h = Int((Double(m) / 60).rounded(.up))
-        return h == 1 ? String(localized: "1 hora") : "\(h) horas"
+        return h == 1 ? String(localized: "1 hora") : String(localized: "\(h) horas")
     }
 
     private var forgotSheet: some View {

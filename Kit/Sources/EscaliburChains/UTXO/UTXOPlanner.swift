@@ -550,10 +550,12 @@ public enum UTXOPlanner {
         }
         if !leftBehind.isEmpty {
             let total = leftBehind.reduce(UInt64(0)) { $0 &+ $1 }
-            let noun = leftBehind.count == 1 ? "moeda" : "moedas"
+            let amount = UTXOFormat.amount(total, chain: chain)
             lines.append(PlanReview.Line(
                 kitText("Fica na carteira"),
-                kitText("\(leftBehind.count) \(noun), \(UTXOFormat.amount(total, chain: chain)): pequenas, sem confirmação ou que não pagam a própria taxa")
+                leftBehind.count == 1
+                    ? kitText("1 moeda, \(amount): pequena, sem confirmação ou que não paga a própria taxa")
+                    : kitText("\(leftBehind.count) moedas, \(amount): pequenas, sem confirmação ou que não pagam a própria taxa")
             ))
         }
         if let text = skippedText(skipped) {
@@ -566,15 +568,16 @@ public enum UTXOPlanner {
     public static func skippedText(_ skipped: [UTXOSkippedCoin]) -> String? {
         guard !skipped.isEmpty else { return nil }
         var parts = [String]()
-        for (reason, one, many) in [
-            (UTXOSkippedCoin.Reason.uneconomic, kitText("que não paga a própria taxa"), kitText("que não pagam a própria taxa")),
-            (.overLimit, kitText("além do limite de moedas lidas de uma vez"), kitText("além do limite de moedas lidas de uma vez")),
-            (.unverified, kitText("sem prova da transação anterior"), kitText("sem prova da transação anterior")),
-        ] {
+        for reason in [UTXOSkippedCoin.Reason.uneconomic, .overLimit, .unverified] {
             let count = skipped.filter { $0.reason == reason }.count
-            if count > 0 { parts.append("\(count) \(count == 1 ? one : many)") }
+            guard count > 0 else { continue }
+            switch reason {
+            case .uneconomic: parts.append(count == 1 ? kitText("1 que não paga a própria taxa") : kitText("\(count) que não pagam a própria taxa"))
+            case .overLimit: parts.append(kitText("\(count) além do limite de moedas lidas de uma vez"))
+            case .unverified: parts.append(kitText("\(count) sem prova da transação anterior"))
+            }
         }
-        let noun = skipped.count == 1 ? kitText("1 moeda") : "\(skipped.count) moedas"
+        let noun = skipped.count == 1 ? kitText("1 moeda") : kitText("\(skipped.count) moedas")
         return "\(noun): \(parts.joined(separator: ", "))"
     }
 

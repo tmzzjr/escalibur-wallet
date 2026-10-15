@@ -166,7 +166,8 @@ enum TronEngineText {
     static func trxFee(burn: BigUInt, activates: Bool, memo: Bool) -> String {
         guard !burn.isZero else { return kitText("A banda deste envio sai do stake ou da cota grátis da conta, sem queimar TRX.") }
         let parts = (activates ? [kitText("a ativação da conta de destino")] : []) + (memo ? [kitText("a taxa do memo")] : [])
-        let detail = parts.isEmpty ? "" : kitText(", com ") + parts.joined(separator: " e ")
+        let joined = parts.count == 2 ? kitText("\(parts[0]) e \(parts[1])") : parts.first ?? ""
+        let detail = parts.isEmpty ? "" : kitText(", com ") + joined
         return kitText("Custo da rede neste envio: \(trx(burn)) queimados da conta\(detail). O máximo já desconta.")
     }
 

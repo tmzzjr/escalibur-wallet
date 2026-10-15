@@ -116,7 +116,7 @@ struct MarketFacts: View {
         let items = supplyItems(details)
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: Space.md) {
-                Text("Oferta").typeStyle(.action).foregroundStyle(Palette.ink)
+                Text("Oferta de moedas").typeStyle(.action).foregroundStyle(Palette.ink)
                 FactGrid(items: items)
             }
         }

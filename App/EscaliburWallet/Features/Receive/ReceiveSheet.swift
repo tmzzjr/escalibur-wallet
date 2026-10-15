@@ -426,7 +426,7 @@ struct ReceiveSheet: View {
                         Text(verbatim: coin.symbol).typeStyle(.row).foregroundStyle(Palette.ink)
                         if coin.isCustom { TokenBadge(.custom) }
                     }
-                    Text(verbatim: coin.isCustom ? "\(coin.name) na \(coin.assets.first?.chain?.name ?? "")" : coin.name)
+                    (coin.isCustom ? Text("\(coin.name) na \(coin.assets.first?.chain?.name ?? "")") : Text(verbatim: coin.name))
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
                 }
                 Spacer()
@@ -642,7 +642,7 @@ struct ReceiveSheet: View {
             case .evm:
                 return String(localized: "Na exchange, escolha a rede \(chain.name). Se vier por outra rede EVM, o saldo aparece naquela rede, desde que ela esteja ligada em Ajustes.")
             case .utxo:
-                return String(localized: "Envie só \(chain.nativeName.lowercased()), pela rede \(chain.name). Outra moeda enviada para este endereço se perde.")
+                return String(localized: "Envie só \(chain.nativeName), pela rede \(chain.name). Outra moeda enviada para este endereço se perde.")
             case .xrpl:
                 return exists
                     ? String(localized: "Não precisa de tag de destino. Se a exchange pedir, marque que o endereço não tem tag.")

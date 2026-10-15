@@ -433,7 +433,7 @@ struct TradeView: View {
                         detail(String(localized: "Prazo da ordem"), inParts ? String(localized: "1 hora") : String(localized: "30 minutos"))
                     }
                     if let impact = quote.priceImpactPercent { detail(String(localized: "Impacto no preço"), "\(Fmt.grouped(impact, fractionDigits: 2))%") }
-                    if model.chain == .ethereum, session.metadata.settings.mevProtection { detail(String(localized: "Proteção contra robôs"), "ligada") }
+                    if model.chain == .ethereum, session.metadata.settings.mevProtection { detail(String(localized: "Proteção contra robôs"), String(localized: "ligada")) }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

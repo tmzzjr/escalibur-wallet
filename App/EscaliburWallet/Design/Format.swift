@@ -282,17 +282,39 @@ enum Fmt {
         withoutAbbreviationDots(date.formatted(.dateTime.day().month(.abbreviated).year().locale(locale)))
     }
 
-    static func relative(_ date: Date, now: Date = .now) -> String {
+    /// `inSentence`: no meio de uma frase ("Valores de hoje, 14:32"), com as palavras
+    /// na caixa que o idioma usa ali, em vez de baixar a caixa de tudo (o que estragaria
+    /// "Oct" no ingles).
+    static func relative(_ date: Date, now: Date = .now, inSentence: Bool = false) -> String {
         let seconds = now.timeIntervalSince(date)
         if seconds < 60 { return String(localized: "agora") }
         if seconds < 3600 { return String(localized: "há \(Int(seconds / 60)) min") }
         let calendar = Calendar(identifier: .gregorian)
         let time = clock(date)
-        if calendar.isDateInToday(date) { return String(localized: "Hoje, \(time)") }
-        if calendar.isDateInYesterday(date) { return String(localized: "Ontem, \(time)") }
+        if calendar.isDateInToday(date) { return inSentence ? String(localized: "hoje, \(time)") : String(localized: "Hoje, \(time)") }
+        if calendar.isDateInYesterday(date) { return inSentence ? String(localized: "ontem, \(time)") : String(localized: "Ontem, \(time)") }
         let sameYear = calendar.component(.year, from: date) == calendar.component(.year, from: now)
         if !sameYear { return withoutAbbreviationDots(date.formatted(.dateTime.day().month(.abbreviated).year().locale(locale))) }
         return String(localized: "\(shortDay(date)), \(time)")
+    }
+
+    /// O nome do idioma de uma lista de palavras, como a regiao escreve ("inglês" no
+    /// Brasil, "English" nos EUA).
+    static func languageName(_ language: BIP39Language) -> String {
+        let code: String
+        switch language {
+        case .english: code = "en"
+        case .japanese: code = "ja"
+        case .chineseSimplified: code = "zh-Hans"
+        case .chineseTraditional: code = "zh-Hant"
+        case .french: code = "fr"
+        case .italian: code = "it"
+        case .korean: code = "ko"
+        case .spanish: code = "es"
+        case .czech: code = "cs"
+        case .portuguese: code = "pt"
+        }
+        return Locale(identifier: Bundle.main.preferredLocalizations.first ?? "pt-BR").localizedString(forIdentifier: code) ?? language.displayName
     }
 
     /// "14:32" no Brasil, "2:32 PM" nos EUA.

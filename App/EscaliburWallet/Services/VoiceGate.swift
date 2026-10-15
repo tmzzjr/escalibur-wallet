@@ -112,8 +112,8 @@ final class VoiceGate {
         let missing = VoiceLanguage.allCases.filter { !languages.contains($0) }
         if languages.isEmpty { return String(localized: "Este iPhone não reconhece fala sem internet agora.") }
         if missing.isEmpty { return String(localized: "Entendo a frase em português ou em inglês.") }
-        let on = languages.map(\.name).joined(separator: " e ")
-        let off = missing.map(\.name).joined(separator: " e ")
+        let on = languages.map(\.name).formatted(.list(type: .and).locale(Fmt.locale))
+        let off = missing.map(\.name).formatted(.list(type: .and).locale(Fmt.locale))
         return String(localized: "Entendo só em \(on): o \(off) não está disponível sem internet neste iPhone.")
     }
 

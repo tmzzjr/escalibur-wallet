@@ -383,7 +383,7 @@ public enum StellarPlanner {
         var lines: [PlanReview.Line] = [
             PlanReview.Line(kitText("Você entrega"), StellarAmount.format(sellAmount, sellingAsset)),
             PlanReview.Line(kitText("Recebe no mínimo"), StellarAmount.format(minimumReceive, buyingAsset)),
-            PlanReview.Line(kitText("Preço limite"), "\(price.n)/\(price.d) \(buyingAsset.code) por \(sellingAsset.code)"),
+            PlanReview.Line(kitText("Preço limite"), kitText("\(String(price.n))/\(String(price.d)) \(buyingAsset.code) por \(sellingAsset.code)")),
             PlanReview.Line(kitText("Validade"), kitText("Até você cancelar. A Stellar não expira ofertas.")),
             PlanReview.Line(kitText("Reserva"), kitText("\(reserve) ficam presos enquanto a oferta estiver aberta")),
         ]
@@ -433,7 +433,7 @@ public enum StellarPlanner {
             title: kitText("Cancelar oferta"),
             lines: [
                 PlanReview.Line(kitText("Oferta"), String(offerID), verbatim: true),
-                PlanReview.Line(kitText("Par"), "\(sellingAsset.code) por \(buyingAsset.code)"),
+                PlanReview.Line(kitText("Par"), kitText("\(sellingAsset.code) por \(buyingAsset.code)")),
                 PlanReview.Line(kitText("Reserva"), kitText("\(StellarAmount.format(context.network.baseReserve, .native)) voltam a ficar livres")),
             ] + feeLines(fee, operations: 1)
         )

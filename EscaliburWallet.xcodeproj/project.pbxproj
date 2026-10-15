@@ -116,6 +116,7 @@
 		B59CE2C6DE9F56E0556EE53E /* AssetActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A24B9F4B37805A47D0B7B78 /* AssetActivity.swift */; };
 		BF2AE236B677F2B5801EBB37 /* AssetActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FE0277A6EBBAE2C28AD2107 /* AssetActivityTests.swift */; };
 		C161D64ADC82BE5B6E0E806D /* VoiceRulesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 583CEAB70FAC5559D62D44C2 /* VoiceRulesTests.swift */; };
+		C296D94186DE5EB974802CED /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C9F5E370893F7BFBA8F492FE /* Localizable.xcstrings */; };
 		C41087E8F51835B0D0A5D9A8 /* AddCustomTokenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0B27CDCE8102705833E021C /* AddCustomTokenView.swift */; };
 		C9C99BCB70E1AFF3536D3968 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98E0FCFFA466C4A03F3490A /* AppSession.swift */; };
 		CD011942A3167E144FDF902C /* PriceAlerts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44AE65BCC609869DC729178D /* PriceAlerts.swift */; };
@@ -789,6 +790,7 @@
 			buildConfigurationList = 0DBA2082949DA14921B8D3AB /* Build configuration list for PBXNativeTarget "EscaliburWidgets" */;
 			buildPhases = (
 				390EB41B01082A78FCAEA104 /* Sources */,
+				19B35FF0307F71B134BC2911 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -863,6 +865,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		19B35FF0307F71B134BC2911 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C296D94186DE5EB974802CED /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8C3B34E161C760554E17B78D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;

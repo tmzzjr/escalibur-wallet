@@ -81,3 +81,36 @@ Wallet), nunca uma tradução literal que ninguém usa.
 | modo reforçado | reinforced mode | |
 | saldo | balance | |
 | explorador da rede | block explorer | |
+
+## Termos fixados na tradução para o inglês (15/10/2026)
+
+| Português (origem) | English | Nota |
+|---|---|---|
+| montar (o envio, a troca) | prepare | "Nada foi montado" = "Nothing was prepared" |
+| Nada foi debitado / Nada saiu da conta | Nothing was debited / Nothing left the account | |
+| Confira a Atividade | Check Activity | |
+| conferir / não confere | check / doesn't match | |
+| teto (da carteira, de segurança) | cap | "safety cap" |
+| na cadeia | on-chain | |
+| envio (substantivo) | transfer | Botão e aba: Send |
+| recebimento | incoming transfer | |
+| moeda (inclusive UTXO) | coin | "a moeda do app" (real, dólar) = the app's currency |
+| cotar / Cote de novo | quote / Get a new quote | |
+| vencer / prazo | expire / expiry (ordem), deadline (na cadeia) | |
+| preenchida / execução parcial | filled / partial fill | |
+| Sai (revisão) | You send | Linha que a conferência de segurança usa pelo papel, não pelo texto |
+| Entra, no mínimo / Recebe, no mínimo | You receive, at least | |
+| Chega, no mínimo | Arrives, at least | |
+| Garantido (troca) | Minimum received | |
+| Imediata / Limite / Ponte (modos da troca) | Instant / Limit / Bridge | |
+| Rápida / Padrão (rotas da ponte) | Fast / Standard | |
+| Capitalização / Oferta de moedas / Máxima histórica | Market cap / Supply / All-time high | |
+| banda / energia / queimado (Tron) | bandwidth / energy / burned | |
+| cunhar (CCTP) | mint | |
+| Cópias (seção) / Sem cópia | Backups / No backup | |
+| Grave a senha da carteira | Write down your recovery phrase | |
+| frase (nas telas de voz) | phrase (voice phrase) | Fora delas, "senha da carteira" = recovery phrase |
+| cofre | vault | |
+| Código do iPhone | iPhone passcode | |
+| Bloquear o app | Lock the app | |
+| Tag de destino (Destination Tag) | Destination tag | Nos outros idiomas, manter "(Destination Tag)" |

@@ -226,7 +226,7 @@ struct WalletHomeView: View {
     @ViewBuilder
     private var statusBanners: some View {
         if portfolio.offline, let updated = portfolio.lastUpdated {
-            Banner(kind: .neutral, title: String(localized: "Sem internet. Valores de \(Fmt.relative(updated).lowercased())."))
+            Banner(kind: .neutral, title: String(localized: "Sem internet. Valores de \(Fmt.relative(updated, inSentence: true))."))
                 .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
         } else if portfolio.offline {
             // Sem cache nenhum (primeira abertura, carteira recem importada): sem este
@@ -360,27 +360,33 @@ struct BalanceFigure: View {
     var fractionDigits: Int = 2
     var hidden: Bool = false
 
+    private var symbolText: some View {
+        Text(symbol)
+            .font(.system(size: 24, weight: .semibold))
+            .foregroundStyle(Palette.inkSoft)
+            .contentTransition(.opacity)
+    }
+
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text(symbol)
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(Palette.inkSoft)
-                .contentTransition(.opacity)
+            // O simbolo do lado em que a regiao escreve dinheiro: "R$ 10" e "10 €".
+            if Fmt.symbolFirst { symbolText }
             if hidden {
                 Text("••••••").typeStyle(.display).foregroundStyle(Palette.ink)
             } else {
                 // O inteiro sozinho no tamanho grande; as casas menores e mais claras,
                 // como o simbolo, na mesma linha de base.
                 let text = Fmt.grouped(value, fractionDigits: fractionDigits)
-                let parts = text.split(separator: ",", maxSplits: 1).map(String.init)
-                (Text(parts[0]).style(.display).foregroundColor(Palette.ink)
-                 + Text("," + (parts.count > 1 ? parts[1] : String(repeating: "0", count: fractionDigits)))
+                let parts = text.components(separatedBy: Fmt.decimal)
+                (Text(verbatim: parts[0]).style(.display).foregroundColor(Palette.ink)
+                 + Text(verbatim: Fmt.decimal + (parts.count > 1 ? parts[1] : String(repeating: "0", count: fractionDigits)))
                     .font(.system(size: fractionDigits > 2 ? 22 : 28, weight: .bold).monospacedDigit()).foregroundColor(Palette.inkSoft))
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .contentTransition(.numericText(value: value))
                     .animation(Motion.number, value: value)
             }
+            if !Fmt.symbolFirst { symbolText }
         }
         .accessibilityElement(children: .combine)
     }
@@ -608,7 +614,8 @@ struct WalletSwitcherSheet: View {
         case .watch(let chainID): return String(localized: "Só observar · \(Chain.find(chainID)?.name ?? chainID)")
         case .phrase(let count):
             if !wallet.hasBackup { return String(localized: "Sem cópia") }
-            return String(localized: "\(count) palavras · \(wallet.accounts.count) redes")
+            return wallet.accounts.count == 1 ? String(localized: "\(count) palavras · 1 rede")
+                : String(localized: "\(count) palavras · \(wallet.accounts.count) redes")
         }
     }
 }

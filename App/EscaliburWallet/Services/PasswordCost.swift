@@ -59,20 +59,31 @@ enum PasswordCost {
         }
     }
 
-    /// "4 segundos", "6 dias", "485 anos", "3,7 milhões de anos".
+    /// "4 segundos", "6 dias", "485 anos", "3,7 milhões de anos". Cada unidade e uma frase
+    /// inteira, no singular e no plural, para a traducao.
     static func describe(_ seconds: Double) -> String {
         let minute = 60.0, hour = 3600.0, day = 86_400.0, year = 31_557_600.0
-        func plural(_ value: Double, _ one: String, _ many: String) -> String {
-            let rounded = Int(value.rounded())
-            return rounded <= 1 ? "1 \(one)" : String(localized: "\(Fmt.grouped(Double(rounded), fractionDigits: 0)) \(many)")
+        func count(_ value: Double) -> (one: Bool, text: String) {
+            let rounded = max(Int(value.rounded()), 1)
+            return (rounded == 1, Fmt.grouped(Double(rounded), fractionDigits: 0))
         }
         switch seconds {
         case ..<1: return String(localized: "menos de 1 segundo")
-        case ..<minute: return plural(seconds, "segundo", "segundos")
-        case ..<hour: return plural(seconds / minute, "minuto", "minutos")
-        case ..<day: return plural(seconds / hour, "hora", "horas")
-        case ..<year: return plural(seconds / day, "dia", "dias")
-        case ..<(1e6 * year): return plural(seconds / year, "ano", "anos")
+        case ..<minute:
+            let n = count(seconds)
+            return n.one ? String(localized: "1 segundo") : String(localized: "\(n.text) segundos")
+        case ..<hour:
+            let n = count(seconds / minute)
+            return n.one ? String(localized: "1 minuto") : String(localized: "\(n.text) minutos")
+        case ..<day:
+            let n = count(seconds / hour)
+            return n.one ? String(localized: "1 hora") : String(localized: "\(n.text) horas")
+        case ..<year:
+            let n = count(seconds / day)
+            return n.one ? String(localized: "1 dia") : String(localized: "\(n.text) dias")
+        case ..<(1e6 * year):
+            let n = count(seconds / year)
+            return n.one ? String(localized: "1 ano") : String(localized: "\(n.text) anos")
         case ..<(1e9 * year): return String(localized: "\(Fmt.grouped(seconds / year / 1e6, fractionDigits: 1, trimZeros: true)) milhões de anos")
         default: return String(localized: "mais de 1 bilhão de anos")
         }

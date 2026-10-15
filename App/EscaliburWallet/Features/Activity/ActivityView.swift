@@ -305,8 +305,7 @@ struct ActivityView: View {
         switch names.count {
         case 0: return ""
         case 1: return names[0]
-        case 2: return "\(names[0]) e \(names[1])"
-        case 3: return "\(names[0]), \(names[1]) e \(names[2])"
+        case 2, 3: return names.formatted(.list(type: .and).locale(Fmt.locale))
         default: return String(localized: "\(names[0]), \(names[1]) e mais \(names.count - 2) redes")
         }
     }

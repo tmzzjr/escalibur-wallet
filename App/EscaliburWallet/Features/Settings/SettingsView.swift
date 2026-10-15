@@ -13,7 +13,7 @@ struct SettingsView: View {
     private var alertsValue: String? {
         guard let alerts else { return nil }
         guard alerts.enabled, !alerts.coins.isEmpty else { return String(localized: "Desligados") }
-        return alerts.coins.count == 1 ? String(localized: "1 moeda") : "\(alerts.coins.count) moedas"
+        return alerts.coins.count == 1 ? String(localized: "1 moeda") : String(localized: "\(alerts.coins.count) moedas")
     }
 
     var body: some View {
@@ -41,7 +41,7 @@ struct SettingsView: View {
                     SettingsSection(title: String(localized: "Preferências")) {
                         NavigationLink { NetworksSettingsView() } label: {
                             SettingsRow(icon: "network", title: String(localized: "Redes"),
-                                        value: "\(Chain.all.count - session.metadata.settings.disabledChainIDs.count) ligadas")
+                                        value: String(localized: "\(Chain.all.count - session.metadata.settings.disabledChainIDs.count) ligadas"))
                         }
                         NavigationLink { PriceAlertsView() } label: {
                             SettingsRow(icon: "bell", title: String(localized: "Alertas de preço"), value: alertsValue)
@@ -178,7 +178,7 @@ struct WalletsListView: View {
 
     private func originText(_ wallet: WalletMeta) -> String {
         switch wallet.origin {
-        case .created: if case .phrase(let n) = wallet.kind { return "\(n) palavras" }; return ""
+        case .created: if case .phrase(let n) = wallet.kind { return String(localized: "\(n) palavras") }; return ""
         case .importedPhrase: return String(localized: "Importada com a senha da carteira")
         case .importedEnvelope: return String(localized: "Importada de envelope")
         case .watch: return String(localized: "Só observar")
@@ -213,13 +213,13 @@ struct WalletSettingsView: View {
                     if !wallet.isWatchOnly {
                         SettingsSection(title: String(localized: "Cópias")) {
                             SettingsRow(icon: "doc.text", title: String(localized: "Papel"),
-                                        value: wallet.hasBackup ? (wallet.backupConfirmedAt.map { String(localized: "confirmado em \(Self.day($0))") } ?? "importada") : String(localized: "não confirmado"),
+                                        value: wallet.hasBackup ? (wallet.backupConfirmedAt.map { String(localized: "confirmado em \(Self.day($0))") } ?? String(localized: "importada")) : String(localized: "não confirmado"),
                                         valueColor: wallet.hasBackup ? Palette.inkSoft : Palette.caution, chevron: false)
                             SettingsRow(icon: "envelope", title: String(localized: "Envelope Escalibur"),
-                                        value: wallet.envelopeSealedAt.map { String(localized: "lacrado em \(Self.day($0))") } ?? "nenhum", chevron: false)
+                                        value: wallet.envelopeSealedAt.map { String(localized: "lacrado em \(Self.day($0))") } ?? String(localized: "nenhum"), chevron: false)
                         }
                         if let last = wallet.lastRevealedAt {
-                            Text("Última vez que a senha da carteira foi exibida: \(Fmt.relative(last).lowercased()).")
+                            Text("Última vez que a senha da carteira foi exibida: \(Fmt.relative(last, inSentence: true)).")
                                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                         }
                         SettingsGroup {
@@ -549,6 +549,15 @@ struct AutoLockView: View {
     /// minutos) vale como este.
     static func clamped(_ seconds: Int) -> Int { min(max(seconds, 0), options.last ?? 60) }
 
+    /// O motivo que o Face ID mostra ao mudar o prazo.
+    static func reason(_ seconds: Int) -> String {
+        switch clamped(seconds) {
+        case 0: return String(localized: "Bloquear o app ao sair dele")
+        case 30: return String(localized: "Bloquear o app depois de 30 segundos")
+        default: return String(localized: "Bloquear o app depois de 1 minuto")
+        }
+    }
+
     static func label(_ seconds: Int) -> String {
         switch clamped(seconds) {
         case 0: return String(localized: "Ao sair do app")
@@ -593,7 +602,7 @@ struct AutoLockView: View {
         let current = Self.clamped(session.metadata.settings.autoLockSeconds)
         guard seconds != current else { return }
         if seconds > current {
-            guard (try? await auth.perform(session, reason: String(localized: "Bloquear o app \(Self.label(seconds).lowercased())"), requirePIN: true, { _ in true })) == true else { return }
+            guard (try? await auth.perform(session, reason: Self.reason(seconds), requirePIN: true, { _ in true })) == true else { return }
         }
         let previous = session.metadata.settings.autoLockSeconds
         session.metadata.settings.autoLockSeconds = seconds

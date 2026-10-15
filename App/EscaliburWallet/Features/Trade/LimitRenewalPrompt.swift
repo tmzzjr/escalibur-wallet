@@ -96,7 +96,7 @@ struct LimitRenewalSheet: View {
         case 2_592_000: return String(localized: "30 dias")
         default:
             let days = max(1, Int((seconds / 86_400).rounded()))
-            return days == 1 ? String(localized: "1 dia") : "\(days) dias"
+            return days == 1 ? String(localized: "1 dia") : String(localized: "\(days) dias")
         }
     }
 

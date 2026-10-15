@@ -532,7 +532,7 @@ private struct PhraseSlot: View {
                     } else if let sealed {
                         glyphRow(sealed, color: Palette.inkSoft)
                     } else {
-                        Text(verbatim: display ?? "palavra")
+                        Text(verbatim: display ?? String(localized: "palavra"))
                             .font(.system(size: 15, weight: .medium, design: .monospaced))
                             .foregroundStyle(display == nil || isActive ? Palette.inkDead : Palette.ink)
                             .lineLimit(1)

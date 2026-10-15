@@ -164,6 +164,16 @@
         }
       }
     },
+    "%@ anos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ years"
+          }
+        }
+      }
+    },
     "%@ bytes" : {
       "localizations" : {
         "en" : {
@@ -292,6 +302,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ from this issuer isn't on the wallet's asset list."
+          }
+        }
+      }
+    },
+    "%@ dias" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ days"
+          }
+        }
+      }
+    },
+    "%@ e %@" : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ e %2$@"
           }
         }
       }
@@ -434,12 +464,32 @@
         }
       }
     },
+    "%@ horas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ hours"
+          }
+        }
+      }
+    },
     "%@ milhões de anos" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ million years"
+          }
+        }
+      }
+    },
+    "%@ minutos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ minutes"
           }
         }
       }
@@ -580,6 +630,22 @@
         }
       }
     },
+    "%@ por %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ for %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ por %2$@"
+          }
+        }
+      }
+    },
     "%@ queimados" : {
       "localizations" : {
         "en" : {
@@ -596,6 +662,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ sat/vB"
+          }
+        }
+      }
+    },
+    "%@ segundos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ seconds"
           }
         }
       }
@@ -905,6 +981,22 @@
         }
       }
     },
+    "%@/%@ %@ por %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@/%@ %@ per %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@/%2$@ %3$@ por %4$@"
+          }
+        }
+      }
+    },
     "%@Palavras %lld a %lld de %lld" : {
       "localizations" : {
         "en" : {
@@ -923,6 +1015,7 @@
     },
     "%lld" : {},
     "%lld %@, %@: pequenas, sem confirmação ou que não pagam a própria taxa" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -934,6 +1027,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld %2$@, %3$@: pequenas, sem confirmação ou que não pagam a própria taxa"
+          }
+        }
+      }
+    },
+    "%lld além do limite de moedas lidas de uma vez" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld beyond the limit of coins read at once"
           }
         }
       }
@@ -970,12 +1073,62 @@
         }
       }
     },
+    "%lld dias" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld days"
+          }
+        }
+      }
+    },
+    "%lld horas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld hours"
+          }
+        }
+      }
+    },
+    "%lld ligadas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld on"
+          }
+        }
+      }
+    },
+    "%lld minutos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutes"
+          }
+        }
+      }
+    },
     "%lld minutos. O que não for preenchido até lá continua na sua carteira, sem custo" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld minutes. Whatever isn't filled by then stays in your wallet, at no cost"
+          }
+        }
+      }
+    },
+    "%lld moedas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld coins"
           }
         }
       }
@@ -1010,6 +1163,32 @@
         }
       }
     },
+    "%lld moedas, %@: pequenas, sem confirmação ou que não pagam a própria taxa" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld coins, %@: small, unconfirmed or not worth their own fee"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld moedas, %2$@: pequenas, sem confirmação ou que não pagam a própria taxa"
+          }
+        }
+      }
+    },
+    "%lld palavras" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld words"
+          }
+        }
+      }
+    },
     "%lld palavras · %lld redes" : {
       "localizations" : {
         "en" : {
@@ -1022,6 +1201,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld palavras · %2$lld redes"
+          }
+        }
+      }
+    },
+    "%lld palavras · 1 rede" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld words · 1 network"
           }
         }
       }
@@ -1052,6 +1241,16 @@
         }
       }
     },
+    "%lld que não pagam a própria taxa" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld not worth their own fee"
+          }
+        }
+      }
+    },
     "%lld recebimentos suspeitos escondidos. São envios de valor zero ou de tokens fora da lista, muitas vezes de endereços parecidos com os seus." : {
       "localizations" : {
         "en" : {
@@ -1078,6 +1277,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld networks, each read directly from public providers."
+          }
+        }
+      }
+    },
+    "%lld segundos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld seconds"
+          }
+        }
+      }
+    },
+    "%lld sem prova da transação anterior" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld without proof of the previous transaction"
           }
         }
       }
@@ -1166,6 +1385,7 @@
       }
     },
     "0" : {},
+    "09:41" : {},
     "1 %@ a %@ %@, na %@. Refeita, vale por mais %@." : {
       "localizations" : {
         "en" : {
@@ -1258,6 +1478,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "1 coin that still has value is"
+          }
+        }
+      }
+    },
+    "1 moeda, %@: pequena, sem confirmação ou que não paga a própria taxa" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 coin, %@: small, unconfirmed or not worth its own fee"
+          }
+        }
+      }
+    },
+    "1 que não paga a própria taxa" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 not worth its own fee"
           }
         }
       }
@@ -2996,6 +3236,16 @@
         }
       }
     },
+    "A senha do envelope não sai deste iPhone." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The envelope password never leaves this iPhone."
+          }
+        }
+      }
+    },
     "A senha escolhida quando o envelope foi lacrado. No app Escalibur, é a senha do cofre." : {
       "localizations" : {
         "en" : {
@@ -3894,6 +4144,16 @@
         }
       }
     },
+    "Abra uma moeda na Escalibur para ver o preço aqui." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open a coin in Escalibur to see its price here."
+          }
+        }
+      }
+    },
     "Abrindo o envelope" : {
       "localizations" : {
         "en" : {
@@ -4530,6 +4790,16 @@
         }
       }
     },
+    "Arquivo do widget: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Widget file: %@"
+          }
+        }
+      }
+    },
     "As %lld moedas da conta viram uma só" : {
       "localizations" : {
         "en" : {
@@ -5099,11 +5369,42 @@
       }
     },
     "Bloquear o app %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lock the app %@"
+          }
+        }
+      }
+    },
+    "Bloquear o app ao sair dele" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock the app when leaving it"
+          }
+        }
+      }
+    },
+    "Bloquear o app depois de 1 minuto" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock the app after 1 minute"
+          }
+        }
+      }
+    },
+    "Bloquear o app depois de 30 segundos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock the app after 30 seconds"
           }
         }
       }
@@ -5626,6 +5927,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Encrypted, only on this iPhone"
+          }
+        }
+      }
+    },
+    "Cifrando a senha da carteira" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encrypting the recovery phrase"
           }
         }
       }
@@ -6884,6 +7195,16 @@
         }
       }
     },
+    "Deixando a senha difícil de adivinhar" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Making the password hard to guess"
+          }
+        }
+      }
+    },
     "Dentro do arquivo, as palavras viram dados cifrados. Ele não diz de quem é, nem quantas palavras guarda, nem o que tem dentro." : {
       "localizations" : {
         "en" : {
@@ -8044,6 +8365,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escalibur Envelope"
+          }
+        }
+      }
+    },
+    "Envelope aberto" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envelope opened"
           }
         }
       }
@@ -10370,6 +10701,16 @@
         }
       }
     },
+    "Exemplo (sem arquivo)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sample (no file)"
+          }
+        }
+      }
+    },
     "Existe iOS mais novo, com correções de segurança. Atualize quando puder." : {
       "localizations" : {
         "en" : {
@@ -10844,6 +11185,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Manage assets"
+          }
+        }
+      }
+    },
+    "Gravando o arquivo" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving the file"
           }
         }
       }
@@ -11494,6 +11845,16 @@
         }
       }
     },
+    "Lacrando" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sealing"
+          }
+        }
+      }
+    },
     "Lacrando o envelope" : {
       "localizations" : {
         "en" : {
@@ -11664,7 +12025,18 @@
         }
       }
     },
+    "Leva %@, só neste iPhone, sem internet." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takes %@, only on this iPhone, no internet."
+          }
+        }
+      }
+    },
     "Leva %@, só neste iPhone. A senha do envelope não sai dele." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -11898,6 +12270,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld more expired orders after this one"
+          }
+        }
+      }
+    },
+    "Mais %lld recebimentos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld more incoming transfers"
           }
         }
       }
@@ -12198,6 +12580,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Coins used"
+          }
+        }
+      }
+    },
+    "Moedas, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coins, %@"
           }
         }
       }
@@ -14354,7 +14746,18 @@
         }
       }
     },
+    "O arquivo não diz de quem é nem o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file doesn't say whose it is or what it holds. Keep the file and the password in different places: whoever has both has the wallet."
+          }
+        }
+      }
+    },
     "O arquivo se chama %@ e não diz de quem é nem o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -15226,6 +15629,16 @@
         }
       }
     },
+    "O preço da última moeda que você abriu ou recebeu na Escalibur." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The price of the last coin you opened or received in Escalibur."
+          }
+        }
+      }
+    },
     "O preço desta cotação está longe demais do preço médio de mercado. Troca bloqueada." : {
       "localizations" : {
         "en" : {
@@ -15582,6 +15995,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Offer"
+          }
+        }
+      }
+    },
+    "Oferta de moedas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supply"
           }
         }
       }
@@ -17040,6 +17463,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Price by contract: %@ each."
+          }
+        }
+      }
+    },
+    "Preço recente" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent price"
           }
         }
       }
@@ -21271,6 +21704,7 @@
       }
     },
     "além do limite de moedas lidas de uma vez" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -21480,12 +21914,32 @@
         }
       }
     },
+    "hoje, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "today, %@"
+          }
+        }
+      }
+    },
     "há %lld min" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld min ago"
+          }
+        }
+      }
+    },
+    "importada" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "imported"
           }
         }
       }
@@ -21516,6 +21970,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "sealed on %@"
+          }
+        }
+      }
+    },
+    "ligada" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on"
           }
         }
       }
@@ -21586,6 +22050,16 @@
         }
       }
     },
+    "nenhum" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "none"
+          }
+        }
+      }
+    },
     "no formato genérico do Substrate" : {
       "localizations" : {
         "en" : {
@@ -21646,6 +22120,16 @@
         }
       }
     },
+    "palavra" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "word"
+          }
+        }
+      }
+    },
     "palavras na senha" : {
       "localizations" : {
         "en" : {
@@ -21687,6 +22171,7 @@
       }
     },
     "que não paga a própria taxa" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -21697,6 +22182,7 @@
       }
     },
     "que não pagam a própria taxa" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -21712,6 +22198,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "whoever has the words has the funds"
+          }
+        }
+      }
+    },
+    "segundos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "seconds"
           }
         }
       }
@@ -21747,6 +22243,7 @@
       }
     },
     "sem prova da transação anterior" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -21782,6 +22279,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "about 20 minutes (no protocol fee)"
+          }
+        }
+      }
+    },
+    "Às %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "At %@"
           }
         }
       }

@@ -153,7 +153,7 @@ struct BridgeForm: View {
         switch quote.route {
         case .cctpFast: return String(localized: "menos de 1 minuto")
         case .cctpStandard: return String(localized: "uns 20 minutos (sem taxa do protocolo)")
-        case .across: return quote.estimatedSeconds < 120 ? "segundos" : String(localized: "uns \(quote.estimatedSeconds / 60) minutos")
+        case .across: return quote.estimatedSeconds < 120 ? String(localized: "segundos") : String(localized: "uns \(quote.estimatedSeconds / 60) minutos")
         }
     }
 
