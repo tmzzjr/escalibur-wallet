@@ -33,9 +33,13 @@ final class EnvelopeFlowTests: XCTestCase {
         }
     }
 
+    /// O campo da senha, escondido ou visivel. Uma consulta so, para esperar por ela: a
+    /// escolha feita antes de a tela abrir ficava presa no tipo errado.
     func passwordField(_ app: XCUIApplication) -> XCUIElement {
-        let secure = app.secureTextFields.firstMatch
-        return secure.exists ? secure : app.textFields.firstMatch
+        app.descendants(matching: .any).matching(NSPredicate(
+            format: "elementType == %d OR elementType == %d",
+            XCUIElement.ElementType.secureTextField.rawValue, XCUIElement.ElementType.textField.rawValue
+        )).firstMatch
     }
 
     func testSeal() {

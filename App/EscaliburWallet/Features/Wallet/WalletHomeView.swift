@@ -68,7 +68,7 @@ struct WalletHomeView: View {
         // vezes nao abria (visto nos testes de interface).
         .task {
             guard DebugDemo.screen != nil else { return }
-            try? await Task.sleep(for: .milliseconds(1_200))
+            await DebugDemo.settle()
             if ["receber", "receber-btc"].contains(DebugDemo.screen) { receiving = true }
             if DebugDemo.screen == "revelar" { backingUp = true }
             if DebugDemo.screen == "adicionar" { addingWallet = true }

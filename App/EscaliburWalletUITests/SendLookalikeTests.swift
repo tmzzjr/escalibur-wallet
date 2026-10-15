@@ -72,7 +72,8 @@ final class SendUnsureTests: XCTestCase {
     }
 }
 
-/// Tag opcional: quando a rede tem e o destino nao exige, o campo abre a pedido.
+/// Tag opcional: quando a rede tem e o destino nao exige, o campo ja vem aberto, com o
+/// nome que a exchange usa (pedido do dono de 14/10/2026).
 final class SendOptionalTagTests: XCTestCase {
     var shots: String? { ProcessInfo.processInfo.environment["ESCALIBUR_FOTOS"] }
 
@@ -80,6 +81,9 @@ final class SendOptionalTagTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-reset", "-demo", "-tela", "enviar"]
         app.launch()
+        // A folha de envio abre depois de a Carteira assentar; antes, o "XRP," da Carteira
+        // e outro botao.
+        XCTAssertTrue(app.staticTexts["Escolha o que enviar"].waitForExistence(timeout: 30))
         let xrp = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'XRP,'")).firstMatch
         XCTAssertTrue(xrp.waitForExistence(timeout: 40))
         xrp.tap()
@@ -87,12 +91,16 @@ final class SendOptionalTagTests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         field.tap()
         field.typeText("rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh")
-        let addTag = app.buttons["Adicionar tag de destino"]
-        XCTAssertTrue(addTag.waitForExistence(timeout: 10))
-        addTag.tap()
         let tag = app.textFields["tag-opcional"]
-        XCTAssertTrue(tag.waitForExistence(timeout: 5))
-        tag.tap()
+        XCTAssertTrue(tag.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Tag de destino (Destination Tag)"].exists)
+        XCTAssertTrue(app.staticTexts["opcional"].exists)
+        // Os avisos do endereco chegam logo depois da digitacao e empurram o campo: toca
+        // ate o teclado ficar nele.
+        for _ in 0..<4 where (tag.value(forKey: "hasKeyboardFocus") as? Bool) != true {
+            tag.tap()
+            sleep(1)
+        }
         tag.typeText("0123")
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.lifetime = .keepAlways

@@ -406,6 +406,7 @@ struct SendStages: View {
     // MARK: E2 Para
 
     private var destinationStage: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 header
@@ -443,7 +444,7 @@ struct SendStages: View {
                 .padding(.top, Space.xs)
 
                 validationLine.padding(.top, Space.sm)
-                optionalTag
+                optionalTag.id("tag-opcional")
 
                 if let lookalike = model.lookalike, let destination = model.destination, let chain = model.chain {
                     Banner(kind: .caution, title: "Endereço parecido com um que você já usou",
@@ -492,6 +493,15 @@ struct SendStages: View {
             .padding(.bottom, Space.lg)
         }
         .scrollDismissesKeyboard(.interactively)
+        // Com o teclado aberto, o Continuar cobria a tag opcional logo abaixo do endereco
+        // (visto no teste de interface): com o endereco valido, a tela sobe ate ela. Com
+        // aviso de endereco parecido, fica onde esta, para o aviso nao sair de vista.
+        .onChange(of: model.destination?.address) { _, address in
+            guard address != nil, model.chain.map({ $0.destinationTag != .none }) == true, !model.needsTagStep,
+                  model.lookalike == nil, model.blindSegment == nil else { return }
+            withAnimation(Motion.fade) { proxy.scrollTo("tag-opcional", anchor: .bottom) }
+        }
+        }
         .safeAreaInset(edge: .bottom) {
             PrimaryButton(title: "Continuar", enabled: model.destination != nil && model.lookalikeCleared && tagProblem == nil
                           && (!model.needsNetworkConfirmation || model.networkConfirmed), loading: model.working) {

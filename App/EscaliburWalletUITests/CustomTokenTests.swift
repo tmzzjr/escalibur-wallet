@@ -25,9 +25,15 @@ final class CustomTokenTests: XCTestCase {
         return app
     }
 
-    /// Rola a Carteira ate o elemento aparecer.
+    /// Rola a Carteira ate o elemento aparecer acima da barra de abas: embaixo dela ele
+    /// conta como tocavel, mas o toque cai na aba.
     func scroll(to element: XCUIElement, in app: XCUIApplication, tries: Int = 10) {
-        for _ in 0..<tries where !(element.exists && element.isHittable) { app.swipeUp() }
+        let bar = app.tabBars.firstMatch
+        func visible() -> Bool {
+            guard element.exists, element.isHittable else { return false }
+            return !bar.exists || element.frame.maxY < bar.frame.minY - 8
+        }
+        for _ in 0..<tries where !visible() { app.swipeUp() }
     }
 
     func testOtherTokensAndSuspicious() {
@@ -43,7 +49,11 @@ final class CustomTokenTests: XCTestCase {
         // Suspeitos ficam escondidos ate o toque.
         XCTAssertFalse(app.staticTexts["Suspeito"].exists)
         suspicious.tap()
+        XCTAssertTrue(app.buttons["Esconder suspeitos"].waitForExistence(timeout: 5))
+        // Os saldos seguem chegando e empurram a lista para baixo: rola ate o selo, que
+        // so existe quando a linha (lista preguicosa) entra na tela.
         let badge = app.staticTexts["Suspeito"].firstMatch
+        scroll(to: badge, in: app, tries: 20)
         XCTAssertTrue(badge.waitForExistence(timeout: 5))
         app.swipeUp()
         shot("c2-suspeitos", app)
@@ -85,8 +95,14 @@ final class CustomTokenTests: XCTestCase {
         XCTAssertTrue(app.buttons["Remover OpenAI"].waitForExistence(timeout: 10))
         shot("g1-gerenciar", app)
 
-        // Carteira: a moeda aparece com o selo de custom.
-        app.navigationBars.buttons.firstMatch.tap()
+        // Carteira: a moeda aparece com o selo de custom. O voltar tocado enquanto a folha
+        // de adicionar ainda fecha e ignorado: toca de novo se Gerenciar ativos ficou.
+        let manageBar = app.navigationBars["Gerenciar ativos"]
+        for _ in 0..<3 where manageBar.exists {
+            manageBar.buttons["BackButton"].tap()
+            _ = manageBar.waitForNonExistence(timeout: 3)
+        }
+        XCTAssertFalse(manageBar.exists, "nao voltou para a Carteira")
         // A linha da Carteira e um botao; o selo vai no rotulo dele.
         let custom = app.buttons.matching(NSPredicate(format: "label CONTAINS 'OpenAI' AND label CONTAINS 'Custom'")).firstMatch
         let deadline = Date().addingTimeInterval(60)

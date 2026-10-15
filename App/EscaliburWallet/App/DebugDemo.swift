@@ -20,6 +20,12 @@ enum DebugDemo {
     static var arguments: [String] { ProcessInfo.processInfo.arguments }
     static var enabled: Bool { arguments.contains("-demo") }
 
+    /// Espera a Carteira assentar antes de abrir uma tela por cima: apresentada durante a
+    /// troca da abertura para as abas, a tela as vezes nao abria (testes de interface).
+    static func settle() async {
+        try? await Task.sleep(for: .milliseconds(1_200))
+    }
+
     static var screen: String? {
         guard let index = arguments.firstIndex(of: "-tela"), arguments.indices.contains(index + 1) else { return nil }
         return arguments[index + 1]
@@ -214,8 +220,10 @@ enum DebugDemo {
                 }
             case "atividade": router.tab = .activity
             case "ajustes": router.tab = .settings
-            case "enviar", "envio-valor", "envio-revisao", "envio-enviando", "enviado", "envio-preso": router.present(.send(nil))
-            case "enviar-eth", "envio-incerto": router.present(.send(.native(.ethereum)))
+            case "enviar", "envio-valor", "envio-revisao", "envio-enviando", "enviado", "envio-preso":
+                Task { @MainActor in await settle(); router.present(.send(nil)) }
+            case "enviar-eth", "envio-incerto":
+                Task { @MainActor in await settle(); router.present(.send(.native(.ethereum))) }
             default: break
             }
         } catch {
@@ -303,6 +311,7 @@ struct DemoEnvelopes: ViewModifier {
             .task(id: session.metadata.wallets.first?.id) {
                 guard !shown, let first = session.metadata.wallets.first else { return }
                 shown = true
+                await DebugDemo.settle()
                 if DebugDemo.screen == "lacrar" { sealing = first }
                 if ["abrir", "envelope-como"].contains(DebugDemo.screen) { opening = true }
                 if DebugDemo.screen == "voz" { voice = true }
