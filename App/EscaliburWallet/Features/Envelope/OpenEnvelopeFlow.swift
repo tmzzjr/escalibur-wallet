@@ -114,10 +114,11 @@ struct OpenEnvelopeFlow: View {
     }
 
     /// O texto no centro, embaixo da ilustracao, e o "Como funciona" (pedido do dono,
-    /// 14/10/2026).
+    /// 14/10/2026). A ilustracao e a do "So a sua senha abre": a senha digitada abre o
+    /// envelope e revela as palavras (de exemplo).
     private var chooseView: some View {
         VStack(spacing: 0) {
-            EnvelopeChain(mode: .idle, direction: .outward).padding(.top, Space.sm).padding(.bottom, Space.xl)
+            EnvelopeCipherCard(mode: .reveal).padding(.top, Space.sm).padding(.bottom, Space.xl)
             Text("Abrir um envelope").typeStyle(.title).foregroundStyle(Palette.ink)
                 .multilineTextAlignment(.center)
             Text("Escolha o arquivo .esclbr no app Arquivos. O original continua onde está.")
@@ -160,10 +161,12 @@ struct OpenEnvelopeFlow: View {
         }
     }
 
-    /// Abrindo e aberto dividem a ilustracao: o bloco que sobe e o que fica de fora.
+    /// Abrindo e aberto dividem a ilustracao: o arquivo com o cifrado trocando enquanto o
+    /// app faz a conta e, aberto, um visto no lugar de cada palavra (nunca as de exemplo).
     private var openStage: some View {
         VStack(alignment: .leading, spacing: 0) {
-            EnvelopeChain(mode: opened == nil ? .working : .opened, direction: .outward)
+            EnvelopeCipherCard(mode: opened == nil ? .opening : .opened, fileName: fileName ?? "envelope.esclbr",
+                               wordCount: opened.map(Self.wordCount) ?? 12)
                 .padding(.top, Space.sm).padding(.bottom, Space.xl)
             if let opened {
                 openedContent(opened)
@@ -176,9 +179,14 @@ struct OpenEnvelopeFlow: View {
         }
     }
 
+    /// Quantas palavras o envelope guarda, contando os espacos nos bytes (sem montar texto).
+    static func wordCount(_ contents: Envelope.Contents) -> Int {
+        contents.phrase.withUnsafeBytes { raw in raw.filter { $0 == 0x20 }.count + 1 }
+    }
+
     @ViewBuilder
     private func openedContent(_ contents: Envelope.Contents) -> some View {
-        let words = contents.phrase.withUnsafeBytes { raw in raw.filter { $0 == 0x20 }.count + 1 }
+        let words = Self.wordCount(contents)
         (contents.label.isEmpty ? Text("Envelope aberto") : Text(verbatim: contents.label))
             .typeStyle(.title).foregroundStyle(Palette.ink)
         Text(String(localized: "\(words) palavras, lista em \(Fmt.languageName(contents.language))") + (contents.passphrase.count > 0 ? String(localized: " · com passphrase") : ""))
