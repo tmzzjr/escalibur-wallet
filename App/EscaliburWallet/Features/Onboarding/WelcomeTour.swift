@@ -2,21 +2,20 @@ import EscaliburChains
 import EscaliburCore
 import SwiftUI
 
-/// Depois do primeiro PIN e antes da primeira carteira: o que a Escalibur e, em quatro
+/// Depois do primeiro PIN e antes da primeira carteira: o que a Escalibur e, em tres
 /// passos com uma cena cada (pedido do dono, 15/10/2026). Substitui a lista de cinco
 /// promessas que vinha antes de criar e de importar.
 ///
 /// 1. A espada na pedra, a mesma da abertura: so sai pelas maos certas.
-/// 2. A chave: as moedas e as redes giram, se juntam no centro e viram o icone do app.
-/// 3. As redes: as moedas de verdade entram uma a uma e giram em volta do selo.
-/// 4. A assinatura: o BTC espera, o Face ID confirma, e so entao ele vai ate o USDC.
+/// 2. As moedas: o icone do app no centro e as moedas em orbitas em perspectiva.
+/// 3. A assinatura: uma moeda de Bitcoin em 3D gira esperando, e o Face ID confirma.
 ///
 /// Cada cena roda quando o passo aparece. Com Reduzir Movimento, ela ja aparece pronta.
 struct WelcomeTour: View {
     let onFinish: () -> Void
     @State private var page = 0
 
-    private static let pages = 4
+    private static let pages = 3
 
     var body: some View {
         VStack(spacing: 0) {
@@ -40,19 +39,14 @@ struct WelcomeTour: View {
                 .tag(0)
                 TourPage(
                     title: String(localized: "Uma chave para todas as suas moedas"),
-                    text: String(localized: "Todas as suas moedas num lugar só, com a chave criada e guardada neste iPhone. Sem servidor, sem conta e sem e-mail.")
-                ) { ConvergeScene(active: page == 1) }
+                    text: String(localized: "Bitcoin, Ethereum, Solana e as maiores moedas do mundo, com a chave criada e guardada neste iPhone. Envie, receba e troque entre redes, com a taxa à vista antes de assinar.")
+                ) { OrbitScene(active: page == 1) }
                 .tag(1)
-                TourPage(
-                    title: String(localized: "\(Chain.all.count) redes, um app só"),
-                    text: String(localized: "Bitcoin, Ethereum, Solana e as maiores moedas do mundo. Envie, receba, troque e leve entre redes, com a taxa à vista antes de assinar.")
-                ) { NetworksScene(active: page == 2) }
-                .tag(2)
                 TourPage(
                     title: String(localized: "Só você assina"),
                     text: String(localized: "Antes de cada envio, você vê o que sai e para onde, e confirma com o seu \(KeyServices.biometryName) ou PIN. O código é aberto: qualquer pessoa pode conferir.")
-                ) { SignScene(active: page == 3) }
-                .tag(3)
+                ) { SignScene(active: page == 2) }
+                .tag(2)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
 
@@ -72,7 +66,7 @@ struct WelcomeTour: View {
         .background(Palette.void.ignoresSafeArea())
         .sensoryFeedback(.selection, trigger: page)
         // Enquanto a espada cai, os logos da cena seguinte ja ficam decodificados.
-        .task { await ConvergeLogos.prepare() }
+        .task { await TourLogos.prepare() }
     }
 }
 
@@ -154,172 +148,135 @@ private func pause(_ milliseconds: Int) async -> Bool {
     return !Task.isCancelled
 }
 
-// MARK: - 2. A chave
+// MARK: - 2. As moedas
 
-/// As moedas e as redes espalhadas em tres planos (as do fundo menores e desfocadas),
-/// girando devagar. Depois elas sao puxadas para o centro num redemoinho que acelera,
-/// com rastro e a camera chegando perto, e somem num clarao rosa de onde sai o icone do
-/// app, com faiscas que se espalham e um toque firme. Fica o icone, sem brilho em volta.
-///
-/// Tudo e funcao do tempo desde o comeco (`start`): a cena e a mesma toda vez, e o
-/// Canvas desenha os logos como simbolos, sem uma view por quadro.
-private struct ConvergeScene: View {
+/// O icone do app no centro e as moedas em tres orbitas em perspectiva, como aneis vistos
+/// um pouco de cima. As de tras passam atras do icone, menores e mais apagadas; as da
+/// frente, maiores, por cima. Os aneis se desenham, o icone entra com uma mola e as
+/// moedas chegam de fora, uma a uma, em espiral, e encaixam na orbita. Sem brilho nem
+/// halo (pedido do dono, 15/10/2026). Com Reduzir Movimento, tudo parado no lugar.
+private struct OrbitScene: View {
     let active: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var start: Date?
-    @State private var merged = false
 
-    static let ids = ["bitcoin", "ethereum", "solana", "tether", "ripple", "usd-coin", "binancecoin", "the-open-network",
-                              "tron", "cardano", "polkadot", "avalanche-2", "dogecoin", "sui", "stellar", "near", "litecoin",
-                              "polygon-ecosystem-token", "chainlink", "aptos", "arbitrum", "optimism"]
-
-    /// Onde cada logo comeca: angulo de ouro (espalha sem grade), raio, plano e atraso.
-    private struct Seat { let angle: Double; let radius: Double; let depth: Double; let delay: Double }
-    private static let seats: [Seat] = ids.indices.map { index in
-        Seat(angle: Double(index) * 2.399963, radius: 0.5 + 0.5 * Double((index * 37) % 11) / 10,
-             depth: [1.0, 0.78, 0.58][index % 3], delay: Double(index) * 0.035)
-    }
-
-    /// Quando comecam a ser puxados, e quando viram o icone (segundos).
-    static let gather = 1.4
-    static let merge = 2.65
-    static let logoSide: CGFloat = 64
-    static let iconSide: CGFloat = 112
+    struct Orbit { let radius: Double; let speed: Double; let size: Double; let ids: [String] }
+    static let orbits: [Orbit] = [
+        Orbit(radius: 0.42, speed: 0.32, size: 36, ids: ["bitcoin", "ethereum", "solana", "tether", "usd-coin"]),
+        Orbit(radius: 0.68, speed: -0.21, size: 31, ids: ["ripple", "binancecoin", "the-open-network", "tron", "cardano", "dogecoin", "sui"]),
+        Orbit(radius: 0.94, speed: 0.14, size: 27, ids: ["polkadot", "avalanche-2", "stellar", "near", "litecoin", "polygon-ecosystem-token",
+                                                          "chainlink", "aptos", "arbitrum"]),
+    ]
+    static let ids: [String] = orbits.flatMap(\.ids)
+    /// A perspectiva: o circulo visto de cima vira elipse, levemente girada.
+    static let flatten = 0.52
+    static let tilt = -0.16
+    static let iconSide: CGFloat = 78
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1 / 60, paused: !active || reduceMotion)) { timeline in
-            let elapsed = reduceMotion ? 60 : start.map { timeline.date.timeIntervalSince($0) } ?? 0
+            let elapsed = reduceMotion ? 4 : start.map { timeline.date.timeIntervalSince($0) } ?? 0
             Canvas { context, size in
-                Self.draw(&context, size: size, t: elapsed)
+                Self.draw(&context, size: size, t: elapsed, spinning: !reduceMotion)
             } symbols: {
                 WalletBadge(size: Self.iconSide).tag(1000)
             }
         }
-        .modifier(SceneRunner(active: active, reset: { start = nil; merged = false }, finish: { start = .distantPast }, run: run))
-        .sensoryFeedback(.impact(weight: .heavy, intensity: 0.9), trigger: merged) { _, new in new }
+        .modifier(SceneRunner(active: active, reset: { start = nil }, finish: { start = .distantPast }, run: run))
         .accessibilityHidden(true)
     }
 
     private func run() async {
-        // O relogio so comeca com os logos prontos: decodificar no primeiro quadro
-        // travava a cena por mais de um segundo e ela pulava o comeco (gravacao do
-        // simulador, 15/10/2026).
-        await ConvergeLogos.prepare()
+        await TourLogos.prepare()
         guard !Task.isCancelled else { return }
         start = Date()
-        guard await pause(Int(Self.merge * 1000)) else { return }
-        merged = true
     }
 
     private static func clamp(_ value: Double) -> Double { min(max(value, 0), 1) }
-    private static func smooth(_ value: Double) -> Double { let x = clamp(value); return x * x * (3 - 2 * x) }
+    private static func easeOut(_ value: Double) -> Double { 1 - pow(1 - clamp(value), 3) }
 
-    /// Posicao, escala e opacidade de um logo no instante `t`.
-    private static func pose(_ index: Int, t: Double, center: CGPoint, reach: Double) -> (point: CGPoint, scale: Double, alpha: Double) {
-        let seat = seats[index]
-        let appear = smooth((t - 0.1 - seat.delay) / 0.45)
-        let fade = 1 - smooth((t - (merge - 0.22)) / 0.22)
-        let pull = pow(clamp((t - gather) / (merge - gather)), 3)
-        let angle = seat.angle + t * 0.14 * seat.depth + pull * 2.6
-        let breathe = 0.97 + 0.03 * sin(t * 1.4 + Double(index))
-        let radius = reach * seat.radius * (1 - pull) * breathe
-        let point = CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle) * 0.86)
-        let scale = (0.38 + 0.4 * seat.depth) * (1 - 0.5 * pull) * (0.7 + 0.3 * appear)
-        return (point, scale, appear * fade * (0.5 + 0.5 * seat.depth))
+    private static func draw(_ context: inout GraphicsContext, size: CGSize, t: Double, spinning: Bool) {
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
+        let rx = Double(size.width) * 0.47
+        let cosTilt = cos(tilt), sinTilt = sin(tilt)
+        func place(_ x: Double, _ y: Double) -> CGPoint {
+            CGPoint(x: center.x + x * cosTilt - y * sinTilt, y: center.y + x * sinTilt + y * cosTilt)
+        }
+
+        // Os aneis, desenhados um apos o outro.
+        for (index, orbit) in orbits.enumerated() {
+            let reveal = easeOut((t - Double(index) * 0.12) / 0.9)
+            guard reveal > 0 else { continue }
+            let a = rx * orbit.radius, b = a * flatten
+            var ring = Path(ellipseIn: CGRect(x: -a, y: -b, width: a * 2, height: b * 2))
+            ring = ring.applying(CGAffineTransform(rotationAngle: tilt)).applying(CGAffineTransform(translationX: center.x, y: center.y))
+            context.stroke(ring.trimmedPath(from: 0, to: reveal), with: .color(Color.white.opacity(0.1)), lineWidth: 1)
+        }
+
+        // Cada moeda: angulo na orbita, profundidade (a frente e a metade de baixo) e chegada.
+        struct Coin { let id: String; let point: CGPoint; let depth: Double; let side: Double; let alpha: Double }
+        var coins: [Coin] = []
+        var order = 0
+        for orbit in orbits {
+            let a = rx * orbit.radius, b = a * flatten
+            for (slot, id) in orbit.ids.enumerated() {
+                let base = Double(slot) / Double(orbit.ids.count) * 2 * .pi
+                let arrive = easeOut((t - 0.35 - Double(order) * 0.055) / 0.95)
+                order += 1
+                guard arrive > 0 else { continue }
+                let angle = base + (spinning ? t * orbit.speed : 0) - (1 - arrive) * 1.3
+                let spread = 1 + 0.85 * (1 - arrive)
+                let depth = sin(angle)
+                let point = place(a * spread * cos(angle), b * spread * depth)
+                let scale = 0.76 + 0.34 * (depth + 1) / 2
+                coins.append(Coin(id: id, point: point, depth: depth, side: orbit.size * scale,
+                                  alpha: arrive * (0.5 + 0.5 * (depth + 1) / 2)))
+            }
+        }
+        let back = coins.filter { $0.depth < 0 }.sorted { $0.depth < $1.depth }
+        let front = coins.filter { $0.depth >= 0 }.sorted { $0.depth < $1.depth }
+        for coin in back { drawCoin(&context, coin.id, at: coin.point, side: coin.side, alpha: coin.alpha) }
+
+        // O icone, com uma mola.
+        if let icon = context.resolveSymbol(id: 1000) {
+            let k = max(t - 0.1, 0)
+            let spring = 1 - exp(-6 * k) * cos(11 * k) * 0.45
+            var layer = context
+            layer.opacity = clamp(k / 0.15)
+            layer.translateBy(x: center.x, y: center.y)
+            layer.scaleBy(x: spring, y: spring)
+            layer.draw(icon, at: .zero)
+        }
+        for coin in front { drawCoin(&context, coin.id, at: coin.point, side: coin.side, alpha: coin.alpha) }
     }
 
     /// Um logo como o `CoinLogo`: os sem circulo proprio (ETH, SOL) num disco, com o
     /// glifo menor; os escuros (XRP, XLM) com um disco claro atras.
-    private static func drawLogo(_ context: inout GraphicsContext, image: Image, id: String) {
-        let side = Double(logoSide)
-        let rect = CGRect(x: -side / 2, y: -side / 2, width: side, height: side)
+    private static func drawCoin(_ context: inout GraphicsContext, _ id: String, at point: CGPoint, side: Double, alpha: Double) {
+        guard let image = TourLogos.images[id] else { return }
+        var layer = context
+        layer.opacity = alpha
+        let rect = CGRect(x: point.x - side / 2, y: point.y - side / 2, width: side, height: side)
         let disc = Path(ellipseIn: rect)
         if CoinLogo.bareLogos.contains(id) {
-            context.fill(disc, with: .color(Palette.control))
-            context.draw(image, in: rect.insetBy(dx: side * 0.19, dy: side * 0.19))
+            layer.fill(disc, with: .color(Palette.control))
+            layer.draw(image, in: rect.insetBy(dx: side * 0.19, dy: side * 0.19))
             return
         }
-        if CoinLogo.darkLogos.contains(id) { context.fill(disc, with: .color(Palette.logoDisc)) }
-        var round = context
-        round.clip(to: disc)
-        round.draw(image, in: rect)
-    }
-
-    private static func draw(_ context: inout GraphicsContext, size: CGSize, t: Double) {
-        let center = CGPoint(x: size.width / 2, y: size.height / 2)
-        let reach = Double(min(size.width, size.height)) * 0.5
-        let pull = pow(clamp((t - gather) / (merge - gather)), 3)
-        // A camera chega perto enquanto eles sao puxados e volta no encontro.
-        let push = 1 + 0.07 * smooth((t - gather) / (merge - gather)) * (1 - smooth((t - merge) / 0.6))
-        context.translateBy(x: center.x, y: center.y)
-        context.scaleBy(x: push, y: push)
-        context.translateBy(x: -center.x, y: -center.y)
-
-        // A luz que cresce no centro enquanto eles chegam, e o clarao do encontro.
-        let flash = exp(-pow((t - merge) / 0.14, 2))
-        let core = max(0.28 * pull, 0.85 * flash)
-        if core > 0.01 {
-            let glow = CGRect(x: center.x - reach * 0.7, y: center.y - reach * 0.7, width: reach * 1.4, height: reach * 1.4)
-            context.fill(Path(ellipseIn: glow), with: .radialGradient(
-                Gradient(colors: [Color.white.opacity(core * 0.7), Palette.accent.opacity(core * 0.6), .clear]),
-                center: center, startRadius: 0, endRadius: reach * 0.7))
-        }
-
-        // Os logos, do fundo para a frente, com rastro enquanto sao puxados.
-        let order = seats.indices.sorted { seats[$0].depth < seats[$1].depth }
-        for index in order {
-            guard let image = ConvergeLogos.images[ids[index]] else { continue }
-            let ghosts = pull > 0.04 ? 3 : 0
-            for ghost in stride(from: ghosts, through: 0, by: -1) {
-                let pose = pose(index, t: t - Double(ghost) * 0.035, center: center, reach: reach)
-                let alpha = pose.alpha * (ghost == 0 ? 1 : 0.28 / Double(ghost))
-                guard alpha > 0.01 else { continue }
-                var layer = context
-                layer.opacity = alpha
-                if seats[index].depth < 0.7 { layer.addFilter(.blur(radius: 1.6 * (1 - pull))) }
-                layer.translateBy(x: pose.point.x, y: pose.point.y)
-                layer.scaleBy(x: pose.scale, y: pose.scale)
-                drawLogo(&layer, image: image, id: ids[index])
-            }
-        }
-
-        guard t >= merge - 0.04 else { return }
-        let since = t - merge
-
-        // As faiscas do encontro: saem do centro, perdem velocidade e somem.
-        let burst = clamp(since / 1.1)
-        if burst < 1 {
-            for spark in 0..<28 {
-                let angle = Double(spark) * 2.399963 + 0.4
-                let speed = 0.55 + 0.45 * Double((spark * 53) % 17) / 16
-                let distance = reach * speed * (1 - pow(1 - burst, 3))
-                let point = CGPoint(x: center.x + distance * cos(angle), y: center.y + distance * sin(angle))
-                let radius = (spark % 3 == 0 ? 3.2 : 2.2) * (1 - burst * 0.6)
-                let color = spark % 2 == 0 ? Color.white : Palette.accent
-                context.fill(Path(ellipseIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)),
-                             with: .color(color.opacity(0.9 * (1 - burst))))
-            }
-        }
-
-        // O icone, com uma mola que passa um pouco do tamanho e volta.
-        guard let icon = context.resolveSymbol(id: 1000) else { return }
-        let spring = 1 - exp(-7 * max(since, 0)) * cos(13 * max(since, 0)) * 0.5
-        var layer = context
-        layer.opacity = clamp((since + 0.04) / 0.1)
-        layer.translateBy(x: center.x, y: center.y)
-        layer.scaleBy(x: spring, y: spring)
-        layer.draw(icon, at: .zero)
+        if CoinLogo.darkLogos.contains(id) { layer.fill(disc, with: .color(Palette.logoDisc)) }
+        layer.clip(to: disc)
+        layer.draw(image, in: rect)
     }
 }
 
-/// Os logos da cena da chave, decodificados uma vez (`byPreparingForDisplay`) e
-/// guardados como `Image` pronta para o Canvas.
+/// Os logos do tour, decodificados uma vez (`byPreparingForDisplay`) e guardados como
+/// `Image` pronta para o Canvas: decodificar no primeiro quadro travava a cena.
 @MainActor
-private enum ConvergeLogos {
+private enum TourLogos {
     static var images: [String: Image] = [:]
 
     static func prepare() async {
-        for id in ConvergeScene.ids where images[id] == nil {
+        for id in OrbitScene.ids where images[id] == nil {
             guard let raw = UIImage(named: "logo-\(id)") else { continue }
             let ready = await raw.byPreparingForDisplay() ?? raw
             images[id] = Image(uiImage: ready)
@@ -327,141 +284,33 @@ private enum ConvergeLogos {
     }
 }
 
-// MARK: - 3. As redes
+// MARK: - 3. A assinatura
 
-/// O selo no centro e as moedas em duas orbitas, a de dentro num sentido e a de fora no
-/// outro. Elas entram uma a uma; as de fora sao menores, mais longe.
-private struct NetworksScene: View {
-    let active: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var shown = 0
-
-    private static let inner = ["bitcoin", "ethereum", "solana", "tether", "ripple", "usd-coin"]
-    private static let outer = ["binancecoin", "the-open-network", "tron", "cardano", "polkadot", "avalanche-2",
-                                "dogecoin", "sui", "stellar", "near"]
-
-    var body: some View {
-        GeometryReader { geo in
-            let side = min(geo.size.width, geo.size.height)
-            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
-            let innerRadius = side * 0.25
-            let outerRadius = side * 0.42
-            TimelineView(.animation(minimumInterval: 1 / 60, paused: !active || reduceMotion)) { timeline in
-                let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
-                ZStack {
-                    Circle().stroke(Palette.edgeStrong, lineWidth: 1)
-                        .frame(width: innerRadius * 2, height: innerRadius * 2).position(center)
-                    Circle().stroke(Palette.edge, style: StrokeStyle(lineWidth: 1, dash: [2, 6]))
-                        .frame(width: outerRadius * 2, height: outerRadius * 2).position(center)
-                    ForEach(Array(Self.inner.enumerated()), id: \.offset) { index, id in
-                        let angle = Double(index) / Double(Self.inner.count) * 2 * .pi + time * 0.16
-                        coin(id, size: side * 0.14, visible: shown > index)
-                            .position(x: center.x + innerRadius * cos(angle), y: center.y + innerRadius * sin(angle))
-                    }
-                    ForEach(Array(Self.outer.enumerated()), id: \.offset) { index, id in
-                        let angle = Double(index) / Double(Self.outer.count) * 2 * .pi + 0.3 - time * 0.1
-                        coin(id, size: side * 0.105, visible: shown > Self.inner.count + index)
-                            .position(x: center.x + outerRadius * cos(angle), y: center.y + outerRadius * sin(angle))
-                    }
-                    WalletBadge(size: side * 0.2)
-                        .position(center)
-                        .scaleEffect(shown > 0 ? 1 : 0.8)
-                }
-            }
-        }
-        .modifier(SceneRunner(active: active, reset: { shown = 0 }, finish: { shown = Self.inner.count + Self.outer.count }, run: run))
-        .accessibilityHidden(true)
-    }
-
-    private func coin(_ id: String, size: CGFloat, visible: Bool) -> some View {
-        CoinLogo(coingeckoID: id, size: size, ringColor: Palette.rail)
-            .scaleEffect(visible ? 1 : 0.2)
-            .opacity(visible ? 1 : 0)
-            .animation(.spring(response: 0.42, dampingFraction: 0.62), value: visible)
-    }
-
-    private func run() async {
-        guard await pause(200) else { return }
-        for _ in 0..<(Self.inner.count + Self.outer.count) {
-            shown += 1
-            guard await pause(70) else { return }
-        }
-    }
-}
-
-// MARK: - 4. A assinatura
-
-/// O BTC e o USDC frente a frente, ligados por um arco. O BTC pronto para sair pulsa,
-/// esperando; o Face ID procura o rosto e confirma, e so entao ele percorre o arco e
-/// chega ao USDC, que acende com uma onda e o sinal de feito.
+/// Uma moeda de Bitcoin em 3D: face de ouro com o B em relevo, aro, borda serrilhada com
+/// espessura de verdade e o reflexo fixo do metal. Ela gira devagar, esperando; o Face ID
+/// procura o rosto e confirma; a moeda da um giro rapido e para de frente.
 private struct SignScene: View {
     let active: Bool
-    @State private var coinsIn = false
-    @State private var arc: CGFloat = 0
-    @State private var waiting = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var start: Date?
+    @State private var confirmedAt: Double?
     @State private var scanning = false
     @State private var spin = false
     @State private var confirmed = false
-    @State private var travel: CGFloat = 0
-    @State private var arrived = false
+
+    static let slowTurn = 3.4
+    static let finale = 1.1
 
     var body: some View {
         VStack(spacing: Space.lg) {
             Spacer(minLength: 0)
-            GeometryReader { geo in
-                let width = geo.size.width
-                let coin = min(width * 0.24, 84)
-                let from = CGPoint(x: coin / 2 + 8, y: geo.size.height * 0.62)
-                let to = CGPoint(x: width - coin / 2 - 8, y: geo.size.height * 0.62)
-                let control = CGPoint(x: width / 2, y: geo.size.height * 0.02)
-                ZStack {
-                    Path { path in
-                        path.move(to: from)
-                        path.addQuadCurve(to: to, control: control)
-                    }
-                    .trim(from: 0, to: arc)
-                    .stroke(LinearGradient(colors: [Self.btc, Self.usdc], startPoint: .leading, endPoint: .trailing),
-                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round, dash: [1, 8]))
-                    .opacity(0.85)
-                    // O que sai: espera pulsando ao lado do BTC, fora do logo, e so anda depois
-                    // do Face ID, com um rastro.
-                    ForEach([0.0, 0.05, 0.1], id: \.self) { lag in
-                        Circle().fill(lag == 0 ? Color.white : Self.btc)
-                            .frame(width: lag == 0 ? 12 : 10 - lag * 30, height: lag == 0 ? 12 : 10 - lag * 30)
-                            .opacity(lag == 0 ? 1 : (travel > 0 && travel < 1 ? 0.5 - lag * 3 : 0))
-                            .scaleEffect(lag == 0 && waiting && travel == 0 ? 1.35 : 1)
-                            .animation(waiting && travel == 0 ? .easeInOut(duration: 0.6).repeatForever(autoreverses: true) : .default, value: waiting)
-                            .position(from)
-                            .modifier(AlongCurve(progress: Self.leg(max(travel - lag, 0)), from: from, control: control, to: to))
-                    }
-                    .opacity(waiting && !arrived ? 1 : 0)
-                    coinView("bitcoin", symbol: "BTC", size: coin)
-                        .position(from)
-                        .offset(x: coinsIn ? 0 : -60)
-                        .opacity(coinsIn ? 1 : 0)
-                    ZStack {
-                        Circle().stroke(Palette.success, lineWidth: 2)
-                            .frame(width: coin, height: coin)
-                            .scaleEffect(arrived ? 1.7 : 1)
-                            .opacity(arrived ? 0 : 0.0001)
-                            .animation(.easeOut(duration: 0.7), value: arrived)
-                        coinView("usd-coin", symbol: "USDC", size: coin)
-                        Image(systemName: "checkmark")
-                            .font(.system(size: coin * 0.17, weight: .bold)).foregroundStyle(Palette.void)
-                            .frame(width: coin * 0.36, height: coin * 0.36)
-                            .background(Circle().fill(Palette.success))
-                            .overlay(Circle().stroke(Palette.rail, lineWidth: 3))
-                            .offset(x: coin * 0.36, y: -coin * 0.42)
-                            .scaleEffect(arrived ? 1 : 0.2)
-                            .opacity(arrived ? 1 : 0)
-                            .animation(.spring(response: 0.35, dampingFraction: 0.6), value: arrived)
-                    }
-                    .position(to)
-                    .offset(x: coinsIn ? 0 : 60)
-                    .opacity(coinsIn ? 1 : 0)
+            TimelineView(.animation(minimumInterval: 1 / 60, paused: !active || reduceMotion)) { timeline in
+                let t = reduceMotion ? 10 : start.map { timeline.date.timeIntervalSince($0) } ?? 0
+                Canvas { context, size in
+                    Self.draw(&context, size: size, t: t, confirmedAt: reduceMotion ? 0 : confirmedAt)
                 }
             }
-            .frame(height: 170)
+            .frame(height: 200)
             biometry
                 .opacity(scanning || confirmed ? 1 : 0)
             Spacer(minLength: 0)
@@ -469,22 +318,7 @@ private struct SignScene: View {
         .padding(.horizontal, Space.lg)
         .modifier(SceneRunner(active: active, reset: reset, finish: finish, run: run))
         .sensoryFeedback(.success, trigger: confirmed)
-        .sensoryFeedback(.impact(weight: .medium), trigger: arrived) { _, new in new }
         .accessibilityHidden(true)
-    }
-
-    static let btc = Color(hex: 0xF7931A)
-    static let usdc = Color(hex: 0x2775CA)
-
-    /// O trecho do arco fora dos dois logos: a espera fica visivel ao lado do BTC e a
-    /// chegada para na borda do USDC.
-    static func leg(_ travel: CGFloat) -> CGFloat { 0.16 + 0.68 * travel }
-
-    private func coinView(_ id: String, symbol: String, size: CGFloat) -> some View {
-        VStack(spacing: 6) {
-            CoinLogo(coingeckoID: id, size: size, ringColor: .clear)
-            Text(verbatim: symbol).typeStyle(.note).foregroundStyle(Palette.inkSoft)
-        }
     }
 
     private var biometry: some View {
@@ -509,61 +343,118 @@ private struct SignScene: View {
     }
 
     private func reset() {
-        coinsIn = false
-        arc = 0
-        waiting = false
+        start = nil
+        confirmedAt = nil
         scanning = false
         spin = false
         confirmed = false
-        travel = 0
-        arrived = false
     }
 
     private func finish() {
-        coinsIn = true
-        arc = 1
-        waiting = true
+        start = .distantPast
+        confirmedAt = 0
         confirmed = true
-        travel = 1
-        arrived = true
     }
 
     private func run() async {
-        guard await pause(150) else { return }
-        withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) { coinsIn = true }
-        guard await pause(450) else { return }
-        withAnimation(.easeInOut(duration: 0.7)) { arc = 1 }
-        guard await pause(650) else { return }
-        waiting = true
-        guard await pause(700) else { return }
+        let began = Date()
+        start = began
+        guard await pause(1300) else { return }
         withAnimation(.easeOut(duration: 0.25)) { scanning = true }
         withAnimation(.linear(duration: 0.9).repeatForever(autoreverses: false)) { spin = true }
-        guard await pause(1400) else { return }
+        guard await pause(1500) else { return }
+        confirmedAt = Date().timeIntervalSince(began)
         confirmed = true
-        guard await pause(350) else { return }
-        withAnimation(.easeInOut(duration: 0.8)) { travel = 1 }
-        guard await pause(800) else { return }
-        arrived = true
-    }
-}
-
-/// Leva a view, posta no comeco da curva, ate o ponto `progress` de uma curva
-/// quadratica, animando o progresso (como o `Shake` do PIN).
-private struct AlongCurve: GeometryEffect {
-    var progress: CGFloat
-    let from: CGPoint
-    let control: CGPoint
-    let to: CGPoint
-
-    var animatableData: CGFloat {
-        get { progress }
-        set { progress = newValue }
     }
 
-    func effectValue(size: CGSize) -> ProjectionTransform {
-        let t = progress
-        let x = (1 - t) * (1 - t) * from.x + 2 * (1 - t) * t * control.x + t * t * to.x
-        let y = (1 - t) * (1 - t) * from.y + 2 * (1 - t) * t * control.y + t * t * to.y
-        return ProjectionTransform(CGAffineTransform(translationX: x - from.x, y: y - from.y))
+    private static func clamp(_ value: Double) -> Double { min(max(value, 0), 1) }
+
+    /// O angulo da moeda: giro lento ate a confirmacao; depois, um giro rapido que para de
+    /// frente numa volta inteira.
+    static func angle(t: Double, confirmedAt: Double?) -> Double {
+        let slow = { (time: Double) in time / slowTurn * 2 * .pi }
+        guard let confirmedAt else { return slow(t) }
+        if confirmedAt == 0 { return 0 }
+        let from = slow(confirmedAt)
+        let to = (floor(from / (2 * .pi)) + 2) * 2 * .pi
+        let p = clamp((t - confirmedAt) / finale)
+        return from + (to - from) * (1 - pow(1 - p, 3))
+    }
+
+    static func draw(_ context: inout GraphicsContext, size: CGSize, t: Double, confirmedAt: Double?) {
+        let diameter = min(Double(size.height) * 0.78, Double(size.width) * 0.5)
+        let enter = 1 - pow(1 - clamp(t / 0.6), 3)
+        let bob = 4 * sin(t * 1.6)
+        let center = CGPoint(x: size.width / 2, y: size.height / 2 + bob - 8)
+        let a = angle(t: t, confirmedAt: confirmedAt)
+
+        // A sombra no chao, que encolhe quando a moeda sobe.
+        let floorY = size.height / 2 + diameter * 0.56
+        let shadowWidth = diameter * (0.7 - bob * 0.01) * max(abs(cos(a)), 0.35)
+        context.fill(Path(ellipseIn: CGRect(x: center.x - shadowWidth / 2, y: floorY - 6, width: shadowWidth, height: 12)),
+                     with: .radialGradient(Gradient(colors: [.black.opacity(0.45 * enter), .clear]),
+                                           center: CGPoint(x: center.x, y: floorY), startRadius: 0, endRadius: shadowWidth / 2))
+
+        var coin = context
+        coin.opacity = enter
+        coin.translateBy(x: center.x, y: center.y)
+        coin.scaleBy(x: 0.8 + 0.2 * enter, y: 0.8 + 0.2 * enter)
+        drawCoin(&coin, diameter: diameter, angle: a)
+    }
+
+    static let gold = (light: Color(hex: 0xFFE8A3), face: Color(hex: 0xF4B731), deep: Color(hex: 0xC27B12),
+                       edgeLight: Color(hex: 0xE9A62C), edgeDark: Color(hex: 0x9A5C0C), mark: Color(hex: 0xD58B14))
+
+    /// A moeda na origem do contexto, girada `angle` em volta do eixo vertical.
+    static func drawCoin(_ context: inout GraphicsContext, diameter: Double, angle: Double) {
+        let radius = diameter / 2
+        let squash = max(abs(cos(angle)), 0.02)
+        let thickness = diameter * 0.09
+        let shift = thickness * sin(angle)
+
+        // A borda: fatias da face de tras ate a da frente, alternando o tom (serrilha).
+        let slices = 16
+        for slice in 0...slices {
+            let x = -shift + shift * Double(slice) / Double(slices)
+            let rect = CGRect(x: x - radius * squash, y: -radius, width: diameter * squash, height: diameter)
+            let tone = slice % 2 == 0 ? gold.edgeLight : gold.edgeDark.opacity(0.95)
+            context.fill(Path(ellipseIn: rect), with: .linearGradient(
+                Gradient(colors: [tone, gold.edgeDark]), startPoint: CGPoint(x: x, y: -radius), endPoint: CGPoint(x: x, y: radius)))
+        }
+
+        // A face, desenhada redonda e achatada pelo giro.
+        var face = context
+        face.scaleBy(x: squash, y: 1)
+        let disc = CGRect(x: -radius, y: -radius, width: diameter, height: diameter)
+        face.fill(Path(ellipseIn: disc), with: .radialGradient(
+            Gradient(colors: [gold.light, gold.face, gold.deep]),
+            center: CGPoint(x: -radius * 0.35, y: -radius * 0.4), startRadius: 0, endRadius: diameter * 0.95))
+        // Aro: um fio escuro e um claro, como a borda cunhada.
+        let rim = disc.insetBy(dx: diameter * 0.06, dy: diameter * 0.06)
+        face.stroke(Path(ellipseIn: rim), with: .color(gold.deep.opacity(0.55)), lineWidth: diameter * 0.018)
+        face.stroke(Path(ellipseIn: rim.insetBy(dx: diameter * 0.014, dy: diameter * 0.014)),
+                    with: .color(gold.light.opacity(0.7)), lineWidth: diameter * 0.008)
+        face.stroke(Path(ellipseIn: disc.insetBy(dx: 1, dy: 1)), with: .linearGradient(
+            Gradient(colors: [gold.light, gold.deep]), startPoint: CGPoint(x: 0, y: -radius), endPoint: CGPoint(x: 0, y: radius)),
+            lineWidth: diameter * 0.022)
+
+        // O B em relevo: sombra embaixo, luz em cima, e o metal.
+        let mark = CGRect(x: -diameter * 0.24, y: -diameter * 0.27, width: diameter * 0.48, height: diameter * 0.54)
+        var symbol = face.resolve(Image(systemName: "bitcoinsign"))
+        symbol.shading = .color(gold.edgeDark.opacity(0.75))
+        face.draw(symbol, in: mark.offsetBy(dx: diameter * 0.012, dy: diameter * 0.014))
+        symbol.shading = .color(gold.light)
+        face.draw(symbol, in: mark.offsetBy(dx: -diameter * 0.008, dy: -diameter * 0.01))
+        symbol.shading = .color(gold.mark)
+        face.draw(symbol, in: mark)
+
+        // O reflexo do metal, fixo na face: uma faixa clara na diagonal.
+        face.drawLayer { layer in
+            layer.clip(to: Path(ellipseIn: disc))
+            layer.fill(Path(disc), with: .linearGradient(
+                Gradient(stops: [.init(color: .clear, location: 0.18), .init(color: .white.opacity(0.28), location: 0.36),
+                                 .init(color: .clear, location: 0.5)]),
+                startPoint: CGPoint(x: -radius, y: -radius), endPoint: CGPoint(x: radius, y: radius)))
+        }
     }
 }

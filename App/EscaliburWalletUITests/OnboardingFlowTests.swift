@@ -72,20 +72,16 @@ final class OnboardingFlowTests: XCTestCase {
         shot("02-repita-pin", app)
         type(pin: pin, in: app)
 
-        // O tour de quatro passos, logo depois do PIN.
+        // O tour de tres passos, logo depois do PIN.
         XCTAssertTrue(app.staticTexts["Só você é digno"].waitForExistence(timeout: 10))
         app.buttons["tour-continuar"].tap()
-        XCTAssertTrue(app.staticTexts["A chave de tudo é sua"].waitForExistence(timeout: 5))
-        sleep(4)
-        shot("02b-tour-chave", app)
-        app.buttons["tour-continuar"].tap()
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label ENDSWITH 'redes, um app só'")).firstMatch.waitForExistence(timeout: 5))
-        sleep(2)
-        shot("02c-tour-redes", app)
+        XCTAssertTrue(app.staticTexts["Uma chave para todas as suas moedas"].waitForExistence(timeout: 5))
+        sleep(3)
+        shot("02b-tour-moedas", app)
         app.buttons["tour-continuar"].tap()
         XCTAssertTrue(app.staticTexts["Só você assina"].waitForExistence(timeout: 5))
-        sleep(6)
-        shot("02d-tour-assinatura", app)
+        sleep(5)
+        shot("02c-tour-assinatura", app)
         app.buttons["tour-continuar"].tap()
 
         if app.buttons["Agora não"].waitForExistence(timeout: 8) {

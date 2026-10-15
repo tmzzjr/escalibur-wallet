@@ -35,10 +35,8 @@ final class TourFramesTests: XCTestCase {
         XCTAssertTrue(next.waitForExistence(timeout: 40))
         frames("1-espada", at: [1.2])
         next.tap()
-        frames("2-chave", at: [0.25, 0.8, 1.5, 2.0, 2.4, 2.7, 3.0, 4.5, 5.6])
+        frames("2-moedas", at: [0.4, 1.0, 1.8, 3.0, 5.0])
         next.tap()
-        frames("3-redes", at: [1.8])
-        next.tap()
-        frames("4-assinatura", at: [0.6, 1.4, 2.4, 3.4, 4.3, 5.0, 6.0])
+        frames("3-assinatura", at: [0.6, 1.6, 2.6, 3.4, 4.2, 5.5])
     }
 }
