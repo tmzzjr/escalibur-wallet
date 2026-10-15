@@ -14,6 +14,7 @@
 		0C69486F69E82B02C7F393AE /* NonceQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */; };
 		0E72E15B4987058F90F1117C /* MarketCoinActionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4C1798A2E008CDBC7E2F8F /* MarketCoinActionsTests.swift */; };
 		0EA6EDD44AB204C413E8EDC3 /* VoiceFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6095C38283534AF48C451BC4 /* VoiceFlowTests.swift */; };
+		10D1C888F93713A30F2929CC /* TourFramesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261F3EEB46DB0F22480FE3BC /* TourFramesTests.swift */; };
 		12BD568C64CF45967323782A /* EscaliburCore in Frameworks */ = {isa = PBXBuildFile; productRef = A4C81A0CCD412F2DC84E5F3E /* EscaliburCore */; };
 		17A65BEC30C064A2F585BA4E /* PlanReviewViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178D0EBBB2AA6CB89DC6772B /* PlanReviewViews.swift */; };
 		17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 355CF68861420A9DC552DF01 /* EscaliburWalletApp.swift */; };
@@ -223,6 +224,7 @@
 		1D394E812500F52097076B13 /* SecurityScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityScreens.swift; sourceTree = "<group>"; };
 		2552656E9F2EA038F885C9CB /* PassphraseWalletTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassphraseWalletTests.swift; sourceTree = "<group>"; };
 		257E1C63C5F4FC66E542B13F /* ImportPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPipelineTests.swift; sourceTree = "<group>"; };
+		261F3EEB46DB0F22480FE3BC /* TourFramesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourFramesTests.swift; sourceTree = "<group>"; };
 		268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		290C3A2CEF411E071AA05800 /* WordInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordInputField.swift; sourceTree = "<group>"; };
 		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -526,6 +528,7 @@
 				B00956B57FDDD41C22852289 /* SavedAddressesTests.swift */,
 				39490B905A2AF9D9891711F3 /* SecurityFlowHelpers.swift */,
 				98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */,
+				261F3EEB46DB0F22480FE3BC /* TourFramesTests.swift */,
 				1020538B4146BC659BF384E8 /* TradeQuoteTests.swift */,
 				6095C38283534AF48C451BC4 /* VoiceFlowTests.swift */,
 				8FCA9CA066F75BD38C39BE52 /* Fixtures */,
@@ -960,6 +963,7 @@
 				47F68D13E6EA84A3D27FA7DC /* SavedAddressesTests.swift in Sources */,
 				A28557057327D9D8C672B37D /* SecurityFlowHelpers.swift in Sources */,
 				4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */,
+				10D1C888F93713A30F2929CC /* TourFramesTests.swift in Sources */,
 				046D4A66EDC4E578C0246247 /* TradeQuoteTests.swift in Sources */,
 				0EA6EDD44AB204C413E8EDC3 /* VoiceFlowTests.swift in Sources */,
 			);

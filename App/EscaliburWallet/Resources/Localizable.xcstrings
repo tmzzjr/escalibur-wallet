@@ -6491,6 +6491,64 @@
         }
       }
     },
+    "%lld redes, um app só" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Netzwerke, eine App"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld networks, one app"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld redes, una sola app"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld réseaux, une seule app"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld नेटवर्क, एक ही ऐप"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld のネットワーク、ひとつのアプリ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld개 네트워크, 하나의 앱"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ağ, tek uygulama"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个网络，一个 App"
+          }
+        }
+      }
+    },
     "%lld segundos" : {
       "localizations" : {
         "de" : {
@@ -10297,6 +10355,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "钱包只属于你。因此，保管它也是你的责任。"
+          }
+        }
+      }
+    },
+    "A chave de tudo é sua" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Schlüssel zu allem gehört dir"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The key to everything is yours"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La llave de todo es tuya"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La clé de tout est à vous"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हर चीज़ की चाबी आपके पास है"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての鍵はあなたの手に"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 것의 열쇠는 나에게"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her şeyin anahtarı sende"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一切的钥匙都在你手里"
           }
         }
       }
@@ -25622,6 +25738,64 @@
         }
       }
     },
+    "Antes de cada envio, você vê o que sai e para onde, e confirma com o seu %@ ou PIN. O código é aberto: qualquer pessoa pode conferir." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vor jedem Transfer siehst du, was rausgeht und wohin, und bestätigst mit deinem %@ oder PIN. Der Code ist offen: Jeder kann ihn prüfen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Before every transfer, you see what leaves and where it goes, and confirm with your %@ or PIN. The code is open: anyone can check it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antes de cada envío, ves lo que sale y adónde va, y confirmas con tu %@ o PIN. El código es abierto: cualquiera puede revisarlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avant chaque envoi, vous voyez ce qui part et où, et vous confirmez avec votre %@ ou votre PIN. Le code est ouvert : tout le monde peut le vérifier."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हर भेजने से पहले आप देखते हैं कि क्या जा रहा है और कहां, और अपने %@ या PIN से पुष्टि करते हैं. कोड खुला है: कोई भी जांच सकता है."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "送金のたびに、何がどこへ出ていくかを確認し、%@ または PIN で承認します。コードは公開されており、誰でも確認できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보내기 전마다 무엇이 어디로 나가는지 확인하고 %@ 또는 PIN으로 승인합니다. 코드는 공개되어 있어 누구나 확인할 수 있습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her gönderimden önce neyin nereye gittiğini görür, %@ veya PIN ile onaylarsın. Kod açık: herkes kontrol edebilir."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每次发送前，你都能看到转出什么、转到哪里，并用 %@ 或 PIN 码确认。代码公开：任何人都能查看。"
+          }
+        }
+      }
+    },
     "Antes de ver as palavras" : {
       "localizations" : {
         "de" : {
@@ -29874,7 +30048,66 @@
         }
       }
     },
+    "Bitcoin, Ethereum, Solana e as maiores moedas do mundo. Envie, receba, troque e leve entre redes, com a taxa à vista antes de assinar." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana und die größten Coins der Welt. Senden, empfangen, tauschen und zwischen Netzwerken bewegen, mit der Gebühr vor dem Signieren im Blick."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana and the world’s biggest coins. Send, receive, swap and move between networks, with the fee shown before you sign."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana y las mayores monedas del mundo. Envía, recibe, intercambia y mueve entre redes, con la comisión a la vista antes de firmar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana et les plus grandes cryptos du monde. Envoyez, recevez, échangez et passez d’un réseau à l’autre, avec les frais affichés avant de signer."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana और दुनिया के सबसे बड़े कॉइन. भेजें, प्राप्त करें, स्वैप करें और नेटवर्क के बीच ले जाएं, साइन करने से पहले शुल्क दिखता है."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin、Ethereum、Solana をはじめ、世界の主要なコインに対応。送信、受け取り、スワップ、ネットワーク間の移動ができ、署名前に手数料が表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana 그리고 세계 주요 코인. 보내고, 받고, 스왑하고, 네트워크 간에 옮기며, 서명 전에 수수료를 확인할 수 있습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana ve dünyanın en büyük coin’leri. Gönder, al, takas et ve ağlar arasında taşı; ücreti imzalamadan önce gör."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin、Ethereum、Solana 以及全球主流币种。发送、接收、兑换和跨链转移，签署前网络费一目了然。"
+          }
+        }
+      }
+    },
     "Bitcoin, Ethereum, Solana e mais %lld redes. Envie, receba, troque e leve entre redes, com a taxa à vista antes de assinar." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -30942,6 +31175,7 @@
       }
     },
     "Cada envio passa pela sua revisão e pelo seu %@ ou PIN. O código é aberto: qualquer pessoa pode conferir." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -36804,6 +37038,7 @@
       }
     },
     "Conta" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -43168,6 +43403,7 @@
       }
     },
     "E-mail" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -73803,6 +74039,64 @@
         }
       }
     },
+    "Na lenda, a Escalibur só sai da pedra pelas mãos certas. Aqui, essas mãos são as suas." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Legende verlässt das Schwert den Stein nur für die richtigen Hände. Hier sind es deine."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the legend, the sword only leaves the stone for the right hands. Here, those hands are yours."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En la leyenda, la espada solo sale de la piedra con las manos correctas. Aquí, esas manos son las tuyas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans la légende, l’épée ne sort de la pierre que pour les bonnes mains. Ici, ces mains sont les vôtres."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "किंवदंती में तलवार सिर्फ़ सही हाथों से पत्थर से निकलती है. यहां वे हाथ आपके हैं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伝説では、剣は正しい者の手でしか石から抜けません。ここでは、その手はあなたです。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전설 속 검은 올바른 손에서만 바위를 빠져나옵니다. 여기서는 그 손이 바로 나입니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Efsanede kılıç taştan yalnızca doğru ellerle çıkar. Burada o eller senin."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传说中，只有对的人才能从石中拔出宝剑。在这里，这个人就是你。"
+          }
+        }
+      }
+    },
     "Na máxima" : {
       "localizations" : {
         "de" : {
@@ -74094,6 +74388,7 @@
       }
     },
     "Nada sai sem você" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -77215,6 +77510,7 @@
       }
     },
     "Nuvem" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -104263,6 +104559,7 @@
       }
     },
     "Revisão" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -109943,6 +110240,7 @@
       }
     },
     "Sem servidor, sem conta e sem e-mail. A Escalibur não vê, não guarda e não consegue mover nada seu." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -110581,6 +110879,7 @@
       }
     },
     "Servidor" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -111393,6 +111692,7 @@
       }
     },
     "Suas chaves nascem e ficam aqui" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -111451,6 +111751,7 @@
       }
     },
     "Suas moedas, todas aqui" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -112438,6 +112739,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "仅查看单词"
+          }
+        }
+      }
+    },
+    "Só você assina" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur du signierst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only you sign"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo tú firmas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous seul signez"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सिर्फ़ आप साइन करते हैं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "署名できるのはあなただけ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "서명은 나만 할 수 있습니다"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yalnızca sen imzalarsın"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有你能签署"
           }
         }
       }
@@ -115582,6 +115941,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有单词都存在，但助记词校验未通过。某个单词有误或顺序不对。请核对纸上的记录。"
+          }
+        }
+      }
+    },
+    "Todas as suas moedas num lugar só, com a chave criada e guardada neste iPhone. Sem servidor, sem conta e sem e-mail." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle deine Coins an einem Ort, mit dem Schlüssel, der auf diesem iPhone erstellt und aufbewahrt wird. Kein Server, kein Konto, keine E-Mail."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All your coins in one place, with the key created and kept on this iPhone. No server, no account and no email."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas tus monedas en un solo lugar, con la llave creada y guardada en este iPhone. Sin servidor, sin cuenta y sin correo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toutes vos cryptos au même endroit, avec la clé créée et gardée sur cet iPhone. Pas de serveur, pas de compte, pas d’e-mail."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपके सारे कॉइन एक ही जगह, चाबी इसी iPhone पर बनती और रहती है. न सर्वर, न अकाउंट, न ईमेल."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのコインをひとつの場所に。鍵はこの iPhone で作られ、ここに保管されます。サーバーなし、アカウントなし、メールなし。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 코인을 한곳에서. 열쇠는 이 iPhone에서 만들어지고 보관됩니다. 서버도, 계정도, 이메일도 없습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tüm coin’lerin tek bir yerde; anahtar bu iPhone’da oluşturulur ve burada saklanır. Sunucu yok, hesap yok, e-posta yok."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你所有的币种都在一个地方，钥匙在这台 iPhone 上创建并保存。没有服务器，没有账户，也没有电子邮件。"
           }
         }
       }
