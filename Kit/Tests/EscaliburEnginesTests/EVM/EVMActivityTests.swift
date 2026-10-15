@@ -112,13 +112,10 @@ struct EVMActivityTests {
         #expect(first.direction == .sent && first.asset == Self.usdc && first.amount == 50_000_000 && first.status == .confirmed)
     }
 
-    @Test("BNB Chain: o historico diz que ainda nao existe, sem lista vazia fingindo")
-    func bnbUnavailable() async throws {
+    @Test("BNB Chain: historico pela NodeReal, com o mesmo leitor das outras redes EVM")
+    func bnbHistory() throws {
         let source = try #require(ActivitySources.source(for: .bnb))
-        #expect(source is EVMUnavailableActivitySource)
-        await #expect(throws: SendEngineError.unavailable("O histórico da BNB Chain ainda não está disponível nesta versão.")) {
-            _ = try await source.history(chain: .bnb, account: A.binance8(on: .bnb), usage: nil)
-        }
+        #expect(source is EVMActivitySource)
     }
 
     @Test("X Layer e Sonic: sem indexador sem chave, o historico diz que ainda nao existe")
@@ -141,7 +138,7 @@ struct EVMActivityTests {
         // Sem indexador publico sem chave: o historico diz que nao tem.
         for chain in Chain.evmChains {
             let unavailable = ActivitySources.source(for: chain) is EVMUnavailableActivitySource
-            #expect(unavailable == ["bnb", "xlayer", "sonic"].contains(chain.id), "\(chain.id)")
+            #expect(unavailable == ["xlayer", "sonic"].contains(chain.id), "\(chain.id)")
         }
         #expect(TradeEngines.engine(for: .avalanche) == nil)
         #expect(TradeEngines.engine(for: .xlayer) == nil)
