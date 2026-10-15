@@ -160,8 +160,12 @@ struct VoiceSettings: Codable, Equatable {
     var onEnvelope = true
     var onSendAboveFiat: Double? = 5000
     /// Desafios de voz falhos em seguida (tres tentativas cada). Opcional para os
-    /// metadados gravados antes deste campo continuarem abrindo.
+    /// metadados gravados antes deste campo continuarem abrindo. Antigo: a conta agora e
+    /// por tentativa (`failedAttempts`).
     var failedChallenges: Int?
+    /// Frases erradas seguidas, somadas entre desafios, gravadas antes de cada conferencia:
+    /// fechar a folha nao zera (desenho de voz de 14/10/2026, Q1 e Q2).
+    var failedAttempts: Int?
     /// Depois de tres desafios falhos, as acoes com voz esperam ate aqui. So para
     /// mostrar a hora; quem decide e o prazo monotono abaixo.
     var lockedUntil: Date?
@@ -192,6 +196,12 @@ struct VoiceSettings: Codable, Equatable {
     var resetBoot: String?
     var resetRequestedAt: Date?
 
+    /// Uma frase dita e conferida conta, certa ou errada; a certa zera depois.
+    mutating func countAttempt() { failedAttempts = (failedAttempts ?? 0) + 1 }
+
+    /// Quantas frases ainda cabem antes da pausa.
+    func attemptsLeft(limit: Int) -> Int { max(0, limit - (failedAttempts ?? 0)) }
+
     mutating func startLock(seconds: TimeInterval) {
         lockedUntil = Date.now.addingTimeInterval(seconds)
         lockUptimeDeadline = PINPolicy.uptime + seconds
@@ -206,6 +216,7 @@ struct VoiceSettings: Codable, Equatable {
 
     mutating func clearLock() {
         failedChallenges = nil
+        failedAttempts = nil
         lockedUntil = nil
         lockUptimeDeadline = nil
         lockBoot = nil

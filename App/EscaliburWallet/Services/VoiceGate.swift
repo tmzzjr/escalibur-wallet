@@ -44,7 +44,23 @@ final class VoiceGate {
     static let challengesBeforeLock = 3
     /// Frases erradas por desafio. Nao ouvir nada nao conta.
     static let attemptsPerChallenge = 3
+    /// Frases erradas seguidas ate a pausa, somadas entre desafios: as mesmas nove de
+    /// antes, mas fechar a folha nao apaga as erradas (desenho de voz de 14/10/2026, Q1:
+    /// fechar e abrir de novo dava chute sem limite).
+    static let attemptsBeforeLock = challengesBeforeLock * attemptsPerChallenge
     static let lockSeconds: TimeInterval = 15 * 60
+
+    /// Conta a tentativa antes de conferir a fala. Se nao der para gravar, nao confere:
+    /// uma conta so na memoria sumiria com o app fechado a forca (Q2).
+    func recordAttempt(_ session: AppSession) throws {
+        session.metadata.settings.voice.countAttempt()
+        try session.persist()
+    }
+
+    /// Quantas frases ainda cabem antes da pausa.
+    func attemptsLeft(_ session: AppSession) -> Int {
+        session.metadata.settings.voice.attemptsLeft(limit: Self.attemptsBeforeLock)
+    }
 
     var challenge: Challenge?
     /// O ultimo envio pedido passou pela frase? Decide se a transmissao conta na
@@ -171,8 +187,8 @@ final class VoiceGate {
         }
     }
 
-    /// `exhausted`: o dono errou as tres tentativas deste desafio (fechar a folha nao
-    /// conta como falha).
+    /// `exhausted`: acabaram as tentativas antes da pausa. Fechar a folha nao conta como
+    /// falha, mas as erradas ja estao gravadas (`recordAttempt`).
     func finish(_ challenge: Challenge, passed: Bool, exhausted: Bool = false) {
         // Uma resposta por desafio: fechar a folha enquanto ela ainda confere a fala
         // nao pode retomar a continuacao duas vezes (o Swift derrubaria o app).
@@ -186,13 +202,9 @@ final class VoiceGate {
             session.metadata.settings.voice.recentSends = nil
             try? session.persist()
         } else if exhausted {
-            let failures = (session.metadata.settings.voice.failedChallenges ?? 0) + 1
-            if failures >= Self.challengesBeforeLock {
-                session.metadata.settings.voice.failedChallenges = nil
-                session.metadata.settings.voice.startLock(seconds: Self.lockSeconds)
-            } else {
-                session.metadata.settings.voice.failedChallenges = failures
-            }
+            session.metadata.settings.voice.failedChallenges = nil
+            session.metadata.settings.voice.failedAttempts = nil
+            session.metadata.settings.voice.startLock(seconds: Self.lockSeconds)
             try? session.persist()
         }
         challenge.continuation.resume(returning: passed)
@@ -390,6 +402,7 @@ final class SpeechListener: ObservableObject {
     private var lastLoud = ContinuousClock.now
     private var lastHistory = ContinuousClock.now
     private var interruption: NSObjectProtocol?
+    private var routeChange: NSObjectProtocol?
     #if DEBUG
     private var debugFeed: DebugDemo.VoiceFeed?
     #endif
@@ -455,6 +468,15 @@ final class SpeechListener: ObservableObject {
     /// tomou o audio, e a escuta para.
     nonisolated private static func interruptionBlock(_ stop: @escaping @Sendable () -> Void) -> @Sendable (Notification) -> Void {
         { _ in stop() }
+    }
+
+    /// Mudou a rota de audio: so para de ouvir se a entrada deixou de ser o microfone do
+    /// iPhone (a troca de categoria no comeco tambem avisa, e nao pode cortar a fala).
+    nonisolated private static func routeBlock(_ stop: @escaping @Sendable () -> Void) -> @Sendable (Notification) -> Void {
+        { _ in
+            let inputs = AVAudioSession.sharedInstance().currentRoute.inputs
+            if inputs.isEmpty || !inputs.allSatisfy({ $0.portType == .builtInMic }) { stop() }
+        }
     }
 
     /// Os tres recados para o ator principal tambem nascem aqui, fora dele.
@@ -609,6 +631,11 @@ final class SpeechListener: ObservableObject {
         do {
             try audio.setCategory(.record, mode: .measurement, options: .duckOthers)
             try audio.setActive(true, options: .notifyOthersOnDeactivation)
+            // So o microfone do proprio iPhone: uma interface de audio pela USB-C poria a
+            // fala gerada direto na entrada, limpa (desenho de voz de 14/10/2026, Q6).
+            guard let builtIn = audio.availableInputs?.first(where: { $0.portType == .builtInMic }) else { return false }
+            try audio.setPreferredInput(builtIn)
+            guard audio.currentRoute.inputs.allSatisfy({ $0.portType == .builtInMic }), !audio.currentRoute.inputs.isEmpty else { return false }
         } catch {
             return false
         }
@@ -630,6 +657,11 @@ final class SpeechListener: ObservableObject {
             forName: AVAudioSession.interruptionNotification, object: audio, queue: nil,
             using: Self.interruptionBlock(Self.forwardStop(to: self, session: id))
         )
+        // A entrada mudou no meio da fala (fone, interface USB): para de ouvir.
+        routeChange = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.routeChangeNotification, object: audio, queue: nil,
+            using: Self.routeBlock(Self.forwardStop(to: self, session: id))
+        )
         return true
     }
 
@@ -646,6 +678,8 @@ final class SpeechListener: ObservableObject {
         #endif
         if let interruption { NotificationCenter.default.removeObserver(interruption) }
         interruption = nil
+        if let routeChange { NotificationCenter.default.removeObserver(routeChange) }
+        routeChange = nil
         if engine.isRunning { engine.stop() }
         engine.inputNode.removeTap(onBus: 0)
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
@@ -658,7 +692,6 @@ final class SpeechListener: ObservableObject {
 struct VoiceChallengeSheet: View {
     let challenge: VoiceGate.Challenge
     @StateObject private var listener = SpeechListener()
-    @State private var attempts = 0
     @State private var message: String?
     @State private var needsPermission = false
     @State private var passed = false
@@ -720,8 +753,15 @@ struct VoiceChallengeSheet: View {
         let heard = await listener.listen(in: challenge.session.metadata.settings.voice.phraseLanguage)
         guard !closed else { return }
         if let failure = heard.failure {
-            // Nao ouvir nada nao gasta tentativa: so conta a frase errada.
+            // Nao ouvir nada nao gasta tentativa: so conta a frase dita.
             message = VoicePermission.message(for: failure)
+            return
+        }
+        // A tentativa fica gravada antes da conferencia; sem gravar, nao confere.
+        do {
+            try VoiceGate.shared.recordAttempt(challenge.session)
+        } catch {
+            message = "Não foi possível registrar a tentativa neste iPhone. Libere espaço e tente de novo."
             return
         }
         if VoiceGate.matches(any: heard.alternatives, expected: challenge.expected, salt: challenge.salt) {
@@ -730,12 +770,13 @@ struct VoiceChallengeSheet: View {
             VoiceGate.shared.finish(challenge, passed: true)
             return
         }
-        attempts += 1
-        let left = VoiceGate.attemptsPerChallenge - attempts
+        let left = VoiceGate.shared.attemptsLeft(challenge.session)
         if left <= 0 {
             VoiceGate.shared.finish(challenge, passed: false, exhausted: true)
         } else {
-            message = left == 1 ? "Não conferiu. Você tem mais 1 tentativa." : "Não conferiu. Você tem mais \(left) tentativas."
+            message = left == 1 ? "Não conferiu. Mais 1 tentativa antes da pausa de 15 minutos."
+                : left <= VoiceGate.attemptsPerChallenge ? "Não conferiu. Mais \(left) tentativas antes da pausa de 15 minutos."
+                : "Não conferiu. Tente de novo."
         }
     }
 }

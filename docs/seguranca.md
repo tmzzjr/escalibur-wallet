@@ -363,6 +363,11 @@ Regras:
 - O microfone fica fisicamente desligado em toda tela que mostra ou recebe frase, PIN ou senha. Um dono que lê as palavras em voz alta enquanto anota não pode estar sendo transcrito.
 - Nenhuma App Intent ou atalho da Siri que assine ou que rode a partir da tela bloqueada.
 
+**O que o app tem hoje (14/10/2026): a frase de voz, a pedido do dono, como camada a mais.** Ela vem depois do Face ID ou do PIN, nunca no lugar deles, e a tela diz que o iPhone reconhece a frase, não a voz.
+- Cada frase dita conta, e a conta é gravada nos metadados antes de conferir. Sem conseguir gravar, não confere. Nove erradas em seguida, somadas entre folhas, pausam as ações com voz por 15 minutos no relógio monótono. Antes, fechar a folha apagava as erradas e o chute ficava sem limite (desenho de voz do agente de segurança, Q1 e Q2).
+- Só o microfone do próprio iPhone. Uma interface de áudio pela USB-C injetaria fala gerada, limpa. A escuta para se a entrada deixar de ser o microfone embutido (Q6).
+- Reconhecer a voz da pessoa, e não só a frase, foi desenhado pelo agente de segurança em 14/10/2026 e espera decisão do dono. Um modelo de locutor roda no aparelho, mas voz clonada e gravação passam em dezenas de por cento, e o modo reforçado (PIN e Face ID juntos, §2.6) protege mais. Se entrar, entra depois de um teste com voluntários e critério de parada, e a tela diz o que ele não barra.
+
 ---
 
 ## 4. Salvaguardas na assinatura
@@ -541,12 +546,17 @@ Revisado em 12/10/2026 com o agente de segurança, antes do código. Pontes são
   - ETH pelo Across só na Linea e na Unichain. Na Polygon o Across entrega WETH de ponte, e na Plasma o nativo é XPL.
   - USDT0 pelo Across na Unichain e na Plasma. O USDT da Linea é de ponte, e o da Polygon ainda não tem a conferência de emissor registrada.
   - A Sonic fica só com USDC: o Across não tem SpokePool lá.
+- Terceira leva, 14/10/2026: a BNB, só pelo Across, sem CCTP (`BridgeAllowlist.bnb.cctp` é nulo).
+  - Lá o USDC, o USDT e o ETH são os da Binance, com 18 casas, e são os contratos que o Across entrega (`available-routes`). O SpokePool, a implementação no slot EIP-1967 e o `wrappedNativeToken()` (WBNB) foram lidos em dois RPCs; o endereço bate com o `deployed-addresses.json` do Across e com a API.
+  - A comparação de valores e a taxa são feitas na unidade da origem (`BridgeAsset.rescale`, arredondando o que chega para baixo): uma cotação que entregasse mais do que saiu, ou com taxa acima do teto, é recusada com 6 de um lado e 18 do outro.
+  - Na BNB o ETH é token: sai com approve exato ao SpokePool e sem `value`; para a Polygon continua fora.
+  - A chegada pelo Across confere o `depositId` do FundsDeposited do próprio recibo e o `fillDeadline` assinado (pentest de 14/10/2026, B4).
 - A mesma moeda dos dois lados, na versão do emissor:
   - USDC só pelo CCTP V2 da Circle, que queima numa rede e cunha na outra. Não há cofre de ponte nem token embrulhado, e a única confiança nova é na Circle, que quem segura USDC já tem.
   - ETH pelo Across, entre as quatro redes.
   - USDT pelo Across, só entre Ethereum e Arbitrum (USDT0). Na Base e na Optimism o Across entrega USDT de ponte, não o do emissor.
 - Fora da v1, cada um com motivo:
-  - BNB: queima, mas não cunha. O TokenMessengerV2 da Ethereum aceita o domínio 17, e na BNB `getLocalToken` é zero para todas as origens. Uma queima para lá se perderia.
+  - CCTP para a BNB: queima, mas não cunha. O TokenMessengerV2 da Ethereum aceita o domínio 17, e na BNB `getLocalToken` é zero para todas as origens. Uma queima para lá se perderia. A BNB entra só pelo Across.
   - Celo, Sonic e X Layer: falta CCTP ou SpokePool.
   - WBTC: nas L2 é de ponte.
   - Redes fora da EVM.
@@ -561,7 +571,7 @@ Revisado em 12/10/2026 com o agente de segurança, antes do código. Pontes são
 
 **Tetos**
 - CCTP rápido: até 2 bps. CCTP padrão: zero. Encaminhamento: até 10 USDC.
-- Across: até 0,5% do valor ou US$ 3, o que for maior.
+- Across: até 0,5% do valor ou US$ 3, o que for maior; no ETH, a parte em dólar para em 0,002 ETH (o preço vem de uma fonte só; pentest de 14/10/2026, B5).
 - A ponte recusa quando a taxa passa de 5% do valor.
 - Por queima, até 10.000.000 USDC: o `burnLimitsPerMessage` lido nas quatro redes.
 

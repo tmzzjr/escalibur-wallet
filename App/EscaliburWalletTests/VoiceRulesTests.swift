@@ -59,6 +59,20 @@ struct VoiceRulesTests {
         #expect(VoiceGate.sendNeedsVoice(fiat: 100, settings: voice, currency: "usd"))
     }
 
+    /// Desenho de voz de 14/10/2026, Q1: as frases erradas somam entre folhas (a conta
+    /// mora nos metadados, gravada antes de cada conferencia), e so a certa ou a pausa zeram.
+    @Test func wrongPhrasesAddUpAcrossSheets() {
+        var voice = settings()
+        #expect(voice.attemptsLeft(limit: VoiceGate.attemptsBeforeLock) == 9)
+        for _ in 0..<4 { voice.countAttempt() }
+        // Fechar a folha e abrir outra nao mexe na conta: ela nao mora na folha.
+        #expect(voice.attemptsLeft(limit: VoiceGate.attemptsBeforeLock) == 5)
+        for _ in 0..<5 { voice.countAttempt() }
+        #expect(voice.attemptsLeft(limit: VoiceGate.attemptsBeforeLock) == 0)
+        voice.clearLock()
+        #expect(voice.failedAttempts == nil && voice.attemptsLeft(limit: VoiceGate.attemptsBeforeLock) == 9)
+    }
+
     @Test func oldMetadataStillOpens() throws {
         // Ajustes de voz gravados antes da lingua e da sequencia existirem.
         let old = Data(#"{"enabled":true,"onReveal":true,"onEnvelope":false,"onSendAboveFiat":5000}"#.utf8)
