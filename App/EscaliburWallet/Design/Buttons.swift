@@ -350,9 +350,14 @@ struct SlideToConfirm: View {
             let progress = min(max(offset / travel, 0), 1)
             ZStack(alignment: .leading) {
                 Capsule().fill(Palette.rail)
-                Capsule().fill(Palette.success.opacity(enabled ? 0.16 : 0))
-                    .frame(width: knob + 8 + offset)
-                Capsule().stroke(enabled ? Palette.success.opacity(0.4) : Palette.edge, lineWidth: 1)
+                // O verde nasce embaixo do cadeado e vira rastro quando ele anda, mais
+                // forte na ponta que avanca.
+                Capsule()
+                    .fill(LinearGradient(colors: [Palette.success.opacity(0.35), Palette.success.opacity(0.85)],
+                                         startPoint: .leading, endPoint: .trailing))
+                    .frame(width: knob + offset, height: knob)
+                    .offset(x: 4)
+                    .opacity(enabled ? 1 : 0)
                 HStack(spacing: Space.xs) {
                     Text(title).typeStyle(.action)
                     Image(systemName: "chevron.forward.2").font(.system(size: 13, weight: .bold))
@@ -362,12 +367,12 @@ struct SlideToConfirm: View {
                 .padding(.leading, knob * 0.8)
                 .opacity(1 - progress * 1.5)
                 Circle()
-                    .fill(enabled ? Palette.success : Palette.control)
+                    .fill(enabled ? Color.white : Palette.control)
                     .frame(width: knob, height: knob)
                     .overlay {
                         Image(systemName: done ? "lock.open.fill" : "lock.fill")
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(enabled ? Palette.void : Palette.inkMuted)
+                            .foregroundStyle(enabled ? Palette.success : Palette.inkMuted)
                             .contentTransition(.symbolEffect(.replace))
                     }
                     .offset(x: 4 + offset)
@@ -401,10 +406,35 @@ struct SlideToConfirm: View {
             offset = 0
             done = false
         }
-        .disabled(!enabled)
         .accessibilityElement()
         .accessibilityLabel(title)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { if enabled { action() } }
+        // Depois do elemento montado: assim o VoiceOver (e o teste) le "desabilitado".
+        .disabled(!enabled)
+    }
+}
+
+/// Desliga o "voltar arrastando pelo meio da tela" do iOS 26 enquanto a tela esta na
+/// frente: arrastar o cadeado do `SlideToConfirm` para a direita voltava a tela anterior.
+/// O botao voltar e o gesto pela borda continuam.
+struct ContentSwipeBackDisabled: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+    func updateUIViewController(_ controller: Controller, context: Context) {}
+
+    final class Controller: UIViewController {
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            setContentPop(false)
+        }
+
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            setContentPop(true)
+        }
+
+        private func setContentPop(_ enabled: Bool) {
+            if #available(iOS 26, *) { navigationController?.interactiveContentPopGestureRecognizer?.isEnabled = enabled }
+        }
     }
 }

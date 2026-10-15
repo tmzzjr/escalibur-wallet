@@ -9,12 +9,21 @@ extension XCUIApplication {
         let slider = descendants(matching: .any)["deslizar-digitar"].firstMatch
         XCTAssertTrue(slider.waitForExistence(timeout: 15), "a checagem do aparelho nao apareceu")
         let risk = switches["Entendo o risco e quero seguir mesmo assim"]
+        // A conferencia termina quando o slider passa a dizer o que faz.
+        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Deslize para digitar as palavras'"), object: slider)], timeout: 20)
         let done = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: slider)
         if XCTWaiter.wait(for: [done], timeout: 15) != .completed, risk.waitForExistence(timeout: 3) {
             risk.tap()
         }
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: slider)], timeout: 5)
         slideToConfirm(slider)
+    }
+
+    /// Toca quando o botao habilita: depois de um aceite, ele habilita um instante depois.
+    func tapWhenEnabled(_ button: XCUIElement) {
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true AND hittable == true"), object: button)], timeout: 5)
+        button.tap()
     }
 
     /// Arrasta o cadeado do slider ate o fim.

@@ -37,11 +37,12 @@ final class ImportPhraseTests: XCTestCase {
         if !accept.waitForExistence(timeout: 8) { option.tap() }
         XCTAssertTrue(accept.waitForExistence(timeout: 10))
         accept.tap()
-        app.buttons["Conferir o aparelho"].tap()
+        app.tapWhenEnabled(app.buttons["Conferir o aparelho"])
         app.passDeviceCheck()
 
         let first = app.otherElements["palavra-1"]
-        XCTAssertTrue(first.waitForExistence(timeout: 10))
+        if !first.waitForExistence(timeout: 10) { shot("import-sem-palavra", app) }
+        XCTAssertTrue(first.exists)
         first.tap()
         XCTAssertTrue(focusedSlot(app, 1), "tocar na posicao 1 nao abriu o teclado nela")
         app.typeText("aban")
@@ -102,7 +103,7 @@ final class ImportPhraseTests: XCTestCase {
         if !accept.waitForExistence(timeout: 8) { option.tap() }
         XCTAssertTrue(accept.waitForExistence(timeout: 10))
         accept.tap()
-        app.buttons["Conferir o aparelho"].tap()
+        app.tapWhenEnabled(app.buttons["Conferir o aparelho"])
         app.passDeviceCheck()
         let first = app.otherElements["palavra-1"]
         XCTAssertTrue(first.waitForExistence(timeout: 10))

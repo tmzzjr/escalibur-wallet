@@ -168,7 +168,7 @@ final class NewWalletFlowTests: XCTestCase {
 
         app.buttons["aceite-responsabilidade"].tap()
         XCTAssertTrue(app.buttons["aceite-responsabilidade"].isSelected)
-        app.buttons["Conferir o aparelho"].tap()
+        app.tapWhenEnabled(app.buttons["Conferir o aparelho"])
         app.passDeviceCheck()
         XCTAssertTrue(app.staticTexts["Importar com a senha da carteira"].waitForExistence(timeout: 5))
     }

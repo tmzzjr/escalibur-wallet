@@ -18,6 +18,8 @@ struct SecureInputField: UIViewRepresentable {
     /// Mostra o texto enquanto e `true` (o dono segura o dedo no campo). Compartilhado
     /// entre a passphrase e a repeticao: segurar em uma mostra as duas.
     var reveal: Binding<Bool>? = nil
+    /// Esconde os pontos (o cursor continua): a cifra viva e desenhada por cima.
+    var concealed = false
     var onSubmit: (() -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -54,7 +56,9 @@ struct SecureInputField: UIViewRepresentable {
 
     func updateUIView(_ field: UITextField, context: Context) {
         context.coordinator.parent = self
-        Self.show(buffer, in: field, revealed: reveal?.wrappedValue == true)
+        let revealed = reveal?.wrappedValue == true
+        field.textColor = concealed && !revealed ? .clear : UIColor(Palette.ink)
+        Self.show(buffer, in: field, revealed: revealed)
     }
 
     /// Pontos, ou o texto enquanto o dono segura. O texto revelado vira uma `String` so
@@ -122,9 +126,25 @@ struct PasswordBox: View {
     /// passphrase e da repeticao dela).
     var reveal: Binding<Bool>? = nil
     var onSubmit: (() -> Void)?
+    /// A cifra viva do que foi digitado (`LiveCipher`), no lugar dos pontos: os glifos
+    /// trocam num relogio de 12 Hz, como os das palavras.
+    var glyphs: ((UInt64) -> String)? = nil
 
     var body: some View {
-        SecureInputField(buffer: buffer, length: $length, placeholder: placeholder, focusOnAppear: focusOnAppear, reveal: reveal, onSubmit: onSubmit)
+        let ciphered = glyphs != nil && length > 0 && reveal?.wrappedValue != true
+        SecureInputField(buffer: buffer, length: $length, placeholder: placeholder, focusOnAppear: focusOnAppear, reveal: reveal,
+                         concealed: ciphered, onSubmit: onSubmit)
+            .overlay(alignment: .leading) {
+                if ciphered, let glyphs {
+                    TimelineView(.periodic(from: .now, by: 1.0 / 12)) { context in
+                        Text(verbatim: glyphs(UInt64(context.date.timeIntervalSinceReferenceDate * 12)))
+                            .font(.system(size: 17, weight: .medium, design: .monospaced))
+                            .foregroundStyle(Palette.inkSoft)
+                            .lineLimit(1)
+                    }
+                    .allowsHitTesting(false)
+                }
+            }
             .padding(.horizontal, Space.md)
             .frame(height: 56)
             .background(

@@ -134,26 +134,28 @@ struct ImportPhraseView: View {
                         Text("Toque numa posição e digite a palavra. Ninguém da Escalibur pede estas palavras.")
                             .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                             .fixedSize(horizontal: false, vertical: true)
-                        HStack(alignment: .top, spacing: 6) {
-                            Image(systemName: "lock.shield.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.accent)
-                            Text("Tela protegida: cada letra é cifrada na hora, com uma chave que só existe enquanto esta tela está aberta, e captura e gravação de tela ficam bloqueadas. Segure uma palavra para conferir.")
-                                .typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .multilineTextAlignment(.leading)
-                        }
-                        .padding(Space.sm)
-                        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
-                        .padding(.top, Space.xs)
                     }
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
 
-                    Segmented(options: Mnemonic.validWordCounts.map { ($0, "\($0)") },
-                              selection: Binding(get: { entry.count }, set: { entry.count = $0; typed = "" }))
-                        .padding(.top, Space.lg)
-                    Text("palavras na senha").typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xxs)
-
-                    pasteCard.padding(.top, Space.md)
+                    HStack(alignment: .top, spacing: Space.sm) {
+                        VStack(spacing: Space.xxs) {
+                            Segmented(options: Mnemonic.validWordCounts.map { ($0, "\($0)") },
+                                      selection: Binding(get: { entry.count }, set: { entry.count = $0; typed = "" }))
+                            Text("palavras na senha").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                        }
+                        // O PasteButton do sistema le a area de transferencia sem o pedido de
+                        // permissao do iOS.
+                        PasteButton(payloadType: String.self) { strings in
+                            guard let text = strings.first else { return }
+                            Task { @MainActor in fill(with: text) }
+                        }
+                        .labelStyle(.titleAndIcon)
+                        .buttonBorderShape(.capsule)
+                        .controlSize(.large)
+                        .tint(Palette.brand)
+                    }
+                    .padding(.top, Space.lg)
 
                     if pasteNotice {
                         Text("Colado. A área de transferência foi limpa agora, mas pode já ter sincronizado com outros aparelhos Apple.")
@@ -182,14 +184,31 @@ struct ImportPhraseView: View {
                             Text("Com a passphrase errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes. Segure o dedo num campo para conferir as duas.")
                                 .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                                 .fixedSize(horizontal: false, vertical: true)
-                            PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: String(localized: "Passphrase"), reveal: $revealPassphrase).padding(.top, Space.sm)
-                            PasswordBox(buffer: passphraseAgain, length: $passphraseAgainLength, placeholder: String(localized: "Repita a passphrase"), reveal: $revealPassphrase).padding(.top, Space.xs)
+                            PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: String(localized: "Passphrase"), reveal: $revealPassphrase,
+                                        glyphs: passphraseGlyphs(Self.passphraseSlot, count: passphraseLength))
+                                .padding(.top, Space.sm)
+                            PasswordBox(buffer: passphraseAgain, length: $passphraseAgainLength, placeholder: String(localized: "Repita a passphrase"), reveal: $revealPassphrase,
+                                        glyphs: passphraseGlyphs(Self.passphraseAgainSlot, count: passphraseAgainLength))
+                                .padding(.top, Space.xs)
                         }
                         if let message {
                             Banner(kind: .failure, title: message).padding(.top, Space.md)
                         }
                     }
                     .padding(.top, Space.md)
+
+                    VStack(spacing: Space.xs) {
+                        Image(systemName: "lock.shield.fill").font(.system(size: 22, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                        Text("Tela protegida: cada letra é cifrada na hora, com uma chave que só existe enquanto esta tela está aberta, e captura e gravação de tela ficam bloqueadas. Segure uma palavra para conferir.")
+                            .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(Space.md)
+                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+                    .padding(.top, Space.lg)
+                    .accessibilityIdentifier("tela-protegida")
                 }
                 .padding(.horizontal, Space.gutter)
                 .padding(.top, Space.md)
@@ -221,6 +240,9 @@ struct ImportPhraseView: View {
             absorb(value)
         }
         .onChange(of: entry.revision) { _, _ in resealAll() }
+        // A passphrase e cifrada a cada tecla, como as palavras.
+        .onChange(of: passphraseLength) { _, _ in cipher.seal(Self.passphraseSlot, buffer: passphrase) }
+        .onChange(of: passphraseAgainLength) { _, _ in cipher.seal(Self.passphraseAgainSlot, buffer: passphraseAgain) }
         .onAppear {
             #if DEBUG
             // `-tela frase`: a frase publica de teste do BIP-39 nas 11 primeiras posicoes e a
@@ -245,30 +267,14 @@ struct ImportPhraseView: View {
         .guardedAgainstCapture()
     }
 
-    /// Colar a frase inteira. O PasteButton do sistema le a area de transferencia sem o
-    /// pedido de permissao do iOS, por isso fica ele, num cartao com o resto do desenho.
-    private var pasteCard: some View {
-        HStack(spacing: Space.sm) {
-            Image(systemName: "doc.on.clipboard")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Palette.ink)
-                .frame(width: 40, height: 40)
-                .background(Circle().fill(Palette.control))
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Tem a senha copiada?").typeStyle(.row).foregroundStyle(Palette.ink)
-                Text("Cola as palavras todas de uma vez.").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-            }
-            Spacer(minLength: Space.xs)
-            PasteButton(payloadType: String.self) { strings in
-                guard let text = strings.first else { return }
-                Task { @MainActor in fill(with: text) }
-            }
-            .labelStyle(.titleOnly)
-            .buttonBorderShape(.capsule)
-            .tint(Palette.brand)
-        }
-        .padding(Space.sm)
-        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+    /// Posicoes da cifra viva para a passphrase e a repeticao, fora das das palavras.
+    static let passphraseSlot = 1000
+    static let passphraseAgainSlot = 1001
+
+    private func passphraseGlyphs(_ slot: Int, count: Int) -> ((UInt64) -> String)? {
+        guard count > 0 else { return nil }
+        let cipher = self.cipher
+        return { tick in cipher.glyphs(slot, count: count, tick: tick) }
     }
 
     private var grid: some View {

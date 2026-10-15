@@ -27,7 +27,7 @@ final class DeviceCheckTests: XCTestCase {
         if !accept.waitForExistence(timeout: 8) { option.tap() }
         XCTAssertTrue(accept.waitForExistence(timeout: 10))
         accept.tap()
-        app.buttons["Conferir o aparelho"].tap()
+        app.tapWhenEnabled(app.buttons["Conferir o aparelho"])
 
         // Primeira conferencia: termina com o horario.
         let stamp = app.staticTexts["checagem-horario"]
@@ -38,7 +38,7 @@ final class DeviceCheckTests: XCTestCase {
         // Volta para a tela anterior e entra de novo: conferencia nova, dita como nova.
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(app.buttons["Conferir o aparelho"].waitForExistence(timeout: 5))
-        app.buttons["Conferir o aparelho"].tap()
+        app.tapWhenEnabled(app.buttons["Conferir o aparelho"])
         XCTAssertTrue(app.staticTexts["Conferindo de novo"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'A anterior foi às'")).firstMatch.exists)
         shot("checagem-2-de-novo", app)

@@ -263,6 +263,7 @@ struct DeviceCheckView: View {
             }
         }
         .background(Palette.void.ignoresSafeArea())
+        .background(ContentSwipeBackDisabled().frame(width: 0, height: 0))
         // So na primeira vez desta tela: voltar da tela de digitar nao refaz.
         .task {
             guard !started else { return }
