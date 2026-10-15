@@ -56,6 +56,7 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertTrue(app.buttons["Continuar"].waitForExistence(timeout: 5))
         shot("05-antes-das-palavras", app)
         app.buttons["Continuar"].tap()
+        app.passSecurityPromise()
 
         // Seguranca e responsabilidade: so segue com a caixa marcada.
         XCTAssertTrue(app.buttons["aceite-responsabilidade"].waitForExistence(timeout: 5))

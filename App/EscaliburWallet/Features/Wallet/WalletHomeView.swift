@@ -62,6 +62,19 @@ struct WalletHomeView: View {
             }
             .navigationDestination(for: ManageAssetsRoute.self) { _ in ManageAssetsView() }
         }
+        #if DEBUG
+        // As telas que nao dependem do saldo abrem logo, depois de a Carteira assentar: a
+        // leitura de todas as redes passava dos 20 s, e apresentada cedo demais a folha as
+        // vezes nao abria (visto nos testes de interface).
+        .task {
+            guard DebugDemo.screen != nil else { return }
+            try? await Task.sleep(for: .milliseconds(1_200))
+            if ["receber", "receber-btc"].contains(DebugDemo.screen) { receiving = true }
+            if DebugDemo.screen == "revelar" { backingUp = true }
+            if DebugDemo.screen == "adicionar" { addingWallet = true }
+            if DebugDemo.screen == "gerenciar" { router.walletPath.append(ManageAssetsRoute()) }
+        }
+        #endif
         .task(id: wallet?.id) {
             portfolio.show(wallet, session: session)
             await portfolio.refresh(wallet, session: session)
@@ -71,11 +84,8 @@ struct WalletHomeView: View {
             Task { await ActivityFeed.shared.load(wallet, disabled: disabled, session: session) }
             await ReceiptAccounts.enableByDefault(session)
             #if DEBUG
+            // As telas que dependem do saldo esperam a leitura acima.
             if DebugDemo.screen == "detalhe", let first = portfolio.rows.first { router.walletPath.append(first) }
-            if ["receber", "receber-btc"].contains(DebugDemo.screen) { receiving = true }
-            if DebugDemo.screen == "revelar" { backingUp = true }
-            if DebugDemo.screen == "adicionar" { addingWallet = true }
-            if DebugDemo.screen == "gerenciar" { router.walletPath.append(ManageAssetsRoute()) }
             if DebugDemo.screen == "suspeito", let token = portfolio.suspicious.first { router.walletPath.append(token.holding) }
             if DebugDemo.screen == "outro", let token = portfolio.others.first { router.walletPath.append(token.holding) }
             #endif

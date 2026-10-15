@@ -42,6 +42,7 @@ final class NewWalletFlowTests: XCTestCase {
 
     /// Da tela de seguranca ate as palavras: a caixa desmarcada segura o botao.
     func acceptAndShowWords(_ app: XCUIApplication) {
+        app.passSecurityPromise()
         XCTAssertTrue(app.staticTexts["Só você tem a chave"].waitForExistence(timeout: 5))
         app.buttons["Marque o aceite para continuar"].tap()
         XCTAssertFalse(app.staticTexts["Confirme com o PIN"].waitForExistence(timeout: 1), "continuou sem o aceite")
@@ -154,6 +155,7 @@ final class NewWalletFlowTests: XCTestCase {
         sleep(4)
         row.tap()
 
+        app.passSecurityPromise()
         XCTAssertTrue(app.staticTexts["Só você tem a chave"].waitForExistence(timeout: 5))
         shot("seguranca-importar", app)
         app.buttons["Marque o aceite para continuar"].tap()
@@ -168,7 +170,8 @@ final class NewWalletFlowTests: XCTestCase {
 
         app.buttons["aceite-responsabilidade"].tap()
         XCTAssertTrue(app.buttons["aceite-responsabilidade"].isSelected)
-        app.buttons["Digitar as palavras"].tap()
+        app.buttons["Conferir o aparelho"].tap()
+        app.passDeviceCheck()
         XCTAssertTrue(app.staticTexts["Importar com a senha da carteira"].waitForExistence(timeout: 5))
     }
 

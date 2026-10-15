@@ -22,7 +22,8 @@ final class ImportPhraseTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-reset", "-demo", "-tela", "adicionar"]
         app.launch()
-        let option = app.staticTexts["Importar com a senha da carteira"]
+        // A linha e um botao so, com o titulo e a descricao juntos no rotulo.
+        let option = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Importar com a senha da carteira'")).firstMatch
         XCTAssertTrue(option.waitForExistence(timeout: 30))
         // A tela entra animada: o toque so vale depois que ela assenta.
         let settled = NSPredicate(format: "hittable == true")
@@ -32,11 +33,13 @@ final class ImportPhraseTests: XCTestCase {
 
         // Antes de digitar, o aceite de responsabilidade. Com a carteira ainda
         // carregando atras, o primeiro toque as vezes chega antes da folha assentar.
+        app.passSecurityPromise()
         let accept = app.buttons["aceite-responsabilidade"]
-        if !accept.waitForExistence(timeout: 8) { option.tap() }
+        if !accept.waitForExistence(timeout: 8) { option.tap(); app.passSecurityPromise() }
         XCTAssertTrue(accept.waitForExistence(timeout: 10))
         accept.tap()
-        app.buttons["Digitar as palavras"].tap()
+        app.buttons["Conferir o aparelho"].tap()
+        app.passDeviceCheck()
 
         let first = app.otherElements["palavra-1"]
         XCTAssertTrue(first.waitForExistence(timeout: 10))
@@ -88,18 +91,21 @@ final class ImportPhraseTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-reset", "-demo", "-vazia", "-tela", "adicionar"]
         app.launch()
-        let option = app.staticTexts["Importar com a senha da carteira"]
+        // A linha e um botao so, com o titulo e a descricao juntos no rotulo.
+        let option = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Importar com a senha da carteira'")).firstMatch
         XCTAssertTrue(option.waitForExistence(timeout: 30))
         // A tela entra animada: o toque so vale depois que ela assenta.
         let settled = NSPredicate(format: "hittable == true")
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: settled, object: option)], timeout: 5)
         sleep(1)
         option.tap()
+        app.passSecurityPromise()
         let accept = app.buttons["aceite-responsabilidade"]
-        if !accept.waitForExistence(timeout: 8) { option.tap() }
+        if !accept.waitForExistence(timeout: 8) { option.tap(); app.passSecurityPromise() }
         XCTAssertTrue(accept.waitForExistence(timeout: 10))
         accept.tap()
-        app.buttons["Digitar as palavras"].tap()
+        app.buttons["Conferir o aparelho"].tap()
+        app.passDeviceCheck()
         let first = app.otherElements["palavra-1"]
         XCTAssertTrue(first.waitForExistence(timeout: 10))
         first.tap()

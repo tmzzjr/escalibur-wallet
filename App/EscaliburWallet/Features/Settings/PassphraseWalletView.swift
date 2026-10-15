@@ -26,6 +26,7 @@ struct PassphraseWalletView: View {
     }
 
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 0) {
                 Image(systemName: "key.horizontal")
@@ -56,6 +57,7 @@ struct PassphraseWalletView: View {
                     Text("Passphrase").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                     PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: "Passphrase", reveal: $revealPassphrase)
                     PasswordBox(buffer: again, length: $againLength, placeholder: "Repita a passphrase", reveal: $revealPassphrase) { Task { await create() } }
+                        .id("repita")
                     Text("Diferença de maiúscula, acento ou espaço já abre outra carteira. Segure o dedo num campo para conferir as duas.")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -75,6 +77,12 @@ struct PassphraseWalletView: View {
             .padding(.vertical, Space.md)
         }
         .scrollDismissesKeyboard(.interactively)
+        // Com o teclado aberto, o botao de baixo cobria a repeticao: ao comecar a digitar a
+        // passphrase, a tela sobe ate ela (visto no teste de interface).
+        .onChange(of: passphraseLength) { old, new in
+            if old == 0, new > 0 { withAnimation(Motion.fade) { proxy.scrollTo("repita", anchor: .center) } }
+        }
+        }
         .safeAreaInset(edge: .bottom) {
             ActionFooter {
                 PrimaryButton(title: "Abrir carteira", enabled: passphraseLength > 0 && againLength > 0, loading: working) {
