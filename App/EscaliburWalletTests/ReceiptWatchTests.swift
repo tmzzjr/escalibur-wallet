@@ -27,7 +27,10 @@ struct ReceiptWatchTests {
         var seen: [String: ReceiptWatchFile.Seen] = [:]
         _ = ReceiptWatchCenter.compare([(account, balance(trx: 5_000_000, usdt: 100_000_000))], seen: &seen)
         let up = ReceiptWatchCenter.compare([(account, balance(trx: 4_000_000, usdt: 150_000_000))], seen: &seen)
-        #expect(up == [ReceiptEvent(chainID: "tron", symbol: "USDT", decimals: 6, amount: 50_000_000)])
+        let plain = up.map { ReceiptEvent(chainID: $0.chainID, symbol: $0.symbol, decimals: $0.decimals, amount: $0.amount) }
+        #expect(plain == [ReceiptEvent(chainID: "tron", symbol: "USDT", decimals: 6, amount: 50_000_000)])
+        // O widget passa a mostrar a moeda que chegou: o evento leva o id da lista curada.
+        #expect(up.first?.coingeckoID == "tether")
     }
 
     /// Enviado inteiro e recebido de novo, menos que antes: avisa.

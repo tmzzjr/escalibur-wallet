@@ -13784,7 +13784,18 @@
         }
       }
     },
+    "Não foi possível carregar o mercado agora" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load the market right now"
+          }
+        }
+      }
+    },
     "Não foi possível carregar o mercado agora." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -16357,6 +16368,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "The fee parameters received from the network are unusual. Try again in a moment."
+          }
+        }
+      }
+    },
+    "Os preços vêm do CoinGecko e, quando ele não responde, do CoinPaprika. Nenhum dos dois respondeu. Confira a internet e tente de novo." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prices come from CoinGecko and, when it doesn't respond, from CoinPaprika. Neither responded. Check your internet connection and try again."
           }
         }
       }

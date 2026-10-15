@@ -92,10 +92,8 @@ struct MarketView: View {
                         }
                         .padding(.top, Space.sm)
                     } else if coins.isEmpty && failed {
-                        Banner(kind: .neutral, title: String(localized: "Não foi possível carregar o mercado agora."), actionTitle: String(localized: "Tentar de novo")) {
-                            Task { await load() }
-                        }
-                        .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+                        MarketUnavailableView { Task { await load() } }
+                            .padding(.horizontal, Space.gutter).padding(.top, 72)
                     } else if let snapshot, snapshot.isStale {
                         Banner(
                             kind: .neutral, title: String(localized: "Sem conexão com os dados de mercado agora."),
@@ -166,6 +164,14 @@ struct MarketView: View {
     private func load() async {
         loading = true
         defer { loading = false }
+        #if DEBUG
+        // `-mercado-falha`: o Mercado sem nenhuma fonte, para ver a tela de erro.
+        if DebugDemo.arguments.contains("-mercado-falha") {
+            try? await Task.sleep(for: .milliseconds(600))
+            failed = true
+            return
+        }
+        #endif
         do {
             let fresh = try await MarketService.shared.marketSnapshot(currency: session.metadata.settings.currency)
             snapshot = fresh
@@ -361,5 +367,53 @@ struct MarketCoinDetail: View {
                 }
             }
         }
+    }
+}
+
+/// O Mercado sem nenhuma fonte de preco: o grafico partido no meio, o que aconteceu, de
+/// onde os precos vem e o tentar de novo. Centrado e sem cartao: e a tela inteira.
+private struct MarketUnavailableView: View {
+    let retry: () -> Void
+
+    var body: some View {
+        VStack(spacing: Space.sm) {
+            BrokenChart()
+                .frame(width: 148, height: 64)
+                .padding(.bottom, Space.md)
+            Text("Não foi possível carregar o mercado agora")
+                .typeStyle(.title).foregroundStyle(Palette.ink)
+            Text("Os preços vêm do CoinGecko e, quando ele não responde, do CoinPaprika. Nenhum dos dois respondeu. Confira a internet e tente de novo.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            SecondaryButton(title: String(localized: "Tentar de novo"), action: retry)
+                .frame(maxWidth: 220)
+                .padding(.top, Space.md)
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+/// Uma linha de preco que se interrompe no meio: o dado que nao chegou.
+private struct BrokenChart: View {
+    var body: some View {
+        Canvas { context, size in
+            let points: [CGFloat] = [0.62, 0.48, 0.55, 0.32, 0.4, 0.22, 0.3, 0.5, 0.38, 0.58, 0.44, 0.66]
+            func point(_ index: Int) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(index) / CGFloat(points.count - 1), y: size.height * points[index])
+            }
+            var before = Path()
+            before.move(to: point(0))
+            for index in 1...4 { before.addLine(to: point(index)) }
+            context.stroke(before, with: .color(Palette.inkMuted), style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+            var after = Path()
+            after.move(to: point(7))
+            for index in 8..<points.count { after.addLine(to: point(index)) }
+            context.stroke(after, with: .color(Palette.inkDead), style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round, dash: [2, 6]))
+            // O ponto onde a linha parou.
+            let stop = point(4)
+            context.fill(Path(ellipseIn: CGRect(x: stop.x - 4, y: stop.y - 4, width: 8, height: 8)), with: .color(Palette.inkSoft))
+        }
+        .accessibilityHidden(true)
     }
 }

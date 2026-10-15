@@ -1,3 +1,4 @@
+import EscaliburChains
 import EscaliburCore
 import SwiftUI
 
@@ -299,36 +300,8 @@ struct ConfirmWordsView: View {
     }
 }
 
-/// O check desenhado: disco tingido e o traco em 400 ms. Com reduzir movimento, so
-/// aparece.
-struct DrawnCheck: View {
-    @State private var progress: CGFloat = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        ZStack {
-            Circle().fill(Palette.upTint)
-            Path { path in
-                path.move(to: CGPoint(x: 17, y: 29))
-                path.addLine(to: CGPoint(x: 25, y: 37))
-                path.addLine(to: CGPoint(x: 40, y: 20))
-            }
-            .trim(from: 0, to: progress)
-            .stroke(Palette.up, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
-        }
-        .frame(width: 56, height: 56)
-        .onAppear {
-            if reduceMotion {
-                withAnimation(.easeIn(duration: 0.15)) { progress = 1 }
-            } else {
-                withAnimation(.easeOut(duration: 0.4).delay(0.15)) { progress = 1 }
-            }
-        }
-        .accessibilityHidden(true)
-    }
-}
-
-/// O5: carteira criada, com nome editavel.
+/// O5: carteira criada, com nome editavel. Tudo centrado: o selo com as redes da carteira
+/// em volta (os enderecos que acabaram de nascer), o check verde, o nome.
 struct WalletCreatedView: View {
     @Environment(AppSession.self) private var session
     @State var wallet: WalletMeta
@@ -337,39 +310,58 @@ struct WalletCreatedView: View {
     @State private var name = ""
     @State private var sealing = false
     @State private var done = false
+    @FocusState private var editing: Bool
+
+    /// As redes da carteira, uma moeda por logo, no maximo 12 no anel.
+    private var coins: [String] {
+        var seen = Set<String>()
+        return wallet.accounts.compactMap { Chain.find($0.chainID)?.coingeckoID }
+            .filter { seen.insert($0).inserted }
+            .prefix(12).map { $0 }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            DrawnCheck()
-            Text("Carteira criada").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
-            Text("Endereços prontos em \(wallet.accounts.count) redes. Guarde o papel longe do iPhone: se o iPhone sumir, o papel traz a carteira de volta, aqui ou em qualquer carteira BIP-39.")
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("Nome da carteira").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
-            HStack {
-                TextField("", text: $name)
-                    .typeStyle(.row).foregroundStyle(Palette.ink)
-                    .submitLabel(.done)
-                    .onSubmit(save)
-                Image(systemName: "pencil").font(.system(size: 15)).foregroundStyle(Palette.inkMuted)
+        VStack(spacing: 0) {
+            Spacer(minLength: Space.md)
+            if !editing {
+                CreatedEmblem(coins: coins)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
-            .padding(.horizontal, Space.md).frame(height: Height.field)
-            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
-            .padding(.top, Space.xs)
-            Spacer()
+            VStack(spacing: Space.sm) {
+                Text("Carteira criada").typeStyle(.hero).foregroundStyle(Palette.ink)
+                Text("Endereços prontos em \(wallet.accounts.count) redes. Guarde o papel longe do iPhone: se o iPhone sumir, o papel traz a carteira de volta, aqui ou em qualquer carteira BIP-39.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.top, Space.lg)
+            VStack(spacing: Space.xs) {
+                Text("Nome da carteira").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                HStack(spacing: Space.xs) {
+                    TextField("", text: $name)
+                        .typeStyle(.row).foregroundStyle(Palette.ink)
+                        .multilineTextAlignment(.center)
+                        .submitLabel(.done)
+                        .focused($editing)
+                        .onSubmit(save)
+                    Image(systemName: "pencil").font(.system(size: 15)).foregroundStyle(Palette.inkMuted)
+                }
+                .padding(.horizontal, Space.md).frame(height: Height.field)
+                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(editing ? Palette.edgeStrong : Palette.edge, lineWidth: 1)))
+            }
+            .padding(.top, Space.lg)
+            Spacer(minLength: Space.md)
             PrimaryButton(title: String(localized: "Ir para a carteira")) { save(); onFinish() }
-            HStack {
-                Spacer()
-                TertiaryButton(title: String(localized: "Guardar também num envelope Escalibur")) { sealing = true }
-                Spacer()
-            }
-            .padding(.top, Space.xs)
+            TertiaryButton(title: String(localized: "Guardar também num envelope Escalibur")) { sealing = true }
+                .frame(maxWidth: .infinity)
+                .padding(.top, Space.xs)
         }
         .padding(.horizontal, Space.gutter)
-        .padding(.top, Space.xl)
+        .padding(.top, Space.md)
         .padding(.bottom, Space.xs)
-        .background(Palette.void.ignoresSafeArea())
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: editing)
+        .background(Palette.void.ignoresSafeArea().onTapGesture { editing = false })
         .onAppear {
             name = wallet.name
             done = true
@@ -385,5 +377,60 @@ struct WalletCreatedView: View {
         guard !trimmed.isEmpty else { return }
         wallet.name = String(trimmed.prefix(40))
         session.update(wallet)
+    }
+}
+
+/// O selo da carteira com as redes em volta: os logos entram um a um, o check verde fecha,
+/// e o anel segue girando devagar (pedido do dono, 15/10/2026). Com Reduzir Movimento, ja
+/// aparece pronto e parado.
+private struct CreatedEmblem: View {
+    let coins: [String]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shown = 0
+    @State private var checked = false
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Palette.edge, lineWidth: 1).frame(width: 176, height: 176)
+            TimelineView(.animation(minimumInterval: 1 / 60, paused: reduceMotion)) { timeline in
+                // Uma volta a cada 40 segundos; os logos ficam de pe.
+                let turn = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 40) / 40 * 2 * .pi
+                ZStack {
+                    ForEach(Array(coins.enumerated()), id: \.offset) { index, id in
+                        let angle = Double(index) / Double(max(coins.count, 1)) * 2 * .pi - .pi / 2 + turn
+                        CoinLogo(coingeckoID: id, size: 30, ringColor: Palette.void)
+                            .scaleEffect(shown > index ? 1 : 0.3)
+                            .opacity(shown > index ? 1 : 0)
+                            .offset(x: 88 * cos(angle), y: 88 * sin(angle))
+                            .animation(.spring(response: 0.4, dampingFraction: 0.65), value: shown)
+                    }
+                }
+            }
+            WalletBadge(size: 84)
+            Circle().fill(Palette.success)
+                .frame(width: 30, height: 30)
+                .overlay(Image(systemName: "checkmark").font(.system(size: 14, weight: .heavy)).foregroundStyle(Palette.void))
+                .overlay(Circle().stroke(Palette.void, lineWidth: 3))
+                .offset(x: 33, y: 33)
+                .scaleEffect(checked ? 1 : 0.2)
+                .opacity(checked ? 1 : 0)
+                .animation(.spring(response: 0.38, dampingFraction: 0.55), value: checked)
+        }
+        .frame(width: 220, height: 220)
+        .accessibilityHidden(true)
+        .task {
+            if reduceMotion {
+                shown = coins.count
+                checked = true
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(200))
+            for _ in coins {
+                shown += 1
+                try? await Task.sleep(for: .milliseconds(55))
+            }
+            try? await Task.sleep(for: .milliseconds(120))
+            checked = true
+        }
     }
 }
