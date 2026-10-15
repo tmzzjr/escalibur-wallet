@@ -60,7 +60,13 @@ struct EnvelopeHowItWorks: View {
         .presentationBackground(Palette.void)
         .presentationCornerRadius(Radius.sheet)
         #if DEBUG
-        .onAppear { if DebugDemo.screen == "envelope-como" { page = Int(DebugDemo.arguments.last ?? "") ?? 0 } }
+        // A pagina vem logo depois do nome da tela: o passeio por idioma poe mais
+        // argumentos no fim.
+        .onAppear {
+            guard DebugDemo.screen == "envelope-como", let index = DebugDemo.arguments.firstIndex(of: "envelope-como"),
+                  DebugDemo.arguments.indices.contains(index + 1) else { return }
+            page = Int(DebugDemo.arguments[index + 1]) ?? 0
+        }
         #endif
     }
 

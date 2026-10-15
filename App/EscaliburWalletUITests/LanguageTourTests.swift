@@ -79,5 +79,37 @@ final class LanguageTourTests: XCTestCase {
         app = launch(["-demo", "-tela", "camera", "-camera-negada"])
         sleep(8)
         shot("12-camera", app)
+        app.terminate()
+
+        // O tour: a espada, as moedas em orbita e a assinatura.
+        app = launch(["-demo", "-tela", "promessa"])
+        let next = app.buttons["tour-continuar"]
+        if next.waitForExistence(timeout: 40) {
+            sleep(2)
+            shot("13-tour-espada", app)
+            next.tap()
+            sleep(4)
+            shot("14-tour-moedas", app)
+            next.tap()
+            sleep(5)
+            shot("15-tour-assina", app)
+        }
+        app.terminate()
+
+        // A conferencia do aparelho, inteira, com o slider.
+        app = launch(["-demo", "-tela", "checagem"])
+        if app.descendants(matching: .any)["deslizar-digitar"].waitForExistence(timeout: 40) {
+            sleep(8)
+            shot("16-checagem", app)
+        }
+        app.terminate()
+
+        // O Como funciona do envelope: o cifrado e a senha que revela as palavras.
+        for (page, name) in [("1", "17-envelope-ruido"), ("2", "18-envelope-senha")] {
+            app = launch(["-demo", "-tela", "envelope-como", page])
+            sleep(9)
+            shot(name, app)
+            app.terminate()
+        }
     }
 }

@@ -8958,6 +8958,7 @@
       }
     },
     "%lld redes, um app só" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "variations" : {
@@ -13085,6 +13086,82 @@
         }
       }
     },
+    "A anterior foi às %@. Esta é nova, item por item, agora." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كان الفحص السابق عند %@. هذا فحص جديد، بندًا بندًا، الآن."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die letzte war um %@. Diese ist neu, Punkt für Punkt, jetzt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The last one was at %@. This one is new, item by item, right now."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La anterior fue a las %@. Esta es nueva, punto por punto, ahora."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La précédente a eu lieu à %@. Celle-ci est refaite maintenant, point par point."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पिछली जांच %@ बजे हुई थी. यह नई है, हर आइटम अभी फिर से."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pemeriksaan sebelumnya pukul %@. Yang ini baru, satu per satu, sekarang."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回は %@ でした。今回は新たに、1 項目ずつ今チェックします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이전 확인은 %@에 했습니다. 이번에는 지금 항목마다 새로 확인합니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Önceki kontrol %@ saatindeydi. Bu yeni bir kontrol, şimdi madde madde."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lần trước lúc %@. Lần này kiểm tra mới, từng mục, ngay bây giờ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次检查于 %@。这次是全新的，现在逐项进行。"
+          }
+        }
+      }
+    },
     "A autorização ainda não confirmou, e a ordem não foi enviada. Quando ela aparecer confirmada na Atividade, monte a ordem de novo." : {
       "localizations" : {
         "ar" : {
@@ -13917,6 +13994,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "钱包会发送一笔交易使订单永久失效，需支付网络费。交易确认后，订单将无法再成交，未卖出的部分仍留在你的钱包中。"
+          }
+        }
+      }
+    },
+    "A carteira não fica no Mac" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يمكن حفظ المحفظة على Mac"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Wallet auf dem Mac"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The wallet can't be kept on a Mac"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La billetera no se guarda en el Mac"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas de portefeuille sur Mac"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "वॉलेट Mac पर नहीं रखा जा सकता"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dompet tidak bisa disimpan di Mac"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウォレットは Mac には保存できません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지갑은 Mac에 보관할 수 없습니다"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cüzdan Mac’te tutulmaz"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể giữ ví trên Mac"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "钱包不能存放在 Mac 上"
           }
         }
       }
@@ -37601,6 +37754,82 @@
         }
       }
     },
+    "As redes com o nome de um token recebem a versão de %@ emitida naquela rede, que vale o mesmo enquanto o emissor mantiver o lastro. Quem envia tem de escolher exatamente a mesma rede." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الشبكات التي تحمل اسم رمز مميز تستقبل نسخة %@ الصادرة على تلك الشبكة، وقيمتها مماثلة ما دام المُصدِر يحافظ على الغطاء. يجب أن يختار المُرسِل الشبكة نفسها تمامًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Netzwerke mit einem Token-Namen empfangen die auf diesem Netzwerk ausgegebene Version von %@. Sie ist gleich viel wert, solange der Emittent die Deckung hält. Der Absender muss genau dasselbe Netzwerk wählen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Networks named with a token receive the version of %@ issued on that network, worth the same as long as the issuer keeps it backed. The sender has to choose exactly the same network."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las redes con el nombre de un token reciben la versión de %@ emitida en esa red, que vale lo mismo mientras el emisor mantenga el respaldo. Quien envía tiene que elegir exactamente la misma red."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les réseaux portant le nom d’un token reçoivent la version de %@ émise sur ce réseau, qui vaut autant tant que l’émetteur en maintient la contrepartie. L’expéditeur doit choisir exactement le même réseau."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जिन नेटवर्क के साथ किसी टोकन का नाम है, वे उस नेटवर्क पर जारी %@ का संस्करण प्राप्त करते हैं, जिसकी कीमत तब तक बराबर रहती है जब तक जारीकर्ता उसका बैकअप बनाए रखता है. भेजने वाले को बिल्कुल वही नेटवर्क चुनना होगा."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jaringan yang memakai nama token menerima versi %@ yang diterbitkan di jaringan itu, yang nilainya sama selama penerbit menjaga jaminannya. Pengirim harus memilih jaringan yang persis sama."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トークン名が付いたネットワークでは、そのネットワークで発行された %@ を受け取ります。発行者が裏付け資産を維持している限り、価値は同じです。送る側はまったく同じネットワークを選ぶ必要があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "토큰 이름이 붙은 네트워크는 그 네트워크에서 발행된 %@ 버전을 받습니다. 발행사가 담보를 유지하는 동안 가치는 같습니다. 보내는 쪽은 정확히 같은 네트워크를 선택해야 합니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token adı taşıyan ağlar, o ağda çıkarılan %@ sürümünü alır; ihraççı karşılığını koruduğu sürece değeri aynıdır. Gönderen tam olarak aynı ağı seçmelidir."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Các mạng mang tên một token nhận phiên bản %@ được phát hành trên mạng đó, có giá trị tương đương miễn là bên phát hành duy trì tài sản bảo chứng. Người gửi phải chọn đúng mạng đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "带有代币名称的网络接收在该网络上发行的 %@ 版本，只要发行方维持储备支持，其价值就相同。发送方必须选择完全相同的网络。"
+          }
+        }
+      }
+    },
     "As redes não responderam agora. Isso não quer dizer que a carteira está vazia: os valores aparecem quando a leitura der certo." : {
       "localizations" : {
         "ar" : {
@@ -40273,7 +40502,84 @@
         }
       }
     },
+    "Bitcoin, Ethereum, Solana e as maiores moedas do mundo, com a chave criada e guardada neste iPhone. Envie, receba e troque entre redes, com a taxa à vista antes de assinar." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin وEthereum وSolana وأكبر العملات في العالم، والمفتاح يُنشأ ويُحفظ على هذا iPhone. أرسل واستلم وبادل بين الشبكات، مع عرض الرسوم قبل التوقيع."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana und die größten Coins der Welt, mit dem Schlüssel, der auf diesem iPhone erstellt und aufbewahrt wird. Senden, empfangen und zwischen Netzwerken tauschen, mit der Gebühr vor dem Signieren im Blick."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana and the world’s biggest coins, with the key created and kept on this iPhone. Send, receive and swap across networks, with the fee shown before you sign."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana y las mayores monedas del mundo, con la llave creada y guardada en este iPhone. Envía, recibe e intercambia entre redes, con la comisión a la vista antes de firmar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana et les plus grandes cryptos du monde, avec la clé créée et gardée sur cet iPhone. Envoyez, recevez et échangez entre réseaux, avec les frais affichés avant de signer."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana और दुनिया के सबसे बड़े कॉइन, ऐसी चाबी के साथ जो इसी iPhone पर बनती और रहती है. भेजें, प्राप्त करें और नेटवर्क के बीच स्वैप करें, साइन करने से पहले शुल्क दिखता है."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana, dan koin terbesar di dunia, dengan kunci yang dibuat dan disimpan di iPhone ini. Kirim, terima, dan tukar antar jaringan, dengan biaya terlihat sebelum menandatangani."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin、Ethereum、Solana をはじめ、世界の主要なコインに対応。鍵はこの iPhone で作られ、この iPhone に保管されます。送信、受け取り、ネットワーク間のスワップができ、署名前に手数料が表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana 그리고 세계 주요 코인. 열쇠는 이 iPhone에서 만들어지고 이 iPhone에 보관됩니다. 보내고, 받고, 네트워크 간에 스왑하며, 서명 전에 수수료를 확인할 수 있습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana ve dünyanın en büyük coin’leri; anahtar bu iPhone’da oluşturulur ve saklanır. Ağlar arasında gönder, al ve takas et; ücreti imzalamadan önce gör."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin, Ethereum, Solana và các đồng coin lớn nhất thế giới, với chìa khóa được tạo và lưu trên iPhone này. Gửi, nhận và hoán đổi giữa các mạng, với phí hiển thị trước khi bạn ký."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin、Ethereum、Solana 以及全球主流币种，密钥在这台 iPhone 上创建并保存。发送、接收和跨链兑换，签署前网络费一目了然。"
+          }
+        }
+      }
+    },
     "Bitcoin, Ethereum, Solana e as maiores moedas do mundo. Envie, receba, troque e leve entre redes, com a taxa à vista antes de assinar." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -44731,6 +45037,7 @@
       }
     },
     "Cola as palavras todas de uma vez." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -45334,6 +45641,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "如果 passphrase 输错，钱包会以空钱包打开，且没有任何提示。所以需要输入两次。按住输入框可对比两次输入。"
+          }
+        }
+      }
+    },
+    "Com a senha certa, as palavras voltam. Sem ela, ninguém abre, nem a Escalibur, e senha esquecida não se recupera. Cada tentativa exige uma conta pesada, de propósito: adivinhar uma senha forte fica lento demais." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بكلمة المرور الصحيحة تعود الكلمات. وبدونها لا أحد يستطيع فتحه، ولا حتى Escalibur، ولا يمكن استعادة كلمة مرور منسية. كل محاولة تتطلب حسابًا ثقيلًا عن قصد، فيصبح تخمين كلمة مرور قوية بطيئًا جدًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit dem richtigen Passwort kommen die Wörter zurück. Ohne es kann niemand ihn öffnen, auch Escalibur nicht, und ein vergessenes Passwort lässt sich nicht wiederherstellen. Jeder Versuch erfordert absichtlich eine aufwendige Berechnung: Ein starkes Passwort zu erraten dauert viel zu lange."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With the right password, the words come back. Without it, no one can open it, not even Escalibur, and a forgotten password can't be recovered. Every attempt takes heavy computation, on purpose: guessing a strong password is far too slow."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con la contraseña correcta, las palabras vuelven. Sin ella, nadie lo abre, ni Escalibur, y una contraseña olvidada no se recupera. Cada intento exige un cálculo pesado, a propósito: adivinar una contraseña fuerte es demasiado lento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec le bon mot de passe, les mots reviennent. Sans lui, personne ne peut l’ouvrir, pas même Escalibur, et un mot de passe oublié ne se récupère pas. Chaque tentative exige un calcul lourd, à dessein : deviner un mot de passe fort devient bien trop lent."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सही पासवर्ड से शब्द वापस आ जाते हैं. उसके बिना इसे कोई नहीं खोल सकता, Escalibur भी नहीं, और भूला हुआ पासवर्ड वापस नहीं मिलता. हर कोशिश में जानबूझकर भारी गणना लगती है: मज़बूत पासवर्ड का अनुमान लगाना बहुत धीमा हो जाता है."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dengan kata sandi yang benar, kata-katanya kembali. Tanpa itu, tidak ada yang bisa membukanya, bahkan Escalibur, dan kata sandi yang terlupa tidak bisa dipulihkan. Setiap percobaan sengaja membutuhkan perhitungan berat: menebak kata sandi yang kuat jadi terlalu lambat."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正しいパスワードを入れると、単語が戻ってきます。パスワードがなければ誰も開けません。Escalibur にもできず、忘れたパスワードは復元できません。試すたびに重い計算が必要になるよう、あえて作られています。強いパスワードを推測するのは遅すぎて現実的ではありません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "올바른 비밀번호를 입력하면 단어가 돌아옵니다. 비밀번호 없이는 누구도, Escalibur조차도 열 수 없으며, 잊어버린 비밀번호는 복구할 수 없습니다. 시도할 때마다 일부러 무거운 계산이 필요하므로, 강력한 비밀번호를 추측하는 것은 너무 느립니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doğru şifreyle kelimeler geri gelir. Şifre olmadan kimse açamaz, Escalibur bile, ve unutulan şifre kurtarılamaz. Her deneme bilerek ağır bir hesaplama gerektirir: güçlü bir şifreyi tahmin etmek fazlasıyla yavaşlar."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Với mật khẩu đúng, các từ sẽ trở lại. Không có mật khẩu, không ai mở được, kể cả Escalibur, và mật khẩu đã quên không thể khôi phục. Mỗi lần thử đều cố ý đòi hỏi tính toán nặng: đoán một mật khẩu mạnh sẽ quá chậm."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入正确的密码，单词就会回来。没有密码，任何人都无法打开，Escalibur 也不能，忘记的密码也无法找回。每次尝试都需要大量计算，这是有意为之：猜出一个强密码会慢得无法实现。"
           }
         }
       }
@@ -46554,6 +46937,82 @@
         }
       }
     },
+    "Conferido de novo às %@" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم التحقق مجددًا عند %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut geprüft um %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked again at %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobado de nuevo a las %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revérifié à %@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ बजे फिर से जांचा गया"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diperiksa lagi pukul %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ に再確認しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@에 다시 확인함"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ saatinde yeniden kontrol edildi"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã kiểm tra lại lúc %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已于 %@ 重新检查"
+          }
+        }
+      }
+    },
     "Conferido em" : {
       "localizations" : {
         "ar" : {
@@ -46706,6 +47165,82 @@
         }
       }
     },
+    "Conferido às %@" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم التحقق عند %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geprüft um %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked at %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobado a las %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifié à %@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ बजे जांचा गया"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diperiksa pukul %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ に確認しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@에 확인함"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ saatinde kontrol edildi"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã kiểm tra lúc %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已于 %@ 检查"
+          }
+        }
+      }
+    },
     "Conferindo" : {
       "localizations" : {
         "ar" : {
@@ -46778,6 +47313,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在检查"
+          }
+        }
+      }
+    },
+    "Conferindo de novo" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جارٍ التحقق مجددًا"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneute Prüfung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking again"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comprobando de nuevo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvelle vérification"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फिर से जांच हो रही है"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memeriksa lagi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度確認中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다시 확인 중"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeniden kontrol ediliyor"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đang kiểm tra lại"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重新检查"
           }
         }
       }
@@ -54430,6 +55041,7 @@
       }
     },
     "Dentro do arquivo, as palavras viram dados cifrados. Ele não diz de quem é, nem quantas palavras guarda, nem o que tem dentro." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -55455,6 +56067,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭此币种的提醒"
+          }
+        }
+      }
+    },
+    "Deslize para digitar as palavras" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اسحب لكتابة الكلمات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schieben, um die Wörter einzugeben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide to type the words"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desliza para escribir las palabras"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glissez pour saisir les mots"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "शब्द टाइप करने के लिए स्लाइड करें"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geser untuk mengetik kata-katanya"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スライドして単語を入力"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "밀어서 단어 입력"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kelimeleri yazmak için kaydır"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trượt để nhập các từ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滑动以输入单词"
           }
         }
       }
@@ -56676,6 +57364,7 @@
       }
     },
     "Digitar as palavras" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -58537,6 +59226,7 @@
       }
     },
     "Em Ajustes, Abrir um envelope, neste ou em outro iPhone com a Escalibur. Com a senha certa, a carteira volta. Guarde o arquivo e a senha em lugares diferentes." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -88035,6 +88725,82 @@
         }
       }
     },
+    "Instalado pela App Store ou TestFlight" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مثبّت من App Store أو TestFlight"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über den App Store oder TestFlight installiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed from the App Store or TestFlight"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalada desde la App Store o TestFlight"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installée depuis l’App Store ou TestFlight"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store या TestFlight से इंस्टॉल किया गया"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dipasang dari App Store atau TestFlight"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store または TestFlight からインストール済み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store 또는 TestFlight에서 설치됨"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store veya TestFlight’tan yüklendi"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Được cài từ App Store hoặc TestFlight"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过 App Store 或 TestFlight 安装"
+          }
+        }
+      }
+    },
     "Inverter" : {
       "localizations" : {
         "ar" : {
@@ -99091,7 +99857,84 @@
         }
       }
     },
+    "Nenhum código injetado encontrado" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم يُعثر على كود محقون"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein eingeschleuster Code gefunden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No injected code found"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se encontró código inyectado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun code injecté détecté"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोई इंजेक्ट किया गया कोड नहीं मिला"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak ditemukan kode yang disisipkan"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "注入されたコードは見つかりません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "주입된 코드가 발견되지 않음"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enjekte edilmiş kod bulunamadı"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không tìm thấy mã bị chèn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未发现注入的代码"
+          }
+        }
+      }
+    },
     "Nenhum código injetado no app" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -99859,6 +100702,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "没有中继方按时交付，Across 已将存款退回你的账户。"
+          }
+        }
+      }
+    },
+    "Nenhum sinal de jailbreak" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا توجد علامات على jailbreak"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Anzeichen für Jailbreak"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No sign of jailbreak"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguna señal de jailbreak"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun signe de jailbreak"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जेलब्रेक का कोई संकेत नहीं"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak ada tanda jailbreak"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "脱獄の兆候なし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "탈옥 징후 없음"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jailbreak belirtisi yok"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không có dấu hiệu jailbreak"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未发现越狱迹象"
           }
         }
       }
@@ -101162,6 +102081,7 @@
       }
     },
     "Ninguém abre sem ela, nem a Escalibur, e ninguém recupera uma senha esquecida. Quem tiver uma cópia do arquivo pode tentar senhas à vontade, por isso a sugerida tem seis palavras sorteadas." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -101461,6 +102381,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Escalibur 的任何人都不会索要你的单词"
+          }
+        }
+      }
+    },
+    "No Mac, outros programas podem ler o teclado e a tela. Use a Escalibur no iPhone." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "على Mac، يمكن لبرامج أخرى قراءة لوحة المفاتيح والشاشة. استخدم Escalibur على iPhone."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf dem Mac können andere Programme Tastatur und Bildschirm mitlesen. Nutze Escalibur auf dem iPhone."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On a Mac, other programs can read the keyboard and the screen. Use Escalibur on your iPhone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En el Mac, otros programas pueden leer el teclado y la pantalla. Usa Escalibur en el iPhone."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur Mac, d’autres programmes peuvent lire le clavier et l’écran. Utilisez Escalibur sur l’iPhone."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac पर दूसरे प्रोग्राम कीबोर्ड और स्क्रीन पढ़ सकते हैं. Escalibur को iPhone पर इस्तेमाल करें."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di Mac, program lain bisa membaca keyboard dan layar. Gunakan Escalibur di iPhone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac では、ほかのプログラムがキーボードや画面を読み取れます。Escalibur は iPhone で使ってください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac에서는 다른 프로그램이 키보드와 화면을 읽을 수 있습니다. Escalibur는 iPhone에서 사용하세요."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac’te başka programlar klavyeyi ve ekranı okuyabilir. Escalibur’u iPhone’da kullan."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trên Mac, các chương trình khác có thể đọc bàn phím và màn hình. Hãy dùng Escalibur trên iPhone."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Mac 上，其他程序可以读取键盘和屏幕。请在 iPhone 上使用 Escalibur。"
           }
         }
       }
@@ -109051,6 +110047,7 @@
       }
     },
     "Não são %@ da rede %@: são tokens que valem o mesmo enquanto o emissor mantiver o lastro. Quem envia tem de escolher exatamente esta moeda e esta rede." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -109280,6 +110277,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请勿使用 iPhone 密码或 App 的 PIN 码：见过你输入的人就能打开信封。"
+          }
+        }
+      }
+    },
+    "Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا تستخدم رمز دخول iPhone: من يسرق iPhone يكون قد رأى هذا الرمز غالبًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutze nicht den iPhone-Code: Wer ein iPhone stiehlt, hat diesen Code meist schon gesehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't use your iPhone passcode: whoever steals an iPhone has usually already seen it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No uses el código del iPhone: quien roba un iPhone normalmente ya vio ese código."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "N’utilisez pas le code de l’iPhone : qui vole un iPhone a généralement déjà vu ce code."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone पासकोड का इस्तेमाल न करें: iPhone चुराने वाला आम तौर पर यह कोड पहले ही देख चुका होता है."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jangan pakai kode sandi iPhone: pencuri iPhone biasanya sudah pernah melihat kode itu."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone のパスコードは使わないでください。iPhone を盗む人は、たいていそのパスコードをすでに見ています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 암호를 사용하지 마세요. iPhone을 훔치는 사람은 대개 그 암호를 이미 봤습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone parolasını kullanma: iPhone’u çalan kişi genellikle bu parolayı zaten görmüştür."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đừng dùng mật mã iPhone: người lấy cắp iPhone thường đã thấy mật mã đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不要使用 iPhone 密码：偷 iPhone 的人通常已经看过这个密码。"
           }
         }
       }
@@ -115393,7 +116466,84 @@
         }
       }
     },
+    "O envelope guarda uma cópia criptografada da senha da sua carteira, trancada com outra senha que só você escolhe. Fica tudo num arquivo .esclbr, feito aqui no iPhone." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحفظ المغلف نسخة مشفّرة من عبارة الاسترداد، مقفلة بكلمة مرور أخرى تختارها أنت وحدك. ويوضع كل ذلك في ملف .esclbr واحد يُنشأ هنا على iPhone."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Umschlag bewahrt eine verschlüsselte Kopie deiner Wiederherstellungsphrase auf, gesichert mit einem eigenen Passwort, das nur du wählst. Alles steckt in einer .esclbr-Datei, erstellt hier auf dem iPhone."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The envelope keeps an encrypted copy of your recovery phrase, locked with a separate password that only you choose. It all goes into one .esclbr file, made right here on the iPhone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El sobre guarda una copia cifrada de tu frase de recuperación, cerrada con otra contraseña que solo tú eliges. Todo queda en un archivo .esclbr, creado aquí en el iPhone."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’enveloppe garde une copie chiffrée de votre phrase de récupération, verrouillée par un autre mot de passe que vous seul choisissez. Le tout tient dans un fichier .esclbr, créé ici sur l’iPhone."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लिफ़ाफ़ा आपके रिकवरी फ़्रेज़ की एक एन्क्रिप्टेड कॉपी रखता है, जो एक अलग पासवर्ड से लॉक होती है जिसे सिर्फ़ आप चुनते हैं. सब कुछ एक .esclbr फ़ाइल में रहता है, जो यहीं iPhone पर बनती है."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amplop menyimpan salinan terenkripsi dari frasa pemulihan Anda, terkunci dengan kata sandi lain yang hanya Anda pilih. Semuanya ada dalam satu file .esclbr, dibuat di iPhone ini."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エンベロープには、リカバリーフレーズを暗号化したコピーが入り、自分だけが決める別のパスワードでロックされます。すべてがこの iPhone で作られる 1 つの .esclbr ファイルに収まります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "봉투는 복구 구문의 암호화된 사본을 보관하며, 나만 정하는 별도의 비밀번호로 잠깁니다. 모든 내용은 이 iPhone에서 만들어지는 .esclbr 파일 하나에 담깁니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zarf, kurtarma ifadenin şifreli bir kopyasını saklar ve onu yalnızca senin seçtiğin ayrı bir şifreyle kilitler. Hepsi burada, iPhone’da oluşturulan tek bir .esclbr dosyasında durur."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phong bì giữ một bản sao được mã hóa của cụm từ khôi phục, khóa bằng một mật khẩu khác do chính bạn chọn. Tất cả nằm trong một tệp .esclbr, được tạo ngay trên iPhone."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信封保存一份加密的助记词副本，用只有你自己设置的另一个密码锁定。全部存放在一个 .esclbr 文件中，就在这台 iPhone 上生成。"
+          }
+        }
+      }
+    },
     "O envelope pega as palavras da sua carteira e tranca tudo com uma senha que você escolhe. O resultado é um arquivo .esclbr." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -125136,6 +126286,7 @@
       }
     },
     "Outras formas de %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -126710,6 +127861,7 @@
       }
     },
     "Para abrir, só o app" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -143428,6 +144580,7 @@
       }
     },
     "Seis dígitos para destravar o app e confirmar envios quando o %@ falhar." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -143499,6 +144652,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "六位数字，用于在 %@ 失败时解锁 App 和确认转账。"
+          }
+        }
+      }
+    },
+    "Seis dígitos para destravar o app e confirmar envios quando o %@ falhar. Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ستة أرقام لفتح قفل التطبيق وتأكيد التحويلات عندما يتعذّر %@. لا تستخدم رمز دخول iPhone: من يسرق iPhone يكون قد رأى هذا الرمز غالبًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sechs Ziffern, um die App zu entsperren und Transfers zu bestätigen, wenn %@ nicht klappt. Nutze nicht den iPhone-Code: Wer ein iPhone stiehlt, hat diesen Code meist schon gesehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Six digits to unlock the app and confirm transfers when %@ fails. Don't use your iPhone passcode: whoever steals an iPhone has usually already seen it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seis dígitos para desbloquear la app y confirmar envíos cuando %@ falle. No uses el código del iPhone: quien roba un iPhone normalmente ya vio ese código."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Six chiffres pour déverrouiller l’app et confirmer les envois quand %@ échoue. N’utilisez pas le code de l’iPhone : qui vole un iPhone a généralement déjà vu ce code."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जब %@ काम न करे, तब ऐप अनलॉक करने और ट्रांसफ़र की पुष्टि करने के लिए छह अंक. iPhone पासकोड का इस्तेमाल न करें: iPhone चुराने वाला आम तौर पर यह कोड पहले ही देख चुका होता है."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enam digit untuk membuka aplikasi dan mengonfirmasi pengiriman saat %@ gagal. Jangan pakai kode sandi iPhone: pencuri iPhone biasanya sudah pernah melihat kode itu."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ に失敗したときに、アプリのロック解除と送金の確認に使う 6 桁の数字です。iPhone のパスコードは使わないでください。iPhone を盗む人は、たいていそのパスコードをすでに見ています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@가 실패할 때 앱 잠금을 해제하고 전송을 확인하는 6자리 숫자입니다. iPhone 암호를 사용하지 마세요. iPhone을 훔치는 사람은 대개 그 암호를 이미 봤습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ başarısız olduğunda uygulamanın kilidini açmak ve transferleri onaylamak için altı rakam. iPhone parolasını kullanma: iPhone’u çalan kişi genellikle bu parolayı zaten görmüştür."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sáu chữ số để mở khóa ứng dụng và xác nhận lần gửi khi %@ không thành công. Đừng dùng mật mã iPhone: người lấy cắp iPhone thường đã thấy mật mã đó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "六位数字，用于在 %@ 失败时解锁 App 和确认转账。不要使用 iPhone 密码：偷 iPhone 的人通常已经看过这个密码。"
           }
         }
       }
@@ -144920,6 +146149,7 @@
       }
     },
     "Sem jailbreak" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -148718,6 +149948,7 @@
       }
     },
     "Só o teclado da Apple" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -149398,6 +150629,12 @@
     },
     "Só você é digno" : {
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنت وحدك جدير"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
@@ -152062,7 +153299,84 @@
         }
       }
     },
+    "Teclados de terceiros bloqueados" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لوحات المفاتيح الخارجية محظورة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tastaturen von Drittanbietern blockiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Third-party keyboards blocked"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teclados de terceros bloqueados"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claviers tiers bloqués"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "थर्ड-पार्टी कीबोर्ड ब्लॉक"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyboard pihak ketiga diblokir"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サードパーティ製キーボードをブロック"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "타사 키보드 차단됨"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Üçüncü taraf klavyeler engellendi"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã chặn bàn phím bên thứ ba"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已阻止第三方键盘"
+          }
+        }
+      }
+    },
     "Tela protegida: cada letra é cifrada na hora, com uma chave que só existe enquanto esta tela está aberta, e captura e gravação de tela ficam bloqueadas. Segure uma palavra para conferir." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -152134,6 +153448,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "受保护的屏幕：每个字母在输入时即被加密，所用密钥只在此屏幕打开期间存在，截屏和录屏均被阻止。按住单词即可核对。"
+          }
+        }
+      }
+    },
+    "Tela protegida: cada letra é cifrada na hora, com uma chave que só existe enquanto esta tela está aberta, e gravação e espelhamento escondem as palavras. Captura de tela não dá para bloquear. Segure uma palavra para conferir." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "شاشة محمية: يُشفَّر كل حرف فور كتابته، بمفتاح لا يوجد إلا ما دامت هذه الشاشة مفتوحة، وتختفي الكلمات عند تسجيل الشاشة أو عكسها. لا يمكن حظر لقطات الشاشة. المس كلمة مطولًا للتحقق منها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geschützter Bildschirm: Jeder Buchstabe wird beim Tippen verschlüsselt, mit einem Schlüssel, der nur existiert, solange dieser Bildschirm offen ist, und bei Bildschirmaufnahme oder Spiegelung werden die Wörter ausgeblendet. Bildschirmfotos lassen sich nicht blockieren. Halte ein Wort gedrückt, um es zu prüfen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protected screen: each letter is encrypted as you type, with a key that only exists while this screen is open, and screen recording and mirroring hide the words. Screenshots can't be blocked. Touch and hold a word to check it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantalla protegida: cada letra se cifra al instante, con una clave que solo existe mientras esta pantalla está abierta, y la grabación y la duplicación de pantalla ocultan las palabras. Las capturas de pantalla no se pueden bloquear. Mantén pulsada una palabra para comprobarla."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran protégé : chaque lettre est chiffrée à la saisie, avec une clé qui n’existe que tant que cet écran est ouvert, et l’enregistrement et la recopie de l’écran masquent les mots. Les captures d’écran ne peuvent pas être bloquées. Maintenez le doigt sur un mot pour le vérifier."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सुरक्षित स्क्रीन: हर अक्षर टाइप करते ही एन्क्रिप्ट होता है, ऐसी कुंजी से जो सिर्फ़ इस स्क्रीन के खुले रहने तक रहती है, और स्क्रीन रिकॉर्डिंग और मिररिंग में शब्द छिप जाते हैं. स्क्रीनशॉट ब्लॉक नहीं किए जा सकते. जांचने के लिए किसी शब्द को दबाकर रखें."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layar terlindungi: setiap huruf dienkripsi saat diketik, dengan kunci yang hanya ada selama layar ini terbuka, dan kata-kata disembunyikan saat layar direkam atau dicerminkan. Tangkapan layar tidak bisa diblokir. Sentuh dan tahan sebuah kata untuk memeriksanya."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保護された画面：入力した文字はその場で暗号化されます。キーはこの画面を開いている間だけ存在し、画面収録やミラーリング中は単語が隠れます。スクリーンショットはブロックできません。単語を長押しすると確認できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보호된 화면: 입력하는 즉시 글자마다 이 화면이 열려 있는 동안에만 존재하는 키로 암호화되며, 화면 녹화와 미러링 중에는 단어가 가려집니다. 스크린샷은 차단할 수 없습니다. 단어를 길게 눌러 확인하세요."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Korumalı ekran: her harf yazıldığı anda, yalnızca bu ekran açıkken var olan bir anahtarla şifrelenir; ekran kaydı ve yansıtma sırasında kelimeler gizlenir. Ekran görüntüsü engellenemez. Kontrol etmek için bir kelimeye basılı tut."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Màn hình được bảo vệ: mỗi chữ cái được mã hóa ngay khi nhập, bằng một khóa chỉ tồn tại khi màn hình này đang mở, và các từ sẽ bị ẩn khi ghi hoặc phản chiếu màn hình. Không thể chặn chụp màn hình. Chạm và giữ một từ để kiểm tra."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "受保护的屏幕：每个字母在输入时即被加密，所用密钥只在此屏幕打开期间存在；录屏和镜像时单词会被隐藏。截屏无法阻止。按住单词即可核对。"
           }
         }
       }
@@ -152215,6 +153605,7 @@
       }
     },
     "Tem a senha copiada?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -153431,6 +154822,7 @@
       }
     },
     "Todas as suas moedas num lugar só, com a chave criada e guardada neste iPhone. Sem servidor, sem conta e sem e-mail." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -156530,7 +157922,160 @@
         }
       }
     },
+    "Tudo dentro dele é criptografado aqui no iPhone. Sem a senha, o arquivo não diz de quem é, quantas palavras guarda nem o que tem dentro." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كل ما بداخله مشفّر هنا على iPhone. بدون كلمة المرور، لا يكشف الملف لمن هو، ولا كم كلمة يحمل، ولا ما بداخله."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles darin wird hier auf dem iPhone verschlüsselt. Ohne das Passwort verrät die Datei nicht, wem sie gehört, wie viele Wörter sie enthält oder was drin ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything inside it is encrypted here on the iPhone. Without the password, the file doesn't say whose it is, how many words it holds, or what's inside."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo lo que contiene se cifra aquí, en el iPhone. Sin la contraseña, el archivo no dice de quién es, cuántas palabras guarda ni qué tiene dentro."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout ce qu’il contient est chiffré ici, sur l’iPhone. Sans le mot de passe, le fichier n’indique ni à qui il appartient, ni combien de mots il contient, ni ce qu’il renferme."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इसके अंदर का सब कुछ यहीं iPhone पर एन्क्रिप्ट होता है. पासवर्ड के बिना फ़ाइल यह नहीं बताती कि यह किसकी है, इसमें कितने शब्द हैं, या इसके अंदर क्या है."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semua isinya dienkripsi di iPhone ini. Tanpa kata sandi, file ini tidak menunjukkan milik siapa, berapa kata yang disimpan, atau apa isinya."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中身はすべて、この iPhone で暗号化されます。パスワードがなければ、誰のものか、何個の単語が入っているか、中身が何かは、ファイルからはわかりません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "안의 모든 내용은 이 iPhone에서 암호화됩니다. 비밀번호 없이는 파일에 누구의 것인지, 단어가 몇 개인지, 안에 무엇이 들었는지 나타나지 않습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "İçindeki her şey burada, iPhone’da şifrelenir. Şifre olmadan dosya kime ait olduğunu, kaç kelime sakladığını veya içinde ne olduğunu söylemez."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mọi thứ bên trong đều được mã hóa ngay trên iPhone. Không có mật khẩu, tệp không cho biết của ai, chứa bao nhiêu từ hay bên trong có gì."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其中的一切都在这台 iPhone 上加密。没有密码，文件不会显示属于谁、包含多少个单词或里面有什么。"
+          }
+        }
+      }
+    },
+    "Tudo foi checado aqui, sem internet, e nada sai do aparelho. Um jailbreak escondido pode passar sem aparecer." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم فحص كل شيء هنا دون اتصال بالإنترنت، ولا يغادر الجهاز أي شيء. قد يمر jailbreak مخفي دون أن يظهر."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alles wurde hier offline geprüft, und nichts verlässt das Gerät. Ein versteckter Jailbreak kann unbemerkt bleiben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Everything was checked here, offline, and nothing leaves the device. A hidden jailbreak can slip through unnoticed."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo se comprobó aquí, sin internet, y nada sale del dispositivo. Un jailbreak oculto puede pasar sin aparecer."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout a été vérifié ici, hors connexion, et rien ne quitte l’appareil. Un jailbreak dissimulé peut passer inaperçu."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सब कुछ यहीं, बिना इंटरनेट जांचा गया, और कुछ भी डिवाइस से बाहर नहीं जाता. छिपा हुआ जेलब्रेक बिना दिखे निकल सकता है."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semuanya diperiksa di sini, tanpa internet, dan tidak ada yang keluar dari perangkat. Jailbreak yang disembunyikan bisa lolos tanpa terlihat."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてここでオフラインでチェックし、何もデバイスの外に出ません。隠された脱獄は検出されないことがあります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 확인이 인터넷 없이 여기서 이루어졌으며, 아무것도 기기 밖으로 나가지 않습니다. 숨겨진 탈옥은 드러나지 않을 수 있습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Her şey burada, internetsiz kontrol edildi ve hiçbir şey cihazdan çıkmaz. Gizlenmiş bir jailbreak fark edilmeden geçebilir."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mọi thứ đã được kiểm tra tại đây, không cần internet, và không có gì rời khỏi thiết bị. Jailbreak được giấu kỹ có thể lọt qua mà không hiện ra."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有检查都在这里离线完成，任何信息都不会离开设备。隐藏的越狱可能不会被发现。"
+          }
+        }
+      }
+    },
     "Tudo foi checado aqui, sem internet. Nada desta checagem sai do aparelho." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -157971,6 +159516,12 @@
     },
     "Uma chave para todas as suas moedas" : {
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مفتاح واحد لكل عملاتك"
+          }
+        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",

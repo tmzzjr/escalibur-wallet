@@ -381,6 +381,14 @@ rm -rf "$saida_site"
 secao "texto"
 achados=$(swift_em "$APP" | xargs grep -nE '"[^"]*(—|–)[^"]*"' 2>/dev/null)
 [ -n "$achados" ] && { aviso "travessao em texto de interface"; echo "$achados"; } || ok "nenhum travessao em texto de interface"
+# Todo texto do catalogo traduzido nos doze idiomas, com os campos certos. Texto novo entra
+# pelo tools/traducao/sincronizar.sh e e traduzido antes do commit (tools/traducao/glossario.md).
+if resumo=$(python3 tools/traducao/conferir.py 2>&1); then
+    ok "todo texto de tela traduzido nos $(echo "$resumo" | grep -c 'traduzidos') idiomas, sem campo trocado"
+else
+    aviso "texto de tela sem traducao ou com traducao invalida (tools/traducao/conferir.py --resumo)"
+    echo "$resumo" | grep -vE ' 0 faltando, 0 invalidos' | head -14
+fi
 
 # 10. Testes com vetores oficiais, e a fronteira conferida tambem no binario (regra 3
 # de docs/seguranca.md §8.3): os objetos compilados de Chaves, Cadeias e Nucleo nao
