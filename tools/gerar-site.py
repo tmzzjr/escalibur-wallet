@@ -314,7 +314,7 @@ def main():
         rotas.append(rota)
 
     modelo("", "inicio.html", "", "Carteira cripto sem custódia para iPhone. As chaves ficam só no seu aparelho. "
-           f"Envie, receba e troque em {len(ctx['redes'])} redes, com cada transação conferida antes de assinar.")
+           f"Envie e receba em {len(ctx['redes'])} redes, troque e confira cada transação antes de assinar.")
     modelo("seguranca", "seguranca.html", "Segurança",
            "O que protege a sua carteira na Escalibur Wallet, contra quem, e onde cada proteção para.", "seguranca")
 

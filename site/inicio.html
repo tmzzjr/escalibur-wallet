@@ -3,7 +3,7 @@
 <img class="abertura-icone" src="{{base}}icone-256.png" alt="" width="72" height="72">
 <p class="sobretitulo">Escalibur Wallet</p>
 <h1 class="titulo-grande" id="t-abertura">Suas chaves.<br>Só no seu iPhone.</h1>
-<p class="lead">Carteira cripto sem custódia. Envie, receba e troque em {{n_redes}} redes, e confira cada transação antes de assinar. Sem conta, sem cadastro e sem servidor da Escalibur.</p>
+<p class="lead">Carteira cripto sem custódia. Envie e receba em {{n_redes}} redes, troque pelos protocolos públicos de cada uma e confira cada transação antes de assinar. Sem conta, sem cadastro e sem servidor da Escalibur.</p>
 {{botoes_baixar}}
 <p class="apoio">Versão {{versao}} · Código aberto · <a href="{{base}}auditoria/">Audite o código</a></p>
 </div>
@@ -147,7 +147,7 @@
 <p class="lead">O envelope guarda a senha da carteira num arquivo <code>.esclbr</code>, trancado com outra senha que só você conhece. Argon2id e ChaCha20-Poly1305, em formato aberto. Nem a Escalibur consegue abrir.</p>
 <ul class="pontos">
 <li><b>Senha medida de verdade.</b> O medidor diz em quanto tempo ela cairia, com os parâmetros reais do envelope.</li>
-<li><b>Formato aberto.</b> Os testes abrem o envelope num decifrador independente, escrito só a partir da especificação, e o contrário também.<br>{{codigo formato-do-envelope}}</li>
+<li><b>Formato aberto.</b> Os testes conferem os dois sentidos: o envelope do app abre no decifrador de referência, e um envelope lacrado por um programa escrito só a partir da especificação abre no app.<br>{{codigo formato-do-envelope}}</li>
 </ul>
 </div>
 <div class="recurso-midia">
@@ -178,8 +178,8 @@
 {{estado_ci}}
 <ul class="numeros">
 <li><b>{{n_hosts}}</b><span>servidores que o app pode chamar. Qualquer outro é recusado em tempo de execução.</span></li>
-<li><b>0</b><span>pacotes baixados no build. Nenhum SDK de análise, anúncio ou rastreamento.</span></li>
-<li><b>{{n_travados}}</b><span>arquivos de código de terceiros, compilados do fonte e travados por SHA-256.</span></li>
+<li><b>0</b><span>dependências baixadas da internet para montar o app. Nenhum SDK de análise, anúncio ou rastreamento.</span></li>
+<li><b>{{n_travados}}</b><span>arquivos de terceiros, da libsecp256k1 e do Argon2, no repositório e travados por SHA-256.</span></li>
 </ul>
 <div class="botoes">
 <a class="botao botao-principal" href="{{base}}auditoria/">Abrir a auditoria</a>

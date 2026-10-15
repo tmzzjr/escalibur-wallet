@@ -11,12 +11,12 @@
 <h2 id="t-promessas">O que o app promete</h2>
 <p class="lead intro">E que o código confere a cada mudança, nas {{n_verificacoes}} verificações da <a href="{{base}}auditoria/">auditoria</a>.</p>
 <ul class="promessas">
-<li><h3>As palavras nunca saem do iPhone em claro.</h3><p>Cifradas, só saem por ação sua, num envelope com senha própria. O app não tem conta, não tem servidor e não manda nada da carteira para lugar nenhum.</p></li>
+<li><h3>As palavras nunca saem do iPhone em claro.</h3><p>Cifradas, só saem por ação sua, num envelope com senha própria. O app não tem conta nem servidor, e não manda chave nem palavra para lugar nenhum.</p></li>
 <li><h3>Nenhum verificador de PIN gravado.</h3><p>A chave raiz vai cifrada por uma chave derivada do PIN, com Argon2id de 256 MiB, dentro de um embrulho que só abre neste Secure Enclave. Cada tentativa passa por este aparelho, uma de cada vez.</p></li>
 <li><h3>Face ID que não abre com outro rosto.</h3><p>O atalho do Face ID vale só para os rostos cadastrados hoje: cadastrar um rosto novo no iPhone destrói o atalho em vez de abri-lo. O código do iPhone não abre nada aqui.</p></li>
 <li><h3>Uma chave por carteira.</h3><p>A chave raiz desembrulha só a chave da carteira que vai assinar. O que se guarda é a entropia, não as palavras, e ela sai da memória assim que a assinatura termina.</p></li>
 <li><h3>Nada é assinado às cegas.</h3><p>O assinador só aceita um plano que passou pela validação da rede: destino, valor, taxa com teto, tag e memo, e chamada de contrato decodificada contra uma lista compilada no app. A assinatura é verificada antes de sair.</p></li>
-<li><h3>Nenhum provedor decide nada.</h3><p>O chainId, a passphrase de rede, os contratos de token, os roteadores e os emissores são constantes compiladas. Saldo, nonce e sequence só valem com dois provedores concordando.</p></li>
+<li><h3>Nenhum provedor decide nada.</h3><p>O chainId, a passphrase de rede, os contratos de token, os roteadores e os emissores são constantes compiladas. Nonce e sequence só valem com dois provedores concordando.</p></li>
 </ul>
 <p class="apoio links-bloco">{{codigo chave-raiz | Ler a chave raiz e o PIN}} · {{codigo assinador | Ler o assinador}} · {{codigo conferencia-do-plano | Ler a conferência do plano}}</p>
 </div>
@@ -44,7 +44,7 @@
 </article>
 <article class="ameaca">
 <h3>Rede hostil ou provedor mentindo.</h3>
-<p class="defesa">ATS padrão, sem exceção, e nenhuma decisão de assinatura tomada com dado de rede. A chamada de contrato é decodificada no próprio iPhone, a aprovação é no valor exato, o mínimo é garantido pelo contrato, a taxa tem teto e saldo e nonce exigem consenso entre provedores.</p>
+<p class="defesa">ATS padrão, sem exceção, e nenhuma decisão de assinatura tomada com dado de rede. A chamada de contrato é decodificada no próprio iPhone, a aprovação é no valor exato, o mínimo é garantido pelo contrato, a taxa tem teto e o nonce exige dois provedores concordando.</p>
 <p class="sobra"><b>O que sobra:</b> uma rota pior dentro da tolerância de preço que você escolheu. E um provedor pode ficar fora do ar.</p>
 </article>
 <article class="ameaca">
