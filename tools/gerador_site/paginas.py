@@ -494,7 +494,7 @@ git checkout {e(ref[:12])}</code><span>O mesmo commit desta página.</span></li>
     corpo = f"""<header class="cabeca-pagina"><div class="wrap">
 <p class="sobretitulo">Auditoria</p>
 <h1 class="titulo-pagina">Confira você mesmo.</h1>
-<p class="lead">Tudo nesta página saiu do repositório no build que a publicou: as verificações que rodam a cada mudança, os servidores que o app pode chamar, o código de terceiros travado por digesto e os arquivos que guardam as chaves. Nada é buscado depois.</p>
+<p class="lead">Tudo nesta página saiu do repositório no build que a publicou: as verificações que rodam a cada mudança, os servidores que o app pode chamar, o que vem de fora conferido arquivo por arquivo e os arquivos que guardam as chaves. Nada é buscado depois.</p>
 </div></header>
 
 <section class="bloco" aria-labelledby="t-build"><div class="wrap">
@@ -518,8 +518,8 @@ git checkout {e(ref[:12])}</code><span>O mesmo commit desta página.</span></li>
 </div></section>
 
 <section class="bloco" aria-labelledby="t-travas"><div class="wrap">
-<h2 id="t-travas">Código de terceiros, travado por digesto</h2>
-<p class="lead intro">Nenhum pacote baixado no build e nenhum binário de terceiro. O que vem de fora está no repositório, compilado do fonte, e cada arquivo tem o SHA-256 conferido pelo verificador.</p>
+<h2 id="t-travas">O que vem de fora, conferido arquivo por arquivo</h2>
+<p class="lead intro">Nenhum pacote é baixado na hora de montar o app, e nenhum binário vem pronto. As bibliotecas de criptografia e as listas de palavras estão no repositório, compiladas do fonte, e o verificador confere a impressão digital (SHA-256) de cada arquivo.</p>
 <div class="verificacoes">{"".join(travas)}</div>
 </div></section>
 

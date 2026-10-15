@@ -152,13 +152,13 @@
 <div class="wrap">
 <div class="painel">
 <p class="sobretitulo">Código aberto</p>
-<h2 class="titulo-secao" id="t-codigo">Não confie. Confira.</h2>
+<h2 class="titulo-secao" id="t-codigo">Tudo aberto, linha por linha.</h2>
 <p class="lead">Todo o código que guarda chaves, assina e fala com as redes é público. A cada mudança, o CI roda as {{n_verificacoes}} verificações do <code>tools/verificar.sh</code> e os {{n_testes}} testes do núcleo, com os vetores oficiais de cada rede.</p>
 {{estado_ci}}
 <ul class="numeros">
 <li><b>{{n_hosts}}</b><span>servidores que o app pode chamar. Qualquer outro é recusado em tempo de execução.</span></li>
 <li><b>0</b><span>dependências baixadas da internet para montar o app. Nenhum SDK de análise, anúncio ou rastreamento.</span></li>
-<li><b>{{n_travados}}</b><span>arquivos de terceiros, da libsecp256k1 e do Argon2, no repositório e travados por SHA-256.</span></li>
+<li><b>{{n_travados}}</b><span>arquivos das bibliotecas de criptografia (libsecp256k1 e Argon2), guardados no repositório e conferidos por SHA-256.</span></li>
 </ul>
 <div class="botoes">
 <a class="botao botao-principal" href="{{base}}auditoria/">Abrir a auditoria</a>
