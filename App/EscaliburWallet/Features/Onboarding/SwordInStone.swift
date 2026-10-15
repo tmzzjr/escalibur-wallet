@@ -5,23 +5,18 @@ import SwiftUI
 /// voce abre. O painel e o rosa do icone e a espada e a dele, para o app abrir como
 /// continuacao do icone. A pedra e grafite, como o resto do app.
 ///
-/// Ao aparecer, a espada cai de ponta e crava: a pedra nao tem furo antes dela, o
-/// painel treme de leve com o golpe e o iPhone da um toque firme. Depois, um brilho
-/// corre a lamina de tempos em tempos, como metal polido. Com Reduzir Movimento, a
-/// espada ja esta cravada e nada se mexe.
+/// A espada ja aparece cravada: a queda de ponta saiu (pedido do dono, 15/10/2026). Um
+/// brilho corre a lamina de tempos em tempos, como metal polido. Com Reduzir Movimento,
+/// nada se mexe.
 struct SwordInStone: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var landed = false
-    @State private var jolt: CGFloat = 0
-    /// Depois do golpe: o encaixe e o contato aparecem so quando a espada chega.
-    @State private var seated = false
 
     /// Onde a lamina entra na pedra, em fracao da altura do painel.
     nonisolated static let entryY: CGFloat = 0.695
 
     var body: some View {
-        GeometryReader { geo in
-            let size = geo.size
+        // O GeometryReader fica pelo tamanho: o painel ocupa todo o espaco que recebe.
+        GeometryReader { _ in
             ZStack(alignment: .topLeading) {
                 // Luz de cima: o rosa do icone no alto, um tom abaixo junto da pedra.
                 LinearGradient(colors: [Color(hex: 0xFF2E92), Palette.brand, Color(hex: 0xDE006B)],
@@ -31,13 +26,11 @@ struct SwordInStone: View {
                     // O encaixe: um fio de sombra de cada lado da lamina, que cobre o meio.
                     context.fill(Path(ellipseIn: SwordGeometry(size).slot), with: .color(Stone.slot))
                 }
-                .opacity(seated ? 1 : 0)
-                TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion || !landed)) { timeline in
+                TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { timeline in
                     Canvas { context, size in
                         Self.drawSword(context, size, glint: reduceMotion ? nil : Self.glintPhase(timeline.date))
                     }
                 }
-                .offset(y: landed ? 0 : -size.height)
                 // A lamina some na borda da frente do encaixe: dali para baixo esta dentro
                 // da pedra, e o furo nao aparece por baixo dela.
                 .mask {
@@ -51,30 +44,10 @@ struct SwordInStone: View {
                 // A borda da pedra na frente da lamina pega a luz: o contato que diz que
                 // ela esta cravada, e nao apoiada.
                 Canvas { context, size in Self.drawSeat(context, size) }
-                    .opacity(seated ? 1 : 0)
             }
-            .offset(y: jolt)
         }
         .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .accessibilityHidden(true)
-        .sensoryFeedback(.impact(weight: .heavy, intensity: 0.9), trigger: seated) { _, new in new && !reduceMotion }
-        // A espada nunca falta: se a tela sai no meio da queda, ou a queda e cortada, ela
-        // volta ja cravada.
-        .onDisappear {
-            landed = true
-            seated = true
-        }
-        .task {
-            guard !landed else { return }
-            if reduceMotion { landed = true; seated = true; return }
-            do { try await Task.sleep(nanoseconds: 250_000_000) } catch { landed = true; seated = true; return }
-            // Cai acelerando e para seco na pedra; o painel desce um tico e volta.
-            withAnimation(.easeIn(duration: 0.34)) { landed = true }
-            do { try await Task.sleep(nanoseconds: 340_000_000) } catch { seated = true; return }
-            seated = true
-            jolt = 4
-            withAnimation(.spring(response: 0.22, dampingFraction: 0.32)) { jolt = 0 }
-        }
     }
 
     /// O brilho passa pela lamina em 1,5 s a cada 4,5 s; fora disso, nil.
