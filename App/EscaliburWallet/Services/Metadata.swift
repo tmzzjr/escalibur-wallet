@@ -50,6 +50,9 @@ struct Metadata: Codable, Equatable {
     /// O ultimo historico lido de cada carteira (`CachedActivity`), para a Atividade abrir
     /// na hora. Opcional para os metadados gravados antes deste campo abrirem.
     var activityCache: [UUID: [CachedActivity]]?
+    /// Quando o historico de cada rede de cada carteira foi lido, e o saldo daquela hora
+    /// (`ActivityFetch`): a Atividade so pergunta de novo a rede que pode ter mudado.
+    var activityFetched: [UUID: [String: ActivityFetch]]?
     /// O endereco da logo de cada token fora da lista ja achada (`TokenLogoResolver`),
     /// por `Asset.id`: na abertura seguinte ela aparece na hora, sem a fila do CoinGecko.
     var tokenLogos: [String: URL]?

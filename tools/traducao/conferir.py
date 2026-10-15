@@ -44,7 +44,9 @@ def campos(texto):
 
 
 def sem_letra(chave):
-    return not re.search(r"[^\W\d_]{2,}", CAMPO.sub("", chave))
+    """So campos, numeros e simbolos: vai igual em todo idioma. Uma letra solta ja conta
+    como texto ("%@ e %@" junta duas frases com o "e" do portugues)."""
+    return not re.search(r"[^\W\d_]", CAMPO.sub("", chave))
 
 
 def problemas(chave, valor):

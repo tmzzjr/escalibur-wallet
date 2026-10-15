@@ -148,11 +148,30 @@ final class Portfolio {
         guard let wallet else { return }
         show(wallet, session: session)
         guard !refreshedIDs.contains(wallet.id) else { return }
-        await refresh(wallet, session: session)
+        await refresh(wallet, session: session, force: false)
     }
 
-    func refresh(_ wallet: WalletMeta?, session: AppSession) async {
+    /// A ultima leitura completa de cada carteira nesta sessao.
+    private var lastRead: [UUID: Date] = [:]
+    /// Voltar para a Carteira le de novo no maximo uma vez por minuto; puxar para
+    /// atualizar sempre le.
+    static let automaticInterval: TimeInterval = 60
+    /// Rede que estava vazia e foi lida ha menos disto fica fora da leitura automatica:
+    /// recebimento novo nela aparece em ate 5 minutos, ou na hora ao puxar.
+    static let emptyChainInterval: TimeInterval = 300
+    /// Quantas redes leem ao mesmo tempo: 26 de uma vez estouravam o limite dos
+    /// provedores gratis (429), e as que tem saldo vem primeiro.
+    static let parallelReads = 6
+
+    /// `force`: o dono pediu (puxar, tentar de novo, moeda nova) ou o dado mudou. Sem
+    /// ele (a aba aparecendo), so le se a ultima leitura tiver mais de 1 minuto, e pula a
+    /// rede vazia lida ha pouco.
+    func refresh(_ wallet: WalletMeta?, session: AppSession, force: Bool = true) async {
         guard let wallet else { return }
+        if !force, refreshedIDs.contains(wallet.id), let last = lastRead[wallet.id],
+           Date().timeIntervalSince(last) < Self.automaticInterval {
+            return
+        }
         // Pedido no meio de uma leitura (moeda custom recem adicionada): roda de novo no
         // fim, com a lista nova, em vez de se perder.
         guard !loading else { pendingRefresh = true; return }
@@ -164,10 +183,10 @@ final class Portfolio {
         let job = Task {
             // As logos achadas desde a ultima leitura ficam guardadas para a proxima abertura.
             await saveLogos(session: session)
-            await read(wallet, session: session)
+            await read(wallet, session: session, force: force)
             while pendingRefresh, walletID == wallet.id {
                 pendingRefresh = false
-                await read(wallet, session: session)
+                await read(wallet, session: session, force: true)
             }
             pendingRefresh = false
             loading = false
@@ -205,12 +224,22 @@ final class Portfolio {
         try? session.persist()
     }
 
-    private func read(_ wallet: WalletMeta, session: AppSession) async {
+    private func read(_ wallet: WalletMeta, session: AppSession, force: Bool) async {
         let disabled = session.metadata.settings.disabledChainIDs
-        let targets: [(Chain, [String])] = wallet.accounts.compactMap { account in
+        let now = Date()
+        let known = balances
+        let targets: [(Chain, [String])] = wallet.accounts.compactMap { account -> (Chain, [String])? in
             guard let chain = Chain.find(account.chainID), !disabled.contains(chain.id) else { return nil }
+            // Rede vazia lida ha pouco fica com o zero guardado ate a proxima leitura.
+            if !force, Self.knownEmpty(known[chain.id]), let read = known[chain.id]?.fetchedAt,
+               now.timeIntervalSince(read) < Self.emptyChainInterval {
+                return nil
+            }
             return (chain, Self.addresses(for: account, chain: chain, usage: wallet.utxoUsage[chain.id]))
         }
+        // As redes com saldo primeiro: sao elas que fazem o total.
+        .sorted { (known[$0.0.id]?.holdings.isEmpty == false ? 1 : 0) > (known[$1.0.id]?.holdings.isEmpty == false ? 1 : 0) }
+        defer { lastRead[wallet.id] = .now }
 
         var fresh: [String: ChainBalance] = [:]
         var failed: [Chain] = []
@@ -233,15 +262,19 @@ final class Portfolio {
             bitcoinPrices[base] = own
         }
         await withTaskGroup(of: (Chain, ChainBalance?).self) { group in
-            for (chain, addresses) in targets {
+            var queue = targets[...]
+            func next() {
+                guard let (chain, addresses) = queue.popFirst() else { return }
                 group.addTask {
                     let balance = try? await BalanceService.shared.balance(chain: chain, addresses: addresses, custom: custom)
                     return (chain, balance)
                 }
             }
+            for _ in 0..<Self.parallelReads { next() }
             // Cada rede aparece quando chega: a rede lenta (muitos tokens para ler) nao
             // segura as outras.
             for await (chain, balance) in group {
+                next()
                 if let balance {
                     await Self.rememberLogos(balance)
                     fresh[chain.id] = balance
@@ -263,13 +296,17 @@ final class Portfolio {
             let retry = targets.filter { target in failed.contains { $0.id == target.0.id } }
             failed = []
             await withTaskGroup(of: (Chain, ChainBalance?).self) { group in
-                for (chain, addresses) in retry {
+                var queue = retry[...]
+                func next() {
+                    guard let (chain, addresses) = queue.popFirst() else { return }
                     group.addTask {
                         let balance = try? await BalanceService.shared.balance(chain: chain, addresses: addresses, custom: custom)
                         return (chain, balance)
                     }
                 }
+                for _ in 0..<Self.parallelReads { next() }
                 for await (chain, balance) in group {
+                    next()
                     if let balance {
                         await Self.rememberLogos(balance)
                         fresh[chain.id] = balance

@@ -258,7 +258,7 @@ private struct ScanRing: View {
             ZStack {
                 Circle().stroke(Palette.edge, lineWidth: 6).frame(width: 168, height: 168)
                 Circle().trim(from: 0, to: progress)
-                    .stroke(alert ? Palette.caution : Palette.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .stroke(alert ? Palette.caution : (done ? Palette.success : Palette.accent), style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(-90)).frame(width: 168, height: 168)
                     .animation(.easeOut(duration: 0.35), value: progress)
                 if !done {

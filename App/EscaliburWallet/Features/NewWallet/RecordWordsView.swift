@@ -2,10 +2,11 @@ import EscaliburChains
 import EscaliburCore
 import SwiftUI
 
-/// O3 (gravar) e X2 (revelar): tres palavras por vez, na placa clara, que se arrasta
-/// de lado como paginas. Nada de copiar, nada de "mostrar todas". As palavras nao
-/// somem por tempo; somem quando o app sai da frente, e a captura de tela e a
-/// gravacao continuam barradas (`guardedAgainstCapture`).
+/// O3 (gravar) e X2 (revelar): tres palavras por vez, num cartao sobre o baralho dos
+/// proximos, que vira como flash card ao seguir (ou ao arrastar). "Ver todas de uma vez"
+/// mostra a frase inteira numa placa so (pedido do dono, 15/10/2026); as protecoes sao
+/// as mesmas: nada de copiar, as palavras somem quando o app sai da frente, e a captura
+/// de tela e a gravacao continuam barradas (`guardedAgainstCapture`).
 struct RecordWordsView: View {
     let draft: PhraseDraft
     /// Nil na criacao; o nome da carteira na revelacao (X2).
@@ -16,6 +17,10 @@ struct RecordWordsView: View {
 
     @State private var group = 0
     @State private var hidden = false
+    /// A frase inteira numa placa so, em vez de tres por vez.
+    @State private var showingAll = false
+    /// O cartao acompanha o dedo enquanto arrasta.
+    @State private var drag: CGFloat = 0
     /// As palavras do grupo na tela e dos dois vizinhos, para a pagina ja estar pronta
     /// quando o dedo arrasta. Recarregadas ao trocar de grupo, soltas ao esconder e ao
     /// sair; `body` so le daqui.
@@ -26,7 +31,7 @@ struct RecordWordsView: View {
     private let rowHeight: CGFloat = 84
     private var groups: Int { draft.wordCount / perGroup + (passphrase == nil ? 0 : 1) }
     private func isPassphrase(_ index: Int) -> Bool { passphrase != nil && index == groups - 1 }
-    private var isLast: Bool { group == groups - 1 }
+    private var isLast: Bool { showingAll || group == groups - 1 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -36,16 +41,32 @@ struct RecordWordsView: View {
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
                 .contentTransition(.numericText())
 
-            pages.padding(.top, Space.lg)
-            pageIndicator.padding(.top, Space.sm)
+            if showingAll {
+                ScrollView { allPlate }
+                    .scrollBounceBehavior(.basedOnSize)
+                    .padding(.top, Space.lg)
+            } else {
+                cards.padding(.top, Space.lg)
+                pageIndicator.padding(.top, Space.md)
+            }
+            Button {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { showingAll.toggle() }
+            } label: {
+                Label(showingAll ? String(localized: "Ver três por vez") : String(localized: "Ver todas de uma vez"),
+                      systemImage: showingAll ? "rectangle.stack" : "square.grid.2x2")
+                    .typeStyle(.row).foregroundStyle(Palette.inkSoft)
+                    .frame(maxWidth: .infinity).frame(minHeight: Height.touch)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("ver-todas-palavras")
 
-            if isPassphrase(group) {
+            if !showingAll, isPassphrase(group) {
                 Text("Sem ela, as palavras acima abrem uma carteira diferente e vazia.")
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
             }
             Spacer()
             HStack(spacing: Space.sm) {
-                if group > 0 {
+                if group > 0, !showingAll {
                     SecondaryButton(title: String(localized: "Anteriores"), height: Height.primary) { move(-1) }
                 }
                 PrimaryButton(title: isLast ? (walletName == nil ? String(localized: "Já anotei as \(draft.wordCount)") : String(localized: "Fechar")) : String(localized: "Próximas")) {
@@ -60,6 +81,7 @@ struct RecordWordsView: View {
         .guardedAgainstCapture()
         .onChange(of: group, initial: true) { _, _ in load() }
         .onChange(of: hidden) { _, _ in load() }
+        .onChange(of: showingAll) { _, _ in load() }
         .onDisappear { shown = [:] }
         .onChange(of: scenePhase) { _, phase in
             // Em segundo plano as palavras escondem; voltam com um toque.
@@ -67,14 +89,16 @@ struct RecordWordsView: View {
         }
     }
 
-    /// Carrega o grupo atual e os vizinhos; tudo o mais sai da memoria.
+    /// Carrega o grupo atual e os vizinhos (ou todos, na placa inteira); tudo o mais sai
+    /// da memoria.
     private func load() {
         guard !hidden else {
             shown = [:]
             return
         }
         var next: [Int: [String]] = [:]
-        for index in max(0, group - 1)...min(groups - 1, group + 1) {
+        let range = showingAll ? 0...(groups - 1) : max(0, group - 1)...min(groups - 1, group + 1)
+        for index in range {
             next[index] = shown[index] ?? words(of: index)
         }
         shown = next
@@ -89,6 +113,10 @@ struct RecordWordsView: View {
     }
 
     private var subtitle: String {
+        if showingAll {
+            let prefix = walletName.map { "\($0) · " } ?? ""
+            return String(localized: "\(prefix)As \(draft.wordCount) palavras, em ordem")
+        }
         if isPassphrase(group) { return String(localized: "Passphrase") }
         let first = group * perGroup + 1
         let last = min(first + perGroup - 1, draft.wordCount)
@@ -96,20 +124,107 @@ struct RecordWordsView: View {
         return String(localized: "\(prefix)Palavras \(first) a \(last) de \(draft.wordCount)")
     }
 
-    /// Uma placa por grupo, em paginas de verdade: arrastar para a esquerda mostra as
-    /// proximas, para a direita as anteriores.
-    private var pages: some View {
-        TabView(selection: $group) {
+    /// O baralho: cada grupo e um cartao da pilha, o atual na frente e os proximos atras,
+    /// um pouco abaixo e menores. Seguir passa o cartao da frente para o fundo da pilha (ele
+    /// desce e some atras dos outros) e o seguinte sobe para a frente; voltar traz o do
+    /// fundo de volta. Arrastar o cartao da frente faz o mesmo, com ele seguindo o dedo.
+    private var cards: some View {
+        let height = CGFloat(perGroup) * rowHeight + 2 * Space.xs
+        return ZStack {
             ForEach(0..<groups, id: \.self) { index in
+                let depth = (index - group + groups) % groups
+                // Lugar na pilha: 0 na frente, 1 e 2 os proximos, 3 o fundo, onde fica o
+                // cartao que acabou de passar. Os do meio de uma pilha longa ficam no fundo,
+                // escondidos.
+                let last = depth == groups - 1 && groups > 3
+                let slot = depth == 0 ? 0 : (last ? 3 : min(depth, 3))
+                let visible = depth <= 2 || last
+                let place = CGFloat(slot)
                 plate(index)
-                    .padding(.horizontal, Space.gutter)
-                    .tag(index)
+                    .frame(height: height)
+                    // Atras, so a borda do cartao aparece; as palavras dele ficam cobertas.
+                    .overlay(LacquerPlate().fill(Palette.void.opacity([0, 0.45, 0.65, 0.8][slot])))
+                    .scaleEffect(1 - 0.06 * place, anchor: .bottom)
+                    .offset(x: depth == 0 ? drag : 0, y: 10 * place)
+                    .rotationEffect(.degrees(depth == 0 ? Double(drag) / 25 : 0), anchor: .bottom)
+                    .opacity(visible ? 1 : 0)
+                    .zIndex(-Double(depth))
+                    .allowsHitTesting(depth == 0)
+                    .accessibilityHidden(depth != 0)
+                    .gesture(
+                        DragGesture(minimumDistance: 12)
+                            .onChanged { value in drag = value.translation.width }
+                            .onEnded { value in
+                                let width = value.translation.width
+                                if width < -70, group < groups - 1 {
+                                    move(1)
+                                } else if width > 70, group > 0 {
+                                    move(-1)
+                                }
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { drag = 0 }
+                            }
+                    )
             }
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(height: CGFloat(perGroup) * rowHeight + 2 * Space.xs)
-        .padding(.horizontal, -Space.gutter)
+        .frame(height: height + 32, alignment: .top)
         .accessibilityIdentifier("placa-palavras")
+    }
+
+    /// A frase inteira: duas colunas, em ordem de cima para baixo, e a passphrase embaixo.
+    private var allPlate: some View {
+        let count = draft.wordCount
+        let half = (count + 1) / 2
+        let words = (0..<groups).flatMap { isPassphrase($0) ? [] : (shown[$0] ?? []) }
+        return VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: Space.md) {
+                ForEach(0..<2, id: \.self) { column in
+                    VStack(spacing: 0) {
+                        ForEach(column * half..<min(count, (column + 1) * half), id: \.self) { index in
+                            HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+                                Text(String(format: "%02d", index + 1))
+                                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                                    .foregroundStyle(Palette.plateMuted)
+                                    .frame(width: 24, alignment: .leading)
+                                Text(verbatim: index < words.count ? words[index] : "")
+                                    .accessibilityIdentifier("palavra-\(index + 1)")
+                                    .font(.system(size: 20, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(Palette.plateInk)
+                                    .minimumScaleFactor(0.6).lineLimit(1)
+                                Spacer(minLength: 0)
+                            }
+                            .frame(height: 40)
+                        }
+                    }
+                }
+            }
+            if passphrase != nil, let secret = shown[groups - 1]?.first {
+                Rectangle().fill(Palette.plateRule).frame(height: 1).padding(.vertical, Space.xs)
+                HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+                    Text("Pass").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.plateMuted)
+                    Text(verbatim: secret).font(.system(size: 20, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Palette.plateInk).minimumScaleFactor(0.5).lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .frame(height: 40)
+            }
+        }
+        .padding(Space.base)
+        .opacity(hidden ? 0 : 1)
+        .overlay {
+            if hidden {
+                Button { hidden = false } label: {
+                    Text("Mostrar de novo").typeStyle(.action).foregroundStyle(Palette.plateInk)
+                        .padding(.horizontal, Space.md).frame(height: 40)
+                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.plateInk, lineWidth: 1.5))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .background(LacquerPlate().fill(Palette.live))
+        .clipShape(LacquerPlate())
+        .textSelection(.disabled)
+        .accessibilityElement(children: .contain)
+        .transition(.opacity.combined(with: .scale(scale: 0.97)))
     }
 
     private func plate(_ index: Int) -> some View {
@@ -197,8 +312,10 @@ struct RecordWordsView: View {
     }
 
     private func move(_ delta: Int) {
-        withAnimation(Motion.crossfade) {
-            group = max(0, min(groups - 1, group + delta))
+        let target = max(0, min(groups - 1, group + delta))
+        guard target != group else { return }
+        withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
+            group = target
         }
     }
 }

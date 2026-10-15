@@ -1,6 +1,7 @@
 import EscaliburChains
 import EscaliburCore
 import EscaliburEngines
+import EscaliburNetwork
 import Foundation
 
 /// O ultimo historico lido de cada carteira, para a Atividade abrir com ele na hora e
@@ -59,5 +60,33 @@ struct CachedActivity: Codable, Equatable {
             id: id, chainID: chainID, direction: direction, asset: asset, amount: amount, counterparty: counterparty, date: date,
             status: state, fee: fee, hash: hash, suspicious: suspicious, receivedAsset: receivedAsset, receivedAmount: receivedAmount
         )
+    }
+}
+
+/// A ultima leitura do historico de uma rede: quando, e o saldo dela naquela hora. Saldo
+/// diferente agora quer dizer movimento novo; saldo igual e leitura recente, nada a pedir.
+struct ActivityFetch: Codable, Equatable {
+    let at: Date
+    /// `ActivityFetch.mark(_:)` do saldo da rede, ou nil sem saldo lido.
+    let balanceMark: String?
+    /// A rede nao tinha movimento nenhum: pode esperar mais para ser lida de novo.
+    let empty: Bool
+
+    /// Uma impressao do saldo da rede: cada ativo e quanto. Muda quando entra ou sai algo.
+    static func mark(_ balance: ChainBalance?) -> String? {
+        guard let balance else { return nil }
+        return balance.holdings.map { "\($0.asset.id)=\($0.amount.decimalString)" }.sorted().joined(separator: ";")
+    }
+
+    /// Rede com movimento: pergunta de novo depois de 10 minutos. Rede vazia: 12 horas.
+    static let activeLifetime: TimeInterval = 600
+    static let emptyLifetime: TimeInterval = 12 * 3600
+
+    /// Precisa ler de novo? Nunca lida, saldo mudou, tem envio pendente ou ficou velha.
+    func isStale(balanceMark now: String?, hasPending: Bool, at date: Date = .now) -> Bool {
+        if hasPending { return true }
+        if let now, now != balanceMark { return true }
+        let lifetime = empty && (now == nil || now == "") ? Self.emptyLifetime : Self.activeLifetime
+        return date.timeIntervalSince(at) > lifetime
     }
 }

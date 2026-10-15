@@ -77,11 +77,12 @@ struct WalletHomeView: View {
         #endif
         .task(id: wallet?.id) {
             portfolio.show(wallet, session: session)
-            await portfolio.refresh(wallet, session: session)
+            await portfolio.refresh(wallet, session: session, force: false)
             // O historico comeca a ler logo depois do saldo, longe da rajada da abertura:
             // ao abrir a Atividade, ele ja esta na tela.
             let disabled = session.metadata.settings.disabledChainIDs
-            Task { await ActivityFeed.shared.load(wallet, disabled: disabled, session: session) }
+            let balances = portfolio.balances
+            Task { await ActivityFeed.shared.load(wallet, disabled: disabled, session: session, balances: balances) }
             await ReceiptAccounts.enableByDefault(session)
             #if DEBUG
             // As telas que dependem do saldo esperam a leitura acima.

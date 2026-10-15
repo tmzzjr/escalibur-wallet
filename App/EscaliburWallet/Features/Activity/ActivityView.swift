@@ -10,6 +10,12 @@ import SwiftUI
 ///
 /// Abre com o ultimo historico guardado (`CachedActivity`) e troca rede por rede conforme
 /// cada uma responde. Rede que falhou agora fica com o que estava guardado, com o aviso.
+///
+/// So pergunta a rede que pode ter mudado (`ActivityFetch`): nunca lida, saldo diferente
+/// do da ultima leitura, envio pendente, ou leitura velha (10 minutos; rede vazia, 12
+/// horas). As outras ficam com o guardado. No maximo 4 redes por vez, as com saldo
+/// primeiro: 26 de uma vez estouravam o limite dos provedores gratis (429 na Solana e no
+/// Bitcoin, print do iPhone de 15/10/2026). Puxar para atualizar le todas.
 @MainActor
 @Observable
 final class ActivityFeed {
@@ -43,7 +49,10 @@ final class ActivityFeed {
     /// Cada rede entra na tela assim que responde, em vez de todas esperarem a mais
     /// lenta (uma varredura UTXO, um provedor no limite). Na primeira leitura a lista vai
     /// crescendo; ao atualizar uma lista que ja existe, ela so troca no fim, sem piscar.
-    func load(_ wallet: WalletMeta?, disabled: Set<String>, session: AppSession) async {
+    func load(
+        _ wallet: WalletMeta?, disabled: Set<String>, session: AppSession,
+        balances: [String: ChainBalance] = [:], force: Bool = false
+    ) async {
         guard let wallet else { return }
         if shownWalletID != wallet.id { showCached(wallet, session: session) }
         // Leitura em andamento da mesma carteira: espera por ela em vez de comecar outra.
@@ -57,7 +66,7 @@ final class ActivityFeed {
         // Ethereum pelo Blockscout) viravam "nao foi possivel ler" (print do iPhone).
         generation += 1
         let mine = generation
-        let job = Task { await run(wallet, disabled: disabled, generation: mine, session: session) }
+        let job = Task { await run(wallet, disabled: disabled, balances: balances, force: force, generation: mine, session: session) }
         current = job
         currentWalletID = wallet.id
         await job.value
@@ -86,34 +95,53 @@ final class ActivityFeed {
         publish(failures: [], missing: [])
     }
 
-    private func run(_ wallet: WalletMeta, disabled: Set<String>, generation mine: Int, session: AppSession) async {
+    /// Quantas redes leem ao mesmo tempo.
+    static let parallelReads = 4
+
+    private typealias Job = (chain: Chain, account: DerivedAccount, source: any ActivitySource, usage: UTXOUsage?)
+
+    private func run(
+        _ wallet: WalletMeta, disabled: Set<String>, balances: [String: ChainBalance], force: Bool,
+        generation mine: Int, session: AppSession
+    ) async {
         loading = true
         defer { if generation == mine { loading = false; remaining = 0 } }
         var failures: [Chain] = []
         var missing: [(chain: Chain, reason: String)] = []
-        let jobs: [(Chain, DerivedAccount, any ActivitySource, UTXOUsage?)] = wallet.accounts.compactMap { account in
+        let jobs: [Job] = wallet.accounts.compactMap { account in
             guard let chain = Chain.find(account.chainID), !disabled.contains(chain.id),
                   let source = ActivitySources.source(for: chain) else { return nil }
             return (chain, account, source, wallet.utxoUsage[chain.id])
         }
         // Rede desligada ou sem conta sai da tela.
-        let active = Set(jobs.map(\.0.id))
+        let active = Set(jobs.map(\.chain.id))
         byChain = byChain.filter { active.contains($0.key) }
-        var pending = jobs
+        var records = session.metadata.activityFetched?[wallet.id] ?? [:]
+        let toRead = jobs.filter { job in
+            force || needsRead(job.chain, record: records[job.chain.id], balance: balances[job.chain.id])
+        }
+        .sorted { Self.priority($0.chain, balances: balances, cached: byChain) > Self.priority($1.chain, balances: balances, cached: byChain) }
+        var pending = toRead
         for attempt in 0...Self.retryDelays.count {
             if attempt > 0 { try? await Task.sleep(for: Self.retryDelays[attempt - 1]) }
-            guard !Task.isCancelled, generation == mine else { return }
+            guard !Task.isCancelled, generation == mine, !pending.isEmpty else { break }
             remaining = pending.count
             failures = []
             await withTaskGroup(of: (Chain, Outcome).self) { group in
-                for (chain, account, source, usage) in pending {
+                var queue = pending[...]
+                func next() {
+                    guard let (chain, account, source, usage) = queue.popFirst() else { return }
                     group.addTask { (chain, await Self.read(source, chain: chain, account: account, usage: usage)) }
                 }
+                for _ in 0..<Self.parallelReads { next() }
                 for await (chain, outcome) in group {
                     remaining -= 1
+                    next()
                     guard generation == mine else { continue }
                     switch outcome {
-                    case .items(let items): byChain[chain.id] = items
+                    case .items(let items):
+                        byChain[chain.id] = items
+                        records[chain.id] = ActivityFetch(at: .now, balanceMark: ActivityFetch.mark(balances[chain.id]), empty: items.isEmpty)
                     case .unavailable(let reason):
                         byChain[chain.id] = nil
                         missing.append((chain, reason))
@@ -123,17 +151,37 @@ final class ActivityFeed {
                     publish(failures: failures, missing: missing)
                 }
             }
-            pending = jobs.filter { job in failures.contains { $0.id == job.0.id } }
-            if pending.isEmpty { break }
+            pending = toRead.filter { job in failures.contains { $0.id == job.chain.id } }
         }
         guard !Task.isCancelled, generation == mine else { return }
         publish(failures: failures, missing: missing)
         loadedOnce = true
+        guard !toRead.isEmpty else { return }
         let all = byChain.values.flatMap { $0 }.sorted { $0.date > $1.date }.prefix(CachedActivity.limit)
         var cache = session.metadata.activityCache ?? [:]
         cache[wallet.id] = all.map(CachedActivity.init)
         session.metadata.activityCache = cache
+        var fetched = session.metadata.activityFetched ?? [:]
+        fetched[wallet.id] = records
+        session.metadata.activityFetched = fetched
         try? session.persist()
+    }
+
+    /// A rede precisa ser lida agora? Rede sem historico nesta versao (X Layer, Sonic) e
+    /// sempre lida: o motor responde na hora, sem rede, e o aviso dela depende disso.
+    private func needsRead(_ chain: Chain, record: ActivityFetch?, balance: ChainBalance?) -> Bool {
+        guard let record else { return true }
+        if byChain[chain.id] == nil, !record.empty { return true }
+        if ActivitySources.source(for: chain) is EVMUnavailableActivitySource { return true }
+        let pending = byChain[chain.id]?.contains { if case .pending = $0.status { return true } else { return false } } ?? false
+        return record.isStale(balanceMark: ActivityFetch.mark(balance), hasPending: pending)
+    }
+
+    /// Ordem de leitura: a rede com saldo, depois a com historico guardado, depois o resto.
+    private static func priority(_ chain: Chain, balances: [String: ChainBalance], cached: [String: [ActivityEntry]]) -> Int {
+        if balances[chain.id]?.holdings.isEmpty == false { return 2 }
+        if cached[chain.id]?.isEmpty == false { return 1 }
+        return 0
     }
 
     nonisolated private static func read(_ source: any ActivitySource, chain: Chain, account: DerivedAccount, usage: UTXOUsage?) async -> Outcome {
@@ -197,9 +245,8 @@ struct ActivityView: View {
                     TabTitle(String(localized: "Atividade"))
 
                     if !feed.failed.isEmpty {
-                        Banner(kind: .neutral, title: String(localized: "Não foi possível ler o histórico de \(Self.names(feed.failed)) agora."),
-                               message: Self.debugDetail, actionTitle: String(localized: "Tentar de novo")) { Task { await reload() } }
-                            .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+                        RefreshNotice(chains: Self.names(feed.failed), retry: { Task { await reload(force: true) } })
+                            .padding(.horizontal, Space.gutter).padding(.top, Space.sm)
                     }
 
                     if feed.entries.isEmpty {
@@ -272,7 +319,7 @@ struct ActivityView: View {
                 }
                 .padding(.bottom, Space.xl)
             }
-            .refreshable { await reload() }
+            .refreshable { await reload(force: true) }
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .statusBarBackdrop()
@@ -310,8 +357,10 @@ struct ActivityView: View {
         }
     }
 
-    private func reload() async {
-        await feed.load(session.selectedWallet, disabled: session.metadata.settings.disabledChainIDs, session: session)
+    /// Ao abrir, so o que pode ter mudado; ao puxar ou tentar de novo, todas as redes.
+    private func reload(force: Bool = false) async {
+        await feed.load(session.selectedWallet, disabled: session.metadata.settings.disabledChainIDs, session: session,
+                        balances: portfolio.balances, force: force)
     }
 
     private func section(_ title: String, _ items: [ActivityEntry]) -> some View {
@@ -576,5 +625,38 @@ struct ActivityLoading: View {
         }
         .padding(.horizontal, Space.gutter)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Rede que nao respondeu agora: uma linha, sem cartao. O que estava guardado dela
+/// continua na lista. No build de teste, o motivo tecnico fica atras de um toque.
+private struct RefreshNotice: View {
+    let chains: String
+    let retry: () -> Void
+    @State private var details = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.xxs) {
+            HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+                Image(systemName: "arrow.clockwise").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                Text("\(chains) não atualizou agora. Mostrando o que já estava salvo.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: Space.xs)
+                Button(action: retry) {
+                    Text("Tentar de novo").typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.ink)
+                }
+                .buttonStyle(.plain)
+            }
+            #if DEBUG
+            if let detail = ActivityView.debugDetail {
+                Button { details.toggle() } label: {
+                    Text(details ? detail : "Ver detalhe técnico").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                        .multilineTextAlignment(.leading)
+                }
+                .buttonStyle(.plain)
+            }
+            #endif
+        }
     }
 }

@@ -197,3 +197,28 @@ final class NewWalletFlowTests: XCTestCase {
         shot("observar-evm", app)
     }
 }
+
+/// A placa das palavras: o cartao vira para as proximas, e "Ver todas de uma vez" mostra
+/// as 12 numa placa so (pedido do dono, 15/10/2026). A frase e sorteada na hora pela tela
+/// de teste e descartada.
+final class RecordWordsDeckTests: XCTestCase {
+    func testNextFlipsAndShowAll() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "palavras"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["palavra-1"].waitForExistence(timeout: 30))
+        app.buttons["Próximas"].tap()
+        XCTAssertTrue(app.staticTexts["palavra-4"].waitForExistence(timeout: 5))
+        app.buttons["ver-todas-palavras"].tap()
+        XCTAssertTrue(app.staticTexts["palavra-12"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["palavra-1"].exists)
+        XCTAssertTrue(app.buttons["Já anotei as 12"].exists)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "palavras-todas"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        if let shots = ProcessInfo.processInfo.environment["ESCALIBUR_FOTOS"] {
+            try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/palavras-todas.png"))
+        }
+    }
+}

@@ -204,8 +204,9 @@ struct PeriodPicker: View {
 
 /// O grafico carregando (pedido do dono, 14/10/2026): uma linha fantasma cinza, que ondula
 /// devagar, com um brilho que corre da esquerda para a direita. Cinza e sem rotulos, para
-/// nunca passar por dado. Com Reduzir Movimento, fica parada.
-private struct ChartLoading: View {
+/// nunca passar por dado. Com Reduzir Movimento, fica parada. O Mercado sem fonte usa a
+/// mesma linha.
+struct ChartLoading: View {
     let labelRoom: CGFloat
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 

@@ -1,6 +1,7 @@
 import EscaliburChains
 import EscaliburCore
 import Foundation
+import os
 
 // Historico da conta: o efeito liquido de cada transacao sobre o dono.
 //
@@ -358,6 +359,12 @@ public actor SolanaHistoryReader {
     /// Quantas transacoes buscar em paralelo (os RPCs publicos limitam por IP).
     static let concurrency = 4
 
+    /// Transacoes finalizadas ja lidas nesta sessao, pela assinatura. Finalizada nao muda
+    /// mais: a proxima leitura do historico so pede as novas, em vez de 30
+    /// `getTransaction` a cada abertura (o provedor gratis cortava a rajada com 429).
+    /// So na memoria, ate 600; nada vai para disco.
+    static let finalized = OSAllocatedUnfairLock<[String: RPCTransaction]>(initialState: [:])
+
     public init(reader: SolanaNetworkReader = .shared) {
         self.reader = reader
     }
@@ -410,8 +417,16 @@ public actor SolanaHistoryReader {
         let selected = infos.values.sorted { ($0.slot, $0.signature) > ($1.slot, $1.signature) }.prefix(limit)
 
         var transactions = [(RPCSignatureInfo, RPCTransaction)]()
+        var missing = [RPCSignatureInfo]()
+        for info in selected {
+            if let known = Self.finalized.withLock({ $0[info.signature] }) {
+                transactions.append((info, known))
+            } else {
+                missing.append(info)
+            }
+        }
         let reader = self.reader
-        for chunk in Array(selected).chunked(Self.concurrency) {
+        for chunk in missing.chunked(Self.concurrency) {
             let fetched = await withTaskGroup(of: (RPCSignatureInfo, RPCTransaction?).self) { group in
                 for info in chunk {
                     group.addTask {
@@ -423,11 +438,19 @@ public actor SolanaHistoryReader {
                 for await item in group { all.append(item) }
                 return all
             }
-            for case let (info, tx?) in fetched { transactions.append((info, tx)) }
+            for case let (info, tx?) in fetched {
+                transactions.append((info, tx))
+                if info.confirmationStatus == "finalized" {
+                    Self.finalized.withLock { cache in
+                        if cache.count >= 600 { cache.removeAll(keepingCapacity: true) }
+                        cache[info.signature] = tx
+                    }
+                }
+            }
         }
         // Havia transacoes e nenhuma veio: o provedor cortou. Lista vazia aqui diria
         // "nenhum movimento"; o erro faz a tela dizer que nao leu e tentar de novo.
-        if !selected.isEmpty, transactions.isEmpty { throw HTTPClient.Failure.offline }
+        if !missing.isEmpty, transactions.isEmpty { throw HTTPClient.Failure.offline }
         transactions.sort { ($0.0.slot, $0.0.signature) > ($1.0.slot, $1.0.signature) }
         return Self.activities(transactions, owner: owner, knownAddresses: knownAddresses)
     }

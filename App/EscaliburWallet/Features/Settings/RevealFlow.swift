@@ -65,9 +65,9 @@ struct RevealFlow: View {
                     } label: {
                         HStack(spacing: Space.sm) {
                             ZStack {
-                                Circle().stroke(acknowledged.contains(index) ? Palette.ink : Palette.inkMuted, lineWidth: 1.5)
+                                Circle().stroke(acknowledged.contains(index) ? Palette.success : Palette.inkMuted, lineWidth: 1.5)
                                 if acknowledged.contains(index) {
-                                    Circle().fill(Palette.ink)
+                                    Circle().fill(Palette.success)
                                     Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(Palette.void)
                                 }
                             }

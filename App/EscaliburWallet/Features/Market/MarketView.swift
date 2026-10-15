@@ -28,6 +28,16 @@ struct MarketView: View {
         case losers = "Maior queda"
         case priceHigh = "Maior preço"
 
+        /// O nome no idioma do aparelho. O valor bruto fica so de identificador (testes).
+        var title: String {
+            switch self {
+            case .relevance: return String(localized: "Relevância")
+            case .gainers: return String(localized: "Maior alta")
+            case .losers: return String(localized: "Maior queda")
+            case .priceHigh: return String(localized: "Maior preço")
+            }
+        }
+
         func sorted(_ coins: [MarketCoin]) -> [MarketCoin] {
             switch self {
             case .relevance: return coins
@@ -69,7 +79,7 @@ struct MarketView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: Space.xs) {
                             ForEach(Order.allCases, id: \.self) { option in
-                                Chip(title: option.rawValue, selected: order == option) {
+                                Chip(title: option.title, selected: order == option) {
                                     withAnimation(Motion.fade) { order = option }
                                 }
                                 .accessibilityIdentifier("ordem-\(option.rawValue)")
@@ -77,6 +87,10 @@ struct MarketView: View {
                         }
                         .padding(.horizontal, Space.gutter)
                     }
+                    // Sem lista, nao ha o que ordenar: os filtros apagam e nao respondem.
+                    .disabled(coins.isEmpty)
+                    .opacity(coins.isEmpty ? 0.35 : 1)
+                    .animation(Motion.fade, value: coins.isEmpty)
                     .padding(.top, Space.sm)
 
                     if coins.isEmpty && loading {
@@ -370,16 +384,18 @@ struct MarketCoinDetail: View {
     }
 }
 
-/// O Mercado sem nenhuma fonte de preco: o grafico partido no meio, o que aconteceu, de
-/// onde os precos vem e o tentar de novo. Centrado e sem cartao: e a tela inteira.
+/// O Mercado sem nenhuma fonte de preco: a linha do grafico carregando (a mesma da
+/// pagina da moeda), o que aconteceu, de onde os precos vem e o tentar de novo. Centrado e
+/// sem cartao: e a tela inteira.
 private struct MarketUnavailableView: View {
     let retry: () -> Void
 
     var body: some View {
         VStack(spacing: Space.sm) {
-            BrokenChart()
-                .frame(width: 148, height: 64)
-                .padding(.bottom, Space.md)
+            ChartLoading(labelRoom: 10)
+                .frame(maxWidth: 280)
+                .frame(height: 104)
+                .padding(.bottom, Space.sm)
             Text("Não foi possível carregar o mercado agora")
                 .typeStyle(.title).foregroundStyle(Palette.ink)
             Text("Os preços vêm do CoinGecko e, quando ele não responde, do CoinPaprika. Nenhum dos dois respondeu. Confira a internet e tente de novo.")
@@ -391,29 +407,5 @@ private struct MarketUnavailableView: View {
         }
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
-    }
-}
-
-/// Uma linha de preco que se interrompe no meio: o dado que nao chegou.
-private struct BrokenChart: View {
-    var body: some View {
-        Canvas { context, size in
-            let points: [CGFloat] = [0.62, 0.48, 0.55, 0.32, 0.4, 0.22, 0.3, 0.5, 0.38, 0.58, 0.44, 0.66]
-            func point(_ index: Int) -> CGPoint {
-                CGPoint(x: size.width * CGFloat(index) / CGFloat(points.count - 1), y: size.height * points[index])
-            }
-            var before = Path()
-            before.move(to: point(0))
-            for index in 1...4 { before.addLine(to: point(index)) }
-            context.stroke(before, with: .color(Palette.inkMuted), style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
-            var after = Path()
-            after.move(to: point(7))
-            for index in 8..<points.count { after.addLine(to: point(index)) }
-            context.stroke(after, with: .color(Palette.inkDead), style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round, dash: [2, 6]))
-            // O ponto onde a linha parou.
-            let stop = point(4)
-            context.fill(Path(ellipseIn: CGRect(x: stop.x - 4, y: stop.y - 4, width: 8, height: 8)), with: .color(Palette.inkSoft))
-        }
-        .accessibilityHidden(true)
     }
 }

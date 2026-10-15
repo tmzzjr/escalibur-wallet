@@ -299,6 +299,11 @@ struct DemoEnvelopes: ViewModifier {
                 case .observar: NavigationStack { WatchAddressView { newWallet = nil } }
                 case .adicionar: AddWalletView(isFirst: false) { newWallet = nil }
                 case .promessa: WelcomeTour { newWallet = nil }
+                // Uma frase sorteada na hora e descartada: so para ver a placa.
+                case .palavras:
+                    if let draft = try? PhraseDraft(wordCount: 12) {
+                        RecordWordsView(draft: draft, walletName: nil) { newWallet = nil }
+                    }
                 case .criada:
                     if let wallet = session.metadata.wallets.first {
                         WalletCreatedView(wallet: wallet, isFirst: false) { newWallet = nil }
@@ -336,7 +341,7 @@ struct DemoEnvelopes: ViewModifier {
 
 /// As telas de carteira nova que `-tela` abre direto.
 enum DemoNewWallet: String, Identifiable {
-    case adicionar, criar, seguranca, observar, promessa, checagem, frase, selo, criada
+    case adicionar, criar, seguranca, observar, promessa, checagem, frase, selo, criada, palavras
     var id: String { rawValue }
 }
 /// O andamento de uma ordem sem rede, para conferir o desenho.
