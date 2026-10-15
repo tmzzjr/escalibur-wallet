@@ -163,13 +163,13 @@ struct SwordInStone: View {
                                 shade: Color(hex: 0xA6761A), deep: Color(hex: 0x6B4A0D))
     }
 
-    /// Ouro (escolha do dono, 15/10/2026). Em DEBUG, `-espada aco` mostra a de aco, para
-    /// comparar.
+    /// Prata, a espada inteira (escolha do dono, 15/10/2026, depois de ver a de ouro). Em
+    /// DEBUG, `-espada ouro` mostra a de ouro, para comparar.
     static let metal: Metal = {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("aco") { return .steel }
+        if ProcessInfo.processInfo.arguments.contains("ouro") { return .gold }
         #endif
-        return .gold
+        return .steel
     }()
 
     static func drawSword(_ context: GraphicsContext, _ size: CGSize, glint: CGFloat?) {
@@ -237,12 +237,12 @@ struct SwordInStone: View {
         let pommel = g.rect(SwordGeometry.pommel, top: g.pommelTop)
         let grip = g.rect(SwordGeometry.grip, top: g.gripTop)
         let crossguard = g.rect(SwordGeometry.crossguard, top: g.guardTop)
-        steelBar(context, grip, unit: u, tone: 0.97, rounded: true)
+        steelBar(context, grip, unit: u, tone: 1, rounded: true)
         steelBar(context, pommel, unit: u, tone: 1, rounded: false)
         steelBar(context, crossguard, unit: u, tone: 1, rounded: false)
         context.fill(Path(crossguard), with: .linearGradient(
-            Gradient(stops: [.init(color: .black.opacity(0.06), location: 0), .init(color: .clear, location: 0.22),
-                             .init(color: .clear, location: 0.78), .init(color: .black.opacity(0.08), location: 1)]),
+            Gradient(stops: [.init(color: .black.opacity(0.025), location: 0), .init(color: .clear, location: 0.22),
+                             .init(color: .clear, location: 0.78), .init(color: .black.opacity(0.035), location: 1)]),
             startPoint: CGPoint(x: crossguard.minX, y: 0), endPoint: CGPoint(x: crossguard.maxX, y: 0)))
 
         // O brilho: uma faixa suave, na diagonal, que corre a lamina da guarda ate a pedra,
@@ -291,18 +291,19 @@ struct SwordInStone: View {
         }
     }
 
-    /// Uma barra de aco: degrade de cima para baixo, aresta de cima acesa e a de baixo
-    /// escura. `tone` escurece o punho um pouco, como o cinza do punho no icone.
+    /// Uma barra de metal: degrade suave de cima para baixo, aresta de cima acesa e a de
+    /// baixo so um tico mais escura (sombra leve no cabo, pedido do dono, 15/10/2026).
+    /// `tone` abaixo de 1 escurece a peca.
     private static func steelBar(_ context: GraphicsContext, _ rect: CGRect, unit u: CGFloat, tone: Double, rounded: Bool) {
         let path = rounded ? Path(roundedRect: rect, cornerRadius: 3 * u) : Path(rect)
         context.fill(path, with: .linearGradient(
-            Gradient(stops: [.init(color: metal.light, location: 0), .init(color: metal.lit, location: 0.45),
-                             .init(color: metal.lit, location: 0.75), .init(color: metal.mid, location: 1)]),
+            Gradient(stops: [.init(color: metal.light, location: 0), .init(color: metal.lit, location: 0.55),
+                             .init(color: metal.lit, location: 1)]),
             startPoint: CGPoint(x: 0, y: rect.minY), endPoint: CGPoint(x: 0, y: rect.maxY)))
         if tone < 1 { context.fill(path, with: .color(.black.opacity(1 - tone))) }
         context.fill(Path(CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: max(1, 3 * u))), with: .color(.white.opacity(0.9)))
         context.fill(Path(CGRect(x: rect.minX, y: rect.maxY - max(1, 3 * u), width: rect.width, height: max(1, 3 * u))),
-                     with: .color(metal.shade.opacity(0.35)))
+                     with: .color(metal.shade.opacity(0.15)))
     }
 
     /// O contato da lamina com a pedra: a lamina escurece onde entra, e a borda da frente
