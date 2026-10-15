@@ -228,4 +228,18 @@ struct MarketFallbackTests {
         let cut = try #require(MarketService.about(long))
         #expect(cut.count <= 601 && cut.hasSuffix("exemplo."))
     }
+
+    @Test("Id do CoinPaprika para o do CoinGecko: a tabela a mao, a gerada e o nome depois do simbolo")
+    func paprikaToGecko() {
+        #expect(MarketService.geckoID(forPaprika: "avax-avalanche") == "avalanche-2")
+        #expect(MarketService.geckoID(forPaprika: "aave-new") == "aave")
+        #expect(MarketService.geckoID(forPaprika: "cake-pancakeswap") == "pancakeswap-token")
+        #expect(MarketService.geckoID(forPaprika: "ada-cardano") == "cardano")
+        // A gerada nao contradiz a feita a mao, e nao liga duas moedas ao mesmo id.
+        for (paprika, gecko) in MarketService.generatedGeckoIDs {
+            #expect(MarketService.paprikaIDs[gecko] == nil, "\(paprika) -> \(gecko) ja esta na tabela a mao")
+            #expect(gecko.allSatisfy { $0.isLowercase || $0.isNumber || $0 == "-" })
+        }
+        #expect(Set(MarketService.generatedGeckoIDs.values).count == MarketService.generatedGeckoIDs.count)
+    }
 }

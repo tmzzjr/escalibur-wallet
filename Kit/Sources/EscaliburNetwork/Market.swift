@@ -342,10 +342,13 @@ public actor MarketService {
         "cardano": "ada-cardano", "polkadot": "dot-polkadot", "near": "near-near-protocol", "aptos": "apt-aptos", "sui": "sui-sui",
     ]
 
+    /// A tabela feita a mao vale mais que a gerada (`PaprikaGeckoIDs.swift`).
     static let geckoIDs: [String: String] = Dictionary(paprikaIDs.map { ($1, $0) }, uniquingKeysWith: { a, _ in a })
+        .merging(generatedGeckoIDs) { hand, _ in hand }
+    static let generatedPaprikaIDs: [String: String] = Dictionary(generatedGeckoIDs.map { ($1, $0) }, uniquingKeysWith: { a, _ in a })
 
     private func paprikaID(for geckoID: String) -> String? {
-        Self.paprikaIDs[geckoID] ?? learnedPaprikaIDs[geckoID]
+        Self.paprikaIDs[geckoID] ?? Self.generatedPaprikaIDs[geckoID] ?? learnedPaprikaIDs[geckoID]
     }
 
     /// O id do CoinGecko que corresponde a um do CoinPaprika: o da tabela, ou o nome
