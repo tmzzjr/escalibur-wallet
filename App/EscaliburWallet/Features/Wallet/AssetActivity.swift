@@ -13,8 +13,7 @@ final class AssetActivityLoader {
     private(set) var loadedOnce = false
     /// Nenhuma rede respondeu.
     private(set) var failed = false
-    /// Todas as redes do ativo estao sem historico nesta versao (BNB Chain, X Layer,
-    /// Sonic): o motivo dito pelo motor.
+    /// Todas as redes do ativo estao sem historico nesta versao (X Layer, Sonic): o motivo dito pelo motor.
     private(set) var unavailable: String?
     private var job: Task<Void, Never>?
 

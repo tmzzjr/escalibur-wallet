@@ -44,6 +44,7 @@ enum AllowedHosts {
         "bsc-dataseed.bnbchain.org",
         "bsc-dataseed1.defibit.io",
         "bsc-dataseed1.ninicoin.io",
+        "bsc-mainnet.nodereal.io",
         "bsc-rpc.publicnode.com",
         "celo-rpc.publicnode.com",
         "celo.blockscout.com",

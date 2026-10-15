@@ -443,9 +443,9 @@ public actor EVMReader {
     // MARK: Historico
 
     /// Os ultimos movimentos da conta na rede, pelo indexador publico (Blockscout; na
-    /// Avalanche e na Plasma, Routescan). O endereco vai no caminho do GET: esses
-    /// indexadores nao tem consulta por POST (docs/seguranca.md §5.3; o relay proprio
-    /// resolve).
+    /// Avalanche e na Plasma, Routescan; na BNB Chain, NodeReal). O endereco vai no
+    /// caminho do GET no Blockscout e no Routescan, que nao tem consulta por POST
+    /// (docs/seguranca.md §5.3); na NodeReal, no corpo do POST.
     public func history(chain: Chain, address: EVMAddress) async throws -> ActivityPage {
         guard chain.family == .evm else { throw ReaderError.invalidInput("rede nao EVM") }
         guard let providers = historyProviders[chain.id], !providers.isEmpty else {
@@ -459,6 +459,30 @@ public actor EVMReader {
             // entregar (o Blockscout da Polygon passa de 30 s em conta muito movimentada),
             // a pagina sai marcada como parcial: os envios do dono continuam aparecendo
             // pelas transacoes.
+            if provider.name == "nodereal" {
+                // A NodeReal pagina uma categoria de cada vez e filtra um lado de cada vez
+                // (de ou para): cada par vai numa consulta, para que 50 recebimentos de
+                // golpe nao escondam os envios. As transacoes do dono sao obrigatorias;
+                // tokens e internas, opcionais como nos outros indexadores.
+                @Sendable func query(_ category: String, _ side: String) async throws -> StrictJSON {
+                    try await Self.call(transport, provider.baseURL, "nr_getTransactionByAddress", [.object([
+                        "category": .array([.string(category)]), "addressType": .string(side),
+                        "address": .string(address.checksummed), "order": .string("desc"),
+                        "excludeZeroValue": .bool(false), "maxCount": .string("0x32"),
+                    ])])
+                }
+                async let sent = query("external", "from")
+                async let received = query("external", "to")
+                async let tokensIn = try? query("20", "to")
+                async let tokensOut = try? query("20", "from")
+                async let internals = try? query("internal", "to")
+                let transactions = [try await sent, try await received]
+                let tokens = [await tokensIn, await tokensOut]
+                return try Self.parseNodeRealHistory(
+                    chain: chain, owner: address, transactions: transactions, tokenTransfers: tokens.compactMap { $0 },
+                    complete: !tokens.contains { $0 == nil }, internals: await internals
+                )
+            }
             if provider.name == "routescan" {
                 let base = provider.baseURL
                 let common = [("module", "account"), ("address", address.checksummed), ("page", "1"), ("offset", "50"), ("sort", "desc")]
@@ -983,6 +1007,78 @@ public actor EVMReader {
                   let from = try? address(try item.field("from", path), path + ".from"),
                   let to = try? address(try item.field("to", path), path + ".to"),
                   let value = try? item.field("value", path).decimalString(path + ".value"), !value.isZero
+            else { continue }
+            inner.append(InternalRow(hash: hash, index: "i\(offset)", date: date, from: from, to: to, value: value))
+        }
+        return assemble(chain: chain, owner: owner, rows: rows, tokens: tokens, internals: inner, complete: complete)
+    }
+
+    /// NodeReal (`nr_getTransactionByAddress`): cada resposta e uma categoria e um lado.
+    /// `external` e a transacao (valor e quantidades em hex, `receiptsStatus` 1 ou 0,
+    /// `gasPrice` e `gasUsed` como numero); `20` e a transferencia de token (`value` e a
+    /// palavra de 32 bytes do evento); `internal`, o valor nativo que um contrato mandou.
+    /// O nome e o simbolo do token que o provedor manda sao ignorados: o ativo vem da
+    /// lista curada, como nos outros indexadores.
+    static func parseNodeRealHistory(
+        chain: Chain, owner: EVMAddress, transactions: [StrictJSON], tokenTransfers: [StrictJSON], complete: Bool = true,
+        internals: StrictJSON? = nil
+    ) throws -> ActivityPage {
+        func transfers(_ json: StrictJSON, _ path: String) throws -> [StrictJSON] {
+            try json.field("transfers", path).array(path + ".transfers")
+        }
+        func date(_ item: StrictJSON, _ path: String) throws -> Date {
+            try unixDate(try item.field("blockTimeStamp", path).unsigned(path + ".blockTimeStamp"), path + ".blockTimeStamp")
+        }
+        func succeeded(_ item: StrictJSON, _ path: String) throws -> Bool {
+            try item.field("receiptsStatus", path).unsigned(path + ".receiptsStatus") == 1
+        }
+        var rows: [TransactionRow] = []
+        for (list, json) in transactions.enumerated() {
+            for (offset, item) in try transfers(json, "external[\(list)]").enumerated() {
+                let path = "external[\(list)][\(offset)]"
+                let toText = try item.optionalField("to")?.string(path + ".to") ?? ""
+                let gasUsed = try item.field("gasUsed", path).unsigned(path + ".gasUsed")
+                let gasPrice = try item.field("gasPrice", path).unsigned(path + ".gasPrice")
+                rows.append(TransactionRow(
+                    hash: try item.field("hash", path).string(path + ".hash"),
+                    date: try date(item, path),
+                    status: try succeeded(item, path) ? .confirmed : .failed,
+                    from: try address(try item.field("from", path), path + ".from"),
+                    to: toText.isEmpty ? nil : try address(.string(toText), path + ".to"),
+                    value: try item.field("value", path).quantity(path + ".value"),
+                    fee: gasUsed * gasPrice
+                ))
+            }
+        }
+        var tokens: [TokenRow] = []
+        var seenEvents = Set<String>()
+        for (list, json) in tokenTransfers.enumerated() {
+            for (offset, item) in try transfers(json, "20[\(list)]").enumerated() {
+                let path = "20[\(list)][\(offset)]"
+                guard try succeeded(item, path) else { continue }
+                let hash = try item.field("hash", path).string(path + ".hash")
+                let index = "l" + String(try item.field("logIndex", path).uint64(path + ".logIndex"))
+                // De e para o proprio dono vem nas duas listas: o mesmo evento conta uma vez.
+                guard seenEvents.insert(hash.lowercased() + "|" + index).inserted else { continue }
+                tokens.append(TokenRow(
+                    hash: hash, index: index, date: try date(item, path),
+                    from: try address(try item.field("from", path), path + ".from"),
+                    to: try address(try item.field("to", path), path + ".to"),
+                    contract: try address(try item.field("contractAddress", path), path + ".contractAddress"),
+                    amount: try item.field("value", path).quantity(path + ".value")
+                ))
+            }
+        }
+        var inner: [InternalRow] = []
+        let internalItems = (try? internals.map { try transfers($0, "internal") }) ?? []
+        for (offset, item) in internalItems.enumerated() {
+            let path = "internal[\(offset)]"
+            guard (try? succeeded(item, path)) == true,
+                  let hash = try? item.field("hash", path).string(path + ".hash"),
+                  let date = try? date(item, path),
+                  let from = try? address(try item.field("from", path), path + ".from"),
+                  let to = try? address(try item.field("to", path), path + ".to"),
+                  let value = try? item.field("value", path).quantity(path + ".value"), !value.isZero
             else { continue }
             inner.append(InternalRow(hash: hash, index: "i\(offset)", date: date, from: from, to: to, value: value))
         }

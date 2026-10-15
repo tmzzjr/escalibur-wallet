@@ -445,11 +445,47 @@ struct EVMReaderTests {
         #expect(page.items.count + page.suspiciousCount > 0)
     }
 
-    @Test("BNB Chain: sem indexador, erro com motivo")
-    func bnbHasNoHistory() async throws {
-        let reader = EVMReader(transport: try Self.transport())
-        await #expect(throws: ReaderError.unsupported("historico sem indexador publico nesta rede")) {
-            _ = try await reader.history(chain: .bnb, address: Self.owner)
-        }
+    @Test("NodeReal (BNB Chain): uma consulta por categoria e lado, endereco so no corpo, golpes separados")
+    func nodeRealHistory() async throws {
+        let owner = try EVMAddress("0x9858EfFD232B4033E47d90003D41EC34EcaEda94")
+        let transport = FixtureTransport([{ request, body in
+            guard FixtureTransport.method(body) == "nr_getTransactionByAddress",
+                  case .object(let query)? = FixtureTransport.params(body).first,
+                  case .array(let categories)? = query["category"], categories.count == 1,
+                  case .string(let category) = categories[0], case .string(let side)? = query["addressType"]
+            else { return nil }
+            return try ReaderFixtures.data("evm", "nodereal-\(category)-\(side)-bnb")
+        }])
+        let provider = ProviderPool.Provider(name: "nodereal", baseURL: URL(string: "https://nodereal.test/v1/chave")!)
+        let reader = EVMReader(transport: transport, rpc: [:], history: ["bnb": [provider]], privateRelays: [])
+        let page = try await reader.history(chain: .bnb, address: owner)
+
+        let asked = transport.requests.compactMap { $0.body.flatMap { try? StrictJSON.parse($0) } }
+        #expect(asked.count == 5)
+        #expect(transport.requests.allSatisfy { !$0.url.absoluteString.lowercased().contains(owner.checksummed.lowercased()) })
+        #expect(page.isComplete)
+        #expect(page.items.allSatisfy { $0.chainID == "bnb" })
+        #expect(page.items.allSatisfy { $0.asset.kind == .native || TokenRegistry.tokens.contains($0.asset) })
+        // Transacoes do dono que falharam aparecem como falha, nao somem.
+        #expect(page.items.contains { $0.status == .failed })
+        // As "saidas" de token que o dono nao assinou (eventos falsos de envenenamento)
+        // e os recebimentos de token desconhecido ficam fora da lista.
+        #expect(page.suspicious.unknownAsset > 0)
+        #expect(!page.items.contains { $0.direction == .sent && $0.asset.kind != .native && $0.fee == nil })
+    }
+
+    @Test("NodeReal: sem os tokens, a pagina sai marcada como parcial")
+    func nodeRealPartial() throws {
+        let owner = try EVMAddress("0x9858EfFD232B4033E47d90003D41EC34EcaEda94")
+        let page = try EVMReader.parseNodeRealHistory(
+            chain: .bnb, owner: owner,
+            transactions: [
+                try ReaderFixtures.json("evm", "nodereal-external-from-bnb").field("result", "result"),
+                try ReaderFixtures.json("evm", "nodereal-external-to-bnb").field("result", "result"),
+            ],
+            tokenTransfers: [], complete: false
+        )
+        #expect(!page.isComplete)
+        #expect(!page.items.isEmpty)
     }
 }

@@ -143,7 +143,7 @@ struct EVMReaderLiveTests {
     }
 
     @Test("Historico pelos indexadores publicos",
-          arguments: [Chain.ethereum, .base, .optimism, .arbitrum, .polygon, .avalanche, .plasma, .linea, .unichain, .celo])
+          arguments: [Chain.ethereum, .base, .optimism, .arbitrum, .polygon, .avalanche, .plasma, .linea, .unichain, .celo, .bnb])
     func history(chain: Chain) async throws {
         let page = try await reader.history(chain: chain, address: try account().address)
         #expect(page.items.count <= ActivityRules.pageSize)
@@ -151,9 +151,9 @@ struct EVMReaderLiveTests {
         Live.note("\(chain.id): \(page.items.count) itens, \(page.suspiciousCount) suspeitos, completo \(page.isComplete)")
     }
 
-    @Test("BNB Chain, X Layer e Sonic sem indexador publico: historico indisponivel, com motivo")
-    func bnbHistoryUnsupported() async throws {
-        for chain in [Chain.bnb, .xlayer, .sonic] {
+    @Test("X Layer e Sonic sem indexador publico: historico indisponivel, com motivo")
+    func historyUnsupported() async throws {
+        for chain in [Chain.xlayer, .sonic] {
             await #expect(throws: ReaderError.self) {
                 _ = try await reader.history(chain: chain, address: Self.destination)
             }

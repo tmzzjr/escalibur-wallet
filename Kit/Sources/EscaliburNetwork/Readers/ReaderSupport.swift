@@ -37,7 +37,7 @@ public enum ReaderError: Error, Equatable, Sendable {
     case accountNotFound
     /// A simulacao da chamada reverteu: com o estado de agora a transacao falharia.
     case executionReverted
-    /// A rede nao tem esta leitura nesta versao (ex.: historico da BNB Chain, que nao
+    /// A rede nao tem esta leitura nesta versao (ex.: historico da X Layer, que nao
     /// tem indexador publico sem chave).
     case unsupported(String)
     /// A transacao assinada nao e desta rede, ou o hash devolvido nao e o calculado aqui.

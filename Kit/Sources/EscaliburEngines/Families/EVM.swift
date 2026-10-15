@@ -4,8 +4,9 @@ import EscaliburChains
 // Avalanche, Plasma, X Layer, Linea, Unichain, Sonic e Celo. O codigo fica em EVM/.
 //
 // - Envio: nas treze.
-// - Historico: nas treze. BNB Chain, X Layer e Sonic nao tem indexador publico sem
-//   chave, e o historico delas diz isso em vez de mostrar uma lista vazia.
+// - Historico: nas treze. A BNB Chain pela NodeReal, com a chave do app. X Layer e
+//   Sonic nao tem indexador publico sem chave, e o historico delas diz isso em vez de
+//   mostrar uma lista vazia.
 // - Troca: onde ha duas fontes de `eth_simulateV1` (a simulacao e obrigatoria) e algum
 //   agregador da allowlist; ficam de fora Avalanche, X Layer e Celo. Ordem limite pela
 //   CoW onde ha troca e a CoW atende: Ethereum, Arbitrum, Base, Polygon, BNB Chain,

@@ -317,8 +317,8 @@ public enum Endpoints {
     /// cliente nao segue redirecionamento). Avalanche: Routescan, API no formato
     /// Etherscan, sem chave (`api.routescan.io/v2/network/mainnet/evm/43114/etherscan`).
     /// BNB Chain: nenhum indexador publico sem chave (BscScan e Etherscan v2 exigem
-    /// plano pago para a rede 56, conferido em 25/09/2026); fica sem historico ate o relay.
-    /// Todos conferidos ao vivo em 25/09/2026.
+    /// plano pago para a rede 56, conferido em 25/09/2026). Vai pela NodeReal
+    /// (`nodeRealBNB`), a unica chave do app. Os demais conferidos ao vivo em 25/09/2026.
     ///
     /// Segunda leva, conferida em 26/09/2026 (`/addresses/{a}/transactions` e
     /// `/token-transfers` sem chave; os hosts vem do registro chains.blockscout.com):
@@ -338,7 +338,16 @@ public enum Endpoints {
         "linea": [.init(name: "blockscout", baseURL: url("https://api-explorer.linea.build/api/v2"))],
         "unichain": [.init(name: "blockscout", baseURL: url("https://unichain.blockscout.com/api/v2"))],
         "celo": [.init(name: "blockscout", baseURL: url("https://celo.blockscout.com/api/v2"))],
+        "bnb": [.init(name: "nodereal", baseURL: nodeRealBNB)],
     ]
+
+    /// Historico da BNB Chain pela API "Enhanced" da NodeReal (`nr_getTransactionByAddress`,
+    /// JSON-RPC por POST, o endereco vai no corpo). E a unica chave do app, gratuita, em
+    /// nome da Escalibur, e por isso publica neste codigo: ela identifica o app, nao o
+    /// dono, e nao abre nada alem de leitura da rede. Quem esgotar a cota tira do ar so o
+    /// historico da BNB; saldo, envio e troca nao passam por aqui. Conferido ao vivo em
+    /// 15/10/2026 com a conta publica de teste do BIP-39.
+    public static let nodeRealBNB = url("https://bsc-mainnet.nodereal.io/v1/f0c15aadeef94b9ba1ea7d52310cedaf")
 
     /// Quais ERC-20 uma conta tem, sem chave (`TokenIndex`). As mesmas instancias do
     /// Blockscout do historico e, na Avalanche e na Plasma, a API propria do Routescan.
