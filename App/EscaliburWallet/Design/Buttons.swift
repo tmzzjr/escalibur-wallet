@@ -332,40 +332,51 @@ struct HoldButton: View {
     }
 }
 
-/// Deslizar para seguir: o trilho com o cadeado verde que o dedo leva ate o fim, o verde
-/// enchendo atras dele. Para passos que pedem atencao (digitar as palavras): um toque sem
-/// querer nao segue. Soltou antes do fim, volta. No VoiceOver, o toque duplo confirma.
+/// Deslizar para seguir: o trilho com o cadeado que o dedo leva ate o fim. Para passos
+/// que pedem atencao (digitar as palavras): um toque sem querer nao segue. O verde
+/// solido cresce atras do cadeado, o texto escurece onde o verde passa por baixo, e em
+/// repouso o cadeado da uma espiada para a direita de tempos em tempos. Soltou antes do
+/// fim, volta. No VoiceOver, o toque duplo confirma.
 struct SlideToConfirm: View {
     let title: String
     var enabled: Bool = true
     let action: () -> Void
     @State private var offset: CGFloat = 0
+    @State private var hint: CGFloat = 0
+    @State private var dragging = false
     @State private var done = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let height: CGFloat = 64
+
+    private func label(_ color: Color, knob: CGFloat) -> some View {
+        HStack(spacing: Space.xs) {
+            Text(title).typeStyle(.action)
+            Image(systemName: "chevron.forward.2").font(.system(size: 13, weight: .bold))
+        }
+        .foregroundStyle(color)
+        .frame(maxWidth: .infinity)
+        .padding(.leading, knob * 0.8)
+    }
 
     var body: some View {
         GeometryReader { geo in
             let knob = height - 8
             let travel = max(geo.size.width - knob - 8, 1)
-            let progress = min(max(offset / travel, 0), 1)
+            let shift = min(offset + hint, travel)
+            let fill = knob + 8 + shift
+            let showing = enabled && (shift > 0 || done)
             ZStack(alignment: .leading) {
                 Capsule().fill(Palette.rail)
-                // O verde nasce embaixo do cadeado e vira rastro quando ele anda, mais
-                // forte na ponta que avanca.
-                Capsule()
-                    .fill(LinearGradient(colors: [Palette.success.opacity(0.35), Palette.success.opacity(0.85)],
-                                         startPoint: .leading, endPoint: .trailing))
-                    .frame(width: knob + offset, height: knob)
-                    .offset(x: 4)
-                    .opacity(enabled ? 1 : 0)
-                HStack(spacing: Space.xs) {
-                    Text(title).typeStyle(.action)
-                    Image(systemName: "chevron.forward.2").font(.system(size: 13, weight: .bold))
-                }
-                .foregroundStyle(enabled ? Palette.ink : Palette.inkMuted)
-                .frame(maxWidth: .infinity)
-                .padding(.leading, knob * 0.8)
-                .opacity(1 - progress * 1.5)
+                Capsule().fill(Palette.success)
+                    .frame(width: done ? geo.size.width : fill)
+                    .opacity(showing ? 1 : 0)
+                label(enabled ? Palette.ink : Palette.inkMuted, knob: knob)
+                // A mesma frase, escura, so onde o verde ja passou.
+                label(Palette.void, knob: knob)
+                    .mask(alignment: .leading) {
+                        Capsule().frame(width: done ? geo.size.width : fill)
+                    }
+                    .opacity(showing ? 1 : 0)
                 Circle()
                     .fill(enabled ? Color.white : Palette.control)
                     .frame(width: knob, height: knob)
@@ -375,20 +386,25 @@ struct SlideToConfirm: View {
                             .foregroundStyle(enabled ? Palette.success : Palette.inkMuted)
                             .contentTransition(.symbolEffect(.replace))
                     }
-                    .offset(x: 4 + offset)
+                    .offset(x: 4 + shift)
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
                                 guard enabled, !done else { return }
+                                dragging = true
+                                hint = 0
                                 offset = min(max(value.translation.width, 0), travel)
                             }
                             .onEnded { _ in
+                                dragging = false
                                 guard enabled, !done else { return }
                                 if offset > travel * 0.85 {
-                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) { offset = travel }
-                                    done = true
+                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                                        offset = travel
+                                        done = true
+                                    }
                                     Task {
-                                        try? await Task.sleep(for: .milliseconds(280))
+                                        try? await Task.sleep(for: .milliseconds(320))
                                         action()
                                     }
                                 } else {
@@ -404,7 +420,19 @@ struct SlideToConfirm: View {
         // Quem volta para esta tela encontra o cadeado fechado no comeco de novo.
         .onAppear {
             offset = 0
+            hint = 0
             done = false
+        }
+        // A espiada: o cadeado anda um pouco e volta, para dizer que desliza.
+        .task(id: enabled) {
+            guard enabled, !reduceMotion else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(2600))
+                guard !Task.isCancelled, !dragging, !done, offset == 0 else { continue }
+                withAnimation(.easeOut(duration: 0.3)) { hint = 16 }
+                try? await Task.sleep(for: .milliseconds(320))
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.55)) { hint = 0 }
+            }
         }
         .accessibilityElement()
         .accessibilityLabel(title)
