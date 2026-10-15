@@ -199,7 +199,7 @@ struct ImportPhraseView: View {
 
                     VStack(spacing: Space.xs) {
                         Image(systemName: "lock.shield.fill").font(.system(size: 22, weight: .semibold)).foregroundStyle(Palette.inkSoft)
-                        Text("Tela protegida: cada letra é cifrada na hora, com uma chave que só existe enquanto esta tela está aberta, e captura e gravação de tela ficam bloqueadas. Segure uma palavra para conferir.")
+                        Text("Tela protegida: cada letra é cifrada na hora, com uma chave que só existe enquanto esta tela está aberta, e gravação e espelhamento escondem as palavras. Captura de tela não dá para bloquear. Segure uma palavra para conferir.")
                             .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)

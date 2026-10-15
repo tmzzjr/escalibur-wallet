@@ -21,7 +21,7 @@ struct OnboardingFlow: View {
             case .choosePIN, .repeatPIN:
                 // Uma tela so para escolher e repetir: so o titulo e o texto trocam. Duas
                 // telas com fade piscavam, e o teclado mudava de altura com o texto.
-                let chooseText = String(localized: "Seis dígitos para destravar o app e confirmar envios quando o \(KeyServices.biometryName) falhar.")
+                let chooseText = String(localized: "Seis dígitos para destravar o app e confirmar envios quando o \(KeyServices.biometryName) falhar. Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código.")
                 PINScreen(
                     title: step == .choosePIN ? String(localized: "Escolha um PIN") : String(localized: "Repita o PIN"),
                     subtitle: step == .choosePIN ? chooseText : String(localized: "Os mesmos seis dígitos."),
@@ -59,7 +59,11 @@ struct OnboardingFlow: View {
                        message: String(localized: "Apps de fora da App Store podem ler o que este app guarda."))
                     .padding(.top, Space.md)
             }
-            if !KeyServices.deviceIsEligible {
+            if KeyServices.runningOnMac {
+                Banner(kind: .failure, title: String(localized: "A carteira não fica no Mac"),
+                       message: String(localized: "No Mac, outros programas podem ler o teclado e a tela. Use a Escalibur no iPhone."))
+                    .padding(.top, Space.md)
+            } else if !KeyServices.deviceIsEligible {
                 Banner(kind: .failure, title: String(localized: "Este iPhone não tem código"),
                        message: String(localized: "Configure um código em Ajustes do iPhone. Sem ele, o iOS não protege as chaves da carteira."))
                     .padding(.top, Space.md)

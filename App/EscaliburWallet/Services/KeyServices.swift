@@ -26,11 +26,17 @@ enum KeyServices {
     static let root = RootKeyVault(store: store, wrapper: wrapper)
     static let wallets = WalletVault(store: store)
 
-    /// O aparelho pode guardar carteira? Precisa de codigo configurado e de SE.
+    /// App de iPhone rodando num Mac com Apple Silicon: la outros programas leem teclado
+    /// e tela, e as defesas do iOS nao valem (pentest de 15/10, M3).
+    static var runningOnMac: Bool { ProcessInfo.processInfo.isiOSAppOnMac }
+
+    /// O aparelho pode guardar carteira? Precisa ser um iPhone de verdade, com codigo
+    /// configurado e com SE.
     static var deviceIsEligible: Bool {
         #if targetEnvironment(simulator)
         return true
         #else
+        if runningOnMac { return false }
         var error: NSError?
         return LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) && SecureEnclaveWrapper.isAvailable
         #endif

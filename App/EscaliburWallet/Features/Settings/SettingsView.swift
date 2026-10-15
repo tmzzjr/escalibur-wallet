@@ -482,7 +482,8 @@ struct ChangePINFlow: View {
     var body: some View {
         PINScreen(
             title: [String(localized: "Digite o PIN atual"), String(localized: "Escolha o novo PIN"), String(localized: "Repita o novo PIN")][step],
-            subtitle: nil, entry: entry, working: working, onComplete: advance
+            subtitle: step == 1 ? String(localized: "Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código.") : nil,
+            entry: entry, working: working, onComplete: advance
         ) {
             TertiaryButton(title: String(localized: "Cancelar")) { current?.wipe(); newPIN?.wipe(); onDone() }
         }

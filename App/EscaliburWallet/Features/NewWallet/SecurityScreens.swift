@@ -39,10 +39,10 @@ struct DeviceCheck: Identifiable, Equatable {
         return [
             Step(id: "codigo", title: String(localized: "Código do iPhone ativo"), run: passcode),
             Step(id: "enclave", title: String(localized: "Secure Enclave disponível"), run: secureEnclave),
-            Step(id: "jailbreak", title: String(localized: "Sem jailbreak"), run: jailbreak),
-            Step(id: "injecao", title: String(localized: "Nenhum código injetado no app"), run: injection),
+            Step(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"), run: jailbreak),
+            Step(id: "injecao", title: String(localized: "Nenhum código injetado encontrado"), run: injection),
             Step(id: "depurador", title: String(localized: "Nenhum depurador conectado"), run: debugger),
-            Step(id: "origem", title: String(localized: "App original, da App Store"), run: origin),
+            Step(id: "origem", title: String(localized: "Instalado pela App Store ou TestFlight"), run: origin),
             Step(id: "tela", title: String(localized: "Tela sem gravação nem espelhamento"), run: screen),
             Step(id: "teclado", title: String(localized: "Teclados de terceiros bloqueados"), run: keyboards),
             Step(id: "sistema", title: "iOS \(version.majorVersion).\(version.minorVersion)", run: system),
@@ -60,10 +60,10 @@ struct DeviceCheck: Identifiable, Equatable {
     /// (reassinado, lateral), e o codigo pode nao ser o publicado.
     static func origin() -> DeviceCheck {
         #if DEBUG
-        return .init(id: "origem", title: "App original, da App Store", outcome: .caution("Build de teste, instalado pelo Xcode."))
+        return .init(id: "origem", title: "Instalado pela App Store ou TestFlight", outcome: .caution("Build de teste, instalado pelo Xcode."))
         #else
         let sideloaded = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision") != nil
-        return .init(id: "origem", title: String(localized: "App original, da App Store"),
+        return .init(id: "origem", title: String(localized: "Instalado pela App Store ou TestFlight"),
                      outcome: sideloaded ? .caution(String(localized: "Este app não veio da App Store nem do TestFlight. Instale a Escalibur só pela App Store.")) : .pass)
         #endif
     }
@@ -85,11 +85,11 @@ struct DeviceCheck: Identifiable, Equatable {
     /// jailbreak.
     static func jailbreak() -> DeviceCheck {
         #if targetEnvironment(simulator)
-        return .init(id: "jailbreak", title: String(localized: "Sem jailbreak"), outcome: .caution(String(localized: "Simulador: a checagem só vale num iPhone de verdade.")))
+        return .init(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"), outcome: .caution(String(localized: "Simulador: a checagem só vale num iPhone de verdade.")))
         #else
         // No Mac, `/bin/bash` e `/usr/sbin/sshd` existem de fabrica: o aviso seria falso.
         if DeviceIntegrity.onMac {
-            return .init(id: "jailbreak", title: String(localized: "Sem jailbreak"), outcome: .caution(String(localized: "No Mac, a checagem só vale num iPhone de verdade.")))
+            return .init(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"), outcome: .caution(String(localized: "No Mac, a checagem só vale num iPhone de verdade.")))
         }
         let paths = ["/Applications/Cydia.app", "/Applications/Sileo.app", "/Applications/Zebra.app", "/bin/bash", "/usr/sbin/sshd",
                      "/etc/apt", "/private/var/lib/apt", "/usr/bin/ssh", "/var/jb", "/private/preboot/jb", "/.bootstrapped"]
@@ -101,10 +101,10 @@ struct DeviceCheck: Identifiable, Equatable {
         let writable = (try? "x".write(toFile: probe, atomically: false, encoding: .utf8)) != nil
         if writable { try? FileManager.default.removeItem(atPath: probe) }
         guard found == nil, !writable, !linked else {
-            return .init(id: "jailbreak", title: String(localized: "Sem jailbreak"),
+            return .init(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"),
                          outcome: .fail(String(localized: "Este iPhone parece ter jailbreak. Num aparelho assim, outro app pode ler a memória e o que você digita.")))
         }
-        return .init(id: "jailbreak", title: String(localized: "Sem jailbreak"), outcome: .pass)
+        return .init(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"), outcome: .pass)
         #endif
     }
 
@@ -122,10 +122,10 @@ struct DeviceCheck: Identifiable, Equatable {
         }
         let inserted = ProcessInfo.processInfo.environment["DYLD_INSERT_LIBRARIES"] != nil
         guard hit == nil, !inserted else {
-            return .init(id: "injecao", title: String(localized: "Nenhum código injetado no app"),
+            return .init(id: "injecao", title: String(localized: "Nenhum código injetado encontrado"),
                          outcome: .fail(String(localized: "Há uma biblioteca de interceptação carregada no app (\(hit ?? "DYLD_INSERT_LIBRARIES")). Alguém pode estar lendo o que a tela mostra.")))
         }
-        return .init(id: "injecao", title: String(localized: "Nenhum código injetado no app"), outcome: .pass)
+        return .init(id: "injecao", title: String(localized: "Nenhum código injetado encontrado"), outcome: .pass)
     }
 
     /// `P_TRACED`: um depurador preso ao processo.
@@ -223,7 +223,7 @@ struct DeviceCheckView: View {
                     .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.sm)
                     .contentTransition(.opacity)
                     .accessibilityIdentifier("checagem-titulo")
-                Text(finished ? String(localized: "Tudo foi checado aqui, sem internet. Nada desta checagem sai do aparelho.")
+                Text(finished ? String(localized: "Tudo foi checado aqui, sem internet, e nada sai do aparelho. Um jailbreak escondido pode passar sem aparecer.")
                      : (results.count < steps.count ? String(localized: "Checando: \(steps[results.count].title)") : String(localized: "Preparando a checagem")))
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
                     .fixedSize(horizontal: false, vertical: true)
