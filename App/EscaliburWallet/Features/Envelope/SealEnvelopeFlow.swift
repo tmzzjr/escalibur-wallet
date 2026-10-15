@@ -175,10 +175,13 @@ struct SealEnvelopeFlow: View {
                 PrimaryButton(title: "Continuar", enabled: passwordLength > 0) { proceedFromCreate() }
             } else {
                 PrimaryButton(title: "Anotei, continuar", enabled: !suggestionIndices.isEmpty) {
-                    // Direto das posicoes para o buffer: a senha nao passa por uma String.
+                    // O buffer sai direto das posicoes. As palavras na tela sao String (para
+                    // mostrar, nao tem outro jeito: risco aceito no 6) e saem da memoria do
+                    // app assim que a tela segue (pentest de 14/10/2026).
                     guard (try? PasswordStrength.write(suggestionIndices, into: password)) != nil else { return }
                     passwordLength = password.count
                     usingSuggestion = true
+                    suggestion = []
                     proceedFromCreate()
                 }
             }
@@ -378,6 +381,15 @@ struct SealEnvelopeFlow: View {
         case .tooShort:
             error = "Use pelo menos 4 caracteres."
         case .strong:
+            // O medidor depende do custo do Argon2 deste iPhone: abaixo de forte nele, pede
+            // o "sim" como as outras. Antes, 60 bits saiam como "bom" no medidor e lacravam
+            // sem o aviso (pentest de 14/10/2026).
+            let bits = PasswordStrength.bits(password)
+            if PasswordCost.band(bits: bits, kdf: kdf) != .strong {
+                error = nil
+                riskBits = bits
+                return
+            }
             error = nil
             step = .repeatIt
         case .digitsOnly(let bits), .weak(let bits):
