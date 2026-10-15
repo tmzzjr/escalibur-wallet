@@ -24,10 +24,48 @@ struct DeviceCheck: Identifiable, Equatable {
     let title: String
     let outcome: Outcome
 
-    /// Roda todas. Nada aqui sai do aparelho.
+    /// Um item da checagem: o nome aparece antes, e a verificacao roda de verdade so na
+    /// hora em que a linha dele gira na tela (pedido do dono, 15/10/2026: a conferencia
+    /// tem de ser factual, nao um resultado pronto revelado devagar).
+    struct Step {
+        let id: String
+        let title: String
+        let run: @MainActor () -> DeviceCheck
+    }
+
     @MainActor
-    static func runAll() -> [DeviceCheck] {
-        [passcode(), secureEnclave(), jailbreak(), injection(), debugger(), screen(), keyboards(), system(), clipboard(), voiceOver()]
+    static var steps: [Step] {
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        return [
+            Step(id: "codigo", title: String(localized: "Código do iPhone ativo"), run: passcode),
+            Step(id: "enclave", title: String(localized: "Secure Enclave disponível"), run: secureEnclave),
+            Step(id: "jailbreak", title: String(localized: "Sem jailbreak"), run: jailbreak),
+            Step(id: "injecao", title: String(localized: "Nenhum código injetado no app"), run: injection),
+            Step(id: "depurador", title: String(localized: "Nenhum depurador conectado"), run: debugger),
+            Step(id: "origem", title: String(localized: "App original, da App Store"), run: origin),
+            Step(id: "tela", title: String(localized: "Tela sem gravação nem espelhamento"), run: screen),
+            Step(id: "teclado", title: String(localized: "Teclados de terceiros bloqueados"), run: keyboards),
+            Step(id: "sistema", title: "iOS \(version.majorVersion).\(version.minorVersion)", run: system),
+            Step(id: "copia", title: String(localized: "Área de transferência"), run: clipboard),
+            Step(id: "leitor", title: String(localized: "Leitor de tela"), run: voiceOver),
+        ]
+    }
+
+    /// Roda todas de uma vez (testes). Nada aqui sai do aparelho.
+    @MainActor
+    static func runAll() -> [DeviceCheck] { steps.map { $0.run() } }
+
+    /// App Store e TestFlight entregam o app reassinado pela Apple, sem perfil de
+    /// provisionamento dentro. Com perfil, o app foi instalado por outro caminho
+    /// (reassinado, lateral), e o codigo pode nao ser o publicado.
+    static func origin() -> DeviceCheck {
+        #if DEBUG
+        return .init(id: "origem", title: "App original, da App Store", outcome: .caution("Build de teste, instalado pelo Xcode."))
+        #else
+        let sideloaded = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision") != nil
+        return .init(id: "origem", title: String(localized: "App original, da App Store"),
+                     outcome: sideloaded ? .caution(String(localized: "Este app não veio da App Store nem do TestFlight. Instale a Escalibur só pela App Store.")) : .pass)
+        #endif
     }
 
     @MainActor
@@ -56,10 +94,13 @@ struct DeviceCheck: Identifiable, Equatable {
         let paths = ["/Applications/Cydia.app", "/Applications/Sileo.app", "/Applications/Zebra.app", "/bin/bash", "/usr/sbin/sshd",
                      "/etc/apt", "/private/var/lib/apt", "/usr/bin/ssh", "/var/jb", "/private/preboot/jb", "/.bootstrapped"]
         let found = paths.first { FileManager.default.fileExists(atPath: $0) }
+        // Num jailbreak com raiz gravavel, pastas do sistema viram links simbolicos.
+        let linked = ["/Applications", "/Library/Ringtones", "/Library/Wallpaper", "/usr/arm-apple-darwin9", "/usr/include", "/usr/libexec", "/usr/share"]
+            .contains { (try? FileManager.default.attributesOfItem(atPath: $0)[.type] as? FileAttributeType) == .typeSymbolicLink }
         let probe = "/private/escalibur-\(UUID().uuidString)"
         let writable = (try? "x".write(toFile: probe, atomically: false, encoding: .utf8)) != nil
         if writable { try? FileManager.default.removeItem(atPath: probe) }
-        guard found == nil, !writable else {
+        guard found == nil, !writable, !linked else {
             return .init(id: "jailbreak", title: String(localized: "Sem jailbreak"),
                          outcome: .fail(String(localized: "Este iPhone parece ter jailbreak. Num aparelho assim, outro app pode ler a memória e o que você digita.")))
         }
@@ -112,7 +153,7 @@ struct DeviceCheck: Identifiable, Equatable {
 
     static func keyboards() -> DeviceCheck {
         // O app recusa todo teclado de terceiros (PlatformGuards): so o da Apple digita aqui.
-        .init(id: "teclado", title: String(localized: "Só o teclado da Apple"), outcome: .pass)
+        .init(id: "teclado", title: String(localized: "Teclados de terceiros bloqueados"), outcome: .pass)
     }
 
     /// O iOS contra a versao com que este build foi feito: abaixo dela, o aparelho pode
@@ -140,36 +181,63 @@ struct DeviceCheck: Identifiable, Equatable {
     }
 }
 
-/// A checagem, antes de digitar a frase: um escaneamento com cada item conferido na
-/// hora, o que esta sendo checado escrito, e o resultado de cada um.
+/// A checagem, antes de digitar a frase: cada item roda na hora em que a linha dele
+/// gira, com o resultado logo ao lado, e no fim o horario exato da conferencia. Quem volta
+/// desta tela e entra de novo ve "Conferindo de novo", com o horario da anterior: e uma
+/// checagem nova, feita naquele instante. Voltar da tela de digitar nao refaz (a
+/// conferencia continua valendo ali).
 struct DeviceCheckView: View {
     let onContinue: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var steps: [DeviceCheck.Step] = []
     @State private var results: [DeviceCheck] = []
-    @State private var revealed = 0
     @State private var acceptedRisk = false
+    @State private var started = false
+    @State private var previous: Date?
+    @State private var checkedAt: Date?
 
-    private var finished: Bool { !results.isEmpty && revealed >= results.count }
+    /// A ultima conferencia terminada nesta abertura do app.
+    @MainActor static var lastChecked: Date?
+
+    private var finished: Bool { !steps.isEmpty && results.count >= steps.count }
     private var blocking: [DeviceCheck] { results.filter { if case .fail = $0.outcome { return true }; return false } }
     private var screenBlocked: Bool { blocking.contains { $0.id == "tela" || $0.id == "codigo" } }
     private var canContinue: Bool { finished && !screenBlocked && (blocking.isEmpty || acceptedRisk) }
 
+    static func clock(_ date: Date) -> String {
+        date.formatted(.dateTime.hour(.twoDigits(amPM: .abbreviated)).minute(.twoDigits).second(.twoDigits).locale(Fmt.locale))
+    }
+
+    private var title: String {
+        if finished { return blocking.isEmpty ? String(localized: "Aparelho conferido") : String(localized: "Atenção antes de seguir") }
+        return previous == nil ? String(localized: "Conferindo este iPhone") : String(localized: "Conferindo de novo")
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                ScanRing(progress: results.isEmpty ? 0 : Double(revealed) / Double(results.count), done: finished,
+                ScanRing(progress: steps.isEmpty ? 0 : Double(results.count) / Double(steps.count), done: finished,
                          alert: finished && !blocking.isEmpty)
                     .frame(height: 220).frame(maxWidth: .infinity)
-                Text(finished ? (blocking.isEmpty ? String(localized: "Aparelho conferido") : String(localized: "Atenção antes de seguir")) : String(localized: "Conferindo este iPhone"))
+                Text(title)
                     .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.sm)
                     .contentTransition(.opacity)
-                Text(finished ? "Tudo foi checado aqui, sem internet. Nada desta checagem sai do aparelho."
-                     : (revealed < results.count ? "Checando: \(results[revealed].title)" : "Preparando a checagem"))
+                    .accessibilityIdentifier("checagem-titulo")
+                Text(finished ? String(localized: "Tudo foi checado aqui, sem internet. Nada desta checagem sai do aparelho.")
+                     : (results.count < steps.count ? String(localized: "Checando: \(steps[results.count].title)") : String(localized: "Preparando a checagem")))
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
                     .fixedSize(horizontal: false, vertical: true)
+                if let previous, !finished {
+                    stamp(String(localized: "A anterior foi às \(Self.clock(previous)). Esta é nova, item por item, agora."), icon: "arrow.clockwise")
+                }
+                if let checkedAt, finished {
+                    stamp(previous == nil ? String(localized: "Conferido às \(Self.clock(checkedAt))")
+                                          : String(localized: "Conferido de novo às \(Self.clock(checkedAt))"), icon: "clock")
+                        .accessibilityIdentifier("checagem-horario")
+                }
                 VStack(spacing: 0) {
-                    ForEach(Array(results.enumerated()), id: \.element.id) { index, check in
-                        row(check, state: index < revealed ? .done : (index == revealed ? .running : .waiting))
+                    ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
+                        row(step, result: index < results.count ? results[index] : nil, running: index == results.count && !finished)
                     }
                 }
                 .padding(.top, Space.md)
@@ -189,49 +257,68 @@ struct DeviceCheckView: View {
                 if finished, screenBlocked {
                     SecondaryButton(title: String(localized: "Checar de novo")) { Task { await run() } }
                 }
-                PrimaryButton(title: finished ? String(localized: "Digitar as palavras") : String(localized: "Conferindo"), enabled: canContinue, loading: !finished) { onContinue() }
+                SlideToConfirm(title: finished ? String(localized: "Deslize para digitar as palavras") : String(localized: "Conferindo"),
+                               enabled: canContinue) { onContinue() }
+                    .accessibilityIdentifier("deslizar-digitar")
             }
         }
         .background(Palette.void.ignoresSafeArea())
-        .task { await run() }
-        .accessibilityIdentifier("checagem-aparelho")
-    }
-
-    private func run() async {
-        revealed = 0
-        acceptedRisk = false
-        results = DeviceCheck.runAll()
-        // Os resultados ja sao reais; aparecem um a um para dar para ler.
-        for _ in results {
-            try? await Task.sleep(for: .milliseconds(reduceMotion ? 60 : 620))
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { revealed += 1 }
+        // So na primeira vez desta tela: voltar da tela de digitar nao refaz.
+        .task {
+            guard !started else { return }
+            await run()
         }
     }
 
-    private enum RowState { case waiting, running, done }
+    private func stamp(_ text: String, icon: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon).font(.system(size: 12, weight: .semibold))
+            Text(text).typeStyle(.note).monospacedDigit()
+        }
+        .foregroundStyle(Palette.inkSoft)
+        .padding(.top, Space.xs)
+    }
 
-    private func row(_ check: DeviceCheck, state: RowState) -> some View {
+    private func run() async {
+        started = true
+        previous = Self.lastChecked
+        checkedAt = nil
+        acceptedRisk = false
+        results = []
+        steps = DeviceCheck.steps
+        for step in steps {
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 60 : 520))
+            guard !Task.isCancelled else { return }
+            // A verificacao roda aqui, no instante em que a linha dela termina de girar.
+            let result = step.run()
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { results.append(result) }
+        }
+        let now = Date()
+        checkedAt = now
+        Self.lastChecked = now
+    }
+
+    private func row(_ step: DeviceCheck.Step, result: DeviceCheck?, running: Bool) -> some View {
         HStack(alignment: .top, spacing: Space.sm) {
             Group {
-                switch state {
-                case .waiting:
-                    Circle().stroke(Palette.edge, lineWidth: 1.5).frame(width: 20, height: 20)
-                case .running:
-                    ProgressView().controlSize(.small).tint(Palette.accent).frame(width: 20, height: 20)
-                case .done:
-                    switch check.outcome {
-                    case .pass: Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.accent)
+                if let result {
+                    switch result.outcome {
+                    case .pass: Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.success)
                     case .caution: Image(systemName: "exclamationmark.circle.fill").foregroundStyle(Palette.caution)
                     case .fail: Image(systemName: "xmark.octagon.fill").foregroundStyle(Palette.down)
                     }
+                } else if running {
+                    ProgressView().controlSize(.small).tint(Palette.success).frame(width: 20, height: 20)
+                } else {
+                    Circle().stroke(Palette.edge, lineWidth: 1.5).frame(width: 20, height: 20)
                 }
             }
             .font(.system(size: 20))
             .frame(width: 22, height: 22)
             VStack(alignment: .leading, spacing: 2) {
-                Text(check.title).typeStyle(.row).foregroundStyle(state == .waiting ? Palette.inkMuted : Palette.ink)
-                if state == .done {
-                    switch check.outcome {
+                Text(result?.title ?? step.title).typeStyle(.row).foregroundStyle(result == nil && !running ? Palette.inkMuted : Palette.ink)
+                if let result {
+                    switch result.outcome {
                     case .pass: EmptyView()
                     case .caution(let text), .fail(let text):
                         Text(text).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
@@ -258,20 +345,20 @@ private struct ScanRing: View {
             ZStack {
                 Circle().stroke(Palette.edge, lineWidth: 6).frame(width: 168, height: 168)
                 Circle().trim(from: 0, to: progress)
-                    .stroke(alert ? Palette.caution : (done ? Palette.success : Palette.accent), style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .stroke(alert ? Palette.caution : Palette.success, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                     .rotationEffect(.degrees(-90)).frame(width: 168, height: 168)
                     .animation(.easeOut(duration: 0.35), value: progress)
                 if !done {
                     // O feixe do radar.
                     Circle()
-                        .fill(AngularGradient(colors: [Palette.accent.opacity(0), Palette.accent.opacity(0.4)], center: .center,
+                        .fill(AngularGradient(colors: [Palette.success.opacity(0), Palette.success.opacity(0.35)], center: .center,
                                               startAngle: .degrees(0), endAngle: .degrees(70)))
                         .frame(width: 150, height: 150)
                         .rotationEffect(.degrees(reduceMotion ? 0 : (t * 160).truncatingRemainder(dividingBy: 360)))
                         .mask(Circle().frame(width: 150, height: 150))
                     ForEach(0..<3, id: \.self) { wave in
                         let phase = (t * 0.6 + Double(wave) / 3).truncatingRemainder(dividingBy: 1)
-                        Circle().stroke(Palette.accent.opacity(0.3 * (1 - phase)), lineWidth: 1)
+                        Circle().stroke(Palette.success.opacity(0.3 * (1 - phase)), lineWidth: 1)
                             .frame(width: 70 + phase * 130, height: 70 + phase * 130)
                     }
                 }

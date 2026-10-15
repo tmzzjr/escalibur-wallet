@@ -331,3 +331,80 @@ struct HoldButton: View {
             .accessibilityHint(holdSeconds > 0 ? "Segure por \(Int(holdSeconds)) segundos" : "")
     }
 }
+
+/// Deslizar para seguir: o trilho com o cadeado verde que o dedo leva ate o fim, o verde
+/// enchendo atras dele. Para passos que pedem atencao (digitar as palavras): um toque sem
+/// querer nao segue. Soltou antes do fim, volta. No VoiceOver, o toque duplo confirma.
+struct SlideToConfirm: View {
+    let title: String
+    var enabled: Bool = true
+    let action: () -> Void
+    @State private var offset: CGFloat = 0
+    @State private var done = false
+    private let height: CGFloat = 64
+
+    var body: some View {
+        GeometryReader { geo in
+            let knob = height - 8
+            let travel = max(geo.size.width - knob - 8, 1)
+            let progress = min(max(offset / travel, 0), 1)
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.rail)
+                Capsule().fill(Palette.success.opacity(enabled ? 0.16 : 0))
+                    .frame(width: knob + 8 + offset)
+                Capsule().stroke(enabled ? Palette.success.opacity(0.4) : Palette.edge, lineWidth: 1)
+                HStack(spacing: Space.xs) {
+                    Text(title).typeStyle(.action)
+                    Image(systemName: "chevron.forward.2").font(.system(size: 13, weight: .bold))
+                }
+                .foregroundStyle(enabled ? Palette.ink : Palette.inkMuted)
+                .frame(maxWidth: .infinity)
+                .padding(.leading, knob * 0.8)
+                .opacity(1 - progress * 1.5)
+                Circle()
+                    .fill(enabled ? Palette.success : Palette.control)
+                    .frame(width: knob, height: knob)
+                    .overlay {
+                        Image(systemName: done ? "lock.open.fill" : "lock.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(enabled ? Palette.void : Palette.inkMuted)
+                            .contentTransition(.symbolEffect(.replace))
+                    }
+                    .offset(x: 4 + offset)
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                guard enabled, !done else { return }
+                                offset = min(max(value.translation.width, 0), travel)
+                            }
+                            .onEnded { _ in
+                                guard enabled, !done else { return }
+                                if offset > travel * 0.85 {
+                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) { offset = travel }
+                                    done = true
+                                    Task {
+                                        try? await Task.sleep(for: .milliseconds(280))
+                                        action()
+                                    }
+                                } else {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { offset = 0 }
+                                }
+                            }
+                    )
+            }
+        }
+        .frame(height: height)
+        .sensoryFeedback(.success, trigger: done) { _, new in new }
+        .sensoryFeedback(.selection, trigger: offset > 0) { old, new in !old && new }
+        // Quem volta para esta tela encontra o cadeado fechado no comeco de novo.
+        .onAppear {
+            offset = 0
+            done = false
+        }
+        .disabled(!enabled)
+        .accessibilityElement()
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { if enabled { action() } }
+    }
+}
