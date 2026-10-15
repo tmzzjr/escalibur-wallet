@@ -43421,6 +43421,64 @@
         }
       }
     },
+    "Envie só pela rede %@ (%@). Não é %@ da rede %@: por outra rede, não chega como este token." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sende nur über das %1$@-Netzwerk (%2$@). Das ist kein %3$@ im %4$@-Netzwerk: über ein anderes Netzwerk gesendet, kommt es nicht als dieser Token an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send only on the %1$@ network (%2$@). This isn’t %3$@ on the %4$@ network: sent on another network, it won’t arrive as this token."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envía solo por la red %1$@ (%2$@). No es %3$@ de la red %4$@: enviado por otra red, no llega como este token."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyez uniquement sur le réseau %1$@ (%2$@). Ce n’est pas du %3$@ du réseau %4$@ : envoyé sur un autre réseau, il n’arrive pas comme ce jeton."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सिर्फ़ %1$@ नेटवर्क (%2$@) से भेजें. यह %4$@ नेटवर्क का %3$@ नहीं है: किसी दूसरे नेटवर्क से भेजने पर यह इस टोकन के रूप में नहीं आएगा."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ ネットワーク（%2$@）でのみ送信してください。%4$@ ネットワークの %3$@ ではありません。別のネットワークで送ると、このトークンとして届きません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 네트워크(%2$@)로만 보내세요. %4$@ 네트워크의 %3$@ 코인이 아닙니다. 다른 네트워크로 보내면 이 토큰으로 도착하지 않습니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Envie só pela rede %1$@ (%2$@). Não é %3$@ da rede %4$@: por outra rede, não chega como este token."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅通过 %1$@ 网络（%2$@）发送。这不是 %4$@ 网络上的 %3$@：通过其他网络发送，不会以此代币到账。"
+          }
+        }
+      }
+    },
     "Envie só pela rede Solana. Tokens de outras redes enviados para este endereço se perdem." : {
       "localizations" : {
         "de" : {

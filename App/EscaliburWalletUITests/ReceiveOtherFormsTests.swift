@@ -52,11 +52,14 @@ final class ReceiveOtherFormsTests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
         let xrp = app.buttons["XRP, XRP"]
         XCTAssertTrue(xrp.waitForExistence(timeout: 10))
-        // O XRP da Binance nao e linha propria na lista de moedas.
-        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'XRP, XRP (Binance-Peg)'")).firstMatch.exists)
         xrp.tap()
         XCTAssertTrue(app.staticTexts["Outras formas de XRP"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["outra-forma-XRP-bnb"].exists)
+        // A BNB nao e uma rede do XRP nativo: so aparece em "Outras formas".
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'BNB Chain'")).firstMatch.exists)
         shot("receber-xrp-formas", app)
+        app.buttons["outra-forma-XRP-bnb"].tap()
+        XCTAssertTrue(app.staticTexts["XRP (Binance-Peg) · BEP-20"].waitForExistence(timeout: 5))
+        shot("receber-xrp-binance", app)
     }
 }

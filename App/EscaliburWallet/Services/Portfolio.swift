@@ -21,10 +21,17 @@ struct PortfolioRow: Identifiable, Hashable {
     /// logo de la, sem o selo de nao verificado. Reconhecido nao e verificado: sem troca.
     var recognized: TokenIdentity? = nil
 
-    var decimals: Int { positions.first?.asset.decimals ?? 0 }
+    /// As casas da linha: as maiores entre as redes (o USDT tem 6 na Ethereum e 18 na BNB).
+    var decimals: Int { positions.map(\.asset.decimals).max() ?? 0 }
     var chains: [Chain] { positions.compactMap(\.asset.chain) }
 
-    var totalAmount: BigUInt { positions.reduce(BigUInt()) { $0 + $1.amount } }
+    /// A soma das redes, cada uma levada as casas da linha. Somar as unidades cruas, com
+    /// casas diferentes, mostrava 1 USDT da Ethereum mais 1 da BNB como 10^12 USDT
+    /// (revisao de seguranca de 15/10/2026, A1).
+    var totalAmount: BigUInt {
+        let places = decimals
+        return positions.reduce(BigUInt()) { $0 + $1.amount * BigUInt.power(of: 10, places - $1.asset.decimals) }
+    }
 
     var fiatValue: Double? {
         guard let price else { return nil }

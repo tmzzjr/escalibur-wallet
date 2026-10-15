@@ -381,8 +381,7 @@ struct ReceiveSheet: View {
     /// o seletor embaixo do QR so troca de rede dentro dela, nunca de volta para a nativa.
     private func otherForms(_ coin: ReceiveCoin) -> [Asset] {
         guard let id = coin.coingeckoID, coin.assets.contains(where: { $0.kind == .native }) else { return [] }
-        let pegged = receivable.filter { TokenRegistry.pegged.contains($0.id) && $0.coingeckoID == id }
-        return pegged + receivable.filter { asset in asset.coingeckoID.flatMap { ReceiveCoin.wrappedForms[$0] } == id }
+        return receivable.filter { asset in asset.coingeckoID.flatMap { ReceiveCoin.wrappedForms[$0] } == id }
     }
 
     private func otherFormRow(_ asset: Asset) -> some View {
@@ -580,6 +579,11 @@ struct ReceiveSheet: View {
                 if preselected != nil { HStack { Spacer(); closeButton } }
                 Text("Receber \(asset.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
                 Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                if asset.kind != .native {
+                    // Qual token e, pelo nome da lista: "XRP" sozinho nao diz que e o da Binance.
+                    Text(verbatim: "\(asset.name) · \(ReceiveCoin.standard(chain))").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        .padding(.top, 2)
+                }
 
                 if wallet?.isWatchOnly == true {
                     // Golpe comum: alguem pede para "observar" o endereco dele e depositar ali.
@@ -686,6 +690,12 @@ struct ReceiveSheet: View {
         let text: String = {
             switch chain.family {
             case .evm:
+                // Forma embrulhada (XRP da Binance, WBTC): o mesmo token em outra rede EVM e
+                // outro contrato, e chega como token fora da lista (revisao de seguranca, M2).
+                if let origin = asset.coingeckoID.flatMap({ ReceiveCoin.wrappedForms[$0] }),
+                   let home = Chain.all.first(where: { $0.coingeckoID == origin }) {
+                    return String(localized: "Envie só pela rede \(chain.name) (\(ReceiveCoin.standard(chain))). Não é \(home.nativeSymbol) da rede \(home.name): por outra rede, não chega como este token.")
+                }
                 return String(localized: "Na exchange, escolha a rede \(chain.name). Se vier por outra rede EVM, o saldo aparece naquela rede, desde que ela esteja ligada em Ajustes.")
             case .utxo:
                 return String(localized: "Envie só \(chain.nativeName), pela rede \(chain.name). Outra moeda enviada para este endereço se perde.")
@@ -806,19 +816,13 @@ struct ReceiveCoin: Identifiable, Hashable {
     static func group(_ assets: [Asset]) -> [ReceiveCoin] {
         var order: [String] = []
         var byKey: [String: [Asset]] = [:]
-        // O XRP da Binance tem o id de preco do XRP, mas e outra moeda: fica num grupo so
-        // dele, para o seletor embaixo do QR nunca trocar o XRP nativo por ele.
-        let nativeIDs = Set(assets.filter { $0.kind == .native }.compactMap(\.coingeckoID))
         for asset in assets {
-            var key = asset.coingeckoID ?? (asset.isCustom ? asset.id : "\(asset.symbol):\(asset.chainID)")
-            if TokenRegistry.pegged.contains(asset.id), nativeIDs.contains(key) { key += "|peg" }
+            let key = asset.coingeckoID ?? (asset.isCustom ? asset.id : "\(asset.symbol):\(asset.chainID)")
             if byKey[key] == nil { order.append(key) }
             byKey[key, default: []].append(asset)
         }
         let coins: [ReceiveCoin] = order.compactMap { key in
             guard let items = byKey[key], let first = items.first else { return nil }
-            // Aparece dentro da moeda de origem, em "Outras formas", nao como linha propria.
-            if key.hasSuffix("|peg") { return nil }
             let native = items.first { $0.kind == .native }
             let name = native.map { $0.chain?.nativeName ?? $0.name } ?? first.name
             return ReceiveCoin(id: key, symbol: first.symbol, name: name, coingeckoID: first.coingeckoID, assets: items)
@@ -838,6 +842,9 @@ struct ReceiveCoin: Identifiable, Hashable {
     static let wrappedForms: [String: String] = [
         "wrapped-bitcoin": "bitcoin", "binance-bitcoin": "bitcoin", "coinbase-wrapped-btc": "bitcoin",
         "weth": "ethereum",
+        "binance-peg-xrp": "ripple", "binance-peg-dogecoin": "dogecoin", "binance-peg-cardano": "cardano",
+        "binance-peg-polkadot": "polkadot", "binance-peg-litecoin": "litecoin", "binance-peg-avalanche": "avalanche-2",
+        "binance-peg-near-protocol": "near",
     ]
 
     /// O padrao do token na rede, para quem envia de uma corretora achar a opcao certa.
