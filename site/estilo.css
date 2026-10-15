@@ -63,6 +63,10 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* O rodape fica no pe da tela mesmo em pagina curta (404). */
+body { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+main { flex: 1 0 auto; }
+
 img, video, svg { display: block; max-width: 100%; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -443,6 +447,7 @@ p { margin: 0; }
 .cabeca-pagina { padding: clamp(56px, 9vw, 112px) 0 clamp(32px, 5vw, 56px); }
 .cabeca-pagina .lead { margin-top: 20px; max-width: 34em; }
 .cabeca-pagina .apoio { margin-top: 16px; }
+.cabeca-pagina .botoes { margin-top: 32px; }
 
 .bloco { padding: clamp(40px, 6vw, 72px) 0; }
 .bloco + .bloco { padding-top: 0; }
