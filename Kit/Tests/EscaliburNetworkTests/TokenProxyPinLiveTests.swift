@@ -26,6 +26,8 @@ struct TokenProxyPinLiveTests {
             expected: "0xba5fe23f8a3a24bed3236f05f2fcf35fd0bf0b5c"),
         Pin(label: "AVAX da Binance", chain: "bnb", target: "0x1CE0c2827e2eF14D5C4f29a091d735A204794041", read: .slot(implementation),
             expected: "0xba5fe23f8a3a24bed3236f05f2fcf35fd0bf0b5c"),
+        Pin(label: "SOL da Binance", chain: "bnb", target: "0x570A5D26f7765Ecb712C0924E4De545B89fD43dF", read: .slot(implementation),
+            expected: "0xba5fe23f8a3a24bed3236f05f2fcf35fd0bf0b5c"),
         Pin(label: "NEAR da Binance", chain: "bnb", target: "0x1Fa4a73a3F0133f0025378af00236f3aBDEE5D63", read: .slot(implementation),
             expected: "0xba5fe23f8a3a24bed3236f05f2fcf35fd0bf0b5c"),
         Pin(label: "WBTC da Arbitrum (beacon)", chain: "arbitrum", target: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f", read: .slot(beacon),

@@ -25,7 +25,7 @@ MOEDAS = ["bitcoin", "ethereum", "solana", "ripple", "stellar", "tron", "the-ope
           "dogecoin", "binancecoin", "avalanche-2", "polygon-ecosystem-token", "tether", "usd-coin", "dai",
           "wrapped-bitcoin", "weth", "chainlink", "uniswap", "arbitrum", "optimism", "jupiter-exchange-solana",
           "plasma", "okb", "sonic-3", "celo", "ripple-usd", "wrapped-steth", "usds", "leo-token",
-          "coinbase-wrapped-btc", "binance-bitcoin", "binance-peg-xrp", "binance-peg-dogecoin", "binance-peg-cardano", "binance-peg-polkadot", "binance-peg-litecoin", "binance-peg-avalanche", "binance-peg-near-protocol", "wrapped-eeth", "ethena-usde", "susds", "usd1-wlfi", "crypto-com-chain",
+          "coinbase-wrapped-btc", "binance-bitcoin", "binance-peg-xrp", "binance-peg-dogecoin", "binance-peg-cardano", "binance-peg-polkadot", "binance-peg-litecoin", "binance-peg-avalanche", "binance-peg-near-protocol", "binance-peg-sol", "wrapped-eeth", "ethena-usde", "susds", "usd1-wlfi", "crypto-com-chain",
           "global-dollar", "ethena", "paypal-usd", "ondo-finance", "tether-gold", "aave", "mantle", "aster-2",
           "sky", "morpho", "pax-gold", "pepe", "usdd", "bitget-token", "ethena-staked-usde", "jito-staked-sol",
           "pancakeswap-token", "render-token", "rocket-pool-eth", "nexo", "aerodrome-finance",

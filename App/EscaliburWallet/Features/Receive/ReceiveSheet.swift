@@ -387,10 +387,10 @@ struct ReceiveSheet: View {
     private func otherFormRow(_ asset: Asset) -> some View {
         NavigationLink(value: asset) {
             HStack(spacing: Space.sm) {
-                CoinLogo(coingeckoID: asset.coingeckoID, symbol: asset.symbol, size: 32, network: asset.chain, ringColor: Palette.body)
+                if let chain = asset.chain { NetworkBadge(chain: chain, size: 32, ring: Palette.body) }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(asset.symbol) na \(asset.chain?.name ?? "")").typeStyle(.row).foregroundStyle(Palette.ink)
-                    Text(verbatim: [asset.name, asset.chain.map(ReceiveCoin.standard) ?? ""].filter { !$0.isEmpty }.joined(separator: " · "))
+                    Text(verbatim: asset.chain?.name ?? "").typeStyle(.row).foregroundStyle(Palette.ink)
+                    Text(verbatim: [asset.chain.map(ReceiveCoin.standard) ?? "", "\(asset.symbol) · \(asset.name)"].filter { !$0.isEmpty }.joined(separator: " · "))
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 }
                 Spacer()
@@ -507,17 +507,15 @@ struct ReceiveSheet: View {
                             .buttonStyle(.plain)
                         }
                     }
+                    // As versoes em token entram na mesma lista, como mais uma rede: quem
+                    // quer receber SOL pela BEP-20 escolhe a BNB Chain aqui (pedido do dono,
+                    // 15/10/2026). A linha diz qual token e.
+                    ForEach(otherForms(coin)) { asset in otherFormRow(asset) }
                 }
                 .padding(.top, Space.md)
-                let forms = otherForms(coin)
-                if !forms.isEmpty {
-                    Text("Outras formas de \(coin.symbol)").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
-                    Text("Não são \(coin.symbol) da rede \(coin.assets.first { $0.kind == .native }?.chain?.name ?? coin.name): são tokens que valem o mesmo enquanto o emissor mantiver o lastro. Quem envia tem de escolher exatamente esta moeda e esta rede.")
-                        .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true).padding(.top, 2)
-                    VStack(spacing: 0) {
-                        ForEach(forms) { asset in otherFormRow(asset) }
-                    }
-                    .padding(.top, Space.xs)
+                if !otherForms(coin).isEmpty {
+                    Text("As redes com o nome de um token recebem a versão de \(coin.symbol) emitida naquela rede, que vale o mesmo enquanto o emissor mantiver o lastro. Quem envia tem de escolher exatamente a mesma rede.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true).padding(.top, Space.sm)
                 }
                 let extras = extraNetworks(coin)
                 if !extras.isEmpty, let id = coin.coingeckoID, let entry = search.coins[id] {
@@ -844,7 +842,7 @@ struct ReceiveCoin: Identifiable, Hashable {
         "weth": "ethereum",
         "binance-peg-xrp": "ripple", "binance-peg-dogecoin": "dogecoin", "binance-peg-cardano": "cardano",
         "binance-peg-polkadot": "polkadot", "binance-peg-litecoin": "litecoin", "binance-peg-avalanche": "avalanche-2",
-        "binance-peg-near-protocol": "near",
+        "binance-peg-near-protocol": "near", "binance-peg-sol": "solana",
     ]
 
     /// O padrao do token na rede, para quem envia de uma corretora achar a opcao certa.

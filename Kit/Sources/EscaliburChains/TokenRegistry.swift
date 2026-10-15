@@ -518,7 +518,7 @@ public enum TokenRegistry {
         //   nativo e o da Binance numa linha so, e Comprar ou Enviar abria no token da
         //   Binance (revisao de seguranca, A1). No Receber aparecem em "Outras formas" da
         //   moeda de origem (ReceiveCoin.wrappedForms). O SOL da BNB (0x570A...43dF) tambem
-        //   e da Binance, mas fica para outra leva; TRX e TON nao tem rede BSC na Binance.
+        //   e da Binance e entrou depois, logo abaixo; TRX e TON nao tem rede BSC na Binance.
         //   O dono (0xF68a...f62d, conta comum) cunha sem limite, e DOGE, AVAX e NEAR sao
         //   proxies que uma chave so troca: e o "enquanto o emissor mantiver o lastro" da
         //   tela do Receber.
@@ -530,6 +530,12 @@ public enum TokenRegistry {
         erc20("bnb", "0x4338665CBB7B2485A8855A139b75D5e34AB0DB94", "LTC", "Litecoin (Binance-Peg)", 18, "binance-peg-litecoin"),
         erc20("bnb", "0x1CE0c2827e2eF14D5C4f29a091d735A204794041", "AVAX", "Avalanche (Binance-Peg)", 18, "binance-peg-avalanche"),
         erc20("bnb", "0x1Fa4a73a3F0133f0025378af00236f3aBDEE5D63", "NEAR", "NEAR (Binance-Peg)", 18, "binance-peg-near-protocol"),
+        // SOL da Binance (pedido do dono, 15/10/2026: receber SOL pela BEP-20), com as mesmas
+        // provas: o endereco na API de redes da Binance (SOL, rede BSC), symbol()/decimals()
+        // em dois RPCs, transferencia simulada exata em dois RPCs, e o proxy com a mesma
+        // implementacao do DOGE, AVAX e NEAR. SUI e XLM da Binance tambem passam, mas o
+        // CoinGecko nao conhece esses contratos: sem preco proprio, ficam de fora.
+        erc20("bnb", "0x570A5D26f7765Ecb712C0924E4De545B89fD43dF", "SOL", "Solana (Binance-Peg)", 18, "binance-peg-sol"),
         // - WBTC das pontes oficiais de cada rede, ligado ao WBTC da Ethereum
         //   (0x2260...C599) pela propria ponte, nao pelo que o token declara: na Arbitrum,
         //   `calculateL2TokenAddress(WBTC)` devolve 0x2f2a... no L1GatewayRouter e no

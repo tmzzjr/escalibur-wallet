@@ -28,7 +28,7 @@ final class ReceiveOtherFormsTests: XCTestCase {
         if !btc.waitForExistence(timeout: 20) { shot("receber-sem-btc", app); print("ROTULOS:", app.buttons.allElementsBoundByIndex.prefix(25).map { $0.label }) }
         XCTAssertTrue(btc.exists)
         btc.tap()
-        XCTAssertTrue(app.staticTexts["Outras formas de BTC"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["outra-forma-WBTC-ethereum"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Bitcoin'")).firstMatch.exists)
         let wbtc = app.buttons["outra-forma-WBTC-ethereum"]
         XCTAssertTrue(wbtc.exists)
@@ -43,8 +43,7 @@ final class ReceiveOtherFormsTests: XCTestCase {
         let eth = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'ETH,'")).firstMatch
         XCTAssertTrue(eth.waitForExistence(timeout: 10))
         eth.tap()
-        XCTAssertTrue(app.staticTexts["Outras formas de ETH"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["outra-forma-ETH-bnb"].exists)
+        XCTAssertTrue(app.buttons["outra-forma-ETH-bnb"].waitForExistence(timeout: 5))
         app.swipeUp()
         shot("receber-eth-formas", app)
 
@@ -53,13 +52,20 @@ final class ReceiveOtherFormsTests: XCTestCase {
         let xrp = app.buttons["XRP, XRP"]
         XCTAssertTrue(xrp.waitForExistence(timeout: 10))
         xrp.tap()
-        XCTAssertTrue(app.staticTexts["Outras formas de XRP"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["outra-forma-XRP-bnb"].exists)
-        // A BNB nao e uma rede do XRP nativo: so aparece em "Outras formas".
-        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'BNB Chain'")).firstMatch.exists)
+        // Na mesma lista de redes, a BNB Chain diz que e o XRP da Binance.
+        XCTAssertTrue(app.buttons["outra-forma-XRP-bnb"].waitForExistence(timeout: 5))
         shot("receber-xrp-formas", app)
         app.buttons["outra-forma-XRP-bnb"].tap()
         XCTAssertTrue(app.staticTexts["XRP (Binance-Peg) · BEP-20"].waitForExistence(timeout: 5))
         shot("receber-xrp-binance", app)
+
+        // SOL: a Solana e a BNB Chain (BEP-20) na mesma lista.
+        app.navigationBars.buttons.firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        let sol = app.buttons["SOL, Solana"]
+        XCTAssertTrue(sol.waitForExistence(timeout: 10))
+        sol.tap()
+        XCTAssertTrue(app.buttons["outra-forma-SOL-bnb"].waitForExistence(timeout: 5))
+        shot("receber-sol-redes", app)
     }
 }
