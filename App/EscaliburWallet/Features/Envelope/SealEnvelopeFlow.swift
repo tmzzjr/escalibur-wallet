@@ -77,7 +77,7 @@ struct SealEnvelopeFlow: View {
         .task {
             // Na mesma prioridade do lacre: em `.utility` o iOS mede nos nucleos de
             // eficiencia e a calibracao escolhe menos passes do que cabem.
-            kdf = await Task.detached(priority: .userInitiated) { KDFCalibration.calibrate() }.value
+            kdf = await Offload.compute { KDFCalibration.calibrate() }
             #if DEBUG
             // `-tela lacrando`: o lacre de mentira, para ver a tela (nada e cifrado).
             if DebugDemo.screen == "lacrando" {
@@ -184,7 +184,7 @@ struct SealEnvelopeFlow: View {
                         error = nil
                         usingSuggestion = false
                         customPassword = true
-                        Task.detached(priority: .utility) { PasswordStrength.preload() }
+                        DispatchQueue.global(qos: .utility).async { PasswordStrength.preload() }
                     }
                 }
                 .padding(.top, Space.md)
@@ -288,10 +288,10 @@ struct SealEnvelopeFlow: View {
         let copy = SecureBytes(capacity: max(password.count, 1))
         password.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
         let length = passwordLength
-        let bits = await Task.detached(priority: .userInitiated) {
+        let bits = await Offload.compute {
             defer { copy.wipe() }
             return PasswordStrength.bits(copy)
-        }.value
+        }
         guard !Task.isCancelled else { return }
         measured = (length, bits)
     }
@@ -474,10 +474,10 @@ struct SealEnvelopeFlow: View {
         // Para a tela final: senha muito fraca, o arquivo fica fora da nuvem.
         weakSealed = !usingSuggestion && PasswordCost.band(bits: PasswordStrength.bits(password), kdf: kdf) == .veryWeak
         do {
-            let data = try await Task.detached(priority: .userInitiated) {
+            let data = try await Offload.run {
                 try Envelope.seal(phrase: phrase, passphrase: passphrase, label: label, password: password, parameters: kdf,
                                   generatedBits: generated, acceptedRisk: accepted)
-            }.value
+            }
             password.wipe()
             repeatPassword.wipe()
             phrase.wipe()

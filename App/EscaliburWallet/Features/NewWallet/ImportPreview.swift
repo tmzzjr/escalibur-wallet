@@ -19,11 +19,11 @@ struct ImportPreview: Sendable {
     /// Deriva fora da thread principal. O segredo nao e zerado aqui: quem chama
     /// ainda vai guarda-lo ou descarta-lo.
     static func make(_ secret: WalletSecret) async throws -> ImportPreview {
-        try await Task.detached(priority: .userInitiated) {
+        try await Offload.run {
             let (accounts, fingerprint) = try AccountDeriver.derive(secret, chains: chains)
             let addresses = chains.compactMap { chain in accounts.first { $0.chainID == chain.id }.map { (chain, $0.address) } }
             return ImportPreview(fingerprint: fingerprint.hex.uppercased(), addresses: addresses)
-        }.value
+        }
     }
 }
 

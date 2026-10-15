@@ -77,12 +77,12 @@ final class AppSession {
 
     /// Cadastra o PIN. O Argon2 do PIN roda fora do MainActor.
     func setUpPIN(_ pin: SecureBytes) async throws {
-        let key: SymmetricKey = try await Task.detached(priority: .userInitiated) {
+        let key: SymmetricKey = try await Offload.run {
             defer { pin.wipe() }
             let rk = try KeyServices.root.setUp(pin: pin)
             defer { rk.wipe() }
             return IndexCipher.key(from: rk)
-        }.value
+        }
         indexKey = key
         metadata = Metadata()
         try persist()
@@ -90,21 +90,21 @@ final class AppSession {
     }
 
     func unlock(pin: SecureBytes) async throws {
-        let (key, updates) = try await Task.detached(priority: .userInitiated) {
+        let (key, updates) = try await Offload.run {
             defer { pin.wipe() }
             let rk = try KeyServices.root.unlock(pin: pin)
             defer { rk.wipe() }
             return (IndexCipher.key(from: rk), Self.missingAccounts(rk: rk))
-        }.value
+        }
         try open(with: key, adding: updates)
     }
 
     func unlockWithBiometry() async throws {
-        let (key, updates) = try await Task.detached(priority: .userInitiated) {
+        let (key, updates) = try await Offload.run {
             let rk = try KeyServices.root.unlockWithBiometry(reason: String(localized: "Destravar a Escalibur Wallet"))
             defer { rk.wipe() }
             return (IndexCipher.key(from: rk), Self.missingAccounts(rk: rk))
-        }.value
+        }
         try open(with: key, adding: updates)
     }
 
@@ -170,7 +170,11 @@ final class AppSession {
         case .background:
             backgroundedAt = PINPolicy.uptime
         case .active:
-            KeyServices.root.rebaseAttempts()
+            // Fora da thread principal: com um PIN sendo cadastrado ou conferido (dois
+            // Argon2, segundos), o cofre fica trancado, e esperar por ele aqui congelava
+            // a tela inteira (amostra de 15/10/2026: a espada da abertura parada no
+            // mutex). O `unlock` refaz esta conta por conta propria, dentro do cofre.
+            Task { await Offload.compute { KeyServices.root.rebaseAttempts() } }
             if phase == .unlocked, let since = backgroundedAt,
                PINPolicy.uptime - since >= Double(AutoLockView.clamped(metadata.settings.autoLockSeconds)) {
                 lock()
@@ -203,7 +207,7 @@ final class AppSession {
     }
 
     private func rootKeyTask<T: Sendable>(_ credential: Credential, _ body: @escaping @Sendable (SecureBytes) throws -> T) async throws -> T {
-        try await Task.detached(priority: .userInitiated) {
+        try await Offload.run {
             let rk: SecureBytes
             switch credential {
             case .pin(let pin):
@@ -214,7 +218,7 @@ final class AppSession {
             }
             defer { rk.wipe() }
             return try body(rk)
-        }.value
+        }
     }
 
     var biometryEnabled: Bool { KeyServices.root.isBiometryEnabled }
@@ -223,7 +227,7 @@ final class AppSession {
     /// devolver a mesma RK. Sem essa prova, o dono descobriria que o atalho nao
     /// funciona no dia em que precisasse dele.
     func enableBiometry(pin: SecureBytes) async throws {
-        try await Task.detached(priority: .userInitiated) {
+        try await Offload.run {
             defer { pin.wipe() }
             let rk = try KeyServices.root.unlock(pin: pin)
             defer { rk.wipe() }
@@ -236,7 +240,7 @@ final class AppSession {
                 KeyServices.root.disableBiometry()
                 throw error
             }
-        }.value
+        }
         metadata.settings.biometryEnabled = true
         try persist()
     }

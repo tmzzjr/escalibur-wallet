@@ -519,12 +519,12 @@ struct ChangePINFlow: View {
             working = true
             Task {
                 do {
-                    try await Task.detached(priority: .userInitiated) {
+                    try await Offload.run {
                         defer { current.wipe(); newPIN.wipe() }
                         let rk = try KeyServices.root.unlock(pin: current)
                         defer { rk.wipe() }
                         try KeyServices.root.changePIN(rk: rk, newPIN: newPIN)
-                    }.value
+                    }
                     onDone()
                 } catch RootKeyVault.Failure.wiped {
                     session.eraseEverything()

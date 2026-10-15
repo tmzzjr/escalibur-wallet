@@ -229,10 +229,10 @@ struct OpenEnvelopeFlow: View {
         error = nil
         let password = self.password
         do {
-            let contents = try await Task.detached(priority: .userInitiated) {
+            let contents = try await Offload.run {
                 defer { password.wipe() }
                 return try Envelope.open(data, password: password)
-            }.value
+            }
             passwordLength = 0
             opened = contents
         } catch Envelope.Failure.slip39Share {

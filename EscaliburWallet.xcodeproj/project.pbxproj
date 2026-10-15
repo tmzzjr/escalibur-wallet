@@ -127,6 +127,7 @@
 		CE83B0D99CF75C35C220FAB4 /* RevealFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 529FF2FD620686A71B265A06 /* RevealFlow.swift */; };
 		CEB6F2EDD5952E9EF8FB6517 /* ImportPhraseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6269216B260E5FA27BB51E6 /* ImportPhraseTests.swift */; };
 		CF9F28B7885A6F727EAFFFD5 /* OrderProgressViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64EDC4BD05696FA0BB3FB2BA /* OrderProgressViews.swift */; };
+		D1B389016E83EE83AF753351 /* Offload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F82527B4657BCDFC2DA884 /* Offload.swift */; };
 		D52CDEA1F404C27F4DBE9AEA /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DA4214155F3E6DD1C21C252 /* WidgetSnapshot.swift */; };
 		D79A10714700A42878BB9F45 /* PriceWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = D96F7C8F5B9C4BEA4AC613AE /* PriceWidget.swift */; };
 		D7EEBC93C795C4E45FEEBEDD /* LiveCipher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1E802485A80F66518F915 /* LiveCipher.swift */; };
@@ -279,6 +280,7 @@
 		916F3B8A91333FB80F918ED9 /* LimitPriceTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitPriceTextTests.swift; sourceTree = "<group>"; };
 		923ECBE19CCD67EE592B54AA /* PriceAlertTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlertTextTests.swift; sourceTree = "<group>"; };
 		93C77E773E63B6664F4262AD /* Metadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metadata.swift; sourceTree = "<group>"; };
+		93F82527B4657BCDFC2DA884 /* Offload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Offload.swift; sourceTree = "<group>"; };
 		9533E741733252A8A22C3477 /* EnvelopeChain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeChain.swift; sourceTree = "<group>"; };
 		98728880640B5B94955214E7 /* ImportPhraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPhraseView.swift; sourceTree = "<group>"; };
 		98B99C8E82247CAD42E358D7 /* Buttons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buttons.swift; sourceTree = "<group>"; };
@@ -439,6 +441,7 @@
 				3D50F34B146D744EA6BF4F27 /* LimitRenewals.swift */,
 				93C77E773E63B6664F4262AD /* Metadata.swift */,
 				8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */,
+				93F82527B4657BCDFC2DA884 /* Offload.swift */,
 				09712057581F9378B87996C5 /* PasswordCost.swift */,
 				4027F05D922AF46864DCED58 /* Portfolio.swift */,
 				44AE65BCC609869DC729178D /* PriceAlerts.swift */,
@@ -1017,6 +1020,7 @@
 				94C21BC26784B1AD6AE63CB8 /* NewWalletFlow.swift in Sources */,
 				0C69486F69E82B02C7F393AE /* NonceQueue.swift in Sources */,
 				29229E9A86865457E736A3F7 /* NotificationRelay.swift in Sources */,
+				D1B389016E83EE83AF753351 /* Offload.swift in Sources */,
 				8C41E86F595FADDBED53F5FB /* OnboardingFlow.swift in Sources */,
 				32C85CC66E71ADDE142F2B2C /* OpenEnvelopeFlow.swift in Sources */,
 				A86F60C8E0ACDA0DB1C3F8B4 /* OpenOrdersView.swift in Sources */,
