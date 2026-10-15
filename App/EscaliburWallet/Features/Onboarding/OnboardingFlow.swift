@@ -39,7 +39,7 @@ struct OnboardingFlow: View {
 
     private var welcome: some View {
         VStack(spacing: 0) {
-            SwordInStone()
+            SwordCard()
                 .frame(maxWidth: .infinity, minHeight: 220, maxHeight: .infinity)
                 .padding(.top, Space.xs)
             VStack(spacing: Space.sm) {

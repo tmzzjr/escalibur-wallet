@@ -17495,6 +17495,82 @@
         }
       }
     },
+    "A espada na pedra" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "السيف في الصخرة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Schwert im Stein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The sword in the stone"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La espada en la piedra"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’épée dans la pierre"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पत्थर में तलवार"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pedang di batu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "石に刺さった剣"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "바위에 꽂힌 검"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taştaki kılıç"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thanh gươm trong đá"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "石中剑"
+          }
+        }
+      }
+    },
     "A exchange não pediu comentário" : {
       "localizations" : {
         "ar" : {
@@ -18029,6 +18105,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已录制的短语是按%@识别的。请用%@重新录制，以便 iPhone 正确核对。"
+          }
+        }
+      }
+    },
+    "A lenda" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأسطورة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Legende"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The legend"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La leyenda"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La légende"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "किंवदंती"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legenda"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "伝説"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전설"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Efsane"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Truyền thuyết"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传说"
           }
         }
       }
@@ -43512,6 +43664,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在载入图表"
+          }
+        }
+      }
+    },
+    "Carta da espada na pedra" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بطاقة السيف في الصخرة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karte mit dem Schwert im Stein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card of the sword in the stone"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carta de la espada en la piedra"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Carte de l’épée dans la pierre"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पत्थर में तलवार वाला कार्ड"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartu pedang di batu"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "石に刺さった剣のカード"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "바위에 꽂힌 검 카드"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taştaki kılıç kartı"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thẻ thanh gươm trong đá"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "石中剑卡片"
           }
         }
       }
@@ -98932,6 +99160,82 @@
         }
       }
     },
+    "Na lenda do rei Arthur, a espada ficou cravada na pedra com uma promessa: quem a tirasse seria rei. Cavaleiros e reis tentaram e falharam. Arthur tirou." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "في أسطورة الملك آرثر، كان السيف مغروسًا في الصخرة مع وعد: من يسحبه يصبح ملكًا. حاول الفرسان والملوك وفشلوا. سحبه آرثر."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der Legende von König Artus steckte das Schwert im Stein, mit einem Versprechen: Wer es herauszieht, wird König. Ritter und Könige versuchten es und scheiterten. Artus zog es heraus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In the legend of King Arthur, the sword stood in the stone with a promise: whoever pulled it out would be king. Knights and kings tried and failed. Arthur pulled it out."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En la leyenda del rey Arturo, la espada quedó clavada en la piedra con una promesa: quien la sacara sería rey. Caballeros y reyes lo intentaron y fallaron. Arturo la sacó."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans la légende du roi Arthur, l’épée était plantée dans la pierre avec une promesse : celui qui la retirerait serait roi. Chevaliers et rois ont essayé et échoué. Arthur l’a retirée."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "राजा आर्थर की किंवदंती में तलवार पत्थर में धंसी थी, एक वादे के साथ: जो इसे निकालेगा, वही राजा बनेगा. शूरवीरों और राजाओं ने कोशिश की और नाकाम रहे. आर्थर ने इसे निकाल लिया."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dalam legenda Raja Arthur, pedang itu tertancap di batu dengan sebuah janji: siapa yang mencabutnya akan menjadi raja. Para ksatria dan raja mencoba dan gagal. Arthur berhasil mencabutnya."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アーサー王の伝説では、剣は石に刺さったまま、こう約束されていました。抜いた者が王になる。騎士も王も挑み、失敗しました。抜いたのはアーサーでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아서왕 전설에서 검은 약속과 함께 바위에 꽂혀 있었습니다. 이 검을 뽑는 자가 왕이 되리라. 기사와 왕들이 도전했지만 실패했습니다. 검을 뽑은 것은 아서였습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kral Arthur efsanesinde kılıç bir vaatle taşa saplı duruyordu: onu çıkaran kral olacaktı. Şövalyeler ve krallar denedi ve başaramadı. Arthur çıkardı."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trong truyền thuyết vua Arthur, thanh gươm cắm trong đá kèm một lời hứa: ai rút được sẽ thành vua. Các hiệp sĩ và vua chúa đều thử và thất bại. Arthur đã rút được nó."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在亚瑟王的传说中，宝剑插在石中，并留下一个承诺：谁能拔出它，谁就是国王。骑士和国王们都试过，都失败了。亚瑟拔出了它。"
+          }
+        }
+      }
+    },
     "Na lenda, a Escalibur só sai da pedra pelas mãos certas. Aqui, essas mãos são as suas." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -99151,6 +99455,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "处于历史最高"
+          }
+        }
+      }
+    },
+    "Na sua carteira" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "في محفظتك"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In deinem Wallet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In your wallet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En tu billetera"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans votre portefeuille"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपके वॉलेट में"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di dompet Anda"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなたのウォレットでは"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 지갑에서는"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senin cüzdanında"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trong ví của bạn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在你的钱包里"
           }
         }
       }
@@ -103593,6 +103973,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 秒后重新报价"
+          }
+        }
+      }
+    },
+    "Numa carteira sem custódia vale a mesma regra. Suas moedas ficam na rede e só se movem com a assinatura da sua chave, que nasce e fica neste iPhone. Nem a Escalibur, nem banco, nem ninguém tira por você." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المحفظة غير الاحتجازية تتبع القاعدة نفسها. تبقى عملاتك على الشبكة ولا تتحرك إلا بتوقيع من مفتاحك، الذي يُنشأ ويُحفظ على هذا iPhone. لا Escalibur ولا بنك ولا أي أحد آخر يستطيع فعل ذلك نيابةً عنك."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Wallet, das du selbst verwahrst, folgt derselben Regel. Deine Coins bleiben im Netzwerk und bewegen sich nur mit der Signatur deines Schlüssels, der auf diesem iPhone entsteht und bleibt. Weder Escalibur noch eine Bank noch sonst jemand kann das für dich tun."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A non-custodial wallet follows the same rule. Your coins stay on the network and only move with a signature from your key, which is created and kept on this iPhone. Not Escalibur, not a bank, not anyone else can do it for you."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una billetera sin custodia sigue la misma regla. Tus monedas están en la red y solo se mueven con la firma de tu llave, que se crea y se queda en este iPhone. Ni Escalibur, ni un banco, ni nadie más puede hacerlo por ti."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un portefeuille non dépositaire suit la même règle. Vos cryptos restent sur le réseau et ne bougent qu’avec la signature de votre clé, créée et gardée sur cet iPhone. Ni Escalibur, ni une banque, ni personne d’autre ne peut le faire à votre place."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नॉन-कस्टोडियल वॉलेट में भी यही नियम है. आपके कॉइन नेटवर्क पर रहते हैं और सिर्फ़ आपकी चाबी के हस्ताक्षर से ही हिलते हैं, जो इसी iPhone पर बनती और रहती है. न Escalibur, न कोई बैंक, न कोई और आपकी जगह यह कर सकता है."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dompet non-kustodian mengikuti aturan yang sama. Koin Anda tetap di jaringan dan hanya bisa berpindah dengan tanda tangan kunci Anda, yang dibuat dan disimpan di iPhone ini. Bukan Escalibur, bukan bank, tidak ada orang lain yang bisa melakukannya untuk Anda."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノンカストディアルウォレットも同じルールです。コインはネットワーク上にあり、あなたの鍵の署名がなければ動きません。鍵はこの iPhone で作られ、ここに保管されます。Escalibur も銀行も、ほかの誰も、あなたの代わりに動かすことはできません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "비수탁형 지갑도 같은 규칙을 따릅니다. 코인은 네트워크에 있고, 이 iPhone에서 만들어져 보관되는 내 열쇠의 서명이 있어야만 움직입니다. Escalibur도, 은행도, 그 누구도 대신할 수 없습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gözetimsiz bir cüzdan da aynı kurala uyar. Coin’lerin ağda durur ve yalnızca bu iPhone’da oluşturulup saklanan anahtarının imzasıyla hareket eder. Ne Escalibur, ne bir banka, ne de başka biri bunu senin yerine yapabilir."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ví không lưu ký cũng theo đúng quy tắc đó. Coin của bạn nằm trên mạng và chỉ di chuyển khi có chữ ký từ khóa của bạn, được tạo và lưu trên iPhone này. Không phải Escalibur, không phải ngân hàng, không ai khác có thể làm thay bạn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非托管钱包也遵循同样的规则。你的币留在链上，只有经过你的密钥签名才能转移，而密钥在这台 iPhone 上生成并保存。Escalibur、银行或任何人都无法替你完成。"
           }
         }
       }
@@ -155430,6 +155886,82 @@
         }
       }
     },
+    "Toque duas vezes para virar a carta." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اضغط مرتين لقلب البطاقة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doppeltippen, um die Karte umzudrehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-tap to flip the card."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toca dos veces para girar la carta."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchez deux fois pour retourner la carte."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कार्ड पलटने के लिए दो बार टैप करें."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketuk dua kali untuk membalik kartu."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダブルタップでカードを裏返します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드를 뒤집으려면 두 번 탭하세요."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartı çevirmek için iki kez dokun."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chạm hai lần để lật thẻ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轻点两下以翻转卡片。"
+          }
+        }
+      }
+    },
     "Toque em Começar a falar." : {
       "localizations" : {
         "ar" : {
@@ -155958,6 +156490,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "轻点以雷亚尔查看"
+          }
+        }
+      }
+    },
+    "Toque para virar" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اضغط للقلب"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Umdrehen tippen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to flip"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toca para girar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchez pour retourner"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पलटने के लिए टैप करें"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ketuk untuk membalik"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップで裏返す"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "탭해서 뒤집기"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Çevirmek için dokun"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chạm để lật"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "轻点翻转"
           }
         }
       }

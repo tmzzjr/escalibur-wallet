@@ -34,8 +34,9 @@ struct WelcomeTour: View {
             TabView(selection: $page) {
                 TourPage(
                     title: String(localized: "Só você é digno"),
-                    text: String(localized: "Na lenda, só as mãos certas tiram a Escalibur da pedra. Nesta carteira, as mãos certas são as suas.")
-                ) { SwordInStone() }
+                    text: String(localized: "Na lenda, só as mãos certas tiram a Escalibur da pedra. Nesta carteira, as mãos certas são as suas."),
+                    framed: false
+                ) { SwordCard() }
                 .tag(0)
                 TourPage(
                     title: String(localized: "Uma chave para todas as suas moedas"),
@@ -75,15 +76,21 @@ struct WelcomeTour: View {
 private struct TourPage<Scene: View>: View {
     let title: String
     let text: String
+    /// A carta da espada traz a propria moldura e gira para fora dela: sem o painel.
+    var framed = true
     @ViewBuilder var scene: Scene
 
     var body: some View {
         VStack(spacing: 0) {
-            scene
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(LinearGradient(colors: [Palette.rail, Palette.body], startPoint: .top, endPoint: .bottom))
-                .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1))
+            if framed {
+                scene
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(LinearGradient(colors: [Palette.rail, Palette.body], startPoint: .top, endPoint: .bottom))
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1))
+            } else {
+                scene.frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
             VStack(spacing: Space.sm) {
                 Text(title).typeStyle(.hero).foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
