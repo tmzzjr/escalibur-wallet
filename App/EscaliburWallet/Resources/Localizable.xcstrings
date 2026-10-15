@@ -39133,6 +39133,28 @@
         }
       }
     },
+    "Recebido" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Received"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recibido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reçu"
+          }
+        }
+      }
+    },
     "Recebido %@" : {
       "localizations" : {
         "en" : {
@@ -44535,6 +44557,28 @@
         }
       }
     },
+    "Transação" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transaction"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transacción"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transaction"
+          }
+        }
+      }
+    },
     "Transações" : {
       "localizations" : {
         "en" : {
@@ -44597,6 +44641,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Diffuser à nouveau"
+          }
+        }
+      }
+    },
+    "Troca" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intercambio"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échange"
           }
         }
       }
@@ -48429,6 +48495,28 @@
         }
       }
     },
+    "por %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "for %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "por %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "contre %@"
+          }
+        }
+      }
+    },
     "por no mínimo %@" : {
       "localizations" : {
         "en" : {
@@ -48771,7 +48859,29 @@
       }
     },
     "••••••" : {},
-    "≈ %@" : {}
+    "≈ %@" : {},
+    "≈ %@ hoje" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ today"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ hoy"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@ aujourd’hui"
+          }
+        }
+      }
+    }
   },
   "version" : "1.0"
 }

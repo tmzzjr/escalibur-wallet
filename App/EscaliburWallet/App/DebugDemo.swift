@@ -309,6 +309,9 @@ struct DemoEnvelopes: ViewModifier {
                         WalletCreatedView(wallet: wallet, isFirst: false) { newWallet = nil }
                     }
                 case .checagem: NavigationStack { DeviceCheckView {} }
+                // `-tela transacao` com `-transacao recebida|enviada|troca`: o detalhe de
+                // uma transacao inventada, sem rede.
+                case .transacao: NavigationStack { ActivityDetailView(entry: DemoNewWallet.sampleEntry) }
                 case .frase: NavigationStack { ImportPhraseView { newWallet = nil } }
                 case .selo: VStack(spacing: Space.lg) {
                         Spacer()
@@ -341,8 +344,33 @@ struct DemoEnvelopes: ViewModifier {
 
 /// As telas de carteira nova que `-tela` abre direto.
 enum DemoNewWallet: String, Identifiable {
-    case adicionar, criar, seguranca, observar, promessa, checagem, frase, selo, criada, palavras
+    case adicionar, criar, seguranca, observar, promessa, checagem, frase, selo, criada, palavras, transacao
     var id: String { rawValue }
+
+    static var sampleEntry: ActivityEntry {
+        let arguments = ProcessInfo.processInfo.arguments
+        let variant = arguments.firstIndex(of: "-transacao").flatMap { arguments.indices.contains($0 + 1) ? arguments[$0 + 1] : nil } ?? "recebida"
+        let token = { (chain: String, symbol: String) in TokenRegistry.tokens.first { $0.chainID == chain && $0.symbol == symbol } }
+        let date = Date().addingTimeInterval(-5_400)
+        switch variant {
+        case "enviada":
+            return ActivityEntry(id: "demo-enviada", chainID: "arbitrum", direction: .sent, asset: .native(.arbitrum),
+                                 amount: BigUInt(125) * BigUInt.power(of: 10, 15), counterparty: "0x8ba1f109551bD432803012645Ac136ddd64DBA72",
+                                 date: date, status: .pending(nil), fee: BigUInt(21) * BigUInt.power(of: 10, 12),
+                                 hash: "0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060", suspicious: false)
+        case "troca":
+            return ActivityEntry(id: "demo-troca", chainID: "base", direction: .swap, asset: .native(.base),
+                                 amount: BigUInt.power(of: 10, 18) / 2, counterparty: nil, date: date, status: .confirmed,
+                                 fee: BigUInt(9) * BigUInt.power(of: 10, 12),
+                                 hash: "0x9fc76417374aa880d4449a1f7f31ec597f00b1f6f3dd2d66f4c9c6c445836d8b", suspicious: false,
+                                 receivedAsset: token("base", "USDC"), receivedAmount: BigUInt(1_302_450_000))
+        default:
+            return ActivityEntry(id: "demo-recebida", chainID: "solana", direction: .received, asset: token("solana", "USDC"),
+                                 amount: BigUInt(250_000_000), counterparty: "7v91N7iZ9mNicL8WfG6cgSCKyRXydQjLh6UYBWwm6y1Q",
+                                 date: date, status: .confirmed, fee: nil,
+                                 hash: "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW", suspicious: false)
+        }
+    }
 }
 /// O andamento de uma ordem sem rede, para conferir o desenho.
 struct DemoOrderProgress: View {

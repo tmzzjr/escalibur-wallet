@@ -472,6 +472,7 @@ struct ActivityRow: View {
 struct ActivityDetailView: View {
     @Environment(ToastCenter.self) private var toasts
     @Environment(AppSession.self) private var session
+    @Environment(Portfolio.self) private var portfolio
     let entry: ActivityEntry
     /// Recebimento EVM conferido em dois RPCs (auditoria 3, M2). Nil: ainda nao.
     @State private var check: Check?
@@ -485,58 +486,197 @@ struct ActivityDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Space.md) {
-                if entry.direction == .swap, let asset = entry.asset, let received = entry.receivedAsset, let amount = entry.receivedAmount {
-                    // Troca: o que entrou em destaque, o que saiu logo abaixo.
-                    VStack(alignment: .leading, spacing: Space.xxs) {
-                        Text("+" + Fmt.crypto(amount, decimals: received.decimals, symbol: received.symbol, style: .full))
-                            .typeStyle(.figure).foregroundStyle(Palette.ink)
-                        Text("por " + Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .full))
-                            .typeStyle(.body).foregroundStyle(Palette.inkSoft)
-                    }
-                } else if let asset = entry.asset {
-                    Text((entry.direction == .received ? "+" : "") + Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .full))
-                        .typeStyle(.figure).foregroundStyle(Palette.ink)
-                }
-                status
-                    .task { await verify() }
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    if let counterparty = entry.counterparty {
+            VStack(spacing: Space.lg) {
+                hero
+                facts
+                if let counterparty = entry.counterparty {
+                    // Sem botao de copiar: endereco de quem mandou pode ser isca (secao 4.10).
+                    VStack(alignment: .leading, spacing: Space.xs) {
                         Text(entry.direction == .received ? "De" : "Para").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                         AddressBlocks(address: counterparty)
                     }
-                    line(String(localized: "Rede"), entry.chain?.name ?? "")
-                    line(String(localized: "Data"), entry.date.formatted(.dateTime.day().month(.wide).year().hour().minute().locale(Fmt.locale)))
-                    if let fee = entry.fee, let chain = entry.chain {
-                        line(String(localized: "Taxa da rede"), Fmt.crypto(fee, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol, style: .full))
-                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Space.base)
+                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
                 }
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    Text("Identificador").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                    Text(verbatim: entry.hash).typeStyle(.monoSmall).foregroundStyle(Palette.ink)
-                    HStack(spacing: Space.sm) {
-                        Button {
-                            Pasteboard.copyAddress(entry.hash)
-                            toasts.show(String(localized: "Identificador copiado."))
-                        } label: {
-                            Text("Copiar").typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.ink)
-                        }
-                        if let chain = entry.chain, let url = chain.explorerURL(tx: entry.hash) {
-                            Link(destination: url) {
-                                HStack(spacing: 4) {
-                                    Text("Ver no \(chain.explorerName)").typeStyle(.note).fontWeight(.semibold)
-                                    Image(systemName: "arrow.up.right").font(.system(size: 11, weight: .semibold))
-                                }
-                                .foregroundStyle(Palette.ink)
-                            }
-                        }
-                    }
-                }
+                identifier
             }
-            .padding(Space.gutter)
+            .padding(.horizontal, Space.gutter)
+            .padding(.top, Space.sm)
+            .padding(.bottom, Space.xl)
         }
         .background(Palette.void.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    /// O que se moveu: o logo grande (na troca, o que saiu e o que entrou), o tipo, o
+    /// valor e a situacao.
+    private var hero: some View {
+        VStack(spacing: Space.xs) {
+            if entry.direction == .swap, let asset = entry.asset, let received = entry.receivedAsset {
+                HStack(spacing: Space.sm) {
+                    logo(asset, size: 56)
+                    Image(systemName: "arrow.forward").font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.inkMuted)
+                    logo(received, size: 56)
+                }
+                .padding(.bottom, Space.xs)
+            } else {
+                logo(entry.asset, size: 72)
+                    .padding(Space.sm)
+                    .background(Circle().fill(Palette.body))
+                    .padding(.bottom, Space.xxs)
+            }
+            HStack(spacing: Space.xs) {
+                Text(kind).typeStyle(.row).foregroundStyle(Palette.inkSoft)
+                if entry.suspicious { TokenBadge(.suspicious) }
+            }
+            if entry.direction == .swap, let asset = entry.asset, let received = entry.receivedAsset, let amount = entry.receivedAmount {
+                Text("+" + Fmt.crypto(amount, decimals: received.decimals, symbol: received.symbol, style: .full))
+                    .typeStyle(.figure).foregroundStyle(isFailed ? Palette.inkMuted : Palette.up)
+                    .strikethrough(isFailed)
+                Text("por \(Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .full))")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+            } else if let asset = entry.asset {
+                Text(sign + Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .full))
+                    .typeStyle(.figure)
+                    .foregroundStyle(isFailed ? Palette.inkMuted : (entry.direction == .received ? Palette.up : Palette.ink))
+                    .strikethrough(isFailed)
+                if let fiat = todayValue(of: asset, entry.amount) {
+                    Text("≈ \(fiat) hoje").typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                }
+            }
+            status
+                .task { await verify() }
+                .padding(.top, Space.xs)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.6)
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(.top, Space.sm)
+    }
+
+    /// Moeda, rede (com o logo de cada uma), data e taxa.
+    private var facts: some View {
+        VStack(spacing: 0) {
+            if entry.direction != .swap, let asset = entry.asset {
+                factRow(String(localized: "Moeda")) {
+                    logo(asset, size: 22, badge: false)
+                    Text(verbatim: asset.name).typeStyle(.row).foregroundStyle(Palette.ink)
+                }
+            }
+            if let chain = entry.chain {
+                factRow(String(localized: "Rede")) {
+                    NetworkBadge(chain: chain, size: 22, ring: .clear)
+                    Text(verbatim: chain.name).typeStyle(.row).foregroundStyle(Palette.ink)
+                }
+            }
+            factRow(String(localized: "Data")) {
+                Text(entry.date.formatted(.dateTime.day().month(.abbreviated).year().hour().minute().locale(Fmt.locale)))
+                    .typeStyle(.row).foregroundStyle(Palette.ink)
+            }
+            if let fee = entry.fee, let chain = entry.chain {
+                factRow(String(localized: "Taxa da rede")) {
+                    Text(Fmt.crypto(fee, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol, style: .full))
+                        .typeStyle(.row).foregroundStyle(Palette.ink)
+                }
+            }
+        }
+        .padding(.horizontal, Space.base)
+        .padding(.vertical, Space.xs)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+    }
+
+    /// O identificador da transacao, para copiar ou abrir no explorador da rede.
+    private var identifier: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Identificador").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .padding(.top, Space.base)
+            Text(verbatim: entry.hash).typeStyle(.monoSmall).foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Space.xxs)
+                .padding(.bottom, Space.xs)
+            Button {
+                Pasteboard.copyAddress(entry.hash)
+                toasts.show(String(localized: "Identificador copiado."))
+            } label: {
+                actionRow(String(localized: "Copiar"), systemImage: "doc.on.doc")
+            }
+            .buttonStyle(.plain)
+            if let chain = entry.chain, let url = chain.explorerURL(tx: entry.hash) {
+                Link(destination: url) {
+                    actionRow(String(localized: "Ver no \(chain.explorerName)"), systemImage: "arrow.up.right")
+                }
+            }
+        }
+        .padding(.horizontal, Space.base)
+        .padding(.bottom, Space.xxs)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+    }
+
+    private var kind: String {
+        switch entry.direction {
+        case .sent: return String(localized: "Enviado")
+        case .received: return String(localized: "Recebido")
+        case .swap: return String(localized: "Troca")
+        case .approval: return String(localized: "Autorização")
+        case .order: return String(localized: "Ordem")
+        case .other: return String(localized: "Transação")
+        }
+    }
+
+    private var isFailed: Bool { if case .failed = entry.status { return true }; return false }
+    private var sign: String {
+        guard !entry.amount.isZero, !isFailed else { return "" }
+        return entry.direction == .received ? "+" : (entry.direction == .sent ? Fmt.minus : "")
+    }
+
+    /// Quanto vale hoje, so para moeda da lista: token de fora pode ter preco de isca.
+    private func todayValue(of asset: Asset, _ amount: BigUInt) -> String? {
+        guard asset.origin == nil, !entry.suspicious, !amount.isZero, !isFailed, let price = portfolio.price(of: asset) else { return nil }
+        return Fmt.fiat(Fmt.double(amount, decimals: asset.decimals) * price, session.currency)
+    }
+
+    @ViewBuilder
+    private func logo(_ asset: Asset?, size: CGFloat, badge: Bool = true) -> some View {
+        let unverified = asset?.origin != nil || entry.suspicious
+        CoinLogo(coingeckoID: asset?.coingeckoID ?? entry.chain?.coingeckoID, symbol: asset?.symbol ?? entry.chain?.nativeSymbol ?? "",
+                 size: size, network: badge ? entry.chain : nil, ringColor: Palette.body, unverified: unverified,
+                 logoAsset: unverified && !entry.suspicious ? asset : nil)
+            .overlay(alignment: .bottomTrailing) {
+                if badge, let chain = entry.chain, isETHAwayFromHome(asset) {
+                    NetworkBadge(chain: chain, size: size * 0.4, ring: Palette.body)
+                        .offset(x: size * 0.08, y: size * 0.08)
+                }
+            }
+    }
+
+    /// O CoinLogo trata ETH na Base ou na Arbitrum como moeda nativa, sem selo; no
+    /// detalhe a rede aparece sempre, menos na Ethereum.
+    private func isETHAwayFromHome(_ asset: Asset?) -> Bool {
+        guard let chain = entry.chain, (asset?.coingeckoID ?? chain.coingeckoID) == chain.coingeckoID else { return false }
+        return chain.coingeckoID == Chain.ethereum.coingeckoID && chain.id != Chain.ethereum.id
+    }
+
+    private func factRow<Content: View>(_ label: String, @ViewBuilder value: () -> Content) -> some View {
+        HStack(spacing: Space.xs) {
+            Text(label).typeStyle(.body).foregroundStyle(Palette.inkSoft)
+            Spacer(minLength: Space.sm)
+            value()
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.75)
+        .frame(minHeight: Height.rowCompact)
+    }
+
+    private func actionRow(_ title: String, systemImage: String) -> some View {
+        HStack(spacing: Space.sm) {
+            Text(title).typeStyle(.row).foregroundStyle(Palette.ink)
+            Spacer(minLength: Space.sm)
+            Image(systemName: systemImage).font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+        }
+        .frame(minHeight: Height.rowCompact)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -586,13 +726,6 @@ struct ActivityDetailView: View {
         }
     }
 
-    private func line(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label).typeStyle(.note).foregroundStyle(Palette.inkSoft)
-            Spacer()
-            Text(value).typeStyle(.note).foregroundStyle(Palette.ink)
-        }
-    }
 }
 
 /// Enquanto o historico chega: as redes da carteira acendendo uma de cada vez, no meio
