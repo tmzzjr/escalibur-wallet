@@ -119,10 +119,12 @@ struct SealEnvelopeFlow: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             VStack(alignment: .leading, spacing: Space.md) {
-                EnvelopePoint(icon: "lock.doc", text: String(localized: "A senha da carteira é cifrada neste iPhone e vira um arquivo."))
-                EnvelopePoint(icon: "key", text: String(localized: "Você escolhe a senha que abre o arquivo. Ela não sai do iPhone e ninguém mais sabe."))
-                EnvelopePoint(icon: "eye.slash", text: String(localized: "Nem a Escalibur consegue abrir: não temos a sua senha nem cópia do arquivo."))
-                EnvelopePoint(icon: "externaldrive", text: String(localized: "Guarde o arquivo onde quiser. Ele só abre no app, com a senha do envelope."))
+                // Cada frase cabe em duas linhas no iPhone de 6,3 polegadas (pedido do dono,
+                // 15/10/2026). O decifrador e o tools/referencia/decifrar.py, publico.
+                EnvelopePoint(icon: "lock.doc", text: String(localized: "A senha da carteira vira um arquivo criptografado, aqui no iPhone."))
+                EnvelopePoint(icon: "key", text: String(localized: "Só você cria a senha do arquivo. Ela nunca sai deste iPhone."))
+                EnvelopePoint(icon: "eye.slash", text: String(localized: "O arquivo não passa por nós. Sem a sua senha, ninguém abre."))
+                EnvelopePoint(icon: "externaldrive", text: String(localized: "Guarde onde quiser. Descriptografe no app ou no decifrador aberto."))
             }
             .padding(Space.base)
             .frame(maxWidth: .infinity, alignment: .leading)

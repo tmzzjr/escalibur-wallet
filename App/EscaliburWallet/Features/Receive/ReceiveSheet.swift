@@ -22,13 +22,21 @@ enum QRCode {
     }
 }
 
-/// Area de transferencia so para endereco: local (nao sincroniza com outros
-/// aparelhos) e com validade de 2 minutos. A frase nunca passa por aqui.
+/// Area de transferencia: local (nao sincroniza com outros aparelhos) e com validade.
+/// O endereco vale 2 minutos. A frase so passa por aqui depois da tela de aviso
+/// (`CopyPhraseSheet`, pedido do dono de 15/10/2026), e vale 1 minuto.
 enum Pasteboard {
     static func copyAddress(_ address: String) {
         UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: address]], options: [
             .localOnly: true,
             .expirationDate: Date().addingTimeInterval(120),
+        ])
+    }
+
+    static func copyPhrase(_ words: [String]) {
+        UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: words.joined(separator: " ")]], options: [
+            .localOnly: true,
+            .expirationDate: Date().addingTimeInterval(60),
         ])
     }
 }

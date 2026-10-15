@@ -63,7 +63,7 @@ Each of these services has its own privacy policy.
 
 ## Clipboard
 
-A copied address stays only on this device and expires by itself. The app never lets the wallet words be copied.
+A copied address stays only on this device and expires by itself after 2 minutes. The wallet words can only be copied after a warning; the copy stays only on this device, never reaches your Mac and disappears after 1 minute.
 
 ## Your rights
 

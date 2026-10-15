@@ -213,12 +213,41 @@ final class RecordWordsDeckTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["palavra-12"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["palavra-1"].exists)
         XCTAssertTrue(app.buttons["Já anotei as 12"].exists)
+        shot("palavras-todas", app)
+    }
+
+    /// Copiar as palavras so depois do aviso: os tres "estou ciente" liberam o botao, e a
+    /// copia avisa que some em 1 minuto (pedido do dono, 15/10/2026).
+    func testCopyNeedsAllAcknowledgements() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "palavras"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["palavra-1"].waitForExistence(timeout: 30))
+        app.buttons["ver-todas-palavras"].tap()
+        let copy = app.buttons["copiar-palavras"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 5))
+        copy.tap()
+        let confirm = app.buttons["confirmar-copia"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        XCTAssertFalse(confirm.isEnabled)
+        app.buttons["ciente-copia-0"].tap()
+        app.buttons["ciente-copia-1"].tap()
+        XCTAssertFalse(confirm.isEnabled)
+        app.buttons["ciente-copia-2"].tap()
+        shot("copiar-aviso", app)
+        XCTAssertTrue(confirm.isEnabled)
+        confirm.tap()
+        XCTAssertTrue(app.staticTexts["Palavras copiadas. Elas somem em 1 minuto."].waitForExistence(timeout: 5))
+        shot("copiar-feito", app)
+    }
+
+    private func shot(_ name: String, _ app: XCUIApplication) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "palavras-todas"
+        attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
         if let shots = ProcessInfo.processInfo.environment["ESCALIBUR_FOTOS"] {
-            try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/palavras-todas.png"))
+            try? app.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(shots)/\(name).png"))
         }
     }
 }

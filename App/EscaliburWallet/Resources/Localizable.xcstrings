@@ -4835,6 +4835,28 @@
         }
       }
     },
+    "A cópia fica só neste iPhone, não passa para o Mac e some sozinha em 1 minuto. Anotar no papel continua sendo o mais seguro." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy stays only on this iPhone, never reaches your Mac and disappears by itself after 1 minute. Writing the words on paper is still the safest."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La copia queda solo en este iPhone, no pasa al Mac y desaparece sola en 1 minuto. Anotar las palabras en papel sigue siendo lo más seguro."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La copie reste uniquement sur cet iPhone, ne passe pas sur le Mac et disparaît d’elle-même au bout d’une minute. Noter les mots sur papier reste le plus sûr."
+          }
+        }
+      }
+    },
     "A energia acabou antes do fim da transferência. O USDT não saiu, e o TRX queimado na tentativa não volta." : {
       "localizations" : {
         "en" : {
@@ -6863,7 +6885,30 @@
         }
       }
     },
+    "A senha da carteira vira um arquivo criptografado, aqui no iPhone." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your recovery phrase becomes an encrypted file, right on this iPhone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu frase de recuperación se vuelve un archivo cifrado, aquí en el iPhone."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Votre phrase de récupération devient un fichier chiffré, ici sur l’iPhone."
+          }
+        }
+      }
+    },
     "A senha da carteira é cifrada neste iPhone e vira um arquivo." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -14836,6 +14881,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copier"
+          }
+        }
+      }
+    },
+    "Copiar a senha da carteira?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy the recovery phrase?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Copiar la frase de recuperación?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier la phrase de récupération ?"
+          }
+        }
+      }
+    },
+    "Copiar as palavras" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy the words"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar las palabras"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier les mots"
           }
         }
       }
@@ -24549,6 +24638,7 @@
       }
     },
     "Guarde o arquivo onde quiser. Ele só abre no app, com a senha do envelope." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -24566,6 +24656,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gardez le fichier où vous voulez. Il ne s’ouvre que dans l’app, avec le mot de passe de l’enveloppe."
+          }
+        }
+      }
+    },
+    "Guarde onde quiser. Descriptografe no app ou no decifrador aberto." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep it anywhere. Decrypt it in the app or the open-source decryptor."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guárdalo donde quieras. Descífralo en la app o en el descifrador abierto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gardez-le où vous voulez. Déchiffrez-le dans l’app ou le déchiffreur libre."
           }
         }
       }
@@ -28318,6 +28430,7 @@
       }
     },
     "Nem a Escalibur consegue abrir: não temos a sua senha nem cópia do arquivo." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -32079,6 +32192,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Le fichier n’indique ni à qui il appartient ni ce qu’il contient. Gardez le fichier et le mot de passe à des endroits différents : qui a les deux a le portefeuille."
+          }
+        }
+      }
+    },
+    "O arquivo não passa por nós. Sem a sua senha, ninguém abre." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file never goes through us. Without your password, no one opens it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El archivo no pasa por nosotros. Sin tu contraseña, nadie lo abre."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rien ne passe par nous. Sans votre mot de passe, personne ne l’ouvre."
           }
         }
       }
@@ -36224,6 +36359,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mot %lld, vide"
+          }
+        }
+      }
+    },
+    "Palavras copiadas. Elas somem em 1 minuto." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Words copied. They disappear in 1 minute."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palabras copiadas. Desaparecen en 1 minuto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mots copiés. Ils disparaissent dans 1 minute."
           }
         }
       }
@@ -42848,6 +43005,28 @@
         }
       }
     },
+    "Só você cria a senha do arquivo. Ela nunca sai deste iPhone." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only you create the file's password. It never leaves this iPhone."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo tú creas la contraseña del archivo. Nunca sale de este iPhone."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le mot de passe est le vôtre. Il ne quitte jamais cet iPhone."
+          }
+        }
+      }
+    },
     "Só você tem a chave" : {
       "localizations" : {
         "en" : {
@@ -46643,6 +46822,7 @@
       }
     },
     "Você escolhe a senha que abre o arquivo. Ela não sai do iPhone e ninguém mais sabe." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -47473,6 +47653,28 @@
         }
       }
     },
+    "colar as palavras num site, chat ou nota pode custar o saldo" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pasting the words into a site, chat or note can cost me my balance"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pegar las palabras en un sitio, chat o nota puede costarme el saldo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "coller les mots sur un site, un chat ou une note peut me coûter mon solde"
+          }
+        }
+      }
+    },
     "confirmado em %@" : {
       "localizations" : {
         "en" : {
@@ -48267,6 +48469,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "portugais"
+          }
+        }
+      }
+    },
+    "qualquer app que eu abrir pode ler o que está copiado" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "any app I open can read what is copied"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "cualquier app que abra puede leer lo que está copiado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "toute app que j’ouvre peut lire ce qui est copié"
           }
         }
       }

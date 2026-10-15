@@ -4,9 +4,10 @@ import SwiftUI
 
 /// O3 (gravar) e X2 (revelar): tres palavras por vez, num cartao sobre o baralho dos
 /// proximos, que vira como flash card ao seguir (ou ao arrastar). "Ver todas de uma vez"
-/// mostra a frase inteira numa placa so (pedido do dono, 15/10/2026); as protecoes sao
-/// as mesmas: nada de copiar, as palavras somem quando o app sai da frente, e a captura
-/// de tela e a gravacao continuam barradas (`guardedAgainstCapture`).
+/// mostra a frase inteira numa chapa so (pedido do dono, 15/10/2026); as protecoes sao
+/// as mesmas: as palavras somem quando o app sai da frente, e a captura de tela e a
+/// gravacao continuam barradas (`guardedAgainstCapture`). Copiar, so na chapa e depois
+/// do aviso (`CopyPhraseSheet`): local, e some em 1 minuto.
 struct RecordWordsView: View {
     let draft: PhraseDraft
     /// Nil na criacao; o nome da carteira na revelacao (X2).
@@ -21,6 +22,9 @@ struct RecordWordsView: View {
     @State private var showingAll = false
     /// O cartao acompanha o dedo enquanto arrasta.
     @State private var drag: CGFloat = 0
+    /// A tela de aviso antes de copiar.
+    @State private var askingCopy = false
+    @Environment(ToastCenter.self) private var toasts
     /// As palavras do grupo na tela e dos dois vizinhos, para a pagina ja estar pronta
     /// quando o dedo arrasta. Recarregadas ao trocar de grupo, soltas ao esconder e ao
     /// sair; `body` so le daqui.
@@ -42,9 +46,16 @@ struct RecordWordsView: View {
                 .contentTransition(.numericText())
 
             if showingAll {
-                ScrollView { allPlate }
-                    .scrollBounceBehavior(.basedOnSize)
-                    .padding(.top, Space.lg)
+                ScrollView {
+                    allPlate.padding(.vertical, Space.md)
+                    if !hidden {
+                        SecondaryButton(title: String(localized: "Copiar"), systemImage: "doc.on.doc") { askingCopy = true }
+                            .frame(maxWidth: 200)
+                            .accessibilityIdentifier("copiar-palavras")
+                    }
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .padding(.top, Space.sm)
             } else {
                 cards.padding(.top, Space.lg)
                 pageIndicator.padding(.top, Space.md)
@@ -83,6 +94,15 @@ struct RecordWordsView: View {
         .onChange(of: hidden) { _, _ in load() }
         .onChange(of: showingAll) { _, _ in load() }
         .onDisappear { shown = [:] }
+        .sheet(isPresented: $askingCopy) {
+            CopyPhraseSheet {
+                // Direto do rascunho: as da tela podem ter sido soltas se o app saiu da frente.
+                Pasteboard.copyPhrase(draft.words(0..<draft.wordCount))
+                askingCopy = false
+                toasts.show(String(localized: "Palavras copiadas. Elas somem em 1 minuto."))
+            }
+            .presentationDetents([.large])
+        }
         .onChange(of: scenePhase) { _, phase in
             // Em segundo plano as palavras escondem; voltam com um toque.
             if phase != .active { hidden = true }
@@ -170,7 +190,9 @@ struct RecordWordsView: View {
         .accessibilityIdentifier("placa-palavras")
     }
 
-    /// A frase inteira: duas colunas, em ordem de cima para baixo, e a passphrase embaixo.
+    /// A frase inteira, numa chapa de aco escovado como as de guardar seed (pedido do dono,
+    /// 15/10/2026): as palavras gravadas em baixo-relevo, duas colunas em ordem de cima
+    /// para baixo, rebites nos cantos, a chapa levemente inclinada e um brilho que passa.
     private var allPlate: some View {
         let count = draft.wordCount
         let half = (count + 1) / 2
@@ -182,13 +204,13 @@ struct RecordWordsView: View {
                         ForEach(column * half..<min(count, (column + 1) * half), id: \.self) { index in
                             HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
                                 Text(String(format: "%02d", index + 1))
-                                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                                    .foregroundStyle(Palette.plateMuted)
+                                    .font(.system(size: 13, weight: .heavy).monospacedDigit())
+                                    .engraved(depth: 0.8)
                                     .frame(width: 24, alignment: .leading)
                                 Text(verbatim: index < words.count ? words[index] : "")
                                     .accessibilityIdentifier("palavra-\(index + 1)")
-                                    .font(.system(size: 20, weight: .semibold, design: .monospaced))
-                                    .foregroundStyle(Palette.plateInk)
+                                    .font(.system(size: 20, weight: .bold, design: .monospaced))
+                                    .engraved(depth: 1)
                                     .minimumScaleFactor(0.6).lineLimit(1)
                                 Spacer(minLength: 0)
                             }
@@ -198,33 +220,35 @@ struct RecordWordsView: View {
                 }
             }
             if passphrase != nil, let secret = shown[groups - 1]?.first {
-                Rectangle().fill(Palette.plateRule).frame(height: 1).padding(.vertical, Space.xs)
+                Rectangle().fill(MetalPlate.groove).frame(height: 1.5).padding(.vertical, Space.xs)
                 HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
-                    Text("Pass").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.plateMuted)
-                    Text(verbatim: secret).font(.system(size: 20, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Palette.plateInk).minimumScaleFactor(0.5).lineLimit(1)
+                    Text("Pass").font(.system(size: 13, weight: .heavy)).engraved(depth: 0.8)
+                    Text(verbatim: secret).font(.system(size: 20, weight: .bold, design: .monospaced)).engraved(depth: 1)
+                        .minimumScaleFactor(0.5).lineLimit(1)
                     Spacer(minLength: 0)
                 }
                 .frame(height: 40)
             }
         }
-        .padding(Space.base)
+        .padding(.horizontal, Space.lg)
+        .padding(.vertical, Space.lg)
         .opacity(hidden ? 0 : 1)
         .overlay {
             if hidden {
                 Button { hidden = false } label: {
-                    Text("Mostrar de novo").typeStyle(.action).foregroundStyle(Palette.plateInk)
+                    Text("Mostrar de novo").typeStyle(.action).foregroundStyle(MetalPlate.ink)
                         .padding(.horizontal, Space.md).frame(height: 40)
-                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.plateInk, lineWidth: 1.5))
+                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(MetalPlate.ink, lineWidth: 1.5))
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .background(LacquerPlate().fill(Palette.live))
-        .clipShape(LacquerPlate())
+        .background(MetalPlate())
+        .rotation3DEffect(.degrees(7), axis: (x: 1, y: 0, z: 0), anchor: .center, perspective: 0.45)
+        .shadow(color: .black.opacity(0.55), radius: 18, x: 0, y: 16)
         .textSelection(.disabled)
         .accessibilityElement(children: .contain)
-        .transition(.opacity.combined(with: .scale(scale: 0.97)))
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
     }
 
     private func plate(_ index: Int) -> some View {
@@ -549,5 +573,137 @@ private struct CreatedEmblem: View {
             try? await Task.sleep(for: .milliseconds(120))
             checked = true
         }
+    }
+}
+
+/// A chapa de aco escovado da frase: degrade da luz para a sombra, riscos finos do
+/// escovado, chanfro aceso em cima e escuro embaixo, quatro rebites e um brilho que
+/// atravessa de tempos em tempos. Com Reduzir Movimento, sem o brilho.
+private struct MetalPlate: View {
+    static let ink = Color(hex: 0x2E2F35)
+    static let groove = Color(hex: 0x8E9098)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { timeline in
+            let cycle = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 5)
+            Canvas { context, size in
+                let rect = CGRect(origin: .zero, size: size)
+                context.fill(Path(rect), with: .linearGradient(
+                    Gradient(stops: [.init(color: Color(hex: 0xE9EAEE), location: 0), .init(color: Color(hex: 0xC9CBD1), location: 0.45),
+                                     .init(color: Color(hex: 0xD9DADF), location: 0.7), .init(color: Color(hex: 0xB4B6BD), location: 1)]),
+                    startPoint: .zero, endPoint: CGPoint(x: size.width, y: size.height)))
+                // O escovado: riscos horizontais finos, claros e escuros alternados.
+                var y: CGFloat = 1
+                var light = true
+                while y < size.height {
+                    context.fill(Path(CGRect(x: 0, y: y, width: size.width, height: 0.6)),
+                                 with: .color(light ? .white.opacity(0.22) : .black.opacity(0.05)))
+                    y += light ? 1.7 : 2.3
+                    light.toggle()
+                }
+                // O brilho que corre a chapa na diagonal.
+                if !reduceMotion, cycle < 1.4 {
+                    let phase = cycle / 1.4
+                    let x = -size.width * 0.4 + size.width * 1.8 * phase
+                    var band = Path()
+                    band.move(to: CGPoint(x: x, y: 0))
+                    band.addLine(to: CGPoint(x: x + size.width * 0.18, y: 0))
+                    band.addLine(to: CGPoint(x: x + size.width * 0.18 - size.height * 0.5, y: size.height))
+                    band.addLine(to: CGPoint(x: x - size.height * 0.5, y: size.height))
+                    band.closeSubpath()
+                    context.fill(band, with: .linearGradient(
+                        Gradient(colors: [.white.opacity(0), .white.opacity(0.45), .white.opacity(0)]),
+                        startPoint: CGPoint(x: x - size.height * 0.25, y: 0), endPoint: CGPoint(x: x + size.width * 0.18, y: 0)))
+                }
+                // Rebites nos quatro cantos.
+                for corner in [CGPoint(x: 14, y: 14), CGPoint(x: size.width - 14, y: 14),
+                               CGPoint(x: 14, y: size.height - 14), CGPoint(x: size.width - 14, y: size.height - 14)] {
+                    let rivet = CGRect(x: corner.x - 4.5, y: corner.y - 4.5, width: 9, height: 9)
+                    context.fill(Path(ellipseIn: rivet.offsetBy(dx: 0, dy: 1)), with: .color(.black.opacity(0.25)))
+                    context.fill(Path(ellipseIn: rivet), with: .radialGradient(
+                        Gradient(colors: [Color(hex: 0xF7F7F9), Color(hex: 0x9C9EA6)]),
+                        center: CGPoint(x: rivet.midX - 1.5, y: rivet.midY - 1.5), startRadius: 0, endRadius: 6))
+                }
+            }
+        }
+        .clipShape(shape)
+        // O chanfro: a borda de cima pega a luz, a de baixo fica na sombra.
+        .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.9), Color(hex: 0x8A8C94)], startPoint: .top, endPoint: .bottom), lineWidth: 2))
+        .overlay(shape.inset(by: 5).stroke(Color.black.opacity(0.08), lineWidth: 1))
+    }
+}
+
+/// Texto gravado no metal: escuro, com a luz batendo na borda de baixo do sulco.
+private extension View {
+    func engraved(depth: CGFloat) -> some View {
+        self.foregroundStyle(MetalPlate.ink.opacity(0.92))
+            .shadow(color: .white.opacity(0.75), radius: 0, x: 0, y: depth)
+            .shadow(color: .black.opacity(0.18), radius: 0, x: 0, y: -depth * 0.6)
+    }
+}
+
+/// Antes de copiar a frase: o que pode dar errado, tres "estou ciente" e so entao o
+/// botao. A copia fica so neste iPhone (nao vai para o Mac) e some em 1 minuto.
+private struct CopyPhraseSheet: View {
+    let onCopy: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var acknowledged: Set<Int> = []
+
+    static let statements = [
+        String(localized: "qualquer app que eu abrir pode ler o que está copiado"),
+        String(localized: "colar as palavras num site, chat ou nota pode custar o saldo"),
+        String(localized: "a Escalibur nunca pede as palavras"),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Image(systemName: "doc.on.clipboard")
+                .font(.system(size: 26, weight: .semibold)).foregroundStyle(Palette.caution)
+                .frame(width: 60, height: 60)
+                .background(Circle().fill(Palette.cautionTint))
+                .padding(.top, Space.lg)
+            Text("Copiar a senha da carteira?")
+                .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+            Text("A cópia fica só neste iPhone, não passa para o Mac e some sozinha em 1 minuto. Anotar no papel continua sendo o mais seguro.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Estou ciente que:").typeStyle(.row).foregroundStyle(Palette.ink).padding(.top, Space.lg)
+            VStack(spacing: 0) {
+                ForEach(Array(Self.statements.enumerated()), id: \.offset) { index, statement in
+                    Button {
+                        if acknowledged.contains(index) { acknowledged.remove(index) } else { acknowledged.insert(index) }
+                    } label: {
+                        HStack(spacing: Space.sm) {
+                            ZStack {
+                                Circle().stroke(acknowledged.contains(index) ? Palette.success : Palette.inkMuted, lineWidth: 1.5)
+                                if acknowledged.contains(index) {
+                                    Circle().fill(Palette.success)
+                                    Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(Palette.void)
+                                }
+                            }
+                            .frame(width: 22, height: 22)
+                            Text(statement).typeStyle(.body).foregroundStyle(Palette.ink).multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                        }
+                        .frame(minHeight: Height.rowCompact)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("ciente-copia-\(index)")
+                    .sensoryFeedback(.selection, trigger: acknowledged.contains(index))
+                }
+            }
+            Spacer(minLength: Space.lg)
+            PrimaryButton(title: String(localized: "Copiar as palavras"), enabled: acknowledged.count == Self.statements.count) { onCopy() }
+                .accessibilityIdentifier("confirmar-copia")
+            TertiaryButton(title: String(localized: "Agora não")) { dismiss() }
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, Space.gutter)
+        .padding(.bottom, Space.xs)
+        .background(Palette.void.ignoresSafeArea())
+        .guardedAgainstCapture()
     }
 }

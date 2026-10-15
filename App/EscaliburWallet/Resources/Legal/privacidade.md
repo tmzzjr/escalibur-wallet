@@ -61,7 +61,7 @@ Cada um desses serviços tem a própria política de privacidade.
 
 ## Área de transferência
 
-Endereço copiado fica só neste aparelho e expira sozinho. As palavras da carteira nunca podem ser copiadas pelo app.
+Endereço copiado fica só neste aparelho e expira sozinho em 2 minutos. As palavras da carteira só podem ser copiadas depois de um aviso; a cópia fica só neste aparelho, não passa para o Mac e some em 1 minuto.
 
 ## Seus direitos
 

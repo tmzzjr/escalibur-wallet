@@ -713,7 +713,7 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
   - Zerada assim que `open` retorna, com sucesso ou não. Não entra em cache para "tentar de novo".
 - **Seed revelada**:
   - O padrão é **não mostrar**. A importação vai direto para o armazenamento, e a tela mostra a identidade para conferência: fingerprint BIP-32 e o primeiro endereço BTC e EVM.
-  - "Ver palavras" exige PIN e segue a sessão de revelação do Escalibur: 3 palavras por vez, 60 s, fecha ao sair do primeiro plano, com proteção de captura, sem seleção e sem copiar.
+  - "Ver palavras" exige PIN e segue a sessão de revelação do Escalibur: 3 palavras por vez, ou as 12 (ou 24) numa chapa só em "Ver todas de uma vez" (pedido do dono, 15/10/2026), 60 s, fecha ao sair do primeiro plano, com proteção de captura e sem seleção. Copiar, só pelo aviso descrito em "Área de transferência".
 - **Exportar**:
   - Exige PIN, mais biometria se estiver ligada.
   - Senha padrão **gerada**: 6 palavras BIP-39 do CSPRNG, 66 bits. Com os parâmetros de referência, isso custa cerca de 97 mil anos a um Estado e 9,7 milhões a crime organizado. Com 5 palavras seriam 48 anos contra um Estado.
@@ -745,7 +745,7 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
   - Para a frase, o preferível é um seletor de palavras BIP-39 do próprio app: sem teclado do sistema, sem ditado, sem aprendizado de vocabulário.
   - PIN pelo teclado próprio.
 - **Área de transferência**:
-  - A frase nunca vai para a área de transferência: sem botão de copiar, com `.textSelection(.disabled)`.
+  - A frase só vai para a área de transferência pelo botão Copiar da chapa com todas as palavras, depois da `CopyPhraseSheet`: três "estou ciente" (qualquer app aberto pode ler a cópia; colar num site, chat ou nota pode custar o saldo; a Escalibur nunca pede as palavras) liberam o botão. A cópia é `.localOnly` (o Universal Clipboard não leva ao Mac) e expira em 60 s. Pedido do dono, 15/10/2026. Risco aceito: um app aberto dentro desse minuto lê a frase; o aviso diz isso com essas palavras. Fora desse botão, `.textSelection(.disabled)`.
   - Endereços: `UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: endereço]], options: [.localOnly: true, .expirationDate: agora + 120 s])`.
   - Colar a frase: mantém o comportamento do Escalibur (aviso e limpeza ao final).
 - **Jailbreak e depurador**:
@@ -820,7 +820,7 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
 | 13 | Chaveiro num ponto só | `SecItemAdd\|SecItemUpdate\|SecKeyCreateRandomKey` só em `Chaves/Chaveiro.swift` e `Chaves/Enclave.swift`; ali, `AfterFirstUnlock\|AccessibleAlways\|kSecAttrAccessibleWhenUnlocked\b\|SynchronizableAny\|\.userPresence\|\.devicePasscode\|\.biometryAny\|\.or\b` falha, e `ThisDeviceOnly` precisa aparecer |
 | 14 | Booleano não autoriza | `evaluatePolicy` fora do arquivo de disponibilidade da interface falha |
 | 15 | Comparação de segredo | `(digest\|tag\|mac\|hmac\|secret\|key)\w* *[!=]=` em Chaves/ falha; o caminho é `TempoConstante.igual` |
-| 16 | Área de transferência | `UIPasteboard` fora de `Plataforma/Transferencia.swift` falha; esse arquivo precisa conter `.localOnly` e `.expirationDate`; `UIPasteboard.general.string *=` falha |
+| 16 | Área de transferência | `UIPasteboard` fora de `Receive/ReceiveSheet.swift`, `ImportPhraseView.swift` e `SecurityScreens.swift` falha; toda cópia é `setItems` com `.localOnly` e `.expirationDate`; a frase vale até 60 s e só é copiada uma vez, pela `CopyPhraseSheet` de `RecordWordsView.swift` |
 | 17 | Defesas de plataforma presentes | `shouldAllowExtensionPointIdentifier` com `.keyboard`, cobertura em `willResignActiveNotification`, `sceneCaptureState` e `NSFileProtectionComplete` no entitlement |
 | 18 | Entitlements | conjunto exato de chaves; `aps-environment`, `icloud-*`, `ubiquity-*` e access groups de outros falham; no build arquivado, `codesign -d --entitlements :-` sem `get-task-allow` |
 | 19 | Permissões no Info.plist | lista fechada (FaceID, Câmera; Microfone e Fala só se o recurso de voz existir); `NSUserTracking\|NSLocation\|NSContacts\|NSLocalNetwork\|NSBluetooth` falha |
@@ -877,7 +877,7 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
 10. Módulos separados com a fronteira conferida por grep **e** por `nm`. `URLSession` efêmera sem `shared` e sem `AsyncImage`; sem redirecionamento; limites de tamanho; ATS padrão.
 11. Relay com upstreams fixos e sem SSRF, sem log, endereço só no corpo, retirando cabeçalhos. O app não aceita nada da lista 5.4. **Na v1 não há relay:** o app fala direto com os provedores públicos, e o IP do dono chega a eles, o que a Política de privacidade e a tela de redes dizem.
 12. Envelope: `OpeningContents` em `SecureBytes`, recusa de `slip39Share`, passphrase honrada, idioma validado, checksum, tamanho conferido antes de ler, limpeza de Inbox e tmp, mensagem única de erro, reabertura depois de exportar, fixtures nos dois sentidos com `decifrar.py`.
-13. Plataforma: cobertura do snapshot, `sceneCaptureState`, teclados de terceiros bloqueados, traços dos campos, frase nunca na área de transferência, endereços com `localOnly` e expiração, nenhum SDK de terceiro, regras de log, sem WebView, sem push, exclusões de backup, limpeza do chaveiro na primeira execução.
+13. Plataforma: cobertura do snapshot, `sceneCaptureState`, teclados de terceiros bloqueados, traços dos campos, frase na área de transferência só depois do aviso e por 60 s, toda cópia com `localOnly` e expiração, nenhum SDK de terceiro, regras de log, sem WebView, sem push, exclusões de backup, limpeza do chaveiro na primeira execução.
 14. Cadeia de suprimentos: libsecp256k1 v0.8.0, Keccak, RIPEMD-160 e bech32 vendorizados com locks e vetores; `verificar.sh` completo no CI; SECURITY.md; CODEOWNERS; tags assinadas; conta da ASC com chave de segurança de hardware.
 15. Código do aparelho e SE disponíveis exigidos. Onboarding com backup conferido e com a verdade sobre `ThisDeviceOnly`.
 

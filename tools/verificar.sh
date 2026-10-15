@@ -280,8 +280,18 @@ achados=$(swift_em "$APP" | xargs grep -lE 'UIPasteboard' 2>/dev/null | grep -vE
 # A checagem do aparelho so pergunta se ha texto copiado, sem ler o conteudo.
 achados=$(grep -nE 'UIPasteboard' "$APP/Features/NewWallet/SecurityScreens.swift" | grep -v 'UIPasteboard.general.hasStrings')
 [ -n "$achados" ] && { aviso "a checagem do aparelho le a area de transferencia"; echo "$achados"; } || ok "a checagem do aparelho so pergunta se ha texto copiado"
-grep -q '\.localOnly' "$APP/Features/Receive/ReceiveSheet.swift" && grep -q '\.expirationDate' "$APP/Features/Receive/ReceiveSheet.swift" \
-    && ok "endereco copiado e local e expira" || aviso "copia de endereco sem localOnly/expiracao"
+# Toda copia passa por setItems, local (nao vai para o Mac) e com validade. A frase vale
+# no maximo 1 minuto e so sai pela tela das palavras, depois do aviso (CopyPhraseSheet).
+f="$APP/Features/Receive/ReceiveSheet.swift"
+copias=$(grep -c 'UIPasteboard.general.setItems' "$f"); locais=$(grep -c '\.localOnly: true' "$f"); prazos=$(grep -c '\.expirationDate: Date().addingTimeInterval' "$f")
+outras=$(grep -n 'UIPasteboard' "$f" | grep -v 'UIPasteboard.general.setItems')
+[ "$copias" -gt 0 ] && [ "$copias" = "$locais" ] && [ "$copias" = "$prazos" ] && [ -z "$outras" ] \
+    && ok "toda copia e local e expira" || aviso "copia sem localOnly/expiracao"
+prazo=$(awk '/static func copyPhrase/,/^    }/' "$f" | grep -oE 'addingTimeInterval\([0-9]+\)' | grep -oE '[0-9]+')
+chamadas=$(procurar 'Pasteboard\.copyPhrase' "$APP" | grep -v 'Receive/ReceiveSheet\.swift:')
+[ -n "$prazo" ] && [ "$prazo" -le 60 ] && [ "$(echo "$chamadas" | grep -c .)" = "1" ] && echo "$chamadas" | grep -q 'NewWallet/RecordWordsView\.swift:' \
+    && grep -q 'CopyPhraseSheet {' "$APP/Features/NewWallet/RecordWordsView.swift" \
+    && ok "a frase so e copiada depois do aviso e some em ate 1 minuto" || { aviso "copia da frase fora do aviso ou com validade longa"; echo "$chamadas"; }
 achados=$(procurar '^[[:space:]]*import +(Firebase[A-Za-z]*|Crashlytics|Sentry|Bugsnag|Amplitude|Mixpanel|Segment|AppsFlyer[A-Za-z]*|Adjust[A-Za-z]*|Branch|OneSignal|Datadog[A-Za-z]*|NewRelic|Instabug|FBSDK[A-Za-z]*|GoogleMobileAds|PostHog)\b' "$APP" "$NET" "$CORE" "$CHAINS" "$KEYS")
 [ -n "$achados" ] && { aviso "SDK de terceiro"; echo "$achados"; } || ok "nenhum SDK de analise, falha ou anuncio"
 achados=$(procurar 'WKWebView|SFSafariViewController|UIWebView|ASWebAuthenticationSession' "$APP")
