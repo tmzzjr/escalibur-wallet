@@ -1,7 +1,6 @@
 <section class="abertura" aria-labelledby="t-abertura">
 <div class="wrap abertura-texto">
-<img class="abertura-icone" src="{{base}}icone-256.png" alt="" width="72" height="72">
-<p class="sobretitulo">Escalibur Wallet</p>
+<img class="abertura-icone" src="{{base}}icone-256.png" alt="Escalibur Wallet" width="64" height="64">
 <h1 class="titulo-grande" id="t-abertura">Suas chaves.<br>Só no seu iPhone.</h1>
 <p class="lead">Carteira cripto sem custódia. Envie e receba em {{n_redes}} redes, troque pelos protocolos públicos de cada uma e confira cada transação antes de assinar. Sem conta, sem cadastro e sem servidor da Escalibur.</p>
 {{botoes_baixar}}
@@ -95,13 +94,18 @@
 </div>
 </section>
 
-<section class="recurso" id="chaves" aria-labelledby="t-chaves">
+<section class="recurso chaves" id="chaves" aria-labelledby="t-chaves">
 <div class="wrap">
-<div class="recurso-grade invertido">
-<div class="recurso-texto">
+<div class="centro">
 <p class="sobretitulo">Chaves</p>
 <h2 class="titulo-secao" id="t-chaves">A chave nasce no iPhone e não sai dele.</h2>
 <p class="lead">A senha da carteira é cifrada neste aparelho, presa ao Secure Enclave e ao seu PIN, e fica fora do backup do iCloud. Não existe cópia em servidor, porque não existe servidor.</p>
+</div>
+<div class="chaves-grade">
+<div class="recurso-midia">
+{{aparelho promessa | Antes de começar: o que protege a carteira, com a cifra em volta do iPhone}}
+</div>
+<div>
 <ol class="cadeia" aria-label="Do PIN até a assinatura">
 <li><span class="no"><svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="4" cy="9" r="1.6" fill="currentColor"/><circle cx="9" cy="9" r="1.6" fill="currentColor"/><circle cx="14" cy="9" r="1.6" fill="currentColor"/></svg></span><div><b>Seu PIN</b><span>Seis dígitos que não ficam gravados em lugar nenhum, nem como verificador.</span></div></li>
 <li><span class="no"><svg viewBox="0 0 18 18" aria-hidden="true"><rect x="4" y="4" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 1.5v2.5M11 1.5v2.5M7 14v2.5M11 14v2.5M1.5 7H4M1.5 11H4M14 7h2.5M14 11h2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><div><b>Argon2id com 256 MiB</b><span>Cada tentativa custa memória e tempo, de propósito.</span></div></li>
@@ -111,49 +115,24 @@
 </ol>
 <a class="mais" href="{{base}}seguranca/">Como a Escalibur protege, e onde a proteção para</a>
 </div>
-<div class="recurso-midia">
-{{aparelho promessa | Antes de começar: o que protege a carteira, com a cifra em volta do iPhone}}
-</div>
 </div>
 </div>
 </section>
 
-<section class="recurso" id="alertas" aria-labelledby="t-alertas">
-<div class="wrap">
-<div class="recurso-grade">
-<div class="recurso-texto">
+<section class="dupla" aria-label="Alertas e envelope">
+<div class="wrap dupla-grade">
+<article class="ladrilho" id="alertas" aria-labelledby="t-alertas">
 <p class="sobretitulo">Alertas</p>
-<h2 class="titulo-secao" id="t-alertas">Avisos que o próprio iPhone gera.</h2>
-<p class="lead">O iPhone confere sozinho, em segundo plano, nos mesmos serviços públicos que o app já usa. Sem servidor de notificação no caminho e sem conta para receber aviso.</p>
-<ul class="pontos">
-<li><b>Preço:</b> quando uma moeda passa de um número redondo ou se mexe forte em 24 horas.</li>
-<li><b>Recebimento:</b> quando chega saldo numa das suas contas.</li>
-<li><b>Ordem limite:</b> quando ela é executada, ou perto de vencer.</li>
-</ul>
-</div>
-<div class="recurso-midia">
+<h2 id="t-alertas">Avisos que o próprio iPhone gera.</h2>
+<p class="lead">Preço, recebimento e ordem limite, conferidos em segundo plano pelo próprio iPhone. Sem servidor de notificação no caminho e sem conta para receber aviso.</p>
 {{aparelho alertas | Alertas de preço: ligar e escolher quando avisar}}
-</div>
-</div>
-</div>
-</section>
-
-<section class="recurso" id="envelope" aria-labelledby="t-envelope">
-<div class="wrap">
-<div class="recurso-grade invertido">
-<div class="recurso-texto">
+</article>
+<article class="ladrilho" id="envelope" aria-labelledby="t-envelope">
 <p class="sobretitulo">Envelope Escalibur</p>
-<h2 class="titulo-secao" id="t-envelope">Uma cópia cifrada, com uma senha só sua.</h2>
-<p class="lead">O envelope guarda a senha da carteira num arquivo <code>.esclbr</code>, trancado com outra senha que só você conhece. Argon2id e ChaCha20-Poly1305, em formato aberto. Nem a Escalibur consegue abrir.</p>
-<ul class="pontos">
-<li><b>Senha medida de verdade.</b> O medidor diz em quanto tempo ela cairia, com os parâmetros reais do envelope.</li>
-<li><b>Formato aberto.</b> Os testes conferem os dois sentidos: o envelope do app abre no decifrador de referência, e um envelope lacrado por um programa escrito só a partir da especificação abre no app.<br>{{codigo formato-do-envelope}}</li>
-</ul>
-</div>
-<div class="recurso-midia">
+<h2 id="t-envelope">Uma cópia cifrada, com uma senha só sua.</h2>
+<p class="lead">A senha da carteira num arquivo <code>.esclbr</code>, trancado com outra senha que só você conhece. Argon2id e ChaCha20-Poly1305, em formato aberto. Nem a Escalibur consegue abrir.</p>
 {{aparelho envelope | Guardar num envelope Escalibur: o bloco entra, a aba fecha e o cadeado tranca}}
-</div>
-</div>
+</article>
 </div>
 </section>
 

@@ -221,9 +221,7 @@ def auditorias():
     for caminho in sorted((RAIZ / "docs").glob("auditoria-*.md"), key=lambda p: int(re.sub(r"\D", "", p.stem) or 0)):
         texto = caminho.read_text(encoding="utf-8")
         titulo = re.search(r"^# (.+)$", texto, re.M)
-        paragrafos = [p.strip() for p in re.split(r"\n\s*\n", texto) if p.strip() and not p.strip().startswith(("#", "|", "-"))]
-        resumo = re.sub(r"[*`]", "", paragrafos[0]).replace("\n", " ") if paragrafos else ""
-        saida.append({"titulo": titulo.group(1) if titulo else caminho.stem, "resumo": acentos.sem_travessao(resumo),
+        saida.append({"titulo": acentos.sem_travessao(titulo.group(1)) if titulo else caminho.stem,
                       "caminho": f"docs/{caminho.name}"})
     return list(reversed(saida))
 
@@ -244,6 +242,12 @@ def arquivos_chave():
     return info
 
 
+def novidades_do_app():
+    """As novidades sao do app: commit do proprio site (assunto comecando com "Site")
+    fica de fora."""
+    return [c for c in dados.commits(40) if not re.match(r"^Site\b", c["assunto"])][:30]
+
+
 def contar_testes():
     total = 0
     for arquivo in (RAIZ / "Kit/Tests").rglob("*.swift"):
@@ -261,7 +265,7 @@ def contexto(saida=None):
         app_store_id = achado.group(1) if achado else None
     ctx = {
         "versao": dados.versao(), "redes": redes, "tokens": tokens, "commit": dados.commit_atual(),
-        "ci": dados.estado_ci(), "commits": dados.commits(30), "hosts": dados.hosts(),
+        "ci": dados.estado_ci(), "commits": novidades_do_app(), "hosts": dados.hosts(),
         "grupos_hosts": dados.grupos_de_hosts(), "travas": travas, "verificacoes": verificacoes,
         "n_verificacoes": sum(len(s["itens"]) for s in verificacoes),
         "n_travados": sum(len(t["arquivos"]) for t in travas if t["origem"]),

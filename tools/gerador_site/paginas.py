@@ -197,7 +197,7 @@ def grade_de_redes(ctx, base):
     return f'<ul class="redes-grade" aria-label="As {len(ctx["redes"])} redes da carteira">{itens}</ul>'
 
 
-def resumo_novidades(ctx, base, quantos=4):
+def resumo_novidades(ctx, base, quantos=3):
     itens = []
     for c in ctx["commits"][:quantos]:
         itens.append(
@@ -437,8 +437,8 @@ git checkout {e(ref[:12])}</code><span>O mesmo commit desta página.</span></li>
         for linha, mensagem, so_testes in secao["itens"]:
             marca = '<span class="marca-teste">com --testes</span>' if so_testes else ""
             itens.append(
-                f'<li><span>{acento(mensagem)}{marca}'
-                f'<span class="onde"><a href="{blob(ctx, "tools/verificar.sh", linha)}">verificar.sh, linha {linha}</a></span></span></li>'
+                f'<li><span>{acento(mensagem)}{marca} '
+                f'<span class="onde"><a href="{blob(ctx, "tools/verificar.sh", linha)}" aria-label="verificar.sh, linha {linha}">linha {linha}</a></span></span></li>'
             )
         grupos.append(
             f'<section class="cartao"><h3>{e(_nome_secao(secao["nome"]))}<span class="conta">{len(secao["itens"])}</span></h3>'
@@ -487,7 +487,7 @@ git checkout {e(ref[:12])}</code><span>O mesmo commit desta página.</span></li>
     arquivos_html = "".join(arquivos)
 
     auditorias = "".join(
-        f'<li><b>{e(a["titulo"])}</b><span>{e(a["resumo"])}</span><a href="{blob(ctx, a["caminho"])}">Ler no GitHub</a></li>'
+        f'<li><b>{e(a["titulo"])}</b><a href="{blob(ctx, a["caminho"])}">Ler o relatório no GitHub</a></li>'
         for a in ctx["auditorias"]
     )
 
