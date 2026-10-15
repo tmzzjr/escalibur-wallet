@@ -2,7 +2,7 @@ import EscaliburNetwork
 import SwiftUI
 
 /// Ajustes, Alertas de preco: liga, escolhe quando avisar, o que aparece na tela
-/// bloqueada e quais moedas. A lista comeca vazia; as moedas da carteira e as
+/// bloqueada e quais moedas. A lista comeca com BTC, ETH e XRP (ligados de fabrica); as moedas da carteira e as
 /// favoritas aparecem como sugestao, e o dono marca uma a uma.
 struct PriceAlertsView: View {
     @Environment(AppSession.self) private var session
@@ -407,5 +407,29 @@ struct PriceAlertBell: View {
         watching = true
         toasts.show(String(localized: "Alertas de \(coin.symbol.uppercased()) ligados"))
         await PriceAlertCenter.shared.check(force: true)
+    }
+}
+
+/// Ligado por padrao com BTC, ETH e XRP (pedido do dono, 15/10/2026), como o aviso de
+/// recebimento: na primeira vez que a carteira abre sem o dono ter escolhido, pede a
+/// permissao de notificacao (a mesma do aviso) e liga. As tres moedas sao fixas, nao saem
+/// do saldo: o arquivo fora do cofre continua sem dizer o que a carteira tem. Desligar em
+/// Ajustes vale para sempre; sem permissao, fica desligado.
+enum PriceAlertDefaults {
+    @MainActor
+    static func enableByDefault(_ session: AppSession) async {
+        guard !Preferences.priceAlertsChosen, session.phase == .unlocked, !session.metadata.wallets.isEmpty else { return }
+        #if DEBUG
+        if DebugDemo.enabled { return }
+        #endif
+        Preferences.priceAlertsChosen = true
+        guard await PriceAlertCenter.requestPermission() else { return }
+        let currency = session.metadata.settings.currency
+        _ = await PriceAlertCenter.shared.update { file in
+            file.enabled = true
+            file.currency = currency
+            if file.coins.isEmpty { file.coins = PriceAlertCenter.defaultCoins }
+        }
+        await PriceAlertCenter.shared.reschedule()
     }
 }

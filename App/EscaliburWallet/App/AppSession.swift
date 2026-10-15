@@ -54,6 +54,7 @@ final class AppSession {
         if phase == .onboarding, UIApplication.shared.isProtectedDataAvailable {
             Self.eraseBackgroundFiles()
             Preferences.receiptWatchChosen = false
+            Preferences.priceAlertsChosen = false
         }
     }
 
@@ -365,6 +366,7 @@ final class AppSession {
         MetadataStore.deleteFile()
         Self.eraseBackgroundFiles()
         Preferences.receiptWatchChosen = false
+        Preferences.priceAlertsChosen = false
         // Os atores zeram o que tinham em memoria; os arquivos ja sairam acima.
         Task {
             await ReceiptWatchCenter.shared.disable()

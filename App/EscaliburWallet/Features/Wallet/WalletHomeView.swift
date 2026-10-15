@@ -84,6 +84,7 @@ struct WalletHomeView: View {
             let balances = portfolio.balances
             Task { await ActivityFeed.shared.load(wallet, disabled: disabled, session: session, balances: balances) }
             await ReceiptAccounts.enableByDefault(session)
+            await PriceAlertDefaults.enableByDefault(session)
             #if DEBUG
             // As telas que dependem do saldo esperam a leitura acima.
             if DebugDemo.screen == "detalhe", let first = portfolio.rows.first { router.walletPath.append(first) }

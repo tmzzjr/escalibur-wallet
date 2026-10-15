@@ -59,7 +59,7 @@ Each of these services has its own privacy policy.
 
 - **Face ID:** iOS decides. The app only receives "confirmed" or "not confirmed", never your face.
 - **Camera:** only to read an address QR code, on the device. No image is saved.
-- **Notifications:** all local, created on the iPhone itself, and only with your permission: the app has no push token and no server sends it anything. They go out for: price alerts, with the coin and the price, or only "Price alert", as you choose; incoming alerts (on by default), only with "Coins arrived in your wallet", or with the amount and coin received, if you choose; a bridge arriving, without the amount; and limit orders, 24 hours before they expire, when they fill and when the deadline ends, without coin or amount. Never the wallet balance.
+- **Notifications:** all local, created on the iPhone itself, and only with your permission: the app has no push token and no server sends it anything. They go out for: price alerts (on by default for BTC, ETH and XRP), with the coin and the price, or only "Price alert", as you choose; incoming alerts (on by default), only with "Coins arrived in your wallet", or with the amount and coin received, if you choose; a bridge arriving, without the amount; and limit orders, 24 hours before they expire, when they fill and when the deadline ends, without coin or amount. Never the wallet balance.
 - **Microphone and speech recognition:** only if you turn on voice confirmation. Recognition runs on the device, with no Apple server; the audio is not recorded and what was said is not stored, only an encrypted fingerprint of the phrase.
 
 ## Clipboard
