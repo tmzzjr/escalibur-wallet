@@ -102,6 +102,7 @@ struct ContactsView: View {
 struct AddContactSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(AuthCoordinator.self) private var auth
+    @Environment(ToastCenter.self) private var toasts
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var address = ""
@@ -423,7 +424,13 @@ struct AddContactSheet: View {
         // So rede que tem tag guarda tag (revisao da auditoria 4, B-1).
         let finalTag = chain.destinationTag == .none ? nil : (destination.tag.map(String.init) ?? (tag.isEmpty ? nil : tag))
         let title = String(name.trimmingCharacters(in: .whitespaces).prefix(40))
-        guard (try? await auth.perform(session, reason: String(localized: "Salvar o endereço de \(title)"), { _ in true })) == true else { return }
+        do {
+            guard try await auth.perform(session, reason: String(localized: "Salvar o endereço de \(title)"), { _ in true }) == true else { return }
+        } catch {
+            // Na espera do modo reforcado, o motivo; o resto, como antes, so nao salva.
+            if let message = AuthCoordinator.refusalMessage(error) { toasts.show(message, kind: .failure) }
+            return
+        }
         session.metadata.contacts.append(Contact(id: UUID(), name: title, chainID: chain.id, address: destination.address, tag: finalTag))
         do {
             try session.persist()

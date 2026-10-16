@@ -1397,7 +1397,7 @@ struct SendStages: View {
             }) else { return }
             signed = result
         } catch {
-            model.error = (error as? LocalizedError)?.errorDescription ?? String(localized: "O envio não saiu. Nada foi debitado.")
+            model.error = AuthCoordinator.refusalMessage(error) ?? (error as? LocalizedError)?.errorDescription ?? String(localized: "O envio não saiu. Nada foi debitado.")
             model.stage = .review
             return
         }

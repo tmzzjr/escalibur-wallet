@@ -326,7 +326,7 @@ struct OpenEnvelopeFlow: View {
             error = walletError.errorDescription
         } catch {
             discardPending()
-            self.error = String(localized: "Não foi possível importar a carteira.")
+            self.error = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível importar a carteira.")
         }
     }
 

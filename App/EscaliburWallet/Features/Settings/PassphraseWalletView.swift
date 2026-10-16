@@ -132,7 +132,7 @@ struct PassphraseWalletView: View {
         } catch let error as WalletError {
             message = error.errorDescription
         } catch {
-            message = String(localized: "Não foi possível criar a carteira agora.")
+            message = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível criar a carteira agora.")
         }
     }
 }

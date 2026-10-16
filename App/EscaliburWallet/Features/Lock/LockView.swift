@@ -18,11 +18,19 @@ struct LockView: View {
     /// Depois de reiniciar (ou de a bateria acabar), o Face ID so vale depois do PIN.
     private var restartNeedsPIN: Bool { session.biometryEnabled && !KeyServices.root.pinEnteredThisBoot }
 
+    /// Modo reforcado: a espera de "Esperar 24 horas", se correndo; senao, o aviso do rosto
+    /// depois do PIN. Abrir o app vale na espera: o saldo aparece, o resto espera.
+    private var hardenedSubtitle: String {
+        let hold = KeyServices.root.hardenedHoldRemaining
+        if hold > 0 { return AuthCoordinator.hardenedHoldMessage(hold) }
+        return String(localized: "Modo reforçado: depois do PIN, o \(KeyServices.biometryName) confirma que é você.")
+    }
+
     var body: some View {
         PINScreen(
             title: String(localized: "Digite o seu PIN"),
             subtitle: session.hardenedModeOn
-                ? String(localized: "Modo reforçado: depois do PIN, o \(KeyServices.biometryName) confirma que é você.")
+                ? hardenedSubtitle
                 : (restartNeedsPIN
                     ? String(localized: "O iPhone reiniciou. Depois de reiniciar ou de a bateria acabar, o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer.")
                     : nil),
@@ -94,7 +102,7 @@ struct LockView: View {
         case .hardenedSlotLost:
             vaultLost = true
             forgotPIN = true
-        case .biometryLockedOut, .biometryUnavailable:
+        case .biometryLockedOut, .biometryUnavailable, .biometryNotEnrolled:
             entry.fail(AuthCoordinator.refusalMessage(failure) ?? String(localized: "Não foi possível destravar. Tente de novo."))
         default:
             entry.fail(String(localized: "Não foi possível destravar. Tente de novo."))

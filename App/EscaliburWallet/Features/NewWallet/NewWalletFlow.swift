@@ -223,7 +223,7 @@ struct NewWalletFlow: View {
             draft = newDraft
             step = .record
         } catch {
-            self.error = String(localized: "Não foi possível guardar a carteira. Tente de novo.")
+            self.error = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível guardar a carteira. Tente de novo.")
             step = .before
         }
     }

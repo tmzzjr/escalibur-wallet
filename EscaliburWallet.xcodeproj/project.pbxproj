@@ -41,6 +41,7 @@
 		2D73A0117C1A454535DEA85B /* WalletOrbit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E8104D596BB55DD5566A8B0 /* WalletOrbit.swift */; };
 		2F43A198D344541A40E5319D /* SecurityLookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E119F488090F7749AAE25376 /* SecurityLookTests.swift */; };
 		31BF7E0264D1196F10A0DBCA /* voz-frase.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C9A0D213F5797560FD754C92 /* voz-frase.m4a */; };
+		3224655BA39539ADC2CA9754 /* HardenedFaceChangeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96197DCB91CA48A99968D013 /* HardenedFaceChangeView.swift */; };
 		32C85CC66E71ADDE142F2B2C /* OpenEnvelopeFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */; };
 		33B19CE5E4635C5873A892E0 /* TokenMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = C89672710E00E2856C3A1EB7 /* TokenMarks.swift */; };
 		3405A96A2DEA2E8D1F08AF62 /* bitcoin-frente.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 337D396EA9D52ED4498C27CD /* bitcoin-frente.jpg */; };
@@ -333,6 +334,7 @@
 		93C77E773E63B6664F4262AD /* Metadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metadata.swift; sourceTree = "<group>"; };
 		93F82527B4657BCDFC2DA884 /* Offload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Offload.swift; sourceTree = "<group>"; };
 		94D1ADAB0DBA0A6C76F203FA /* WordKeyboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordKeyboard.swift; sourceTree = "<group>"; };
+		96197DCB91CA48A99968D013 /* HardenedFaceChangeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardenedFaceChangeView.swift; sourceTree = "<group>"; };
 		98728880640B5B94955214E7 /* ImportPhraseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPhraseView.swift; sourceTree = "<group>"; };
 		98B99C8E82247CAD42E358D7 /* Buttons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Buttons.swift; sourceTree = "<group>"; };
 		98C09B212E6179F72538B94D /* MarketSearchKeyboardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketSearchKeyboardTests.swift; sourceTree = "<group>"; };
@@ -634,6 +636,7 @@
 			children = (
 				7D922E0AB84F33657681EBBB /* ConfirmPassphraseView.swift */,
 				85AD68422B44E0DD96545710 /* ContactsView.swift */,
+				96197DCB91CA48A99968D013 /* HardenedFaceChangeView.swift */,
 				70EDC973CC393015723C0488 /* HardenedModeView.swift */,
 				6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */,
 				9DDBB5924E1B23491D8B56CA /* OwnKeyboardView.swift */,
@@ -1147,6 +1150,7 @@
 				B21E851FF63CDD4C594DA02B /* EnvelopeSealScene.swift in Sources */,
 				17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */,
 				2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */,
+				3224655BA39539ADC2CA9754 /* HardenedFaceChangeView.swift in Sources */,
 				E16275025311E5C68E120FB8 /* HardenedModeView.swift in Sources */,
 				F8EA2B1B268220A255B30FAB /* ImportPhraseView.swift in Sources */,
 				478026866DF85E9EF5D50A76 /* ImportPreview.swift in Sources */,
