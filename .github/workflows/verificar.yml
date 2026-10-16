@@ -1,12 +1,14 @@
 # Toda mudanca passa por aqui antes de entrar na main: o verificador inteiro, todos
 # os testes do nucleo, o app compilado em Release e a interoperabilidade do envelope
-# com o decifrador aberto.
+# com o decifrador aberto. O release.yml chama este mesmo arquivo (workflow_call) no
+# commit da tag, antes de montar o build que vai para a Apple.
 name: verificar
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read

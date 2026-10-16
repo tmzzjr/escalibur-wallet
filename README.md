@@ -1,6 +1,8 @@
 # Escalibur Wallet
 
-Carteira cripto não custodial para iPhone. SwiftUI nativo, código aberto, feita para ser auditada.
+Carteira cripto não custodial para iPhone. SwiftUI nativo, feita para ser auditada.
+
+O código é publicado para auditoria e não é open source: dá para ler, auditar e compilar para conferir o app, não para reaproveitar ([`LICENSE`](LICENSE), em português [`LICENSE.pt.md`](LICENSE.pt.md); as partes de terceiros seguem as licenças delas, em [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)).
 
 As chaves ficam no iPhone do dono. Não existe conta, e-mail nem servidor que guarde senha. A Escalibur não tem como ver, mover nem recuperar o saldo de ninguém.
 

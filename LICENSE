@@ -1,0 +1,162 @@
+Escalibur Wallet Source-Available License
+Version 1.0, October 2026
+
+Copyright (c) 2026 X TECH A.I FUND HOLDING E PARTICIPACOES LTDA
+(CNPJ 64.019.520/0001-29). All rights reserved.
+
+THIS IS NOT AN OPEN SOURCE LICENSE. The source code of the Escalibur Wallet is
+published so that anyone can read it, audit it and check that the published app is
+built from it. It is not published for reuse.
+
+
+1. Definitions
+
+"Licensor" means X TECH A.I FUND HOLDING E PARTICIPACOES LTDA, the holder of the
+copyright in the Software.
+
+"Software" means the source code, documentation, tools, tests, images, videos and
+other material in this repository, except the Third-Party Components.
+
+"Third-Party Components" means the material listed in THIRD_PARTY_NOTICES.md, which
+remains under its own licenses.
+
+"Published App" means the Escalibur Wallet app as distributed by the Licensor, for
+example through the App Store or TestFlight.
+
+"Local Build" means a build of the Software that you make yourself, from this
+repository, on computers and devices that you own or control.
+
+"You" means the individual or legal entity exercising rights under this license.
+
+
+2. What you may do
+
+Subject to this license, the Licensor grants you a personal, worldwide,
+non-exclusive, non-transferable, non-sublicensable, royalty-free license to:
+
+(a) read, review, analyze and audit the Software;
+
+(b) make Local Builds and run them on devices that you own or control, solely to
+    verify that the Published App corresponds to the Software, or to conduct
+    good-faith security research on the Software;
+
+(c) make the copies of the Software that the activities in (a) and (b) technically
+    require, kept under your control;
+
+(d) report vulnerabilities to the Licensor as described in SECURITY.md and, after
+    the coordinated disclosure described there, publish your findings, quoting only
+    the excerpts of the Software reasonably necessary to describe them, with a
+    reference to this repository.
+
+These are the "Permitted Purposes". Being paid to perform an audit or security
+research that stays within the Permitted Purposes is not, by itself, a commercial
+use under section 3. No other right is granted, by implication, estoppel or
+otherwise.
+
+
+3. What you may not do
+
+Except as expressly allowed in section 2, you may not:
+
+(a) use the Software, a Local Build or any part of the Software in or as any
+    product, service, app, library, website or other offering, paid or free;
+
+(b) copy, distribute, publish, sublicense, sell, rent, lend or otherwise make
+    available the Software or a Local Build, in source or binary form, modified or
+    not, beyond what section 5 allows;
+
+(c) publish, distribute or submit to any app store an app or other software that is
+    derived from or based on the Software, including a modified or rebranded Local
+    Build;
+
+(d) use the Software or a Local Build for any commercial purpose;
+
+(e) use a Local Build to hold, manage or move digital assets, except your own assets
+    in testing that is part of the Permitted Purposes;
+
+(f) use the names "Escalibur" or "Escalibur Wallet", the Escalibur logos and
+    artwork, or any confusingly similar name or mark, for any product, service,
+    domain or publication, or in a way that suggests endorsement by the Licensor.
+    You may use the name only to refer truthfully to the Software or to the
+    Published App, for example in an audit report;
+
+(g) remove or alter any copyright, license or attribution notice.
+
+
+4. Third-Party Components
+
+The Third-Party Components are not licensed to you under this license. Each one is
+governed by its own license, reproduced or identified in THIRD_PARTY_NOTICES.md, and
+nothing in this license limits the rights that those licenses give you over those
+components.
+
+
+5. GitHub
+
+This repository is hosted on GitHub. Under section D.5 of the GitHub Terms of
+Service (effective April 27, 2026), by making a repository public its owner agrees
+"to allow others to view and "fork" your repositories (this means that others may
+make their own copies within the Service in repositories they control)" and grants
+"other Users a nonexclusive, worldwide license to use, display, perform and
+reproduce (by forking) Your Content through the Service as permitted by GitHub's
+functionality."
+
+This license does not restrict those rights. They exist only within GitHub's
+service and functionality: a fork remains subject to this license, and any use of
+it outside GitHub's service, or beyond what GitHub's functionality permits, requires
+a right granted in section 2.
+
+
+6. Contributions
+
+Section D.6 of the GitHub Terms of Service would place contributions to this
+repository under this license, which would not allow the Licensor to use them in
+the Published App. This section is the separate agreement that D.6 allows to
+supersede it: by submitting a contribution to this repository (a pull request,
+patch, suggestion, or code in an issue or comment), you grant the Licensor a
+perpetual, worldwide, non-exclusive, royalty-free, irrevocable license to use,
+reproduce, modify, distribute, sublicense and otherwise exploit that contribution,
+including in the Published App, and you represent that you have the right to grant
+it. Do not submit anything that you cannot license on these terms.
+
+
+7. Termination
+
+This license ends automatically, without notice, if you breach it. When it ends, you
+must stop using the Software and delete your copies and Local Builds, except copies
+that the law requires you to keep. Sections 3, 4, 6, 8, 9 and 10 survive the end of
+this license.
+
+
+8. No warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE
+AND NON-INFRINGEMENT. A LOCAL BUILD IS NOT THE PUBLISHED APP AND MAY BEHAVE
+DIFFERENTLY. DO NOT TRUST IT WITH ASSETS YOU CANNOT AFFORD TO LOSE.
+
+
+9. Limitation of liability
+
+TO THE EXTENT PERMITTED BY LAW, THE LICENSOR IS NOT LIABLE FOR ANY DAMAGES ARISING
+FROM THIS LICENSE OR FROM THE USE OF THE SOFTWARE OR OF A LOCAL BUILD, INCLUDING THE
+LOSS OF DIGITAL ASSETS, KEYS OR DATA. This section does not affect the rights that
+users of the Published App have under its Terms of Use or under consumer protection
+law.
+
+
+10. Law and language
+
+This license is governed by the laws of the Federative Republic of Brazil. Disputes
+go to the courts of the Licensor's domicile, unless the law gives you the right to
+another forum. This English text is the binding version. LICENSE.pt.md is a
+Portuguese translation for reference only; if the two differ, this text prevails.
+
+
+11. Rights under the law
+
+Nothing in this license limits what the applicable law allows you to do without a
+license, such as the exceptions and limitations to copyright.
+
+Questions about this license, or requests for rights it does not grant:
+thomaz@xtech.international.

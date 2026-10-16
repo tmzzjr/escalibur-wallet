@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Como o .github/workflows/release.yml exporta o .ipa (xcodebuild -help lista as chaves).
+     destination export, e nao upload: o .ipa fica no runner, recebe o SHA-256 e a atestacao,
+     e esse mesmo arquivo e o que o altool envia. Com upload, o xcodebuild assinaria e
+     enviaria sem deixar o arquivo enviado para conferir.
+     manageAppVersionAndBuildNumber falso: o build e o N da tag, e o Xcode nao troca.
+     signingStyle automatic com a chave da API: o certificado de distribuicao e o da nuvem
+     da Apple (cloud-managed), sem chave privada de assinatura no runner. -->
+<plist version="1.0">
+<dict>
+	<key>method</key>
+	<string>app-store-connect</string>
+	<key>destination</key>
+	<string>export</string>
+	<key>teamID</key>
+	<string>2UNWMDD93S</string>
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+	<key>testFlightInternalTestingOnly</key>
+	<false/>
+	<key>uploadSymbols</key>
+	<true/>
+	<key>stripSwiftSymbols</key>
+	<true/>
+</dict>
+</plist>

@@ -164,6 +164,31 @@ achados=$( {
 [ -n "$achados" ] && { aviso "script de build, framework fora do SDK ou flag de linker no projeto"; echo "$achados"; } \
     || ok "sem fase de script, acao de esquema, plugin de build, framework fora do SDK nem flag de linker"
 
+# 3c. Workflows do GitHub. O que roda no CI e no release tambem e cadeia de suprimentos:
+# toda acao e da propria GitHub (actions/ ou github/) e fixada por commit, 40 hexadecimais,
+# nunca por tag movel; a outra forma aceita e um workflow deste repositorio. O repositorio
+# exige o mesmo nas configuracoes, mas so o dono ve; aqui qualquer um confere. E segredo
+# so aparece em job do environment release, o que tem revisor obrigatorio
+# (docs/release.md); passar segredo adiante (`secrets:`) tambem falha.
+secao "workflows"
+achados=$(grep -nE '^[[:space:]-]*uses:' .github/workflows/*.yml \
+    | grep -vE 'uses:[[:space:]]*((actions|github)/[A-Za-z0-9._/-]+@[0-9a-f]{40}|\./\.github/workflows/[A-Za-z0-9._-]+\.yml)([[:space:]]|$)')
+[ -n "$achados" ] && { aviso "acao de fora da GitHub ou sem SHA num workflow"; echo "$achados"; } \
+    || ok "toda acao dos workflows vem da propria GitHub, fixada por SHA"
+achados=$(awk '
+    function fecha(   i) { if (job != "" && !release) for (i = 1; i <= n; i++) print guardadas[i]; job = ""; n = 0; release = 0 }
+    FNR == 1 { fecha(); emjobs = 0 }
+    /^jobs:/ { emjobs = 1; next }
+    emjobs && /^  [A-Za-z0-9_-]+:[[:space:]]*$/ { fecha(); job = $1; next }
+    /^[[:space:]]*#/ { next }
+    job != "" && /^    environment:[[:space:]]*release[[:space:]]*$/ { release = 1 }
+    /^[[:space:]]*secrets:/ { print FILENAME ":" FNR ": " $0; next }
+    /secrets\./ { if (job == "") print FILENAME ":" FNR ": " $0; else guardadas[++n] = FILENAME ":" FNR ": " $0 }
+    END { fecha() }
+' .github/workflows/*.yml)
+[ -n "$achados" ] && { aviso "segredo fora de job do environment release"; echo "$achados"; } \
+    || ok "segredo so em job do environment release"
+
 # 4. Codigo vendorizado travado por digesto.
 secao "codigo vendorizado"
 conferir_lock() {

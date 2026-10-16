@@ -5,6 +5,11 @@
 # project.yml, as redes e os tokens do codigo. E de novo quando o workflow `verificar`
 # termina na main, para a pagina de auditoria mostrar o resultado do CI do commit
 # publicado. As paginas /suporte/, /privacidade/ e /termos/ estao na App Store Connect.
+#
+# Dois jobs: `montar` roda o codigo do repositorio (o gerador) sem nenhuma permissao de
+# escrita, e `publicar` so roda as acoes da GitHub que publicam o artefato, com
+# pages: write e id-token: write. Uma mudanca no gerador nao chega ao token que escreve
+# no Pages (auditoria 4, R7-M3).
 name: site
 
 on:
@@ -24,7 +29,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publicar:
+  montar:
     # Pelo workflow_run, so o verificar de um push na main deste repositorio: um PR de
     # fork com um ramo chamado main tambem terminaria um `verificar` com head_branch main.
     if: >-
@@ -34,12 +39,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      pages: write
-      id-token: write
+      # So para ler o estado do CI pela API.
       actions: read
-    environment:
-      name: github-pages
-      url: ${{ steps.publicacao.outputs.page_url }}
     steps:
       # Acoes fixadas por commit, nunca por tag movel (cada SHA conferido contra a tag).
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -64,11 +65,24 @@ jobs:
           SITE_CI: ${{ runner.temp }}/ci.json
         run: python3 tools/gerar-site.py "$RUNNER_TEMP/site"
 
-      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: ${{ runner.temp }}/site
+
+  publicar:
+    needs: montar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publicacao.outputs.page_url }}
+    steps:
+      # Sem checkout: nada do repositorio roda com estas permissoes, so as acoes que
+      # leem a configuracao do Pages e publicam o artefato do job anterior.
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - id: publicacao
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

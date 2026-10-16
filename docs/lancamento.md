@@ -53,7 +53,7 @@ do dono com o advogado.
 2. **Conta.** Em developer.apple.com/account, Membership, confirmar que o time
    `2UNWMDD93S` é organização (a 3.1.5(i) exige). Fazer o archive sempre com esse time.
 3. **App Store Connect:** criar o app com o bundle id `app.escalibur.wallet`,
-   preencher com o texto abaixo, subir o build (Xcode, Product, Archive) e as capturas.
+   preencher com o texto abaixo, subir o build (tag assinada, `docs/release.md`) e as capturas.
 4. **Disponibilidade:** desligar "iPhone and iPad Apps on Apple Silicon Macs" e "Apple
    Vision Pro" em Pricing and Availability. Se entrar na União Europeia, declarar-se
    comerciante pela DSA (endereço, telefone e e-mail ficam públicos).
