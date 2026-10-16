@@ -1,0 +1,12 @@
+{
+  "arquivos": {
+    "bitcoin-borda.jpg": "56bb5b40b61b8cd95d483472f6a4ab8d57409275e88ddf899ef0b60da62a57b4",
+    "bitcoin-frente.jpg": "7da6a0f6e62c1eab85d9cb6b6570679aeaf159ae9a21c799cebc478f7b19431f",
+    "bitcoin-verso.jpg": "29bd3fe974080f8a4901a8409cc5fe6c8fc3af58726bddcb7dfc720acf93ffa2"
+  },
+  "origem": "https://sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec",
+  "versao": "Bit Coin, de marcio3d (Sketchfab), USDZ baixado em 15/10/2026",
+  "licenca": "CC BY 4.0, https://creativecommons.org/licenses/by/4.0/",
+  "usdz_sha256": "f29b6cdac345f86723abc3c96628edee85bf261b4083fc3fe592bf049543999d",
+  "alteracao": "So a textura moeda_baseColor.jpg do USDZ entra no app, recortada em frente, verso e borda e girada para o mapa do cilindro; a malha do modelo nao e usada."
+}

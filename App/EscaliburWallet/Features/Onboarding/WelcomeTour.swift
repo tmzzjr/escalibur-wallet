@@ -293,9 +293,9 @@ private enum TourLogos {
 
 // MARK: - 3. A assinatura
 
-/// Uma moeda de Bitcoin em 3D: face de ouro com o B em relevo, aro, borda serrilhada com
-/// espessura de verdade e o reflexo fixo do metal. Ela gira devagar, esperando; o Face ID
-/// procura o rosto e confirma; a moeda da um giro rapido e para de frente.
+/// Uma moeda de Bitcoin em 3D de verdade (`BitcoinCoin3D`, SceneKit). Ela gira devagar,
+/// esperando; o Face ID procura o rosto e confirma; a moeda da um giro rapido e para de
+/// frente.
 private struct SignScene: View {
     let active: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -313,8 +313,16 @@ private struct SignScene: View {
             Spacer(minLength: 0)
             TimelineView(.animation(minimumInterval: 1 / 60, paused: !active || reduceMotion)) { timeline in
                 let t = reduceMotion ? 10 : start.map { timeline.date.timeIntervalSince($0) } ?? 0
-                Canvas { context, size in
-                    Self.draw(&context, size: size, t: t, confirmedAt: reduceMotion ? 0 : confirmedAt)
+                let angle = Self.angle(t: t, confirmedAt: reduceMotion ? 0 : confirmedAt)
+                let enter = 1 - pow(1 - Self.clamp(t / 0.6), 3)
+                let bob = 4 * sin(t * 1.6)
+                ZStack {
+                    // A sombra no chao, que encolhe quando a moeda sobe e quando ela esta de lado.
+                    Canvas { context, size in Self.drawShadow(&context, size: size, angle: angle, bob: bob, enter: enter) }
+                    BitcoinCoin3D(angle: angle)
+                        .opacity(enter)
+                        .scaleEffect(0.8 + 0.2 * enter)
+                        .offset(y: bob - 8)
                 }
             }
             .frame(height: 200)
@@ -388,80 +396,14 @@ private struct SignScene: View {
         return from + (to - from) * (1 - pow(1 - p, 3))
     }
 
-    static func draw(_ context: inout GraphicsContext, size: CGSize, t: Double, confirmedAt: Double?) {
-        let diameter = min(Double(size.height) * 0.78, Double(size.width) * 0.5)
-        let enter = 1 - pow(1 - clamp(t / 0.6), 3)
-        let bob = 4 * sin(t * 1.6)
-        let center = CGPoint(x: size.width / 2, y: size.height / 2 + bob - 8)
-        let a = angle(t: t, confirmedAt: confirmedAt)
-
-        // A sombra no chao, que encolhe quando a moeda sobe.
+    /// A sombra no chao, embaixo da moeda.
+    static func drawShadow(_ context: inout GraphicsContext, size: CGSize, angle: Double, bob: Double, enter: Double) {
+        let diameter = Double(size.height) * 0.7
         let floorY = size.height / 2 + diameter * 0.56
-        let shadowWidth = diameter * (0.7 - bob * 0.01) * max(abs(cos(a)), 0.35)
-        context.fill(Path(ellipseIn: CGRect(x: center.x - shadowWidth / 2, y: floorY - 6, width: shadowWidth, height: 12)),
+        let width = diameter * (0.7 - bob * 0.01) * max(abs(cos(angle)), 0.35)
+        let center = size.width / 2
+        context.fill(Path(ellipseIn: CGRect(x: center - width / 2, y: floorY - 6, width: width, height: 12)),
                      with: .radialGradient(Gradient(colors: [.black.opacity(0.45 * enter), .clear]),
-                                           center: CGPoint(x: center.x, y: floorY), startRadius: 0, endRadius: shadowWidth / 2))
-
-        var coin = context
-        coin.opacity = enter
-        coin.translateBy(x: center.x, y: center.y)
-        coin.scaleBy(x: 0.8 + 0.2 * enter, y: 0.8 + 0.2 * enter)
-        drawCoin(&coin, diameter: diameter, angle: a)
-    }
-
-    static let gold = (light: Color(hex: 0xFFE8A3), face: Color(hex: 0xF4B731), deep: Color(hex: 0xC27B12),
-                       edgeLight: Color(hex: 0xE9A62C), edgeDark: Color(hex: 0x9A5C0C), mark: Color(hex: 0xD58B14))
-
-    /// A moeda na origem do contexto, girada `angle` em volta do eixo vertical.
-    static func drawCoin(_ context: inout GraphicsContext, diameter: Double, angle: Double) {
-        let radius = diameter / 2
-        let squash = max(abs(cos(angle)), 0.02)
-        let thickness = diameter * 0.09
-        let shift = thickness * sin(angle)
-
-        // A borda: fatias da face de tras ate a da frente, alternando o tom (serrilha).
-        let slices = 16
-        for slice in 0...slices {
-            let x = -shift + shift * Double(slice) / Double(slices)
-            let rect = CGRect(x: x - radius * squash, y: -radius, width: diameter * squash, height: diameter)
-            let tone = slice % 2 == 0 ? gold.edgeLight : gold.edgeDark.opacity(0.95)
-            context.fill(Path(ellipseIn: rect), with: .linearGradient(
-                Gradient(colors: [tone, gold.edgeDark]), startPoint: CGPoint(x: x, y: -radius), endPoint: CGPoint(x: x, y: radius)))
-        }
-
-        // A face, desenhada redonda e achatada pelo giro.
-        var face = context
-        face.scaleBy(x: squash, y: 1)
-        let disc = CGRect(x: -radius, y: -radius, width: diameter, height: diameter)
-        face.fill(Path(ellipseIn: disc), with: .radialGradient(
-            Gradient(colors: [gold.light, gold.face, gold.deep]),
-            center: CGPoint(x: -radius * 0.35, y: -radius * 0.4), startRadius: 0, endRadius: diameter * 0.95))
-        // Aro: um fio escuro e um claro, como a borda cunhada.
-        let rim = disc.insetBy(dx: diameter * 0.06, dy: diameter * 0.06)
-        face.stroke(Path(ellipseIn: rim), with: .color(gold.deep.opacity(0.55)), lineWidth: diameter * 0.018)
-        face.stroke(Path(ellipseIn: rim.insetBy(dx: diameter * 0.014, dy: diameter * 0.014)),
-                    with: .color(gold.light.opacity(0.7)), lineWidth: diameter * 0.008)
-        face.stroke(Path(ellipseIn: disc.insetBy(dx: 1, dy: 1)), with: .linearGradient(
-            Gradient(colors: [gold.light, gold.deep]), startPoint: CGPoint(x: 0, y: -radius), endPoint: CGPoint(x: 0, y: radius)),
-            lineWidth: diameter * 0.022)
-
-        // O B em relevo: sombra embaixo, luz em cima, e o metal.
-        let mark = CGRect(x: -diameter * 0.24, y: -diameter * 0.27, width: diameter * 0.48, height: diameter * 0.54)
-        var symbol = face.resolve(Image(systemName: "bitcoinsign"))
-        symbol.shading = .color(gold.edgeDark.opacity(0.75))
-        face.draw(symbol, in: mark.offsetBy(dx: diameter * 0.012, dy: diameter * 0.014))
-        symbol.shading = .color(gold.light)
-        face.draw(symbol, in: mark.offsetBy(dx: -diameter * 0.008, dy: -diameter * 0.01))
-        symbol.shading = .color(gold.mark)
-        face.draw(symbol, in: mark)
-
-        // O reflexo do metal, fixo na face: uma faixa clara na diagonal.
-        face.drawLayer { layer in
-            layer.clip(to: Path(ellipseIn: disc))
-            layer.fill(Path(disc), with: .linearGradient(
-                Gradient(stops: [.init(color: .clear, location: 0.18), .init(color: .white.opacity(0.28), location: 0.36),
-                                 .init(color: .clear, location: 0.5)]),
-                startPoint: CGPoint(x: -radius, y: -radius), endPoint: CGPoint(x: radius, y: radius)))
-        }
+                                           center: CGPoint(x: center, y: floorY), startRadius: 0, endRadius: width / 2))
     }
 }

@@ -675,6 +675,12 @@ struct AboutView: View {
                     Text("Preços e dados de mercado: CoinGecko, com CoinPaprika e OKX de reserva. Os saldos e as transações vêm direto das redes.")
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 }
+                // A licenca CC BY pede o autor, o link da licenca e o que foi alterado.
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    Text("Créditos").typeStyle(.heading).foregroundStyle(Palette.ink)
+                    Text("A moeda 3D do tour usa a textura de “Bit Coin”, de marcio3d (sketchfab.com), com licença CC BY 4.0 (creativecommons.org/licenses/by/4.0). A textura foi recortada para a frente, o verso e a borda da moeda.")
+                        .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                }
                 SettingsGroup {
                     Button { legalDocument = .terms } label: { SettingsRow(icon: "doc.text", title: String(localized: "Termos de uso")) }
                     Button { legalDocument = .privacy } label: { SettingsRow(icon: "hand.raised", title: String(localized: "Política de privacidade")) }

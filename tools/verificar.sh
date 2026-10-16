@@ -144,6 +144,7 @@ conferir_lock() {
 }
 conferir_lock secp256k1.lock Kit/Sources/CSecp256k1/upstream secp256k1
 conferir_lock argon2.lock Kit/Sources/CArgon2 argon2
+conferir_lock modelos.lock App/EscaliburWallet/Resources/Moeda3D "moeda 3D"
 divergentes=0
 for idioma in $(sed -n 's/^ *"\([a-z_]*\)": "[0-9a-f]*".*/\1/p' wordlists.lock); do
     esperado=$(sed -n "s/^ *\"$idioma\": \"\([0-9a-f]*\)\".*/\1/p" wordlists.lock)

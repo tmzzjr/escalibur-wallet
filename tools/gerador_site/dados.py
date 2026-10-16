@@ -326,6 +326,7 @@ DESCRICAO_TRAVA = {
     "wordlists.lock": "As listas oficiais de palavras do BIP-39, uma por idioma.",
     "forca.lock": "As listas de frequência do medidor de força da senha do envelope (zxcvbn-ts, MIT).",
     "recuperacao.lock": "O decifrador de referência do envelope e a especificação do formato, usados nos testes.",
+    "modelos.lock": "As texturas da moeda 3D do tour, recortadas de “Bit Coin”, de marcio3d (CC BY 4.0).",
 }
 
 
