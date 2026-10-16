@@ -8,6 +8,7 @@ enum Preferences {
     private static let installMarkKey = "instalacao.marcada"
     private static let receiptChoiceKey = "recebimento.escolhido"
     private static let priceAlertChoiceKey = "alertas.escolhido"
+    private static let receiptOfferKey = "recebimento.oferta.vista"
 
     /// Este app ja rodou nesta instalacao? Ver `KeyServices.firstLaunchCleanup`.
     static var installMarked: Bool {
@@ -16,10 +17,18 @@ enum Preferences {
     }
 
     /// O aviso de recebimento ja foi ligado ou desligado (pelo dono ou pelo padrao)? So um
-    /// sim ou nao: nada da carteira. Ver `ReceiptAccounts.enableByDefault`.
+    /// sim ou nao: nada da carteira. Ver `ReceiptAccounts.shouldOffer`.
     static var receiptWatchChosen: Bool {
         get { UserDefaults.standard.bool(forKey: receiptChoiceKey) }
         set { UserDefaults.standard.set(newValue, forKey: receiptChoiceKey) }
+    }
+
+    /// A folha do aviso de recebimento, que diz o preco antes do "sim", ja foi respondida
+    /// (ou o dono mexeu no aviso em Ajustes)? So um sim ou nao. Ver
+    /// `ReceiptAccounts.shouldOffer`.
+    static var receiptOfferSeen: Bool {
+        get { UserDefaults.standard.bool(forKey: receiptOfferKey) }
+        set { UserDefaults.standard.set(newValue, forKey: receiptOfferKey) }
     }
 
     /// Os alertas de preco ja foram ligados ou desligados (pelo dono ou pelo padrao)? So

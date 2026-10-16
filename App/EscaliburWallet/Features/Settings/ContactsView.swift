@@ -108,6 +108,9 @@ struct AddContactSheet: View {
     @State private var tag = ""
     @State private var chain: Chain = .bitcoin
     @State private var scanning = false
+    /// O trecho do endereco digitado pelo dono olhando a fonte (auditoria 4, C7-07).
+    @State private var check = ""
+    @State private var qrProblem: String?
 
     private var trimmed: String { address.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var validation: Result<Address.Destination, Address.Problem> { Address.validate(trimmed, for: chain) }
@@ -116,6 +119,43 @@ struct AddContactSheet: View {
     private var suggestion: Chain? {
         guard !trimmed.isEmpty, !isValid, let guess = Address.guessChain(trimmed), guess.id != chain.id else { return nil }
         return guess
+    }
+
+    /// Um endereco salvo vira de confianca, e antes ele nascia sem conferencia nenhuma: um
+    /// programa no computador trocava o endereco no Universal Clipboard na hora de salvar,
+    /// e o contato envenenado passava a ser o "conhecido" (auditoria 4, C7-07). Agora ele e
+    /// comparado com tudo que o dono ja usou nesta rede, e o dono digita um trecho do meio
+    /// olhando a fonte.
+    private var destination: Address.Destination? { try? validation.get() }
+
+    private var known: [String] {
+        let sent = session.metadata.sentTo[chain.id] ?? []
+        let contacts = session.metadata.contacts.filter { $0.chainID == chain.id }.map(\.address)
+        let wallets = session.metadata.wallets.filter { !$0.isWatchOnly }.compactMap { $0.account(chain)?.address }
+        return sent + contacts + wallets
+    }
+
+    private var lookalike: String? {
+        destination.flatMap { AddressPoisoning.lookalike($0.address, among: known, chain: chain) }
+    }
+
+    /// O trecho que o dono digita: onde difere do parecido, ou o meio do endereco como foi
+    /// colado (a forma que esta na fonte, nao a normalizada).
+    private var segment: AddressPoisoning.Segment? {
+        guard let destination else { return nil }
+        if let lookalike { return AddressPoisoning.differingSegment(destination.address, from: lookalike, chain: chain) }
+        return AddressPoisoning.middleSegment(trimmed)
+    }
+
+    /// Onde o trecho e lido: o endereco normalizado quando ha parecido (os dois lado a lado),
+    /// o colado quando nao ha.
+    private var checkedText: String { lookalike == nil ? trimmed : (destination?.address ?? trimmed) }
+
+    private var checked: Bool {
+        guard destination != nil else { return false }
+        guard let segment else { return lookalike == nil }
+        let typed = check.trimmingCharacters(in: .whitespaces).lowercased()
+        return typed.count == segment.length && typed == segment.text(in: checkedText).lowercased()
     }
 
     var body: some View {
@@ -177,6 +217,12 @@ struct AddContactSheet: View {
                             }
                         }
                     }
+                    if let qrProblem {
+                        Banner(kind: .failure, title: qrProblem)
+                    }
+                    if let destination, let segment {
+                        sourceCheck(destination, segment)
+                    }
                     if chain.destinationTag != .none {
                         labeled(chain.destinationTag == .stellarMemo ? String(localized: "Memo, se houver") : String(localized: "Tag de destino, se houver")) {
                             TextField("", text: $tag)
@@ -192,21 +238,58 @@ struct AddContactSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom) {
                 ActionFooter {
-                    PrimaryButton(title: String(localized: "Salvar"), enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && isValid) { Task { await save() } }
+                    PrimaryButton(title: String(localized: "Salvar"), enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && isValid && checked) { Task { await save() } }
                 }
             }
             .background(Palette.body.ignoresSafeArea())
             .navigationTitle("Salvar endereço")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: trimmed) { _, new in
+                check = ""
+                if !new.isEmpty { qrProblem = nil }
+            }
+            .onChange(of: chain) { _, _ in check = "" }
             .sheet(isPresented: $scanning) {
                 QRScannerSheet { text in
-                    address = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    // O mesmo leitor do envio: um QR com as palavras de uma carteira nunca
+                    // vai para o campo (auditoria 4, C7-13), e a tag do link vem junto.
+                    let reading = PaymentURI.read(text)
+                    address = reading.address
+                    if let linkTag = reading.tag, !linkTag.isEmpty { tag = linkTag }
+                    qrProblem = reading.problem
                     scanning = false
                 }
             }
         }
         .presentationBackground(Palette.body)
         .presentationCornerRadius(Radius.sheet)
+    }
+
+    @ViewBuilder
+    private func sourceCheck(_ destination: Address.Destination, _ segment: AddressPoisoning.Segment) -> some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            if let lookalike {
+                Banner(kind: .caution, title: String(localized: "Endereço parecido com um que você já usou"),
+                       message: String(localized: "As pontas são iguais, o meio é diferente. Confira na fonte antes de salvar."))
+                MarkedAddress(label: String(localized: "Você colou"), address: destination.address, segment: segment)
+                MarkedAddress(label: KnownAddress.label(lookalike, chain: chain, session: session), address: lookalike,
+                              segment: AddressPoisoning.differingSegment(lookalike, from: destination.address, chain: chain))
+            } else {
+                MarkedAddress(label: String(localized: "Confira com a fonte"), address: trimmed, segment: segment, masked: true)
+            }
+            Text(lookalike == nil
+                 ? String(localized: "Olhando onde você copiou o endereço, digite os 6 caracteres escondidos. Um programa no computador pode trocar o endereço na hora de copiar.")
+                 : String(localized: "Olhando onde você copiou o endereço, digite os 6 caracteres marcados. Um programa no computador pode trocar o endereço na hora de copiar."))
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField("", text: $check, prompt: Text(lookalike == nil ? String(localized: "6 escondidos") : String(localized: "6 marcados")).foregroundColor(Palette.inkDead))
+                .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .padding(Space.sm)
+                .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(Palette.rail))
+                .frame(maxWidth: 180, alignment: .leading)
+                .accessibilityIdentifier("contato-conferir-trecho")
+        }
     }
 
     private func labeled<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
@@ -220,8 +303,9 @@ struct AddContactSheet: View {
     /// na conferencia de endereco parecido. Por isso gravar pede Face ID ou PIN, como
     /// qualquer operacao que muda para onde o dinheiro pode ir.
     private func save() async {
-        guard case .success(let destination) = validation else { return }
-        let finalTag = destination.tag.map(String.init) ?? (tag.isEmpty ? nil : tag)
+        guard case .success(let destination) = validation, checked else { return }
+        // So rede que tem tag guarda tag (revisao da auditoria 4, B-1).
+        let finalTag = chain.destinationTag == .none ? nil : (destination.tag.map(String.init) ?? (tag.isEmpty ? nil : tag))
         let title = String(name.trimmingCharacters(in: .whitespaces).prefix(40))
         guard (try? await auth.perform(session, reason: String(localized: "Salvar o endereço de \(title)"), { _ in true })) == true else { return }
         session.metadata.contacts.append(Contact(id: UUID(), name: title, chainID: chain.id, address: destination.address, tag: finalTag))

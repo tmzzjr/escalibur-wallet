@@ -398,8 +398,11 @@ struct TradeReviewFlow: View {
                 if let old = item.replacesRenewal { LimitRenewalCenter.shared.forget(old, session: session) }
                 if item.renewLimit { LimitRenewalCenter.shared.register(orderID: orderID, request: request, session: session) }
                 // Avisos de 24 horas antes de vencer e de executada: pede a permissao de
-                // notificacao aqui, com a ordem na tela, se ainda nao pediu.
-                if CoWProtocol.supports(request.chain), let uid = Hex.decode(orderID), let validTo = CoWProtocol.validTo(ofUID: uid) {
+                // notificacao aqui, com a ordem na tela, se ainda nao pediu. A carteira com
+                // passphrase fica de fora: o UID traz o endereco, e o arquivo dos avisos abre
+                // com o iPhone bloqueado (revisao da auditoria 4, C7-03).
+                if session.selectedWallet?.hasPassphrase != true, CoWProtocol.supports(request.chain),
+                   let uid = Hex.decode(orderID), let validTo = CoWProtocol.validTo(ofUID: uid) {
                     let chainID = request.chain.id
                     Task {
                         _ = await PriceAlertCenter.requestPermission()

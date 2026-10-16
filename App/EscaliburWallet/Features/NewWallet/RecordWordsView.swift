@@ -120,6 +120,13 @@ struct RecordWordsView: View {
             // Em segundo plano as palavras escondem; voltam com um toque.
             if phase != .active { hidden = true }
         }
+        // As mesmas palavras na tela por 60 s seguidos escondem sozinhas, e voltam com um
+        // toque: a frase nao fica aberta numa mesa (docs/seguranca.md §6, N2).
+        .task(id: "\(group)-\(showingAll)-\(hidden)") {
+            guard !hidden else { return }
+            try? await Task.sleep(for: .seconds(60))
+            if !Task.isCancelled { hidden = true }
+        }
     }
 
     /// Carrega o grupo atual e os vizinhos (ou todos, na placa inteira); tudo o mais sai
@@ -237,11 +244,17 @@ struct RecordWordsView: View {
                 Rectangle().fill(MetalPlate.groove).frame(height: 1.5).padding(.vertical, Space.xs)
                 HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
                     Text("Pass").font(.system(size: 13, weight: .heavy)).engraved(depth: 0.8)
-                    Text(verbatim: secret).font(.system(size: 20, weight: .bold, design: .monospaced)).engraved(depth: 1)
-                        .minimumScaleFactor(0.5).lineLimit(1)
+                    // Espaco visivel: um espaco a mais ou a menos ja abre outra carteira
+                    // (auditoria 4, C7-02).
+                    Text(verbatim: Self.visibleSpaces(secret)).font(.system(size: 20, weight: .bold, design: .monospaced)).engraved(depth: 1)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                 }
-                .frame(height: 40)
+                .frame(minHeight: 40)
+                Text(Self.passphraseCount(secret))
+                    .font(.system(size: 12, weight: .semibold)).engraved(depth: 0.6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(.horizontal, Space.lg)
@@ -282,7 +295,7 @@ struct RecordWordsView: View {
             VStack(spacing: 0) {
                 let words = shown[index] ?? []
                 if isPassphrase(index) {
-                    plateRow(index: nil, word: words.first ?? "")
+                    passphraseRow(words.first ?? "")
                 } else {
                     let start = index * perGroup
                     ForEach(Array(words.enumerated()), id: \.offset) { offset, word in
@@ -341,6 +354,42 @@ struct RecordWordsView: View {
             @unknown default: break
             }
         }
+    }
+
+    /// A passphrase inteira, sem cortar: o espaco aparece como ␣ e a contagem vem embaixo,
+    /// porque um espaco a mais ou um caractere que sumiu no "..." ja abre outra carteira
+    /// (revisao da auditoria 4, C7-02). Longa, quebra e encolhe em vez de cortar.
+    private func passphraseRow(_ secret: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Space.md) {
+            Text("Pass")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.plateMuted)
+                .frame(width: 44, alignment: .leading)
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text(verbatim: Self.visibleSpaces(secret))
+                    .accessibilityIdentifier("palavra-25")
+                    .font(.system(size: 26, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Palette.plateInk)
+                    .lineLimit(6)
+                    .minimumScaleFactor(0.4)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(Self.passphraseCount(secret))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.plateMuted)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Space.base)
+        .padding(.vertical, Space.sm)
+    }
+
+    static func visibleSpaces(_ secret: String) -> String { secret.replacingOccurrences(of: " ", with: "␣") }
+
+    /// A contagem, e o aviso de que a quebra de linha da tela nao e caractere: a passphrase
+    /// longa quebra no meio.
+    static func passphraseCount(_ secret: String) -> String {
+        let count = secret.contains(" ") ? String(localized: "\(secret.count) caracteres. ␣ é um espaço.") : String(localized: "\(secret.count) caracteres.")
+        return secret.count > 16 ? count + " " + String(localized: "A quebra de linha não é espaço.") : count
     }
 
     private func plateRow(index: Int?, word: String) -> some View {

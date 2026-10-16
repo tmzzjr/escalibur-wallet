@@ -111,7 +111,10 @@ struct LockView: View {
         let m = Int((Double(s) / 60).rounded(.up))
         if m < 60 { return m == 1 ? String(localized: "1 minuto") : String(localized: "\(m) minutos") }
         let h = Int((Double(m) / 60).rounded(.up))
-        return h == 1 ? String(localized: "1 hora") : String(localized: "\(h) horas")
+        if h < 48 { return h == 1 ? String(localized: "1 hora") : String(localized: "\(h) horas") }
+        // A escada vai ate 7 dias por tentativa (auditoria 4, C7-04).
+        let d = Int((Double(h) / 24).rounded(.up))
+        return String(localized: "\(d) dias")
     }
 
     private var forgotSheet: some View {
@@ -132,7 +135,7 @@ struct LockView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, Space.xs)
                     VStack(alignment: .leading, spacing: Space.md) {
-                        ForgotStep(number: 1, text: String(localized: "Tenha em mãos a senha de cada carteira (as 12 ou 24 palavras) ou o envelope Escalibur."))
+                        ForgotStep(number: 1, text: String(localized: "Tenha em mãos a senha de cada carteira (as 12 ou 24 palavras) ou o envelope Escalibur, e a passphrase de cada carteira que usa passphrase."))
                         ForgotStep(number: 2, text: String(localized: "Apague as carteiras deste iPhone."))
                         ForgotStep(number: 3, text: String(localized: "Crie um PIN novo e importe cada carteira de novo."))
                     }
@@ -165,7 +168,7 @@ struct LockView: View {
             }
             Button("Cancelar", role: .cancel) {}
         } message: {
-            Text("Sem a senha de cada carteira ou um envelope, o saldo delas fica inacessível para sempre.")
+            Text("Sem a senha de cada carteira ou um envelope, e a passphrase das que usam passphrase, o saldo delas fica inacessível para sempre.")
         }
     }
 }

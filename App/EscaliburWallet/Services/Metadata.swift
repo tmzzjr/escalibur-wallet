@@ -89,6 +89,13 @@ struct WalletMeta: Codable, Equatable, Identifiable, Hashable {
     var hasPassphrase: Bool
     /// Copia no papel confirmada (O4) ou carteira importada (a copia ja existe).
     var backupConfirmedAt: Date?
+    /// A passphrase digitada de novo pelo dono, de onde a anotou (auditoria 4, C7-02). So
+    /// vale para a carteira com passphrase. Opcional para os metadados antigos abrirem.
+    var passphraseConfirmedAt: Date?
+    /// Na importacao, a rede mostrou outra chave no controle da conta da Tron (o golpe da
+    /// "frase com saldo"): o Receber da Tron nesta carteira fica fechado. O envio ja recusa
+    /// pela leitura das permissoes (`TronSendEngine`). Opcional para os metadados antigos.
+    var tronForeignControl: Bool?
     var envelopeSealedAt: Date?
     var lastRevealedAt: Date?
     var hiddenAssetIDs: Set<String> = []
@@ -96,7 +103,12 @@ struct WalletMeta: Codable, Equatable, Identifiable, Hashable {
     var utxoUsage: [String: UTXOUsage] = [:]
 
     var isWatchOnly: Bool { if case .watch = kind { return true }; return false }
-    var hasBackup: Bool { backupConfirmedAt != nil || origin != .created }
+    /// As palavras anotadas: copia no papel confirmada, ou carteira importada.
+    var wordsConfirmed: Bool { backupConfirmedAt != nil || origin != .created }
+    /// Sem passphrase, nao ha o que conferir.
+    var passphraseConfirmed: Bool { !hasPassphrase || passphraseConfirmedAt != nil }
+    /// A carteira pode receber: as palavras e, se houver, a passphrase conferidas.
+    var hasBackup: Bool { wordsConfirmed && passphraseConfirmed }
 
     func account(_ chain: Chain) -> DerivedAccount? { accounts.first { $0.chainID == chain.id } }
 }

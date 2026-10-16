@@ -256,10 +256,11 @@ public struct EVMTradeEngine: TradeEngine {
             if !intent.sell.isNative { spentSell = spentSell + leg.quote.intent.amountIn }
             plans.append(plan)
         }
-        guard plans.count > 1 else { return plans[0] }
+        let warning: [PlanReview.Warning] = Self.sandwichExposed(chain) ? [.publicMempool] : []
+        guard plans.count > 1 else { return plans[0].addingWarnings(warning) }
         // A revisao da divisao e escrita pelo compositor de EscaliburChains, a partir das
         // pernas e das cotacoes validadas; o motor nao escreve titulo nem linha.
-        return try TradePlanner.combineSplit(plans, quotes: requoted.map(\.quote))
+        return try TradePlanner.combineSplit(plans, quotes: requoted.map(\.quote)).addingWarnings(warning)
     }
 
     /// Token fora da lista (o que a carteira tem, ou a moeda adicionada): as casas que a
@@ -412,6 +413,18 @@ public struct EVMTradeEngine: TradeEngine {
         } catch {
             throw EVMEngineMessages.userFacing(error, .submit, chain: chain)
         }
+    }
+
+    /// Redes onde a troca vai para uma fila que robos leem antes do bloco. Na Ethereum ela
+    /// vai direto aos construtores (`mevProtected`); nas L2 de sequenciador unico (Arbitrum,
+    /// Base, Optimism, Unichain, Linea, e Celo e X Layer desde que passaram ao OP Stack)
+    /// nao ha fila publica para ler. Nas demais, a revisao diz que nao ha protecao
+    /// (auditoria 4, M2). A CoW, ordem em leilao, nao passa por aqui.
+    static let privateOrderflowChainIDs: Set<UInt64> = [1, 42161, 8453, 10, 130, 59144, 42220, 196]
+
+    static func sandwichExposed(_ chain: Chain) -> Bool {
+        guard let id = chain.evmChainID else { return false }
+        return !privateOrderflowChainIDs.contains(id)
     }
 
     func submitSwap(_ signed: [SignedTransaction], plan: SigningPlan) async throws -> [String] {

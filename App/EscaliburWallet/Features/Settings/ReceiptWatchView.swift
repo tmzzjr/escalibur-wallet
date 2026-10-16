@@ -3,17 +3,24 @@ import EscaliburCore
 import EscaliburNetwork
 import SwiftUI
 
-/// As contas que o aviso de recebimento confere: as de todas as carteiras, nas redes
-/// ligadas, so os enderecos publicos.
+/// As contas que o aviso de recebimento confere: as das carteiras que podem receber, nas
+/// redes ligadas, so os enderecos publicos.
+///
+/// A carteira com passphrase fica de fora (auditoria 4, C7-03): o arquivo do aviso abre
+/// com o iPhone bloqueado depois do primeiro desbloqueio, e com ela nele quem extrai os
+/// dados do aparelho nesse estado acha a carteira que o dono quis esconder. A que ainda nao
+/// tem copia conferida tambem: ela nao recebe.
 enum ReceiptAccounts {
     @MainActor
     static func all(_ session: AppSession) -> [ReceiptWatchFile.Account] {
         let disabled = session.metadata.settings.disabledChainIDs
         var out: [ReceiptWatchFile.Account] = []
         var seen = Set<String>()
-        for wallet in session.metadata.wallets {
+        for wallet in session.metadata.wallets where !wallet.hasPassphrase && (wallet.hasBackup || wallet.isWatchOnly) {
             for account in wallet.accounts {
                 guard let chain = Chain.all.first(where: { $0.id == account.chainID }), !disabled.contains(chain.id) else { continue }
+                // A conta da Tron com outra chave no controle nao recebe por caminho nenhum.
+                if chain.family == .tron, wallet.tronForeignControl == true { continue }
                 let addresses = Portfolio.addresses(for: account, chain: chain, usage: wallet.utxoUsage[chain.id])
                 guard seen.insert("\(chain.id)|\(addresses.first ?? "")").inserted else { continue }
                 out.append(.init(chainID: chain.id, addresses: addresses))
@@ -22,27 +29,38 @@ enum ReceiptAccounts {
         return out
     }
 
-    /// Ligado por padrao (pedido do dono, 14/10/2026): na primeira vez que a carteira abre
-    /// com o dono sem ter escolhido, pede a permissao de notificacao e liga. Desligar em
-    /// Ajustes vale para sempre; sem permissao, fica desligado.
+    /// Oferecido na primeira vez que a carteira abre (pedido do dono, 14/10/2026: o aviso
+    /// vem para todo mundo). A permissao de notificacao nao vale como aceite do arquivo
+    /// legivel com o iPhone bloqueado (auditoria 4, C7-03): antes dela, uma folha diz o
+    /// preco, e o dono escolhe (`ReceiptWatchOffer`). Quem ja tinha o aviso ligado pelo
+    /// padrao antigo, sem folha, ve a folha uma vez; "Agora nao" desliga.
     @MainActor
-    static func enableByDefault(_ session: AppSession) async {
-        guard !Preferences.receiptWatchChosen, session.phase == .unlocked, !session.metadata.wallets.isEmpty else { return }
+    static func shouldOffer(_ session: AppSession) -> Bool {
+        guard !Preferences.receiptOfferSeen, session.phase == .unlocked, !session.metadata.wallets.isEmpty else { return false }
         #if DEBUG
-        if DebugDemo.enabled { return }
+        if DebugDemo.enabled { return false }
         #endif
+        return true
+    }
+
+    /// O "sim" da folha: pede a permissao de notificacao e liga. Sem permissao, fica
+    /// desligado. Qualquer resposta vale para sempre.
+    @MainActor
+    static func accept(_ session: AppSession) async {
         Preferences.receiptWatchChosen = true
+        Preferences.receiptOfferSeen = true
         let accounts = all(session)
         guard await PriceAlertCenter.requestPermission() else { return }
         await ReceiptWatchCenter.shared.enable(accounts: accounts)
     }
 
     /// Muda quando as contas mudam: carteira nova, rede ligada ou desligada, endereco
-    /// UTXO novo. Barato: sem derivar endereco.
+    /// UTXO novo, copia conferida (a carteira passa a poder receber). Barato: sem derivar
+    /// endereco.
     @MainActor
     static func signature(_ session: AppSession) -> String {
         let wallets = session.metadata.wallets.map { wallet in
-            "\(wallet.id):\(wallet.accounts.count):" + wallet.utxoUsage.map { "\($0.key)\($0.value.receiveUsed)/\($0.value.changeUsed)" }.sorted().joined()
+            "\(wallet.id):\(wallet.accounts.count):\(wallet.hasBackup):" + wallet.utxoUsage.map { "\($0.key)\($0.value.receiveUsed)/\($0.value.changeUsed)" }.sorted().joined()
         }
         return wallets.joined(separator: ",") + "|" + session.metadata.settings.disabledChainIDs.sorted().joined(separator: ",")
     }
@@ -101,7 +119,8 @@ struct ReceiptWatchView: View {
 
                 VStack(alignment: .leading, spacing: Space.sm) {
                     note(String(localized: "Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois de a moeda entrar. Com o app aberto, a conferência é a cada 2 minutos."))
-                    note(String(localized: "Para conferir com o iPhone bloqueado, os endereços públicos das suas contas e o último saldo visto de cada moeda ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Nenhuma chave, frase ou nome de carteira entra nele. Vem ligado; desligar apaga o arquivo."))
+                    note(ReceiptWatchOffer.price)
+                    note(String(localized: "Carteiras com passphrase e carteiras com as palavras ainda não confirmadas ficam de fora. Desligar apaga o arquivo."))
                     note(String(localized: "Contam a moeda de cada rede e os tokens da lista conferida. Token fora da lista não avisa: é por ele que chega o spam."))
                 }
                 .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
@@ -119,6 +138,7 @@ struct ReceiptWatchView: View {
 
     private func setEnabled(_ on: Bool) {
         Preferences.receiptWatchChosen = true
+        Preferences.receiptOfferSeen = true
         file.enabled = on
         guard on else {
             denied = false
@@ -150,5 +170,63 @@ struct ReceiptWatchView: View {
 
     private func note(_ text: String) -> some View {
         Text(text).typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// A folha que oferece o aviso de recebimento, com o preco dito antes do "sim".
+struct ReceiptWatchOffer: View {
+    @Environment(AppSession.self) private var session
+    let onDone: () -> Void
+    @State private var working = false
+
+    /// O preco do aviso, igual aqui e em Ajustes.
+    static var price: String {
+        String(localized: "Para conferir com o iPhone bloqueado, os endereços públicos das suas carteiras e o último saldo visto de cada moeda ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Quem extrair os dados de um iPhone nesse estado lê esses endereços. Nenhuma chave, frase ou nome de carteira entra nele.")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Image(systemName: "arrow.down.circle")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(Palette.ink)
+                .frame(width: 56, height: 56)
+                .background(Circle().fill(Palette.control))
+            Text("Avisar quando chegar moeda?").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("O próprio iPhone confere o saldo e avisa, sem servidor da Escalibur no caminho.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(Self.price)
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.md)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Carteiras com passphrase ficam de fora. Dá para mudar em Ajustes, Aviso de recebimento.")
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: Space.lg)
+            PrimaryButton(title: String(localized: "Ligar o aviso"), loading: working) {
+                working = true
+                Task {
+                    await ReceiptAccounts.accept(session)
+                    working = false
+                    onDone()
+                }
+            }
+            .accessibilityIdentifier("recebimento-oferta-ligar")
+            SecondaryButton(title: String(localized: "Agora não")) {
+                Preferences.receiptWatchChosen = true
+                Preferences.receiptOfferSeen = true
+                // Ligado pelo padrao antigo, sem a folha: o "nao" desliga e apaga o arquivo.
+                Task { await ReceiptWatchCenter.shared.disable() }
+                onDone()
+            }
+            .padding(.top, Space.sm)
+        }
+        .padding(.horizontal, Space.gutter)
+        .padding(.top, Space.lg)
+        .padding(.bottom, Space.xs)
+        .presentationDetents([.large])
+        .presentationBackground(Palette.body)
+        .presentationCornerRadius(Radius.sheet)
+        .interactiveDismissDisabled()
     }
 }

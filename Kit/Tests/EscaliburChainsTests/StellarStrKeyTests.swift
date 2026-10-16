@@ -38,7 +38,13 @@ struct StellarStrKeyTests {
         #expect(StellarKey.muxedAddress(publicKey: Self.sep23Key, id: 9_223_372_036_854_775_808) == mBig)
 
         // O mesmo pelo validador geral de endereco, que a tela de envio usa.
-        #expect(Address.validate(mBig, for: .stellar) == .success(Address.Destination(address: g, tag: 9_223_372_036_854_775_808)))
+        // O M continua o destino inteiro: o id nao vira memo (auditoria 4, M1).
+        #expect(Address.validate(mBig, for: .stellar) == .success(Address.Destination(address: mBig, tag: nil)))
+        #expect(!Address.sameRecipient(g, mBig, chain: .stellar))
+        #expect(!Address.sameRecipient(m0, mBig, chain: .stellar))
+        #expect(Address.sameRecipient(mBig, mBig, chain: .stellar))
+        // O M e a conta base dele nao sao sosias um do outro.
+        #expect(AddressPoisoning.lookalike(mBig, among: [g, m0], chain: .stellar) == nil)
     }
 
     @Test("SEP-0023: StrKey invalidas sao recusadas")

@@ -202,8 +202,10 @@ struct WatchAddressView: View {
 
     private func save() {
         guard let chain = detected, case .success(let destination) = Address.validate(address, for: chain) else { return }
+        // Endereco M da Stellar e um cliente dentro de uma conta: o saldo e o da conta base.
+        let watched = chain.family == .stellar ? (StellarMuxedAccount(address: destination.address)?.account.address ?? destination.address) : destination.address
         do {
-            _ = try session.addWatchWallet(chain: chain, address: destination.address, name: String(name.prefix(40)))
+            _ = try session.addWatchWallet(chain: chain, address: watched, name: String(name.prefix(40)))
             onFinished()
         } catch {
             self.error = String(localized: "Não foi possível guardar.")

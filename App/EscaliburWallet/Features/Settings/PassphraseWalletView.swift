@@ -44,7 +44,7 @@ struct PassphraseWalletView: View {
                 .padding(.top, Space.md)
 
                 VStack(alignment: .leading, spacing: Space.md) {
-                    PassphrasePoint(icon: "eye.slash", text: String(localized: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não esta."))
+                    PassphrasePoint(icon: "eye.slash", text: String(localized: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não esta. Dentro deste app, quem tem o PIN vê as duas na lista de carteiras."))
                     PassphrasePoint(icon: "pencil.and.list.clipboard", text: String(localized: "Anote a passphrase longe das \(wordCount). Para abrir esta carteira em outro aparelho, você vai precisar das duas."))
                     PassphrasePoint(icon: "exclamationmark.triangle", text: String(localized: "Esquecer a passphrase é perder o que estiver nesta carteira. Ninguém recupera, nem a Escalibur."), caution: true)
                 }
@@ -108,6 +108,10 @@ struct PassphraseWalletView: View {
             message = String(localized: "As duas versões da passphrase não conferem.")
             return
         }
+        guard Self.isWritable(passphrase) else {
+            message = String(localized: "A passphrase tem um caractere invisível ou um espaço diferente do espaço comum. Escreva de novo, só com letras, números, símbolos e espaço comum: é o que dá para anotar no papel.")
+            return
+        }
         working = true
         defer { working = false }
         // O cofre fica com uma copia: os campos continuam donos dos seus buffers.
@@ -132,6 +136,34 @@ struct PassphraseWalletView: View {
             message = error.errorDescription
         } catch {
             message = String(localized: "Não foi possível criar a carteira agora.")
+        }
+    }
+}
+
+extension PassphraseWalletView {
+    /// A passphrase cabe no papel? Caractere de controle, de formato (largura zero,
+    /// bidirecional), separador de linha, uso privado ou um espaco que nao e o comum nao
+    /// aparecem, ou aparecem iguais a outros, e quem anota perde a carteira (revisao da
+    /// auditoria 4, C7-02). Lido escalar por escalar direto do buffer, sem virar String.
+    static func isWritable(_ secret: SecureBytes) -> Bool {
+        secret.withUnsafeBytes { raw in
+            var iterator = raw.makeIterator()
+            var decoder = Unicode.UTF8()
+            while true {
+                switch decoder.decode(&iterator) {
+                case .scalarValue(let scalar):
+                    switch scalar.properties.generalCategory {
+                    case .format, .control, .lineSeparator, .paragraphSeparator, .privateUse, .surrogate, .unassigned:
+                        return false
+                    case .spaceSeparator where scalar != " ":
+                        return false
+                    default:
+                        continue
+                    }
+                case .emptyInput: return true
+                case .error: return false
+                }
+            }
         }
     }
 }

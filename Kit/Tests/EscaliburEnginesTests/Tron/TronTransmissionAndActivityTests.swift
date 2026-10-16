@@ -153,7 +153,13 @@ struct TronTransmissionAndActivityTests {
     @Test("Historico envenenado gravado: os envios falsos de 0 USDT saem marcados, os verdadeiros nao")
     func poisonedHistoryIsScreened() async throws {
         let entries = try await Self.poisonedHistory()
-        let suspicious = entries.filter(\.suspicious)
+        // O sosia que casa 2 letras no comeco (depois do T) e 5 no fim: 0,0215 USDT de
+        // TAASGw3...6g1d2, imitando TAAQ2PHS...6g1d2. Ate a auditoria 4 ele ficava visivel,
+        // como limite conhecido, porque `AddressPoisoning` pedia 3 no comeco; agora uma ponta
+        // so com 5 ou mais ja marca (C7-07).
+        let mimic = entries.filter { $0.counterparty == "TAASGw3rY8vdqWpM6p2gHc1YpQ4XY6g1d2" }
+        #expect(!mimic.isEmpty && mimic.allSatisfy(\.suspicious))
+        let suspicious = entries.filter { $0.suspicious && $0.counterparty != "TAASGw3rY8vdqWpM6p2gHc1YpQ4XY6g1d2" }
         #expect(Set(suspicious.map { String($0.hash.prefix(12)) }) == Self.forged)
         #expect(suspicious.allSatisfy { $0.direction == .sent && $0.amount.isZero && $0.fee == nil && $0.asset?.symbol == "USDT" })
 
@@ -164,10 +170,6 @@ struct TronTransmissionAndActivityTests {
         #expect(signed.contains { $0.counterparty == "TCsa4VaxBcoY2N7pFdkmC5r1AtieCRRgos" && $0.amount == BigUInt(400_000_000) })
         // O TRX de 1 a 9 sun de desconhecidos nem chega: o leitor ja tira o po abaixo do limite.
         #expect(!entries.contains { $0.direction == .received && $0.asset == R.trx && $0.amount < BigUInt(100) })
-        // Limite conhecido: 0,0215 USDT de TAASGw3...6g1d2, sosia de TAAQ2PHS...6g1d2, fica
-        // visivel. Casa 2 letras no comeco (depois do T) e 5 no fim, e `AddressPoisoning`
-        // pede 3 no comeco.
-        #expect(entries.contains { $0.counterparty == "TAASGw3rY8vdqWpM6p2gHc1YpQ4XY6g1d2" && !$0.suspicious })
     }
 
     static func item(

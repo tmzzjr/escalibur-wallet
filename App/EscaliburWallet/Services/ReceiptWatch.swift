@@ -11,8 +11,8 @@ import UserNotifications
 // O preco disso, dito no botao que liga: para conferir com o iPhone bloqueado, os
 // enderecos publicos das contas ficam num arquivo proprio, com a protecao ate o primeiro
 // desbloqueio (classe C), fora dos metadados cifrados. Nada de chave, frase ou nome de
-// carteira. Ligado por padrao desde 14/10/2026, a pedido do dono
-// (`ReceiptAccounts.enableByDefault`); desligar apaga o arquivo e vale para sempre.
+// carteira. Oferecido a todos desde 14/10/2026, a pedido do dono, numa folha que diz o
+// preco antes do "sim" (`ReceiptWatchOffer`); desligar apaga o arquivo e vale para sempre.
 //
 // Este arquivo nao toca no cofre, no chaveiro nem nos metadados cifrados, e verificar.sh
 // confere: os enderecos chegam de fora, pelo app destravado (`sync`).
@@ -191,7 +191,9 @@ actor ReceiptWatchCenter {
         try? ReceiptWatchStore.save(value)
         guard !events.isEmpty else { return }
         await Self.post(events, showDetails: value.showDetails)
-        if let event = events.first(where: { $0.coingeckoID != nil }), let id = event.coingeckoID {
+        // O widget da tela bloqueada mostraria a moeda que entrou, que o aviso discreto
+        // esconde: so com o valor e a moeda ligados no aviso (auditoria 4, R7-B3).
+        if value.showDetails, let event = events.first(where: { $0.coingeckoID != nil }), let id = event.coingeckoID {
             await WidgetFeed.shared.received(coinID: id, symbol: event.symbol, name: event.name ?? event.symbol)
         }
     }

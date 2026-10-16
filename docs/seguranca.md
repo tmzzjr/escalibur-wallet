@@ -68,9 +68,11 @@ No Escalibur de hoje nenhum destes achados é grave, porque lá o PIN não prote
   - O app pede PIN ou biometria ao abrir. Trava ao ir para segundo plano (tolerância de no máximo 60 s) e trava na hora em `UIApplication.protectedDataWillBecomeUnavailableNotification`.
   - A biometria usa `.biometryCurrentSet`, **nunca** `.userPresence` nem `.devicePasscode`. O código do iPhone não abre nada aqui.
   - Cadastrar um rosto novo destrói o slot biométrico em vez de abri-lo.
-  - A escada de atraso do PIN exige cerca de 340 anos para varrer 10^6 pela interface, e cerca de 3,4 anos para varrer 10^4 quando o dono escolhe 4 dígitos.
-  - Revelar ou exportar a frase exige PIN.
-- O que sobra: nada, sem o PIN, sem o rosto do dono e sem exploit.
+  - A escada de atraso do PIN dobra do nono erro em diante, de 3 horas até 7 dias por tentativa: pela interface são 18 chutes em 30 dias e 66 em um ano (§2.7).
+  - Revelar, lacrar num envelope ou remover uma carteira exige o PIN e, com o Face ID ligado, o rosto também (A1, §2.10). Quem viu só o PIN não leva a frase: para trocar o rosto ele precisa também do código do iPhone, e aí espera 24 horas (abaixo).
+- O que sobra:
+  - Contra PIN escolhido por gente, sem lista de bloqueio, poucos chutes ainda acertam uma parte dos donos (Markert et al., S&P 2020, tabela VI, grupos de controle): 6% dos PINs de 6 dígitos em 10 chutes, 9% em 30 e 14% em 100 (7, 12 e 18 de 127). O primeiro chute do ladrão é o código do iPhone que ele viu. Com o PIN certo, ele envia o saldo que o app mostra (envio aceita Face ID ou PIN); a frase continua pedindo o rosto.
+  - Quem viu o código do iPhone e o PIN pode cadastrar o próprio rosto: o slot da biometria cai, o que pede PIN e rosto fica recusado até alguém religar o Face ID no app, e religar começa 24 horas de espera (§2.5). Depois disso, PIN e o rosto dele mostram a frase. A Proteção de Aparelho Roubado do iOS atrasa o cadastro do rosto.
 
 **T3. Execução de código no aparelho desbloqueado (jailbreak, exploit forense, malware com privilégio)**
 - Defesa:
@@ -145,8 +147,9 @@ No Escalibur de hoje nenhum destes achados é grave, porque lá o PIN não prote
 ### 2.2 As chaves
 
 ```
-PIN ─Argon2id─► AP ─(applicationPassword)─► item rk.pin = ECIES(K_dev.pub, ChaChaPoly(K_pin, RK)) ─SE(K_dev)─► ─K_pin─► RK
+PIN ─Argon2id─► AP ─(applicationPassword)─► item rk.pin = ECIES(K_slot.pub, ChaChaPoly(K_pin, RK)) ─SE(K_slot + senha)─► ─K_pin─► RK
                 AP ─HKDF(salt, "escalibur-wallet/v1/rk.pin")─► K_pin
+                AP ─HKDF(salt, "escalibur-wallet/v2/kpin.senha")─► senha de aplicativo da K_slot
 biometria (decisão no SEP) ─────────────────► item rk.bio = ECIES(K_bio.pub, RK) ─SE(K_bio)─► RK
 RK ─HKDF "escalibur-wallet/v1/index"──────────► K_idx ─► metadados.bin (xpubs, endereços, nomes, catálogo)
 RK ─HKDF(salt_w, "…/v1/dek" ‖ walletID)───────► KEK_w ─► DEK_w ─HKDF(salt_s,"…/v1/seed")─► registro da seed
@@ -154,7 +157,8 @@ RK ─HKDF(salt_w, "…/v1/dek" ‖ walletID)───────► KEK_w ─�
 
 | Chave | O que é | Onde vive |
 |---|---|---|
-| K_dev | P-256 no SE, flags `[.privateKeyUsage]` | Secure Enclave |
+| K_slot (`kpin`, `kpin.novo`) | P-256 no SE, flags `[.privateKeyUsage, .applicationPassword]`, senha derivada do PIN; uma por slot (formato 2, §2.4) | Secure Enclave |
+| K_dev | P-256 no SE, flags `[.privateKeyUsage]`, sem senha: só do formato 1, apagada quando o slot migra | Secure Enclave, até a migração |
 | K_bio | P-256 no SE, flags `[.privateKeyUsage, .biometryCurrentSet]` | Secure Enclave; só existe com biometria ligada |
 | AP | Argon2id(PIN), 32 bytes | só em memória, por microssegundos |
 | RK | 32 bytes do `SecRandomCopyBytes` | só embrulhada; em claro apenas durante uma operação |
@@ -185,7 +189,7 @@ Arquivos:
 - `isExcludedFromBackup = true`, conferido com `resourceValues` como o `VaultStore` já faz.
 - Exceções com a proteção até o primeiro desbloqueio (classe C), porque a checagem em segundo plano roda com o iPhone bloqueado, e o `verificar.sh` confere que só elas existem e que nenhuma toca cofre, chaveiro ou metadados:
   - `Alertas/alertas.json`: as moedas escolhidas para alerta de preço e o último preço visto. Nada de saldo nem endereço.
-  - `Recebimentos/recebimentos.json` (aviso de recebimento, ligado por padrão desde 14/10/2026 a pedido do dono, com a permissão de notificação pedida na primeira abertura da carteira): os endereços públicos das contas e o último saldo visto de cada ativo. Nenhuma chave, frase ou nome de carteira. O padrão troca a confidencialidade dos endereços com o iPhone bloqueado depois do primeiro desbloqueio pelo aviso sem servidor; a tela do aviso diz isso, e desligar apaga o arquivo e vale para sempre. Os endereços chegam do app destravado (`ReceiptAccounts`); o arquivo do aviso nunca abre os metadados.
+  - `Recebimentos/recebimentos.json` (aviso de recebimento, oferecido a todos desde 14/10/2026 a pedido do dono): os endereços públicos das contas e o último saldo visto de cada ativo. Nenhuma chave, frase ou nome de carteira. O aviso troca a confidencialidade dos endereços com o iPhone bloqueado depois do primeiro desbloqueio pelo aviso sem servidor. Desde a auditoria 4 (C7-03), uma folha diz esse preço na primeira abertura da carteira, antes do pedido de permissão, e o dono escolhe; a permissão de notificação sozinha não vale como aceite. Carteiras com passphrase e carteiras sem cópia conferida ficam fora do arquivo: com elas nele, quem extrai os dados do aparelho acharia a carteira que o dono quis esconder. Desligar apaga o arquivo e vale para sempre. Os endereços chegam do app destravado (`ReceiptAccounts`); o arquivo do aviso nunca abre os metadados.
   - `Ordens/ordens.json` (avisos da ordem limite): o UID de cada ordem aberta da CoW, a rede e o prazo. O UID traz o endereço do dono, então o arquivo diz quais endereços são do aparelho, como o do recebimento. Serve para perguntar à CoW, com o iPhone bloqueado, se a ordem executou. A ordem sai quando termina, o arquivo some vazio, e o aviso de 24 horas antes do prazo é um alarme local, sem rede. O UID chega do app destravado (`LimitOrderWatch.track`); o arquivo nunca abre metadados nem conta.
 
 Pré-condições para criar ou importar carteira:
@@ -229,8 +233,8 @@ Consequência que vai por escrito no onboarding:
   - Com os dois slots presentes (crash entre os passos 1 e 2), o desbloqueio tenta os dois na mesma tentativa. O antigo abrindo desfaz a troca; o novo abrindo a conclui. Se os dois slots têm tamanhos diferentes, a tela fecha sozinha no maior, e o menor vai pela tecla OK, sem gastar tentativa.
   - Uma troca nova é recusada enquanto houver uma interrompida: o desbloqueio resolve primeiro.
 - **Cadastro só com resposta definitiva.** O chaveiro que não consegue responder (`probe` = desconhecido) nunca vira "não existe": `isSetUp` responde sim e o cadastro recusa. `createKey(.device)` nunca substitui a K_dev em silêncio. Sobras de um cadastro interrompido só são apagadas quando nenhum slot da RK existe.
-- **Contador de tentativas.** O prazo usa só o relógio monotônico (`CLOCK_MONOTONIC_RAW`, que conta o tempo dormindo) e a identidade do boot (`kern.bootsessionuuid`). Mudar o relógio de parede não encurta nem estica a espera. Depois de reiniciar, a espera recomeça cheia; ler o contador nunca grava, quem regrava é a abertura do app e a volta ao primeiro plano. Face ID aceito não zera o contador (auditoria 2, B4): só o PIN certo zera.
-- **Face ID recusado não apaga o atalho.** Só o cadastro de rostos diferente do gravado ao ligar, ou a K_bio que o SEP já destruiu, apagam `rk.bio`.
+- **Contador de tentativas.** O prazo usa só o relógio monotônico (`CLOCK_MONOTONIC_RAW`, que conta o tempo dormindo) e a identidade do boot: `kern.bootsessionuuid` no Mac e no simulador; no iPhone a sandbox recusa essa leitura, e vale o instante do boot (`kern.boottime`), comparado com folga de 10 s. Mudar o relógio de parede não encurta nem estica a espera. Depois de reiniciar, a espera recomeça cheia; ler o contador nunca grava, quem regrava é a abertura do app e a volta ao primeiro plano. Face ID aceito não zera o contador (auditoria 2, B4): só o PIN certo zera.
+- **Face ID recusado não apaga o atalho.** Só o cadastro de rostos diferente do gravado ao ligar, ou a K_bio que o SEP já invalidou, apagam `rk.bio` (§2.5). Face ID indisponível (tirado do app, Espelhamento do iPhone, falha passageira do sistema) não apaga nada: o que pede PIN e rosto recusa até ele voltar.
 
 **Spike obrigatório antes de construir sobre isto.**
 - O que é documentado: o header do SDK descreve `kSecAccessControlApplicationPassword` como "Application provided password for data encryption key generation. This is not a constraint but additional item encryption mechanism."
@@ -251,11 +255,15 @@ Consequência que vai por escrito no onboarding:
   - Cria K_bio e grava `rk.bio`.
   - Grava o hash de estado da biometria: `LAContext().domainState.biometry.stateHash` no iOS 18+, `evaluatedPolicyDomainState` no 17.
   - Faz uma decifragem de teste com o prompt de Face ID antes de mostrar "ligado".
-- **Desligar**: `SecItemDelete` de `rk.bio` e de K_bio. O slot do PIN não é tocado, então ligar e desligar a biometria nunca enfraquece o PIN.
+- **Desligar**: pede o PIN e o rosto (A1), porque com o Face ID desligado o que pedia os dois passa a pedir só o PIN. Depois, `SecItemDelete` de `rk.bio` e de K_bio. O slot do PIN não é tocado.
 - **O cadastro de rostos mudou**:
-  - O SEP invalida K_bio e a decifragem falha.
-  - O app compara o hash, apaga o slot e diz: "O Face ID deste iPhone mudou desde que foi ligado aqui. Entre com o PIN; depois você pode religar."
-  - Religar exige o PIN. O ladrão que cadastra o próprio rosto só destrói o slot.
+  - O SEP invalida K_bio e a decifragem falha. O app vê isso no primeiro uso do Face ID ou na abertura (slot sem a chave).
+  - O app compara o hash e grava, antes de apagar o slot, a espera de 24 horas (`bio.espera`, no relógio monotônico; depois de reiniciar recomeça cheia) e a marca de perdido (`bio.perdido`, sem prazo). Se uma delas não gravar, o slot fica e o rosto continua sem abrir: nunca passa a valer só o PIN.
+  - Diz: "O Face ID deste iPhone mudou desde que foi ligado aqui. Entre com o PIN; depois você pode religar."
+  - Com a marca, ver as palavras, lacrar envelope, remover carteira e desligar o Face ID recusam antes de pedir o PIN e a voz, até alguém religar o Face ID. Vencer a espera não basta: nunca volta sozinho a pedir só o PIN. Abrir o app e enviar continuam pelo PIN.
+  - Religar exige o PIN e confere o rosto na hora. Religar depois de uma queda, ou por cima de um slot que existe, tira a marca e começa a espera de 24 horas a partir dali. O primeiro Face ID de um cofre que nunca o teve não espera: antes dele, o PIN já abria tudo.
+  - Revisão do A1 (16/10/2026): antes, com a K_bio invalidada o app mostrava o Face ID desligado, e religar sobrescrevia o slot do dono sem espera; e o Face ID indisponível derrubava o slot, que vencida a espera voltava a pedir só o PIN.
+- **Face ID indisponível** (tirado do app em Ajustes do iPhone, Espelhamento do iPhone, falha passageira): nada é apagado e nada espera; o que pede PIN e rosto recusa e diz por quê.
 - **`LAContext` de cada operação**:
   - `localizedReason` descreve a ação ("Assinar envio de 0,25 ETH na Base").
   - `touchIDAuthenticationAllowableReuseDuration = 0`.
@@ -273,8 +281,9 @@ Consequência que vai por escrito no onboarding:
 
 ### 2.7 Atraso progressivo e "apagar após N erros"
 
-- **Escada de atraso** (pode ser a do Escalibur):
-  - Erros 1 e 2: 0 s. Erro 3: 5 s. Erro 4: 15 s. Erro 5: 60 s. Erro 6: 5 min. Erro 7: 15 min. Erro 8: 1 h. Do 9 em diante: 3 h.
+- **Escada de atraso**:
+  - Erros 1 e 2: 0 s. Erro 3: 5 s. Erro 4: 15 s. Erro 5: 60 s. Erro 6: 5 min. Erro 7: 15 min. Erro 8: 1 h. Do 9 em diante dobra: 3 h, 6 h, 12 h, 24 h, 48 h, 96 h, e 7 dias por tentativa do 15º em diante (auditoria 4, C7-04).
+  - Na conta: 9 chutes na primeira hora e meia, 18 em 30 dias, 66 em um ano. Com o teto antigo de 3 horas eram cerca de 2.900 por ano.
   - O incremento é gravado com `SecItemUpdate` antes da avaliação. Se a gravação falhar, a tentativa não é avaliada.
   - Relógio de parede e relógio monotônico, com o conserto de boot da A3.
 - **Apagar após 10**:
@@ -289,8 +298,8 @@ Consequência que vai por escrito no onboarding:
 | Atacante | Custo para varrer todos os PINs |
 |---|---|
 | Extraiu os dados e não tem o aparelho | impossível: K_dev nunca sai do SE, e nenhum blob abre em outro lugar |
-| Tem o aparelho desbloqueado, tenta pela interface | ~340 anos pela escada (~170 em média); com apagar-após-10, 1 chance em 10^5 |
-| O mesmo, com PIN de 4 dígitos | ~3,4 anos pela escada (~1,7 em média); com apagar-após-10, 1 chance em 10^3 |
+| Tem o aparelho desbloqueado, tenta pela interface | 66 chutes por ano pela escada: contra PIN sorteado de 6 dígitos, 1 chance em 15 mil por ano; com apagar-após-10, 1 em 10^5. Contra PIN escolhido por gente, ver abaixo |
+| O mesmo, com PIN de 4 dígitos | 66 chutes por ano: contra PIN sorteado, 1 chance em 150 por ano; com apagar-após-10, 1 em 10^3 |
 | Tem execução de código no aparelho desbloqueado | Argon2id pré-calculado em GPU + 10^6 × 22 ms no SE ≈ **6 a 11 horas no pior caso, 3 a 6 em média** |
 | O mesmo, com PIN de 4 dígitos | Argon2id pré-calculado em GPU (1 a 2 min) + 10^4 × 22 ms no SE ≈ **4 a 6 minutos no pior caso, 2 a 3 em média**; sem GPU, só no iPhone, 10^4 × 0,82 s ≈ 2,3 horas |
 | O mesmo, com senha alfanumérica sorteada de 8 caracteres | ~24 mil anos |
@@ -300,7 +309,7 @@ A resposta honesta: **o SE converte ataque offline em ataque preso ao aparelho, 
 - O único limite por hardware que existe é o do código do iPhone (80 ms mais atrasos crescentes no SEP).
 - Para usar esse limite, o item teria de ser `.devicePasscode`, e quem viu o código do iPhone passa por ele.
 - Por isso o PIN de 6 dígitos é defesa contra T2, não contra T3. O de 4 também é só contra T2.
-  - Pela interface, contra PIN escolhido por gente e sem lista de bloqueio, o tamanho quase não muda a chance (Markert et al., S&P 2020): em 10 chutes, 4,6% dos PINs de 4 e 6,5% dos de 6; em 30, 7,6% e 8,9%; em 100, 16,2% e 13,3%.
+  - Pela interface, contra PIN escolhido por gente e sem lista de bloqueio, o tamanho quase não muda a chance (Markert et al., S&P 2020, tabela VI, grupos de controle: 231 PINs de 4 dígitos e 127 de 6): em 10 chutes, 5% dos de 4 e 6% dos de 6; em 30, 8% e 9%; em 100, 17% e 14%.
   - O preço real dos 4 dígitos está contra o PIN sorteado (10^4 em vez de 10^6) e contra quem tem execução de código: minutos em vez de horas.
 
 ### 2.9 Ciclo de vida da seed na assinatura
@@ -335,10 +344,10 @@ Regras:
 | Ação | Exige |
 |---|---|
 | Abrir o app e ver saldos | PIN ou biometria |
-| Qualquer assinatura (envio, swap, approve, ordem, cancelamento) | Autenticação nova, uma por lote revisado numa única tela. Modo reforçado: PIN e biometria |
-| Revelar palavras, exportar envelope, apagar carteira | PIN (e biometria, se estiver ligada) |
-| Ligar biometria, trocar PIN, mudar tempo de bloqueio, desligar reforçado ou apagar-após-N | PIN |
-| Desligar biometria | sessão aberta, porque só reduz superfície |
+| Qualquer assinatura (envio, swap, approve, ordem, cancelamento) | Autenticação nova, uma por lote revisado numa única tela: Face ID ou PIN. Modo reforçado (§2.6, ainda não feito): PIN e biometria |
+| Revelar palavras, exportar envelope, remover carteira | PIN e, com a biometria ligada, o rosto também (A1, `unlockWithPINAndBiometry`). Logo depois de o Face ID cair sozinho, espera de 24 horas |
+| Ligar biometria, trocar PIN, alongar o tempo de bloqueio, apagar-após-N, mudar a voz | PIN |
+| Desligar biometria | PIN e rosto (A1): desligar tira o rosto do que pede os dois |
 
 ---
 
@@ -427,6 +436,7 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
    - `gasLimit ≤ estimativa × 1,3` (na v1, a menor de 2 estimativas × 1,2), também com teto.
    - Taxa acima de US$ 20 ou de 3% do valor pede confirmação extra.
    - Na mainnet Ethereum, envio por RPC privado (Flashbots Protect ou MEV Blocker) para não ser sanduichado dentro do slippage.
+   - Nas L2 de sequenciador único (Arbitrum, Base, Optimism, Unichain, Linea, e Celo e X Layer desde que passaram ao OP Stack) não há fila pública para um robô ler. Nas demais (BNB, Polygon, Avalanche, Sonic, Plasma) e na Solana, a troca vai pela fila pública, e a revisão diz: "sem proteção contra robôs: o que ficar entre a estimativa e o mínimo garantido pode não chegar" (auditoria 4, M2). A CoW, já integrada em várias dessas redes, é leilão e não passa pela fila. Relay privado nessas redes fica para depois.
 
 ### 4.4 Aprovações, Permit2, EIP-2612
 
@@ -506,7 +516,8 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
   - Destino inexistente só recebe a partir da reserva base, lida de `server_info` (1 XRP desde dezembro de 2024).
   - Aceite X-address, que já carrega a tag.
   - **Recebimento: mostre `meta.delivered_amount`, nunca `Amount`.** Pagamento parcial (`tfPartialPayment`) é o golpe clássico do "recebi 1.000 XRP".
-- **Stellar**: pela SEP-29, a entrada de dados `config.memo_required` igual a `"1"` na conta de destino torna o memo obrigatório. Endereços muxados `M…` carregam o ID. Destino inexistente pede `CreateAccount` com pelo menos 1 XLM.
+- **Stellar**: pela SEP-29, a entrada de dados `config.memo_required` igual a `"1"` na conta de destino torna o memo obrigatório. Endereços muxados `M…` carregam o ID e vão inteiros até a transação (`KEY_TYPE_MUXED_ED25519`, sem memo): até a auditoria 4 o app os trocava pela conta base `G…` com o ID como memo (M1). A conferência do plano compara o `M` inteiro, ID incluído. Destino inexistente pede `CreateAccount` com pelo menos 1 XLM, e com `M` é recusado, porque o ID se perderia.
+- **QR e link de pagamento**: a tag ou o memo do link (`dt` do XRP Ledger, `text` do `ton://transfer/`, `memo` do SEP-7) vai para o campo, com a nota "veio do código que você leu"; antes eram descartados (B5). Memo de hash ou de retorno, ou memo de texto só com números (que o app enviaria como memo ID), é recusado: o dono digita.
 - **EVM**: destino com código (`eth_getCode` diferente de `0x`) gera aviso. Destino igual ao contrato do próprio token, ou a um router da lista, bloqueia.
 - **Solana**: destino fora da curva (PDA) ou uma conta de token no lugar de uma carteira gera aviso ou bloqueio.
 - **Tron**: `fee_limit` com teto. USDT TRC-20 é `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t`.
@@ -524,9 +535,12 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
 
 ### 4.10 Envenenamento de endereço e área de transferência
 
-- **No envio**, o destino é comparado com o catálogo, com todo o histórico e com os próprios endereços.
-  - Se não for idêntico a nenhum, mas tiver os mesmos 4 primeiros e 4 últimos caracteres de algum (depois do prefixo), o aviso é bloqueante.
-  - O aviso mostra os dois endereços lado a lado, com as diferenças destacadas.
+- **No envio**, o destino é comparado com para onde a carteira já enviou (o registro do app e o histórico da rede), com os endereços salvos e com os das carteiras deste iPhone. As carteiras só de observação ficam de fora: o endereço delas não é do dono (auditoria 4, C7-07).
+  - É parecido quem não é a mesma conta mas casa as pontas, depois do prefixo da rede: 3 ou mais no começo e 3 ou mais no fim, somando 7, ou 5 ou mais numa ponta só (2+6, 0+10). A ponta só pegou, num histórico real da Tron gravado nos testes, o sósia que casava 2 no começo e 5 no fim.
+  - Não é parecido: a mesma conta escrita de outra forma (caixa do EIP-55, forma amigável e crua da TON), o `M` da Stellar e a conta base dele, e na Cardano dois endereços com a mesma credencial de pagamento.
+  - O aviso é bloqueante: mostra os dois endereços lado a lado, diz de onde o dono conhece o outro ("Você já pagou", "Sua carteira", "Salvo como, nunca recebeu daqui"), e só segue quem digita os 6 caracteres onde os dois diferem.
+  - Sem histórico legível, o primeiro envio para um endereço que não é contato nem carteira pede os 6 do meio, escondidos na tela.
+- **Ao salvar um endereço**, ele vira de confiança, então passa pela mesma comparação e o dono digita 6 caracteres olhando a fonte: onde difere do parecido, com os dois lado a lado; ou, sem parecido, os 6 do meio, escondidos na tela e no endereço como foi colado, para o dono ler na fonte e não na tela que o clipper preencheu. Antes ele nascia sem conferência, e um clipper no Mac que trocasse o endereço na hora de salvar invertia o aviso de parecido.
 - **No histórico**:
   - Ocultar por padrão as transferências de valor zero, o pó e os tokens fora da lista.
 - **No saldo**, token fora da lista aparece em "Outros tokens", marcado como não verificado, sem preço até uma fonte confiável ter o contrato (CoinGecko por plataforma, reserva CoinPaprika por contrato; nunca pelo símbolo), e fora do total enquanto não tiver preço. O suspeito (`TokenSafety`: site ou @ no nome, isca, símbolo que imita stablecoin ou moeda nativa depois de desfazer letras cirílicas e de largura cheia, poeira chegada sem pedir, caractere invisível, lista negra da própria fonte) fica atrás de "Mostrar suspeitos" e nunca entra no total. Na EVM o indexador só diz quais contratos a conta tem: saldo e casas são relidos na rede.
@@ -537,7 +551,7 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
 - **Tela de confirmação**: o endereço aparece inteiro, em grupos de 4, com EIP-55. Endereço com maiúsculas e minúsculas misturadas e checksum inválido é recusado.
 - **Área de transferência**: no iOS, nenhum app lê a área de transferência em segundo plano. O sequestro realista acontece no computador de origem, e o Universal Clipboard traz o endereço trocado. Defesa:
   - Colar por `PasteButton`.
-  - Depois de colar, pedir ao dono que confira os 6 primeiros e os 6 últimos caracteres com a fonte.
+  - A conferência de 6 caracteres com a fonte vale ao salvar um endereço, com endereço parecido e no primeiro envio sem histórico. No primeiro envio com histórico e sem parecido, o app avisa que é o primeiro envio e não pede os 6: é o limite que fica.
   - Preferir QR e o catálogo.
 
 ### 4.11 Identificadores de rede, compilados e conferidos
@@ -724,9 +738,11 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
   - Zerada assim que `open` retorna, com sucesso ou não. Não entra em cache para "tentar de novo".
 - **Seed revelada**:
   - O padrão é **não mostrar**. A importação vai direto para o armazenamento, e a tela mostra a identidade para conferência: fingerprint BIP-32 e o primeiro endereço BTC e EVM.
-  - "Ver palavras" exige PIN e segue a sessão de revelação do Escalibur: 3 palavras por vez, ou as 12 (ou 24) numa chapa só em "Ver todas de uma vez" (pedido do dono, 15/10/2026), 60 s, fecha ao sair do primeiro plano, com proteção de captura e sem seleção. Copiar, só pelo aviso descrito em "Área de transferência".
+  - "Ver palavras" exige PIN e, com o Face ID ligado, o rosto (A1), e segue a sessão de revelação do Escalibur: 3 palavras por vez, ou as 12 (ou 24) numa chapa só em "Ver todas de uma vez" (pedido do dono, 15/10/2026). As mesmas palavras por 60 s seguidos escondem sozinhas e voltam com um toque (N2); escondem também ao sair do primeiro plano. Proteção de captura e sem seleção. Antes, quatro "estou ciente", o último sobre o Espelhamento do iPhone no Mac, que o app não consegue ver (C7-06). Copiar, só pelo aviso descrito em "Área de transferência".
+  - A passphrase aparece com o espaço visível (␣) e a contagem de caracteres: um espaço a mais já abre outra carteira.
+- **Importar** (frase ou envelope): a conferência antes de guardar mostra endereços e impressão digital, e só guarda com o aceite de que quem deu as palavras (ou o envelope e a senha) controla a carteira. Na Tron, as permissões da conta são lidas na rede (`TronReader.ownerControl`): outra chave no controle vira aviso vermelho, o golpe da "frase com saldo". A carteira de um envelope não passa a ser a carteira em uso sozinha, e nome repetido ganha "(envelope)" (auditoria 4, C7-05).
 - **Exportar**:
-  - Exige PIN, mais biometria se estiver ligada.
+  - Exige PIN e, com o Face ID ligado, o rosto (A1).
   - Senha padrão **gerada**: 6 palavras BIP-39 do CSPRNG, 66 bits. Com os parâmetros de referência, isso custa cerca de 97 mil anos a um Estado e 9,7 milhões a crime organizado. Com 5 palavras seriam 48 anos contra um Estado.
   - Senha escolhida pelo dono, livre, com no mínimo 4 caracteres (pedido do dono, 14/10/2026). Enquanto ele digita, a tela diz em quanto tempo a senha cai com os parâmetros reais do envelope: muito fraca (crime organizado em menos de 1 dia), fraca (até 10 anos), boa contra ladrão comum (um Estado em menos de 1.000 anos) e forte.
   - O medidor é o modelo do zxcvbn (`PasswordStrength`): palavras e senhas comuns pela posição nas listas de frequência do zxcvbn-ts (MIT, travadas em `forca.lock`), palavras BIP-39 de todos os idiomas com no máximo 11 bits, repetição, sequência, ano, data e linha de teclado quase de graça, e força bruta só no resto. O medidor anterior dava "forte" a "abandon" seis vezes e a doze pontos de exclamação (auditoria do envelope, 14/10/2026).
@@ -771,10 +787,11 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
   - `.private` é redação por política: um perfil de log com dados privados, ou um sysdiagnose num aparelho configurado, revela o valor. `.sensitive` sempre redige. Mesmo assim a regra é não registrar.
   - Mensagens de `fatalError` e `precondition` vão para o relatório de crash, então nada interpolado no módulo de chaves.
 - **Terceiros**: nenhum SDK de crash, analytics ou atribuição. Só os relatórios opcionais da própria Apple.
-- **Sem WebView, sem push, sem Siri, Spotlight, App Intents, widgets ou Handoff na v1.** Notificações só locais, sem valor e sem endereço.
-- **Deep links e QR** (BIP-21, EIP-681):
-  - Só pré-preenchem, com o selo "veio de link externo", parsing estrito e tamanho limitado.
-  - Um QR com frase na tela de envio é recusado com aviso.
+- **Sem WebView, sem push, sem Siri, Spotlight, App Intents ou Handoff na v1.** Notificações só locais; valor e moeda só se o dono ligar. Os widgets de preço existem desde 14/10/2026 e mostram só o preço de uma moeda; a moeda que acabou de entrar só aparece neles com o valor e a moeda ligados no aviso de recebimento (auditoria 4, R7-B3).
+- **Deep links e QR** (BIP-21, EIP-681, `xrpl:`, `ton://transfer/`, SEP-7):
+  - Só pré-preenchem, com parsing estrito e tamanho limitado.
+  - Um QR com frase (12 palavras ou mais, ou o SeedQR de 48 ou 96 dígitos) é recusado no envio e em Endereços salvos, e nada dele vai para o campo (C7-13).
+- **Espelhamento do iPhone no Mac**: não há API para um app saber dele (suporte da Apple). A guarda de captura vê gravação e AirPlay, não o espelhamento; a checagem do aparelho diz isso em vez de dar a tela como limpa, e a revelação pede um "estou ciente" sobre ele (C7-06).
 - **Backup do iCloud**:
 
 | Pode ir | Não pode ir |
@@ -940,6 +957,9 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
    - Deixa de ser aceitável: se a conta tiver um administrador só.
 6. **Captura de tela não é bloqueável, e as palavras reveladas são `String`.** A defesa é a janela curta.
 7. **Biometria pode ser forçada.** O modo reforçado existe para isso.
+   - Fora dele, o PIN sozinho envia o saldo que o app mostra (o envio aceita Face ID ou PIN). O A1 protege a frase, não o saldo.
+   - Quem tem o iPhone, o código do iPhone e o PIN leva a frase em 24 horas: cadastra o próprio rosto, religa o Face ID no app e espera. Aceito porque exige o código do iPhone, e a Proteção de Aparelho Roubado atrasa o cadastro. Deixa de ser aceitável com saldo relevante fora do alcance do Enviar (redes que o app não mostra, depósitos futuros): aí 72 horas, ou o modo reforçado.
+   - Quem perde o Face ID de vez (sensor quebrado, cadastro trocado sem religar) só vê as palavras pelo papel ou pelo envelope que já tem.
 8. **Carteiras somem se o dono tirar o código do iPhone, e não migram para um iPhone novo.**
    - É escolha deliberada: disponibilidade vem do backup do dono, não da nuvem.
    - Deixa de ser aceitável: se o onboarding não garantir o backup conferido.

@@ -381,7 +381,7 @@ Swaps na Ethereum: broadcast por RPC com proteção de MEV (Flashbots Protect, M
 - Dono com USDT e 0 TRX não consegue enviar. A empresa não patrocina; o app explica.
 - `fee_limit` baixo dá OUT_OF_ENERGY: a tx falha e queima energy.
 - **Vencimento na v1 (código):** a expiração é de 60 s a partir do maior entre a hora do bloco e o relógio; o plano é recusado com o relógio do aparelho a mais de 2 minutos do bloco. "Venceu" só pela hora do último bloco solidificado em dois provedores, nunca pelo relógio.
-- **Golpe de permissão:** ao importar, compare `owner_permission`/`active_permission` com a chave derivada e bloqueie se divergir. É o golpe da "seed com USDT" compartilhada. Na v1, recusar `AccountPermissionUpdate`.
+- **Golpe de permissão:** ao importar, a conferência antes de guardar lê `owner_permission`/`active_permission` na rede (`TronReader.ownerControl`) e, se outra chave controla a conta, mostra o aviso vermelho de que o que entrar ali o golpista leva. O envio na Tron recusa a conta antes de ler saldo (`TronSendEngine`). É o golpe da "seed com USDT" compartilhada. Na v1, recusar `AccountPermissionUpdate`.
 - Confusão entre TRC-20, ERC-20 e BEP-20.
 
 **Provedores**

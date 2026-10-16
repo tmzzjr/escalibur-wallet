@@ -132,7 +132,7 @@ struct ReceiveSheet: View {
         .presentationBackground(Palette.body)
         .presentationCornerRadius(Radius.sheet)
         .fullScreenCover(isPresented: $backingUp) {
-            if let wallet { RevealFlow(wallet: wallet, purpose: .backup) { backingUp = false } }
+            if let wallet { BackupNowFlow(wallet: wallet) { backingUp = false } }
         }
     }
 
@@ -141,9 +141,15 @@ struct ReceiveSheet: View {
             HStack { Spacer(); closeButton }
             BackupFirstArt(height: 280)
             VStack(spacing: Space.sm) {
-                Text("Grave a senha da carteira antes de receber").typeStyle(.title).foregroundStyle(Palette.ink)
-                Text("Você ainda não confirmou que anotou as palavras desta carteira. Se o iPhone sumir antes disso, o que chegar aqui se perde.")
-                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                if wallet?.wordsConfirmed == true {
+                    Text("Confira a passphrase antes de receber").typeStyle(.title).foregroundStyle(Palette.ink)
+                    Text("Você ainda não conferiu a passphrase desta carteira. Se ela estiver anotada errado, o que chegar aqui se perde.")
+                        .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Grave a senha da carteira antes de receber").typeStyle(.title).foregroundStyle(Palette.ink)
+                    Text("Você ainda não confirmou que anotou as palavras desta carteira. Se o iPhone sumir antes disso, o que chegar aqui se perde.")
+                        .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                }
                 Label("Leva 2 minutos", systemImage: "clock")
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     .padding(.top, Space.xxs)
@@ -151,7 +157,7 @@ struct ReceiveSheet: View {
             .multilineTextAlignment(.center)
             .padding(.top, Space.md)
             Spacer(minLength: Space.md)
-            PrimaryButton(title: String(localized: "Gravar agora")) { backingUp = true }
+            PrimaryButton(title: wallet?.wordsConfirmed == true ? String(localized: "Conferir agora") : String(localized: "Gravar agora")) { backingUp = true }
             SecondaryButton(title: String(localized: "Agora não")) { dismiss() }.padding(.top, Space.sm)
         }
         .padding(.horizontal, Space.gutter).padding(.top, Space.md).padding(.bottom, Space.xs)
@@ -545,11 +551,33 @@ struct ReceiveSheet: View {
     // MARK: R2
 
     /// A tela do endereco, com a rede que o seletor escolheu (a da lista, de inicio).
+    @ViewBuilder
     private func addressView(asset: Asset, chain: Chain) -> some View {
         let siblings = ReceiveCoin.group(receivable).first { coin in coin.assets.contains { $0.id == asset.id } }?.assets ?? [asset]
         let key = siblings.first?.id ?? asset.id
         let shown = chosenNetwork[key].flatMap { choice in siblings.first { $0.id == choice.id } } ?? asset
-        return addressContent(asset: shown, chain: shown.chain ?? chain, siblings: siblings, key: key)
+        let network = shown.chain ?? chain
+        if network.family == .tron, wallet?.tronForeignControl == true {
+            tronForeignBlocked
+        } else {
+            addressContent(asset: shown, chain: network, siblings: siblings, key: key)
+        }
+    }
+
+    /// A conta da Tron desta carteira tem outra chave no controle, visto na importacao
+    /// (revisao da auditoria 4, C7-05): o endereco nao aparece.
+    private var tronForeignBlocked: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            if preselected != nil { HStack { Spacer(); closeButton } }
+            Text("Esta conta na Tron é controlada por outra chave").typeStyle(.title).foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Quando esta carteira foi importada, a rede mostrou outra chave no controle da conta na Tron. É o golpe da frase com saldo: o que entrar nela, quem controla essa chave leva. Por isso o app não mostra este endereço.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+        }
+        .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+        .accessibilityIdentifier("receber-tron-outra-chave")
     }
 
     /// Com mais de uma rede, a rede embaixo do QR, no mesmo seletor da troca: o logo de cada rede na lista,

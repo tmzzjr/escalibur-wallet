@@ -20,6 +20,19 @@ final class AuthCoordinator {
 
     var pinRequest: PINRequest?
 
+    /// O que uma operacao pede ao dono.
+    enum Presence {
+        /// Face ID quando ligado, PIN quando nao: envios, trocas, ordens.
+        case either
+        /// O PIN sempre: o que muda as barreiras (tempo de bloqueio, apagar apos erros, voz).
+        case pin
+        /// O PIN e, com o Face ID ligado, o rosto tambem (A1): o que entrega ou destroi a
+        /// carteira inteira (ver as palavras, lacrar o envelope, remover) e desligar o Face
+        /// ID. O rosto pode ser apresentado a forca ou com o dono dormindo; o PIN pode ter
+        /// sido visto. Os dois juntos, nao.
+        case pinAndBiometry
+    }
+
     /// A credencial para uma operacao. `reason` aparece no Face ID e na folha do PIN
     /// ("Enviar 50 XRP"). Nil quando o dono cancela.
     func credential(reason: String, forcePIN: Bool = false, notice: String? = nil, error: String? = nil) async -> Credential? {
@@ -39,14 +52,10 @@ final class AuthCoordinator {
 
     /// Executa uma operacao com a chave raiz, caindo para o PIN se o Face ID for
     /// cancelado ou tiver mudado. Devolve nil se o dono desistir.
-    ///
-    /// `requirePIN` para o que entrega ou destroi a carteira inteira (ver as palavras,
-    /// exportar envelope, remover): o rosto pode ser apresentado a forca ou com o dono
-    /// dormindo; o PIN precisa ser dito.
     func perform<T: Sendable>(
-        _ session: AppSession, reason: String, requirePIN: Bool = false, _ body: @escaping @Sendable (SecureBytes) throws -> T
+        _ session: AppSession, reason: String, presence: Presence = .either, _ body: @escaping @Sendable (SecureBytes) throws -> T
     ) async throws -> T? {
-        try await retrying(reason: reason, requirePIN: requirePIN) { try await session.withRootKey($0, body) }
+        try await retrying(reason: reason, presence: presence) { try await session.withRootKey($0, body) }
     }
 
     /// O laco de `perform` para operacoes que recebem a credencial pronta (guardar uma
@@ -55,16 +64,24 @@ final class AuthCoordinator {
     /// carteira com o Face ID ligado nao tinha esse laco, e qualquer falha do rosto
     /// virava "Nao foi possivel importar" (visto no iPhone). Devolve nil se o dono
     /// desistir; o apagamento (`wiped`) e qualquer erro da propria operacao sobem.
-    func retrying<T>(reason: String, requirePIN: Bool = false, _ operation: (Credential) async throws -> T) async throws -> T? {
-        guard var attempt = await credential(reason: reason, forcePIN: requirePIN) else { return nil }
+    func retrying<T>(reason: String, presence: Presence = .either, _ operation: (Credential) async throws -> T) async throws -> T? {
+        // A espera do A1, e o Face ID perdido e nao religado, recusam antes do teclado:
+        // digitar o PIN para ouvir "espere" nao ajuda ninguem. O cofre confere de novo.
+        if presence == .pinAndBiometry { try Self.checkPINAndBiometry() }
+        let both = presence == .pinAndBiometry
+        guard var attempt = await credential(reason: reason, forcePIN: presence != .either, notice: both ? Self.bothNotice : nil) else { return nil }
         while true {
+            if both, case .pin(let pin) = attempt { attempt = .pinAndBiometry(pin, reason: reason) }
             var notice: String?
             var error: String?
             do {
                 return try await operation(attempt)
             } catch RootKeyVault.Failure.cancelled {
-                notice = nil
+                notice = both ? Self.bothCancelledNotice : nil
             } catch RootKeyVault.Failure.biometryChanged {
+                // Nas operacoes que pedem os dois, o Face ID que caiu agora so volta religado:
+                // nada de seguir so com o PIN.
+                if both { throw RootKeyVault.Failure.biometryRequired }
                 notice = String(localized: "O \(KeyServices.biometryName) deste iPhone mudou desde que foi ligado aqui. Confirme com o PIN; depois você pode religar.")
             } catch RootKeyVault.Failure.pinRequiredAfterRestart {
                 notice = String(localized: "O iPhone reiniciou: o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer.")
@@ -73,8 +90,38 @@ final class AuthCoordinator {
             } catch RootKeyVault.Failure.throttled(let seconds) {
                 error = String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
             }
-            guard let next = await credential(reason: reason, forcePIN: true, notice: notice, error: error) else { return nil }
+            guard let next = await credential(reason: reason, forcePIN: true, notice: notice ?? (both ? Self.bothNotice : nil), error: error) else { return nil }
             attempt = next
+        }
+    }
+
+    /// Com o Face ID ligado, o aviso acima do teclado de uma operacao que pede os dois.
+    private static var bothNotice: String? {
+        KeyServices.root.isBiometryEnabled ? String(localized: "Depois do PIN, o \(KeyServices.biometryName) confirma que é você.") : nil
+    }
+
+    private static var bothCancelledNotice: String {
+        String(localized: "O \(KeyServices.biometryName) não confirmou. Com ele ligado, isto pede o PIN e o rosto.")
+    }
+
+    /// O que pede PIN e rosto pode comecar agora? Para as telas perguntarem antes do PIN e
+    /// da frase de voz (`VoiceGate`).
+    static func checkPINAndBiometry() throws {
+        try KeyServices.root.checkPINAndBiometryAllowed()
+    }
+
+    /// O texto de uma recusa que a tela mostra no lugar do erro generico. Nil quando nao e
+    /// uma recusa conhecida.
+    static func refusalMessage(_ error: Error) -> String? {
+        switch error as? RootKeyVault.Failure {
+        case .biometryHold(let seconds):
+            return String(localized: "O \(KeyServices.biometryName) deste iPhone mudou há pouco. Por segurança, isto volta a funcionar em \(LockView.duration(seconds)).")
+        case .biometryRequired:
+            return String(localized: "O \(KeyServices.biometryName) deste iPhone mudou desde que foi ligado aqui. Para isto, ligue o \(KeyServices.biometryName) de novo em Ajustes, Segurança; por segurança, volta a funcionar 24 horas depois.")
+        case .biometryUnavailable:
+            return String(localized: "O \(KeyServices.biometryName) não está disponível agora. Confira se ele está ligado para a Escalibur em Ajustes do iPhone e tente de novo. Pelo Espelhamento do iPhone, isto não funciona.")
+        default:
+            return nil
         }
     }
 

@@ -37,6 +37,48 @@ struct PaymentLinkTests {
         }
     }
 
+    @Test("Tag e memo do link vao junto: XRP Ledger dt, TON text, Stellar SEP-7")
+    func tagsAndMemos() throws {
+        let xrp = try PaymentLink.read("xrpl:rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh?dt=12345")
+        #expect(xrp.address == "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh" && xrp.tag == "12345")
+        let ton = try PaymentLink.read("ton://transfer/EQD__________________________________________0vo?amount=1&text=dep%C3%B3sito%2042")
+        #expect(ton.address == "EQD__________________________________________0vo" && ton.tag == "depósito 42")
+        let g = "GA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVSGZ"
+        let sep7 = try PaymentLink.read("web+stellar:pay?destination=\(g)&amount=10&memo=987&memo_type=MEMO_ID")
+        #expect(sep7.address == g && sep7.tag == "987")
+        #expect(try PaymentLink.read("web+stellar:pay?destination=\(g)&memo=conta-7").tag == "conta-7")
+        #expect(try PaymentLink.read("web+stellar:pay?destination=\(g)").tag == nil)
+        // Memo de texto so com numeros iria como memo ID; hash e retorno o app nao envia.
+        #expect(throws: PaymentLink.Problem.unsupportedMemo) { try PaymentLink.read("web+stellar:pay?destination=\(g)&memo=987&memo_type=MEMO_TEXT") }
+        #expect(throws: PaymentLink.Problem.unsupportedMemo) { try PaymentLink.read("web+stellar:pay?destination=\(g)&memo=abc&memo_type=MEMO_HASH") }
+        #expect(throws: PaymentLink.Problem.unsupportedStellarRequest) { try PaymentLink.read("web+stellar:tx?xdr=AAAA") }
+        #expect(throws: PaymentLink.Problem.duplicateParameter("dt")) { try PaymentLink.read("xrpl:rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh?dt=1&dt=2") }
+        // O destino M (69 caracteres) vai inteiro.
+        let m = "MA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVAAAAAAAAAAAAAJLK"
+        #expect(try PaymentLink.read("web+stellar:pay?destination=\(m)").address == m)
+        // MEMO_ID so na forma que sai como ID; tag invisivel, com direcao trocada, com espaco
+        // nas pontas ou longa demais e recusada, nunca cortada; X-address com dt tambem.
+        #expect(throws: PaymentLink.Problem.unsupportedMemo) { try PaymentLink.read("web+stellar:pay?destination=\(g)&memo=007&memo_type=MEMO_ID") }
+        #expect(throws: PaymentLink.Problem.unsupportedMemo) { try PaymentLink.read("web+stellar:pay?destination=\(g)&memo=%2B5&memo_type=MEMO_ID") }
+        #expect(throws: PaymentLink.Problem.invalidTag) { try PaymentLink.read("xrpl:rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh?dt=12345%E2%80%8B") }
+        #expect(throws: PaymentLink.Problem.invalidTag) { try PaymentLink.read("ton://transfer/EQD__________________________________________0vo?text=%E2%80%AE54321") }
+        #expect(throws: PaymentLink.Problem.invalidTag) { try PaymentLink.read("ton://transfer/EQD__________________________________________0vo?text=%2042") }
+        #expect(throws: PaymentLink.Problem.invalidTag) { try PaymentLink.read("ton://transfer/EQD__________________________________________0vo?text=" + String(repeating: "a", count: 65)) }
+        #expect(throws: PaymentLink.Problem.invalidTag) { try PaymentLink.read("xrpl:XVLhHMPHU98es4dbozjVtdWzVrDjtV18pX8yuPT7y4xaEHi?dt=5") }
+        // Em outros esquemas, o que nao e tag fica de fora.
+        #expect(try PaymentLink.read("bitcoin:bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq?amount=0.1&dt=5").tag == nil)
+    }
+
+    @Test("Codigo com as palavras de uma carteira, ou SeedQR, nunca vira destino")
+    func phrases() {
+        let phrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+        #expect(throws: PaymentLink.Problem.containsPhrase) { try PaymentLink.read(phrase) }
+        #expect(throws: PaymentLink.Problem.containsPhrase) { try PaymentLink.read("  " + phrase.uppercased() + "\n") }
+        #expect(throws: PaymentLink.Problem.containsPhrase) { try PaymentLink.read(String(repeating: "0000", count: 12)) }
+        #expect(throws: PaymentLink.Problem.containsPhrase) { try PaymentLink.read(String(repeating: "1234", count: 24)) }
+        #expect((try? PaymentLink.read("abandon abandon about")) != nil)
+    }
+
     @Test("Outros esquemas: so o endereco")
     func otherSchemes() throws {
         #expect(try PaymentLink.read("bitcoin:bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq?amount=0.1&label=x").address

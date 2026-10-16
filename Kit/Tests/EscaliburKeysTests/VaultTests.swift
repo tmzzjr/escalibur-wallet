@@ -186,11 +186,12 @@ struct RootKeyVaultTests {
     @Test("Biometria liga, destranca e desliga sem tocar o PIN")
     func biometry() throws {
         let (vault, _, _) = makeVault()
+        vault.biometryAvailability = { .available }
         let rk = try vault.setUp(pin: secure("482916"))
         try vault.enableBiometry(rk: rk)
         #expect(vault.isBiometryEnabled)
         #expect(bytes(try vault.unlockWithBiometry(reason: "teste")) == bytes(rk))
-        vault.disableBiometry()
+        try vault.disableBiometry(pin: secure("482916"), reason: "teste")
         #expect(!vault.isBiometryEnabled)
         #expect(throws: RootKeyVault.Failure.biometryNotEnabled) { try vault.unlockWithBiometry(reason: "teste") }
         #expect(bytes(try vault.unlock(pin: secure("482916"))) == bytes(rk))
@@ -232,6 +233,168 @@ struct RootKeyVaultTests {
         #expect(throws: RootKeyVault.Failure.pinRequiredAfterRestart) { try vault.unlockWithBiometry(reason: "teste") }
         _ = try vault.unlock(pin: secure("482916"))
         #expect(bytes(try vault.unlockWithBiometry(reason: "teste")) == bytes(rk))
+    }
+
+    @Test("A1: com o Face ID ligado, ver as palavras pede o PIN e o rosto; sem ele, o PIN")
+    func pinAndBiometry() throws {
+        let (vault, _, wrapper) = makeVault()
+        vault.biometryAvailability = { .available }
+        let rk = try vault.setUp(pin: secure("482916"))
+        #expect(bytes(try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste")) == bytes(rk))
+
+        try vault.enableBiometry(rk: rk)
+        // PIN errado nem chega ao rosto, e conta tentativa.
+        #expect(throws: RootKeyVault.Failure.wrongPIN(remainingBeforeWipe: nil)) {
+            try vault.unlockWithPINAndBiometry(pin: secure("000001"), reason: "teste")
+        }
+        #expect(vault.failureCount() == 1)
+        // PIN certo sem o rosto nao abre, e o slot continua.
+        wrapper.refuseBiometry = true
+        #expect(throws: RootKeyVault.Failure.cancelled) { try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste") }
+        #expect(vault.isBiometryEnabled)
+        wrapper.refuseBiometry = false
+        #expect(bytes(try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste")) == bytes(rk))
+        #expect(vault.failureCount() == 0)
+
+        // Desligar pede os dois; desligado pelo dono, sem espera, volta a ser so o PIN.
+        wrapper.refuseBiometry = true
+        #expect(throws: RootKeyVault.Failure.cancelled) { try vault.disableBiometry(pin: secure("482916"), reason: "teste") }
+        #expect(vault.isBiometryEnabled)
+        wrapper.refuseBiometry = false
+        try vault.disableBiometry(pin: secure("482916"), reason: "teste")
+        #expect(!vault.isBiometryEnabled)
+        #expect(vault.biometryHoldRemaining == 0)
+        #expect(bytes(try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste")) == bytes(rk))
+    }
+
+    @Test("A1: o Face ID que cai sozinho trava ate religar, e religar comeca a espera")
+    func biometryLossHold() throws {
+        let (vault, store, wrapper) = makeVault()
+        vault.biometryAvailability = { .available }
+        let rk = try vault.setUp(pin: secure("482916"))
+        try vault.enableBiometry(rk: rk)
+        // O primeiro Face ID nao espera: antes dele, o PIN ja abria tudo.
+        #expect(vault.biometryHoldRemaining == 0)
+
+        // Cadastro de rosto novo: a chave do SE some, o slot sai, a espera comeca e a marca
+        // de perdido fica.
+        wrapper.deleteKey(.biometry)
+        #expect(throws: RootKeyVault.Failure.biometryChanged) { try vault.unlockWithBiometry(reason: "teste") }
+        #expect(!vault.isBiometryEnabled)
+        #expect(vault.biometryHoldRemaining > PINPolicy.biometryLossHold - 60)
+        // Recusa antes do PIN: nenhuma tentativa gasta.
+        #expect(throws: RootKeyVault.Failure.self) { try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste") }
+        #expect(vault.failureCount() == 0)
+
+        // Vencida a espera, sem religar, continua recusando: nunca volta sozinho a so o PIN.
+        try store.update(HoldRecord(uptimeDeadline: 0, bootSession: PINPolicy.bootSession).encoded, account: "bio.espera")
+        #expect(throws: RootKeyVault.Failure.biometryRequired) { try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste") }
+
+        // Religar (com o rosto de quem for) tira a marca e comeca a espera a partir de agora.
+        try vault.enableBiometry(rk: try vault.unlock(pin: secure("482916")))
+        #expect(store.raw("bio.perdido") == nil)
+        #expect(throws: RootKeyVault.Failure.self) { try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste") }
+
+        // De outro boot, a espera recomeca cheia ao regravar.
+        let otherBoot = [UInt8](repeating: 7, count: 16)
+        try store.update(HoldRecord(uptimeDeadline: 1, bootSession: otherBoot).encoded, account: "bio.espera")
+        #expect(vault.biometryHoldRemaining == PINPolicy.biometryLossHold)
+        vault.rebaseAttempts()
+        let rebasedData = try #require(store.raw("bio.espera"))
+        let rebased = try #require(HoldRecord(rebasedData))
+        #expect(rebased.bootSession == PINPolicy.bootSession)
+
+        // Vencida, o registro sai e volta a valer PIN e rosto.
+        try store.update(HoldRecord(uptimeDeadline: 0, bootSession: PINPolicy.bootSession).encoded, account: "bio.espera")
+        #expect(bytes(try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste")) == bytes(rk))
+        #expect(store.raw("bio.espera") == nil)
+    }
+
+    @Test("A1, revisao: religar por cima do slot do dono com o rosto de outro nao ve a frase na hora")
+    func reenableOverOwnerSlot() throws {
+        let (vault, store, wrapper) = makeVault()
+        vault.biometryAvailability = { .available }
+        let rk = try vault.setUp(pin: secure("482916"))
+        try vault.enableBiometry(rk: rk)
+        // O ladrao cadastra o proprio rosto: a K_bio do dono e invalidada, o rk.bio fica.
+        wrapper.deleteKey(.biometry)
+        // O app continua dizendo que o Face ID esta ligado, e religar e uma queda.
+        #expect(vault.isBiometryEnabled)
+        try vault.enableBiometry(rk: try vault.unlock(pin: secure("482916")))
+        #expect(vault.biometryHoldRemaining > PINPolicy.biometryLossHold - 60)
+        #expect(throws: RootKeyVault.Failure.self) { try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste") }
+
+        // Variante: religa e cancela a conferencia. O slot novo sai, a marca fica, e o que
+        // pede PIN e rosto nao vira so o PIN.
+        wrapper.deleteKey(.biometry)
+        wrapper.refuseBiometry = true
+        #expect(throws: RootKeyVault.Failure.cancelled) { try vault.enableBiometry(rk: try vault.unlock(pin: secure("482916"))) }
+        #expect(!vault.isBiometryEnabled)
+        try store.update(HoldRecord(uptimeDeadline: 0, bootSession: PINPolicy.bootSession).encoded, account: "bio.espera")
+        #expect(throws: RootKeyVault.Failure.biometryRequired) { try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste") }
+    }
+
+    @Test("A1, revisao: a queda conta quando o app abre, nao quando alguem usa o Face ID")
+    func lossSeenAtLaunch() throws {
+        let (vault, store, wrapper) = makeVault()
+        vault.biometryAvailability = { .available }
+        let rk = try vault.setUp(pin: secure("482916"))
+        try vault.enableBiometry(rk: rk)
+        wrapper.deleteKey(.biometry)
+        vault.rebaseAttempts()
+        #expect(store.raw("bio.perdido") != nil)
+        #expect(!vault.isBiometryEnabled)
+        #expect(vault.biometryHoldRemaining > 0)
+    }
+
+    @Test("A1: Face ID indisponivel recusa sem apagar; chaveiro mudo recusa")
+    func biometryUnavailableAndUnknown() throws {
+        let (vault, store, _) = makeVault()
+        vault.biometryAvailability = { .gone }
+        let rk = try vault.setUp(pin: secure("482916"))
+        try vault.enableBiometry(rk: rk)
+        #expect(throws: RootKeyVault.Failure.biometryUnavailable) { try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste") }
+        // Nada caiu: o slot fica, sem espera e sem marca, e nunca vira so o PIN.
+        #expect(vault.isBiometryEnabled)
+        #expect(vault.biometryHoldRemaining == 0)
+        #expect(store.raw("bio.perdido") == nil)
+        #expect(throws: RootKeyVault.Failure.biometryUnavailable) { try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste") }
+
+        // Registro da espera ilegivel: espera cheia, nunca zero.
+        try store.add(Data([1, 2, 3]), account: "bio.espera", protection: .standard, context: nil)
+        #expect(vault.biometryHoldRemaining == PINPolicy.biometryLossHold)
+        try store.delete("bio.espera")
+
+        // Chaveiro que nao responde sobre o slot do rosto, a espera ou a marca nunca vira
+        // "so o PIN".
+        for account in ["rk.bio", "bio.espera", "bio.perdido"] {
+            store.unknown = [account]
+            #expect(throws: RootKeyVault.Failure.storage) { try vault.unlockWithPINAndBiometry(pin: secure("482916"), reason: "teste") }
+        }
+        store.unknown = []
+    }
+
+    @Test("Escada: do nono erro em diante dobra, de 3 horas ate 7 dias")
+    func throttleCeiling() {
+        #expect(PINPolicy.delay(afterFailures: 8) == 3600)
+        #expect(PINPolicy.delay(afterFailures: 9) == 3 * 3600)
+        #expect(PINPolicy.delay(afterFailures: 10) == 6 * 3600)
+        #expect(PINPolicy.delay(afterFailures: 12) == 24 * 3600)
+        #expect(PINPolicy.delay(afterFailures: 15) == 7 * 24 * 3600)
+        #expect(PINPolicy.delay(afterFailures: 40) == 7 * 24 * 3600)
+        #expect(PINPolicy.delay(afterFailures: .max) == 7 * 24 * 3600)
+        // Chutes possiveis em 30 dias e em um ano, contando a espera de cada erro.
+        func guesses(within limit: TimeInterval) -> Int {
+            var elapsed: TimeInterval = 0
+            var count = 0
+            while elapsed <= limit {
+                count += 1
+                elapsed += PINPolicy.delay(afterFailures: UInt32(count))
+            }
+            return count
+        }
+        #expect(guesses(within: 30 * 86400) == 18)
+        #expect(guesses(within: 365 * 86400) == 66)
     }
 
     @Test("Apagar depois de N erros: escolha do dono, e o registro antigo vale 10")

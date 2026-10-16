@@ -111,7 +111,7 @@ struct ImportPhraseView: View {
         ZStack {
             if let pending {
                 ImportPreviewView(preview: pending.preview, hasPassphrase: pending.secret.passphrase.count > 0, saving: working,
-                                  onSave: { Task { await save() } }, onBack: discardPending)
+                                  onSave: { foreign in Task { await save(tronForeign: foreign) } }, onBack: discardPending)
                     .guardedAgainstCapture()
             } else {
                 form
@@ -199,7 +199,10 @@ struct ImportPhraseView: View {
 
                     VStack(spacing: Space.xs) {
                         Image(systemName: "lock.shield.fill").font(.system(size: 22, weight: .semibold)).foregroundStyle(Palette.inkSoft)
-                        Text("Tela protegida: cada letra é cifrada na hora, com uma chave que só existe enquanto esta tela está aberta, e gravação e espelhamento escondem as palavras. Captura de tela não dá para bloquear. Segure uma palavra para conferir.")
+                        // O texto diz so o que a tela faz (auditoria 4, C7-06 e C7-12): as sugestoes e o
+                        // balao das teclas mostram o que e digitado, e o Espelhamento do iPhone no
+                        // Mac nao aparece para os apps.
+                        Text("As palavras aparecem cifradas nos campos, com uma chave que só existe enquanto esta tela está aberta; as sugestões e o teclado mostram o que você digita. Gravação e AirPlay escondem a tela. O Espelhamento do iPhone no Mac e a captura de tela, o app não consegue bloquear. Segure uma palavra para conferir.")
                             .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
@@ -458,7 +461,7 @@ struct ImportPhraseView: View {
     }
 
     /// Guarda depois da conferencia. A RK so existe dentro de `addWallet`.
-    private func save() async {
+    private func save(tronForeign: Bool) async {
         guard let pending else { return }
         working = true
         defer { working = false }
@@ -468,7 +471,7 @@ struct ImportPhraseView: View {
             // Desistiu da confirmacao: a conferencia dos enderecos continua na tela.
             guard try await auth.retrying(reason: String(localized: "Guardar a carteira importada neste iPhone"), { credential in
                 try await session.addWallet(secret: pending.secret, name: name, origin: .importedPhrase, wordCount: words,
-                                            backupConfirmed: true, credential: credential)
+                                            backupConfirmed: true, tronForeignControl: tronForeign, credential: credential)
             }) != nil else { return }
             self.pending = nil
             entry.wipe()

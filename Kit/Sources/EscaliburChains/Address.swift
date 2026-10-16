@@ -22,7 +22,8 @@ public enum Address {
     }
 
     /// Um destino validado. `tag` vem preenchida quando o endereco carrega a tag
-    /// junto (X-address do XRP Ledger, conta muxed da Stellar).
+    /// junto (X-address do XRP Ledger). A conta muxed da Stellar continua o `M` inteiro,
+    /// sem tag (auditoria 4, M1).
     public struct Destination: Equatable, Sendable {
         public let address: String
         public let tag: UInt64?
@@ -335,13 +336,14 @@ public enum StellarKey {
             return .success(Address.Destination(address: text, tag: nil))
         }
         if text.hasPrefix("M") {
-            // Conta muxed: chave de 32 bytes seguida do id de 64 bits em big-endian.
+            // Conta muxed: chave de 32 bytes seguida do id de 64 bits em big-endian. O
+            // destino continua o M inteiro: antes ele virava a conta base G mais o id como
+            // memo, e a transacao saia com outra semantica que a do endereco colado, sem
+            // passar pelo caminho muxed do planejador (auditoria 4, M1).
             guard text.count == 69, let raw = decode(text, version: muxedVersion), raw.count == 40 else {
                 return .failure(.badChecksum)
             }
-            let key = Array(raw.prefix(32))
-            let id = raw.suffix(8).reduce(UInt64(0)) { $0 << 8 | UInt64($1) }
-            return .success(Address.Destination(address: encode(version: accountVersion, payload: key), tag: id))
+            return .success(Address.Destination(address: text, tag: nil))
         }
         return .failure(.malformed)
     }

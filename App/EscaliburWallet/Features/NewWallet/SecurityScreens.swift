@@ -43,7 +43,7 @@ struct DeviceCheck: Identifiable, Equatable {
             Step(id: "injecao", title: String(localized: "Nenhum código injetado encontrado"), run: injection),
             Step(id: "depurador", title: String(localized: "Nenhum depurador conectado"), run: debugger),
             Step(id: "origem", title: String(localized: "Instalado pela App Store ou TestFlight"), run: origin),
-            Step(id: "tela", title: String(localized: "Tela sem gravação nem espelhamento"), run: screen),
+            Step(id: "tela", title: String(localized: "Tela sem gravação nem AirPlay"), run: screen),
             Step(id: "teclado", title: String(localized: "Teclados de terceiros bloqueados"), run: keyboards),
             Step(id: "sistema", title: "iOS \(version.majorVersion).\(version.minorVersion)", run: system),
             Step(id: "copia", title: String(localized: "Área de transferência"), run: clipboard),
@@ -147,8 +147,13 @@ struct DeviceCheck: Identifiable, Equatable {
         // Tela externa sem espelhar (cabo ou AirPlay estendido) abre uma sessao propria.
         let external = UIApplication.shared.openSessions.contains { $0.role == .windowExternalDisplayNonInteractive }
         let captured = scenes.contains { $0.screen.isCaptured || $0.traitCollection.sceneCaptureState == .active } || external
-        return .init(id: "tela", title: String(localized: "Tela sem gravação nem espelhamento"),
-                     outcome: captured ? .fail(String(localized: "A tela está sendo gravada ou espelhada. Pare a gravação ou o AirPlay para seguir.")) : .pass)
+        // O Espelhamento do iPhone no Mac nao aparece para os apps (nao ha API, segundo o
+        // suporte da Apple): a linha diz o que confere, e o aviso, o que nao da para ver
+        // (auditoria 4, C7-06).
+        return .init(id: "tela", title: String(localized: "Tela sem gravação nem AirPlay"),
+                     outcome: captured
+                        ? .fail(String(localized: "A tela está sendo gravada ou espelhada. Pare a gravação ou o AirPlay para seguir."))
+                        : .caution(String(localized: "O Espelhamento do iPhone no Mac não aparece para os apps. Não use o espelhamento para digitar as palavras.")))
     }
 
     static func keyboards() -> DeviceCheck {

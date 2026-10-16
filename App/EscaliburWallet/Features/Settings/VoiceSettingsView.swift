@@ -92,7 +92,7 @@ struct VoiceSettingsView: View {
         .onDisappear { listener.stop() }
         .task {
             guard !authorized else { return }
-            let ok = (try? await auth.perform(session, reason: String(localized: "Mudar a confirmação por voz"), requirePIN: true, { _ in true })) == true
+            let ok = (try? await auth.perform(session, reason: String(localized: "Mudar a confirmação por voz"), presence: .pin, { _ in true })) == true
             guard ok else { dismiss(); return }
             await requirePhrase()
         }

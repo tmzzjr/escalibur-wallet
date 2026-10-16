@@ -260,6 +260,9 @@ public struct PlanReview: Sendable, Equatable {
         /// A ponte toca a BNB: la o USDC, o USDT e o ETH sao os da Binance (Binance-Peg),
         /// nao os da Circle nem os da Tether (revisao da ponte BNB, 14/10/2026, M1).
         case binancePeg(symbol: String)
+        /// A troca vai para a fila publica da rede: um robo de sanduiche pode levar o que
+        /// ficar entre a estimativa e o minimo garantido (auditoria 4, M2).
+        case publicMempool
     }
 
     /// Quanto de qual ativo, em unidades da rede. O ativo e o `Asset.id` da lista

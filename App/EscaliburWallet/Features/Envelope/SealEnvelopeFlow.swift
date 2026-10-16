@@ -428,8 +428,9 @@ struct SealEnvelopeFlow: View {
         error = nil
         let id = wallet.id
         do {
+            try AuthCoordinator.checkPINAndBiometry()
             guard await VoiceGate.shared.confirm(.envelope, session: session) else { return }
-            let result: (SecureBytes, SecureBytes)? = try await auth.perform(session, reason: String(localized: "Lacrar a senha de \(wallet.name) num envelope"), requirePIN: true) { rk in
+            let result: (SecureBytes, SecureBytes)? = try await auth.perform(session, reason: String(localized: "Lacrar a senha de \(wallet.name) num envelope"), presence: .pinAndBiometry) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }
                 let phrase = try secret.phrase()
@@ -443,7 +444,7 @@ struct SealEnvelopeFlow: View {
             label = wallet.name
             step = .create
         } catch {
-            self.error = String(localized: "Não foi possível abrir a carteira agora.")
+            self.error = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível abrir a carteira agora.")
         }
     }
 

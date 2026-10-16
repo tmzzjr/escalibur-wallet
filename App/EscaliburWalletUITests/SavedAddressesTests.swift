@@ -43,7 +43,15 @@ final class SavedAddressesTests: XCTestCase {
         shot("s2-sugestao", app)
         suggestion.tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Endereço válido na Solana'")).firstMatch.waitForExistence(timeout: 5))
-        app.buttons["Salvar"].tap()
+        // Endereco salvo vira de confianca: so salva quem digita os 6 do meio olhando a fonte
+        // (auditoria 4, C7-07).
+        XCTAssertFalse(app.buttons["Salvar"].isEnabled)
+        let check = app.textFields["contato-conferir-trecho"]
+        XCTAssertTrue(check.waitForExistence(timeout: 5))
+        check.tap()
+        check.typeText("z5rfnq")
+        shot("s2b-conferir-trecho", app)
+        app.tapWhenEnabled(app.buttons["Salvar"])
         type(pin: "111111", in: app)
         XCTAssertTrue(app.staticTexts["Corretora"].waitForExistence(timeout: 15), "o endereco salvo deveria aparecer na lista")
         shot("s3-lista", app)

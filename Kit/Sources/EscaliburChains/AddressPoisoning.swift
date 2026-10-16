@@ -16,6 +16,14 @@ public enum AddressPoisoning {
     static let minimumPrefix = 3
     static let minimumSuffix = 3
     static let minimumTotal = 7
+    /// Uma ponta so, longa: quem confere so o comeco ou so o fim cai em 2+6, 2+8 ou 0+10,
+    /// que as duas pontas juntas deixavam passar (auditoria 4, C7-07). Ao acaso, cinco
+    /// caracteres iguais numa ponta saem uma vez em um milhao de pares, em hexadecimal.
+    static let singleEnd = 5
+    /// Na Cardano, o comeco do corpo e a credencial de pagamento inteira (28 bytes, 44
+    /// caracteres de bech32): com ela igual, os dois enderecos sao da mesma chave de
+    /// pagamento, com outra parte de stake, e nao um sosia gerado.
+    static let cardanoPaymentCharacters = 44
 
     /// O primeiro endereco de `known` parecido com `address`, se houver.
     public static func lookalike(_ address: String, among known: [String], chain: Chain) -> String? {
@@ -26,10 +34,25 @@ public enum AddressPoisoning {
             let candidate = body(other, chain: chain)
             guard candidate.count >= 16, candidate != target else { return false }
             if let targetAccount, Address.canonicalRecipient(other, chain: chain) == targetAccount { return false }
+            // Na Stellar, o endereco M e a conta base G dele (ou dois M da mesma base) sao
+            // a mesma conta com ids diferentes, nao um sosia.
+            if chain.family == .stellar, let a = StellarMuxedAccount(address: other.trimmingCharacters(in: .whitespacesAndNewlines))?.account,
+               let b = StellarMuxedAccount(address: address.trimmingCharacters(in: .whitespacesAndNewlines))?.account, a == b {
+                return false
+            }
             let head = commonPrefix(candidate, target)
             let tail = commonPrefix(String(candidate.reversed()), String(target.reversed()))
-            return head >= minimumPrefix && tail >= minimumSuffix && head + tail >= minimumTotal
+            if chain.family == .cardano, head >= cardanoPaymentCharacters { return false }
+            if head >= minimumPrefix && tail >= minimumSuffix && head + tail >= minimumTotal { return true }
+            return singleEndApplies(chain, candidate, target) && max(head, tail) >= singleEnd
         }
+    }
+
+    /// Conta com nome na NEAR ("alguem.near") termina igual por desenho: a ponta so vale
+    /// entre contas implicitas, de 64 caracteres hexadecimais.
+    static func singleEndApplies(_ chain: Chain, _ a: String, _ b: String) -> Bool {
+        guard chain.family == .near else { return true }
+        return a.count == 64 && b.count == 64
     }
 
     /// Um trecho do endereco, em posicoes de caractere do texto como ele e mostrado.

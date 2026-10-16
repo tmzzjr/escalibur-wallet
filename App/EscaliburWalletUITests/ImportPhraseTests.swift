@@ -116,7 +116,16 @@ final class ImportPhraseTests: XCTestCase {
         let review = app.staticTexts["Confira antes de guardar"]
         XCTAssertTrue(review.waitForExistence(timeout: 15), failure.exists ? failure.label : "a conferencia nao apareceu")
         shot("i3-conferir", app)
-        app.buttons["Guardar esta carteira"].tap()
+        // Guardar so com o aceite de que quem deu as palavras controla a carteira (C7-05).
+        XCTAssertFalse(app.buttons["Guardar esta carteira"].isEnabled)
+        // O aceite fica no rodape, junto do Guardar. (A conta da Tron da frase publica de
+        // teste tem outra chave no controle: com rede, o aviso vermelho aparece acima.)
+        let consent = app.buttons["importar-aceite"]
+        XCTAssertTrue(consent.waitForExistence(timeout: 5))
+        consent.tap()
+        XCTAssertTrue(consent.isSelected)
+        shot("i3b-aceite", app)
+        app.tapWhenEnabled(app.buttons["Guardar esta carteira"])
         type(pin: "111111", in: app)
         let saved = app.staticTexts["Carteira 2"]
         XCTAssertTrue(saved.waitForExistence(timeout: 30), failure.exists ? failure.label : "a carteira importada nao virou a carteira em uso")

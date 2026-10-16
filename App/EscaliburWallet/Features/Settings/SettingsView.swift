@@ -147,7 +147,8 @@ struct WalletsListView: View {
                                 WalletGlyph(id: wallet.id, size: 32, selected: true, watchOnly: wallet.isWatchOnly)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
-                                    Text(wallet.hasBackup || wallet.isWatchOnly ? originText(wallet) : String(localized: "Palavras não confirmadas"))
+                                    Text(wallet.hasBackup || wallet.isWatchOnly ? originText(wallet)
+                                         : (wallet.wordsConfirmed ? String(localized: "Passphrase não conferida") : String(localized: "Palavras não confirmadas")))
                                         .typeStyle(.note).foregroundStyle(wallet.hasBackup || wallet.isWatchOnly ? Palette.inkSoft : Palette.caution)
                                 }
                                 Spacer()
@@ -198,6 +199,8 @@ struct WalletSettingsView: View {
     @State private var revealing = false
     @State private var sealing = false
     @State private var confirmRemove = false
+    @State private var backingUp = false
+    @State private var confirmingPassphrase = false
 
     private var wallet: WalletMeta? { session.metadata.wallets.first { $0.id == walletID } }
 
@@ -216,10 +219,18 @@ struct WalletSettingsView: View {
                         SettingsSection(title: String(localized: "Cópias")) {
                             Button { revealing = true } label: {
                                 SettingsRow(icon: "doc.text", title: String(localized: "Papel"),
-                                            value: wallet.hasBackup ? (wallet.backupConfirmedAt.map { String(localized: "confirmado em \(Self.day($0))") } ?? String(localized: "importada")) : String(localized: "não confirmado"),
-                                            valueColor: wallet.hasBackup ? Palette.inkSoft : Palette.caution)
+                                            value: wallet.wordsConfirmed ? (wallet.backupConfirmedAt.map { String(localized: "confirmado em \(Self.day($0))") } ?? String(localized: "importada")) : String(localized: "não confirmado"),
+                                            valueColor: wallet.wordsConfirmed ? Palette.inkSoft : Palette.caution)
                             }
                             .accessibilityIdentifier("copia-papel")
+                            if wallet.hasPassphrase {
+                                Button { if wallet.passphraseConfirmed { revealing = true } else { confirmingPassphrase = true } } label: {
+                                    SettingsRow(icon: "key.horizontal", title: String(localized: "Passphrase"),
+                                                value: wallet.passphraseConfirmedAt.map { String(localized: "conferida em \(Self.day($0))") } ?? String(localized: "não conferida"),
+                                                valueColor: wallet.passphraseConfirmed ? Palette.inkSoft : Palette.caution)
+                                }
+                                .accessibilityIdentifier("copia-passphrase")
+                            }
                             Button { sealing = true } label: {
                                 SettingsRow(icon: "envelope", title: String(localized: "Envelope Escalibur"),
                                             value: wallet.envelopeSealedAt.map { String(localized: "lacrado em \(Self.day($0))") } ?? String(localized: "nenhum"))
@@ -240,9 +251,25 @@ struct WalletSettingsView: View {
                         .padding(.top, Space.lg)
                     }
 
+                    // Sem copia conferida, a carteira nao recebe por caminho nenhum: o endereco
+                    // daqui era o atalho que sobrava (auditoria 4, C7-01).
+                    if !wallet.hasBackup, !wallet.isWatchOnly {
+                        SettingsSection(title: String(localized: "Endereços")) {
+                            Button { backingUp = true } label: {
+                                SettingsRow(icon: "exclamationmark.triangle",
+                                            title: wallet.wordsConfirmed ? String(localized: "Confira a passphrase para ver os endereços") : String(localized: "Grave as palavras para ver os endereços"),
+                                            valueColor: Palette.caution)
+                            }
+                            .accessibilityIdentifier("enderecos-bloqueados")
+                        }
+                    } else {
                     SettingsSection(title: String(localized: "Endereços")) {
                         ForEach(wallet.accounts, id: \.chainID) { account in
-                            if let chain = Chain.find(account.chainID) {
+                            if let chain = Chain.find(account.chainID), chain.family == .tron, wallet.tronForeignControl == true {
+                                // A conta da Tron tem outra chave no controle, visto na importacao:
+                                // o endereco nao aparece nem copia (segunda revisao, C7-05).
+                                SettingsRow(icon: "exclamationmark.octagon", title: String(localized: "Tron: controlada por outra chave"), valueColor: Palette.down, chevron: false)
+                            } else if let chain = Chain.find(account.chainID) {
                                 Button {
                                     Pasteboard.copyAddress(account.address)
                                     toasts.show(String(localized: "Endereço copiado."))
@@ -261,6 +288,7 @@ struct WalletSettingsView: View {
                             }
                         }
                     }
+                    }
 
                     DestructiveButton(title: String(localized: "Remover deste iPhone")) { confirmRemove = true }
                         .padding(.horizontal, Space.gutter).padding(.top, Space.xl)
@@ -272,7 +300,13 @@ struct WalletSettingsView: View {
         .background(Palette.void.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $revealing) {
-            if let wallet { RevealFlow(wallet: wallet, purpose: wallet.hasBackup ? .reveal : .backup) { revealing = false } }
+            if let wallet { RevealFlow(wallet: wallet, purpose: wallet.wordsConfirmed ? .reveal : .backup) { revealing = false } }
+        }
+        .fullScreenCover(isPresented: $backingUp) {
+            if let wallet { BackupNowFlow(wallet: wallet) { backingUp = false } }
+        }
+        .fullScreenCover(isPresented: $confirmingPassphrase) {
+            if let wallet { ConfirmPassphraseView(wallet: wallet) { confirmingPassphrase = false } }
         }
         .fullScreenCover(isPresented: $sealing) {
             if let wallet { SealEnvelopeFlow(wallet: wallet) { sealing = false } }
@@ -283,7 +317,9 @@ struct WalletSettingsView: View {
         } message: {
             Text(wallet?.hasBackup == false
                  ? "Esta carteira não tem cópia confirmada. Removida, o saldo fica inacessível para sempre."
-                 : "O saldo continua na blockchain. Sem a senha da carteira ou um envelope, você não volta a acessá-lo.")
+                 : (wallet?.hasPassphrase == true
+                    ? "O saldo continua na blockchain. Sem a senha da carteira e a passphrase, ou um envelope, você não volta a acessá-lo."
+                    : "O saldo continua na blockchain. Sem a senha da carteira ou um envelope, você não volta a acessá-lo."))
         }
     }
 
@@ -302,10 +338,19 @@ struct WalletSettingsView: View {
     private func remove() async {
         guard let wallet else { return }
         if !wallet.isWatchOnly {
-            guard (try? await auth.perform(session, reason: String(localized: "Remover \(wallet.name) deste iPhone"), requirePIN: true, { _ in true })) == true else { return }
+            do {
+                guard try await auth.perform(session, reason: String(localized: "Remover \(wallet.name) deste iPhone"), presence: .pinAndBiometry, { _ in true }) == true else { return }
+            } catch {
+                if let message = AuthCoordinator.refusalMessage(error) { toasts.show(message) }
+                return
+            }
         }
-        session.remove(wallet)
-        dismiss()
+        do {
+            try session.remove(wallet)
+            dismiss()
+        } catch {
+            toasts.show(error.localizedDescription)
+        }
     }
 }
 
@@ -317,14 +362,18 @@ struct SecuritySettingsView: View {
     @Environment(AuthCoordinator.self) private var auth
     @State private var biometryPIN = false
     @State private var changingPIN = false
+    /// O estado do Face ID visto pela chave, relido depois de cada mudanca: desligar agora
+    /// pede o PIN e o rosto, e o dono pode desistir no meio.
+    @State private var biometryOn = KeyServices.root.isBiometryEnabled
+    @State private var biometryError: String?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 SettingsGroup {
                     Button { changingPIN = true } label: { SettingsRow(icon: "circle.grid.3x3", title: String(localized: "Mudar o PIN")) }
-                    Toggle(isOn: Binding(get: { session.biometryEnabled }, set: { on in
-                        if on { biometryPIN = true } else { session.disableBiometry() }
+                    Toggle(isOn: Binding(get: { biometryOn }, set: { on in
+                        if on { biometryPIN = true } else { Task { await turnBiometryOff() } }
                     })) {
                         HStack(spacing: Space.sm) {
                             Image(systemName: KeyServices.biometryIcon).font(.system(size: 16, weight: .medium)).foregroundStyle(Palette.inkSoft).frame(width: 24)
@@ -343,10 +392,10 @@ struct SecuritySettingsView: View {
                 }
                 .padding(.top, Space.md)
 
-                Text(KeyServices.biometryAvailable
-                     ? String(localized: "Depois de reiniciar o iPhone ou de a bateria acabar, o \(KeyServices.biometryName) só volta a valer depois do PIN digitado uma vez.")
-                     : (KeyServices.biometryName == "Touch ID" ? String(localized: "Para usar o Touch ID aqui, cadastre uma digital em Ajustes do iPhone, em Touch ID e código.") : String(localized: "Para usar o \(KeyServices.biometryName) aqui, cadastre um rosto em Ajustes do iPhone, em \(KeyServices.biometryName) e código.")))
-                    .typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                Text(biometryError ?? (KeyServices.biometryAvailable
+                     ? String(localized: "Com o \(KeyServices.biometryName) ligado, ver as palavras, lacrar um envelope e remover carteira pedem o PIN e o rosto. Depois de reiniciar o iPhone ou de a bateria acabar, o \(KeyServices.biometryName) só volta a valer depois do PIN digitado uma vez.")
+                     : (KeyServices.biometryName == "Touch ID" ? String(localized: "Para usar o Touch ID aqui, cadastre uma digital em Ajustes do iPhone, em Touch ID e código.") : String(localized: "Para usar o \(KeyServices.biometryName) aqui, cadastre um rosto em Ajustes do iPhone, em \(KeyServices.biometryName) e código."))))
+                    .typeStyle(.note).foregroundStyle(biometryError == nil ? Palette.inkMuted : Palette.down)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -378,10 +427,24 @@ struct SecuritySettingsView: View {
         .background(Palette.void.ignoresSafeArea())
         .navigationTitle("Segurança")
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $biometryPIN) { EnableBiometrySheet { biometryPIN = false } }
+        .fullScreenCover(isPresented: $biometryPIN, onDismiss: { biometryOn = KeyServices.root.isBiometryEnabled }) { EnableBiometrySheet { biometryPIN = false } }
         .fullScreenCover(isPresented: $changingPIN) { ChangePINFlow { changingPIN = false } }
+        .onAppear { biometryOn = KeyServices.root.isBiometryEnabled }
     }
 
+    /// Desligar pede o PIN e o rosto (A1): com o Face ID desligado, o que pedia os dois
+    /// passa a pedir so o PIN, e quem viu o PIN desligaria aqui antes de ver as palavras.
+    private func turnBiometryOff() async {
+        biometryError = nil
+        do {
+            _ = try await auth.retrying(reason: String(localized: "Desligar o \(KeyServices.biometryName)"), presence: .pinAndBiometry) { credential in
+                try await session.disableBiometry(credential)
+            }
+        } catch {
+            biometryError = AuthCoordinator.refusalMessage(error)
+        }
+        biometryOn = KeyServices.root.isBiometryEnabled
+    }
 }
 
 /// Quantos PINs errados apagam as carteiras deste iPhone, ou nunca.
@@ -438,7 +501,7 @@ struct WipeSettingsView: View {
         }
         error = nil
         let reason = option.map { String(localized: "Apagar depois de \($0) PINs errados") } ?? String(localized: "Nunca apagar por PINs errados")
-        guard (try? await auth.perform(session, reason: reason, requirePIN: true, { _ in true })) == true else { return }
+        guard (try? await auth.perform(session, reason: reason, presence: .pin, { _ in true })) == true else { return }
         do {
             try KeyServices.root.setWipeAfterErrors(option)
             current = option
@@ -462,8 +525,10 @@ struct EnableBiometrySheet: View {
                 do {
                     try await session.enableBiometry(pin: entry.take())
                     onDone()
-                } catch RootKeyVault.Failure.wrongPIN {
-                    entry.fail(String(localized: "PIN incorreto."))
+                } catch RootKeyVault.Failure.wrongPIN(let remaining) {
+                    entry.fail(AuthCoordinator.wrongPINMessage(remaining))
+                } catch RootKeyVault.Failure.wiped {
+                    onDone()
                 } catch RootKeyVault.Failure.throttled(let seconds) {
                     entry.fail(String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds))."))
                 } catch RootKeyVault.Failure.cancelled {
@@ -623,7 +688,7 @@ struct AutoLockView: View {
         let current = Self.clamped(session.metadata.settings.autoLockSeconds)
         guard seconds != current else { return }
         if seconds > current {
-            guard (try? await auth.perform(session, reason: Self.reason(seconds), requirePIN: true, { _ in true })) == true else { return }
+            guard (try? await auth.perform(session, reason: Self.reason(seconds), presence: .pin, { _ in true })) == true else { return }
         }
         let previous = session.metadata.settings.autoLockSeconds
         session.metadata.settings.autoLockSeconds = seconds

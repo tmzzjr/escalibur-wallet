@@ -13,6 +13,7 @@ struct WalletHomeView: View {
     @State private var addingWallet = false
     @State private var receiving = false
     @State private var backingUp = false
+    @State private var offeringReceipts = false
 
     private var wallet: WalletMeta? { session.selectedWallet }
     private var hide: Bool { session.metadata.settings.hideBalances }
@@ -24,11 +25,19 @@ struct WalletHomeView: View {
                     header
                     actions.padding(.top, Space.lg)
                     if let wallet, !wallet.hasBackup, !wallet.isWatchOnly {
-                        Banner(kind: .caution, title: String(localized: "Falta confirmar que você anotou as palavras"),
-                               message: String(localized: "Grave as \(wordCount(wallet)) palavras antes de receber. Leva 2 minutos."),
-                               actionTitle: String(localized: "Gravar agora")) { backingUp = true }
-                            .padding(.horizontal, Space.gutter)
-                            .padding(.top, Space.lg)
+                        Group {
+                            if wallet.wordsConfirmed {
+                                Banner(kind: .caution, title: String(localized: "Falta conferir a passphrase"),
+                                       message: String(localized: "Digite a passphrase de novo, de onde você anotou, antes de receber."),
+                                       actionTitle: String(localized: "Conferir agora")) { backingUp = true }
+                            } else {
+                                Banner(kind: .caution, title: String(localized: "Falta confirmar que você anotou as palavras"),
+                                       message: String(localized: "Grave as \(wordCount(wallet)) palavras antes de receber. Leva 2 minutos."),
+                                       actionTitle: String(localized: "Gravar agora")) { backingUp = true }
+                            }
+                        }
+                        .padding(.horizontal, Space.gutter)
+                        .padding(.top, Space.lg)
                     }
                     statusBanners
                     if DeviceIntegrity.suspicious {
@@ -83,8 +92,13 @@ struct WalletHomeView: View {
             let disabled = session.metadata.settings.disabledChainIDs
             let balances = portfolio.balances
             Task { await ActivityFeed.shared.load(wallet, disabled: disabled, session: session, balances: balances) }
-            await ReceiptAccounts.enableByDefault(session)
-            await PriceAlertDefaults.enableByDefault(session)
+            // A folha do aviso de recebimento vem antes, e os alertas de preco esperam a
+            // resposta dela: dois pedidos de permissao juntos se atropelavam.
+            if ReceiptAccounts.shouldOffer(session) {
+                offeringReceipts = true
+            } else {
+                await PriceAlertDefaults.enableByDefault(session)
+            }
             #if DEBUG
             // As telas que dependem do saldo esperam a leitura acima.
             if DebugDemo.screen == "detalhe", let first = portfolio.rows.first { router.walletPath.append(first) }
@@ -96,12 +110,15 @@ struct WalletHomeView: View {
             WalletSwitcherSheet(onAdd: { switching = false; addingWallet = true })
         }
         .sheet(isPresented: $receiving) { ReceiveSheet(preselected: Self.demoReceiving) }
+        .sheet(isPresented: $offeringReceipts, onDismiss: { Task { await PriceAlertDefaults.enableByDefault(session) } }) {
+            ReceiptWatchOffer { offeringReceipts = false }
+        }
         #if DEBUG
         .modifier(DemoEnvelopes())
         #endif
         .fullScreenCover(isPresented: $addingWallet) { AddWalletView(isFirst: false) { addingWallet = false } }
         .fullScreenCover(isPresented: $backingUp) {
-            if let wallet { RevealFlow(wallet: wallet, purpose: .backup) { backingUp = false } }
+            if let wallet { BackupNowFlow(wallet: wallet) { backingUp = false } }
         }
     }
 
@@ -616,7 +633,8 @@ struct WalletSwitcherSheet: View {
         switch wallet.kind {
         case .watch(let chainID): return String(localized: "Só observar · \(Chain.find(chainID)?.name ?? chainID)")
         case .phrase(let count):
-            if !wallet.hasBackup { return String(localized: "Palavras não confirmadas") }
+            if !wallet.wordsConfirmed { return String(localized: "Palavras não confirmadas") }
+            if !wallet.passphraseConfirmed { return String(localized: "Passphrase não conferida") }
             return wallet.accounts.count == 1 ? String(localized: "\(count) palavras · 1 rede")
                 : String(localized: "\(count) palavras · \(wallet.accounts.count) redes")
         }

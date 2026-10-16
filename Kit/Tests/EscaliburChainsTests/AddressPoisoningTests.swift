@@ -45,6 +45,21 @@ struct AddressPoisoningTests {
         #expect(AddressPoisoning.lookalike(fake, among: [real], chain: bitcoin) == real)
     }
 
+    @Test("Uma ponta so, longa, tambem e parecida: 2+6, 0+10 e 10+0 avisam; 4 numa ponta nao")
+    func singleEnd() {
+        let real = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+        // Duas no comeco e seis no fim: as duas pontas juntas deixavam passar.
+        #expect(AddressPoisoning.lookalike("0xd811111111111111111111111111111111A96045", among: [real], chain: ethereum) == real)
+        // Dez no fim, nada no comeco; dez no comeco, nada no fim.
+        #expect(AddressPoisoning.lookalike("0x111111111111111111111111111111D37aA96045", among: [real], chain: ethereum) == real)
+        #expect(AddressPoisoning.lookalike("0xd8dA6BF269111111111111111111111111111111", among: [real], chain: ethereum) == real)
+        // Cinco no fim ja avisa; quatro numa ponta so, ao acaso, nao.
+        #expect(AddressPoisoning.lookalike("0x1111111111111111111111111111111111196045", among: [real], chain: ethereum) == real)
+        #expect(AddressPoisoning.lookalike("0x1111111111111111111111111111111111116045", among: [real], chain: ethereum) == nil)
+        // Conta com nome na NEAR termina igual por desenho.
+        #expect(AddressPoisoning.lookalike("someone-else-wallet.near", among: ["my-own-main-wallet.near"], chain: .near) == nil)
+    }
+
     @Test("Tron: o T inicial nao conta")
     func tron() {
         let real = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"

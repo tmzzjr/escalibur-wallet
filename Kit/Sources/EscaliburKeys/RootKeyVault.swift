@@ -46,6 +46,16 @@ public final class RootKeyVault: @unchecked Sendable {
         /// O iPhone reiniciou (ou a bateria acabou) desde o ultimo PIN: o Face ID so volta
         /// a valer depois do PIN digitado, como no proprio iPhone.
         case pinRequiredAfterRestart
+        /// O Face ID caiu ou foi religado ha pouco: ver as palavras, lacrar o envelope e
+        /// remover carteira esperam `seconds` (`PINPolicy.biometryLossHold`).
+        case biometryHold(seconds: TimeInterval)
+        /// O Face ID caiu sem o dono pedir e ainda nao foi religado: o que pede PIN e rosto
+        /// fica recusado ate religar (e a espera conta a partir dai). Nunca volta sozinho a
+        /// pedir so o PIN.
+        case biometryRequired
+        /// O Face ID nao esta disponivel agora (tirado do app, Espelhamento do iPhone, falha
+        /// passageira do sistema). Nada e apagado; o que pede PIN e rosto recusa.
+        case biometryUnavailable
         case storage
     }
 
@@ -57,6 +67,11 @@ public final class RootKeyVault: @unchecked Sendable {
         static let rootByPIN = "rk.pin"
         static let rootByBiometry = "rk.bio"
         static let biometryState = "bio.estado"
+        /// O prazo da espera depois que o Face ID caiu ou foi religado (`HoldRecord`).
+        static let biometryHold = "bio.espera"
+        /// O Face ID caiu sem o dono pedir e ainda nao foi religado (1 byte). Sem prazo: so
+        /// um `enableBiometry` que confere o rosto tira a marca.
+        static let biometryLost = "bio.perdido"
         static let attempts = "pin.tentativas"
         static let wipeAfterErrors = "pin.apagar"
         static let pinBoot = "pin.boot"
@@ -92,6 +107,8 @@ public final class RootKeyVault: @unchecked Sendable {
 
     let store: any SecretStore
     let wrapper: any KeyWrapper
+    /// O Face ID deste iPhone agora. Trocavel so nos testes, que rodam num Mac sem ele.
+    var biometryAvailability: @Sendable () -> BiometryAvailability = { RootKeyVault.systemBiometryAvailability() }
     /// Custo fixo do PIN, so para os testes nao pagarem 256 MiB por chamada.
     private let fixedPINParameters: KDFParameters?
     private let lock = NSLock()
@@ -288,7 +305,7 @@ public final class RootKeyVault: @unchecked Sendable {
         do { blob = try store.read(Account.rootByBiometry, context: nil) } catch { throw Failure.storage }
         guard let blob else { throw Failure.biometryNotEnabled }
         guard wrapper.hasKey(.biometry) else {
-            disableBiometry()
+            try biometryLost()
             throw Failure.biometryChanged
         }
         let rk: SecureBytes
@@ -299,7 +316,7 @@ public final class RootKeyVault: @unchecked Sendable {
             // SEP ja destruiu, apagam o slot. Cancelar, nao reconhecer ou o bloqueio
             // temporario do sistema deixam tudo como esta.
             if biometryEnrollmentChanged || !wrapper.hasKey(.biometry) {
-                disableBiometry()
+                try biometryLost()
                 throw Failure.biometryChanged
             }
             throw Failure.cancelled
@@ -310,6 +327,107 @@ public final class RootKeyVault: @unchecked Sendable {
         // (conferido acima), so com o instante lido agora.
         recordPINThisBoot()
         return rk
+    }
+
+    /// A1: o que entrega ou destroi a carteira inteira (ver as palavras, lacrar o
+    /// envelope, remover, desligar o Face ID) pede o PIN e, com o Face ID ligado, o rosto
+    /// tambem. Quem viu o PIN e pegou o iPhone nao leva a frase; quem apresenta o rosto do
+    /// dono a forca tambem nao. Sem o Face ID ligado, so o PIN.
+    ///
+    /// O PIN vem primeiro e conta tentativa como em `unlock`; o rosto e decidido no SEP,
+    /// pelo slot da biometria, e as duas chaves raiz tem de ser a mesma. Nenhum dos dois
+    /// caminhos cai para o codigo do iPhone.
+    ///
+    /// O Face ID que cai sem o dono pedir (cadastro de rostos mudou, Face ID tirado do app
+    /// ou do iPhone) apaga o slot e comeca a espera de `PINPolicy.biometryLossHold`:
+    /// durante ela, isto recusa antes de pedir qualquer coisa, mesmo com um Face ID
+    /// religado. Sem a espera, o ladrao que viu o codigo do iPhone cadastrava o proprio
+    /// rosto e passava com o PIN so. Chaveiro mudo recusa: nunca vira "Face ID desligado".
+    public func unlockWithPINAndBiometry(pin: SecureBytes, reason: String) throws -> SecureBytes {
+        try checkPINAndBiometryAllowed()
+        let slot = store.probe(Account.rootByBiometry)
+        guard slot != .unknown else { throw Failure.storage }
+
+        let rk = try unlock(pin: pin)
+        guard slot == .present else { return rk }
+        do {
+            // Face ID indisponivel agora nao e Face ID perdido: nada e apagado, e isto recusa
+            // (revisao do A1: uma falha passageira, ou o Espelhamento, derrubava o slot).
+            if biometryAvailability() == .gone { throw Failure.biometryUnavailable }
+            let check = try unlockWithBiometry(reason: reason)
+            defer { check.wipe() }
+            guard Hash.constantTimeEqual(check, rk) else { throw Failure.storage }
+            return rk
+        } catch {
+            rk.wipe()
+            throw error
+        }
+    }
+
+    /// Quanto falta da espera do A1, para a tela avisar antes de pedir o PIN. Chaveiro mudo
+    /// ou registro ilegivel: a espera cheia, nunca zero. So le.
+    public var biometryHoldRemaining: TimeInterval {
+        (try? biometryHoldRemainingChecked()) ?? PINPolicy.biometryLossHold
+    }
+
+    /// O que pede PIN e rosto pode ser tentado agora? Recusa na espera, e com o Face ID
+    /// perdido e nao religado. Para a tela perguntar antes do PIN e da voz; o cofre confere
+    /// de novo em `unlockWithPINAndBiometry`.
+    public func checkPINAndBiometryAllowed() throws {
+        let hold = try biometryHoldRemainingChecked()
+        guard hold <= 0 else { throw Failure.biometryHold(seconds: hold) }
+        switch store.probe(Account.biometryLost) {
+        case .unknown: throw Failure.storage
+        case .present: throw Failure.biometryRequired
+        case .absent: break
+        }
+    }
+
+    /// A espera que falta. Vencida, o registro sai. Ilegivel vale a espera cheia, e a
+    /// abertura do app o regrava a partir de agora (`rebaseHoldLocked`).
+    private func biometryHoldRemainingChecked() throws -> TimeInterval {
+        switch store.probe(Account.biometryHold) {
+        case .absent: return 0
+        case .unknown: throw Failure.storage
+        case .present:
+            guard let data = try? store.read(Account.biometryHold, context: nil), let record = HoldRecord(data) else {
+                return PINPolicy.biometryLossHold
+            }
+            let remaining = record.remaining()
+            if remaining <= 0 { try? store.delete(Account.biometryHold) }
+            return remaining
+        }
+    }
+
+    /// O Face ID caiu sem o dono pedir: a espera e a marca de perdido sao gravadas
+    /// primeiro, e so entao o slot sai. Se uma delas nao gravar, o slot fica: o rosto
+    /// continua sem abrir, e o que pede PIN e rosto continua travado, em vez de passar com
+    /// o PIN so.
+    private func biometryLost() throws {
+        try startHold()
+        if store.probe(Account.biometryLost) != .present {
+            try? store.add(Data([1]), account: Account.biometryLost, protection: .standard, context: nil)
+        }
+        guard store.probe(Account.biometryLost) == .present else { throw Failure.storage }
+        dropBiometrySlot()
+    }
+
+    private func startHold() throws {
+        let record = HoldRecord.startingNow().encoded
+        if (try? store.update(record, account: Account.biometryHold)) == nil {
+            try? store.add(record, account: Account.biometryHold, protection: .standard, context: nil)
+        }
+        guard store.probe(Account.biometryHold) == .present else { throw Failure.storage }
+    }
+
+    /// Depois de reiniciar, o prazo da espera gravado com o relogio monotonico antigo nao
+    /// vale mais: recomeca cheio a partir de agora, como o das tentativas. Registro
+    /// ilegivel tambem.
+    private func rebaseHoldLocked() {
+        guard store.probe(Account.biometryHold) == .present else { return }
+        let record = (try? store.read(Account.biometryHold, context: nil)).flatMap { HoldRecord($0) }
+        guard record == nil || record?.isFromAnotherBoot == true else { return }
+        try? store.update(HoldRecord.startingNow().encoded, account: Account.biometryHold)
     }
 
     /// Quanto falta de espera, para a tela de bloqueio mostrar antes do toque. So le.
@@ -327,6 +445,10 @@ public final class RootKeyVault: @unchecked Sendable {
     public func rebaseAttempts() {
         lock.lock(); defer { lock.unlock() }
         _ = try? rebasedAttemptsLocked()
+        rebaseHoldLocked()
+        // O slot do rosto sem a chave do SE (cadastro de rostos trocado): a queda conta a
+        // partir de quando o app a ve, nao de quando alguem resolve usar o Face ID.
+        if store.probe(Account.rootByBiometry) == .present, !wrapper.hasKey(.biometry) { try? biometryLost() }
     }
 
     // MARK: Biometria
@@ -344,10 +466,26 @@ public final class RootKeyVault: @unchecked Sendable {
         }
     }
 
-    public var isBiometryEnabled: Bool { store.exists(Account.rootByBiometry) && wrapper.hasKey(.biometry) }
+    /// O slot do rosto existe (ou o chaveiro nao sabe dizer). A chave do SE pode ter
+    /// sumido: e o primeiro uso do Face ID que descobre e comeca a espera. Antes era
+    /// "slot e chave", e com a chave invalidada por um rosto novo o app mostrava o Face ID
+    /// desligado, e religar sobrescrevia o slot do dono sem espera (revisao do A1).
+    public var isBiometryEnabled: Bool { store.probe(Account.rootByBiometry) != .absent }
 
-    /// Liga o Face ID. Exige a RK aberta, ou seja, o PIN digitado agora.
-    public func enableBiometry(rk: SecureBytes) throws {
+    /// Liga o Face ID e confere na hora: o slot novo tem de abrir com o rosto e devolver a
+    /// mesma RK. Exige a RK aberta, ou seja, o PIN digitado agora.
+    ///
+    /// Religar por cima de um slot que existe conta como queda, e religar depois de uma
+    /// queda comeca a espera do A1 a partir de agora: quem cadastrou o proprio rosto no
+    /// iPhone nao ve a frase na hora so por ligar o Face ID com o PIN. O primeiro Face ID
+    /// de um cofre que nunca o teve nao espera: antes dele, o PIN ja abria tudo.
+    public func enableBiometry(rk: SecureBytes, reason: String = "") throws {
+        let slot = store.probe(Account.rootByBiometry)
+        let lost = store.probe(Account.biometryLost)
+        guard slot != .unknown, lost != .unknown else { throw Failure.storage }
+        if slot == .present { try biometryLost() }
+        let restarted = slot == .present || lost == .present
+
         try wrapper.createKey(.biometry)
         let blob = try wrapper.wrap(rk, slot: .biometry)
         do {
@@ -358,13 +496,46 @@ public final class RootKeyVault: @unchecked Sendable {
                 try store.add(state, account: Account.biometryState, protection: .standard, context: nil)
             }
         } catch {
-            disableBiometry()
+            dropBiometrySlot()
             throw Failure.storage
+        }
+        // A conferencia: sem ela o dono descobriria que o atalho nao funciona no dia em que
+        // precisasse. Falhou, o slot novo sai, e a marca de perdido (se havia) fica.
+        do {
+            let check = try wrapper.unwrap(blob, slot: .biometry, reason: reason)
+            defer { check.wipe() }
+            guard Hash.constantTimeEqual(check, rk) else { throw Failure.storage }
+        } catch {
+            dropBiometrySlot()
+            throw error is Failure ? error : Failure.cancelled
+        }
+        // Religar depois de uma queda: a espera comeca e a marca sai, nessa ordem e
+        // conferidas. Se uma das duas falhar, o slot novo sai e a marca fica: o dono tenta
+        // de novo, em vez de ficar com o Face ID ligado e o que pede os dois recusado para
+        // sempre (segunda revisao do A1).
+        if restarted {
+            do {
+                try startHold()
+                try? store.delete(Account.biometryLost)
+                guard store.probe(Account.biometryLost) == .absent else { throw Failure.storage }
+            } catch {
+                dropBiometrySlot()
+                throw Failure.storage
+            }
         }
     }
 
-    /// Desligar so reduz superficie: nao pede nada, e nunca toca o slot do PIN.
-    public func disableBiometry() {
+    /// Desliga o Face ID pelo dono: pede o PIN e o rosto (A1), porque com ele desligado o
+    /// que pedia os dois passa a pedir so o PIN. Nunca toca o slot do PIN.
+    public func disableBiometry(pin: SecureBytes, reason: String) throws {
+        let rk = try unlockWithPINAndBiometry(pin: pin, reason: reason)
+        rk.wipe()
+        dropBiometrySlot()
+    }
+
+    /// Tira o slot do rosto e a chave dele, sem pedir nada: so por dentro do cofre (queda,
+    /// ligar que nao conferiu, desligar depois do PIN e do rosto).
+    func dropBiometrySlot() {
         try? store.delete(Account.rootByBiometry)
         try? store.delete(Account.biometryState)
         wrapper.deleteKey(.biometry)
@@ -389,6 +560,23 @@ public final class RootKeyVault: @unchecked Sendable {
             return context.domainState.biometry.stateHash
         }
         return context.evaluatedPolicyDomainState
+    }
+
+    /// O Face ID deste iPhone visto pelo app agora: sem rosto cadastrado ou tirado do app
+    /// (`gone`), ou presente, inclusive no bloqueio temporario do sistema e em qualquer
+    /// motivo que nao se sabe: nada e apagado por duvida.
+    public enum BiometryAvailability: Sendable { case available, gone }
+
+    static func systemBiometryAvailability() -> BiometryAvailability {
+        let context = LAContext()
+        defer { context.invalidate() }
+        var error: NSError?
+        guard !context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error), let error,
+              error.domain == LAError.errorDomain else { return .available }
+        switch LAError.Code(rawValue: error.code) {
+        case .biometryNotEnrolled?, .biometryNotAvailable?: return .gone
+        default: return .available
+        }
     }
 
     // MARK: Troca de PIN

@@ -142,8 +142,11 @@ struct SolanaTradeEngine: TradeEngine {
                         amountIn: request.amountIn, slippageBps: swap.slippageBps, minimumOutShown: quote.minimumOut, reference: reference
                     )
                     try Self.check(plan, request: request, swap: swap)
-                    await book.planned(plan)
-                    return plan
+                    // A troca vai por RPC comum: validadores com bundles fazem sanduiche ate o
+                    // minimo, e a revisao diz (auditoria 4, M2).
+                    let warned = plan.addingWarnings([.publicMempool])
+                    await book.planned(warned)
+                    return warned
                 } catch SolanaSwapError.minimumBelowShown where attempt < Self.planAttempts {
                     attempt += 1
                 }

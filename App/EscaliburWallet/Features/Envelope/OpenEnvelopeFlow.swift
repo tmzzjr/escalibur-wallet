@@ -70,8 +70,8 @@ struct OpenEnvelopeFlow: View {
         NavigationStack {
             Group {
                 if let pending {
-                    ImportPreviewView(preview: pending.preview, hasPassphrase: pending.secret.passphrase.count > 0, saving: importing,
-                                      onSave: { Task { await save() } }, onBack: discardPending)
+                    ImportPreviewView(preview: pending.preview, hasPassphrase: pending.secret.passphrase.count > 0, source: .envelope, saving: importing,
+                                      onSave: { foreign in Task { await save(tronForeign: foreign) } }, onBack: discardPending)
                 } else if let revealDraft, let opened {
                     RecordWordsView(draft: revealDraft, walletName: opened.label.isEmpty ? String(localized: "Envelope") : opened.label,
                                     passphrase: opened.passphrase.count > 0 ? opened.passphrase : nil) {
@@ -302,14 +302,18 @@ struct OpenEnvelopeFlow: View {
     }
 
     /// Guarda depois da conferencia dos enderecos.
-    private func save() async {
+    private func save(tronForeign: Bool) async {
         guard let pending else { return }
         importing = true
         defer { importing = false }
         do {
+            // O envelope pode ter vindo de outra pessoa, com o nome que ela escolheu: a
+            // carteira dele nunca passa a ser a carteira em uso sozinha (auditoria 4, C7-05).
+            let first = session.metadata.wallets.isEmpty
             guard try await auth.retrying(reason: String(localized: "Guardar a carteira do envelope neste iPhone"), { credential in
                 try await session.addWallet(secret: pending.secret, name: pending.name, origin: .importedEnvelope,
-                                            wordCount: pending.words, backupConfirmed: true, credential: credential)
+                                            wordCount: pending.words, backupConfirmed: true, select: first, tronForeignControl: tronForeign,
+                                            credential: credential)
             }) != nil else { return }
             self.pending = nil
             close()

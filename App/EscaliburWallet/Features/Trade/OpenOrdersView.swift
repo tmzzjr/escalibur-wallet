@@ -313,7 +313,7 @@ struct OpenOrdersSection: View {
         }
         // Ordem da CoW aberta (criada aqui antes destes avisos, ou em outro aparelho):
         // passa a ser acompanhada para o aviso de vencimento e o de executada.
-        for open in orders where CoWProtocol.supports(open.chain) && !OpenOrdersBook.shared.isCancelling(open.id) {
+        for open in orders where !wallet.hasPassphrase && CoWProtocol.supports(open.chain) && !OpenOrdersBook.shared.isCancelling(open.id) {
             guard let expiresAt = open.expiresAt else { continue }
             await LimitOrderWatch.shared.track(id: open.id, chainID: open.chain.id, expiresAt: expiresAt)
         }

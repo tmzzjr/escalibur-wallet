@@ -80,6 +80,9 @@ public final class WalletVault: @unchecked Sendable {
 
     public func exists(_ id: UUID) -> Bool { store.exists(Self.account(id)) }
 
+    /// Existe, nao existe, ou o chaveiro nao conseguiu dizer.
+    public func probe(_ id: UUID) -> ItemState { store.probe(Self.account(id)) }
+
     public func delete(_ id: UUID) throws { try store.delete(Self.account(id)) }
 
     // MARK: Gravar

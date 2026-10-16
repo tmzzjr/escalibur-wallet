@@ -11,6 +11,9 @@ import UserNotifications
 enum Credential: Sendable {
     case pin(SecureBytes)
     case biometry(reason: String)
+    /// O PIN e, com o Face ID ligado, o rosto tambem (A1): ver as palavras, lacrar o
+    /// envelope, remover carteira, desligar o Face ID.
+    case pinAndBiometry(SecureBytes, reason: String)
 }
 
 /// O estado de alto nivel do app.
@@ -91,6 +94,7 @@ final class AppSession {
         if phase == .onboarding {
             Self.eraseBackgroundFiles()
             Preferences.receiptWatchChosen = false
+            Preferences.receiptOfferSeen = false
             Preferences.priceAlertsChosen = false
         }
     }
@@ -254,6 +258,9 @@ final class AppSession {
                 rk = try KeyServices.root.unlock(pin: pin)
             case .biometry(let reason):
                 rk = try KeyServices.root.unlockWithBiometry(reason: reason)
+            case .pinAndBiometry(let pin, let reason):
+                defer { pin.wipe() }
+                rk = try KeyServices.root.unlockWithPINAndBiometry(pin: pin, reason: reason)
             }
             defer { rk.wipe() }
             return try body(rk)
@@ -262,30 +269,41 @@ final class AppSession {
 
     var biometryEnabled: Bool { KeyServices.root.isBiometryEnabled }
 
-    /// Liga o Face ID e confere na hora: o slot novo precisa abrir com o rosto e
-    /// devolver a mesma RK. Sem essa prova, o dono descobriria que o atalho nao
-    /// funciona no dia em que precisasse dele.
+    /// Liga o Face ID. O cofre confere na hora que o slot novo abre com o rosto e devolve a
+    /// mesma RK, e decide se a espera do A1 comeca (religar depois de uma queda).
     func enableBiometry(pin: SecureBytes) async throws {
-        try await Offload.run {
-            defer { pin.wipe() }
-            let rk = try KeyServices.root.unlock(pin: pin)
-            defer { rk.wipe() }
-            try KeyServices.root.enableBiometry(rk: rk)
-            do {
-                let check = try KeyServices.root.unlockWithBiometry(reason: String(localized: "Confirme o \(KeyServices.biometryName) para ligar"))
-                defer { check.wipe() }
-                guard Hash.constantTimeEqual(check, rk) else { throw RootKeyVault.Failure.storage }
-            } catch {
-                KeyServices.root.disableBiometry()
-                throw error
+        let reason = String(localized: "Confirme o \(KeyServices.biometryName) para ligar")
+        do {
+            try await Offload.run {
+                defer { pin.wipe() }
+                let rk = try KeyServices.root.unlock(pin: pin)
+                defer { rk.wipe() }
+                try KeyServices.root.enableBiometry(rk: rk, reason: reason)
             }
+        } catch RootKeyVault.Failure.wiped {
+            // O PIN errado desta folha foi o que disparou o apagar apos erros: o cofre ja
+            // apagou as chaves, e a sessao vai junto (auditoria 4, C7-10).
+            eraseEverything()
+            throw RootKeyVault.Failure.wiped
         }
         metadata.settings.biometryEnabled = true
         try persist()
     }
 
-    func disableBiometry() {
-        KeyServices.root.disableBiometry()
+    /// Desliga o Face ID com o PIN e o rosto (A1): com ele desligado, ver as palavras passa
+    /// a pedir so o PIN. A credencial vem de `AuthCoordinator.retrying(presence:
+    /// .pinAndBiometry)`.
+    func disableBiometry(_ credential: Credential) async throws {
+        guard case .pinAndBiometry(let pin, let reason) = credential else { throw RootKeyVault.Failure.biometryRequired }
+        do {
+            try await Offload.run {
+                defer { pin.wipe() }
+                try KeyServices.root.disableBiometry(pin: pin, reason: reason)
+            }
+        } catch RootKeyVault.Failure.wiped {
+            eraseEverything()
+            throw RootKeyVault.Failure.wiped
+        }
         metadata.settings.biometryEnabled = false
         try? persist()
     }
@@ -293,9 +311,12 @@ final class AppSession {
     // MARK: Carteiras
 
     /// Guarda uma carteira nova ou importada. A RK so existe durante esta chamada.
+    /// `select` falso guarda sem trocar a carteira em uso (envelope, que pode ter vindo de
+    /// outra pessoa). Nome repetido ganha a origem junto: o envelope de terceiro chamado
+    /// "Carteira principal" nunca se confunde com a do dono.
     func addWallet(
         secret: WalletSecret, name: String, origin: WalletMeta.Origin, wordCount: Int,
-        backupConfirmed: Bool, credential: Credential
+        backupConfirmed: Bool, select: Bool = true, tronForeignControl: Bool = false, credential: Credential
     ) async throws -> WalletMeta {
         let id = UUID()
         let hasPassphrase = secret.passphrase.count > 0
@@ -308,15 +329,37 @@ final class AppSession {
             try? KeyServices.wallets.delete(id)
             throw WalletError.alreadyImported(existing.name)
         }
-        let wallet = WalletMeta(
-            id: id, name: name, kind: .phrase(wordCount: wordCount), origin: origin, createdAt: .now,
+        var wallet = WalletMeta(
+            id: id, name: uniqueName(name, origin: origin), kind: .phrase(wordCount: wordCount), origin: origin, createdAt: .now,
             accounts: accounts, fingerprint: fingerprint.hex, hasPassphrase: hasPassphrase,
             backupConfirmedAt: backupConfirmed ? .now : nil
         )
+        if tronForeignControl { wallet.tronForeignControl = true }
         metadata.wallets.append(wallet)
-        metadata.selectedWalletID = id
+        if select || metadata.selectedWalletID == nil { metadata.selectedWalletID = id }
         try persist()
         return wallet
+    }
+
+    private func uniqueName(_ name: String, origin: WalletMeta.Origin) -> String {
+        let taken = Set(metadata.wallets.map { Self.nameSkeleton($0.name) })
+        guard taken.contains(Self.nameSkeleton(name)) else { return name }
+        let tag = origin == .importedEnvelope ? String(localized: "envelope") : String(localized: "importada")
+        var candidate = "\(name) (\(tag))"
+        var number = 2
+        while taken.contains(Self.nameSkeleton(candidate)) {
+            candidate = "\(name) (\(tag) \(number))"
+            number += 1
+        }
+        return String(candidate.prefix(48))
+    }
+
+    /// O nome como o olho le: transliterado para o alfabeto latino, sem acento, em
+    /// minusculas e sem espacos nas pontas. "Carteira principаl" com um "а" cirilico e
+    /// "Carteira principal" dao o mesmo (revisao da auditoria 4, C7-05).
+    static func nameSkeleton(_ name: String) -> String {
+        let latin = name.applyingTransform(StringTransform("Any-Latin; Latin-ASCII"), reverse: false) ?? name
+        return latin.trimmingCharacters(in: .whitespaces).lowercased()
     }
 
     /// A carteira da 25ª palavra: a frase de `base` com uma palavra a mais, escolhida pelo
@@ -390,8 +433,14 @@ final class AppSession {
         try? persist()
     }
 
-    func remove(_ wallet: WalletMeta) {
-        try? KeyServices.wallets.delete(wallet.id)
+    /// A carteira so sai da lista depois de o chaveiro confirmar que a frase saiu. Antes,
+    /// uma falha do chaveiro tirava a carteira da lista e deixava a frase la, sem caminho
+    /// para apagar (auditoria 4, C7-20).
+    func remove(_ wallet: WalletMeta) throws {
+        if !wallet.isWatchOnly {
+            try? KeyServices.wallets.delete(wallet.id)
+            guard KeyServices.wallets.probe(wallet.id) == .absent else { throw WalletError.removeFailed }
+        }
         metadata.wallets.removeAll { $0.id == wallet.id }
         metadata.balanceCache[wallet.id] = nil
         if metadata.selectedWalletID == wallet.id { metadata.selectedWalletID = metadata.wallets.first?.id }
@@ -404,6 +453,7 @@ final class AppSession {
         MetadataStore.deleteFile()
         Self.eraseBackgroundFiles()
         Preferences.receiptWatchChosen = false
+        Preferences.receiptOfferSeen = false
         Preferences.priceAlertsChosen = false
         // Os atores zeram o que tinham em memoria; os arquivos ja sairam acima.
         Task {
@@ -425,11 +475,13 @@ final class AppSession {
 enum WalletError: LocalizedError {
     case alreadyImported(String)
     case notPhraseWallet
+    case removeFailed
 
     var errorDescription: String? {
         switch self {
         case .alreadyImported(let name): return String(localized: "Esta carteira já está aqui, como \(name).")
         case .notPhraseWallet: return String(localized: "Esta carteira só acompanha um endereço. A passphrase precisa da senha de 12 ou 24 palavras.")
+        case .removeFailed: return String(localized: "Não foi possível apagar a carteira deste iPhone agora. Ela continua aqui; tente de novo.")
         }
     }
 }

@@ -22,14 +22,14 @@ struct StellarSendEngine: SendEngine {
     /// CreateAccount de pelo menos o minimo do planejador (duas reservas de base).
     func destination(_ address: String, chain: Chain) async throws -> DestinationInfo {
         try requireChain(chain)
-        guard case .success(let parsed) = Address.validate(address, for: .stellar) else {
+        guard case .success = Address.validate(address, for: .stellar) else {
             throw SendEngineError.message(StellarPlanError.invalidDestination(.malformed).reason)
         }
         do {
             let state = try await reader.destination(address)
             if state.exists {
                 // Endereco M ja carrega o id do cliente: o SEP-29 nao se aplica a ele.
-                let requiresMemo = state.memoRequired && parsed.tag == nil
+                let requiresMemo = state.memoRequired && StellarMuxedAccount(address: address)?.isMuxed != true
                 return DestinationInfo(
                     exists: true, requiresTag: requiresMemo,
                     note: requiresMemo ? kitText("Esta conta exige memo (SEP-29). Sem ele o depósito se perde.") : nil

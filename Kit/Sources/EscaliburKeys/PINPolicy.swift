@@ -21,6 +21,10 @@ public enum PINPolicy {
     }
 
     /// A escada de atraso, em segundos, depois de `failures` erros seguidos.
+    ///
+    /// Do nono erro em diante a espera dobra a cada erro, de 3 horas ate 7 dias (auditoria
+    /// 4, C7-04). Com o teto antigo de 3 horas, quem tem o iPhone tentava cerca de 2.900
+    /// PINs por ano; com o dobro, 18 em 30 dias e 66 em um ano.
     public static func delay(afterFailures failures: UInt32) -> TimeInterval {
         switch failures {
         case 0...2: return 0
@@ -30,9 +34,21 @@ public enum PINPolicy {
         case 6: return 5 * 60
         case 7: return 15 * 60
         case 8: return 60 * 60
-        default: return 3 * 60 * 60
+        default:
+            let doubled = 3 * 60 * 60 * pow(2, Double(min(failures - 9, 16)))
+            return min(doubled, maxDelay)
         }
     }
+
+    /// O teto da escada: 7 dias por tentativa.
+    public static let maxDelay: TimeInterval = 7 * 24 * 60 * 60
+
+    /// A espera do A1 depois que o Face ID cai sem o dono pedir (o cadastro de rostos mudou,
+    /// o Face ID foi tirado do app ou do iPhone): durante ela, ver as palavras, lacrar o
+    /// envelope e remover carteira ficam travados. Quem viu o codigo do iPhone e o PIN
+    /// cadastra o proprio rosto e derruba o slot; sem a espera, isso trocava "PIN e rosto"
+    /// por "so o PIN" na hora (auditoria 4, A1).
+    public static let biometryLossHold: TimeInterval = 24 * 60 * 60
 
     /// Quantos erros podem apagar tudo, a escolha do dono (ou nunca).
     public static let wipeOptions: [UInt32] = [5, 10, 15, 20]
@@ -178,6 +194,48 @@ struct AttemptRecord: Equatable {
     func remaining() -> TimeInterval {
         let full = PINPolicy.delay(afterFailures: failures)
         guard !isFromAnotherBoot else { return full }
+        return min(full, max(0, uptimeDeadline - PINPolicy.uptime))
+    }
+}
+
+/// O prazo da espera depois que o Face ID caiu (`PINPolicy.biometryLossHold`), gravado no
+/// chaveiro. 25 bytes: versao, prazo no relogio monotonico (f64) e a identidade do boot.
+/// Mesmo relogio do contador de tentativas: mudar a hora nao encurta, e depois de
+/// reiniciar a espera recomeca cheia.
+struct HoldRecord: Equatable {
+    var uptimeDeadline: TimeInterval
+    var bootSession: [UInt8]
+
+    private static let version: UInt8 = 1
+
+    static func startingNow() -> HoldRecord {
+        HoldRecord(uptimeDeadline: PINPolicy.uptime + PINPolicy.biometryLossHold, bootSession: PINPolicy.bootSession)
+    }
+
+    var encoded: Data {
+        var out = Data([Self.version])
+        out.append(contentsOf: uptimeDeadline.bitPattern.bigEndianByteArray)
+        out.append(contentsOf: bootSession)
+        return out
+    }
+
+    init(uptimeDeadline: TimeInterval, bootSession: [UInt8]) {
+        self.uptimeDeadline = uptimeDeadline
+        self.bootSession = bootSession
+    }
+
+    init?(_ data: Data) {
+        let bytes = [UInt8](data)
+        guard bytes.count == 25, bytes[0] == Self.version else { return nil }
+        uptimeDeadline = Double(bitPattern: bytes[1..<9].reduce(0) { $0 << 8 | UInt64($1) })
+        bootSession = Array(bytes[9..<25])
+    }
+
+    var isFromAnotherBoot: Bool { !PINPolicy.isSameBoot(bootSession, PINPolicy.bootSession) }
+
+    func remaining() -> TimeInterval {
+        let full = PINPolicy.biometryLossHold
+        guard !isFromAnotherBoot, uptimeDeadline.isFinite else { return full }
         return min(full, max(0, uptimeDeadline - PINPolicy.uptime))
     }
 }

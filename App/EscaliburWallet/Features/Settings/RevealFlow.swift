@@ -19,6 +19,8 @@ struct RevealFlow: View {
     @State private var working = false
     @State private var error: String?
     @State private var acknowledged: Set<Int> = []
+    /// Depois das palavras conferidas, a passphrase da carteira que tem uma (C7-02).
+    @State private var confirmingPassphrase = false
 
     var body: some View {
         NavigationStack {
@@ -45,6 +47,14 @@ struct RevealFlow: View {
         }
         .interactiveDismissDisabled()
         .guardedAgainstCapture()
+        .fullScreenCover(isPresented: $confirmingPassphrase) {
+            if let passphrase {
+                ConfirmPassphraseView(wallet: wallet, expected: passphrase) {
+                    confirmingPassphrase = false
+                    finish()
+                }
+            }
+        }
     }
 
     private var warning: some View {
@@ -100,6 +110,8 @@ struct RevealFlow: View {
         String(localized: "quem tem as palavras tem o saldo"),
         String(localized: "a Escalibur nunca pede as palavras"),
         String(localized: "devo ver as palavras sozinho, longe de câmeras"),
+        // O app nao consegue saber do Espelhamento do iPhone no Mac (auditoria 4, C7-06).
+        String(localized: "no Espelhamento do iPhone, as palavras aparecem no Mac, e o app não consegue saber"),
     ]
 
     private func open() async {
@@ -108,8 +120,10 @@ struct RevealFlow: View {
         error = nil
         let id = wallet.id
         do {
+            // A espera do A1 antes da frase de voz: nada de pedir a voz para ouvir "espere".
+            try AuthCoordinator.checkPINAndBiometry()
             guard await VoiceGate.shared.confirm(.reveal, session: session) else { return }
-            let result: (SecureBytes, SecureBytes?)? = try await auth.perform(session, reason: String(localized: "Ver a senha de \(wallet.name)"), requirePIN: true) { rk in
+            let result: (SecureBytes, SecureBytes?)? = try await auth.perform(session, reason: String(localized: "Ver a senha de \(wallet.name)"), presence: .pinAndBiometry) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }
                 var pass: SecureBytes?
@@ -125,15 +139,19 @@ struct RevealFlow: View {
             passphrase = pass
             draft = PhraseDraft(phrase: phrase, wordCount: words)
         } catch {
-            self.error = String(localized: "Não foi possível abrir a carteira agora.")
+            self.error = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível abrir a carteira agora.")
         }
     }
 
     private func confirmed() {
-        var updated = wallet
+        var updated = session.metadata.wallets.first { $0.id == wallet.id } ?? wallet
         updated.backupConfirmedAt = .now
         session.update(updated)
-        finish()
+        if updated.hasPassphrase, updated.passphraseConfirmedAt == nil, passphrase != nil {
+            confirmingPassphrase = true
+        } else {
+            finish()
+        }
     }
 
     private func finish() {
