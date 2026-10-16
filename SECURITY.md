@@ -33,6 +33,7 @@ Fora:
 - As afirmações verificáveis por script: `./tools/verificar.sh`.
 - Os vetores oficiais de cada rede: `cd Kit && swift test`.
 - O código de terceiro e seus digestos: `secp256k1.lock`, `argon2.lock`, `wordlists.lock`, `hosts.lock`.
+- De qual commit saiu um build do TestFlight ou da App Store, e como conferir a assinatura da tag e a atestação: [`docs/release.md`](docs/release.md). As chaves que assinam as tags estão em `.github/assinantes`.
 
 ## Limite declarado sobre o binário
 

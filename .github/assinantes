@@ -1,0 +1,20 @@
+# Chaves que podem assinar as tags de release (testflight-* e v*).
+#
+# O .github/workflows/release.yml confere cada tag contra este arquivo, do commit da
+# propria tag:
+#
+#   git -c gpg.format=ssh -c gpg.ssh.allowedSignersFile=.github/assinantes \
+#       -c gpg.minTrustLevel=fully tag -v testflight-1.0.0-N
+#
+# e para tudo se a assinatura nao for de uma chave daqui. Enquanto este arquivo nao
+# tiver nenhuma chave, nenhum release roda: e de proposito. Qualquer pessoa confere
+# uma tag do mesmo jeito, com o mesmo comando.
+#
+# Formato (man ssh-keygen, ALLOWED SIGNERS), uma chave por linha, so a parte publica:
+#
+#   e-mail namespaces="git" tipo-da-chave chave-publica
+#
+# Trocar de chave: acrescentar a nova e marcar a antiga com valid-before="AAAAMMDD"
+# antes do tipo, sem apaga-la, para as tags antigas continuarem conferindo (o git
+# confere cada assinatura na data da tag). Chave perdida ou vazada sai daqui de vez:
+# quem tem a chave escolhe a data que a tag diz. Gerar e cadastrar: docs/release.md.

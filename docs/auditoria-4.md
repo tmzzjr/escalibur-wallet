@@ -19,7 +19,7 @@ Auditoria de segurança completa pedida pelo dono, com sete revisores em paralel
 | M1 | O endereço M da Stellar virava a conta base G mais o ID como memo, e o caminho muxed do planejador nunca era usado. | Feito. O M vai inteiro até a transação, sem memo, e a conferência do plano compara o M com o ID. |
 | M2 | Trocas fora da Ethereum vão pela fila pública: um robô de sanduíche leva até a tolerância. | Em parte. A revisão diz, nas redes sem proteção e na Solana, que não há proteção contra robôs. Relay privado nessas redes e teto menor de tolerância ficam para depois. |
 | R7-M1 | A conta da Escalibur na Alchemy guarda por 10 dias o endereço e os saldos de cada consulta. | Em parte. A Política de privacidade diz isso. Tirar a Alchemy do caminho padrão, ou conta só com chave de segurança e retenção desligada, é decisão do dono. |
-| R7-M3 | Não há elo verificável entre o commit auditado e o binário: o CI não barra o push e o archive sai do Mac do dono. | Aberto, para decisão do dono: exigir o check no ruleset muda o fluxo de push direto na main; o archive reproduzível num workflow de release é um trabalho próprio. |
+| R7-M3 | Não há elo verificável entre o commit auditado e o binário: o CI não barra o push e o archive sai do Mac do dono. | Em parte. O `release.yml` monta o build do TestFlight de uma tag assinada (conferida contra `.github/assinantes`), depois do `verificar.yml` no mesmo commit, e publica o SHA-256 e a atestação de proveniência do `.ipa` enviado (`docs/release.md`). Falta o dono ligar: a chave, o environment `release` com revisor, a regra das tags e o check `verificar` obrigatório na main. O build reproduzível (dois builds comparados) fica para depois. |
 
 ### Baixos
 

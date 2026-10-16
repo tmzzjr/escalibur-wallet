@@ -1,0 +1,294 @@
+# O build que vai para o TestFlight (e, depois, para a App Store) sai daqui, de uma tag
+# assinada pelo dono, e nao do Mac de ninguem (auditoria 4, R7-M3). Dispara so com o
+# push de uma tag testflight-X.Y.Z-N ou vX.Y.Z-N, e cada job so roda se o anterior passou:
+#
+#   assinatura  a tag e anotada, assinada por uma chave de .github/assinantes, aponta
+#               para um commit da main, e X.Y.Z e a versao do projeto.
+#   verificar   o mesmo verificar.yml que confere a main, no commit da tag: o
+#               verificador inteiro, os testes, o app em Release e o envelope.
+#   montar      archive Release com o build N, .ipa assinado pela nuvem da Apple,
+#               entitlements conferidos contra o repositorio, SHA-256 e atestacao de
+#               proveniencia do .ipa, e o envio desse mesmo .ipa ao App Store Connect.
+#               E o unico job que ve segredo, e so comeca depois de o dono aprovar no
+#               environment release.
+#
+# Como assinar a tag, o que isto prova e o que nao prova: docs/release.md.
+name: release
+
+on:
+  push:
+    tags:
+      - "testflight-*"
+      - "v*"
+
+permissions:
+  contents: read
+
+# Um release por vez, e nenhum cancelado no meio de um envio.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  assinatura:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      versao: ${{ steps.tag.outputs.versao }}
+      build: ${{ steps.tag.outputs.build }}
+    steps:
+      # Acoes fixadas por commit, nunca por tag movel (o tools/verificar.sh confere).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # O historico inteiro e a main: o commit da tag tem de estar nela.
+          fetch-depth: 0
+
+      # O nome da tag entra por variavel de ambiente, nunca colado no script.
+      - id: tag
+        name: Tag assinada pelo dono, num commit da main
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          [ "$GITHUB_REF_TYPE" = "tag" ] || { echo "::error::o release so roda de tag"; exit 1; }
+
+          # testflight-X.Y.Z-N ou vX.Y.Z-N: N vira o CFBundleVersion.
+          if [[ ! "$TAG" =~ ^(testflight-|v)([0-9]+\.[0-9]+\.[0-9]+)-([1-9][0-9]{0,5})$ ]]; then
+            echo "::error::tag fora do formato testflight-X.Y.Z-N ou vX.Y.Z-N"
+            exit 1
+          fi
+          versao="${BASH_REMATCH[2]}"
+          build="${BASH_REMATCH[3]}"
+
+          # A tag como esta no GitHub: o checkout pode ter trazido so o commit, sem o
+          # objeto da tag, que e onde mora a assinatura. O repositorio e publico.
+          git fetch --no-tags --force origin "+refs/tags/$TAG:refs/tags/$TAG"
+          if [ "$(git cat-file -t "refs/tags/$TAG")" != "tag" ]; then
+            echo "::error::$TAG e uma tag leve, que nao carrega assinatura"
+            exit 1
+          fi
+          commit=$(git rev-parse "refs/tags/$TAG^{commit}")
+          if [ "$commit" != "$GITHUB_SHA" ]; then
+            echo "::error::a tag aponta para $commit e o run e de $GITHUB_SHA"
+            exit 1
+          fi
+
+          # A assinatura, contra o .github/assinantes do proprio commit. minTrustLevel
+          # fully recusa chave fora do arquivo, e a linha "Good ... for <e-mail>" so sai
+          # quando a chave esta nele. Sem nenhuma chave no arquivo, nada passa.
+          assinantes=.github/assinantes
+          if ! grep -qvE '^[[:space:]]*(#|$)' "$assinantes"; then
+            echo "::error::$assinantes nao tem nenhuma chave: o dono cadastra a dele antes do primeiro release (docs/release.md)"
+            exit 1
+          fi
+          if saida=$(git -c gpg.format=ssh -c gpg.ssh.allowedSignersFile="$assinantes" -c gpg.minTrustLevel=fully \
+              tag -v "$TAG" 2>&1 >/dev/null) && grep -q '^Good "git" signature for ' <<<"$saida"; then
+            grep '^Good "git" signature for ' <<<"$saida"
+          else
+            echo "$saida"
+            echo "::error::a assinatura de $TAG nao e de uma chave de $assinantes"
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor "$commit" refs/remotes/origin/main; then
+            echo "::error::o commit $commit nao esta na main"
+            exit 1
+          fi
+
+          # A versao da tag e a que o projeto declara, no project.yml e no projeto gerado
+          # que o xcodebuild le.
+          if ! grep -qF "MARKETING_VERSION: \"$versao\"" project.yml; then
+            echo "::error::project.yml nao declara MARKETING_VERSION $versao"
+            exit 1
+          fi
+          no_projeto=$(grep -oE 'MARKETING_VERSION = [^;]+;' EscaliburWallet.xcodeproj/project.pbxproj | sort -u)
+          if [ "$no_projeto" != "MARKETING_VERSION = $versao;" ]; then
+            echo "::error::o EscaliburWallet.xcodeproj diz $no_projeto, e a tag $versao"
+            exit 1
+          fi
+
+          echo "versao=$versao" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "$TAG: versao $versao, build $build, commit $commit"
+
+  # O mesmo arquivo que confere a main e os PRs, sem copia: o que barra a main barra o
+  # release.
+  verificar:
+    needs: assinatura
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verificar.yml
+
+  montar:
+    needs: [assinatura, verificar]
+    runs-on: macos-26
+    timeout-minutes: 60
+    # Os segredos (ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8) so existem neste environment,
+    # que pede a aprovacao do dono e so aceita as tags testflight-* e v*.
+    environment: release
+    permissions:
+      contents: read
+      # O certificado de curta duracao da Sigstore, para assinar a atestacao.
+      id-token: write
+      # Gravar a atestacao no repositorio.
+      attestations: write
+    env:
+      VERSAO: ${{ needs.assinatura.outputs.versao }}
+      BUILD: ${{ needs.assinatura.outputs.build }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Xcode do .xcode-version, no commit da tag
+        run: |
+          set -euo pipefail
+          [ "$(git rev-parse HEAD)" = "$GITHUB_SHA" ] || { echo "::error::checkout fora do commit da tag"; exit 1; }
+          versao=$(sed 's/^Xcode //' .xcode-version)
+          sudo xcode-select -s "/Applications/Xcode_${versao}.app"
+          [ "$(xcodebuild -version | head -1)" = "$(cat .xcode-version)" ] || { echo "::error::Xcode diferente do .xcode-version"; exit 1; }
+          xcodebuild -version
+
+      # Sem certificado no runner. O archive sai sem assinatura, e o codesign poe nele uma
+      # assinatura local (ad hoc) com os entitlements do repositorio, so para o export
+      # saber o que o app pede; quem assina de verdade e o export, pela nuvem da Apple.
+      # Com -allowProvisioningUpdates no archive, o Xcode criaria um certificado de
+      # desenvolvimento novo a cada runner limpo, e o run seguinte pararia pedindo para
+      # revogar o anterior.
+      - name: Archive Release com o build da tag, sem nada do modo demo
+        run: |
+          set -euo pipefail
+          arquivo="$RUNNER_TEMP/EscaliburWallet.xcarchive"
+          xcodebuild -project EscaliburWallet.xcodeproj -scheme EscaliburWallet -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$arquivo" -derivedDataPath "$RUNNER_TEMP/dd" \
+            CURRENT_PROJECT_VERSION="$BUILD" CODE_SIGNING_ALLOWED=NO archive -quiet
+          app="$arquivo/Products/Applications/EscaliburWallet.app"
+          for plist in "$app/Info.plist" "$app/PlugIns/EscaliburWidgets.appex/Info.plist"; do
+            [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")" = "$VERSAO" ] \
+              && [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$plist")" = "$BUILD" ] \
+              || { echo "::error::$plist sem a versao $VERSAO ($BUILD)"; exit 1; }
+          done
+          if strings "$app/EscaliburWallet" | grep -E "abandon abandon abandon|DebugDemo|envio-incerto|enviar-eth"; then
+            echo "::error::o binario de distribuicao carrega codigo do modo demo"
+            exit 1
+          fi
+          codesign --force --sign - --timestamp=none \
+            --entitlements App/EscaliburWidgets/EscaliburWidgets.entitlements "$app/PlugIns/EscaliburWidgets.appex"
+          codesign --force --sign - --timestamp=none \
+            --entitlements App/EscaliburWallet/Resources/EscaliburWallet.entitlements "$app"
+
+      # A chave .p8 vive num arquivo 600 so durante este passo e o do envio, e sai no fim
+      # de cada um (e de novo no ultimo passo, se algo parar no meio). Nada dela no log.
+      - name: Exportar o .ipa, assinado pela nuvem da Apple
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          [[ "$ASC_KEY_ID" =~ ^[A-Z0-9]{10}$ ]] || { echo "::error::ASC_KEY_ID fora do formato"; exit 1; }
+          [[ "$ASC_ISSUER_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::ASC_ISSUER_ID fora do formato"; exit 1; }
+          umask 077
+          pasta=$(mktemp -d "$RUNNER_TEMP/asc.XXXXXX")
+          trap 'rm -rf "$pasta"' EXIT
+          chave="$pasta/AuthKey_$ASC_KEY_ID.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$chave"
+          chmod 600 "$chave"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/EscaliburWallet.xcarchive" \
+            -exportOptionsPlist .github/ExportOptions.plist -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates -authenticationKeyPath "$chave" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      # O que vai para a Apple: assinatura de distribuicao da equipe, os entitlements do
+      # repositorio e nada alem dos que a Apple poe (tools/conferir-entitlements.py), a
+      # versao da tag, e de novo nada do modo demo.
+      - name: Assinatura de distribuicao e entitlements do repositorio
+        run: |
+          set -euo pipefail
+          saida="$RUNNER_TEMP/saida"
+          nome="EscaliburWallet-$VERSAO-$BUILD.ipa"
+          mkdir -p "$saida"
+          mv "$RUNNER_TEMP/export/EscaliburWallet.ipa" "$saida/$nome"
+          cd "$saida"
+          unzip -q "$nome"
+          app=Payload/EscaliburWallet.app
+          for alvo in "$app" "$app/PlugIns/EscaliburWidgets.appex"; do
+            info=$(codesign -dvv "$alvo" 2>&1)
+            grep -qx 'TeamIdentifier=2UNWMDD93S' <<<"$info" && grep -q '^Authority=Apple Distribution: ' <<<"$info" \
+              || { echo "$info"; echo "::error::$alvo sem a assinatura de distribuicao da equipe 2UNWMDD93S"; exit 1; }
+            [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$alvo/Info.plist")" = "$BUILD" ] \
+              || { echo "::error::$alvo saiu do export com outro build"; exit 1; }
+          done
+          codesign --verify --strict --deep "$app"
+          python3 -I "$GITHUB_WORKSPACE/tools/conferir-entitlements.py" "$app"
+          if strings "$app/EscaliburWallet" | grep -E "abandon abandon abandon|DebugDemo|envio-incerto|enviar-eth"; then
+            echo "::error::o binario de distribuicao carrega codigo do modo demo"
+            exit 1
+          fi
+
+      # SHA256SUMS: o .ipa, o binario principal como vai no .ipa, e o mesmo binario sem a
+      # assinatura (o que da para comparar com um build feito do codigo, docs/release.md).
+      - name: SHA-256 do .ipa e do binario principal
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/saida"
+          nome="EscaliburWallet-$VERSAO-$BUILD.ipa"
+          binario=Payload/EscaliburWallet.app/EscaliburWallet
+          cp "$binario" EscaliburWallet.sem-assinatura
+          codesign --remove-signature EscaliburWallet.sem-assinatura
+          shasum -a 256 "$nome" "$binario" EscaliburWallet.sem-assinatura > SHA256SUMS
+          {
+            echo "Escalibur Wallet $VERSAO ($BUILD)"
+            echo "tag: $GITHUB_REF_NAME"
+            echo "commit: $GITHUB_SHA"
+            echo "run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "xcode: $(xcodebuild -version | paste -sd ' ' -)"
+            echo "runner: ${ImageOS:-macos-26}, imagem ${ImageVersion:-desconhecida}"
+          } > release.txt
+          cat release.txt SHA256SUMS
+          { echo '```'; cat release.txt; echo; cat SHA256SUMS; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      # Uma atestacao para os tres digestos de SHA256SUMS, assinada pela Sigstore publica
+      # com a identidade deste workflow, deste commit e desta tag. `gh attestation verify`
+      # confere (docs/release.md).
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: ${{ runner.temp }}/saida/SHA256SUMS
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: digestos-${{ github.ref_name }}
+          path: |
+            ${{ runner.temp }}/saida/SHA256SUMS
+            ${{ runner.temp }}/saida/release.txt
+          if-no-files-found: error
+          retention-days: 90
+
+      # O arquivo enviado e o mesmo que tem o digesto e a atestacao: confere antes.
+      - name: Enviar ao App Store Connect o .ipa atestado
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/saida"
+          nome="EscaliburWallet-$VERSAO-$BUILD.ipa"
+          grep -F "  $nome" SHA256SUMS | shasum -a 256 -c -
+          [[ "$ASC_KEY_ID" =~ ^[A-Z0-9]{10}$ ]] || { echo "::error::ASC_KEY_ID fora do formato"; exit 1; }
+          [[ "$ASC_ISSUER_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::ASC_ISSUER_ID fora do formato"; exit 1; }
+          umask 077
+          pasta=$(mktemp -d "$RUNNER_TEMP/asc.XXXXXX")
+          trap 'rm -rf "$pasta"' EXIT
+          chave="$pasta/AuthKey_$ASC_KEY_ID.p8"
+          printf '%s\n' "$ASC_KEY_P8" > "$chave"
+          chmod 600 "$chave"
+          xcrun altool --upload-package "$nome" \
+            --api-key "$ASC_KEY_ID" --api-issuer "$ASC_ISSUER_ID" --p8-file-path "$chave"
+
+      - name: Apagar a chave, se sobrou
+        if: always()
+        run: rm -rf "$RUNNER_TEMP"/asc.*
