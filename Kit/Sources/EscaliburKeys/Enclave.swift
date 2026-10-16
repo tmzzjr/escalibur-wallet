@@ -177,6 +177,9 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
     }
 
     public func wrap(_ secret: SecureBytes, slot: WrapSlot) throws -> Data {
+        // A kand.qualquer so embrulha o miolo, o ECIES da kand.pin, bem maior que a RK: um
+        // segredo do tamanho dela nunca passa por aqui.
+        if slot == .hardenedBiometryAny, secret.count <= 32 { throw EnclaveError.failed("kand.qualquer so embrulha o miolo") }
         let key = try privateKey(slot, context: nil)
         guard let publicKey = SecKeyCopyPublicKey(key) else { throw EnclaveError.keyMissing }
         var error: Unmanaged<CFError>?

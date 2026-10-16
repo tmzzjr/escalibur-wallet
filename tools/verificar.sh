@@ -246,8 +246,11 @@ achados=$(procurar '\.random\(|randomElement|shuffled\(\)|arc4random|drand48|\br
 secao "chaveiro e biometria"
 achados=$(swift_em "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET" | xargs grep -lE 'SecItemAdd|SecItemUpdate|SecKeyCreateRandomKey' 2>/dev/null | grep -vE "$KEYS/(SecretStore|Enclave)\.swift")
 [ -n "$achados" ] && { aviso "chamada ao chaveiro fora de SecretStore/Enclave"; echo "$achados"; } || ok "chaveiro so em SecretStore.swift e Enclave.swift"
-achados=$(procurar 'AfterFirstUnlock|AccessibleAlways|kSecAttrAccessibleWhenUnlocked\b|SynchronizableAny|\.userPresence|\.devicePasscode|\.or\b|kSecAttrSynchronizable as String: kCFBooleanTrue' "$APP" "$KEYS")
-[ -n "$achados" ] && { aviso "protecao fraca de chaveiro ou biometria"; echo "$achados"; } || ok "sem userPresence, devicePasscode, .or, AfterFirstUnlock, WhenUnlocked sem ThisDeviceOnly"
+# Tambem os outros caminhos para uma flag que sobrevive a um rosto novo: o nome antigo
+# (.touchIDAny), as flags montadas por numero (rawValue) e flags(for:) chamada com uma chave
+# escrita (so a propria chave de cada criacao passa por ela).
+achados=$(procurar 'AfterFirstUnlock|AccessibleAlways|kSecAttrAccessibleWhenUnlocked\b|SynchronizableAny|\.userPresence|\.devicePasscode|\.or\b|kSecAttrSynchronizable as String: kCFBooleanTrue|\.touchIDAny|SecAccessControlCreateFlags\(rawValue|flags\(for: *\.' "$APP" "$KEYS")
+[ -n "$achados" ] && { aviso "protecao fraca de chaveiro ou biometria"; echo "$achados"; } || ok "sem userPresence, devicePasscode, .or, touchIDAny, flags por numero, AfterFirstUnlock, WhenUnlocked sem ThisDeviceOnly"
 # O .biometryAny tem uma excecao so: a kand.qualquer, a camada de fora do modo reforcado que
 # sobrevive a um rosto novo (docs/seguranca.md §2.6), na linha dela em flags(for:) do
 # Enclave.swift. Ela nunca abre nada sozinha: o unico embrulho com ela e o do miolo (que ainda

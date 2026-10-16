@@ -2,6 +2,7 @@ import CryptoKit
 import EscaliburCore
 import Foundation
 import LocalAuthentication
+import Testing
 @testable import EscaliburKeys
 
 /// Armazenamento em memoria. Simula a recusa por senha de aplicativo comparando a
@@ -116,6 +117,9 @@ final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
     var watchUnknown = false
     /// Chaves cuja exclusao nao acontece: a queda antes da limpeza.
     var failDeletingKeys: Set<WrapSlot> = []
+    /// O SE recusa abrir com estas chaves por um erro que nao vem do Face ID (a chave que
+    /// existe e nao serve, como depois de uma redefinicao do Face ID interrompida).
+    var failSlots: Set<WrapSlot> = []
 
     /// O que o SEP faz quando o cadastro de rostos muda: as chaves `.biometryCurrentSet`
     /// deixam de existir. A `.biometryAny` (`kand.qualquer`) continua.
@@ -185,6 +189,18 @@ final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
     func wrap(_ secret: SecureBytes, slot: WrapSlot) throws -> Data {
         lock.lock(); defer { lock.unlock() }
         guard let key = keys[slot] else { throw EnclaveError.keyMissing }
+        // A invariante da kand.qualquer, vigiada em todo teste: ela so embrulha o miolo, o ECIES
+        // de uma kand.pin, nunca a RK nem outra coisa (o verificar.sh so ve o literal).
+        if slot == .hardenedBiometryAny {
+            let isMiddle = [WrapSlot.hardenedPINA, .hardenedPINB].contains { pinSlot in
+                guard let pinKey = keys[pinSlot] else { return false }
+                return secret.withUnsafeData { (try? Self.open($0, key: pinKey)) != nil }
+            }
+            guard secret.count > 32, isMiddle else {
+                Issue.record("a kand.qualquer embrulhou algo que nao e o miolo da kand.pin (\(secret.count) bytes)")
+                throw EnclaveError.failed("kand.qualquer so embrulha o miolo")
+            }
+        }
         let ephemeral = P256.KeyAgreement.PrivateKey()
         let shared = try ephemeral.sharedSecretFromKeyAgreement(with: key.publicKey)
         let symmetric = shared.hkdfDerivedSymmetricKey(using: SHA256.self, salt: Data(), sharedInfo: Data("wrap".utf8), outputByteCount: 32)
@@ -197,6 +213,7 @@ final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
         guard let key = keys[slot] else { throw EnclaveError.keyMissing }
         unwrapCount[slot, default: 0] += 1
         if slot.usesBiometry, reason != nil { faces += 1 }
+        if failSlots.contains(slot) { throw EnclaveError.failed("desembrulho") }
         if slot.usesBiometry, refuseBiometry || refuseSlots.contains(slot) { throw EnclaveError.cancelled }
         if slot.usesBiometry, let refuseFaceFrom, faces >= refuseFaceFrom { throw EnclaveError.cancelled }
         if let refuseFrom, refuseFrom.slot == slot, unwrapCount[slot, default: 0] >= refuseFrom.count { throw EnclaveError.cancelled }

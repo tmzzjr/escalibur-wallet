@@ -73,6 +73,10 @@ public final class RootKeyVault: @unchecked Sendable {
         /// de rostos mudou) e o rk.and nao abre mais. Nada foi apagado; o caminho e restaurar
         /// pelas palavras.
         case hardenedSlotLost
+        /// Modo reforcado: a chave do rosto existe e o SE recusou abrir a camada de fora por um
+        /// erro que nao vem do Face ID (uma redefinicao do Face ID interrompida, por exemplo).
+        /// Nao conta tentativa e nao apaga nada.
+        case hardenedFaceKeyFailed
         case hardenedBlocked(HardenedBlocker)
     }
 
@@ -1323,6 +1327,11 @@ extension RootKeyVault {
                 let left = wipeThreshold.map { $0 - next.failures }
                 if case .wrongPIN = failure { throw Failure.wrongPIN(remainingBeforeWipe: left) }
                 throw Failure.biometryNotConfirmed(remainingBeforeWipe: left)
+            case .hardenedFaceKeyFailed:
+                // Nenhum rosto foi recusado e o PIN nem foi avaliado: o contador volta ao de
+                // antes. Se nao gravar, a tentativa fica contada (falha para o lado seguro).
+                try? store.update(attempts.encoded, account: Account.attempts)
+                throw failure
             default:
                 throw failure
             }
@@ -1330,6 +1339,8 @@ extension RootKeyVault {
         defer { opened.middle.wipe() }
         try? store.update(AttemptRecord.zero.encoded, account: Account.attempts)
         recordPINThisBoot()
+        // O AAD provou o cabecalho: so agora a varredura pode apagar o que ele diz que sobra.
+        sweepHardenedKeysLocked(record.header)
         switch policy {
         case .lock:
             refreshHardenedState()
@@ -1398,6 +1409,11 @@ extension RootKeyVault {
             } else {
                 middle = try wrapper.unwrap(outer, slot: face, reason: reason)
             }
+        } catch EnclaveError.failed {
+            // O SE recusou por um erro que nao vem do Face ID (nenhum rosto foi recusado): nao
+            // conta. A chave que nao existe mais e o cofre perdido.
+            if wrapper.probeKey(face) == .absent { throw Failure.hardenedSlotLost }
+            throw Failure.hardenedFaceKeyFailed
         } catch {
             // Perdido so com prova: a chave do rosto que o SE ja nao tem. O hash do cadastro
             // diferente com a chave presente pode ser so deriva do sistema e conta como o
@@ -1475,13 +1491,30 @@ extension RootKeyVault {
             changed = true
         }
         if !changed {
-            if opened.watch == .same { refreshHardenedState() }
-            if let hold, hold.remaining <= 0 { try? store.delete(Account.hardenedHold) }
+            // So a prova do SEP (a vigia abriu o mesmo miolo) regrava o hash e termina uma
+            // espera vencida. O hash sozinho nunca encerra espera.
+            if opened.watch == .same {
+                refreshHardenedState()
+                if let hold, hold.remaining <= 0 { try? store.delete(Account.hardenedHold) }
+            }
             return true
         }
         if let hold {
-            if hold.remaining > 0 { return false }
-            if let now, !hold.state.isEmpty, hold.state == now {
+            // Sem o hash de agora, nao se sabe para que cadastro a espera vale: correndo, ela
+            // fica como esta; vencida, nada abre ate o hash voltar (nem recomeca uma espera de
+            // cadastro nenhum).
+            guard let now else {
+                if hold.remaining > 0 { return false }
+                throw Failure.biometryUnavailable
+            }
+            if hold.remaining > 0 {
+                // Outro cadastro no meio da espera (o dono redefiniu o Face ID, ou alguem
+                // cadastrou mais um rosto): ela recomeca cheia, para o cadastro de agora, e a
+                // faixa diz o prazo certo. So abrir o app chega aqui.
+                if hold.state != now { try startHardenedHold(state: now) }
+                return false
+            }
+            if !hold.state.isEmpty, hold.state == now {
                 // Uma queda em qualquer passo termina na proxima abertura: a espera vencida
                 // continua la, e a vigia continua vendo a troca.
                 try? realignWatchLocked(record, middle: opened.middle, state: now)
@@ -1543,8 +1576,8 @@ extension RootKeyVault {
     }
 
     /// O hash do cadastro de rostos diferente do gravado. Nunca decide nada sozinho: so a
-    /// mensagem do rosto que nao confirmou, na trava, diz que, se o cadastro mudou, so as
-    /// palavras trazem de volta.
+    /// mensagem do rosto que nao confirmou diz que so as palavras trazem de volta (na trava, se
+    /// o cadastro mudou; nas outras, se o Face ID foi redefinido).
     public var hardenedEnrollmentChanged: Bool {
         guard let saved = try? store.read(Account.hardenedState, context: nil), let now = hardenedDomainState() else { return false }
         return saved != now
@@ -1635,15 +1668,14 @@ extension RootKeyVault {
         Self.hardenedKeys.forEach(wrapper.deleteKey)
     }
 
-    /// Leva o que sobrou de uma transicao para o estado que o modo e o cabecalho em vigor
-    /// dizem. So com respostas definitivas; com os dois slots, nada (o PIN certo resolve).
+    /// Leva o que sobrou de uma transicao para o estado que o modo diz. So com respostas
+    /// definitivas; com os dois slots, nada (o PIN certo resolve).
     ///
-    /// No reforcado: as sobras do modo normal, a geracao da chave do PIN que o cabecalho nao
-    /// usa, e as chaves de fora que a politica em vigor nao usa (`.lock`: a `kand.qualquer`;
-    /// `.continue`: a `kand.bio`; `.wait`: nenhuma, nem a `kand.bio` morta, que o
-    /// realinhamento recria), com a espera fora da `.wait`. Cabecalho ilegivel: as chaves do
-    /// reforcado ficam. Antes do commit de uma troca o cabecalho antigo manda, depois o novo:
-    /// o registro em vigor nunca aponta para uma chave que isto apaga.
+    /// No reforcado, so as sobras do modo normal: as chaves do reforcado dependem do
+    /// cabecalho, e o cabecalho em claro so vale depois de autenticado
+    /// (`sweepHardenedKeysLocked`). Antes, isto lia o cabecalho sem autenticar, e trocar o
+    /// byte das camadas entre 1 e 2 fazia a volta ao app apagar a chave de fora em vigor
+    /// (revisao das tres politicas, B3).
     func sweepHardenedLocked() {
         switch securityMode {
         case .hardened:
@@ -1652,13 +1684,6 @@ extension RootKeyVault {
                 try? store.delete(account)
             }
             [WrapSlot.device, .pin, .pinPending, .biometry].forEach(wrapper.deleteKey)
-            guard let record = try? readHardened() else { return }
-            let policy = record.header.faceChange
-            wrapper.deleteKey(record.header.pinKey == .hardenedPINA ? .hardenedPINB : .hardenedPINA)
-            for slot in [WrapSlot.hardenedBiometry, .hardenedBiometryAny] where !policy.layers.contains(slot) {
-                wrapper.deleteKey(slot)
-            }
-            if policy != .wait { try? store.delete(Account.hardenedHold) }
         case .normal:
             guard store.probe(Account.rootHardened) == .absent else { return }
             Self.hardenedKeys.forEach(wrapper.deleteKey)
@@ -1667,6 +1692,22 @@ extension RootKeyVault {
         case .unknown:
             return
         }
+    }
+
+    /// O que um cabecalho autenticado diz que sobra: a geracao da chave do PIN que ele nao usa,
+    /// as chaves de fora que a politica dele nao usa (`.lock`: a `kand.qualquer`; `.continue`:
+    /// a `kand.bio`; `.wait`: nenhuma, nem a `kand.bio` morta, que o realinhamento recria), e a
+    /// espera fora da `.wait`. So com `header` provado: depois de uma abertura (o AAD da camada
+    /// interna o autentica) ou de um commit que o cofre acabou de gravar e conferir. Antes do
+    /// commit de uma troca o cabecalho antigo manda, depois o novo: o registro em vigor nunca
+    /// aponta para uma chave que isto apaga.
+    private func sweepHardenedKeysLocked(_ header: HardenedHeader) {
+        let policy = header.faceChange
+        wrapper.deleteKey(header.pinKey == .hardenedPINA ? .hardenedPINB : .hardenedPINA)
+        for slot in [WrapSlot.hardenedBiometry, .hardenedBiometryAny] where !policy.layers.contains(slot) {
+            wrapper.deleteKey(slot)
+        }
+        if policy != .wait { try? store.delete(Account.hardenedHold) }
     }
 
     // MARK: Ligar, desligar, trocar o PIN, trocar a politica
@@ -1679,7 +1720,7 @@ extension RootKeyVault {
     /// `check` roda sob a trava do cofre: nunca pode chamar o `RootKeyVault` (a trava nao e
     /// recursiva). Abrir carteiras pelo `WalletVault` pode.
     public func enableHardened(pin: SecureBytes, reason: String, confirmReason: String, faceChange: HardenedFaceChange = .continue,
-                               check: (SecureBytes) throws -> Void = { _ in }) throws {
+                               check: (SecureBytes) throws -> Void) throws {
         lock.lock(); defer { lock.unlock() }
         switch securityMode {
         case .hardened: throw Failure.hardenedModeActive
@@ -1708,6 +1749,7 @@ extension RootKeyVault {
         // 2. Sobras de uma ativacao interrompida: so agora, com o slot do PIN provado vivo.
         discardHardenedLocked()
         // 3. Chaves novas e o registro.
+        let committed: HardenedHeader
         do {
             for slot in faceChange.layers { try wrapper.createKey(slot) }
             let record = try buildHardenedRecord(rk: rk, pin: pin, pinKey: .hardenedPINA, faceChange: faceChange)
@@ -1717,6 +1759,7 @@ extension RootKeyVault {
             guard let stored = try store.read(Account.rootHardened, context: nil) else { throw Failure.storage }
             try verifyHardened(stored, pin: pin, reason: confirmReason, matches: rk, state: stateBefore)
             guard hardenedDomainState() == stateBefore else { throw Failure.biometryChanged }
+            committed = try HardenedRecord.parse(stored).header
         } catch {
             discardHardenedLocked()
             throw error is Failure ? error : Failure.storage
@@ -1724,8 +1767,9 @@ extension RootKeyVault {
         // 5. Commit. Daqui em diante nada apaga o rk.and por falha.
         try? store.delete(Account.rootByPIN)
         guard store.probe(Account.rootByPIN) == .absent else { throw Failure.storage }
-        // 6. Limpeza; se parar no meio, a varredura termina.
+        // 6. Limpeza; se parar no meio, a varredura e a proxima abertura terminam.
         sweepHardenedLocked()
+        sweepHardenedKeysLocked(committed)
     }
 
     /// Desliga: PIN e rosto no rk.and (fora da espera do `.wait`), o slot do PIN gravado e
@@ -1787,7 +1831,7 @@ extension RootKeyVault {
     ///
     /// `check` roda sob a trava do cofre: nunca pode chamar o `RootKeyVault`.
     public func setHardenedFaceChange(_ target: HardenedFaceChange, pin: SecureBytes, reason: String, confirmReason: String,
-                                      check: (SecureBytes) throws -> Void = { _ in }) throws {
+                                      check: (SecureBytes) throws -> Void) throws {
         lock.lock(); defer { lock.unlock() }
         switch securityMode {
         case .unknown: throw Failure.storage
@@ -1852,6 +1896,7 @@ extension RootKeyVault {
             }
             if born.contains(.hardenedBiometry), let stateBefore { writeHardenedState(stateBefore) }
             sweepHardenedLocked()
+            if let header = try? HardenedRecord.parse(record).header { sweepHardenedKeysLocked(header) }
         } else if stored == old {
             fresh.forEach(wrapper.deleteKey)
             throw Failure.storage

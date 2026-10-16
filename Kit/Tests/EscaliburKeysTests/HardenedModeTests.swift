@@ -55,7 +55,7 @@ struct HardenedModeTests {
 
     func makeHardened(_ policy: Policy = .continue) throws -> (RootKeyVault, MemoryStore, SoftwareWrapper, [UInt8]) {
         let (vault, store, wrapper, rk) = try makeNormal()
-        try vault.enableHardened(pin: secure(pin), reason: "ligar", confirmReason: "conferir", faceChange: policy)
+        try vault.enableHardened(pin: secure(pin), reason: "ligar", confirmReason: "conferir", faceChange: policy, check: { _ in })
         return (vault, store, wrapper, rk)
     }
 
@@ -110,7 +110,7 @@ struct HardenedModeTests {
     @Test("Ligar sem dizer a politica: Continuar normal")
     func defaultPolicy() throws {
         let (vault, _, wrapper, _) = try makeNormal()
-        try vault.enableHardened(pin: secure(pin), reason: "ligar", confirmReason: "conferir")
+        try vault.enableHardened(pin: secure(pin), reason: "ligar", confirmReason: "conferir", check: { _ in })
         #expect(vault.hardenedFaceChange == .continue)
         #expect(wrapper.probeKey(.hardenedBiometry) == .absent)
     }
@@ -228,16 +228,16 @@ struct HardenedModeTests {
         vault.biometryAvailability = { .available }
         vault.hardenedBiometryStatus = { .ready }
         let rk = try vault.setUp(pin: secure(pin))
-        #expect(throws: RootKeyVault.Failure.hardenedBlocked(.biometryOff)) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y") }
+        #expect(throws: RootKeyVault.Failure.hardenedBlocked(.biometryOff)) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in }) }
         try vault.enableBiometry(rk: rk)
         vault.hardenedBiometryStatus = { .lockedOut }
-        #expect(throws: RootKeyVault.Failure.hardenedBlocked(.biometryUnavailable)) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y") }
+        #expect(throws: RootKeyVault.Failure.hardenedBlocked(.biometryUnavailable)) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in }) }
         vault.hardenedBiometryStatus = { .ready }
         try store.add(HoldRecord.startingNow().encoded, account: "bio.espera", protection: .standard, context: nil)
-        #expect(throws: RootKeyVault.Failure.self) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y") }
+        #expect(throws: RootKeyVault.Failure.self) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in }) }
         try store.delete("bio.espera")
         try store.add(Data([0]), account: "rk.pin.novo", protection: .standard, context: nil)
-        #expect(throws: RootKeyVault.Failure.hardenedBlocked(.changePending)) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y") }
+        #expect(throws: RootKeyVault.Failure.hardenedBlocked(.changePending)) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in }) }
         try store.delete("rk.pin.novo")
         #expect(vault.failureCount() == 0)
         #expect(store.probe("rk.and") == .absent)
@@ -252,7 +252,7 @@ struct HardenedModeTests {
     func enableConfirmFails(policy: Policy) throws {
         let (vault, store, wrapper, rk) = try makeNormal()
         wrapper.refuseSlots = [policy.faceKey]
-        #expect(throws: RootKeyVault.Failure.self) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: policy) }
+        #expect(throws: RootKeyVault.Failure.self) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: policy, check: { _ in }) }
         wrapper.refuseSlots = []
         #expect(store.probe("rk.and") == .absent)
         for slot in RootKeyVault.hardenedKeys { #expect(wrapper.probeKey(slot) == .absent) }
@@ -265,7 +265,7 @@ struct HardenedModeTests {
         let (vault, store, wrapper, _) = try makeNormal()
         wrapper.watchUnknown = true
         vault.hardenedDomainState = { nil }
-        #expect(throws: RootKeyVault.Failure.storage) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: .wait) }
+        #expect(throws: RootKeyVault.Failure.storage) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: .wait, check: { _ in }) }
         #expect(store.probe("rk.and") == .absent)
         #expect(vault.securityMode == .normal)
     }
@@ -274,7 +274,7 @@ struct HardenedModeTests {
     func commitDeleteFails(policy: Policy) throws {
         let (vault, store, wrapper, rk) = try makeNormal()
         store.failDeleting = ["rk.pin"]
-        #expect(throws: RootKeyVault.Failure.storage) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: policy) }
+        #expect(throws: RootKeyVault.Failure.storage) { try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: policy, check: { _ in }) }
         #expect(store.probe("rk.and") == .present)
         #expect(vault.securityMode == .normal)
         store.failDeleting = []
@@ -288,7 +288,7 @@ struct HardenedModeTests {
         let (vault, store, wrapper, rk) = try makeNormal()
         // Reproduz o estado: rk.and gravado e conferido, rk.pin apagado, rk.bio e chaves ainda la.
         store.failDeleting = ["rk.bio"]
-        try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: policy)
+        try vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: policy, check: { _ in })
         store.failDeleting = []
         try wrapper.createKey(.biometry)  // a chave que a limpeza nao chegou a apagar
         #expect(store.probe("rk.bio") == .present)
@@ -347,10 +347,12 @@ struct HardenedModeTests {
     func changePINCrashOrphan(policy: Policy) throws {
         let (vault, _, wrapper, rk) = try makeHardened(policy)
         try wrapper.createKey(.hardenedPINB, password: Data([9]))  // a chave nova criada antes da queda
+        // A volta ao app nao le o cabecalho sem autenticar: a orfa fica ate a proxima abertura.
         vault.rebaseAttempts()
+        #expect(wrapper.probeKey(.hardenedPINB) == .present)
+        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
         #expect(wrapper.probeKey(.hardenedPINB) == .absent)
         #expect(wrapper.probeKey(.hardenedPINA) == .present)
-        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
     }
 
     @Test("Desligar: PIN e rosto, o slot do PIN e o Face ID voltam conferidos, o rk.and sai", arguments: Policy.allCases)
@@ -413,11 +415,11 @@ struct HardenedModeTests {
         let (vault, store, wrapper, rk) = try makeNormal()
         // O estado: rk.and gravado, rk.pin e rk.bio intactos.
         wrapper.refuseFrom = (policy.faceKey, 1)
-        _ = try? vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: policy)
+        _ = try? vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: policy, check: { _ in })
         wrapper.refuseFrom = nil
         #expect(store.probe("rk.and") == .absent)  // a falha desfez; agora o estado de queda, a mao:
         store.failDeleting = ["rk.pin"]
-        _ = try? vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: policy)
+        _ = try? vault.enableHardened(pin: secure(pin), reason: "x", confirmReason: "y", faceChange: policy, check: { _ in })
         store.failDeleting = []
         #expect(store.probe("rk.and") == .present)
         #expect(vault.securityMode == .normal)
@@ -458,8 +460,8 @@ struct HardenedModeTests {
         let good = try #require(store.raw("rk.and"))
         var variants: [Data] = []
         // Um valor que pede outro numero de camadas que o corpo tem, ou nenhum valor valido. A
-        // troca entre 1 e 2 (o mesmo numero de camadas) o AAD recusa: o cabecalho entra na
-        // camada interna.
+        // troca entre 1 e 2 (o mesmo numero de camadas) passa pela leitura; e o teste
+        // `layerSwapKeepsKeys` que fixa o que acontece com ela.
         for code: UInt8 in [0, 1, 2, 3, 4, 0xFF] where Policy(layerCode: code)?.layers.count != policy.layers.count {
             var raw = good
             raw[3] = code
@@ -479,6 +481,35 @@ struct HardenedModeTests {
         #expect(vault.failureCount() == 0)
         try store.update(good, account: "rk.and")
         #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
+    }
+
+    @Test("Cabecalho trocado sem autenticar (camadas entre 1 e 2, ou a geracao do PIN): nao abre, e nem a volta ao app nem a abertura apagam uma chave em vigor",
+          arguments: Policy.allCases)
+    func layerSwapKeepsKeys(policy: Policy) throws {
+        let (vault, store, wrapper, rk) = try makeHardened(policy)
+        let good = try #require(store.raw("rk.and"))
+        var variants: [Data] = []
+        // A troca entre 1 e 2 tem o mesmo numero de camadas: a leitura aceita, e so o AAD (que
+        // so a abertura confere) diz que o cabecalho nao e o gravado.
+        if policy != .wait {
+            var swapped = good
+            swapped[3] = policy == .lock ? 2 : 1
+            variants.append(swapped)
+        }
+        var otherPIN = good
+        otherPIN[2] ^= 1
+        variants.append(otherPIN)
+        for raw in variants {
+            try store.update(raw, account: "rk.and")
+            vault.rebaseAttempts()
+            #expect(throws: RootKeyVault.Failure.self) { try vault.unlockHardened(pin: secure(pin), reason: "x", use: .openApp) }
+            vault.rebaseAttempts()
+            #expect(wrapper.probeKey(.hardenedPINA) == .present)
+            expectKeys(wrapper, for: policy)
+            try store.update(good, account: "rk.and")
+            try store.update(AttemptRecord.zero.encoded, account: "pin.tentativas")
+            #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x", use: .openApp)) == rk)
+        }
     }
 
     @Test("Limpeza de reinstalacao enxerga rk.and e as chaves do reforcado; wipeAll leva tudo", arguments: Policy.allCases)
@@ -503,7 +534,7 @@ struct HardenedModeTests {
         vault.hardenedDomainState = { ownerFace }
         let rk = try vault.setUp(pin: secure("2580"))
         try vault.enableBiometry(rk: rk)
-        try vault.enableHardened(pin: secure("2580"), reason: "ligar", confirmReason: "conferir")
+        try vault.enableHardened(pin: secure("2580"), reason: "ligar", confirmReason: "conferir", check: { _ in })
         #expect(vault.pinLengths == [4])
         #expect(bytes(try vault.unlockHardened(pin: secure("2580"), reason: "abrir")) == bytes(rk))
         var raw = try #require(store.raw("rk.and"))
@@ -523,7 +554,7 @@ struct HardenedModeTests {
         try vault.writeLegacyPINSlot(rk: rk, pin: secure(pin), kdf: fastKDF)
         try vault.enableBiometry(rk: rk)
         #expect(throws: RootKeyVault.Failure.hardenedBlocked(.legacySlot)) {
-            try vault.enableHardened(pin: secure(pin), reason: "ligar", confirmReason: "conferir")
+            try vault.enableHardened(pin: secure(pin), reason: "ligar", confirmReason: "conferir", check: { _ in })
         }
         #expect(vault.failureCount() == 0)
 
@@ -556,7 +587,7 @@ struct HardenedModeTests {
         try vault.setWipeAfterErrors(5)
         try store.update(AttemptRecord(failures: 4, uptimeDeadline: 0, bootSession: PINPolicy.bootSession).encoded, account: "pin.tentativas")
         #expect(throws: RootKeyVault.Failure.wiped) {
-            try vault.enableHardened(pin: secure("000000"), reason: "ligar", confirmReason: "conferir")
+            try vault.enableHardened(pin: secure("000000"), reason: "ligar", confirmReason: "conferir", check: { _ in })
         }
         #expect(!vault.isSetUp)
         #expect(!WrapSlot.allCases.contains { wrapper.probeKey($0) != .absent })
@@ -651,7 +682,7 @@ struct HardenedModeTests {
         refused { _ = try vault.disableHardened(pin: secure(pin), reason: "x", biometryReason: "y") }
         refused { try vault.changeHardenedPIN(currentPIN: secure(pin), newPIN: secure("7351"), reason: "x", confirmReason: "y") }
         for target in [Policy.continue, .lock] {
-            refused { try vault.setHardenedFaceChange(target, pin: secure(pin), reason: "x", confirmReason: "y") }
+            refused { try vault.setHardenedFaceChange(target, pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in }) }
         }
         #expect(wrapper.faces == faces)
         #expect(vault.failureCount() == 0)
@@ -845,10 +876,109 @@ struct HardenedModeTests {
         #expect(bytes(try vault.unlockHardened(pin: secure("7351"), reason: "x")) == rk)
         // E o v3 trocado por outra politica tambem sai como v4.
         _ = try installLegacy()
-        try vault.setHardenedFaceChange(.continue, pin: secure(pin), reason: "x", confirmReason: "y")
+        try vault.setHardenedFaceChange(.continue, pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in })
         #expect(vault.hardenedFaceChange == .continue)
         #expect(try #require(store.raw("rk.and"))[0] == 4)
         #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
+    }
+
+    @Test("Esperar 24 horas: outro cadastro no meio da espera a recomeca cheia, para ele, e o vencimento realinha para ele")
+    func waitNewEnrollmentDuringHold() throws {
+        let (vault, store, wrapper, rk) = try makeHardened(.wait)
+        changeEnrollment(vault, wrapper)
+        _ = try vault.unlockHardened(pin: secure(pin), reason: "abrir", use: .openApp)
+        // A espera ja andou um pouco quando o dono redefine o Face ID.
+        let started = HardenedHold(hold: HoldRecord(uptimeDeadline: PINPolicy.uptime + 3600, bootSession: PINPolicy.bootSession), state: newFace)
+        try store.update(started.encoded, account: "and.espera")
+        #expect(vault.hardenedHoldRemaining <= 3600)
+        changeEnrollment(vault, wrapper, to: Data([9, 9, 9]))
+        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "abrir", use: .openApp)) == rk)
+        let restarted = try #require(savedHold(store))
+        #expect(restarted.state == Data([9, 9, 9]))
+        #expect(vault.hardenedHoldRemaining > PINPolicy.biometryLossHold - 60)
+        // O mesmo cadastro de novo, na espera: nada recomeca.
+        let before = store.raw("and.espera")
+        _ = try vault.unlockHardened(pin: secure(pin), reason: "abrir", use: .openApp)
+        #expect(store.raw("and.espera") == before)
+        // Vencida para o cadastro de agora: realinha.
+        try expireHold(store, state: Data([9, 9, 9]))
+        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "enviar")) == rk)
+        #expect(store.probe("and.espera") == .absent)
+        #expect(store.raw("and.estado") == Data([9, 9, 9]))
+    }
+
+    @Test("Esperar 24 horas: sem o hash do cadastro no vencimento, nada abre e a espera nao recomeca; com o hash de volta, realinha")
+    func waitNilStateAtExpiry() throws {
+        let (vault, store, wrapper, rk) = try makeHardened(.wait)
+        changeEnrollment(vault, wrapper)
+        _ = try vault.unlockHardened(pin: secure(pin), reason: "abrir", use: .openApp)
+        try expireHold(store)
+        let expired = store.raw("and.espera")
+        vault.hardenedDomainState = { nil }
+        for use in [RootKeyVault.HardenedUse.operation, .openApp] {
+            #expect(throws: RootKeyVault.Failure.biometryUnavailable) { try vault.unlockHardened(pin: secure(pin), reason: "x", use: use) }
+        }
+        #expect(store.raw("and.espera") == expired)
+        // Correndo, sem o hash, a espera fica como esta e abrir o app passa.
+        vault.hardenedDomainState = { newFace }
+        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "enviar")) == rk)
+        #expect(store.probe("and.espera") == .absent)
+        changeEnrollment(vault, wrapper, to: Data([7, 7, 7]))
+        _ = try vault.unlockHardened(pin: secure(pin), reason: "abrir", use: .openApp)
+        let running = store.raw("and.espera")
+        vault.hardenedDomainState = { nil }
+        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "abrir", use: .openApp)) == rk)
+        #expect(store.raw("and.espera") == running)
+    }
+
+    @Test("Esperar 24 horas: so a vigia aberta encerra uma espera vencida; o hash igual sozinho nao")
+    func waitOnlyProofEndsHold() throws {
+        let (vault, store, wrapper, rk) = try makeHardened(.wait)
+        changeEnrollment(vault, wrapper)
+        _ = try vault.unlockHardened(pin: secure(pin), reason: "abrir", use: .openApp)
+        try expireHold(store)
+        // A vigia nao responde e o hash bate com o gravado: o mesmo cadastro, mas sem prova.
+        try store.delete("and.estado")
+        try store.add(newFace, account: "and.estado", protection: .standard, context: nil)
+        wrapper.watchUnknown = true
+        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "enviar")) == rk)
+        #expect(store.probe("and.espera") == .present)
+        #expect(vault.hardenedHoldRemaining == 0)
+    }
+
+    @Test("A camada de fora que falha por um erro que nao vem do Face ID nao conta tentativa e nao apaga nada", arguments: Policy.allCases)
+    func outerLayerFailureDoesNotCount(policy: Policy) throws {
+        let (vault, store, wrapper, rk) = try makeHardened(policy)
+        _ = try? vault.unlockHardened(pin: secure("000001"), reason: "x")
+        #expect(vault.failureCount() == 1)
+        let before = store.raw("pin.tentativas")
+        wrapper.failSlots = [policy.faceKey]
+        let pinUses = wrapper.unwrapCount[.hardenedPINA, default: 0]
+        for use in [RootKeyVault.HardenedUse.openApp, .operation] {
+            #expect(throws: RootKeyVault.Failure.hardenedFaceKeyFailed) { try vault.unlockHardened(pin: secure(pin), reason: "x", use: use) }
+        }
+        #expect(vault.failureCount() == 1)
+        #expect(store.raw("pin.tentativas") == before)
+        #expect(wrapper.unwrapCount[.hardenedPINA, default: 0] == pinUses)
+        expectKeys(wrapper, for: policy)
+        #expect(store.probe("rk.and") == .present)
+        wrapper.failSlots = []
+        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
+        #expect(vault.failureCount() == 0)
+    }
+
+    @Test("A kand.qualquer so embrulha o miolo: o duble acusa e recusa a RK e qualquer coisa que nao seja o ECIES da kand.pin; o SE recusa 32 bytes")
+    func anyOnlyWrapsMiddle() throws {
+        let wrapper = SoftwareWrapper()
+        try wrapper.createKey(.hardenedBiometryAny)
+        let rk = try SecureBytes.random(count: 32)
+        withKnownIssue("o duble registra a quebra da invariante") {
+            _ = try wrapper.wrap(rk, slot: RootKeyVault.HardenedFaceChange.continue.faceKey)
+        }
+        withKnownIssue("o duble registra a quebra da invariante") {
+            _ = try wrapper.wrap(SecureBytes.from(Array(repeating: 1, count: 160)), slot: .hardenedBiometryAny)
+        }
+        #expect(throws: EnclaveError.self) { try SecureEnclaveWrapper().wrap(rk, slot: .hardenedBiometryAny) }
     }
 
     // MARK: Desligar e o A1
@@ -915,7 +1045,7 @@ struct HardenedModeTests {
         #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
         // A mesma politica nao pede nada.
         let now = wrapper.faces
-        try vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y")
+        try vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in })
         #expect(wrapper.faces == now)
     }
 
@@ -939,7 +1069,7 @@ struct HardenedModeTests {
         let (vault, store, wrapper, rk) = try makeHardened(move.from)
         let old = try #require(store.raw("rk.and"))
         wrapper.refuseFaceFrom = wrapper.faces + 2
-        #expect(throws: RootKeyVault.Failure.cancelled) { try vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y") }
+        #expect(throws: RootKeyVault.Failure.cancelled) { try vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in }) }
         wrapper.refuseFaceFrom = nil
         #expect(store.raw("rk.and") == old)
         expectKeys(wrapper, for: move.from)
@@ -948,7 +1078,7 @@ struct HardenedModeTests {
         #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
 
         store.failUpdating = ["rk.and"]
-        #expect(throws: RootKeyVault.Failure.storage) { try vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y") }
+        #expect(throws: RootKeyVault.Failure.storage) { try vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in }) }
         store.failUpdating = []
         #expect(store.raw("rk.and") == old)
         expectKeys(wrapper, for: move.from)
@@ -964,15 +1094,17 @@ struct HardenedModeTests {
         // A queda: as chaves novas criadas e o registro novo montado, sem o update.
         wrapper.failDeletingKeys = Set([.hardenedPINB] + born)
         wrapper.refuseFaceFrom = wrapper.faces + 2
-        _ = try? vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y")
+        _ = try? vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in })
         wrapper.refuseFaceFrom = nil
         wrapper.failDeletingKeys = []
         #expect(store.raw("rk.and") == old)
         #expect(wrapper.probeKey(.hardenedPINB) == .present)
         for slot in born { #expect(wrapper.probeKey(slot) == .present) }
-        // O registro em vigor abre antes e depois da varredura.
-        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
+        // A volta ao app nao toca nas chaves do reforcado; a abertura, com o cabecalho antigo
+        // provado pelo AAD, leva o que nasceu, e o registro em vigor abre antes e depois.
         vault.rebaseAttempts()
+        #expect(wrapper.probeKey(.hardenedPINB) == .present)
+        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
         #expect(wrapper.probeKey(.hardenedPINB) == .absent)
         expectKeys(wrapper, for: move.from)
         #expect(vault.hardenedFaceChange == move.from)
@@ -985,13 +1117,14 @@ struct HardenedModeTests {
         let leftover = move.from.layers.filter { !move.to.layers.contains($0) }
         // A queda: o update feito, a limpeza nao.
         wrapper.failDeletingKeys = Set([.hardenedPINA] + leftover)
-        try vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y")
+        try vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in })
         wrapper.failDeletingKeys = []
         #expect(vault.hardenedFaceChange == move.to)
         #expect(wrapper.probeKey(.hardenedPINA) == .present)
         for slot in leftover { #expect(wrapper.probeKey(slot) == .present) }
-        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
         vault.rebaseAttempts()
+        #expect(wrapper.probeKey(.hardenedPINA) == .present)
+        #expect(bytes(try vault.unlockHardened(pin: secure(pin), reason: "x")) == rk)
         #expect(wrapper.probeKey(.hardenedPINA) == .absent)
         #expect(wrapper.probeKey(.hardenedPINB) == .present)
         expectKeys(wrapper, for: move.to)
@@ -1012,7 +1145,7 @@ struct HardenedModeTests {
             vanishing.armed = false
             wrapper.deleteKey(.hardenedPINB)
         }
-        #expect(throws: RootKeyVault.Failure.storage) { try vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y") }
+        #expect(throws: RootKeyVault.Failure.storage) { try vault.setHardenedFaceChange(move.to, pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in }) }
         store.onUpdate = nil
         #expect(store.raw("rk.and") == old)
         expectKeys(wrapper, for: move.from)
@@ -1025,7 +1158,7 @@ struct HardenedModeTests {
         let old = try #require(store.raw("rk.and"))
         changeEnrollment(vault, wrapper)
         for target in [Policy.continue, .wait] {
-            #expect(throws: RootKeyVault.Failure.hardenedSlotLost) { try vault.setHardenedFaceChange(target, pin: secure(pin), reason: "x", confirmReason: "y") }
+            #expect(throws: RootKeyVault.Failure.hardenedSlotLost) { try vault.setHardenedFaceChange(target, pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in }) }
         }
         #expect(store.raw("rk.and") == old)
         #expect(wrapper.probeKey(.hardenedBiometryAny) == .absent)
@@ -1035,7 +1168,7 @@ struct HardenedModeTests {
     func waitToLockReusesWatch() throws {
         let (vault, store, wrapper, rk) = try makeHardened(.wait)
         let before = try HardenedRecord.parse(try #require(store.raw("rk.and")))
-        try vault.setHardenedFaceChange(.lock, pin: secure(pin), reason: "x", confirmReason: "y")
+        try vault.setHardenedFaceChange(.lock, pin: secure(pin), reason: "x", confirmReason: "y", check: { _ in })
         // A camada do registro antigo ainda abre: a kand.bio nao nasceu de novo.
         let middle = try wrapper.unwrap(try #require(before.layers[.hardenedBiometry]), slot: .hardenedBiometry, reason: nil)
         #expect(middle.count > 0)
