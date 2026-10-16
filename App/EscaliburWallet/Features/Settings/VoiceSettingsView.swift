@@ -90,6 +90,8 @@ struct VoiceSettingsView: View {
         .background(Palette.void.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .onDisappear { listener.stop() }
+        // A frase de voz aparece em texto ao escolher e ao conferir (auditoria 4, C7-11).
+        .guardedAgainstCapture()
         .task {
             guard !authorized else { return }
             let ok = (try? await auth.perform(session, reason: String(localized: "Mudar a confirmação por voz"), presence: .pin, { _ in true })) == true

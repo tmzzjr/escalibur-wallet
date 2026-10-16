@@ -711,6 +711,13 @@ struct SendStages: View {
         }
         let text = model.destinationText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        // A frase digitada ou colada no campo do destino sai dele na hora.
+        if PhraseGuard.looksLikePhrase(text) {
+            model.destinationText = ""
+            model.linkProblem = (text: "", message: PhraseGuard.message)
+            model.destinationProblem = PhraseGuard.message
+            return
+        }
         switch Address.validate(text, for: chain) {
         case .success(let destination):
             if model.wallet.accounts.contains(where: { $0.address == destination.address }) {
@@ -1632,5 +1639,19 @@ enum KnownAddress {
             return String(localized: "Salvo como \(contact.name), nunca recebeu daqui")
         }
         return String(localized: "Você já usou")
+    }
+}
+
+/// Texto que parece a senha de uma carteira (12 palavras ou mais, separadas por espaco,
+/// virgula, ponto e virgula ou hifen): nunca vai para um campo de endereco, por colar,
+/// digitar ou ler QR (revisao do envio da auditoria 4, B-8).
+enum PhraseGuard {
+    static func looksLikePhrase(_ text: String) -> Bool {
+        let spaced = text.replacingOccurrences(of: "[,;\\-]", with: " ", options: .regularExpression)
+        return Mnemonic.words(in: spaced).count >= 12
+    }
+
+    static var message: String {
+        String(localized: "Este código traz as palavras de uma senha de carteira, não um endereço. Quem tem essas palavras tem o saldo: não mostre a ninguém.")
     }
 }

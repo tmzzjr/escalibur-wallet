@@ -5,7 +5,10 @@ import UniformTypeIdentifiers
 
 extension UTType {
     /// O tipo do envelope, declarado no Info.plist.
-    static let escaliburEnvelope = UTType(importedAs: "app.escalibur.envelope")
+    /// O tipo e da Escalibur, declarado como dela (exportado, dono): antes so importado com
+    /// prioridade Alternate, e outro app podia ficar com o "Abrir com" do envelope
+    /// (auditoria 4, C7-18).
+    static let escaliburEnvelope = UTType(exportedAs: "app.escalibur.envelope")
 }
 
 /// Le um envelope vindo de fora com as regras de arquivo hostil: tamanho conferido

@@ -39,6 +39,8 @@ struct VoiceListeningPanel: View {
                 .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1))
         )
         .accessibilityElement(children: .contain)
+        // O que foi ouvido e a frase de voz, em texto (auditoria 4, C7-11).
+        .guardedAgainstCapture()
     }
 
     private var status: some View {

@@ -134,6 +134,9 @@ struct NewWalletFlow: View {
             }
         }
         .interactiveDismissDisabled()
+        // As palavras, a conferencia e as sugestoes da conferencia: tudo atras da guarda
+        // (auditoria 4, C7-11).
+        .guardedAgainstCapture()
     }
 
     /// Antes das palavras (pedido do dono, 15/10/2026: mais bonita e com animacao): a

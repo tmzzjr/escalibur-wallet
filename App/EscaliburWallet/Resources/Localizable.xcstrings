@@ -129433,6 +129433,82 @@
         }
       }
     },
+    "O texto colado tem %lld palavras, e uma frase tem 12, 15, 18, 21 ou 24. Nada foi preenchido: confira o que você copiou." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يحتوي النص الملصق على %lld كلمة، والعبارة تتكون من 12 أو 15 أو 18 أو 21 أو 24 كلمة. لم يُملأ أي شيء: تحقق مما نسخته."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der eingefügte Text hat %lld Wörter, eine Phrase hat 12, 15, 18, 21 oder 24. Nichts wurde ausgefüllt: Prüfe, was du kopiert hast."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The pasted text has %lld words, and a phrase has 12, 15, 18, 21 or 24. Nothing was filled in: check what you copied."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El texto pegado tiene %lld palabras, y una frase tiene 12, 15, 18, 21 o 24. No se rellenó nada: revisa lo que copiaste."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le texte collé contient %lld mots, et une phrase en a 12, 15, 18, 21 ou 24. Rien n’a été rempli : vérifiez ce que vous avez copié."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चिपकाए गए टेक्स्ट में %lld शब्द हैं, और एक वाक्यांश में 12, 15, 18, 21 या 24 होते हैं। कुछ भी नहीं भरा गया: जाँचें कि आपने क्या कॉपी किया।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teks yang ditempel berisi %lld kata, sedangkan frasa berisi 12, 15, 18, 21, atau 24. Tidak ada yang diisi: periksa apa yang Anda salin."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "貼り付けたテキストは %lld 語で、フレーズは 12、15、18、21、24 語です。何も入力されていません。コピーした内容を確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "붙여 넣은 텍스트는 %lld단어이고, 문구는 12, 15, 18, 21 또는 24단어입니다. 아무것도 채우지 않았습니다. 복사한 내용을 확인하세요."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yapıştırılan metinde %lld kelime var, bir ifade ise 12, 15, 18, 21 veya 24 kelimedir. Hiçbir şey doldurulmadı: kopyaladığınızı kontrol edin."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Văn bản đã dán có %lld từ, còn một cụm từ có 12, 15, 18, 21 hoặc 24 từ. Chưa điền gì cả: hãy kiểm tra nội dung bạn đã sao chép."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "粘贴的文本有 %lld 个单词，而助记词有 12、15、18、21 或 24 个。没有填入任何内容：请检查你复制的内容。"
+          }
+        }
+      }
+    },
     "O token não foi reconhecido na rede Solana." : {
       "localizations" : {
         "ar" : {

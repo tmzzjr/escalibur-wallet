@@ -40,12 +40,17 @@ final class PhraseEntry {
     func isFilled(_ index: Int) -> Bool { _ = revision; return slots[index].count > 0 }
     var filledCount: Int { _ = revision; return slots.filter { $0.count > 0 }.count }
 
-    /// Distribui uma frase colada pelas posicoes.
-    func paste(_ text: String) {
+    /// Distribui uma frase colada pelas posicoes. Com uma contagem que nao e de frase
+    /// (13 palavras, 11), nada entra: antes as primeiras 12 de 13 entravam sem aviso
+    /// (auditoria 4, C7-17). Devolve quantas palavras vieram.
+    @discardableResult
+    func paste(_ text: String) -> Int {
         let words = Mnemonic.words(in: text)
-        if Mnemonic.validWordCounts.contains(words.count) { count = words.count }
-        for (index, word) in words.prefix(count).enumerated() { set(word, at: index) }
+        guard Mnemonic.validWordCounts.contains(words.count) else { return words.count }
+        count = words.count
+        for (index, word) in words.enumerated() { set(word, at: index) }
         active = min(words.count, count - 1)
+        return words.count
     }
 
     /// A frase inteira num buffer seguro, na forma canonica.
@@ -424,11 +429,14 @@ struct ImportPhraseView: View {
 
     private func fill(with text: String) {
         typed = ""
-        entry.paste(text)
+        let pasted = entry.paste(text)
         UIPasteboard.general.items = []
         pasteNotice = true
-        message = nil
         focused = false
+        // Conferindo uma copia, o tamanho e o da carteira: colar outro tamanho nao muda.
+        if let verify, Mnemonic.validWordCounts.contains(pasted), pasted != verify.wordCount { entry.count = verify.wordCount }
+        message = Mnemonic.validWordCounts.contains(pasted) ? nil
+            : String(localized: "O texto colado tem \(pasted) palavras, e uma frase tem 12, 15, 18, 21 ou 24. Nada foi preenchido: confira o que você copiou.")
     }
 
     /// O Seguinte do teclado: a palavra digitada se ela existe na lista, senao a primeira

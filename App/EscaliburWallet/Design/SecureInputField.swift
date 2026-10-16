@@ -70,8 +70,28 @@ struct SecureInputField: UIViewRepresentable {
             if field.text != text { field.text = text }
         } else {
             if !field.isSecureTextEntry { field.isSecureTextEntry = true }
-            let dots = String(repeating: "•", count: buffer.count)
+            let dots = String(repeating: "•", count: scalarCount(buffer))
             if field.text != dots { field.text = dots }
+        }
+    }
+
+    /// Quantos caracteres (escalares Unicode) o buffer tem, contados pelos bytes que nao
+    /// continuam um anterior (UTF-8: 10xxxxxx continua). Um ponto por caractere, e nao por
+    /// byte: com um ponto por byte, o apagar tirava so o ultimo byte de "ç" e deixava o
+    /// primeiro solto, um caractere invalido na senha (auditoria 4, C7-15).
+    static func scalarCount(_ buffer: SecureBytes) -> Int {
+        buffer.withUnsafeBytes { raw in raw.reduce(0) { $1 & 0xC0 == 0x80 ? $0 : $0 + 1 } }
+    }
+
+    /// Onde comeca o caractere numero `scalars` (ou o fim), em bytes.
+    static func byteOffset(_ buffer: SecureBytes, scalars: Int) -> Int {
+        buffer.withUnsafeBytes { raw in
+            var seen = 0
+            for (offset, byte) in raw.enumerated() where byte & 0xC0 != 0x80 {
+                if seen == scalars { return offset }
+                seen += 1
+            }
+            return raw.count
         }
     }
 
@@ -86,9 +106,9 @@ struct SecureInputField: UIViewRepresentable {
             let buffer = parent.buffer
             // O buffer so cresce no fim. Uma troca a partir de `range.location` corta dali
             // em diante e escreve o novo: selecionar tudo e digitar apaga tudo e fica so a
-            // tecla nova; apagar no fim tira o ultimo. O campo mostra um ponto por byte,
-            // entao a posicao na tela e a posicao no buffer.
-            let keep = min(max(range.location, 0), buffer.count)
+            // tecla nova; apagar no fim tira o ultimo caractere inteiro. O campo mostra um
+            // ponto por caractere, entao a posicao na tela e o numero de caracteres.
+            let keep = SecureInputField.byteOffset(buffer, scalars: max(range.location, 0))
             buffer.removeLast(buffer.count - keep)
             if !string.isEmpty {
                 let bytes = Array(string.utf8)
@@ -96,7 +116,7 @@ struct SecureInputField: UIViewRepresentable {
                     bytes.withUnsafeBufferPointer { buffer.append(contentsOf: $0) }
                 }
             }
-            field.text = String(repeating: "•", count: buffer.count)
+            field.text = String(repeating: "•", count: SecureInputField.scalarCount(buffer))
             parent.length = buffer.count
             return false
         }

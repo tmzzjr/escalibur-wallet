@@ -78,7 +78,9 @@ struct StandbyCover: View {
 /// depois de uma captura. Nao e blindagem: a captura so notifica depois do fato. A
 /// defesa real e a tela da frase comecar oculta e mostrar poucas palavras por vez.
 struct CaptureGuard: ViewModifier {
-    @State private var captured = false
+    /// Ja nasce sabendo: comecar em "nao capturado" mostrava o primeiro quadro numa tela
+    /// que ja estava sendo gravada (auditoria 4, C7-11).
+    @State private var captured = Self.anyScreenCaptured
     @State private var screenshotWarning = false
 
     /// Tela inteira gravada ou espelhada (`isCaptured`), ou a propria cena sendo
@@ -106,6 +108,11 @@ struct CaptureGuard: ViewModifier {
             }
         }
         .onAppear { captured = Self.anyScreenCaptured }
+        // Captura comecando: o teclado fecha, e o que estava sendo digitado (uma palavra, a
+        // passphrase) deixa de aparecer no campo e nas sugestoes.
+        .onChange(of: captured) { _, isCaptured in
+            if isCaptured { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
+        }
         // A captura so da cena (iOS 17) muda um trait, sem notificacao: o sensor avisa na
         // hora (auditoria 3, B6).
         .background(SceneCaptureProbe { captured = Self.anyScreenCaptured })
