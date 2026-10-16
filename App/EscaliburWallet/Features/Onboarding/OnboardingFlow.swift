@@ -39,11 +39,18 @@ struct OnboardingFlow: View {
 
     private var welcome: some View {
         VStack(spacing: 0) {
-            SwordCard()
+            // A imagem ocupa o que sobra acima do titulo, saindo pelas bordas e por baixo
+            // da barra de status.
+            Color.clear
                 .frame(maxWidth: .infinity, minHeight: 220, maxHeight: .infinity)
-                .padding(.top, Space.xs)
+                .background {
+                    hero
+                        .padding(.horizontal, -Space.gutter)
+                        .padding(.bottom, -Space.lg)
+                        .ignoresSafeArea(edges: .top)
+                }
             VStack(spacing: Space.sm) {
-                Text("Só você")
+                Text("Só você pode")
                     .typeStyle(.hero)
                     .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
@@ -85,7 +92,28 @@ struct OnboardingFlow: View {
                 })
         }
         .padding(.horizontal, Space.gutter)
-        .padding(.bottom, Space.xs)
+        // O texto e o botao sobem um pouco da borda de baixo (pedido do dono, 16/10/2026).
+        .padding(.bottom, Space.lg)
+    }
+
+    /// A abertura (`WelcomeHero`): de borda a borda e por baixo da barra de status, sumindo
+    /// no fundo escuro embaixo para o titulo assentar sobre ela. Preenche o espaco e corta o
+    /// que sobra, centrada.
+    private var hero: some View {
+        Color.clear
+            .overlay {
+                GeometryReader { geo in
+                    let aspect = 720.0 / 1280.0
+                    let width = max(geo.size.width, geo.size.height * aspect)
+                    WelcomeHero()
+                        .frame(width: width, height: width / aspect)
+                        .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                }
+            }
+            .clipped()
+            .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.62),
+                                         .init(color: .black.opacity(0.45), location: 0.84), .init(color: .clear, location: 1)],
+                                 startPoint: .top, endPoint: .bottom))
     }
 
     /// Escolher volta para a abertura; repetir volta para escolher, e o primeiro PIN e
