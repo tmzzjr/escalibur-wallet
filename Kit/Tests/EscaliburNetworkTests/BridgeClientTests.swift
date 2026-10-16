@@ -107,6 +107,32 @@ struct BridgeClientTests {
         }
     }
 
+    @Test("Regressao R7-B1: valor de 1 MB nas respostas do Across e da Iris e recusado na hora")
+    func hugeNumbersRefused() throws {
+        // Os campos numericos que chegam como texto (Across) ou numero (Iris) passam pelo
+        // `BigUInt(decimal:)`, que recusa mais de 78 digitos antes de converter.
+        let digits = String(repeating: "9", count: 1_000_000)
+        let name = "across-fees-usdc-eth-base"
+        var answers: [Data] = [try Self.edited(name) { $0["outputAmount"] = digits }]
+        for field in ["minDeposit", "maxDeposit", "maxDepositInstant"] {
+            answers.append(try Self.edited(name) { object in
+                var limits = object["limits"] as! [String: Any]
+                limits[field] = digits
+                object["limits"] = limits
+            })
+        }
+        let fees = Data(#"[{"finalityThreshold":1000,"minimumFee":1,"forwardFee":{"low":1,"med":1,"high":\#(digits)}}]"#.utf8)
+        let elapsed = try ContinuousClock().measure {
+            for answer in answers {
+                #expect(throws: AcrossClientError.badResponse("taxa")) { try Self.acrossQuote(answer) }
+            }
+            #expect(throws: CircleIrisError.badResponse("taxas")) { try CircleIrisClient.fees(fees) }
+            _ = try Self.acrossQuote(try Self.fixture(name))
+        }
+        // O tempo inclui ler 5 MB de JSON; a conversao quadratica levaria minutos.
+        #expect(elapsed < .seconds(2))
+    }
+
     @Test("Andamento do deposito")
     func acrossStatus() throws {
         let status = try AcrossClient.status(try Self.fixture("across-status-filled"))

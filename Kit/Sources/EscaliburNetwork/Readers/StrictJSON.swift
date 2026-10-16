@@ -136,16 +136,22 @@ public indirect enum StrictJSON: Equatable, Sendable {
         return false
     }
 
+    /// Digitos de um inteiro de 64 bits: `UInt64.max` tem 20.
+    static let maxUInt64Digits = 20
+
     /// Numero inteiro nao negativo, sem fracao nem expoente: `0`, `42`, `1790389821000`.
-    func unsigned(_ path: String) throws -> BigUInt {
-        guard case .number(let text) = self, let value = BigUInt(decimal: text) else {
+    /// Ate 78 digitos (2^256 tem 78): o tamanho e conferido antes da conversao, que custa
+    /// o quadrado do numero de digitos (`"height": 999...9` com 4 milhoes de noves
+    /// congelaria o app).
+    func unsigned(_ path: String, maxDigits: Int = BigUInt.maxDecimalDigits) throws -> BigUInt {
+        guard case .number(let text) = self, text.utf8.count <= maxDigits, let value = BigUInt(decimal: text) else {
             throw ReaderError.malformed(field: path)
         }
         return value
     }
 
     func uint64(_ path: String) throws -> UInt64 {
-        guard let value = try unsigned(path).uint64 else { throw ReaderError.malformed(field: path) }
+        guard let value = try unsigned(path, maxDigits: Self.maxUInt64Digits).uint64 else { throw ReaderError.malformed(field: path) }
         return value
     }
 
@@ -158,7 +164,8 @@ public indirect enum StrictJSON: Equatable, Sendable {
     func int64(_ path: String) throws -> Int64 {
         guard case .number(let text) = self else { throw ReaderError.malformed(field: path) }
         let negative = text.hasPrefix("-")
-        guard let magnitude = BigUInt(decimal: negative ? String(text.dropFirst()) : text)?.uint64,
+        let digits = negative ? String(text.dropFirst()) : text
+        guard digits.utf8.count <= Self.maxUInt64Digits, let magnitude = BigUInt(decimal: digits)?.uint64,
               magnitude <= UInt64(Int64.max)
         else { throw ReaderError.malformed(field: path) }
         return negative ? -Int64(magnitude) : Int64(magnitude)
@@ -167,7 +174,7 @@ public indirect enum StrictJSON: Equatable, Sendable {
     /// Texto so de digitos decimais: `"56775133590"`. Saldo em drops, nanoton, wei de
     /// indexador.
     func decimalString(_ path: String) throws -> BigUInt {
-        guard case .string(let text) = self, text.count <= 80, let value = BigUInt(decimal: text) else {
+        guard case .string(let text) = self, text.utf8.count <= 80, let value = BigUInt(decimal: text) else {
             throw ReaderError.malformed(field: path)
         }
         return value
@@ -200,11 +207,14 @@ public indirect enum StrictJSON: Equatable, Sendable {
     }
 
     /// Decimal com ate `scale` casas, sem expoente, convertido para a unidade menor:
-    /// `0.2` com escala 6 da 200000. Serve para a reserva do `server_info` (XRP).
+    /// `0.2` com escala 6 da 200000. Serve para a reserva do `server_info` (XRP). A parte
+    /// inteira tem o mesmo teto de `unsigned`, conferido antes de separar as partes.
     func scaledDecimal(_ path: String, scale: Int) throws -> BigUInt {
-        guard case .number(let text) = self else { throw ReaderError.malformed(field: path) }
+        guard case .number(let text) = self, text.utf8.count <= BigUInt.maxDecimalDigits + 1 + scale else {
+            throw ReaderError.malformed(field: path)
+        }
         let parts = text.split(separator: ".", omittingEmptySubsequences: false)
-        guard parts.count <= 2 else { throw ReaderError.malformed(field: path) }
+        guard parts.count <= 2, parts[0].utf8.count <= BigUInt.maxDecimalDigits else { throw ReaderError.malformed(field: path) }
         let fraction = parts.count == 2 ? String(parts[1]) : ""
         guard fraction.count <= scale,
               let value = BigUInt(decimal: String(parts[0]) + fraction + String(repeating: "0", count: scale - fraction.count))

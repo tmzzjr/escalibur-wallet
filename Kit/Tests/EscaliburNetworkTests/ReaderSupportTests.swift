@@ -34,6 +34,38 @@ struct ReaderSupportTests {
         #expect(throws: ReaderError.malformed(field: "r")) { _ = try StrictJSON.number("0.0000001").scaledDecimal("r", scale: 6) }
     }
 
+    @Test("Regressao R7-B1: numero de 1 MB e recusado na hora, em todo acesso numerico")
+    func hugeNumberRefusedFast() throws {
+        // Um provedor hostil manda `"height": 999...9` com um milhao de digitos (cabe no
+        // corte de 4 MB). A conversao custa o quadrado do tamanho: sem teto, minutos.
+        let digits = String(repeating: "9", count: 1_000_000)
+        let json = try StrictJSON.parse(Data(#"{"height": \#(digits), "text": "\#(digits)", "scaled": \#(digits).5}"#.utf8))
+        let height = try json.field("height", "$"), text = try json.field("text", "$"), scaled = try json.field("scaled", "$")
+        let elapsed = ContinuousClock().measure {
+            #expect(throws: ReaderError.malformed(field: "height")) { _ = try height.unsigned("height") }
+            #expect(throws: ReaderError.malformed(field: "height")) { _ = try height.uint64("height") }
+            #expect(throws: ReaderError.malformed(field: "height")) { _ = try height.int64("height") }
+            #expect(throws: ReaderError.malformed(field: "height")) { _ = try height.integer("height") }
+            #expect(throws: ReaderError.malformed(field: "text")) { _ = try text.decimalString("text") }
+            #expect(throws: ReaderError.malformed(field: "scaled")) { _ = try scaled.scaledDecimal("scaled", scale: 6) }
+        }
+        #expect(elapsed < .milliseconds(50))
+        // Os tetos: 78 digitos (2^256 tem 78) no inteiro sem limite de largura, 20 nos de
+        // 64 bits, e a parte inteira do decimal com escala no mesmo teto do inteiro.
+        let max78 = StrictJSON.number(String(repeating: "9", count: 78))
+        #expect(try max78.unsigned("n") == BigUInt(decimal: String(repeating: "9", count: 78))!)
+        #expect(throws: ReaderError.malformed(field: "n")) { _ = try StrictJSON.number(String(repeating: "9", count: 79)).unsigned("n") }
+        #expect(try StrictJSON.number("18446744073709551615").uint64("n") == UInt64.max)
+        #expect(throws: ReaderError.malformed(field: "n")) { _ = try StrictJSON.number("1" + String(repeating: "0", count: 20)).uint64("n") }
+        #expect(try StrictJSON.number("-9223372036854775807").int64("n") == -Int64.max)
+        #expect(throws: ReaderError.malformed(field: "n")) { _ = try StrictJSON.number("-" + String(repeating: "1", count: 21)).int64("n") }
+        #expect(try StrictJSON.number(String(repeating: "9", count: 70) + ".5").scaledDecimal("n", scale: 1)
+            == BigUInt(decimal: String(repeating: "9", count: 70) + "5")!)
+        #expect(throws: ReaderError.malformed(field: "n")) {
+            _ = try StrictJSON.number(String(repeating: "9", count: 79) + ".5").scaledDecimal("n", scale: 1)
+        }
+    }
+
     @Test("Chave duplicada, lixo depois do valor e escape invalido sao recusados")
     func strictGrammar() {
         for text in [#"{"a":1,"a":2}"#, #"{"a":1} x"#, #""\q""#, "[1,]", "{\"a\":\u{01}}", "01", "\"\u{0A}\""] {
