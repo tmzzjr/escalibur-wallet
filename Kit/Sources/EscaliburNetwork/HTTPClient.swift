@@ -119,11 +119,22 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
         guard request.url?.scheme == "https", let host = request.url?.host, allowedHosts.contains(host) else {
             throw Failure.hostNotAllowed
         }
+        guard !isQuiet else { throw Failure.offline }
         let task = session.dataTask(with: request)
         do {
             return try await withTaskCancellationHandler {
                 try await withCheckedThrowingContinuation { continuation in
-                    lock.withLock { transfers[ObjectIdentifier(task)] = Transfer(continuation, limit: limit) }
+                    // A conferencia do silencio e o registro sob a mesma trava: uma tela de
+                    // segredo que abre agora cancela esta tarefa, ou ela nem comeca.
+                    let paused = lock.withLock { () -> Bool in
+                        guard quietHolds == 0 else { return true }
+                        transfers[ObjectIdentifier(task)] = Transfer(continuation, task: task, limit: limit)
+                        return false
+                    }
+                    if paused {
+                        continuation.resume(throwing: Failure.offline)
+                        return
+                    }
                     task.resume()
                 }
             } onCancel: {
@@ -139,12 +150,38 @@ public final class HTTPClient: NSObject, @unchecked Sendable {
         var data = Data()
         var failure: Failure?
         let continuation: CheckedContinuation<Data, Error>
+        let task: URLSessionTask
         let limit: Int
 
-        init(_ continuation: CheckedContinuation<Data, Error>, limit: Int) {
+        init(_ continuation: CheckedContinuation<Data, Error>, task: URLSessionTask, limit: Int) {
             self.continuation = continuation
+            self.task = task
             self.limit = limit
         }
+    }
+
+    // MARK: Silencio
+
+    /// Quantas telas de segredo estao abertas agora (`beginQuiet`). Com alguma aberta,
+    /// nenhuma requisicao sai do aparelho, e as que estavam no ar sao canceladas: a tela
+    /// de digitar as palavras nao divide o momento com conexao nenhuma (pedido do dono,
+    /// 16/10/2026). As palavras nunca vao para a rede de qualquer jeito; isto garante que
+    /// nem saldo, nem preco, nem logo saem enquanto elas estao na tela.
+    private var quietHolds = 0
+
+    public var isQuiet: Bool { lock.withLock { quietHolds > 0 } }
+
+    /// Abre o silencio e cancela o que estava no ar. Cada `beginQuiet` pede um `endQuiet`.
+    public func beginQuiet() {
+        let live = lock.withLock { () -> [URLSessionTask] in
+            quietHolds += 1
+            return transfers.values.map(\.task)
+        }
+        live.forEach { $0.cancel() }
+    }
+
+    public func endQuiet() {
+        lock.withLock { quietHolds = max(0, quietHolds - 1) }
     }
 
     private let lock = NSLock()

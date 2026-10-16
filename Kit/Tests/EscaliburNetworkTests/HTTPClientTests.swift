@@ -89,4 +89,24 @@ struct HTTPClientTests {
         #expect(AllowedHosts.all.contains("mempool.space"))
         #expect(!AllowedHosts.all.contains("stub.example"))
     }
+
+    @Test("Com uma tela de segredo aberta, nada sai; fechada, volta")
+    func quiet() async throws {
+        let quiet = HTTPClient(protocolClasses: [StubProtocol.self], allowedHosts: ["stub.example"])
+        quiet.beginQuiet()
+        quiet.beginQuiet()
+        await #expect(throws: HTTPClient.Failure.offline) {
+            try await quiet.get(URL(string: "https://stub.example/pequeno")!)
+        }
+        quiet.endQuiet()
+        // Duas telas abertas, uma fechada: continua em silencio.
+        #expect(quiet.isQuiet)
+        await #expect(throws: HTTPClient.Failure.offline) {
+            try await quiet.get(URL(string: "https://stub.example/pequeno")!)
+        }
+        quiet.endQuiet()
+        #expect(!quiet.isQuiet)
+        let data = try await quiet.get(URL(string: "https://stub.example/pequeno")!)
+        #expect(data == Data("{\"ok\":true}".utf8))
+    }
 }
