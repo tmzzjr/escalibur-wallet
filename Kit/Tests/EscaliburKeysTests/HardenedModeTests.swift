@@ -69,11 +69,14 @@ struct HardenedModeTests {
         let (header, body) = try RootKeyVault.parseHardened(raw)
         let ap = try KeyDerivation.deriveMasterKey(password: secure(pin), salt: header.salt, parameters: header.kdf)
         let password = RootKeyVault.hardenedPassword(ap: ap, salt: header.salt)
+        defer { password.wipe() }
         // Com a senha certa do PIN e sem o rosto, a chave do PIN nao abre o corpo.
-        #expect(throws: (any Error).self) { try wrapper.unwrap(body, slot: header.pinKey, password: password) }
+        #expect(throws: (any Error).self) { try password.withUnsafeData { try wrapper.unwrap(body, slot: header.pinKey, password: $0) } }
         // So depois da camada do rosto.
         let middle = try wrapper.unwrap(body, slot: .hardenedBiometry, reason: "x")
-        let inner = try middle.withUnsafeData { try wrapper.unwrap($0, slot: header.pinKey, password: password) }
+        let inner = try middle.withUnsafeData { opened in
+            try password.withUnsafeData { try wrapper.unwrap(opened, slot: header.pinKey, password: $0) }
+        }
         #expect(bytes(try RootKeyVault.openHardenedInner(inner, ap: ap, header: header)) == rk)
         _ = vault
     }

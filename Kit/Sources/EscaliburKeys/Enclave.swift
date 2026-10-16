@@ -192,10 +192,19 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
 }
 
 extension SecureEnclaveWrapper {
+    /// O contexto com a senha de aplicativo vale para uma chamada so: na volta, a
+    /// credencial e solta e o contexto invalidado, para a senha derivada do PIN nao ficar
+    /// retida num objeto vivo (auditoria 4, C7-21). O mesmo que `KeychainStore` faz.
+    private static func release(_ context: LAContext) {
+        context.setCredential(nil, type: .applicationPassword)
+        context.invalidate()
+    }
+
     public func createKey(_ slot: WrapSlot, password: Data) throws {
         guard slot.usesPassword else { throw EnclaveError.failed("senha so nos slots do PIN") }
         deleteKey(slot)
         let context = LAContext()
+        defer { Self.release(context) }
         guard context.setCredential(password, type: .applicationPassword) else { throw EnclaveError.failed("credencial") }
         var error: Unmanaged<CFError>?
         guard let access = SecAccessControlCreateWithFlags(nil, KeychainStore.accessibility, [.privateKeyUsage, .applicationPassword], &error) else {
@@ -217,6 +226,7 @@ extension SecureEnclaveWrapper {
 
     public func unwrap(_ blob: Data, slot: WrapSlot, password: Data) throws -> SecureBytes {
         let context = LAContext()
+        defer { Self.release(context) }
         context.interactionNotAllowed = true
         guard context.setCredential(password, type: .applicationPassword) else { throw EnclaveError.failed("credencial") }
         let query: [String: Any] = [
