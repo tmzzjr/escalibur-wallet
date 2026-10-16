@@ -38,6 +38,10 @@ final class SendModel {
     /// O historico da rede nao pode ser lido (indexador fora ou recusando o app): sem ele,
     /// o envenenamento de endereco nao tem com o que comparar (auditoria 3, B1).
     var historyUnavailable = false
+    /// A leitura do historico terminou, lida ou falha. Antes disso o parecido ainda nao tem
+    /// com o que comparar, e o Continuar fica desligado: apertado cedo, ele pulava a
+    /// conferencia contra o historico (revisao dos enderecos parecidos).
+    var historyLoaded = false
     /// Primeiro envio sem historico para comparar: os 6 do meio que o dono digita.
     var blindSegment: AddressPoisoning.Segment?
     /// O endereco como foi colado: o desafio do meio e conferido nele, com o trecho
@@ -535,8 +539,9 @@ struct SendStages: View {
         }
         }
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: String(localized: "Continuar"), enabled: model.destination != nil && model.lookalikeCleared && tagProblem == nil
-                          && (!model.needsNetworkConfirmation || model.networkConfirmed), loading: model.working) {
+            PrimaryButton(title: String(localized: "Continuar"), enabled: model.destination != nil && model.historyLoaded && model.lookalikeCleared && tagProblem == nil
+                          && (!model.needsNetworkConfirmation || model.networkConfirmed),
+                          loading: model.working || (model.destination != nil && !model.historyLoaded)) {
                 Task { await continueFromDestination() }
             }
             .padding(.top, Space.xs)
@@ -680,10 +685,20 @@ struct SendStages: View {
     /// Para quem esta carteira ja pagou nesta rede, do historico da propria rede.
     /// Melhor esforco: sem historico, a lista fica com o que o app guardou.
     private func loadHistoryRecipients() async {
-        guard let chain = model.chain, let account = model.wallet.account(chain) else { return }
-        guard let source = ActivitySources.source(for: chain),
-              let entries = try? await source.history(chain: chain, account: account, usage: model.wallet.utxoUsage[chain.id])
-        else {
+        model.historyLoaded = false
+        guard let chain = model.chain, let account = model.wallet.account(chain) else {
+            model.historyLoaded = true
+            return
+        }
+        var read: [ActivityEntry]?
+        if let source = ActivitySources.source(for: chain) {
+            read = try? await source.history(chain: chain, account: account, usage: model.wallet.utxoUsage[chain.id])
+        }
+        // Leitura cancelada (a rede mudou, ou a tela saiu): a leitura seguinte cuida do
+        // estado, e esta nao libera o Continuar.
+        guard !Task.isCancelled, model.chain?.id == chain.id else { return }
+        defer { model.historyLoaded = true }
+        guard let entries = read else {
             model.historyUnavailable = true
             if model.destination != nil { validate() }
             return
@@ -1289,6 +1304,13 @@ struct SendStages: View {
 
     private func send() async {
         guard let plan = model.plan, let engine, let chain = model.chain, let holding = model.holding else { return }
+        // A conferencia do destino vale ate a assinatura: se a validacao rodou de novo
+        // depois do Continuar (historico lido tarde, rede trocada), o desafio volta para a
+        // tela do destino e nada e assinado.
+        guard model.historyLoaded, model.lookalikeCleared else {
+            model.stage = .destination
+            return
+        }
         guard planMatches(plan) else {
             model.error = String(localized: "O envio montado não confere com o destino digitado. Nada foi assinado.")
             return
