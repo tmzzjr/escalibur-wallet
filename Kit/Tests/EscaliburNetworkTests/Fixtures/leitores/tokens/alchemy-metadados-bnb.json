@@ -1,0 +1,1452 @@
+[
+ {
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": {
+   "decimals": 6,
+   "logo": null,
+   "name": "GPTChat",
+   "symbol": "GPTC"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Gacha Galaxy",
+   "symbol": "GG"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "RareTronOrg",
+   "symbol": "TRON Rare Address Generator https://RareTron.org"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 3,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "AI Siren Meme",
+   "symbol": "AISIREN"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "ARKR.org",
+   "symbol": "ARKR.org"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 5,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "ZeroGasGod",
+   "symbol": "ZGAS"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 6,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "PI Network",
+   "symbol": "PI"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 7,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Multipli",
+   "symbol": "MULT"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 8,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "\u97ed\u83dc\u738b%28Chive%20King%29",
+   "symbol": "JKW"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 9,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "Token.io",
+   "symbol": "TIO"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 10,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "TheVera.io",
+   "symbol": "VERA"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 11,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Zepe.io",
+   "symbol": "Zepe.io"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 12,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u75c5\u6bd2\u4eba\u751f",
+   "symbol": "\u75c5\u6bd2\u4eba\u751f"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 13,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Apple",
+   "symbol": "Apple"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 14,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "PASTERNAK",
+   "symbol": "PASTERNAK"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 15,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "Xeta Reality",
+   "symbol": "XETA"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 16,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u533a\u5757\u4eba\u751f",
+   "symbol": "\u533a\u5757\u4eba\u751f"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 17,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Circle",
+   "symbol": "Circle"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 18,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "cursor.com",
+   "symbol": "cursor"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 19,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Rare-AddressCom",
+   "symbol": "Rare Address Generator at https://rare-address.com"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 20,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "Alex\u5e01",
+   "symbol": "Alex"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 21,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "RareAddressCom",
+   "symbol": "Rare Address Generator at https://rareAddress.com"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 22,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5e01\u5b89\u4e2d\u56fd",
+   "symbol": "\u5e01\u5b89\u4e2d\u56fd"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 23,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "apnc.info",
+   "symbol": "apnc.info"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 24,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "\u4f1a\u98de\u7684\u7279\u65af\u62c9",
+   "symbol": "\u4f1a\u98de\u7684\u7279\u65af\u62c9"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 25,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "\u957f\u946b\u79d1\u6280",
+   "symbol": "CXMT"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 26,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "! NOTCOIN",
+   "symbol": "NOTCOIN https://noncoin-events.com/"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 27,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "MetaUFO",
+   "symbol": "MetaUFO"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 28,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "MarsCoin",
+   "symbol": "MarsCoin"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 29,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "VIP",
+   "symbol": "VIP"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 30,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "AVA",
+   "symbol": "AVA"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 31,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "10BNB Reward at bep20.lol",
+   "symbol": "10BNB Airdrop at bep20.lol"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 32,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "3.33%ROI",
+   "symbol": "https://CryptoFortune.co"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 33,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Arcium",
+   "symbol": "ARX"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 34,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "BowDao.net",
+   "symbol": "BowDao.net"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 35,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "MetaY.ai",
+   "symbol": "CLAW"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 36,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "King Dog",
+   "symbol": "King Dog"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 37,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Electric Capital",
+   "symbol": "EC"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 38,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "AIT Token",
+   "symbol": "AIT"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 39,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Discord",
+   "symbol": "Discord"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 40,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5e01\u5b89\u7816\u77f3",
+   "symbol": "\u5e01\u5b89\u7816\u77f3"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 41,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5c0f\u72d7\u5e01",
+   "symbol": "\u5c0f\u72d7\u5e01"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 42,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5927\u529b\u795e\u676f",
+   "symbol": "\u5927\u529b\u795e\u676f"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 43,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5bcc\u8d35",
+   "symbol": "\u5bcc\u8d35"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 44,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "BabyAsteroid",
+   "symbol": "BabyAsteroid"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 45,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "PI Network",
+   "symbol": "PI"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 46,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "WEB3AI",
+   "symbol": "WEB3AI"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 47,
+  "result": {
+   "decimals": 6,
+   "logo": null,
+   "name": "CryptoGPT Token",
+   "symbol": "GPT"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 48,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "TheEver.io",
+   "symbol": "EVER"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 49,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "FAST PROFIT",
+   "symbol": "FP"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 50,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "BNBW.IO",
+   "symbol": "BNBW"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 51,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "AVE",
+   "symbol": "AVE"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 52,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u72d7\u72d7\u5e01",
+   "symbol": "\u72d7\u72d7\u5e01"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 53,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "USTC",
+   "symbol": "USTC"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 54,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Little Pepe",
+   "symbol": "LILPEPE"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 55,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u4e16\u754c\u676f",
+   "symbol": "\u4e16\u754c\u676f"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 56,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "Stakeable",
+   "symbol": "STAKE"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 57,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "MARSAI",
+   "symbol": "MARSAI"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 58,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "MetaSoilVerseProtocol",
+   "symbol": "MSVP"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 59,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Qwen3",
+   "symbol": "Qwen3"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 60,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "NBA",
+   "symbol": "NBA"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 61,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Synthetix",
+   "symbol": "SNX"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 62,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "! USDTReward.com",
+   "symbol": "995$ Visit USDTReward.com to claim"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 63,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Glonk",
+   "symbol": "Glonk"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 64,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "ERC",
+   "symbol": "Visit: claimeth.lat"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 65,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "ARC Token",
+   "symbol": "$ARC"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 66,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5e01\u5b89\u57ce\u5e02",
+   "symbol": "\u5e01\u5b89\u57ce\u5e02"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 67,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5b87\u6811\u79d1\u6280",
+   "symbol": "\u5b87\u6811\u79d1\u6280"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 68,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "CZ Token",
+   "symbol": "CZ"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 69,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "MetaY",
+   "symbol": "CLAW"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 70,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Glitchy",
+   "symbol": "Glitchy"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 71,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Linera",
+   "symbol": "LNRA"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 72,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "BNB\u4eba\u751f",
+   "symbol": "BNB\u4eba\u751f"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 73,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "PONKE",
+   "symbol": "PONKE"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 74,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "\u846b\u82a6\u5a03\u7237\u7237",
+   "symbol": "\u846b\u82a6\u5a03\u7237\u7237"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 75,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u957f\u946b\u79d1\u6280",
+   "symbol": "\u957f\u946b\u79d1\u6280"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 76,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "\u4e09\u4f53\u6587\u660e",
+   "symbol": "\u4e09\u4f53"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 77,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u732b\u5e01",
+   "symbol": "\u732b\u5e01"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 78,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "titcoin",
+   "symbol": "titcoin"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 79,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5e01\u5b89\u6e38\u620f",
+   "symbol": "\u5e01\u5b89\u6e38\u620f"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 80,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5927\u8868\u54e5",
+   "symbol": "\u5927\u8868\u54e5"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 81,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "AI\u661f\u7403",
+   "symbol": "AI\u661f\u7403"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 82,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u8d85\u7ea7\u62f3\u5934",
+   "symbol": "\u8d85\u7ea7\u62f3\u5934"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 83,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "BSCAI",
+   "symbol": "BSCAI"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 84,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "Laptop MemeCoin",
+   "symbol": "LAPTOP"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 85,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "diyTronIO",
+   "symbol": "diy tron vanity address like 88888 at diyTron.io"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 86,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u795e\u9a6c",
+   "symbol": "\u795e\u9a6c"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 87,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "CZ Four",
+   "symbol": "CZ4"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 88,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Mastercard",
+   "symbol": "MA"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 89,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Axis Robotics",
+   "symbol": "AXIS"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 90,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "claim-usd.com",
+   "symbol": "claim-usd.com\ud83c\udfc6"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 91,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Bittt.io",
+   "symbol": "Bittt.io"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 92,
+  "result": {
+   "decimals": 8,
+   "logo": null,
+   "name": "!!0Bets.org",
+   "symbol": "Free spins!!! [SPONSORED]"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 93,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "NIUMA",
+   "symbol": "$NIUMA"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 94,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Aegis AI",
+   "symbol": "AGAI"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 95,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u8774\u8776\u94f6\u884c",
+   "symbol": "\u8774\u8776\u94f6\u884c"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 96,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "3.33%ROI",
+   "symbol": "https://CryptoFortune.co"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 97,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "EVMAI",
+   "symbol": "EVMAI"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 98,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "\u5f69\u793c\u5e01",
+   "symbol": "\u5f69\u793c\u5e01"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 99,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "Elon Musk",
+   "symbol": "@elonmusk"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 100,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Gno.land",
+   "symbol": "GNOT"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 101,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "\u6211\u7684\u5973\u53cb\u666f\u751c",
+   "symbol": "\u6211\u7684\u5973\u53cb\u666f\u751c"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 102,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u8774\u8776\u793e\u533a",
+   "symbol": "\u8774\u8776\u793e\u533a"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 103,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Zepe.io",
+   "symbol": "Zepe.io"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 104,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "Block Street",
+   "symbol": "BSB"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 105,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "LmaoToken",
+   "symbol": "LMAO"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 106,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "!  A-getMOBOX.us",
+   "symbol": "Visit getMOBOX.us to claim Airdrop"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 107,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "POPMART",
+   "symbol": "POPMART"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 108,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "CUDA",
+   "symbol": "CUDA"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 109,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5e01\u5b89\u91d1\u77ff",
+   "symbol": "\u5e01\u5b89\u91d1\u77ff"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 110,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "BestAir.io",
+   "symbol": "AIR"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 111,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "SIXR Cricket",
+   "symbol": "SIXR"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 112,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u7403\u738b",
+   "symbol": "\u7403\u738b"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 113,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5e01\u5b89\u81ea\u62c9",
+   "symbol": "\u5e01\u5b89\u81ea\u62c9"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 114,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "deepseek_ai",
+   "symbol": "DeepSeek"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 115,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "AI\u4e16\u754c",
+   "symbol": "AI\u4e16\u754c"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 116,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "The Black Bull",
+   "symbol": "ANSEM"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 117,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "swap8.io",
+   "symbol": "swap8.io"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 118,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "10BNB Air\u217erop at [ https://t2m.io/bnb ]",
+   "symbol": "10BNB Air\u217erop at [ https://t2m.io/bnb ]"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 119,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "BOOM",
+   "symbol": "BOOM"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 120,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "APE8.io",
+   "symbol": "APE8.io"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 121,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "AU21 Capital",
+   "symbol": "AU21"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 122,
+  "result": {
+   "decimals": 8,
+   "logo": null,
+   "name": "Minereum BSC",
+   "symbol": "MNEB"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 123,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "Telegram @FreeTron88_bot",
+   "symbol": "Telegram @FreeTron88_bot"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 124,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Etherium",
+   "symbol": "Etherium"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 125,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u4e16\u754c\u676f",
+   "symbol": "\u4e16\u754c\u676f"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 126,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u8774\u8776\u91d1\u9501",
+   "symbol": "\u8774\u8776\u91d1\u9501"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 127,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "ConConAI",
+   "symbol": "CON"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 128,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "SNDK",
+   "symbol": "SNDK"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 129,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "Alberich Token",
+   "symbol": "ALBRH"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 130,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "CereBree",
+   "symbol": "CRX"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 131,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "META BNB",
+   "symbol": "MBNB"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 132,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Micro.Fun",
+   "symbol": "MICRO"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 133,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u75af\u5154\u4eba\u751f",
+   "symbol": "\u75af\u5154\u4eba\u751f"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 134,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "Terafab Token",
+   "symbol": "Terafab"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 135,
+  "result": {
+   "decimals": 9,
+   "logo": null,
+   "name": "NEXST",
+   "symbol": "NXT"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 136,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "ai16z",
+   "symbol": "ai16z"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 137,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "KING",
+   "symbol": "KING"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 138,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Moonchain",
+   "symbol": "MCH"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 139,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "HYPE",
+   "symbol": "claimhype\u2024com"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 140,
+  "result": {
+   "decimals": 0,
+   "logo": null,
+   "name": "RareTronAPP",
+   "symbol": "Free TRON Vanity Address at https://RareTron.app"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 141,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "ETHs",
+   "symbol": "Claim:5eth\u2024lat"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 142,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "Tato Gato",
+   "symbol": "TG"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 143,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "\u5e01\u5b89\u534f\u8bae",
+   "symbol": "\u5e01\u5b89\u534f\u8bae"
+  }
+ },
+ {
+  "jsonrpc": "2.0",
+  "id": 144,
+  "result": {
+   "decimals": 18,
+   "logo": null,
+   "name": "TRUMP",
+   "symbol": "TRUMP"
+  }
+ }
+]

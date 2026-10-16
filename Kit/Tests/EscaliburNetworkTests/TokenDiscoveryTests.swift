@@ -167,6 +167,102 @@ struct TokenDiscoveryTests {
         #expect(tokens.allSatisfy { $0.symbol.isEmpty && $0.decimals == nil })
     }
 
+    /// BNB Chain pela Alchemy (gravado em 16/10/2026): os saldos em tres paginas, cada uma
+    /// pedida com a `pageKey` da anterior, e o lote de metadados dos que tem saldo.
+    static func alchemyBNBTransport() throws -> FixtureTransport {
+        let pages = try (1...3).map { try Self.data("alchemy-saldos-bnb-\($0)") }
+        let keys = try pages.map { page -> String? in
+            try StrictJSON.parse(page).field("result", "r").optionalField("pageKey").map { try $0.string("pageKey") }
+        }
+        return FixtureTransport([{ _, body in
+            if case .array? = body { return try Self.data("alchemy-metadados-bnb") }
+            guard FixtureTransport.method(body) == "alchemy_getTokenBalances" else { return nil }
+            let params = FixtureTransport.params(body)
+            guard params.count == 3, case .object(let options) = params[2], case .string(let key)? = options["pageKey"] else {
+                return pages[0]
+            }
+            guard let previous = keys.firstIndex(of: key), previous + 1 < pages.count else { return nil }
+            return pages[previous + 1]
+        }])
+    }
+
+    @Test("Alchemy (BNB Chain): as tres paginas pela pageKey, so os contratos com saldo, nome e simbolo num lote")
+    func alchemyIndexBNB() async throws {
+        #expect(Endpoints.evmTokenIndex["bnb"]?.name == "alchemy")
+        #expect(Endpoints.evmTokenIndex["bnb"]?.baseURL == Endpoints.alchemy["bnb"])
+        let owner = try EVMAddress(Self.owner)
+        let transport = try Self.alchemyBNBTransport()
+        let provider = ProviderPool.Provider(name: "alchemy", baseURL: URL(string: "https://alchemy.test/v2/chave")!)
+        let tokens = try await TokenIndex.fetch(provider, owner: owner, transport: transport)
+
+        var held = 0
+        for page in 1...3 {
+            let balances = try StrictJSON.parse(Self.data("alchemy-saldos-bnb-\(page)")).field("result", "r")
+            held += try balances.field("tokenBalances", "t").array("t").filter {
+                (try? $0.field("tokenBalance", "b").quantity("b").isZero) == false
+            }.count
+        }
+        #expect(held == 145)
+        #expect(tokens.count == held)
+        #expect(Set(tokens.map { $0.contract.checksummed }).count == tokens.count)
+        // Tres paginas e um lote de metadados; o endereco nunca vai na URL.
+        #expect(transport.requests.count == 4)
+        #expect(transport.requests.allSatisfy { !$0.url.absoluteString.lowercased().contains(Self.owner.lowercased()) })
+        #expect(tokens.allSatisfy { $0.logo == nil && !$0.flagged })
+        #expect(tokens.contains { !$0.symbol.isEmpty && $0.decimals != nil })
+    }
+
+    @Test("BNB Chain: com a Alchemy fora do ar, os tokens voltam pela lista do CoinGecko; com ela no ar, a lista nem e baixada")
+    func bnbTokenListFallback() async throws {
+        let listed = try EVMAddress("0x1111111111111111111111111111111111111111")
+        #expect(TokenRegistry.find(chainID: "bnb", contract: listed.checksummed) == nil)
+        let list = """
+        {"tokens":[{"chainId":56,"address":"\(listed.checksummed)","name":"Prumo Token","symbol":"PRUMO","decimals":18,
+          "logoURI":"https://assets.coingecko.com/coins/images/1/thumb/prumo.png"}]}
+        """
+        func transport(alchemyUp: Bool) -> FixtureTransport {
+            FixtureTransport([{ request, body in
+                if request.url.host == "alchemy.test" {
+                    guard alchemyUp else { throw HTTPClient.Failure.status(503) }
+                    return rpcResult(#"{"address":"\#(Self.owner.lowercased())","tokenBalances":[]}"#)
+                }
+                if request.url.host == "tokens.coingecko.com" {
+                    #expect(request.url.path == "/binance-smart-chain/all.json")
+                    return Data(list.utf8)
+                }
+                switch FixtureTransport.method(body) {
+                case "eth_getBalance": return rpcResult("\"0x0\"")
+                case "eth_call":
+                    let items: [(Bool, [UInt8])] = try BalanceBatchTests.calls(body).map { call in
+                        if Array(call.data.prefix(4)) == Self.decimalsSelector { return (true, BalanceBatchTests.word(18)) }
+                        return (true, BalanceBatchTests.word(call.target == listed ? 2_000_000_000_000_000_000 : 0))
+                    }
+                    return rpcResult("\"\(try BalanceBatchTests.aggregate3Result(items))\"")
+                default: return nil
+                }
+            }])
+        }
+        func service(_ transport: FixtureTransport) -> BalanceService {
+            BalanceService(
+                client: .shared, transport: transport, evm: ["bnb": testProviders("rpc-a")], xrpl: [],
+                tokenIndex: ["bnb": ProviderPool.Provider(name: "alchemy", baseURL: URL(string: "https://alchemy.test/v2/chave")!)],
+                listScan: true
+            )
+        }
+
+        let down = transport(alchemyUp: false)
+        let balance = try await service(down).balance(chain: .bnb, addresses: [Self.owner])
+        let prumo = try #require(balance.unlisted?.first { $0.asset.id == "bnb:\(listed.checksummed)" })
+        #expect(prumo.amount == BigUInt(2_000_000_000_000_000_000) && !prumo.isSuspicious)
+        #expect(prumo.logo?.absoluteString == "https://assets.coingecko.com/coins/images/1/large/prumo.png")
+        #expect(down.requests.contains { $0.url.host == "alchemy.test" })
+
+        let up = transport(alchemyUp: true)
+        let normal = try await service(up).balance(chain: .bnb, addresses: [Self.owner])
+        #expect(normal.unlisted?.isEmpty != false)
+        #expect(!up.requests.contains { $0.url.host == "tokens.coingecko.com" })
+    }
+
     // MARK: Tron
 
     @Test("Tron: USDT da lista; os outros TRC-20 com nome e casas da TronGrid numa chamada, e o que faltar lido do contrato")

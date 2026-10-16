@@ -2,8 +2,9 @@ import EscaliburChains
 import EscaliburCore
 import Foundation
 
-/// Descobrir tokens nas redes EVM sem indexador sem chave (BNB Chain, X Layer e Sonic):
-/// conferir o saldo de todos os tokens que o CoinGecko lista naquela rede.
+/// Descobrir tokens nas redes EVM sem indexador sem chave (X Layer e Sonic): conferir o
+/// saldo de todos os tokens que o CoinGecko lista naquela rede. Na BNB Chain, que tem a
+/// Alchemy (`Endpoints.evmTokenIndex`), so de reserva, quando a Alchemy nao responde.
 ///
 /// - Nenhum RPC publico dessas redes devolve as transferencias recebidas por um endereco
 ///   sem chave (conferido em 11/10/2026: o publicnode pede o contrato, o dataseed da BNB
@@ -25,7 +26,8 @@ enum TokenListScan {
     /// abaixo do teto de `eth_call` dos RPCs publicos.
     static let scanBatch = 300
 
-    /// So as redes EVM sem indexador sem chave (`Endpoints.evmTokenIndex`).
+    /// As redes EVM sem indexador sem chave (`Endpoints.evmTokenIndex`), e a BNB Chain como
+    /// reserva da Alchemy.
     static let platforms: [String: String] = ["bnb": "binance-smart-chain", "xlayer": "x-layer", "sonic": "sonic"]
 
     static func url(_ chain: Chain) -> URL? {

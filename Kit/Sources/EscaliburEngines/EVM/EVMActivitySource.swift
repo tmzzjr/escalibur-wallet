@@ -15,8 +15,8 @@ public struct EVMActivitySource: ActivitySource {
     public let chain: Chain
     let reader: EVMReader
 
-    /// `nil` fora das redes EVM com indexador publico sem chave. BNB Chain, X Layer e
-    /// Sonic usam `EVMUnavailableActivitySource`.
+    /// `nil` fora das redes EVM com indexador de historico (`Endpoints.evmHistory`). X
+    /// Layer e Sonic usam `EVMUnavailableActivitySource`.
     public init?(chain: Chain) {
         self.init(chain: chain, reader: .shared)
     }
@@ -51,10 +51,9 @@ extension EVMActivitySource {
     }
 }
 
-/// Rede EVM sem indexador publico sem chave (BNB Chain: BscScan e Etherscan v2 exigem
-/// plano pago para a rede 56; X Layer: OKLink pede chave; Sonic: so o Etherscan v2, com
-/// chave). O motor de envio funciona; o historico diz que ainda nao existe, em vez de
-/// mostrar uma lista vazia que pareceria "nenhum movimento".
+/// Rede EVM sem indexador publico sem chave (X Layer: OKLink pede chave; Sonic: so o
+/// Etherscan v2, com chave). O motor de envio funciona; o historico diz que ainda nao
+/// existe, em vez de mostrar uma lista vazia que pareceria "nenhum movimento".
 public struct EVMUnavailableActivitySource: ActivitySource {
     public let chain: Chain
 

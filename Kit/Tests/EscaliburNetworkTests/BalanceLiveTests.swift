@@ -186,9 +186,10 @@ struct TokenRegistryLiveTests {
 @Suite("Varredura da lista de tokens ao vivo", .enabled(if: ProcessInfo.processInfo.environment["ESCALIBUR_REDE"] == "1"))
 struct TokenListScanLiveTests {
     /// O BNB Frog Inu entrou na lista curada em 14/10/2026: de quem tem, ele sai no saldo
-    /// da lista, e a varredura nao o repete em Outros tokens. A conta e o par BNBFrog/WBNB
-    /// da PancakeSwap v2, que sempre tem o token (a conta de antes vendeu tudo).
-    @Test("BNB Chain sem indexador: o BNB Frog Inu, agora da lista, sai no saldo e nao na varredura")
+    /// da lista, e a Alchemy (ou a varredura da lista do CoinGecko, quando ela nao
+    /// responde) nao o repete em Outros tokens. A conta e o par BNBFrog/WBNB da
+    /// PancakeSwap v2, que sempre tem o token (a conta de antes vendeu tudo).
+    @Test("BNB Chain: o BNB Frog Inu, agora da lista, sai no saldo e nao em Outros tokens")
     func bnbFrog() async throws {
         let service = BalanceService()
         let started = Date()
@@ -199,9 +200,9 @@ struct TokenListScanLiveTests {
         #expect(balance.holdings.contains { isFrog($0.asset) && $0.asset.isVerified })
         #expect(balance.unlisted?.contains { isFrog($0.asset) } != true)
         for other in balance.unlisted ?? [] { if let logo = other.logo { #expect(logo.host == "assets.coingecko.com") } }
-        // A segunda leitura nao varre de novo: so relê os que tinham saldo.
+        // A segunda leitura: pela Alchemy de novo, ou, na varredura, so os que tinham saldo.
         let again = Date()
         _ = try await service.balance(chain: .bnb, addresses: ["0x2724358279dc913bef672771cd7b96c4c26a9bf5"])
-        print("varredura BNB: primeira \(first) s, segunda \(Date().timeIntervalSince(again)) s, \(balance.unlisted?.count ?? 0) fora da lista")
+        print("tokens BNB: primeira \(first) s, segunda \(Date().timeIntervalSince(again)) s, \(balance.unlisted?.count ?? 0) fora da lista")
     }
 }

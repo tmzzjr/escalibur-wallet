@@ -28,7 +28,7 @@ struct EVMSecondWaveReaderTests {
         #expect(list[0].name != list[1].name)
     }
 
-    @Test("Historico: indexador sem chave onde existe; X Layer e Sonic sem, como a BNB Chain")
+    @Test("Historico: indexador sem chave onde existe; X Layer e Sonic sem")
     func history() {
         #expect(Endpoints.evmHistory["plasma"]?.map(\.name) == ["routescan"])
         #expect(Endpoints.evmHistory["plasma"]?.first?.baseURL.absoluteString
