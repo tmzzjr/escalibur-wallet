@@ -39,7 +39,7 @@ public enum AddressPoisoning {
     /// Menos que isso depois do prefixo da rede nao e endereco gerado (nome curto da NEAR).
     /// O tamanho conta o registro do nome da NEAR: tirar o ".near" do corpo nao deixa de
     /// comparar um nome que ja era comparado.
-    static let minimumLength = 16
+    public static let minimumLength = 16
 
     /// O primeiro endereco de `known` parecido com `address`, se houver.
     public static func lookalike(_ address: String, among known: [String], chain: Chain) -> String? {

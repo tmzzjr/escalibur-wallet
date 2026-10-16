@@ -268,6 +268,10 @@ enum Fmt {
     /// que casava so os 4 do fim saia identico na Atividade (revisao dos enderecos
     /// parecidos, B-5). O corpo e o mesmo que `AddressPoisoning` compara.
     ///
+    /// O que a comparacao nao compara (menos de `AddressPoisoning.minimumLength` depois do
+    /// prefixo, um nome curto da NEAR) sai inteiro: abreviado, "abcdefghijkl.tg" e
+    /// "abcdefzzijkl.tg" saiam iguais, e nada avisava (revisao do B-9).
+    ///
     /// Sem a rede (texto que nao se sabe de onde e), 6 mais 4 do texto inteiro.
     static func address(_ text: String, chain: Chain? = nil, head: Int = 6, tail: Int = 4) -> String {
         guard let chain else {
@@ -276,7 +280,7 @@ enum Fmt {
         }
         let shown = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let body = AddressPoisoning.bodySegment(shown, chain: chain)
-        guard body.length > head + tail + 1 else { return shown }
+        guard body.length > head + tail + 1, shown.count - body.start >= AddressPoisoning.minimumLength else { return shown }
         let characters = Array(shown)
         let end = body.start + body.length
         return String(characters[..<(body.start + head)]) + "…" + String(characters[(end - tail)...])
