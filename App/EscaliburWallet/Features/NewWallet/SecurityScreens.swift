@@ -51,6 +51,16 @@ struct DeviceCheck: Identifiable, Equatable {
         ]
     }
 
+    /// Os textos que so aparecem no iPhone de verdade ou no Release, fora do `#if`: o
+    /// catalogo de traducoes so ve o que compila no Debug do simulador (auditoria da App
+    /// Store, 16/10/2026).
+    enum DeviceText {
+        static var sideloaded: String { String(localized: "Este app não veio da App Store nem do TestFlight. Instale a Escalibur só pela App Store.") }
+        static var onMac: String { String(localized: "No Mac, a checagem só vale num iPhone de verdade.") }
+        static var jailbreakFound: String { String(localized: "Sinal de jailbreak encontrado") }
+        static var jailbreakDetail: String { String(localized: "Este iPhone parece ter jailbreak. Num aparelho assim, outro app pode ler a memória e o que você digita.") }
+    }
+
     /// Roda todas de uma vez (testes). Nada aqui sai do aparelho.
     @MainActor
     static func runAll() -> [DeviceCheck] { steps.map { $0.run() } }
@@ -64,7 +74,7 @@ struct DeviceCheck: Identifiable, Equatable {
         #else
         let sideloaded = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision") != nil
         return .init(id: "origem", title: String(localized: "Instalado pela App Store ou TestFlight"),
-                     outcome: sideloaded ? .caution(String(localized: "Este app não veio da App Store nem do TestFlight. Instale a Escalibur só pela App Store.")) : .pass)
+                     outcome: sideloaded ? .caution(DeviceText.sideloaded) : .pass)
         #endif
     }
 
@@ -96,7 +106,7 @@ struct DeviceCheck: Identifiable, Equatable {
         #else
         // No Mac, `/bin/bash` e `/usr/sbin/sshd` existem de fabrica: o aviso seria falso.
         if DeviceIntegrity.onMac {
-            return .init(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"), outcome: .caution(String(localized: "No Mac, a checagem só vale num iPhone de verdade.")))
+            return .init(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"), outcome: .caution(DeviceText.onMac))
         }
         let paths = ["/Applications/Cydia.app", "/Applications/Sileo.app", "/Applications/Zebra.app", "/bin/bash", "/usr/sbin/sshd",
                      "/etc/apt", "/private/var/lib/apt", "/usr/bin/ssh", "/var/jb", "/private/preboot/jb", "/.bootstrapped"]
@@ -109,8 +119,7 @@ struct DeviceCheck: Identifiable, Equatable {
         if writable { try? FileManager.default.removeItem(atPath: probe) }
         guard found == nil, !writable, !linked else {
             // O titulo diz o que foi achado, como na area de transferencia e no leitor.
-            return .init(id: "jailbreak", title: String(localized: "Sinal de jailbreak encontrado"),
-                         outcome: .fail(String(localized: "Este iPhone parece ter jailbreak. Num aparelho assim, outro app pode ler a memória e o que você digita.")))
+            return .init(id: "jailbreak", title: DeviceText.jailbreakFound, outcome: .fail(DeviceText.jailbreakDetail))
         }
         return .init(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"), outcome: .pass)
         #endif
