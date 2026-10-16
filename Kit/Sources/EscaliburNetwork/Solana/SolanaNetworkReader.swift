@@ -8,7 +8,7 @@ import Foundation
 /// pelo `ProviderPool`. O que decide para onde o dinheiro vai vem de dois RPCs
 /// concordando (docs/seguranca.md §5.5): as tabelas de enderecos, que trocariam o
 /// destino de uma troca sem mudar um byte da mensagem, o destino de um envio, a conta
-/// de token dele e o mint (casas e extensoes).
+/// de token dele e o mint (casas e extensoes). A simulacao da troca tambem roda em dois.
 /// Consulta endereco por endereco; nada de chave, frase ou caminho passa por aqui.
 public actor SolanaNetworkReader {
     public static let shared = SolanaNetworkReader()
@@ -135,6 +135,29 @@ public actor SolanaNetworkReader {
     }
 
     public func simulate(base64 transaction: String, accounts: [SolanaPublicKey]) async throws -> SolanaSimulationOutcome {
+        let result: RPCContextual<RPCSimulation> = try await call("simulateTransaction", Self.simulationParams(transaction, accounts: accounts))
+        return try Self.outcome(result.value, accounts: accounts)
+    }
+
+    /// A simulacao da troca em dois provedores diferentes, em paralelo, cada resultado
+    /// com o nome de quem simulou. O planejador so segue com as duas confirmando o efeito
+    /// (`SolanaSwapPlanner.plan`): o estado final das contas e o que confere o que a rota
+    /// faz, e um RPC so que mentisse esse estado aprovaria sozinho a troca que drena a
+    /// conta (auditoria de 16/10/2026, B1).
+    public func simulateOnTwo(_ message: SolanaMessage, accounts: [SolanaPublicKey]) async throws -> [SolanaSimulationOutcome] {
+        try await simulateOnTwo(base64: SolanaSimulationEncoding.unsignedTransactionBase64(message), accounts: accounts)
+    }
+
+    public func simulateOnTwo(base64 transaction: String, accounts: [SolanaPublicKey]) async throws -> [SolanaSimulationOutcome] {
+        let params = Self.simulationParams(transaction, accounts: accounts)
+        let client = self.client
+        return try await Quorum.collect(await pool.available(), pool: pool, count: 2) { provider in
+            let result: RPCContextual<RPCSimulation> = try await SolanaRPC.call(provider.baseURL, "simulateTransaction", params, client: client)
+            return try Self.outcome(result.value, accounts: accounts, source: provider.name)
+        }.map(\.value)
+    }
+
+    static func simulationParams(_ transaction: String, accounts: [SolanaPublicKey]) -> [JSONValue] {
         var config: [String: JSONValue] = [
             "encoding": .string("base64"), "sigVerify": .bool(false), "replaceRecentBlockhash": .bool(true),
             "commitment": .string("confirmed"),
@@ -142,11 +165,10 @@ public actor SolanaNetworkReader {
         if !accounts.isEmpty {
             config["accounts"] = .object(["encoding": .string("base64"), "addresses": .array(accounts.map { .string($0.base58) })])
         }
-        let result: RPCContextual<RPCSimulation> = try await call("simulateTransaction", [.string(transaction), .object(config)])
-        return try Self.outcome(result.value, accounts: accounts)
+        return [.string(transaction), .object(config)]
     }
 
-    static func outcome(_ value: RPCSimulation, accounts: [SolanaPublicKey]) throws -> SolanaSimulationOutcome {
+    static func outcome(_ value: RPCSimulation, accounts: [SolanaPublicKey], source: String = "") throws -> SolanaSimulationOutcome {
         var snapshots = [SolanaAccountSnapshot]()
         if !accounts.isEmpty {
             let returned = value.accounts ?? []
@@ -160,7 +182,7 @@ public actor SolanaNetworkReader {
             }
         }
         let error = value.err.flatMap { $0.isNull ? nil : $0.compactText }
-        return SolanaSimulationOutcome(error: error, unitsConsumed: value.unitsConsumed, accounts: snapshots, logs: value.logs ?? [])
+        return SolanaSimulationOutcome(error: error, unitsConsumed: value.unitsConsumed, accounts: snapshots, logs: value.logs ?? [], source: source)
     }
 
     /// Consumo simulado * 1,1, o valor que `SolanaNetworkState.simulatedComputeUnits` espera.

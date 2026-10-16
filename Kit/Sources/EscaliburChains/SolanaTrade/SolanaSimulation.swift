@@ -74,12 +74,16 @@ public struct SolanaSimulationOutcome: Sendable, Equatable {
     /// O estado final das contas pedidas, na ordem pedida.
     public let accounts: [SolanaAccountSnapshot]
     public let logs: [String]
+    /// Qual provedor simulou. A troca exige duas fontes diferentes; duas simulacoes do
+    /// mesmo provedor contam como uma.
+    public let source: String
 
-    public init(error: String?, unitsConsumed: UInt64?, accounts: [SolanaAccountSnapshot], logs: [String] = []) {
+    public init(error: String?, unitsConsumed: UInt64?, accounts: [SolanaAccountSnapshot], logs: [String] = [], source: String = "") {
         self.error = error
         self.unitsConsumed = unitsConsumed
         self.accounts = accounts
         self.logs = logs
+        self.source = source
     }
 
     public var succeeded: Bool { error == nil }

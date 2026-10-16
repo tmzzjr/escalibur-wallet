@@ -97,6 +97,42 @@ struct EVMTradeEngineTests {
         #expect(quote.providersCompared == 1)
     }
 
+    @Test("Regressao R7-B2: preco de referencia com 2 minutos ou mais nao ancora; a cotacao unica nao troca")
+    func staleReferenceDropped() async throws {
+        let proposals = try F.proposals()
+        let best = try TradeValidator.validate(try #require(proposals.first), intent: F.intent())
+        let ethMicros = (BigUInt(100) * BigUInt.power(of: 10, 24) / best.expectedOut).decimalString
+        let price = String(ethMicros.dropLast(6)) + "." + String(ethMicros.suffix(6))
+        let network = FakeMarketNetwork()
+        network.answer(#"{"usd-coin":{"usd":1},"ethereum":{"usd":\#(price)}}"#)
+        let service = MarketService(transport: network, now: { network.now })
+        func engine() throws -> EVMTradeEngine {
+            H.engine(oracle: EVMMarketPriceOracle(service: service), sources: try H.sources(EVMCallCounter(), proposals: [proposals[0]]),
+                     transport: try H.baseTransport())
+        }
+        // Preco de agora: a cotacao unica passa pela sanidade contra ele e troca.
+        #expect(try await engine().quote(F.request()).providersCompared == 1)
+
+        // As fontes caem. Um minuto depois, o ultimo preco bom ainda serve de referencia.
+        network.answer(nil)
+        network.advance(60)
+        #expect(try await engine().quote(F.request()).providersCompared == 1)
+
+        // Dois minutos ou mais: o mesmo preco fica de fora, e a troca volta a exigir duas
+        // cotacoes, como sem referencia.
+        network.advance(60)
+        await #expect(throws: SendEngineError.message(
+            "Sem preço de referência do mercado agora, a troca precisa de pelo menos duas cotações para comparar, e só uma respondeu. Tente de novo em instantes."
+        )) { _ = try await engine().quote(F.request()) }
+
+        // O servico continua com o preco e a hora dele (a tela mostra o ultimo preco bom), e
+        // o aviso de taxa alta do envio, que nao decide minimo, aceita qualquer idade.
+        let kept = try #require(try await service.datedQuotes(ids: ["ethereum"], currency: "usd")["ethereum"])
+        #expect(network.now.timeIntervalSince(kept.fetchedAt) == 120)
+        #expect(try await EVMMarketPriceOracle(service: service, maxAge: nil).usdPrices(["ethereum"])["ethereum"] != nil)
+        #expect(EVMMarketPriceOracle.shared.maxAge == 120 && EVMMarketPriceOracle.anyAge.maxAge == nil)
+    }
+
     @Test("Preco do oraculo vira texto decimal sem expoente; preco nulo ou invalido fica de fora")
     func oracleDecimalText() {
         for price in [3_998.12, 1, 0.000_001_23, 1e-12, 64_123_456.5] {

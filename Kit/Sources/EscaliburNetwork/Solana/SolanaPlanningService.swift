@@ -93,8 +93,8 @@ public actor SolanaPlanningService {
     }
 
     /// Troca pela Jupiter ate o `SigningPlan`: proposta (`/build`), tabelas lidas de
-    /// dois RPCs, contas e estado, rascunho validado, simulacao e plano. Se a
-    /// mensagem nao couber num pacote, pede rota com menos contas.
+    /// dois RPCs, contas e estado, rascunho validado, simulacao em dois RPCs e plano.
+    /// Se a mensagem nao couber num pacote, pede rota com menos contas.
     /// `sellMint`/`buyMint` com o mint do SOL embrulhado significam SOL.
     ///
     /// `reference`: o preco de mercado de fora da Jupiter. O planejador recusa o par sem
@@ -119,8 +119,8 @@ public actor SolanaPlanningService {
                 lastError = SolanaSwapError.plan(.transactionTooLarge(size))
                 continue
             }
-            let simulation = try await reader.simulate(draft.message, accounts: draft.simulationAccounts)
-            return try SolanaSwapPlanner.plan(draft, simulation: simulation)
+            let simulations = try await reader.simulateOnTwo(draft.message, accounts: draft.simulationAccounts)
+            return try SolanaSwapPlanner.plan(draft, simulations: simulations)
         }
         throw lastError
     }

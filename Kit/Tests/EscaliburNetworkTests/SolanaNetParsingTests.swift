@@ -266,3 +266,77 @@ struct SolanaNetBroadcastTests {
         #expect(!SolanaBroadcaster.reached(.processed(slot: 9), .confirmed))
     }
 }
+
+/// Tres RPCs de mentira, por host, para a simulacao em dois provedores. Cada host devolve
+/// a resposta guardada para ele, ou 503 sem resposta.
+final class SolanaSimulationStub: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) private static var answers: [String: Data] = [:]
+    nonisolated(unsafe) private static var asked: [String] = []
+    private static let lock = NSLock()
+
+    static func set(_ values: [String: Data]) { lock.withLock { answers = values; asked = [] } }
+    static var hosts: [String] { lock.withLock { asked } }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url, let client else { return }
+        let body = Self.lock.withLock { () -> Data? in
+            Self.asked.append(url.host ?? "")
+            return Self.answers[url.host ?? ""]
+        }
+        client.urlProtocol(self, didReceive: HTTPURLResponse(url: url, statusCode: body == nil ? 503 : 200, httpVersion: "HTTP/1.1", headerFields: [:])!,
+                           cacheStoragePolicy: .notAllowed)
+        if let body { client.urlProtocol(self, didLoad: body) }
+        client.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@Suite("Solana rede: simulacao da troca em dois provedores", .serialized)
+struct SolanaNetSimulationTests {
+    static let hosts = ["rpc-a.test", "rpc-b.test", "rpc-c.test"]
+
+    static func reader() -> SolanaNetworkReader {
+        SolanaNetworkReader(
+            client: HTTPClient(protocolClasses: [SolanaSimulationStub.self], allowedHosts: Set(hosts)),
+            providers: hosts.map { ProviderPool.Provider(name: String($0.prefix(5)), baseURL: URL(string: "https://\($0)")!) }
+        )
+    }
+
+    /// A simulacao que diz "falharia", com as duas contas pedidas, para o caso misto.
+    static let failing = Data(#"""
+    {"jsonrpc":"2.0","id":1,"result":{"context":{"slot":1},"value":{"err":{"InstructionError":[0,{"Custom":1}]},"accounts":[null,null],"logs":[],"unitsConsumed":150}}}
+    """#.utf8)
+
+    @Test("Regressao B1: a mesma simulacao em dois provedores diferentes, cada uma com o nome de quem simulou")
+    func twoSources() async throws {
+        let ok = try N.data("simulate-swap-ok")
+        SolanaSimulationStub.set(Dictionary(uniqueKeysWithValues: Self.hosts.map { ($0, ok) }))
+        let outcomes = try await Self.reader().simulateOnTwo(base64: "AQID", accounts: [N.toly, N.tolyUSDC])
+        #expect(outcomes.map(\.source) == ["rpc-a", "rpc-b"])
+        #expect(outcomes.allSatisfy { $0.succeeded && $0.unitsConsumed == 143_739 && $0.accounts.count == 2 })
+        #expect(Set(SolanaSimulationStub.hosts) == ["rpc-a.test", "rpc-b.test"])
+    }
+
+    @Test("Regressao B1: provedor fora e trocado pelo proximo; um so respondendo nao basta")
+    func oneSourceIsNotEnough() async throws {
+        let ok = try N.data("simulate-swap-ok")
+        SolanaSimulationStub.set(["rpc-a.test": ok, "rpc-c.test": ok])
+        let outcomes = try await Self.reader().simulateOnTwo(base64: "AQID", accounts: [N.toly, N.tolyUSDC])
+        #expect(outcomes.map(\.source) == ["rpc-a", "rpc-c"])
+
+        SolanaSimulationStub.set(["rpc-b.test": ok])
+        await #expect(throws: ReaderError.notEnoughProviders(needed: 2, got: 1)) {
+            _ = try await Self.reader().simulateOnTwo(base64: "AQID", accounts: [N.toly, N.tolyUSDC])
+        }
+
+        // A simulacao que diz "falharia" e resposta, nao falha do provedor: chega ao
+        // planejador, que recusa a troca.
+        SolanaSimulationStub.set(["rpc-a.test": ok, "rpc-b.test": Self.failing])
+        let mixed = try await Self.reader().simulateOnTwo(base64: "AQID", accounts: [N.toly, N.tolyUSDC])
+        #expect(mixed.map(\.succeeded) == [true, false] && mixed.map(\.source) == ["rpc-a", "rpc-b"])
+    }
+}

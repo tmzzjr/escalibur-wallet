@@ -30,6 +30,14 @@ public struct Quote: Sendable, Hashable, Codable {
     public let change24h: Double?
 }
 
+/// Uma cotacao com a hora em que a fonte respondeu. Com as fontes fora, `quotes` devolve
+/// o ultimo preco bom, que pode ser de horas atras: quem decide alguma coisa pelo preco
+/// (a referencia das trocas) precisa da idade dele.
+public struct DatedQuote: Sendable, Hashable {
+    public let quote: Quote
+    public let fetchedAt: Date
+}
+
 public enum ChartRange: String, CaseIterable, Sendable, Identifiable {
     case day, week, month, year, all
 
@@ -226,28 +234,47 @@ public actor MarketService {
     /// chamada so. Se as duas fontes falham, o id volta com o ultimo preco bom (a
     /// carteira nao perde o preco de uma moeda por uma consulta que falhou).
     public func quotes(ids: [String], currency: String) async throws -> [String: Quote] {
+        try await datedQuotes(ids: ids, currency: currency).mapValues(\.quote)
+    }
+
+    /// As mesmas cotacoes, com a hora de cada uma: a do cache, a da resposta de agora ou a
+    /// do ultimo preco bom. `maxAge`: o que for mais velho fica de fora, inclusive o
+    /// ultimo preco bom; sem nenhum novo o bastante, erro, como sem rede.
+    public func datedQuotes(ids: [String], currency: String, maxAge: TimeInterval? = nil) async throws -> [String: DatedQuote] {
         let unique = Array(Set(ids)).sorted()
         guard !unique.isEmpty else { return [:] }
         let moment = now()
         let known = prices[currency] ?? [:]
-        var out: [String: Quote] = [:]
+        var out: [String: DatedQuote] = [:]
         var missing: [String] = []
         for id in unique {
-            if let entry = known[id], moment.timeIntervalSince(entry.at) < Self.quoteLifetime { out[id] = entry.quote } else { missing.append(id) }
+            if let entry = known[id], moment.timeIntervalSince(entry.at) < Self.quoteLifetime {
+                out[id] = DatedQuote(quote: entry.quote, fetchedAt: entry.at)
+            } else {
+                missing.append(id)
+            }
         }
-        guard !missing.isEmpty else { return out }
-        var fetched: [String: Quote]?
-        do {
-            fetched = try await fromGecko { try await self.geckoQuotes(ids: missing, currency: currency) }
-        } catch {
-            fetched = try? await paprikaQuotes(ids: missing, currency: currency)
+        if !missing.isEmpty {
+            var fetched: [String: Quote]?
+            do {
+                fetched = try await fromGecko { try await self.geckoQuotes(ids: missing, currency: currency) }
+            } catch {
+                fetched = try? await paprikaQuotes(ids: missing, currency: currency)
+            }
+            if let fetched, !fetched.isEmpty {
+                remember(fetched, currency: currency)
+                let stored = prices[currency] ?? [:]
+                for id in fetched.keys {
+                    if let entry = stored[id] { out[id] = DatedQuote(quote: entry.quote, fetchedAt: entry.at) }
+                }
+            }
+            for id in missing where out[id] == nil {
+                if let stale = known[id] { out[id] = DatedQuote(quote: stale.quote, fetchedAt: stale.at) }
+            }
         }
-        if let fetched, !fetched.isEmpty {
-            remember(fetched, currency: currency)
-            out.merge(fetched) { $1 }
-        }
-        for id in missing where out[id] == nil {
-            if let stale = known[id] { out[id] = stale.quote }
+        if let maxAge {
+            let current = now()
+            out = out.filter { current.timeIntervalSince($0.value.fetchedAt) < maxAge }
         }
         guard !out.isEmpty else { throw HTTPClient.Failure.offline }
         return out

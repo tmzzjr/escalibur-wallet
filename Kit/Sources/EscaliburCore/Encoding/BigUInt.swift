@@ -51,11 +51,23 @@ public struct BigUInt: Hashable, Comparable, Sendable, CustomStringConvertible {
         self.init(limbs: out)
     }
 
-    /// Texto decimal estrito: so digitos, sem sinal, sem espaco.
+    /// Teto de digitos significativos do texto decimal: 2^256 tem 78. Cada digito
+    /// multiplica o numero inteiro por 10, entao o custo cresce com o quadrado do
+    /// tamanho: sem teto, um provedor hostil que mande um numero de 4 MB (cabe no corte
+    /// da resposta) congela o app por minutos.
+    public static let maxDecimalDigits = 78
+
+    /// Texto decimal estrito: so digitos, sem sinal, sem espaco, e no maximo
+    /// `maxDecimalDigits` digitos depois dos zeros a esquerda (que nao custam nada).
     public init?(decimal text: String) {
-        guard !text.isEmpty, text.utf8.allSatisfy({ $0 >= 0x30 && $0 <= 0x39 }) else { return nil }
+        // Zeros a esquerda primeiro: o teto vale para o que sobra, e um texto acima dele
+        // nem chega a ser percorrido.
+        let significant = text.utf8.drop { $0 == 0x30 }
+        guard !text.isEmpty, significant.count <= Self.maxDecimalDigits,
+              significant.allSatisfy({ $0 >= 0x30 && $0 <= 0x39 })
+        else { return nil }
         var value = BigUInt()
-        for c in text.utf8 {
+        for c in significant {
             value = value.multiplied(bySmall: 10).adding(small: UInt32(c - 0x30))
         }
         self = value

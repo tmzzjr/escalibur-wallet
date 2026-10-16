@@ -119,6 +119,25 @@ struct EncodingTests {
         #expect(BigUInt(decimal: "-1") == nil)
         #expect(BigUInt(decimal: "1.5") == nil)
     }
+
+    @Test("BigUInt: ate 78 digitos significativos; um numero de 1 MB e recusado na hora")
+    func bigUIntDigitCap() {
+        // 2^256 - 1 tem 78 digitos e passa; 79 digitos ja passam de 2^256.
+        #expect(BigUInt(decimal: String(repeating: "9", count: 78)) != nil)
+        #expect(BigUInt(decimal: String(repeating: "9", count: 79)) == nil)
+        // Zero a esquerda nao custa nada e nao conta.
+        #expect(BigUInt(decimal: String(repeating: "0", count: 200) + "42") == BigUInt(42))
+        #expect(BigUInt(decimal: String(repeating: "0", count: 200)) == BigUInt())
+        #expect(BigUInt(decimal: "") == nil)
+        #expect(BigUInt(decimal: String(repeating: "0", count: 200) + "x") == nil)
+        // Sem o teto, cada digito multiplicava o numero inteiro por 10: 1 MB de noves
+        // levava minutos. Com ele, a recusa nao percorre o texto.
+        let huge = String(repeating: "9", count: 1_000_000)
+        var refused = false
+        let elapsed = ContinuousClock().measure { refused = BigUInt(decimal: huge) == nil }
+        #expect(refused)
+        #expect(elapsed < .milliseconds(50))
+    }
 }
 
 @Suite("BIP-39")

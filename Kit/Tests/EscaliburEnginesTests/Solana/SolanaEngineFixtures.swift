@@ -311,7 +311,7 @@ actor RecordedSolanaNetwork: SolanaEngineNetwork {
             walletID: walletID, owner: owner, intent: intent, proposal: proposal, lookupTables: tables, accounts: accounts,
             network: try F.state(balance: balance)
         )
-        return try SolanaSwapPlanner.plan(draft, simulation: Self.honestSimulation(draft))
+        return try SolanaSwapPlanner.plan(draft, simulations: Self.both(Self.honestSimulation(draft)))
     }
 
     /// Uma simulacao que mostra exatamente o que a rota promete nas contas do dono.
@@ -338,6 +338,13 @@ actor RecordedSolanaNetwork: SolanaEngineNetwork {
             ))
         }
         return SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts)
+    }
+
+    /// A mesma simulacao de dois provedores, como o `simulateOnTwo` entrega.
+    static func both(_ outcome: SolanaSimulationOutcome) -> [SolanaSimulationOutcome] {
+        ["publicnode", "solana"].map {
+            SolanaSimulationOutcome(error: outcome.error, unitsConsumed: outcome.unitsConsumed, accounts: outcome.accounts, logs: outcome.logs, source: $0)
+        }
     }
 
     // MARK: Transmissao

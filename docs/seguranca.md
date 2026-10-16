@@ -528,7 +528,7 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
   - Resultado esperado: sai exatamente amountIn do token vendido (mais gás), entra pelo menos minOut do token comprado.
   - Nenhum `Approval` ou `ApprovalForAll` do usuário além do esperado.
   - Provedores divergindo, ou revert, bloqueiam.
-- **Solana**: `simulateTransaction` com `accounts` das contas de token do usuário.
+- **Solana**: `simulateTransaction` com `accounts` das contas de token do usuário, em 2 RPCs de operadores diferentes; os dois precisam confirmar o efeito, e o limite de CU sai do maior consumo.
 - **XRPL**: `simulate` (rippled 2.4.0+).
 - **Stellar clássica**: só validação local.
 - Sem simulação disponível, envio simples continua funcionando, mas swap, approve e ordem ficam bloqueados.
@@ -700,6 +700,7 @@ Limites:
 - **Nonce e sequence**: 2 ou mais provedores concordando. Se divergirem, usa o registro local de envios; se ainda assim não fechar, bloqueia.
 - **Saldo**: mostra quando 2 concordam; se não, mostra "divergente" com os dois valores.
 - **Taxa**: mediana, com teto.
+- **Bloco das leituras EVM concordantes** (saldo, código, `balanceOf`, `allowance`, casas): a menor ponta de 2 provedores, menos o recuo da rede; pontas a mais de 3 recuos uma da outra (uns 30 s de blocos) bloqueiam.
 - **Recebimento "confirmado"**: 2 provedores mais N confirmações. Recibo falso é golpe comum em negociação P2P.
 - **Tabelas de lookup da Solana e registro do Settler da 0x**: 2 provedores.
 - **Privacidade**: consulta endereço por endereço, **nunca xpub** para provedor. Mandar a xpub entrega a carteira inteira.
@@ -858,6 +859,10 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
 | 23 | Backup | o store cria o diretório com `isExcludedFromBackup = true`, e o autoteste confere via `resourceValues` |
 | 24 | Determinismo | `__DATE__\|__TIME__\|__TIMESTAMP__` no C falha; `xcodebuild -version` igual a `.xcode-version` |
 | 25 | Vetores | testes unitários de BIP-39/32/84, SLIP-10, EIP-55/155/712, Keccak, RIPEMD, bech32, XRPL, strkey e Solana, mais os fixtures de envelope nos dois sentidos com `decifrar.py` |
+| 26 | Só Swift fora do C vendorizado | as regras de código leem só `.swift`, e a pasta do app inteira é fonte do alvo: `find App Kit/Sources Kit/Tests` por `*.m *.mm *.c *.cc *.cpp *.cxx *.c++ *.s *.asm *.h *.hh *.hpp *.hxx *.inc *.modulemap *.metal` fora de `Kit/Sources/CArgon2` e `Kit/Sources/CSecp256k1` falha; `.metal` só pela lista `metal_permitidos` do script (hoje vazia) |
+| 27 | Build sem código de fora | no pbxproj, `PBXShellScriptBuildPhase\|shellScript\|PBXBuildRule\|OTHER_LDFLAGS\|OTHER_LIBTOOLFLAGS\|-Xlinker` falha, e framework, `.a`, `.dylib` ou `.tbd` fora de `sourceTree = SDKROOT` falha; no esquema, `ShellScriptAction\|<PreActions\|<PostActions`; no `project.yml`, `preBuildScripts\|postCompileScripts\|postBuildScripts\|buildRules\|buildToolPlugins\|preActions\|postActions\|OTHER_LDFLAGS` e dependência `framework:`, `carthage:` ou `bundle:`; no `Package.swift`, `linkerSettings\|unsafeFlags\|.plugin(\|plugins:\|.systemLibrary(` |
+| 28 | Argumento de inicialização só em depuração | `ProcessInfo.processInfo.arguments\|ProcessInfo().arguments\|CommandLine.arguments\|unsafeArgv\|argc` em `App/EscaliburWallet`, `App/Shared` e `App/EscaliburWidgets` fora de `#if DEBUG` falha (o mesmo `awk` da regra do `DebugDemo`; `#else` e `#elseif` fecham o bloco) |
+| 29 | `DEBUG` só na configuração Debug | no pbxproj, `DEBUG` em `SWIFT_ACTIVE_COMPILATION_CONDITIONS\|GCC_PREPROCESSOR_DEFINITIONS\|OTHER_SWIFT_FLAGS\|OTHER_CFLAGS` de outra configuração falha: com ele no Release, todo `#if DEBUG` iria para a loja e as regras 28 e a do `DebugDemo` não protegeriam nada |
 
 A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção precisa de uma linha justificando num arquivo de allowlist, revisado.
 
