@@ -231,15 +231,26 @@ struct AddressPoisoningTests {
         #expect(AddressPoisoning.sameAccountOtherID(base, tag: "7654321", among: [mine], chain: .stellar) == mineKnown)
         #expect(AddressPoisoning.sameAccountOtherID(base, tag: "1234567", among: [mine], chain: .stellar) == nil)
 
-        // Para seguir: o numero do ID, ou os 6 ultimos do endereco, nunca o trecho que a
-        // tela mostra do conhecido.
+        // Para seguir: o numero do ID, em qualquer algarismo do teclado, ou os 6 ultimos do
+        // endereco, nunca o que a tela mostra do conhecido.
         #expect(AddressPoisoning.muxedIDConfirmed("7654321", address: attacker))
         #expect(AddressPoisoning.muxedIDConfirmed(" 7 654 321 ", address: attacker))
-        #expect(AddressPoisoning.muxedIDConfirmed(String(attacker.suffix(6)).lowercased(), address: attacker))
+        #expect(AddressPoisoning.muxedIDConfirmed("٧٦٥٤٣٢١", address: attacker))  // arabicos orientais
+        #expect(AddressPoisoning.muxedIDConfirmed("۷۶۵۴۳۲۱", address: attacker))  // persas
+        #expect(AddressPoisoning.muxedIDConfirmed("७६५४३२१", address: attacker))  // devanagari
+        #expect(!AddressPoisoning.muxedIDConfirmed("+7654321", address: attacker))
+        #expect(!AddressPoisoning.muxedIDConfirmed("7654321²", address: attacker))
         #expect(!AddressPoisoning.muxedIDConfirmed("1234567", address: attacker))
         #expect(!AddressPoisoning.muxedIDConfirmed(String(mine.suffix(6)), address: attacker))
         #expect(!AddressPoisoning.muxedIDConfirmed("", address: attacker))
         #expect(!AddressPoisoning.muxedIDConfirmed("0", address: base))
+        #expect(AddressPoisoning.idConfirmed("٠٠١٢", id: 12) && !AddressPoisoning.idConfirmed("12a", id: 12))
+        // Os 6 ultimos do colado tambem valem, mas so porque nao estao na tela: o trecho
+        // escondido do ID vai ate o fim do endereco e os cobre, e o campo do endereco colado
+        // some enquanto o desafio esta na tela (SendModel.challengeOnScreen, no App).
+        #expect(AddressPoisoning.muxedIDConfirmed(String(attacker.suffix(6)).lowercased(), address: attacker))
+        let hidden = try #require(AddressPoisoning.muxedIDSegment(attacker))
+        #expect(hidden.start + hidden.length == attacker.count && hidden.length >= 6)
 
         // Sem historico, o trecho escondido de um M e o fim (o meio e a chave, igual nos dois).
         let middle = try #require(AddressPoisoning.middleSegment(attacker))

@@ -198,17 +198,38 @@ public enum AddressPoisoning {
 
     /// O dono confirmou o ID de um M com a mesma conta de um conhecido: digitou o numero
     /// do ID que quem vai receber mostra, ou os 6 ultimos caracteres do endereco, lidos onde
-    /// ele foi copiado. Na tela os dois ficam escondidos, para a resposta nao sair dela
-    /// (revisao do B-6).
+    /// ele foi copiado (revisao do B-6).
+    ///
+    /// Os 6 ultimos so valem como resposta porque nenhum dos dois esta na tela enquanto o
+    /// desafio esta: o trecho do ID do colado (que inclui os 6 ultimos) vem escondido, e o
+    /// campo do endereco colado some ate o dono apertar "Editar", que desfaz o desafio.
     public static func muxedIDConfirmed(_ typed: String, address: String) -> Bool {
         let text = address.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let id = muxedAccount(text)?.id else { return false }
+        if idConfirmed(typed, id: id) { return true }
         let answer = typed.filter { !$0.isWhitespace }
-        if let number = UInt64(answer), number == id { return true }
         return answer.count == muxedTailLength && answer.uppercased() == String(text.suffix(muxedTailLength)).uppercased()
     }
 
     static let muxedTailLength = 6
+
+    /// O numero digitado e `id`. Vale com espacos e com os algarismos do teclado do idioma
+    /// (arabicos orientais, persas, devanagari), que viram 0 a 9.
+    public static func idConfirmed(_ typed: String, id: UInt64) -> Bool {
+        guard let digits = asciiDigits(typed), let number = UInt64(digits) else { return false }
+        return number == id
+    }
+
+    /// Os algarismos de `text` em 0 a 9, sem os espacos; `nil` se houver qualquer outra coisa.
+    static func asciiDigits(_ text: String) -> String? {
+        var out = ""
+        for scalar in text.unicodeScalars where !scalar.properties.isWhitespace {
+            guard scalar.properties.numericType == .decimal, let value = scalar.properties.numericValue,
+                  let digit = Int(exactly: value), (0...9).contains(digit) else { return nil }
+            out += String(digit)
+        }
+        return out.isEmpty ? nil : out
+    }
 
     /// O trecho que o dono digita lendo na fonte, quando nao ha com o que comparar: os 6 do
     /// meio do endereco. Num M da Stellar o meio ainda e a chave, igual em todo M da mesma

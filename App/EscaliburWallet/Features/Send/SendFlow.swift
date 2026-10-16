@@ -132,6 +132,32 @@ final class SendModel {
         return typed.count == segment.length && typed == segment.text(in: address).lowercased()
     }
 
+    /// Um desafio do destino esta na tela (parecido, ID trocado, ou o trecho escondido sem
+    /// historico): o campo do endereco colado some e fica so leitura, porque a resposta se
+    /// leria nele, o M inteiro em ate tres linhas (segunda revisao dos enderecos parecidos).
+    /// "Editar" desfaz o desafio e devolve o campo.
+    var challengeOnScreen: Bool {
+        destination != nil && (lookalike != nil || otherID != nil || blindSegment != nil)
+    }
+
+    /// O dono quer mudar o endereco com um desafio na tela: o campo volta vazio, e o desafio
+    /// sai junto com o endereco. A tag de antes tambem sai: ela era do destino de antes
+    /// (revisao da auditoria 4, B-1).
+    func editDestination() {
+        destinationText = ""
+        destination = nil
+        linkProblem = nil
+        lookalike = nil
+        lookalikeSegment = nil
+        lookalikeCheck = ""
+        otherID = nil
+        otherIDCheck = ""
+        blindSegment = nil
+        blindCheck = ""
+        tagText = ""
+        linkTag = nil
+    }
+
     /// Endereco M da Stellar: o id do cliente ja vai nele, e um memo junto seria um
     /// segundo id disputando o credito (o planejador recusa memo ID com M).
     var isMuxedStellar: Bool {
@@ -440,37 +466,41 @@ struct SendStages: View {
             VStack(alignment: .leading, spacing: 0) {
                 header
                 Text("Para").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
-                TextField("", text: $model.destinationText, prompt: Text("Endereço").foregroundColor(Palette.inkDead), axis: .vertical)
-                    .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .lineLimit(1...3)
-                    .onChange(of: model.destinationText) { _, _ in validate() }
-                    .padding(Space.md)
-                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
-                    .padding(.top, Space.xs)
-                HStack(spacing: Space.xs) {
-                    PasteButton(payloadType: String.self) { strings in
-                        Task { @MainActor in apply(PaymentURI.read(strings.first ?? "")) }
-                    }
-                    .labelStyle(.titleOnly).tint(Palette.rail).buttonBorderShape(.capsule)
-                    Button { scanning = true } label: {
-                        Label("Ler QR", systemImage: "qrcode.viewfinder").typeStyle(.label)
-                            .padding(.horizontal, Space.sm).frame(height: 34)
-                            .background(Capsule(style: .continuous).fill(Palette.rail))
-                    }
-                    .foregroundStyle(Palette.ink)
-                    if session.metadata.wallets.count > 1 {
-                        Button { pickingWallet = true } label: {
-                            Label("Minhas carteiras", systemImage: "wallet.bifold").typeStyle(.label)
+                if model.challengeOnScreen {
+                    HiddenAddressField { model.editDestination() }
+                        .padding(.top, Space.xs)
+                } else {
+                    TextField("", text: $model.destinationText, prompt: Text("Endereço").foregroundColor(Palette.inkDead), axis: .vertical)
+                        .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .lineLimit(1...3)
+                        .padding(Space.md)
+                        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+                        .padding(.top, Space.xs)
+                    HStack(spacing: Space.xs) {
+                        PasteButton(payloadType: String.self) { strings in
+                            Task { @MainActor in apply(PaymentURI.read(strings.first ?? "")) }
+                        }
+                        .labelStyle(.titleOnly).tint(Palette.rail).buttonBorderShape(.capsule)
+                        Button { scanning = true } label: {
+                            Label("Ler QR", systemImage: "qrcode.viewfinder").typeStyle(.label)
                                 .padding(.horizontal, Space.sm).frame(height: 34)
                                 .background(Capsule(style: .continuous).fill(Palette.rail))
                         }
                         .foregroundStyle(Palette.ink)
-                        .accessibilityIdentifier("minhas-carteiras")
+                        if session.metadata.wallets.count > 1 {
+                            Button { pickingWallet = true } label: {
+                                Label("Minhas carteiras", systemImage: "wallet.bifold").typeStyle(.label)
+                                    .padding(.horizontal, Space.sm).frame(height: 34)
+                                    .background(Capsule(style: .continuous).fill(Palette.rail))
+                            }
+                            .foregroundStyle(Palette.ink)
+                            .accessibilityIdentifier("minhas-carteiras")
+                        }
                     }
+                    .padding(.top, Space.xs)
                 }
-                .padding(.top, Space.xs)
 
                 validationLine.padding(.top, Space.sm)
                 optionalTag.id("tag-opcional")
@@ -527,6 +557,9 @@ struct SendStages: View {
                 contacts.padding(.top, Space.lg)
             }
             .padding(.bottom, Space.lg)
+            // Na pilha, e nao no campo: o campo some com um desafio na tela, e o "Editar"
+            // que o devolve vazio tem de validar de novo.
+            .onChange(of: model.destinationText) { _, _ in validate() }
         }
         .scrollDismissesKeyboard(.interactively)
         // Com o teclado aberto, o Continuar cobria a tag opcional logo abaixo do endereco
@@ -561,8 +594,11 @@ struct SendStages: View {
         } else if let destination = model.destination, let chain = model.chain {
             VStack(alignment: .leading, spacing: 2) {
                 // O endereco como ele vai para a transacao, com o comeco e o fim marcados
-                // para conferir contra a origem.
-                AddressBlocks(address: destination.address).padding(.bottom, Space.xxs)
+                // para conferir contra a origem. Com um desafio na tela, ele some com o campo:
+                // o fim do ID e o trecho escondido se leriam aqui.
+                if !model.challengeOnScreen {
+                    AddressBlocks(address: destination.address).padding(.bottom, Space.xxs)
+                }
                 Text(KnownExchanges.name(for: destination.address).map { String(localized: "\($0), endereço de depósito") }
                      ?? (chain.id == "xrpl" ? String(localized: "Endereço do \(chain.name)") : String(localized: "Endereço da \(chain.name)")))
                     .typeStyle(.note).foregroundStyle(Palette.up)
@@ -1715,6 +1751,37 @@ struct MarkedAddress: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.disabled)
         }
+    }
+}
+
+/// O campo do endereco (ou do memo) colado enquanto um desafio esta na tela: escondido e so
+/// leitura, porque a resposta se leria nele. "Editar" desfaz o desafio e devolve o campo,
+/// vazio (segunda revisao dos enderecos parecidos).
+struct HiddenAddressField: View {
+    var fill: Color = Palette.body
+    var buttonFill: Color = Palette.rail
+    var identifier = "editar-endereco"
+    let edit: () -> Void
+
+    var body: some View {
+        HStack(spacing: Space.sm) {
+            Image(systemName: "eye.slash").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+            Text(String(localized: "Escondido enquanto você confere"))
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: Space.xs)
+            Button(action: edit) {
+                Text(String(localized: "Editar")).typeStyle(.label).foregroundStyle(Palette.ink)
+                    .padding(.horizontal, Space.sm).frame(height: 34)
+                    .background(Capsule(style: .continuous).fill(buttonFill))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(identifier)
+        }
+        .padding(.leading, Space.md).padding(.trailing, Space.xs).padding(.vertical, Space.xs)
+        .frame(minHeight: Height.field)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(fill)
+            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
     }
 }
 

@@ -114,6 +114,11 @@ struct AddContactSheet: View {
     /// A rede que o QR lido disse: trocar a rede depois nao leva o endereco junto, nem a
     /// sugestao de outra rede aparece para ele (revisao dos baixos, B1).
     @State private var linkReading: PaymentURI.Reading?
+    /// Contato G com um memo que e numero e bate com outra conta conhecida (a mesma conta,
+    /// outro ID): aparece ao tocar em Salvar, e o dono digita o memo lido na fonte (segunda
+    /// revisao do B-6). Ao vivo, ele esconderia o campo do memo no primeiro algarismo.
+    @State private var memoConflict: AddressPoisoning.SameAccount?
+    @State private var memoCheck = ""
 
     private var trimmed: String { address.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var validation: Result<Address.Destination, Address.Problem> { Address.validate(trimmed, for: chain) }
@@ -150,6 +155,25 @@ struct AddContactSheet: View {
         return AddressPoisoning.sameAccountOtherID(destination.address, among: known,
                                                    tagged: SendStages.taggedContacts(chain, session: session), chain: chain)
     }
+
+    /// O memo do contato contra os conhecidos: so de um G, com memo que e numero, e o par
+    /// (conta, memo) com a conta de um conhecido e outro ID.
+    private var memoOtherID: AddressPoisoning.SameAccount? {
+        guard lookalike == nil, otherID == nil, let destination, chain.family == .stellar, !tag.isEmpty,
+              StellarMuxedAccount(address: destination.address)?.isMuxed == false else { return nil }
+        return AddressPoisoning.sameAccountOtherID(destination.address, tag: tag, among: known,
+                                                   tagged: SendStages.taggedContacts(chain, session: session), chain: chain)
+    }
+
+    private var memoConfirmed: Bool {
+        guard memoConflict != nil else { return true }
+        guard let id = UInt64(tag.trimmingCharacters(in: .whitespaces)) else { return false }
+        return AddressPoisoning.idConfirmed(memoCheck, id: id)
+    }
+
+    /// Com um desafio na tela, o campo do endereco some: a resposta (o trecho escondido, o
+    /// fim do ID) se leria nele (segunda revisao dos enderecos parecidos).
+    private var challengeOnScreen: Bool { destination != nil && (otherID != nil || segment != nil) }
 
     /// O trecho que o dono digita: onde difere do parecido, ou um trecho escondido do
     /// endereco como foi colado (a forma que esta na fonte, nao a normalizada): o meio, ou
@@ -191,36 +215,43 @@ struct AddContactSheet: View {
                     }
                     labeled(String(localized: "Endereço")) {
                         VStack(alignment: .leading, spacing: Space.xs) {
-                            HStack(spacing: Space.xs) {
-                                TextField("", text: $address, prompt: Text("Cole ou escaneie").foregroundColor(Palette.inkDead), axis: .vertical)
-                                    .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
-                                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                                    .lineLimit(1...3)
-                                PasteButton(payloadType: String.self) { strings in
-                                    Task { @MainActor in
-                                        let text = strings.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                                        if PhraseGuard.looksLikePhrase(text) {
-                                            address = ""
-                                            qrProblem = PhraseGuard.message
-                                        } else {
-                                            address = text
+                            if challengeOnScreen {
+                                HiddenAddressField(fill: Palette.rail, buttonFill: Palette.control, identifier: "contato-editar-endereco") {
+                                    address = ""
+                                    tag = ""
+                                }
+                            } else {
+                                HStack(spacing: Space.xs) {
+                                    TextField("", text: $address, prompt: Text("Cole ou escaneie").foregroundColor(Palette.inkDead), axis: .vertical)
+                                        .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                        .lineLimit(1...3)
+                                    PasteButton(payloadType: String.self) { strings in
+                                        Task { @MainActor in
+                                            let text = strings.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                                            if PhraseGuard.looksLikePhrase(text) {
+                                                address = ""
+                                                qrProblem = PhraseGuard.message
+                                            } else {
+                                                address = text
+                                            }
                                         }
                                     }
+                                    .labelStyle(.iconOnly)
+                                    .buttonBorderShape(.circle)
+                                    .tint(Palette.control)
+                                    Button { scanning = true } label: {
+                                        Image(systemName: "qrcode.viewfinder").font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.ink)
+                                            .frame(width: 36, height: 36).background(Circle().fill(Palette.control))
+                                    }
+                                    .accessibilityLabel("Escanear QR")
                                 }
-                                .labelStyle(.iconOnly)
-                                .buttonBorderShape(.circle)
-                                .tint(Palette.control)
-                                Button { scanning = true } label: {
-                                    Image(systemName: "qrcode.viewfinder").font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.ink)
-                                        .frame(width: 36, height: 36).background(Circle().fill(Palette.control))
-                                }
-                                .accessibilityLabel("Escanear QR")
+                                .padding(.leading, Space.md).padding(.trailing, Space.xs).padding(.vertical, Space.xs)
+                                .frame(minHeight: Height.field)
+                                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail)
+                                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                                        .stroke(isValid ? Palette.up.opacity(0.6) : Color.clear, lineWidth: 1)))
                             }
-                            .padding(.leading, Space.md).padding(.trailing, Space.xs).padding(.vertical, Space.xs)
-                            .frame(minHeight: Height.field)
-                            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail)
-                                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                                    .stroke(isValid ? Palette.up.opacity(0.6) : Color.clear, lineWidth: 1)))
                             if let suggestion {
                                 Button { chain = suggestion } label: {
                                     HStack(spacing: Space.xs) {
@@ -250,11 +281,22 @@ struct AddContactSheet: View {
                     }
                     if chain.destinationTag != .none {
                         labeled(chain.destinationTag == .stellarMemo ? String(localized: "Memo, se houver") : String(localized: "Tag de destino, se houver")) {
-                            TextField("", text: $tag)
-                                .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
-                                .textInputAutocapitalization(.never).autocorrectionDisabled()
-                                .padding(.horizontal, Space.md).frame(height: Height.field)
-                                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
+                            if memoConflict != nil {
+                                HiddenAddressField(fill: Palette.rail, buttonFill: Palette.control, identifier: "contato-editar-memo") {
+                                    tag = ""
+                                    memoConflict = nil
+                                    memoCheck = ""
+                                }
+                            } else {
+                                TextField("", text: $tag)
+                                    .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                    .padding(.horizontal, Space.md).frame(height: Height.field)
+                                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
+                            }
+                        }
+                        if let memoConflict {
+                            memoSourceCheck(memoConflict)
                         }
                     }
                 }
@@ -263,7 +305,9 @@ struct AddContactSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom) {
                 ActionFooter {
-                    PrimaryButton(title: String(localized: "Salvar"), enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && isValid && checked) { Task { await save() } }
+                    PrimaryButton(title: String(localized: "Salvar"), enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && isValid && checked && memoConfirmed) {
+                        Task { await save() }
+                    }
                 }
             }
             .background(Palette.body.ignoresSafeArea())
@@ -271,11 +315,13 @@ struct AddContactSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: trimmed) { _, new in
                 check = ""
+                memoConflict = nil
                 if !new.isEmpty { qrProblem = nil }
                 if new != linkReading?.address { linkReading = nil }
             }
             .onChange(of: chain) { _, new in
                 check = ""
+                memoConflict = nil
                 // O endereco que veio de um QR de outra rede nao fica para a rede nova.
                 if let reading = linkReading, let problem = PaymentURI.networkProblem(reading, chain: new) {
                     address = ""
@@ -334,6 +380,27 @@ struct AddContactSheet: View {
         }
     }
 
+    /// O memo que bate com outra conta conhecida: o conhecido a vista, com o ID dele, e o
+    /// memo do contato escondido, para o dono digitar o que le na fonte.
+    private func memoSourceCheck(_ conflict: AddressPoisoning.SameAccount) -> some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Banner(kind: .caution, title: String(localized: "Mesma conta de um endereço que você já usou, com outro ID"),
+                   message: String(localized: "Confira o ID com quem vai receber."))
+            MarkedAddress(label: String(localized: "\(KnownAddress.label(conflict.known, chain: chain, session: session)) · ID \(String(conflict.knownID))"),
+                          address: conflict.known, segment: AddressPoisoning.muxedIDSegment(conflict.known))
+            Text(String(localized: "Para seguir, digite o memo que quem vai receber mostra, lendo onde você o copiou."))
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField("", text: $memoCheck, prompt: Text(String(localized: "Memo")).foregroundColor(Palette.inkDead))
+                .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .padding(Space.sm)
+                .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(Palette.rail))
+                .frame(maxWidth: 220, alignment: .leading)
+                .accessibilityIdentifier("contato-conferir-memo")
+        }
+    }
+
     private func labeled<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text(label).typeStyle(.note).foregroundStyle(Palette.inkSoft)
@@ -345,7 +412,14 @@ struct AddContactSheet: View {
     /// na conferencia de endereco parecido. Por isso gravar pede Face ID ou PIN, como
     /// qualquer operacao que muda para onde o dinheiro pode ir.
     private func save() async {
-        guard case .success(let destination) = validation, checked else { return }
+        guard case .success(let destination) = validation, checked, memoConfirmed else { return }
+        // O memo que bate com outra conta conhecida: antes de salvar, o dono o confere na
+        // fonte, com o campo do memo escondido.
+        if memoConflict == nil, let conflict = memoOtherID {
+            memoConflict = conflict
+            memoCheck = ""
+            return
+        }
         // So rede que tem tag guarda tag (revisao da auditoria 4, B-1).
         let finalTag = chain.destinationTag == .none ? nil : (destination.tag.map(String.init) ?? (tag.isEmpty ? nil : tag))
         let title = String(name.trimmingCharacters(in: .whitespaces).prefix(40))
