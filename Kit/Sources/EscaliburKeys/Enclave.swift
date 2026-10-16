@@ -17,6 +17,10 @@ import Security
 /// - `K_bio`: `.privateKeyUsage` + `.biometryCurrentSet`. Embrulha a RK para o
 ///   caminho do Face ID. A decisao de liberar e do SEP, nao de um booleano no app, e
 ///   cadastrar um rosto novo destroi a chave em vez de abri-la.
+/// - Modo reforcado: `kand.bio` (`.biometryCurrentSet`), `kand.qualquer`
+///   (`.biometryAny`, a unica chave com essa flag, que nunca embrulha a RK, so o miolo
+///   que ainda pede o PIN) e `kand.pin.a`/`kand.pin.b` (`.applicationPassword`). As
+///   flags de cada uma saem de `SecureEnclaveWrapper.flags(for:)`.
 ///
 /// Nenhum embrulho abre fora deste aparelho: a parte privada nunca sai do SE.
 public protocol KeyWrapper: Sendable {
@@ -35,6 +39,21 @@ public protocol KeyWrapper: Sendable {
     /// Existe, nao existe, ou o SE e o chaveiro nao conseguiram dizer. "Nao sei" nunca vira
     /// "nao existe": e o que separa "o Face ID mudou" de "o iPhone esta bloqueado".
     func probeKey(_ slot: WrapSlot) -> ItemState
+    /// Abre `blob` pelo rosto, com um Face ID so, e na mesma sessao, sem interface nenhuma,
+    /// tenta abrir `watch` com a chave `watchSlot` (a vigia do modo reforcado). A recusa do
+    /// rosto lanca como `unwrap(_:slot:reason:)`; a vigia nunca lanca: diz o que viu.
+    func unwrap(_ blob: Data, slot: WrapSlot, reason: String, watching watch: Data, with watchSlot: WrapSlot) throws -> (SecureBytes, WatchResult)
+}
+
+/// O que a vigia viu na sessao do rosto que acabou de abrir a outra camada.
+public enum WatchResult: Sendable {
+    /// Abriu, sem pedir nada: o conteudo, que quem recebe zera.
+    case opened(SecureBytes)
+    /// A chave da vigia nao existe mais: o SE a destruiu quando o cadastro mudou.
+    case gone
+    /// Precisaria de interface, ou um erro que nao se classifica. Quem decide e o hash do
+    /// cadastro, e na duvida conta como troca.
+    case unknown
 }
 
 public enum WrapSlot: String, Sendable, CaseIterable {
@@ -44,14 +63,22 @@ public enum WrapSlot: String, Sendable, CaseIterable {
     case pin = "kpin"
     /// A do slot da troca de PIN em andamento.
     case pinPending = "kpin.novo"
-    /// Modo reforcado: a camada de fora do rk.and, `.biometryCurrentSet`.
+    /// Modo reforcado: a camada de fora do rk.and que acompanha o cadastro de rostos,
+    /// `.biometryCurrentSet`. A unica de fora em "Bloquear as carteiras"; a vigia em
+    /// "Esperar 24 horas".
     case hardenedBiometry = "kand.bio"
+    /// Modo reforcado: a camada de fora que sobrevive a um rosto novo, `.biometryAny`. Em
+    /// "Continuar normal" e "Esperar 24 horas". Nunca embrulha a RK: so o miolo, que ainda
+    /// pede o PIN pela `kand.pin`.
+    case hardenedBiometryAny = "kand.qualquer"
     /// Modo reforcado: a camada de dentro, `.applicationPassword` derivada do PIN. Duas
     /// geracoes que se alternam na troca de PIN; o cabecalho do rk.and diz qual vale.
     case hardenedPINA = "kand.pin.a"
     case hardenedPINB = "kand.pin.b"
 
-    public var usesBiometry: Bool { self == .biometry || self == .hardenedBiometry }
+    public var usesBiometry: Bool { [.biometry, .hardenedBiometry, .hardenedBiometryAny].contains(self) }
+    /// A chave morre quando o cadastro de rostos muda (`.biometryCurrentSet`).
+    public var followsEnrollment: Bool { self == .biometry || self == .hardenedBiometry }
     public var usesPassword: Bool { [.pin, .pinPending, .hardenedPINA, .hardenedPINB].contains(self) }
 }
 
@@ -83,11 +110,8 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
         if slot == .device, hasKey(.device) { throw EnclaveError.failed("chave do aparelho ja existe") }
         guard slot == .device || slot.usesBiometry else { throw EnclaveError.failed("o slot do PIN pede senha") }
         deleteKey(slot)
-        let flags: SecAccessControlCreateFlags = slot == .device
-            ? [.privateKeyUsage]
-            : [.privateKeyUsage, .biometryCurrentSet]
         var error: Unmanaged<CFError>?
-        guard let access = SecAccessControlCreateWithFlags(nil, KeychainStore.accessibility, flags, &error) else {
+        guard let access = SecAccessControlCreateWithFlags(nil, KeychainStore.accessibility, Self.flags(for: slot), &error) else {
             throw EnclaveError.failed("controle de acesso")
         }
         let attributes: [String: Any] = [
@@ -164,12 +188,52 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
     }
 
     public func unwrap(_ blob: Data, slot: WrapSlot, reason: String?) throws -> SecureBytes {
+        let context = Self.faceContext(reason: reason)
+        defer { context.invalidate() }
+        return try decrypt(blob, slot: slot, context: context)
+    }
+
+    /// Um Face ID, e a vigia no mesmo contexto ja avaliado, agora sem interface: nenhum
+    /// segundo rosto. Se o contexto nao servir para a outra chave, ou ela recusar sem dizer
+    /// por que, a vigia volta "nao se sabe" e quem decide e o hash do cadastro. So a chave
+    /// que o chaveiro diz que nao existe e troca certa (conferir no aparelho, §2.6).
+    public func unwrap(_ blob: Data, slot: WrapSlot, reason: String, watching watch: Data, with watchSlot: WrapSlot) throws -> (SecureBytes, WatchResult) {
+        let context = Self.faceContext(reason: reason)
+        defer { context.invalidate() }
+        let opened = try decrypt(blob, slot: slot, context: context)
+        context.interactionNotAllowed = true
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: tag(watchSlot),
+            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecReturnRef as String: true,
+            kSecUseAuthenticationContext as String: context,
+        ]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecItemNotFound { return (opened, .gone) }
+        guard status == errSecSuccess, let item else { return (opened, .unknown) }
+        let key = item as! SecKey  // swiftlint:disable:this force_cast
+        var error: Unmanaged<CFError>?
+        guard let plain = SecKeyCreateDecryptedData(key, Self.algorithm, watch as CFData, &error) else {
+            _ = error?.takeRetainedValue()
+            return (opened, .unknown)
+        }
+        return (opened, .opened(SecureBytes.consuming(plain)))
+    }
+
+    /// O contexto de um Face ID. Nenhum reuso de autenticacao: cada assinatura pede presenca
+    /// nova. Sem botao de alternativa do sistema: a alternativa e o PIN do app. Sem motivo,
+    /// nenhuma interface.
+    private static func faceContext(reason: String?) -> LAContext {
         let context = LAContext()
-        // Nenhum reuso de autenticacao: cada assinatura pede presenca nova. Sem botao
-        // de alternativa do sistema: a alternativa e o PIN do app.
         context.touchIDAuthenticationAllowableReuseDuration = 0
         context.localizedFallbackTitle = ""
         if let reason { context.localizedReason = reason } else { context.interactionNotAllowed = true }
+        return context
+    }
+
+    private func decrypt(_ blob: Data, slot: WrapSlot, context: LAContext) throws -> SecureBytes {
         let key: SecKey
         do {
             key = try privateKey(slot, context: context)
@@ -192,6 +256,19 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
 }
 
 extension SecureEnclaveWrapper {
+    /// As flags do controle de acesso de cada chave. A unica com `.biometryAny` e a
+    /// `kand.qualquer`, a camada de fora do modo reforcado que sobrevive a um rosto novo:
+    /// sozinha ela nao abre nada (por baixo, a `kand.pin` pede o PIN), e o `verificar.sh`
+    /// confere que a excecao nao sai desta linha.
+    static func flags(for slot: WrapSlot) -> SecAccessControlCreateFlags {
+        switch slot {
+        case .device: return [.privateKeyUsage]
+        case .biometry, .hardenedBiometry: return [.privateKeyUsage, .biometryCurrentSet]
+        case .hardenedBiometryAny: return [.privateKeyUsage, .biometryAny]
+        case .pin, .pinPending, .hardenedPINA, .hardenedPINB: return [.privateKeyUsage, .applicationPassword]
+        }
+    }
+
     /// O contexto com a senha de aplicativo vale para uma chamada so: na volta, a
     /// credencial e solta e o contexto invalidado, para a senha derivada do PIN nao ficar
     /// retida num objeto vivo (auditoria 4, C7-21). O mesmo que `KeychainStore` faz.
@@ -207,7 +284,7 @@ extension SecureEnclaveWrapper {
         defer { Self.release(context) }
         guard context.setCredential(password, type: .applicationPassword) else { throw EnclaveError.failed("credencial") }
         var error: Unmanaged<CFError>?
-        guard let access = SecAccessControlCreateWithFlags(nil, KeychainStore.accessibility, [.privateKeyUsage, .applicationPassword], &error) else {
+        guard let access = SecAccessControlCreateWithFlags(nil, KeychainStore.accessibility, Self.flags(for: slot), &error) else {
             throw EnclaveError.failed("controle de acesso")
         }
         let attributes: [String: Any] = [

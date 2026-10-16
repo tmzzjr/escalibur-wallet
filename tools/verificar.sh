@@ -246,8 +246,32 @@ achados=$(procurar '\.random\(|randomElement|shuffled\(\)|arc4random|drand48|\br
 secao "chaveiro e biometria"
 achados=$(swift_em "$APP" "$CORE" "$CHAINS" "$KEYS" "$NET" | xargs grep -lE 'SecItemAdd|SecItemUpdate|SecKeyCreateRandomKey' 2>/dev/null | grep -vE "$KEYS/(SecretStore|Enclave)\.swift")
 [ -n "$achados" ] && { aviso "chamada ao chaveiro fora de SecretStore/Enclave"; echo "$achados"; } || ok "chaveiro so em SecretStore.swift e Enclave.swift"
-achados=$(procurar 'AfterFirstUnlock|AccessibleAlways|kSecAttrAccessibleWhenUnlocked\b|SynchronizableAny|\.userPresence|\.devicePasscode|\.biometryAny|\.or\b|kSecAttrSynchronizable as String: kCFBooleanTrue' "$APP" "$KEYS")
-[ -n "$achados" ] && { aviso "protecao fraca de chaveiro ou biometria"; echo "$achados"; } || ok "sem userPresence, devicePasscode, biometryAny, .or, AfterFirstUnlock, WhenUnlocked sem ThisDeviceOnly"
+achados=$(procurar 'AfterFirstUnlock|AccessibleAlways|kSecAttrAccessibleWhenUnlocked\b|SynchronizableAny|\.userPresence|\.devicePasscode|\.or\b|kSecAttrSynchronizable as String: kCFBooleanTrue' "$APP" "$KEYS")
+[ -n "$achados" ] && { aviso "protecao fraca de chaveiro ou biometria"; echo "$achados"; } || ok "sem userPresence, devicePasscode, .or, AfterFirstUnlock, WhenUnlocked sem ThisDeviceOnly"
+# O .biometryAny tem uma excecao so: a kand.qualquer, a camada de fora do modo reforcado que
+# sobrevive a um rosto novo (docs/seguranca.md §2.6), na linha dela em flags(for:) do
+# Enclave.swift. Ela nunca abre nada sozinha: o unico embrulho com ela e o do miolo (que ainda
+# pede o PIN pela kand.pin), no construtor do registro, e o app nem a nomeia.
+excecao_any=$(awk '/static func flags\(for slot: WrapSlot\)/{f=1} f&&/^    }$/{f=0} f&&/^        case \.hardenedBiometryAny: return \[\.privateKeyUsage, \.biometryAny\]$/{print FILENAME":"FNR}' "$KEYS/Enclave.swift")
+achados=$(procurar '\.biometryAny' "$APP" "$KEYS")
+if [ "$(echo "$excecao_any" | sed '/^$/d' | wc -l | tr -d ' ')" != "1" ]; then
+    aviso "a excecao do .biometryAny saiu de flags(for:) da kand.qualquer"
+    echo "$achados"
+else
+    fora=$(echo "$achados" | sed '/^$/d' | grep -vF "$excecao_any:")
+    [ -n "$fora" ] && { aviso ".biometryAny fora da kand.qualquer em flags(for:)"; echo "$fora"; } || ok "biometryAny so na kand.qualquer, em flags(for:) do Enclave.swift"
+fi
+embrulho_any=$(awk '/private func buildHardenedRecord\(/{f=1} f&&/^    }$/{f=0} f&&/^            layers\[\.hardenedBiometryAny\] = try wrapper\.wrap\(middle, slot: \.hardenedBiometryAny\)$/{print FILENAME":"FNR}' "$KEYS/RootKeyVault.swift")
+achados=$(procurar 'slot: *\.hardenedBiometryAny|wrap\([^)]*\.hardenedBiometryAny' "$APP" "$KEYS")
+if [ "$(echo "$embrulho_any" | sed '/^$/d' | wc -l | tr -d ' ')" != "1" ]; then
+    aviso "o embrulho do miolo pela kand.qualquer saiu do construtor do registro"
+    echo "$achados"
+else
+    fora=$(echo "$achados" | sed '/^$/d' | grep -vF "$embrulho_any:")
+    [ -n "$fora" ] && { aviso "kand.qualquer embrulhando fora do construtor do registro"; echo "$fora"; } || ok "a kand.qualquer so embrulha o miolo, no construtor do registro"
+fi
+achados=$(procurar 'hardenedBiometryAny|kand\.qualquer' "$APP")
+[ -n "$achados" ] && { aviso "o app nomeia a kand.qualquer"; echo "$achados"; } || ok "o app nao nomeia a kand.qualquer"
 if ! grep -q 'kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly' "$KEYS/SecretStore.swift"; then aviso "WhenPasscodeSetThisDeviceOnly sumiu"; else ok "itens em WhenPasscodeSetThisDeviceOnly"; fi
 # A unica excecao (simulador) precisa estar atras de targetEnvironment(simulator).
 excecao=$(awk '/#if targetEnvironment\(simulator\)/{d=1} /#else|#endif/{d=0} /kSecAttrAccessibleWhenUnlockedThisDeviceOnly/{ if(!d) print FILENAME": "NR }' "$KEYS/SecretStore.swift")
