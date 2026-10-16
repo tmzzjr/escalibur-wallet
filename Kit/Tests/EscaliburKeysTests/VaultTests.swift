@@ -511,6 +511,39 @@ struct WalletVaultTests {
         #expect(throws: WalletVault.Failure.corrupted) { try vault.open(walletID: id, rk: try SecureBytes.random(count: 32)) }
     }
 
+    /// Um registro gravado em portugues pelo `save` de hoje: a RK e o id de
+    /// `portugueseFixture`, entropia 00112233...eeff, sem 25a palavra. O idioma vai no
+    /// codigo fixo (9). Se o enum for reordenado, ou o codigo voltar a ser a posicao em
+    /// `allCases`, a frase abre em outro idioma, e a carteira com ela (auditoria 4, C7-16).
+    static let portugueseRecord =
+        "017a09b8bd8c8f8ee0efeb035e402150ca279c42858628ba8f7672b85bf2624d0f04ef9bcdf0e517b336ab1d328fe39991747fe0ef91192fd1178241a4516f90d7"
+        + "4d1441f4d40b2de7f75c590ef7ee943657e750fe1e5503ab5790dfb4c1290b067b82883f68b47bf4debebd00f2ec09c0e3dea90874f76136add9ccf3e8b8371"
+        + "4715b13995713efda6ec07fcfb843244c3cc96736520b0e3984508aba97cadce5d5d4ccec81bc867e664084d421e20acedf7b392c7e7def4f46dc6edc331e6880"
+        + "048f22bc277fb5f7c098a89bc08e9a0621a40e916cb8fe7867f12bcffbe2535036e422e1d71b2b2a8b665a53ecccd9cb2c7a8cbdc905c5cb96f239326d193938"
+        + "49bb0b29957773797214d180d27982cc9d89076453837377b9f5f120778f602cc985bb64eabd299bd3b62210dda3f4aa30c5e6cb2e51906631ba98c0d0381ae535"
+        + "0c68a3002c78a54ff58a66679e23572ceb7a56b19bacf49d54a36ebd975b3be613410f4a24e401edf70b9e70ec1c6591a076ffdb491c4909222c56463d7ecd518"
+        + "4296d52ef6879df0c5dd97bc461b15e39841dd350866ecf4dc26ce59b9336379586aa88002deb82d91e1a76d72a82847bfeb3c630bd8dcbd90b0e4bc9b857"
+
+    @Test("Regressao C7-16: registro gravado em portugues abre em portugues, com a mesma frase")
+    func portugueseFixture() throws {
+        let store = MemoryStore()
+        let id = try #require(UUID(uuidString: "5C7E6B0A-9D2F-4E31-8A4B-2F1D0C9E8B7A"))
+        let blob = try #require(Hex.decode(Self.portugueseRecord))
+        try store.add(Data(blob), account: WalletVault.account(id), protection: .standard, context: nil)
+        let rk = SecureBytes(capacity: 32)
+        rk.replaceAll(with: (0..<32).map { UInt8($0) &* 7 &+ 3 })
+        defer { rk.wipe() }
+        let secret = try WalletVault(store: store).open(walletID: id, rk: rk)
+        defer { secret.wipe() }
+        #expect(secret.language == .portuguese)
+        #expect(secret.entropy.withUnsafeBytes { Array($0) } == (0..<16).map { UInt8($0) &* 17 })
+        #expect(secret.passphrase.count == 0)
+        let phrase = try secret.phrase()
+        defer { phrase.wipe() }
+        #expect(phrase.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }
+            == "abacate joia lareira joaninha enchente colar bengala cetim pilotar feno hidratar zarpar")
+    }
+
     @Test("Contas publicas derivadas uma vez batem com os vetores")
     func accounts() throws {
         let secret = try WalletSecret.from(phrase: BIP39.canonical(Self.phrase), language: .english)

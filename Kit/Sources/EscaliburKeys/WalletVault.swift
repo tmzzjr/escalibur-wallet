@@ -91,7 +91,7 @@ public final class WalletVault: @unchecked Sendable {
         guard secret.passphrase.count <= Self.maxPassphraseBytes else { throw Failure.passphraseTooLong }
         let record = SecureBytes(capacity: Self.recordLength)
         record.append(Self.version)
-        record.append(UInt8(BIP39Language.allCases.firstIndex(of: secret.language) ?? 0))
+        record.append(secret.language.storageCode)
         record.append(UInt8(secret.entropy.count))
         secret.entropy.withUnsafeBytes { record.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
         UInt16(secret.passphrase.count).bigEndianByteArray.withUnsafeBufferPointer { record.append(contentsOf: $0) }
@@ -160,9 +160,8 @@ public final class WalletVault: @unchecked Sendable {
         return try record.withUnsafeBytes { raw -> WalletSecret in
             let r = raw.bindMemory(to: UInt8.self)
             guard r.count == Self.recordLength, r[0] == Self.version else { throw Failure.corrupted }
-            let languageIndex = Int(r[1])
             let entropyLength = Int(r[2])
-            guard BIP39Language.allCases.indices.contains(languageIndex), [16, 20, 24, 28, 32].contains(entropyLength) else {
+            guard let language = BIP39Language(storageCode: r[1]), [16, 20, 24, 28, 32].contains(entropyLength) else {
                 throw Failure.corrupted
             }
             let entropy = SecureBytes(capacity: entropyLength)
@@ -175,7 +174,7 @@ public final class WalletVault: @unchecked Sendable {
             }
             let passphrase = SecureBytes(capacity: max(passLength, 1))
             passphrase.append(contentsOf: UnsafeBufferPointer(rebasing: r[(at + 2)..<(at + 2 + passLength)]))
-            return WalletSecret(entropy: entropy, language: BIP39Language.allCases[languageIndex], passphrase: passphrase)
+            return WalletSecret(entropy: entropy, language: language, passphrase: passphrase)
         }
     }
 

@@ -50,7 +50,7 @@ public struct SealingContents {
         var header = [UInt8]()
         header.append(0x01)  // versao do conteudo
         header.append(kind.rawValue)
-        header.append(UInt8(BIP39Language.allCases.firstIndex(of: language) ?? 0))
+        header.append(language.storageCode)
         header.append(0x00)  // reservado
         for length in lengths {
             header.append(contentsOf: UInt16(length).bigEndianBytes)

@@ -150,9 +150,7 @@ public enum Envelope {
             guard bytes.count == VaultFormat.plaintextLength, bytes[0] == 0x01 else { throw Failure.cannotOpen }
             guard let kind = VaultContentKind(rawValue: bytes[1]) else { throw Failure.cannotOpen }
             guard kind == .bip39 else { throw Failure.slip39Share }
-            let languageIndex = Int(bytes[2])
-            guard BIP39Language.allCases.indices.contains(languageIndex) else { throw Failure.unknownLanguage }
-            let language = BIP39Language.allCases[languageIndex]
+            guard let language = BIP39Language(storageCode: bytes[2]) else { throw Failure.unknownLanguage }
 
             var lengths: [Int] = []
             for field in 0..<4 {
