@@ -83,10 +83,10 @@ enum PlanWarningText {
     /// ordem mudam de idioma para idioma), por isso o tipo e nao o substantivo.
     enum TagKind { case tag, memo, comment }
 
-    static func text(_ warning: PlanReview.Warning, tag: TagKind = .tag) -> String {
+    static func text(_ warning: PlanReview.Warning, tag: TagKind = .tag, chain: Chain? = nil) -> String {
         switch warning {
         case .firstSendToAddress: return String(localized: "Primeira vez que você envia para este endereço.")
-        case .lookalikeAddress(let known): return String(localized: "Endereço parecido com \(Fmt.address(known)).")
+        case .lookalikeAddress(let known): return String(localized: "Endereço parecido com \(Fmt.address(known, chain: chain)).")
         case .noDestinationTag:
             switch tag {
             case .tag: return String(localized: "Sem tag de destino. Se o destino for uma exchange, confira na tela de depósito se ela pede: sem isso o valor não chega na sua conta de lá.")

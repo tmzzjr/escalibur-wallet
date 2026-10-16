@@ -26,12 +26,22 @@ final class SendModel {
     /// pelo dono (auditoria 2, M2: as pontas o atacante copia).
     var lookalikeCheck = ""
     var lookalikeSegment: AddressPoisoning.Segment?
+    /// Endereco M da Stellar da mesma conta de um ja usado, com outro ID: o conhecido, e o
+    /// que o dono digita (o numero do ID, ou os 6 ultimos lidos na fonte). Um programa que
+    /// troca o endereco copiado pode trocar so o ID pelo de uma conta do atacante na mesma
+    /// corretora (revisao dos enderecos parecidos, B-6).
+    var otherID: AddressPoisoning.SameAccount?
+    var otherIDCheck = ""
     /// Para quem esta carteira ja pagou, lido do historico da rede: o endereco
     /// envenenado chega como recebido, entao so os enviados contam.
     var historyRecipients: [String] = []
     /// O historico da rede nao pode ser lido (indexador fora ou recusando o app): sem ele,
     /// o envenenamento de endereco nao tem com o que comparar (auditoria 3, B1).
     var historyUnavailable = false
+    /// A leitura do historico terminou, lida ou falha. Antes disso o parecido ainda nao tem
+    /// com o que comparar, e o Continuar fica desligado: apertado cedo, ele pulava a
+    /// conferencia contra o historico (revisao dos enderecos parecidos).
+    var historyLoaded = false
     /// Primeiro envio sem historico para comparar: os 6 do meio que o dono digita.
     var blindSegment: AddressPoisoning.Segment?
     /// O endereco como foi colado: o desafio do meio e conferido nele, com o trecho
@@ -113,16 +123,45 @@ final class SendModel {
 
     /// Sem endereco parecido, nada a conferir. Com ele, so segue quem digitou o trecho
     /// do meio onde o destino difere do conhecido, lendo-o em vez de reconhecer as
-    /// pontas.
+    /// pontas. Com a mesma conta e outro ID, quem digitou o ID que quem recebe mostra.
     var lookalikeCleared: Bool {
         if let segment = blindSegment {
             let typed = blindCheck.trimmingCharacters(in: .whitespaces).lowercased()
             guard typed.count == segment.length, typed == segment.text(in: blindSource).lowercased() else { return false }
         }
+        if otherID != nil {
+            guard let address = destination?.address, AddressPoisoning.muxedIDConfirmed(otherIDCheck, address: address) else { return false }
+        }
         guard lookalike != nil, let address = destination?.address else { return true }
         guard let segment = lookalikeSegment else { return false }
         let typed = lookalikeCheck.trimmingCharacters(in: .whitespaces).lowercased()
         return typed.count == segment.length && typed == segment.text(in: address).lowercased()
+    }
+
+    /// Um desafio do destino esta na tela (parecido, ID trocado, ou o trecho escondido sem
+    /// historico): o campo do endereco colado some e fica so leitura, porque a resposta se
+    /// leria nele, o M inteiro em ate tres linhas (segunda revisao dos enderecos parecidos).
+    /// "Editar" desfaz o desafio e devolve o campo.
+    var challengeOnScreen: Bool {
+        destination != nil && (lookalike != nil || otherID != nil || blindSegment != nil)
+    }
+
+    /// O dono quer mudar o endereco com um desafio na tela: o campo volta vazio, e o desafio
+    /// sai junto com o endereco. A tag de antes tambem sai: ela era do destino de antes
+    /// (revisao da auditoria 4, B-1).
+    func editDestination() {
+        destinationText = ""
+        destination = nil
+        linkProblem = nil
+        lookalike = nil
+        lookalikeSegment = nil
+        lookalikeCheck = ""
+        otherID = nil
+        otherIDCheck = ""
+        blindSegment = nil
+        blindCheck = ""
+        tagText = ""
+        linkTag = nil
     }
 
     /// Endereco M da Stellar: o id do cliente ja vai nele, e um memo junto seria um
@@ -391,7 +430,7 @@ struct SendStages: View {
                                     .frame(width: 36, height: 36).background(Circle().fill(Palette.rail))
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: item.wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
-                                    Text(verbatim: Fmt.address(item.address)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
+                                    Text(verbatim: Fmt.address(item.address, chain: model.chain)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
@@ -435,37 +474,41 @@ struct SendStages: View {
             VStack(alignment: .leading, spacing: 0) {
                 header
                 Text("Para").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
-                TextField("", text: $model.destinationText, prompt: Text("Endereço").foregroundColor(Palette.inkDead), axis: .vertical)
-                    .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .lineLimit(1...3)
-                    .onChange(of: model.destinationText) { _, _ in validate() }
-                    .padding(Space.md)
-                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
-                    .padding(.top, Space.xs)
-                HStack(spacing: Space.xs) {
-                    PasteButton(payloadType: String.self) { strings in
-                        Task { @MainActor in apply(PaymentURI.read(strings.first ?? "")) }
-                    }
-                    .labelStyle(.titleOnly).tint(Palette.rail).buttonBorderShape(.capsule)
-                    Button { scanning = true } label: {
-                        Label("Ler QR", systemImage: "qrcode.viewfinder").typeStyle(.label)
-                            .padding(.horizontal, Space.sm).frame(height: 34)
-                            .background(Capsule(style: .continuous).fill(Palette.rail))
-                    }
-                    .foregroundStyle(Palette.ink)
-                    if session.metadata.wallets.count > 1 {
-                        Button { pickingWallet = true } label: {
-                            Label("Minhas carteiras", systemImage: "wallet.bifold").typeStyle(.label)
+                if model.challengeOnScreen {
+                    HiddenAddressField { model.editDestination() }
+                        .padding(.top, Space.xs)
+                } else {
+                    TextField("", text: $model.destinationText, prompt: Text("Endereço").foregroundColor(Palette.inkDead), axis: .vertical)
+                        .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .lineLimit(1...3)
+                        .padding(Space.md)
+                        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+                        .padding(.top, Space.xs)
+                    HStack(spacing: Space.xs) {
+                        PasteButton(payloadType: String.self) { strings in
+                            Task { @MainActor in apply(PaymentURI.read(strings.first ?? "")) }
+                        }
+                        .labelStyle(.titleOnly).tint(Palette.rail).buttonBorderShape(.capsule)
+                        Button { scanning = true } label: {
+                            Label("Ler QR", systemImage: "qrcode.viewfinder").typeStyle(.label)
                                 .padding(.horizontal, Space.sm).frame(height: 34)
                                 .background(Capsule(style: .continuous).fill(Palette.rail))
                         }
                         .foregroundStyle(Palette.ink)
-                        .accessibilityIdentifier("minhas-carteiras")
+                        if session.metadata.wallets.count > 1 {
+                            Button { pickingWallet = true } label: {
+                                Label("Minhas carteiras", systemImage: "wallet.bifold").typeStyle(.label)
+                                    .padding(.horizontal, Space.sm).frame(height: 34)
+                                    .background(Capsule(style: .continuous).fill(Palette.rail))
+                            }
+                            .foregroundStyle(Palette.ink)
+                            .accessibilityIdentifier("minhas-carteiras")
+                        }
                     }
+                    .padding(.top, Space.xs)
                 }
-                .padding(.top, Space.xs)
 
                 validationLine.padding(.top, Space.sm)
                 optionalTag.id("tag-opcional")
@@ -493,6 +536,13 @@ struct SendStages: View {
                         .accessibilityIdentifier("conferir-trecho-endereco")
                 }
 
+                if let known = model.otherID, let destination = model.destination, let chain = model.chain {
+                    OtherIDCheck(pasted: destination.address, known: known,
+                                 knownLabel: KnownAddress.label(known.known, chain: chain, session: session, history: model.historyRecipients),
+                                 check: $model.otherIDCheck)
+                        .padding(.top, Space.md)
+                }
+
                 if model.lookalike == nil, let segment = model.blindSegment, let destination = model.destination {
                     Banner(kind: .neutral, title: String(localized: "Primeiro envio para este endereço"),
                            message: String(localized: "O histórico desta rede não pôde ser lido agora, então o app não consegue comparar com os endereços que você já usou. Confira o endereço com quem vai receber."))
@@ -515,6 +565,9 @@ struct SendStages: View {
                 contacts.padding(.top, Space.lg)
             }
             .padding(.bottom, Space.lg)
+            // Na pilha, e nao no campo: o campo some com um desafio na tela, e o "Editar"
+            // que o devolve vazio tem de validar de novo.
+            .onChange(of: model.destinationText) { _, _ in validate() }
         }
         .scrollDismissesKeyboard(.interactively)
         // Com o teclado aberto, o Continuar cobria a tag opcional logo abaixo do endereco
@@ -522,13 +575,14 @@ struct SendStages: View {
         // aviso de endereco parecido, fica onde esta, para o aviso nao sair de vista.
         .onChange(of: model.destination?.address) { _, address in
             guard address != nil, model.chain.map({ $0.destinationTag != .none }) == true, !model.needsTagStep,
-                  model.lookalike == nil, model.blindSegment == nil else { return }
+                  model.lookalike == nil, model.otherID == nil, model.blindSegment == nil else { return }
             withAnimation(Motion.fade) { proxy.scrollTo("tag-opcional", anchor: .bottom) }
         }
         }
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: String(localized: "Continuar"), enabled: model.destination != nil && model.lookalikeCleared && tagProblem == nil
-                          && (!model.needsNetworkConfirmation || model.networkConfirmed), loading: model.working) {
+            PrimaryButton(title: String(localized: "Continuar"), enabled: model.destination != nil && model.historyLoaded && model.lookalikeCleared && tagProblem == nil
+                          && (!model.needsNetworkConfirmation || model.networkConfirmed),
+                          loading: model.working || (model.destination != nil && !model.historyLoaded)) {
                 Task { await continueFromDestination() }
             }
             .padding(.top, Space.xs)
@@ -548,8 +602,11 @@ struct SendStages: View {
         } else if let destination = model.destination, let chain = model.chain {
             VStack(alignment: .leading, spacing: 2) {
                 // O endereco como ele vai para a transacao, com o comeco e o fim marcados
-                // para conferir contra a origem.
-                AddressBlocks(address: destination.address).padding(.bottom, Space.xxs)
+                // para conferir contra a origem. Com um desafio na tela, ele some com o campo:
+                // o fim do ID e o trecho escondido se leriam aqui.
+                if !model.challengeOnScreen {
+                    AddressBlocks(address: destination.address).padding(.bottom, Space.xxs)
+                }
                 Text(KnownExchanges.name(for: destination.address).map { String(localized: "\($0), endereço de depósito") }
                      ?? (chain.id == "xrpl" ? String(localized: "Endereço do \(chain.name)") : String(localized: "Endereço da \(chain.name)")))
                     .typeStyle(.note).foregroundStyle(Palette.up)
@@ -577,7 +634,7 @@ struct SendStages: View {
                     HStack {
                         Text(verbatim: contact.name).typeStyle(.row).foregroundStyle(Palette.ink)
                         Spacer()
-                        Text(verbatim: Fmt.address(contact.address)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
+                        Text(verbatim: Fmt.address(contact.address, chain: model.chain)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
                     }
                     .frame(minHeight: Height.rowCompact)
                 }
@@ -655,13 +712,37 @@ struct SendStages: View {
         MarkedAddress(label: label, address: address, segment: segment)
     }
 
+    /// Os contatos desta rede salvos com tag ou memo: um G com o ID no memo e o mesmo par
+    /// (conta, ID) de um M da Stellar (revisao do B-6).
+    static func taggedContacts(_ chain: Chain, session: AppSession) -> [(address: String, tag: String)] {
+        session.metadata.contacts.filter { $0.chainID == chain.id }.compactMap { contact in contact.tag.map { (address: contact.address, tag: $0) } }
+    }
+
+    /// Tudo que o dono pode reconhecer de vista nesta rede: para onde ja enviou, os
+    /// contatos, os enderecos das carteiras deste iPhone e o historico lido. A que so
+    /// observa fica de fora: o endereco dela nao e do dono (auditoria 4, C7-07).
+    private func knownAddresses(_ chain: Chain) -> [String] {
+        (session.metadata.sentTo[chain.id] ?? []) + session.metadata.contacts.filter { $0.chainID == chain.id }.map(\.address)
+            + session.metadata.wallets.filter { !$0.isWatchOnly }.compactMap { $0.account(chain)?.address } + model.historyRecipients
+    }
+
     /// Para quem esta carteira ja pagou nesta rede, do historico da propria rede.
     /// Melhor esforco: sem historico, a lista fica com o que o app guardou.
     private func loadHistoryRecipients() async {
-        guard let chain = model.chain, let account = model.wallet.account(chain) else { return }
-        guard let source = ActivitySources.source(for: chain),
-              let entries = try? await source.history(chain: chain, account: account, usage: model.wallet.utxoUsage[chain.id])
-        else {
+        model.historyLoaded = false
+        guard let chain = model.chain, let account = model.wallet.account(chain) else {
+            model.historyLoaded = true
+            return
+        }
+        var read: [ActivityEntry]?
+        if let source = ActivitySources.source(for: chain) {
+            read = try? await source.history(chain: chain, account: account, usage: model.wallet.utxoUsage[chain.id])
+        }
+        // Leitura cancelada (a rede mudou, ou a tela saiu): a leitura seguinte cuida do
+        // estado, e esta nao libera o Continuar.
+        guard !Task.isCancelled, model.chain?.id == chain.id else { return }
+        defer { model.historyLoaded = true }
+        guard let entries = read else {
             model.historyUnavailable = true
             if model.destination != nil { validate() }
             return
@@ -709,6 +790,8 @@ struct SendStages: View {
         model.lookalike = nil
         model.lookalikeSegment = nil
         model.lookalikeCheck = ""
+        model.otherID = nil
+        model.otherIDCheck = ""
         model.blindSegment = nil
         model.networkSuggestion = nil
         model.networkConfirmed = false
@@ -741,19 +824,24 @@ struct SendStages: View {
             if chain.destinationTag == .none || model.isMuxedStellar { model.tagText = ""; model.linkTag = nil }
             let sent = session.metadata.sentTo[chain.id] ?? []
             model.isFirstSend = !sent.contains(destination.address)
-            // Tudo que o dono pode reconhecer de vista: para onde ja enviou, os
-            // contatos e os enderecos das carteiras deste iPhone. A que so observa fica de
-            // fora: o endereco dela nao e do dono (auditoria 4, C7-07).
             let contacts = session.metadata.contacts.filter { $0.chainID == chain.id }.map(\.address)
             let wallets = session.metadata.wallets.filter { !$0.isWatchOnly }.compactMap { $0.account(chain)?.address }
-            model.lookalike = AddressPoisoning.lookalike(destination.address, among: sent + contacts + wallets + model.historyRecipients, chain: chain)
+            let known = knownAddresses(chain)
+            model.lookalike = AddressPoisoning.lookalike(destination.address, among: known, chain: chain)
             model.lookalikeSegment = model.lookalike.flatMap { AddressPoisoning.differingSegment(destination.address, from: $0, chain: chain) }
+            // Endereco M da mesma conta de um ja usado (ou de um contato G salvo com o ID no
+            // memo), com outro ID: o parecido deixa de fora, porque e a mesma conta, e o ID
+            // e o que diz de quem e o deposito (B-6).
+            model.otherID = AddressPoisoning.sameAccountOtherID(destination.address, among: known,
+                                                                tagged: Self.taggedContacts(chain, session: session), chain: chain)
             // Sem historico da rede, o primeiro envio para endereco que nao e contato nem
-            // carteira deste iPhone pede o meio do endereco digitado.
-            if model.lookalike == nil, model.isFirstSend, model.historyUnavailable,
+            // carteira deste iPhone pede um trecho do endereco digitado, escondido: o meio,
+            // ou, num M, o fim do ID (o meio de um M e a chave, igual em todo M da conta).
+            // Com o ID trocado, o desafio do ID basta.
+            if model.lookalike == nil, model.otherID == nil, model.isFirstSend, model.historyUnavailable,
                !contacts.contains(destination.address), !wallets.contains(destination.address) {
                 model.blindSource = text
-                model.blindSegment = AddressPoisoning.middleSegment(text)
+                model.blindSegment = AddressPoisoning.blindSegment(text, chain: chain)
             }
         case .failure(let problem):
             model.destinationProblem = Self.message(problem, chain: chain)
@@ -1239,9 +1327,22 @@ struct SendStages: View {
         .sensoryFeedback(.selection, trigger: checked)
     }
 
+    /// Destino G da Stellar com um memo que e numero, contra um M conhecido (ou um contato G
+    /// com outro memo) da mesma conta: o mesmo par (conta, ID) do B-6, com o ID no memo. O
+    /// memo chega depois da tela do destino, entao o aviso fica na revisao.
+    private var memoOtherID: AddressPoisoning.SameAccount? {
+        guard let chain = model.chain, chain.family == .stellar, let destination = model.destination, !model.isMuxedStellar,
+              !model.tagText.isEmpty else { return nil }
+        return AddressPoisoning.sameAccountOtherID(destination.address, tag: model.tagText, among: knownAddresses(chain),
+                                                   tagged: Self.taggedContacts(chain, session: session), chain: chain)
+    }
+
     private func warnings(_ plan: SigningPlan) -> [String] {
         var out: [String] = []
-        if let lookalike = model.lookalike { out.append(String(localized: "Endereço parecido com \(Fmt.address(lookalike)). Confira o endereço inteiro.")) }
+        if let lookalike = model.lookalike { out.append(String(localized: "Endereço parecido com \(Fmt.address(lookalike, chain: model.chain)). Confira o endereço inteiro.")) }
+        if model.otherID != nil || memoOtherID != nil {
+            out.append(String(localized: "Mesma conta de um endereço que você já usou, com outro ID. Confira o ID com quem vai receber."))
+        }
         if model.skippedTag {
             switch tagKind {
             case .tag: out.append(String(localized: "Envio sem tag de destino, por sua escolha."))
@@ -1259,13 +1360,20 @@ struct SendStages: View {
             // O aviso de token fora da lista saiu do envio (pedido do dono, 14/10/2026): a
             // moeda e do saldo do dono, e o ativo do plano e conferido em `planMatches`.
             if case .unverifiedToken = warning { continue }
-            out.append(PlanWarningText.text(warning, tag: tagKind))
+            out.append(PlanWarningText.text(warning, tag: tagKind, chain: model.chain))
         }
         return out
     }
 
     private func send() async {
         guard let plan = model.plan, let engine, let chain = model.chain, let holding = model.holding else { return }
+        // A conferencia do destino vale ate a assinatura: se a validacao rodou de novo
+        // depois do Continuar (historico lido tarde, rede trocada), o desafio volta para a
+        // tela do destino e nada e assinado.
+        guard model.historyLoaded, model.lookalikeCleared else {
+            model.stage = .destination
+            return
+        }
         guard planMatches(plan) else {
             model.error = String(localized: "O envio montado não confere com o destino digitado. Nada foi assinado.")
             return
@@ -1447,7 +1555,7 @@ struct SendStages: View {
         let amount = model.plan?.review.outgoing?.amount ?? model.amount ?? 0
         let value = Fmt.crypto(amount, decimals: holding.asset.decimals, symbol: holding.asset.symbol, style: .full)
         guard let address = model.destination?.address else { return value }
-        return String(localized: "\(value) para \(KnownExchanges.name(for: address) ?? Fmt.address(address))")
+        return String(localized: "\(value) para \(KnownExchanges.name(for: address) ?? Fmt.address(address, chain: model.chain))")
     }
 
     @ViewBuilder
@@ -1669,6 +1777,71 @@ struct MarkedAddress: View {
             Text(text).font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.disabled)
+        }
+    }
+}
+
+/// O campo do endereco (ou do memo) colado enquanto um desafio esta na tela: escondido e so
+/// leitura, porque a resposta se leria nele. "Editar" desfaz o desafio e devolve o campo,
+/// vazio (segunda revisao dos enderecos parecidos).
+struct HiddenAddressField: View {
+    var fill: Color = Palette.body
+    var buttonFill: Color = Palette.rail
+    var identifier = "editar-endereco"
+    let edit: () -> Void
+
+    var body: some View {
+        HStack(spacing: Space.sm) {
+            Image(systemName: "eye.slash").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+            Text(String(localized: "Escondido enquanto você confere"))
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: Space.xs)
+            Button(action: edit) {
+                Text(String(localized: "Editar")).typeStyle(.label).foregroundStyle(Palette.ink)
+                    .padding(.horizontal, Space.sm).frame(height: 34)
+                    .background(Capsule(style: .continuous).fill(buttonFill))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(identifier)
+        }
+        .padding(.leading, Space.md).padding(.trailing, Space.xs).padding(.vertical, Space.xs)
+        .frame(minHeight: Height.field)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(fill)
+            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+    }
+}
+
+/// Endereco M da Stellar da mesma conta de um conhecido, com outro ID (revisao dos
+/// enderecos parecidos, B-6), no envio e ao salvar contato. O ID do colado fica escondido,
+/// no endereco e no rotulo, e o do conhecido a vista: o dono digita o numero do ID que quem
+/// vai receber mostra (ou os 6 ultimos caracteres, lidos onde copiou), e a resposta nao
+/// sai da tela.
+struct OtherIDCheck: View {
+    let pasted: String
+    let known: AddressPoisoning.SameAccount
+    let knownLabel: String
+    @Binding var check: String
+    var field: Color = Palette.body
+    var identifier = "conferir-id-endereco"
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Banner(kind: .caution, title: String(localized: "Mesma conta de um endereço que você já usou, com outro ID"),
+                   message: String(localized: "Confira o ID com quem vai receber."))
+            MarkedAddress(label: String(localized: "Você colou"), address: pasted, segment: AddressPoisoning.muxedIDSegment(pasted), masked: true)
+            MarkedAddress(label: String(localized: "\(knownLabel) · ID \(String(known.knownID))"), address: known.known,
+                          segment: AddressPoisoning.muxedIDSegment(known.known))
+            Text(String(localized: "Para seguir, digite o número do ID que quem vai receber mostra, ou os 6 últimos caracteres do endereço, lendo onde você o copiou."))
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField("", text: $check, prompt: Text(String(localized: "Número do ID")).foregroundColor(Palette.inkDead))
+                .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .padding(Space.sm)
+                .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(field))
+                .frame(maxWidth: 220, alignment: .leading)
+                .accessibilityIdentifier(identifier)
         }
     }
 }

@@ -118,6 +118,10 @@ public struct NEARAccountID: Hashable, Sendable, CustomStringConvertible {
     /// seria chute.
     static func isNEAR(_ text: String) -> Bool {
         guard case .success(let account) = parse(text), account.kind == .named else { return false }
-        return account.text.hasSuffix(".near") || account.text.hasSuffix(".tg")
+        return registrySuffixes.contains { account.text.hasSuffix($0) }
     }
+
+    /// Os dois registros de nome da rede: toda conta com nome que o app reconhece como da
+    /// NEAR termina num deles.
+    static let registrySuffixes = [".near", ".tg"]
 }

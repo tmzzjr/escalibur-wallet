@@ -434,7 +434,7 @@ struct ActivityRow: View {
             }
             guard let counterparty = entry.counterparty else { return time }
             let preposition = entry.direction == .received ? "De" : String(localized: "Para")
-            return "\(preposition) \(Fmt.address(counterparty)) · \(time)"
+            return "\(preposition) \(Fmt.address(counterparty, chain: entry.chain)) · \(time)"
         }
     }
 

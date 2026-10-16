@@ -165,7 +165,7 @@ struct TradeReviewFlow: View {
                             .padding(.top, Space.md)
                     }
                     ForEach(Array(plan.review.warnings.enumerated()), id: \.offset) { _, warning in
-                        Banner(kind: .caution, title: PlanWarningText.text(warning)).padding(.top, Space.sm)
+                        Banner(kind: .caution, title: PlanWarningText.text(warning, chain: plan.chain)).padding(.top, Space.sm)
                     }
                 }
                 if let error { Banner(kind: .failure, title: error).padding(.top, Space.md) }

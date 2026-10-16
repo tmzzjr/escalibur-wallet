@@ -1,3 +1,4 @@
+import EscaliburChains
 import EscaliburCore
 import Foundation
 
@@ -261,10 +262,28 @@ enum Fmt {
 
     // MARK: Endereco e data
 
-    /// "0x71C7…976F": 6 mais 4, com reticencia de verdade.
-    static func address(_ text: String, head: Int = 6, tail: Int = 4) -> String {
-        guard text.count > head + tail + 1 else { return text }
-        return "\(text.prefix(head))…\(text.suffix(tail))"
+    /// "0x71C7A3…976F": o prefixo que a rede impoe inteiro, e 6 mais 4 do corpo, com
+    /// reticencia de verdade. Os 6 do comeco sao do corpo: do texto inteiro, a Cardano
+    /// mostrava "addr1q" e nenhum caractere que o atacante precisasse gerar, e o sosia
+    /// que casava so os 4 do fim saia identico na Atividade (revisao dos enderecos
+    /// parecidos, B-5). O corpo e o mesmo que `AddressPoisoning` compara.
+    ///
+    /// O que a comparacao nao compara (menos de `AddressPoisoning.minimumLength` depois do
+    /// prefixo, um nome curto da NEAR) sai inteiro: abreviado, "abcdefghijkl.tg" e
+    /// "abcdefzzijkl.tg" saiam iguais, e nada avisava (revisao do B-9).
+    ///
+    /// Sem a rede (texto que nao se sabe de onde e), 6 mais 4 do texto inteiro.
+    static func address(_ text: String, chain: Chain? = nil, head: Int = 6, tail: Int = 4) -> String {
+        guard let chain else {
+            guard text.count > head + tail + 1 else { return text }
+            return "\(text.prefix(head))…\(text.suffix(tail))"
+        }
+        let shown = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let body = AddressPoisoning.bodySegment(shown, chain: chain)
+        guard body.length > head + tail + 1, shown.count - body.start >= AddressPoisoning.minimumLength else { return shown }
+        let characters = Array(shown)
+        let end = body.start + body.length
+        return String(characters[..<(body.start + head)]) + "…" + String(characters[(end - tail)...])
     }
 
     /// "14:32", ou "ontem, 14:32" e "3 out, 14:32" quando nao e de hoje: a hora de um
