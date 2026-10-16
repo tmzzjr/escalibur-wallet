@@ -34,14 +34,13 @@ struct WelcomeTour: View {
             TabView(selection: $page) {
                 TourPage(
                     title: String(localized: "Só você é digno"),
-                    text: String(localized: "Na lenda, só as mãos certas tiram a Escalibur da pedra. Nesta carteira, as mãos certas são as suas."),
-                    framed: false
+                    text: String(localized: "Na lenda, só as mãos certas tiram a Escalibur da pedra. Nesta carteira, as mãos certas são as suas.")
                 ) { SwordCard() }
                 .tag(0)
                 TourPage(
                     title: String(localized: "Uma chave para todas as suas moedas"),
                     text: String(localized: "Bitcoin, Ethereum, Solana e as maiores moedas do mundo, com a chave criada e guardada neste iPhone. Envie, receba e troque entre redes, com a taxa à vista antes de assinar.")
-                ) { OrbitScene(active: page == 1) }
+                ) { NetworksScene(active: page == 1) }
                 .tag(1)
                 TourPage(
                     title: String(localized: "Só você assina"),
@@ -67,30 +66,20 @@ struct WelcomeTour: View {
         .background(Palette.void.ignoresSafeArea())
         .sensoryFeedback(.selection, trigger: page)
         // Enquanto a espada cai, os logos da cena seguinte ja ficam decodificados.
-        .task { await TourLogos.prepare() }
     }
 }
 
-/// Um passo: a cena no painel grafite, o titulo e o texto embaixo. O texto tem altura
-/// reservada, para o painel ter o mesmo tamanho nos tres passos.
+/// Um passo: a cena solta no fundo, sem painel (pedido do dono, 15/10/2026), o titulo e o
+/// texto embaixo. O texto tem altura reservada, para a cena ter o mesmo tamanho nos tres
+/// passos.
 private struct TourPage<Scene: View>: View {
     let title: String
     let text: String
-    /// A carta da espada traz a propria moldura e gira para fora dela: sem o painel.
-    var framed = true
     @ViewBuilder var scene: Scene
 
     var body: some View {
         VStack(spacing: 0) {
-            if framed {
-                scene
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(LinearGradient(colors: [Palette.rail, Palette.body], startPoint: .top, endPoint: .bottom))
-                    .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1))
-            } else {
-                scene.frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
+            scene.frame(maxWidth: .infinity, maxHeight: .infinity)
             VStack(spacing: Space.sm) {
                 Text(title).typeStyle(.hero).foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
@@ -157,136 +146,63 @@ private func pause(_ milliseconds: Int) async -> Bool {
 
 // MARK: - 2. As moedas
 
-/// O icone do app no centro e as moedas em tres orbitas em perspectiva, como aneis vistos
-/// um pouco de cima. As de tras passam atras do icone, menores e mais apagadas; as da
-/// frente, maiores, por cima. Os aneis se desenham, o icone entra com uma mola e as
-/// moedas chegam de fora, uma a uma, em espiral, e encaixam na orbita. Sem brilho nem
-/// halo (pedido do dono, 15/10/2026). Com Reduzir Movimento, tudo parado no lugar.
-private struct OrbitScene: View {
+/// O selo da carteira no centro e as moedas em duas orbitas, a de dentro num sentido e a
+/// de fora no outro. Elas entram uma a uma; as de fora sao menores, mais longe. E a cena
+/// das redes do tour antigo, de volta no lugar das orbitas 3D (pedido do dono, 15/10/2026).
+private struct NetworksScene: View {
     let active: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var start: Date?
+    @State private var shown = 0
 
-    struct Orbit { let radius: Double; let speed: Double; let size: Double; let ids: [String] }
-    static let orbits: [Orbit] = [
-        Orbit(radius: 0.42, speed: 0.32, size: 36, ids: ["bitcoin", "ethereum", "solana", "tether", "usd-coin"]),
-        Orbit(radius: 0.68, speed: -0.21, size: 31, ids: ["ripple", "binancecoin", "the-open-network", "tron", "cardano", "dogecoin", "sui"]),
-        Orbit(radius: 0.94, speed: 0.14, size: 27, ids: ["polkadot", "avalanche-2", "stellar", "near", "litecoin", "polygon-ecosystem-token",
-                                                          "chainlink", "aptos", "arbitrum"]),
-    ]
-    static let ids: [String] = orbits.flatMap(\.ids)
-    /// A perspectiva: o circulo visto de cima vira elipse, levemente girada.
-    static let flatten = 0.52
-    static let tilt = -0.16
-    static let iconSide: CGFloat = 78
+    private static let inner = ["bitcoin", "ethereum", "solana", "tether", "ripple", "usd-coin"]
+    private static let outer = ["binancecoin", "the-open-network", "tron", "cardano", "polkadot", "avalanche-2",
+                                "dogecoin", "sui", "stellar", "near"]
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 60, paused: !active || reduceMotion)) { timeline in
-            let elapsed = reduceMotion ? 4 : start.map { timeline.date.timeIntervalSince($0) } ?? 0
-            Canvas { context, size in
-                Self.draw(&context, size: size, t: elapsed, spinning: !reduceMotion)
-            } symbols: {
-                WalletBadge(size: Self.iconSide).tag(1000)
+        GeometryReader { geo in
+            let side = min(geo.size.width, geo.size.height)
+            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+            let innerRadius = side * 0.25
+            let outerRadius = side * 0.42
+            TimelineView(.animation(minimumInterval: 1 / 60, paused: !active || reduceMotion)) { timeline in
+                let time = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
+                ZStack {
+                    Circle().stroke(Palette.edgeStrong, lineWidth: 1)
+                        .frame(width: innerRadius * 2, height: innerRadius * 2).position(center)
+                    Circle().stroke(Palette.edge, style: StrokeStyle(lineWidth: 1, dash: [2, 6]))
+                        .frame(width: outerRadius * 2, height: outerRadius * 2).position(center)
+                    ForEach(Array(Self.inner.enumerated()), id: \.offset) { index, id in
+                        let angle = Double(index) / Double(Self.inner.count) * 2 * .pi + time * 0.16
+                        coin(id, size: side * 0.14, visible: shown > index)
+                            .position(x: center.x + innerRadius * cos(angle), y: center.y + innerRadius * sin(angle))
+                    }
+                    ForEach(Array(Self.outer.enumerated()), id: \.offset) { index, id in
+                        let angle = Double(index) / Double(Self.outer.count) * 2 * .pi + 0.3 - time * 0.1
+                        coin(id, size: side * 0.105, visible: shown > Self.inner.count + index)
+                            .position(x: center.x + outerRadius * cos(angle), y: center.y + outerRadius * sin(angle))
+                    }
+                    WalletBadge(size: side * 0.2)
+                        .position(center)
+                        .scaleEffect(shown > 0 ? 1 : 0.8)
+                }
             }
         }
-        .modifier(SceneRunner(active: active, reset: { start = nil }, finish: { start = .distantPast }, run: run))
+        .modifier(SceneRunner(active: active, reset: { shown = 0 }, finish: { shown = Self.inner.count + Self.outer.count }, run: run))
         .accessibilityHidden(true)
     }
 
+    private func coin(_ id: String, size: CGFloat, visible: Bool) -> some View {
+        CoinLogo(coingeckoID: id, size: size, ringColor: Palette.void)
+            .scaleEffect(visible ? 1 : 0.2)
+            .opacity(visible ? 1 : 0)
+            .animation(.spring(response: 0.42, dampingFraction: 0.62), value: visible)
+    }
+
     private func run() async {
-        await TourLogos.prepare()
-        guard !Task.isCancelled else { return }
-        start = Date()
-    }
-
-    private static func clamp(_ value: Double) -> Double { min(max(value, 0), 1) }
-    private static func easeOut(_ value: Double) -> Double { 1 - pow(1 - clamp(value), 3) }
-
-    private static func draw(_ context: inout GraphicsContext, size: CGSize, t: Double, spinning: Bool) {
-        let center = CGPoint(x: size.width / 2, y: size.height / 2)
-        let rx = Double(size.width) * 0.47
-        let cosTilt = cos(tilt), sinTilt = sin(tilt)
-        func place(_ x: Double, _ y: Double) -> CGPoint {
-            CGPoint(x: center.x + x * cosTilt - y * sinTilt, y: center.y + x * sinTilt + y * cosTilt)
-        }
-
-        // Os aneis, desenhados um apos o outro.
-        for (index, orbit) in orbits.enumerated() {
-            let reveal = easeOut((t - Double(index) * 0.12) / 0.9)
-            guard reveal > 0 else { continue }
-            let a = rx * orbit.radius, b = a * flatten
-            var ring = Path(ellipseIn: CGRect(x: -a, y: -b, width: a * 2, height: b * 2))
-            ring = ring.applying(CGAffineTransform(rotationAngle: tilt)).applying(CGAffineTransform(translationX: center.x, y: center.y))
-            context.stroke(ring.trimmedPath(from: 0, to: reveal), with: .color(Color.white.opacity(0.1)), lineWidth: 1)
-        }
-
-        // Cada moeda: angulo na orbita, profundidade (a frente e a metade de baixo) e chegada.
-        struct Coin { let id: String; let point: CGPoint; let depth: Double; let side: Double; let alpha: Double }
-        var coins: [Coin] = []
-        var order = 0
-        for orbit in orbits {
-            let a = rx * orbit.radius, b = a * flatten
-            for (slot, id) in orbit.ids.enumerated() {
-                let base = Double(slot) / Double(orbit.ids.count) * 2 * .pi
-                let arrive = easeOut((t - 0.35 - Double(order) * 0.055) / 0.95)
-                order += 1
-                guard arrive > 0 else { continue }
-                let angle = base + (spinning ? t * orbit.speed : 0) - (1 - arrive) * 1.3
-                let spread = 1 + 0.85 * (1 - arrive)
-                let depth = sin(angle)
-                let point = place(a * spread * cos(angle), b * spread * depth)
-                let scale = 0.76 + 0.34 * (depth + 1) / 2
-                coins.append(Coin(id: id, point: point, depth: depth, side: orbit.size * scale,
-                                  alpha: arrive * (0.5 + 0.5 * (depth + 1) / 2)))
-            }
-        }
-        let back = coins.filter { $0.depth < 0 }.sorted { $0.depth < $1.depth }
-        let front = coins.filter { $0.depth >= 0 }.sorted { $0.depth < $1.depth }
-        for coin in back { drawCoin(&context, coin.id, at: coin.point, side: coin.side, alpha: coin.alpha) }
-
-        // O icone, com uma mola.
-        if let icon = context.resolveSymbol(id: 1000) {
-            let k = max(t - 0.1, 0)
-            let spring = 1 - exp(-6 * k) * cos(11 * k) * 0.45
-            var layer = context
-            layer.opacity = clamp(k / 0.15)
-            layer.translateBy(x: center.x, y: center.y)
-            layer.scaleBy(x: spring, y: spring)
-            layer.draw(icon, at: .zero)
-        }
-        for coin in front { drawCoin(&context, coin.id, at: coin.point, side: coin.side, alpha: coin.alpha) }
-    }
-
-    /// Um logo como o `CoinLogo`: os sem circulo proprio (ETH, SOL) num disco, com o
-    /// glifo menor; os escuros (XRP, XLM) com um disco claro atras.
-    private static func drawCoin(_ context: inout GraphicsContext, _ id: String, at point: CGPoint, side: Double, alpha: Double) {
-        guard let image = TourLogos.images[id] else { return }
-        var layer = context
-        layer.opacity = alpha
-        let rect = CGRect(x: point.x - side / 2, y: point.y - side / 2, width: side, height: side)
-        let disc = Path(ellipseIn: rect)
-        if CoinLogo.bareLogos.contains(id) {
-            layer.fill(disc, with: .color(Palette.control))
-            layer.draw(image, in: rect.insetBy(dx: side * 0.19, dy: side * 0.19))
-            return
-        }
-        if CoinLogo.darkLogos.contains(id) { layer.fill(disc, with: .color(Palette.logoDisc)) }
-        layer.clip(to: disc)
-        layer.draw(image, in: rect)
-    }
-}
-
-/// Os logos do tour, decodificados uma vez (`byPreparingForDisplay`) e guardados como
-/// `Image` pronta para o Canvas: decodificar no primeiro quadro travava a cena.
-@MainActor
-private enum TourLogos {
-    static var images: [String: Image] = [:]
-
-    static func prepare() async {
-        for id in OrbitScene.ids where images[id] == nil {
-            guard let raw = UIImage(named: "logo-\(id)") else { continue }
-            let ready = await raw.byPreparingForDisplay() ?? raw
-            images[id] = Image(uiImage: ready)
+        guard await pause(200) else { return }
+        for _ in 0..<(Self.inner.count + Self.outer.count) {
+            shown += 1
+            guard await pause(70) else { return }
         }
     }
 }
@@ -295,7 +211,8 @@ private enum TourLogos {
 
 /// Uma moeda de Bitcoin em 3D de verdade (`BitcoinCoin3D`, SceneKit). Ela gira devagar,
 /// esperando; o Face ID procura o rosto e confirma; a moeda da um giro rapido e para de
-/// frente.
+/// frente. E o dono gira com o dedo (pedido do dono, 15/10/2026): arrastando ela acompanha,
+/// ao soltar segue no embalo e para de frente, e um toque da uma volta inteira.
 private struct SignScene: View {
     let active: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -304,8 +221,19 @@ private struct SignScene: View {
     @State private var scanning = false
     @State private var spin = false
     @State private var confirmed = false
+    /// O giro do dedo: o que esta sendo arrastado agora e o embalo depois de soltar.
+    @State private var dragTurn: Double = 0
+    @State private var release: Release?
+
+    struct Release {
+        let from: Double
+        let to: Double
+        let at: Date
+    }
 
     static let slowTurn = 3.4
+    /// Quanto o dedo precisa andar, em pontos, para a moeda girar um radiano.
+    static let pointsPerRadian = 55.0
     static let finale = 1.1
 
     var body: some View {
@@ -313,7 +241,7 @@ private struct SignScene: View {
             Spacer(minLength: 0)
             TimelineView(.animation(minimumInterval: 1 / 60, paused: !active || reduceMotion)) { timeline in
                 let t = reduceMotion ? 10 : start.map { timeline.date.timeIntervalSince($0) } ?? 0
-                let angle = Self.angle(t: t, confirmedAt: reduceMotion ? 0 : confirmedAt)
+                let angle = Self.angle(t: t, confirmedAt: reduceMotion ? 0 : confirmedAt) + Self.handTurn(release, at: timeline.date) + dragTurn
                 let enter = 1 - pow(1 - Self.clamp(t / 0.6), 3)
                 let bob = 4 * sin(t * 1.6)
                 ZStack {
@@ -326,6 +254,18 @@ private struct SignScene: View {
                 }
             }
             .frame(height: 200)
+            .contentShape(Rectangle())
+            .onTapGesture { spin(to: Self.handTurn(release, at: Date()), extra: 2 * .pi) }
+            .highPriorityGesture(
+                DragGesture(minimumDistance: 6)
+                    .onChanged { dragTurn = $0.translation.width / Self.pointsPerRadian }
+                    .onEnded { value in
+                        let momentum = (value.predictedEndTranslation.width - value.translation.width) / Self.pointsPerRadian
+                        let from = Self.handTurn(release, at: Date()) + dragTurn
+                        dragTurn = 0
+                        spin(to: from, extra: momentum)
+                    }
+            )
             biometry
                 .opacity(scanning || confirmed ? 1 : 0)
             Spacer(minLength: 0)
@@ -383,6 +323,20 @@ private struct SignScene: View {
     }
 
     private static func clamp(_ value: Double) -> Double { min(max(value, 0), 1) }
+
+    /// O giro do dedo num instante: o embalo desacelera e para numa volta inteira.
+    static func handTurn(_ release: Release?, at date: Date) -> Double {
+        guard let release else { return 0 }
+        let p = clamp(date.timeIntervalSince(release.at) / 1.2)
+        return release.from + (release.to - release.from) * (1 - pow(1 - p, 3))
+    }
+
+    /// Solta a moeda em `from` com `extra` de embalo: ela para de frente, na volta inteira
+    /// mais perto de onde o embalo a levaria.
+    private func spin(to from: Double, extra: Double) {
+        let full = 2 * Double.pi
+        release = Release(from: from, to: ((from + extra) / full).rounded() * full, at: Date())
+    }
 
     /// O angulo da moeda: giro lento ate a confirmacao; depois, um giro rapido que para de
     /// frente numa volta inteira.

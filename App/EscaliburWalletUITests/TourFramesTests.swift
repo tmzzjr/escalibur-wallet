@@ -38,5 +38,13 @@ final class TourFramesTests: XCTestCase {
         frames("2-moedas", at: [0.4, 1.0, 1.8, 3.0, 5.0])
         next.tap()
         frames("3-assinatura", at: [0.6, 1.6, 2.6, 3.4, 4.2, 5.5])
+        guard videoOnly else { return }
+        // A moeda com o dedo: um arrasto que gira e solta no embalo, e um toque.
+        let coin = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+        let side = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.3))
+        coin.press(forDuration: 0.05, thenDragTo: side, withVelocity: 700, thenHoldForDuration: 0)
+        sleep(3)
+        coin.tap()
+        sleep(3)
     }
 }
