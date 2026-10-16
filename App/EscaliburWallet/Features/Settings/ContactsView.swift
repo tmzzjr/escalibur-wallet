@@ -111,13 +111,16 @@ struct AddContactSheet: View {
     /// O trecho do endereco digitado pelo dono olhando a fonte (auditoria 4, C7-07).
     @State private var check = ""
     @State private var qrProblem: String?
+    /// A rede que o QR lido disse: trocar a rede depois nao leva o endereco junto, nem a
+    /// sugestao de outra rede aparece para ele (revisao dos baixos, B1).
+    @State private var linkReading: PaymentURI.Reading?
 
     private var trimmed: String { address.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var validation: Result<Address.Destination, Address.Problem> { Address.validate(trimmed, for: chain) }
     private var isValid: Bool { (try? validation.get()) != nil }
     /// O endereco colado parece de outra rede: o app sugere, nao troca sozinho.
     private var suggestion: Chain? {
-        guard !trimmed.isEmpty, !isValid, let guess = Address.guessChain(trimmed), guess.id != chain.id else { return nil }
+        guard linkReading?.chainID == nil, !trimmed.isEmpty, !isValid, let guess = Address.guessChain(trimmed), guess.id != chain.id else { return nil }
         return guess
     }
 
@@ -255,8 +258,17 @@ struct AddContactSheet: View {
             .onChange(of: trimmed) { _, new in
                 check = ""
                 if !new.isEmpty { qrProblem = nil }
+                if new != linkReading?.address { linkReading = nil }
             }
-            .onChange(of: chain) { _, _ in check = "" }
+            .onChange(of: chain) { _, new in
+                check = ""
+                // O endereco que veio de um QR de outra rede nao fica para a rede nova.
+                if let reading = linkReading, let problem = PaymentURI.networkProblem(reading, chain: new) {
+                    address = ""
+                    qrProblem = problem
+                    linkReading = nil
+                }
+            }
             .sheet(isPresented: $scanning) {
                 QRScannerSheet { text in
                     // O mesmo leitor do envio: um QR com as palavras de uma carteira nunca
@@ -266,10 +278,12 @@ struct AddContactSheet: View {
                     if let problem = reading.problem ?? PaymentURI.networkProblem(reading, chain: chain) {
                         address = ""
                         qrProblem = problem
+                        linkReading = nil
                     } else {
                         address = reading.address
                         if let linkTag = reading.tag, !linkTag.isEmpty { tag = linkTag }
                         qrProblem = nil
+                        linkReading = reading
                     }
                     scanning = false
                 }

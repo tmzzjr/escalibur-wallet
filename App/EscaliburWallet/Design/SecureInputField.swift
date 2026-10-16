@@ -56,6 +56,9 @@ struct SecureInputField: UIViewRepresentable {
 
     func updateUIView(_ field: UITextField, context: Context) {
         context.coordinator.parent = self
+        // Desligado (a guarda de captura desliga a tela): nada de foco nem de teclado.
+        field.isEnabled = context.environment.isEnabled
+        if !field.isEnabled, field.isFirstResponder { field.resignFirstResponder() }
         let revealed = reveal?.wrappedValue == true
         field.textColor = concealed && !revealed ? .clear : UIColor(Palette.ink)
         Self.show(buffer, in: field, revealed: revealed)

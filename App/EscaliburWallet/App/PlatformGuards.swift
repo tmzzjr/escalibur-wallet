@@ -94,7 +94,9 @@ struct CaptureGuard: ViewModifier {
 
     func body(content: Content) -> some View {
         ZStack {
-            content.opacity(captured ? 0 : 1)
+            // Escondido e desligado: com a captura ja ativa ao abrir, o foco automatico
+            // de um campo subia o teclado mesmo assim (revisao dos baixos, B4).
+            content.opacity(captured ? 0 : 1).disabled(captured)
             if captured {
                 VStack(alignment: .leading, spacing: Space.sm) {
                     Text("A tela está sendo gravada ou espelhada")

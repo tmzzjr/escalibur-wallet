@@ -117,7 +117,7 @@ struct PaymentLinkTests {
     }
 
     @Test("Regressao B-4: esquema de rede que o app nao tem, ou desconhecido, e recusado")
-    func unsupportedSchemes() {
+    func unsupportedSchemes() throws {
         // O Bitcoin Cash usa enderecos legados iguais aos do Bitcoin: lido como endereco
         // qualquer, ia para a tela de Bitcoin.
         #expect(throws: PaymentLink.Problem.unsupportedNetwork("bitcoincash")) {
@@ -126,8 +126,17 @@ struct PaymentLinkTests {
         #expect(throws: PaymentLink.Problem.unsupportedNetwork("bitcoincash")) {
             try PaymentLink.read("BitcoinCash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a?amount=1")
         }
-        for scheme in ["ecash", "monero", "zcash", "dash", "cardano", "https", "wc"] {
+        for scheme in ["ecash", "monero", "zcash", "dash"] {
             #expect(throws: PaymentLink.Problem.unsupportedNetwork(scheme)) { try PaymentLink.read("\(scheme):1BoatSLRHtKNngkdXEeobR76b53LETtpyT") }
+        }
+        for scheme in ["https", "wc", "base"] {
+            #expect(throws: PaymentLink.Problem.unknownScheme(scheme)) { try PaymentLink.read("\(scheme):1BoatSLRHtKNngkdXEeobR76b53LETtpyT") }
+        }
+        // As redes que o app envia continuam lidas pelo esquema delas, com a rede dita.
+        let g = "GA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVSGZ"
+        #expect(try PaymentLink.read("stellar:\(g)").chainID == "stellar")
+        for (scheme, id) in [("cardano", "cardano"), ("sui", "sui"), ("aptos", "aptos"), ("near", "near"), ("polkadot", "polkadot")] {
+            #expect(try PaymentLink.read("\(scheme):abc").chainID == id)
         }
     }
 

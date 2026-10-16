@@ -429,6 +429,16 @@ struct ImportPhraseView: View {
 
     private func fill(with text: String) {
         typed = ""
+        // Conferindo uma copia de N palavras, colar outro tamanho nao preenche nada.
+        if let verify {
+            let count = Mnemonic.words(in: text).count
+            guard count == verify.wordCount else {
+                UIPasteboard.general.items = []
+                focused = false
+                message = String(localized: "A cópia de \(verify.walletName) tem \(verify.wordCount) palavras, e o texto colado tem \(count).")
+                return
+            }
+        }
         let pasted = entry.paste(text)
         UIPasteboard.general.items = []
         pasteNotice = true

@@ -17640,6 +17640,88 @@
         }
       }
     },
+    "A cópia de %@ tem %lld palavras, e o texto colado tem %lld." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نسخة %1$@ تحتوي على %2$lld كلمة، والنص الملصق يحتوي على %3$lld."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Kopie von %1$@ hat %2$lld Wörter, der eingefügte Text hat %3$lld."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The copy of %1$@ has %2$lld words, and the pasted text has %3$lld."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La copia de %1$@ tiene %2$lld palabras, y el texto pegado tiene %3$lld."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La copie de %1$@ a %2$lld mots, et le texte collé en a %3$lld."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ की प्रति में %2$lld शब्द हैं, और चिपकाए गए टेक्स्ट में %3$lld हैं।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salinan %1$@ berisi %2$lld kata, sedangkan teks yang ditempel berisi %3$lld."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ のコピーは %2$lld 語ですが、貼り付けたテキストは %3$lld 語です。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@의 사본은 %2$lld단어인데, 붙여 넣은 텍스트는 %3$lld단어입니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "A cópia de %1$@ tem %2$lld palavras, e o texto colado tem %3$lld."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ kopyası %2$lld kelime, yapıştırılan metin ise %3$lld kelime."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bản sao của %1$@ có %2$lld từ, còn văn bản đã dán có %3$lld từ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ 的副本有 %2$lld 个单词，而粘贴的文本有 %3$lld 个。"
+          }
+        }
+      }
+    },
     "A cópia fica só neste iPhone, não passa para o Mac e some sozinha em 1 minuto. Anotar no papel continua sendo o mais seguro." : {
       "localizations" : {
         "ar" : {
@@ -120897,6 +120979,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "App 会通知你，并询问是否以相同价格重新挂单"
+          }
+        }
+      }
+    },
+    "O app não reconhece este tipo de link. Cole só o endereço." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يتعرف التطبيق على هذا النوع من الروابط. الصق العنوان فقط."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die App erkennt diese Art von Link nicht. Füge nur die Adresse ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app doesn't recognize this kind of link. Paste just the address."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La app no reconoce este tipo de enlace. Pega solo la dirección."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’app ne reconnaît pas ce type de lien. Collez seulement l’adresse."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ऐप इस तरह के लिंक को नहीं पहचानता। सिर्फ़ पता चिपकाएँ।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikasi tidak mengenali jenis tautan ini. Tempel alamatnya saja."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリはこの種類のリンクを認識できません。アドレスだけを貼り付けてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앱이 이런 종류의 링크를 인식하지 못합니다. 주소만 붙여 넣으세요."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uygulama bu tür bağlantıyı tanımıyor. Yalnızca adresi yapıştır."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ứng dụng không nhận ra loại liên kết này. Chỉ dán địa chỉ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App 无法识别这种链接。请只粘贴地址。"
           }
         }
       }

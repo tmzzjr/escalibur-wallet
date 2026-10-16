@@ -675,8 +675,11 @@ struct SendStages: View {
         if problem == nil, let chain = model.chain {
             problem = PaymentURI.networkProblem(reading, chain: chain)
         }
-        model.linkProblem = problem.map { (text: reading.address, message: $0) }
-        model.destinationText = reading.address
+        // Link de outra rede: o endereco nem entra no campo, para uma edicao nao soltar o
+        // aviso e a tela aceitar o endereco de outra rede (revisao dos baixos, B1).
+        let address = problem == nil ? reading.address : ""
+        model.linkProblem = problem.map { (text: address, message: $0) }
+        model.destinationText = address
         // A tag de antes nunca fica para o destino novo, escondida ou nao (revisao da
         // auditoria 4, B-1): o campo fica com a do codigo, ou vazio.
         model.tagText = ""
@@ -1486,6 +1489,8 @@ enum PaymentURI {
         } catch PaymentLink.Problem.containsPhrase {
             // Nada do codigo vai para o campo (auditoria 4, C7-13).
             return Reading(address: "", chainID: nil, problem: String(localized: "Este código traz as palavras de uma senha de carteira, não um endereço. Quem tem essas palavras tem o saldo: não mostre a ninguém."))
+        } catch PaymentLink.Problem.unknownScheme {
+            return Reading(address: "", chainID: nil, problem: String(localized: "O app não reconhece este tipo de link. Cole só o endereço."))
         } catch PaymentLink.Problem.unsupportedNetwork {
             return Reading(address: "", chainID: nil, problem: String(localized: "Este pedido de pagamento é de uma rede que a Escalibur não envia. Confira com quem pediu."))
         } catch PaymentLink.Problem.unsupportedMemo {

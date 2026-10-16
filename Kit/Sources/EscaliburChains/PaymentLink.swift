@@ -67,6 +67,8 @@ public enum PaymentLink {
         /// como "bitcoincash", cujos enderecos tem a forma dos do Bitcoin, ou de nenhuma que
         /// ele conheca. O resto do link nunca vira destino da rede da tela (auditoria 4, B-4).
         case unsupportedNetwork(String)
+        /// Esquema que o app nao conhece: o resto nunca e lido como endereco da tela.
+        case unknownScheme(String)
     }
 
     public static let maxLength = 512
@@ -78,7 +80,12 @@ public enum PaymentLink {
     static let schemes: [String: Chain] = [
         "bitcoin": .bitcoin, "litecoin": .litecoin, "dogecoin": .dogecoin,
         "solana": .solana, "xrpl": .xrpl, "ripple": .xrpl, "tron": .tron, "ton": .ton,
+        "stellar": .stellar, "cardano": .cardano, "sui": .sui, "aptos": .aptos, "near": .near, "polkadot": .polkadot,
     ]
+
+    /// Redes conhecidas que a Escalibur nao envia, com enderecos que se parecem com os de
+    /// uma rede que ela envia (o Bitcoin Cash legado e o do Bitcoin).
+    static let unsupported: Set<String> = ["bitcoincash", "bchtest", "ecash", "bitcoinsv", "monero", "zcash", "dash"]
 
     public static func read(_ text: String) throws -> Reading {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -107,7 +114,9 @@ public enum PaymentLink {
             // Esquema que nao e de uma rede do app recusa: ler o resto como endereco da tela
             // e o que mandava "bitcoincash:1Boat..." para o Bitcoin.
             let scheme = body[..<colon].lowercased()
-            guard let known = Self.schemes[scheme] else { throw Problem.unsupportedNetwork(scheme) }
+            guard let known = Self.schemes[scheme] else {
+                throw Self.unsupported.contains(scheme) ? Problem.unsupportedNetwork(scheme) : Problem.unknownScheme(scheme)
+            }
             chain = known
             body = body[body.index(after: colon)...]
         }

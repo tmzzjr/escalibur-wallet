@@ -50,7 +50,11 @@ struct WordInputField: UIViewRepresentable {
         if field.text != text { field.text = text }
         field.textColor = masked ? .clear : UIColor(Palette.ink)
         field.attributedPlaceholder = NSAttributedString(string: placeholder, attributes: [.foregroundColor: UIColor(Palette.inkDead)])
-        if isFocused, !field.isFirstResponder {
+        // Desligado (a guarda de captura desliga a tela): nada de foco nem de teclado.
+        field.isEnabled = context.environment.isEnabled
+        if !field.isEnabled {
+            if field.isFirstResponder { field.resignFirstResponder() }
+        } else if isFocused, !field.isFirstResponder {
             DispatchQueue.main.async { field.becomeFirstResponder() }
         } else if !isFocused, field.isFirstResponder {
             // Dois saltos: quando o foco passa para outro campo na mesma atualizacao, o
