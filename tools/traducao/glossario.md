@@ -78,7 +78,7 @@ Wallet), nunca uma tradução literal que ninguém usa.
 | aviso de recebimento | incoming alert | |
 | alerta de preço | price alert | |
 | apagar depois de PINs errados | erase after failed PINs | |
-| modo reforçado | reinforced mode | |
+| modo reforçado | Hardened mode | PIN e Face ID juntos para tudo, pela criptografia (docs/seguranca.md §2.6) |
 | saldo | balance | |
 | explorador da rede | block explorer | |
 

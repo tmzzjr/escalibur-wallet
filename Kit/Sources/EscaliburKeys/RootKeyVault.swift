@@ -57,7 +57,21 @@ public final class RootKeyVault: @unchecked Sendable {
         /// passageira do sistema). Nada e apagado; o que pede PIN e rosto recusa.
         case biometryUnavailable
         case storage
+        /// Modo reforcado ligado: o caminho e `unlockHardened`, nunca o PIN so nem o rosto so.
+        case hardenedModeActive
+        case notHardened
+        /// Modo reforcado: o rosto nao confirmou. Contou como tentativa.
+        case biometryNotConfirmed(remainingBeforeWipe: UInt32?)
+        /// O Face ID esta bloqueado pelo sistema (5 erros): nada foi tentado nem contado.
+        case biometryLockedOut
+        /// Modo reforcado: o cadastro de rostos mudou (ou a chave do SE sumiu) e o rk.and nao
+        /// abre mais. Nada foi apagado; o caminho e restaurar pelas palavras.
+        case hardenedSlotLost
+        case hardenedBlocked(HardenedBlocker)
     }
+
+    /// O que impede ligar o modo reforcado agora.
+    public enum HardenedBlocker: Sendable, Equatable { case biometryOff, changePending, legacySlot, biometryUnavailable }
 
     enum Account {
         static let pinKDF = "pin.kdf"
@@ -76,6 +90,10 @@ public final class RootKeyVault: @unchecked Sendable {
         static let wipeAfterErrors = "pin.apagar"
         static let pinBoot = "pin.boot"
         static let pendingSuffix = ".novo"
+        /// Modo reforcado: o slot unico, PIN e rosto em camadas (docs/seguranca.md §2.6).
+        static let rootHardened = "rk.and"
+        /// O hash do cadastro de rostos ao ligar o modo reforcado: so classifica o erro.
+        static let hardenedState = "and.estado"
     }
 
     /// O registro de custo do slot: sal (16), memoria (4), passadas (4), faixas (1) e, no
@@ -109,6 +127,9 @@ public final class RootKeyVault: @unchecked Sendable {
     let wrapper: any KeyWrapper
     /// O Face ID deste iPhone agora. Trocavel so nos testes, que rodam num Mac sem ele.
     var biometryAvailability: @Sendable () -> BiometryAvailability = { RootKeyVault.systemBiometryAvailability() }
+    /// O Face ID para o modo reforcado e o hash do cadastro. Trocaveis so nos testes.
+    var hardenedBiometryStatus: @Sendable () -> BiometryStatus = { RootKeyVault.systemBiometryStatus() }
+    var hardenedDomainState: @Sendable () -> Data? = { RootKeyVault.biometryDomainState() }
     /// Custo fixo do PIN, so para os testes nao pagarem 256 MiB por chamada.
     private let fixedPINParameters: KDFParameters?
     private let lock = NSLock()
@@ -130,7 +151,7 @@ public final class RootKeyVault: @unchecked Sendable {
     /// caminho que um dia apagaria a chave do aparelho. O cadastro, por sua vez, so
     /// prossegue com um "nao existe" definitivo.
     public var isSetUp: Bool {
-        let slots = [Account.rootByPIN, Account.rootByPIN + Account.pendingSuffix].map(store.probe)
+        let slots = [Account.rootByPIN, Account.rootByPIN + Account.pendingSuffix, Account.rootHardened].map(store.probe)
         return slots.contains(.present) || slots.contains(.unknown)
     }
 
@@ -141,7 +162,7 @@ public final class RootKeyVault: @unchecked Sendable {
     /// primeira carteira sem pedir o PIN de novo; quem recebe zera.
     public func setUp(pin: SecureBytes) throws -> SecureBytes {
         lock.lock(); defer { lock.unlock() }
-        let slots = [Account.rootByPIN, Account.rootByPIN + Account.pendingSuffix, Account.rootByBiometry].map(store.probe)
+        let slots = [Account.rootByPIN, Account.rootByPIN + Account.pendingSuffix, Account.rootByBiometry, Account.rootHardened].map(store.probe)
         guard !slots.contains(.unknown) else { throw Failure.storage }
         guard !slots.contains(.present) else { throw Failure.alreadySetUp }
         guard Self.isWellFormed(pin) else { throw Failure.malformedPIN }
@@ -166,10 +187,7 @@ public final class RootKeyVault: @unchecked Sendable {
     }
 
     private func discardOrphans() throws {
-        wrapper.deleteKey(.device)
-        wrapper.deleteKey(.pin)
-        wrapper.deleteKey(.pinPending)
-        wrapper.deleteKey(.biometry)
+        WrapSlot.allCases.forEach(wrapper.deleteKey)
         do { try store.deleteAll() } catch { throw Failure.storage }
     }
 
@@ -183,6 +201,15 @@ public final class RootKeyVault: @unchecked Sendable {
     /// a conclui.
     public func unlock(pin: SecureBytes) throws -> SecureBytes {
         lock.lock(); defer { lock.unlock() }
+        return try unlockLocked(pin: pin)
+    }
+
+    private func unlockLocked(pin: SecureBytes) throws -> SecureBytes {
+        switch securityMode {
+        case .hardened: throw Failure.hardenedModeActive
+        case .unknown: throw Failure.storage
+        case .normal: break
+        }
         let pendingAccount = Account.rootByPIN + Account.pendingSuffix
         let main = store.probe(Account.rootByPIN)
         let pending = store.probe(pendingAccount)
@@ -220,6 +247,10 @@ public final class RootKeyVault: @unchecked Sendable {
         // Contador de volta a zero. Se falhar, o dono so espera mais na proxima vez.
         try? store.update(AttemptRecord.zero.encoded, account: Account.attempts)
         recordPINThisBoot()
+        // Um rk.and ao lado do rk.pin e uma transicao que nao chegou ao fim (ligar
+        // interrompido antes do commit, ou desligar interrompido depois do rk.pin gravado).
+        // O PIN acabou de provar o slot do modo normal: o rk.and sai.
+        if store.probe(Account.rootHardened) == .present { discardHardenedLocked() }
         if pending == .present {
             if opened.suffix.isEmpty {
                 deleteSlot(suffix: Account.pendingSuffix)
@@ -256,6 +287,13 @@ public final class RootKeyVault: @unchecked Sendable {
     /// tamanho errado. Nao e segredo (o iPhone tambem mostra quantos pontos o codigo tem).
     /// So le.
     public var pinLengths: Set<Int> {
+        switch securityMode {
+        case .unknown: return Set(PINPolicy.lengths)
+        case .hardened:
+            guard let (header, _) = try? readHardened() else { return Set(PINPolicy.lengths) }
+            return [Int(header.pinLength)]
+        case .normal: break
+        }
         var lengths = Set<Int>()
         for suffix in ["", Account.pendingSuffix] {
             switch store.probe(Account.rootByPIN + suffix) {
@@ -300,6 +338,19 @@ public final class RootKeyVault: @unchecked Sendable {
     /// Destranca pelo Face ID. Bloqueia a thread enquanto o sistema pergunta: chamar
     /// fora do MainActor. O que autoriza e o SEP liberar a chave, nunca um booleano.
     public func unlockWithBiometry(reason: String) throws -> SecureBytes {
+        lock.lock(); defer { lock.unlock() }
+        return try unlockWithBiometryLocked(reason: reason)
+    }
+
+    /// Sob a trava: uma varredura do modo reforcado rodando ao lado de uma troca de PIN
+    /// apagaria a geracao nova da chave do PIN (revisao do modo reforcado, M2). No
+    /// reforcado so recusa; quem varre e `rebaseAttempts` e `unlockHardened`, sob a trava.
+    private func unlockWithBiometryLocked(reason: String) throws -> SecureBytes {
+        switch securityMode {
+        case .hardened: throw Failure.hardenedModeActive
+        case .unknown: throw Failure.storage
+        case .normal: break
+        }
         guard pinEnteredThisBoot else { throw Failure.pinRequiredAfterRestart }
         let blob: Data?
         do { blob = try store.read(Account.rootByBiometry, context: nil) } catch { throw Failure.storage }
@@ -344,17 +395,22 @@ public final class RootKeyVault: @unchecked Sendable {
     /// religado. Sem a espera, o ladrao que viu o codigo do iPhone cadastrava o proprio
     /// rosto e passava com o PIN so. Chaveiro mudo recusa: nunca vira "Face ID desligado".
     public func unlockWithPINAndBiometry(pin: SecureBytes, reason: String) throws -> SecureBytes {
+        lock.lock(); defer { lock.unlock() }
+        return try unlockWithPINAndBiometryLocked(pin: pin, reason: reason)
+    }
+
+    private func unlockWithPINAndBiometryLocked(pin: SecureBytes, reason: String) throws -> SecureBytes {
         try checkPINAndBiometryAllowed()
         let slot = store.probe(Account.rootByBiometry)
         guard slot != .unknown else { throw Failure.storage }
 
-        let rk = try unlock(pin: pin)
+        let rk = try unlockLocked(pin: pin)
         guard slot == .present else { return rk }
         do {
             // Face ID indisponivel agora nao e Face ID perdido: nada e apagado, e isto recusa
             // (revisao do A1: uma falha passageira, ou o Espelhamento, derrubava o slot).
             if biometryAvailability() == .gone { throw Failure.biometryUnavailable }
-            let check = try unlockWithBiometry(reason: reason)
+            let check = try unlockWithBiometryLocked(reason: reason)
             defer { check.wipe() }
             guard Hash.constantTimeEqual(check, rk) else { throw Failure.storage }
             return rk
@@ -374,6 +430,9 @@ public final class RootKeyVault: @unchecked Sendable {
     /// perdido e nao religado. Para a tela perguntar antes do PIN e da voz; o cofre confere
     /// de novo em `unlockWithPINAndBiometry`.
     public func checkPINAndBiometryAllowed() throws {
+        // No reforcado nao existe slot do rosto do modo normal: a espera e a marca do A1
+        // nao valem (e a varredura as apaga).
+        guard securityMode != .hardened else { return }
         let hold = try biometryHoldRemainingChecked()
         guard hold <= 0 else { throw Failure.biometryHold(seconds: hold) }
         switch store.probe(Account.biometryLost) {
@@ -446,9 +505,10 @@ public final class RootKeyVault: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         _ = try? rebasedAttemptsLocked()
         rebaseHoldLocked()
+        sweepHardenedLocked()
         // O slot do rosto sem a chave do SE (cadastro de rostos trocado): a queda conta a
         // partir de quando o app a ve, nao de quando alguem resolve usar o Face ID.
-        if store.probe(Account.rootByBiometry) == .present, !wrapper.hasKey(.biometry) { try? biometryLost() }
+        if securityMode == .normal, store.probe(Account.rootByBiometry) == .present, !wrapper.hasKey(.biometry) { try? biometryLost() }
     }
 
     // MARK: Biometria
@@ -470,7 +530,7 @@ public final class RootKeyVault: @unchecked Sendable {
     /// sumido: e o primeiro uso do Face ID que descobre e comeca a espera. Antes era
     /// "slot e chave", e com a chave invalidada por um rosto novo o app mostrava o Face ID
     /// desligado, e religar sobrescrevia o slot do dono sem espera (revisao do A1).
-    public var isBiometryEnabled: Bool { store.probe(Account.rootByBiometry) != .absent }
+    public var isBiometryEnabled: Bool { securityMode != .hardened && store.probe(Account.rootByBiometry) != .absent }
 
     /// Liga o Face ID e confere na hora: o slot novo tem de abrir com o rosto e devolver a
     /// mesma RK. Exige a RK aberta, ou seja, o PIN digitado agora.
@@ -480,6 +540,7 @@ public final class RootKeyVault: @unchecked Sendable {
     /// iPhone nao ve a frase na hora so por ligar o Face ID com o PIN. O primeiro Face ID
     /// de um cofre que nunca o teve nao espera: antes dele, o PIN ja abria tudo.
     public func enableBiometry(rk: SecureBytes, reason: String = "") throws {
+        guard securityMode == .normal else { throw Failure.hardenedModeActive }
         let slot = store.probe(Account.rootByBiometry)
         let lost = store.probe(Account.biometryLost)
         guard slot != .unknown, lost != .unknown else { throw Failure.storage }
@@ -677,10 +738,8 @@ public final class RootKeyVault: @unchecked Sendable {
     }
 
     private func wipeAllLocked() {
-        wrapper.deleteKey(.device)
-        wrapper.deleteKey(.pin)
-        wrapper.deleteKey(.pinPending)
-        wrapper.deleteKey(.biometry)
+        WrapSlot.allCases.forEach(wrapper.deleteKey)
+        try? store.delete(Account.rootHardened)
         try? store.delete(Account.rootByPIN)
         try? store.delete(Account.rootByPIN + Account.pendingSuffix)
         try? store.delete(Account.rootByBiometry)
@@ -873,5 +932,442 @@ public final class RootKeyVault: @unchecked Sendable {
             if estimate <= 0.8 { return KDFParameters(memoryKiB: memory, passes: passes, lanes: lanes) }
         }
         return KDFParameters(memoryKiB: memory, passes: 2, lanes: lanes)
+    }
+}
+
+// MARK: - Modo reforcado
+
+/// Cabecalho do rk.and, em claro e autenticado como AAD da camada interna.
+/// versao (1) | digitos (1) | chave do PIN (1: 0 = a, 1 = b) | sal (16) | memoria (4) |
+/// passadas (4) | faixas (1) = 28 bytes.
+struct HardenedHeader: Equatable {
+    static let version: UInt8 = 3
+    static let length = 28
+    static let aadInfo = Array("escalibur-wallet/v3/rk.and".utf8)
+    static let passwordInfo = Data("escalibur-wallet/v3/kand.senha".utf8)
+    static let innerInfo = Data("escalibur-wallet/v3/rk.and.interna".utf8)
+
+    var pinLength: UInt8
+    var pinKey: WrapSlot
+    var salt: [UInt8]
+    var kdf: KDFParameters
+
+    var encoded: [UInt8] {
+        [Self.version, pinLength, pinKey == .hardenedPINA ? 0 : 1] + salt
+            + kdf.memoryKiB.bigEndianByteArray + kdf.passes.bigEndianByteArray + [kdf.lanes]
+    }
+
+    var aad: Data { Data(Self.aadInfo + encoded) }
+
+    init(pinLength: UInt8, pinKey: WrapSlot, salt: [UInt8], kdf: KDFParameters) {
+        self.pinLength = pinLength
+        self.pinKey = pinKey
+        self.salt = salt
+        self.kdf = kdf
+    }
+
+    init?(_ bytes: [UInt8]) {
+        guard bytes.count >= Self.length, bytes[0] == Self.version,
+              PINPolicy.lengths.contains(Int(bytes[1])), bytes[2] <= 1 else { return nil }
+        pinLength = bytes[1]
+        pinKey = bytes[2] == 0 ? .hardenedPINA : .hardenedPINB
+        salt = Array(bytes[3..<19])
+        let memory = bytes[19..<23].reduce(UInt32(0)) { $0 << 8 | UInt32($1) }
+        let passes = bytes[23..<27].reduce(UInt32(0)) { $0 << 8 | UInt32($1) }
+        kdf = KDFParameters(memoryKiB: memory, passes: passes, lanes: bytes[27])
+    }
+}
+
+extension RootKeyVault {
+    public enum SecurityMode: Sendable, Equatable { case normal, hardened, unknown }
+
+    /// O Face ID visto pelo modo reforcado. So `notEnrolled` e terminal; o resto volta.
+    public enum BiometryStatus: Sendable, Equatable { case ready, lockedOut, notEnrolled, unavailable }
+
+    static func systemBiometryStatus() -> BiometryStatus {
+        let context = LAContext()
+        defer { context.invalidate() }
+        var error: NSError?
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) { return .ready }
+        guard let error, error.domain == LAError.errorDomain else { return .ready }
+        switch LAError.Code(rawValue: error.code) {
+        case .biometryLockout?: return .lockedOut
+        case .biometryNotEnrolled?: return .notEnrolled
+        case .biometryNotAvailable?: return .unavailable
+        default: return .ready  // o SEP decide; nada e recusado nem apagado por duvida
+        }
+    }
+
+    /// Reforcado so com o rk.and presente e nenhum slot do PIN: o commit de ligar e
+    /// apagar o rk.pin. Com os dois, a transicao nao terminou e o modo normal manda.
+    public var securityMode: SecurityMode {
+        let probes = [Account.rootHardened, Account.rootByPIN, Account.rootByPIN + Account.pendingSuffix].map(store.probe)
+        if probes.contains(.unknown) { return .unknown }
+        return probes[0] == .present && probes[1] == .absent && probes[2] == .absent ? .hardened : .normal
+    }
+
+    /// Sobrou alguma coisa de uma instalacao (slot, chave do SE)? Para a limpeza de
+    /// reinstalacao, sem o app conhecer nomes de conta.
+    public var hasResidue: Bool {
+        let accounts = [Account.rootByPIN, Account.rootByPIN + Account.pendingSuffix, Account.rootByBiometry, Account.rootHardened]
+        return accounts.map(store.probe).contains { $0 != .absent } || WrapSlot.allCases.contains { wrapper.probeKey($0) != .absent }
+    }
+
+    static func hardenedPassword(ap: SecureBytes, salt: [UInt8]) -> Data {
+        let material = ap.withUnsafeBytes { SymmetricKey(data: $0) }
+        return HKDF<SHA256>.deriveKey(inputKeyMaterial: material, salt: salt, info: HardenedHeader.passwordInfo, outputByteCount: 32)
+            .withUnsafeBytes { Data($0) }
+    }
+
+    static func sealHardenedInner(_ rk: SecureBytes, ap: SecureBytes, header: HardenedHeader) throws -> SecureBytes {
+        let material = ap.withUnsafeBytes { SymmetricKey(data: $0) }
+        let key = HKDF<SHA256>.deriveKey(inputKeyMaterial: material, salt: header.salt, info: HardenedHeader.innerInfo, outputByteCount: 32)
+        let box = try rk.withUnsafeData { try ChaChaPoly.seal($0, using: key, authenticating: header.aad) }
+        let out = SecureBytes(capacity: Inner.length)
+        out.append(Inner.version)
+        box.combined.withUnsafeBytes { out.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
+        return out
+    }
+
+    static func openHardenedInner(_ inner: SecureBytes, ap: SecureBytes, header: HardenedHeader) throws -> SecureBytes {
+        guard inner.count == Inner.length else { throw Failure.storage }
+        let material = ap.withUnsafeBytes { SymmetricKey(data: $0) }
+        let key = HKDF<SHA256>.deriveKey(inputKeyMaterial: material, salt: header.salt, info: HardenedHeader.innerInfo, outputByteCount: 32)
+        let parsed: (UInt8, ChaChaPoly.SealedBox)? = inner.withUnsafeBytes { raw in
+            guard let box = try? ChaChaPoly.SealedBox(combined: Data(raw[1...])) else { return nil }
+            return (raw[0], box)
+        }
+        guard let parsed, parsed.0 == Inner.version else { throw Failure.storage }
+        var plain: Data
+        do { plain = try ChaChaPoly.open(parsed.1, using: key, authenticating: header.aad) } catch { throw Failure.wrongPIN(remainingBeforeWipe: nil) }
+        let rk = SecureBytes(capacity: 32)
+        plain.withUnsafeMutableBytes { raw in
+            rk.append(contentsOf: UnsafeBufferPointer(raw.bindMemory(to: UInt8.self)))
+            if let base = raw.baseAddress { memset_s(base, raw.count, 0, raw.count) }
+        }
+        return rk
+    }
+
+    func readHardened() throws -> (HardenedHeader, Data) {
+        let data: Data?
+        do { data = try store.read(Account.rootHardened, context: nil) } catch { throw Failure.storage }
+        guard let data else { throw Failure.notHardened }
+        return try Self.parseHardened(data)
+    }
+
+    static func parseHardened(_ data: Data) throws -> (HardenedHeader, Data) {
+        guard let header = HardenedHeader([UInt8](data.prefix(HardenedHeader.length))), data.count > HardenedHeader.length else {
+            throw Failure.storage
+        }
+        return (header, Data(data.dropFirst(HardenedHeader.length)))
+    }
+
+    // MARK: Abrir
+
+    /// PIN e rosto, os dois pela criptografia. Uma chamada = uma tentativa = um Face ID
+    /// = um PIN avaliado. O contador sobe antes do rosto e so zera com a RK aberta.
+    public func unlockHardened(pin: SecureBytes, reason: String) throws -> SecureBytes {
+        lock.lock(); defer { lock.unlock() }
+        return try unlockHardenedLocked(pin: pin, reason: reason)
+    }
+
+    private func unlockHardenedLocked(pin: SecureBytes, reason: String) throws -> SecureBytes {
+        switch securityMode {
+        case .unknown: throw Failure.storage
+        case .normal: throw Failure.notHardened
+        case .hardened: break
+        }
+        sweepHardenedLocked()
+        let (header, body) = try readHardened()
+        // Tamanho nao e segredo; PIN fora de forma nunca gasta tentativa.
+        guard Self.isWellFormed(pin), pin.count == Int(header.pinLength) else { throw Failure.malformedPIN }
+        try hardenedPreflight(header)
+
+        let record = try rebasedAttemptsLocked()
+        let waiting = record.remaining()
+        guard waiting <= 0 else { throw Failure.throttled(seconds: waiting) }
+        let next = AttemptRecord.after(failures: record.failures + 1)
+        do { try store.update(next.encoded, account: Account.attempts) } catch { throw Failure.storage }
+
+        let rk: SecureBytes
+        do {
+            rk = try openHardenedBody(body, header: header, pin: pin, reason: reason)
+        } catch let failure as Failure {
+            switch failure {
+            case .wrongPIN, .biometryNotConfirmed:
+                if let threshold = wipeThreshold, next.failures >= threshold {
+                    wipeAllLocked()
+                    throw Failure.wiped
+                }
+                let left = wipeThreshold.map { $0 - next.failures }
+                if case .wrongPIN = failure { throw Failure.wrongPIN(remainingBeforeWipe: left) }
+                throw Failure.biometryNotConfirmed(remainingBeforeWipe: left)
+            default:
+                throw failure
+            }
+        }
+        try? store.update(AttemptRecord.zero.encoded, account: Account.attempts)
+        recordPINThisBoot()
+        refreshHardenedState()
+        return rk
+    }
+
+    /// O que nao depende do PIN nem gasta tentativa: o Face ID utilizavel agora e as
+    /// duas chaves do SE presentes.
+    private func hardenedPreflight(_ header: HardenedHeader) throws {
+        switch hardenedBiometryStatus() {
+        case .lockedOut: throw Failure.biometryLockedOut
+        case .unavailable: throw Failure.biometryUnavailable
+        case .notEnrolled: throw Failure.hardenedSlotLost
+        case .ready: break
+        }
+        for slot in [WrapSlot.hardenedBiometry, header.pinKey] {
+            switch wrapper.probeKey(slot) {
+            case .present: continue
+            case .absent: throw Failure.hardenedSlotLost
+            case .unknown: throw Failure.storage
+            }
+        }
+    }
+
+    /// rosto (SEP) -> Argon2id -> SE com a senha do PIN -> ChaChaPoly com AAD. Nao conta
+    /// nem grava: quem chama decide. Privado: nada fora do cofre abre "o rosto ja passou".
+    private func openHardenedBody(_ body: Data, header: HardenedHeader, pin: SecureBytes, reason: String) throws -> SecureBytes {
+        let middle: SecureBytes
+        do {
+            middle = try wrapper.unwrap(body, slot: .hardenedBiometry, reason: reason)
+        } catch {
+            // Perdido so com prova: a chave do rosto que o SE ja nao tem. O hash do cadastro
+            // diferente com a chave presente pode ser so deriva do sistema e conta como o
+            // rosto que nao confirmou (revisao do modo reforcado, M6).
+            if wrapper.probeKey(.hardenedBiometry) == .absent { throw Failure.hardenedSlotLost }
+            throw Failure.biometryNotConfirmed(remainingBeforeWipe: nil)
+        }
+        defer { middle.wipe() }
+        let ap: SecureBytes
+        do { ap = try KeyDerivation.deriveMasterKey(password: pin, salt: header.salt, parameters: header.kdf) } catch { throw Failure.storage }
+        defer { ap.wipe() }
+        let inner: SecureBytes
+        do {
+            inner = try middle.withUnsafeData { try wrapper.unwrap($0, slot: header.pinKey, password: Self.hardenedPassword(ap: ap, salt: header.salt)) }
+        } catch EnclaveError.wrongPassword {
+            throw Failure.wrongPIN(remainingBeforeWipe: nil)
+        } catch EnclaveError.keyMissing {
+            // O wrapper diz "sem chave" para qualquer falha da busca: perdido so se o SE
+            // confirmar que ela nao existe.
+            throw wrapper.probeKey(header.pinKey) == .absent ? Failure.hardenedSlotLost : Failure.storage
+        } catch {
+            throw Failure.storage
+        }
+        defer { inner.wipe() }
+        return try Self.openHardenedInner(inner, ap: ap, header: header)
+    }
+
+    /// O hash do cadastro de rostos diferente do gravado ao ligar. Nunca decide nada: so
+    /// a mensagem do rosto que nao confirmou diz que, se o cadastro mudou, so as palavras
+    /// trazem de volta.
+    public var hardenedEnrollmentChanged: Bool {
+        guard let saved = try? store.read(Account.hardenedState, context: nil), let now = hardenedDomainState() else { return false }
+        return saved != now
+    }
+
+    /// O SEP abriu: o cadastro e o mesmo de quando a chave nasceu. Um hash diferente era
+    /// so deriva do sistema.
+    private func refreshHardenedState() {
+        guard let now = hardenedDomainState() else { return }
+        if (try? store.read(Account.hardenedState, context: nil)) == now { return }
+        try? store.delete(Account.hardenedState)
+        try? store.add(now, account: Account.hardenedState, protection: .standard, context: nil)
+    }
+
+    // MARK: Gravar e conferir
+
+    private func buildHardenedRecord(rk: SecureBytes, pin: SecureBytes, pinKey: WrapSlot) throws -> Data {
+        let saltBytes = try SecureBytes.random(count: VaultFormat.saltLength)
+        let salt = saltBytes.withUnsafeBytes { Array($0) }
+        let kdf = pinParameters
+        let ap = try KeyDerivation.deriveMasterKey(password: pin, salt: salt, parameters: kdf)
+        defer { ap.wipe() }
+        let header = HardenedHeader(pinLength: UInt8(pin.count), pinKey: pinKey, salt: salt, kdf: kdf)
+        try wrapper.createKey(pinKey, password: Self.hardenedPassword(ap: ap, salt: salt))
+        let inner = try Self.sealHardenedInner(rk, ap: ap, header: header)
+        defer { inner.wipe() }
+        var middleData = try wrapper.wrap(inner, slot: pinKey)
+        let middle = SecureBytes(capacity: middleData.count)
+        middleData.withUnsafeMutableBytes { raw in
+            middle.append(contentsOf: raw.bindMemory(to: UInt8.self).withMemoryRebound(to: UInt8.self) { UnsafeBufferPointer($0) })
+            // O miolo e o "rosto ja passou": nao fica num Data solto.
+            if let base = raw.baseAddress { memset_s(base, raw.count, 0, raw.count) }
+        }
+        defer { middle.wipe() }
+        let body = try wrapper.wrap(middle, slot: .hardenedBiometry)
+        return Data(header.encoded) + body
+    }
+
+    /// A prova de que o registro abre com este PIN e este rosto e devolve esta RK. Nao
+    /// conta: so roda com a RK ja aberta.
+    private func verifyHardened(_ record: Data, pin: SecureBytes, reason: String, matches rk: SecureBytes) throws {
+        let (header, body) = try Self.parseHardened(record)
+        let check = try openHardenedBody(body, header: header, pin: pin, reason: reason)
+        defer { check.wipe() }
+        guard Hash.constantTimeEqual(check, rk) else { throw Failure.storage }
+    }
+
+    private func discardHardenedLocked() {
+        try? store.delete(Account.rootHardened)
+        try? store.delete(Account.hardenedState)
+        [WrapSlot.hardenedBiometry, .hardenedPINA, .hardenedPINB].forEach(wrapper.deleteKey)
+    }
+
+    /// Leva o que sobrou de uma transicao para o estado que o modo diz. So com respostas
+    /// definitivas; com os dois slots, nada (o PIN certo resolve).
+    func sweepHardenedLocked() {
+        switch securityMode {
+        case .hardened:
+            for account in [Account.rootByBiometry, Account.biometryState, Account.biometryHold, Account.biometryLost, Account.pinKDF, Account.pinLength,
+                            Account.pinKDF + Account.pendingSuffix, Account.pinLength + Account.pendingSuffix] {
+                try? store.delete(account)
+            }
+            [WrapSlot.device, .pin, .pinPending, .biometry].forEach(wrapper.deleteKey)
+            if let (header, _) = try? readHardened() {
+                wrapper.deleteKey(header.pinKey == .hardenedPINA ? .hardenedPINB : .hardenedPINA)
+            }
+        case .normal:
+            guard store.probe(Account.rootHardened) == .absent else { return }
+            [WrapSlot.hardenedBiometry, .hardenedPINA, .hardenedPINB].forEach(wrapper.deleteKey)
+            try? store.delete(Account.hardenedState)
+        case .unknown:
+            return
+        }
+    }
+
+    // MARK: Ligar, desligar, trocar o PIN
+
+    /// Liga. Uma chamada, sincrona, fora do MainActor: PIN e rosto pelo caminho de hoje,
+    /// `check` com a RK (a conferencia das palavras), o rk.and gravado e aberto de novo com
+    /// PIN e rosto, e so entao o commit (apagar o rk.pin).
+    ///
+    /// `check` roda sob a trava do cofre: nunca pode chamar o `RootKeyVault` (a trava nao e
+    /// recursiva). Abrir carteiras pelo `WalletVault` pode.
+    public func enableHardened(pin: SecureBytes, reason: String, confirmReason: String, check: (SecureBytes) throws -> Void = { _ in }) throws {
+        lock.lock(); defer { lock.unlock() }
+        switch securityMode {
+        case .hardened: throw Failure.hardenedModeActive
+        case .unknown: throw Failure.storage
+        case .normal: break
+        }
+        guard slotVersion(suffix: "") == 2 else { throw Failure.hardenedBlocked(.legacySlot) }
+        switch store.probe(Account.rootByPIN + Account.pendingSuffix) {
+        case .absent: break
+        case .present: throw Failure.hardenedBlocked(.changePending)
+        case .unknown: throw Failure.storage
+        }
+        guard store.probe(Account.rootByBiometry) == .present, wrapper.probeKey(.biometry) == .present else {
+            throw Failure.hardenedBlocked(.biometryOff)
+        }
+        let hold = try biometryHoldRemainingChecked()
+        guard hold <= 0 else { throw Failure.biometryHold(seconds: hold) }
+        guard hardenedBiometryStatus() == .ready else { throw Failure.hardenedBlocked(.biometryUnavailable) }
+        let stateBefore = hardenedDomainState()
+
+        // 1. PIN e o rosto do slot de hoje (A1): prova que o cadastro e o de quando o Face
+        //    ID foi ligado, e conta tentativa como sempre.
+        let rk = try unlockWithPINAndBiometryLocked(pin: pin, reason: reason)
+        defer { rk.wipe() }
+        try check(rk)
+        // 2. Sobras de uma ativacao interrompida: so agora, com o slot do PIN provado vivo.
+        discardHardenedLocked()
+        // 3. Chaves novas e o registro.
+        do {
+            try wrapper.createKey(.hardenedBiometry)
+            let record = try buildHardenedRecord(rk: rk, pin: pin, pinKey: .hardenedPINA)
+            try store.add(record, account: Account.rootHardened, protection: .standard, context: nil)
+            if let state = stateBefore { try store.add(state, account: Account.hardenedState, protection: .standard, context: nil) }
+            // 4. Conferir lendo do chaveiro e abrindo de verdade: segundo Face ID.
+            guard let stored = try store.read(Account.rootHardened, context: nil) else { throw Failure.storage }
+            try verifyHardened(stored, pin: pin, reason: confirmReason, matches: rk)
+            guard hardenedDomainState() == stateBefore else { throw Failure.biometryChanged }
+        } catch {
+            discardHardenedLocked()
+            throw error is Failure ? error : Failure.storage
+        }
+        // 5. Commit. Daqui em diante nada apaga o rk.and por falha.
+        try? store.delete(Account.rootByPIN)
+        guard store.probe(Account.rootByPIN) == .absent else { throw Failure.storage }
+        // 6. Limpeza; se parar no meio, a varredura termina.
+        sweepHardenedLocked()
+    }
+
+    /// Desliga: PIN e rosto no rk.and, o slot do PIN gravado e conferido (a partir dai o
+    /// modo normal manda), o Face ID religado e conferido (segundo rosto; se falhar, fica
+    /// desligado), e o rk.and sai. Devolve se o Face ID voltou.
+    @discardableResult
+    public func disableHardened(pin: SecureBytes, reason: String, biometryReason: String) throws -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        let rk = try unlockHardenedLocked(pin: pin, reason: reason)
+        defer { rk.wipe() }
+        do {
+            try writePINSlot(rk: rk, pin: pin, kdf: pinParameters, suffix: "")
+            try confirm(pin: pin, suffix: "", matches: rk)
+        } catch {
+            // O rk.pin sai e e conferido antes da chave dele: um rk.pin sem chave tiraria o
+            // cofre do reforcado com um slot que nao abre (revisao do modo reforcado).
+            try? store.delete(Account.rootByPIN)
+            guard store.probe(Account.rootByPIN) == .absent else { throw Failure.storage }
+            deleteSlot(suffix: "")
+            wrapper.deleteKey(.pin)
+            throw error is Failure ? error : Failure.storage
+        }
+        // O Face ID volta com o mesmo cadastro, provado agora pela kand.bio: sem espera. A
+        // conferencia do rosto e a do proprio `enableBiometry`; falhou, fica desligado.
+        let restored = (try? enableBiometry(rk: rk, reason: biometryReason)) != nil
+        discardHardenedLocked()
+        return restored
+    }
+
+    /// Troca o PIN no modo reforcado. Sem slot pendente: a chave do PIN alterna (a/b), o
+    /// registro novo e aberto com PIN novo e rosto antes, e o commit e a troca no lugar
+    /// do rk.and (atomica). A chave antiga so sai com o registro novo lido de volta.
+    public func changeHardenedPIN(currentPIN: SecureBytes, newPIN: SecureBytes, reason: String, confirmReason: String) throws {
+        lock.lock(); defer { lock.unlock() }
+        guard Self.isWellFormed(newPIN) else { throw Failure.malformedPIN }
+        let rk = try unlockHardenedLocked(pin: currentPIN, reason: reason)
+        defer { rk.wipe() }
+        guard let old = try? store.read(Account.rootHardened, context: nil) else { throw Failure.storage }
+        let (oldHeader, _) = try Self.parseHardened(old)
+        let nextKey: WrapSlot = oldHeader.pinKey == .hardenedPINA ? .hardenedPINB : .hardenedPINA
+        wrapper.deleteKey(nextKey)
+        let record: Data
+        do {
+            record = try buildHardenedRecord(rk: rk, pin: newPIN, pinKey: nextKey)
+            try verifyHardened(record, pin: newPIN, reason: confirmReason, matches: rk)
+        } catch Failure.biometryNotConfirmed {
+            // O rosto da conferencia nao conta tentativa: so a abertura conta.
+            wrapper.deleteKey(nextKey)
+            throw Failure.cancelled
+        } catch {
+            wrapper.deleteKey(nextKey)
+            throw error is Failure ? error : Failure.storage
+        }
+        try? store.update(record, account: Account.rootHardened)
+        // O que ficou gravado decide, nao o retorno do update.
+        guard let stored = try? store.read(Account.rootHardened, context: nil) else { throw Failure.storage }
+        if stored == record {
+            // A chave nova sumiu depois do commit: volta o registro antigo, conferido, antes
+            // de recusar. Sem isso, o rk.and gravado apontaria para uma chave que nao existe e
+            // a varredura apagaria a antiga (segunda revisao do modo reforcado, N2).
+            guard wrapper.probeKey(nextKey) == .present else {
+                try? store.update(old, account: Account.rootHardened)
+                guard (try? store.read(Account.rootHardened, context: nil)) == old else { throw Failure.storage }
+                wrapper.deleteKey(nextKey)
+                throw Failure.storage
+            }
+            wrapper.deleteKey(oldHeader.pinKey)
+        } else if stored == old {
+            wrapper.deleteKey(nextKey)
+            throw Failure.storage
+        } else {
+            throw Failure.storage
+        }
     }
 }

@@ -160,6 +160,8 @@ RK ─HKDF(salt_w, "…/v1/dek" ‖ walletID)───────► KEK_w ─�
 | K_slot (`kpin`, `kpin.novo`) | P-256 no SE, flags `[.privateKeyUsage, .applicationPassword]`, senha derivada do PIN; uma por slot (formato 2, §2.4) | Secure Enclave |
 | K_dev | P-256 no SE, flags `[.privateKeyUsage]`, sem senha: só do formato 1, apagada quando o slot migra | Secure Enclave, até a migração |
 | K_bio | P-256 no SE, flags `[.privateKeyUsage, .biometryCurrentSet]` | Secure Enclave; só existe com biometria ligada |
+| `kand.bio` | P-256 no SE, flags `[.privateKeyUsage, .biometryCurrentSet]`: a camada de fora do `rk.and` | Secure Enclave; só no modo reforçado (§2.6) |
+| `kand.pin.a`, `kand.pin.b` | P-256 no SE, flags `[.privateKeyUsage, .applicationPassword]`, senha derivada do PIN: a camada de dentro, em duas gerações | Secure Enclave; só no modo reforçado |
 | AP | Argon2id(PIN), 32 bytes | só em memória, por microssegundos |
 | RK | 32 bytes do `SecRandomCopyBytes` | só embrulhada; em claro apenas durante uma operação |
 | K_idx | HKDF(RK) | em memória enquanto o app está aberto; protege dado de privacidade, não segredo |
@@ -175,12 +177,12 @@ Chaves no Secure Enclave, via `SecKeyCreateRandomKey`:
 - `kSecAttrKeyType: kSecAttrKeyTypeECSECPrimeRandom`
 - `kSecAttrKeySizeInBits: 256`
 - `kSecAttrTokenID: kSecAttrTokenIDSecureEnclave`
-- `kSecPrivateKeyAttrs` com `kSecAttrIsPermanent: true`, `kSecAttrApplicationTag: "app.escalibur.wallet.kdev"` (ou `.kbio`) e `kSecAttrAccessControl: SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, <flags>, nil)`.
+- `kSecPrivateKeyAttrs` com `kSecAttrIsPermanent: true`, `kSecAttrApplicationTag: "app.escalibur.wallet.kdev"` (ou `.kbio`, `.kpin`, `.kpin.novo`, e no modo reforçado `.kand.bio`, `.kand.pin.a`, `.kand.pin.b`) e `kSecAttrAccessControl: SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, <flags>, nil)`.
 
 Itens de chaveiro (`kSecClassGenericPassword`):
 - Atributos comuns: `kSecAttrService "app.escalibur.wallet"`, `kSecAttrSynchronizable: false`, `kSecUseDataProtectionKeychain: true`, e o access group do próprio app. Nenhum grupo compartilhado com extensões.
 - `rk.pin`: `kSecAttrAccessControl = SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, [.applicationPassword], nil)`. Tanto gravar quanto ler usam `kSecUseAuthenticationContext` com um `LAContext` que recebeu `setCredential(AP, type: .applicationPassword)` e `interactionNotAllowed = true`.
-- `rk.bio`, `seed.<uuid>` (DEK embrulhada mais o registro), `pin.kdf` (salt e parâmetros, não secretos), `pin.digitos` (quantos dígitos tem o PIN, não secreto), `pin.tentativas` e `bio.estado`: todos com `kSecAttrAccessible: kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`.
+- `rk.bio`, `rk.and` (modo reforçado, §2.6: sem senha de aplicativo de propósito), `seed.<uuid>` (DEK embrulhada mais o registro), `pin.kdf` (salt e parâmetros, não secretos), `pin.digitos` (quantos dígitos tem o PIN, não secreto), `pin.tentativas`, `bio.estado`, `and.estado`, `bio.espera` e `bio.perdido` (a espera e a marca do A1, §2.5): todos com `kSecAttrAccessible: kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`.
 - Nunca use `kSecAttrAccessible` e `kSecAttrAccessControl` no mesmo item. A classe de proteção vai dentro do `SecAccessControl`.
 - **Proibido no projeto inteiro**: `.userPresence`, `.devicePasscode`, `.biometryAny`, `.or` com código do aparelho, `AfterFirstUnlock` e `Always`. O motivo: quem viu o código do iPhone passa por `.userPresence`, e com `.biometryAny` o ladrão cadastra o próprio rosto.
 
@@ -272,11 +274,21 @@ Consequência que vai por escrito no onboarding:
 
 ### 2.6 Para quem guarda valor alto (SHOULD)
 
-- **Senha alfanumérica no lugar do PIN**. Oito caracteres sorteados de [a-z0-9] levam cerca de 24 mil anos para varrer no aparelho.
-- **Modo reforçado**, disponível só com backup conferido:
-  - Um item `rk.and = ECIES_{K_bio}(ECIES_{K_dev}(RK))` protegido por applicationPassword(AP). Os slots só-PIN e só-biometria são apagados.
-  - Tudo passa a exigir PIN **e** rosto.
-  - Preço declarado: se o cadastro de rostos mudar, a restauração é pelas palavras.
+- **Senha alfanumérica no lugar do PIN** (ainda não feita). Oito caracteres sorteados de [a-z0-9] são 36^8 chutes: a 0,82 s por chute só no iPhone, dezenas de milhares de anos; com o Argon2id pré-calculado em GPU, o limite passa a ser o SE (22 ms por chamada), cerca de 2 mil anos no pior caso.
+- **Modo reforçado** (feito em 16/10/2026, `RootKeyVault.enableHardened`, `unlockHardened`), em Ajustes, Segurança:
+  - Tudo passa a exigir PIN **e** rosto: abrir o app, toda assinatura, ver as palavras. O "e" é da criptografia, não da tela.
+  - O slot é um só: `rk.and = cabeçalho ‖ ECIES_{kand.bio}(ECIES_{kand.pin}(0x01 ‖ ChaChaPoly(K_int, RK)))`.
+    - `kand.bio`: chave do SE com `.biometryCurrentSet`, a camada de fora.
+    - `kand.pin.a` ou `kand.pin.b`: chave do SE com `.applicationPassword` = HKDF(AP, sal, "escalibur-wallet/v3/kand.senha"); as duas gerações se alternam na troca de PIN, e o cabeçalho diz qual vale.
+    - K_int = HKDF(AP, sal, "escalibur-wallet/v3/rk.and.interna"); o AAD do ChaChaPoly é o cabeçalho inteiro (versão, dígitos, geração da chave, sal, custo do Argon2id).
+    - São duas chaves em camadas, nunca uma só com as duas flags: o DTS da Apple diz que senha de aplicativo e biometria na mesma chave do SE não é suportado.
+  - **O item `rk.and` não tem senha de aplicativo**, ao contrário do que este texto previa: ela seria um segundo jeito de testar o PIN pelo chaveiro, sem acrescentar nada. O limite honesto (revisão do modo reforçado, M1): quem executa código no aparelho testa o PIN mesmo sem o rosto, pela própria `kand.pin` (cifra qualquer coisa com a chave pública dela e tenta abrir com a senha de cada PIN candidato, 22 ms por chute no SE, depois do Argon2id pré-calculado numa GPU): 10^6 chutes em 3 a 6 horas, ou minutos com 4 dígitos. O PIN que sai assim sozinho não abre nada: sem o rosto, a camada de fora fica fechada.
+  - Abrir é uma chamada só, sob a trava do cofre: o PIN fora de forma, o Face ID bloqueado ou indisponível e a chave ausente recusam sem contar; o contador sobe **antes** do rosto; o rosto que não confirma conta como tentativa (inclusive o Cancelar), para a escada e para o apagar-após-N; o PIN é avaliado depois do rosto; o contador só zera com a RK aberta. O miolo entre as camadas só existe dentro dessa chamada (em `SecureBytes` zerado; a cópia que a ponte do `CFData` do SE pode deixar ao gravar não é zerável daqui).
+  - Ligar: Face ID ligado, o slot do PIN no formato 2, nenhuma troca de PIN pendente e nenhuma espera do A1 (o cofre confere), e cópia conferida de todas as carteiras (a tela confere). Na hora, a frase inteira de cada carteira (e a passphrase das que têm), digitada pela tela da importação, sem colar (a tela não tem como exigir que venha do papel e não da tela "Ver as palavras"); a entropia digitada é comparada com a guardada dentro do cofre, com a RK aberta, em tempo constante, e a passphrase em NFKD dos dois lados. A passphrase com acento gravada fora de NFKD por uma versão anterior não vale como cópia: a seed BIP-39 normaliza sozinha, mas a chave da Cardano (Icarus) usa os bytes como estão, e restaurada pelas palavras a conta da Cardano mudaria. Três palavras provavam posse, não uma cópia certa, e no modo reforçado o papel é o único caminho de volta. O PIN e o rosto pelo slot de hoje, o `rk.and` gravado, lido de volta e aberto de novo com PIN e rosto, e só então o commit: apagar o `rk.pin`. Depois, a limpeza apaga `rk.bio`, os registros do PIN e as chaves `kpin`, `kpin.novo`, `kdev` e `kbio`.
+  - Regra do modo: reforçado se e só se o `rk.and` existe e nenhum slot do PIN existe. Com os dois (queda no meio de ligar ou de desligar), o modo normal manda, e o PIN certo apaga o `rk.and`.
+  - Desligar pede PIN e rosto: o slot do PIN é gravado e conferido, o Face ID volta conferido pelo rosto (sem a espera do A1, porque a `kand.bio` provou o mesmo cadastro), e o `rk.and` sai. Se o segundo rosto for recusado, o modo sai mesmo assim, com o Face ID desligado e só o PIN, e a tela diz isso: o dono pediu e se autenticou com os dois. Se o slot do PIN não puder ser conferido, ele sai antes da chave dele, e o modo continua reforçado.
+  - Trocar o PIN: abre com o PIN atual e o rosto, monta o registro novo com a outra geração da chave do PIN, abre com o PIN novo e o rosto, e só então troca o item no lugar (atômico). O PIN antigo para exatamente ali, e repor um `rk.and` antigo não traz o PIN antigo de volta.
+  - Preço declarado, na tela antes de ligar: se o cadastro de rostos mudar (rosto novo, Face ID redefinido, sem rosto cadastrado), as carteiras deste iPhone não abrem mais, e só as palavras trazem de volta. Nada é apagado sozinho: o dono apaga e restaura pelo mesmo caminho do "Esqueci o PIN". Face ID indisponível ou bloqueado só espera.
 - **Carteira-cofre**: a DEK daquela carteira é embrulhada por `HKDF(RK ‖ Argon2id(senha da carteira, 512 MiB, t=4, p=4))`. Quebrar o PIN no aparelho não a abre.
 
 ### 2.7 Atraso progressivo e "apagar após N erros"
@@ -302,8 +314,9 @@ Consequência que vai por escrito no onboarding:
 | O mesmo, com PIN de 4 dígitos | 66 chutes por ano: contra PIN sorteado, 1 chance em 150 por ano; com apagar-após-10, 1 em 10^3 |
 | Tem execução de código no aparelho desbloqueado | Argon2id pré-calculado em GPU + 10^6 × 22 ms no SE ≈ **6 a 11 horas no pior caso, 3 a 6 em média** |
 | O mesmo, com PIN de 4 dígitos | Argon2id pré-calculado em GPU (1 a 2 min) + 10^4 × 22 ms no SE ≈ **4 a 6 minutos no pior caso, 2 a 3 em média**; sem GPU, só no iPhone, 10^4 × 0,82 s ≈ 2,3 horas |
-| O mesmo, com senha alfanumérica sorteada de 8 caracteres | ~24 mil anos |
-| O mesmo, com modo reforçado | não há força bruta: precisa do rosto, e a decisão é no SEP |
+| O mesmo, com modo reforçado, sem o rosto do dono | não abre: a camada de fora é decidida no SEP. O PIN é testável pela `kand.pin` em 10^6 × 22 ms (3 a 6 horas; 4 dígitos, minutos), mas sozinho não abre nada |
+| O mesmo, com modo reforçado e o rosto do dono uma vez | o PIN cai no tempo de sempre: 10^6 × 22 ms, 3 a 6 horas em média com o Argon2id em GPU (4 dígitos: minutos). Quem consegue o rosto uma vez guarda o miolo e testa PINs contra o SE fora do contador; o iOS não tem como impedir |
+| Modo reforçado, pela interface | com o PIN visto e sem o rosto, cadastrar o próprio rosto mata o cofre (o ladrão não leva nada); enganar o Face ID fica em 66 tentativas por ano, ou N com o apagar-após-N ligado |
 
 A resposta honesta: **o SE converte ataque offline em ataque preso ao aparelho, mas não limita as tentativas de segredos do app.**
 - O único limite por hardware que existe é o do código do iPhone (80 ms mais atrasos crescentes no SEP).
@@ -343,8 +356,10 @@ Regras:
 
 | Ação | Exige |
 |---|---|
-| Abrir o app e ver saldos | PIN ou biometria |
-| Qualquer assinatura (envio, swap, approve, ordem, cancelamento) | Autenticação nova, uma por lote revisado numa única tela: Face ID ou PIN. Modo reforçado (§2.6, ainda não feito): PIN e biometria |
+| Abrir o app | PIN ou biometria. Modo reforçado (§2.6): PIN e rosto, e assim em todas as linhas abaixo que pedem PIN |
+| Ligar o modo reforçado | PIN e rosto, a frase inteira de cada carteira, e o rosto de novo para conferir o modo novo |
+| Desligar o modo reforçado, trocar o PIN nele | PIN e rosto, e o rosto de novo para conferir o que entra no lugar |
+| Qualquer assinatura (envio, swap, approve, ordem, cancelamento) | Autenticação nova, uma por lote revisado numa única tela: Face ID ou PIN. Modo reforçado: PIN e rosto |
 | Revelar palavras, exportar envelope, remover carteira | PIN e, com a biometria ligada, o rosto também (A1, `unlockWithPINAndBiometry`). Logo depois de o Face ID cair sozinho, espera de 24 horas |
 | Ligar biometria, trocar PIN, alongar o tempo de bloqueio, apagar-após-N, mudar a voz | PIN |
 | Desligar biometria | PIN e rosto (A1): desligar tira o rosto do que pede os dois |
@@ -961,7 +976,7 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
    - Só se mitiga: chave de hardware, 2 administradores, verificação de binário por terceiros.
    - Deixa de ser aceitável: se a conta tiver um administrador só.
 6. **Captura de tela não é bloqueável, e as palavras reveladas são `String`.** A defesa é a janela curta.
-7. **Biometria pode ser forçada.** O modo reforçado existe para isso.
+7. **Biometria pode ser forçada.** O modo reforçado existe para isso: com ele, o rosto sozinho não abre nada. Os limites que ficam: quem executa código no aparelho testa o PIN mesmo sem o rosto (horas com 6 dígitos, minutos com 4), e com o rosto do dono uma vez abre a RK no mesmo tempo; quem tem o código do iPhone destrói o cofre reforçado trocando o cadastro de rostos (o dono restaura pelas palavras). Deixa de ser aceitável para saldo alto sem a senha alfanumérica no lugar do PIN (36^8 × 22 ms, cerca de 2 mil anos), ou se o dono reutiliza o PIN em outro lugar. Deixa de ser aceitável se a Apple mudar a `biometryCurrentSet` (testar num aparelho a cada versão grande do iOS).
    - Fora dele, o PIN sozinho envia o saldo que o app mostra (o envio aceita Face ID ou PIN). O A1 protege a frase, não o saldo.
    - Quem tem o iPhone, o código do iPhone e o PIN leva a frase em 24 horas: cadastra o próprio rosto, religa o Face ID no app e espera. Aceito porque exige o código do iPhone, e a Proteção de Aparelho Roubado atrasa o cadastro. Deixa de ser aceitável com saldo relevante fora do alcance do Enviar (redes que o app não mostra, depósitos futuros): aí 72 horas, ou o modo reforçado.
    - Quem perde o Face ID de vez (sensor quebrado, cadastro trocado sem religar) só vê as palavras pelo papel ou pelo envelope que já tem.

@@ -16,6 +16,14 @@ final class MemoryStore: SecretStore, @unchecked Sendable {
     var pendingCredential: Data?
     var enforcesApplicationPassword = true
     var unknown: Set<String> = []
+    /// Contas cuja exclusao ou alteracao falha (disco cheio, chaveiro mudo).
+    var failDeleting: Set<String> = []
+    var failUpdating: Set<String> = []
+
+    func protection(_ account: String) -> ItemProtection? {
+        lock.lock(); defer { lock.unlock() }
+        return items[account]?.1
+    }
 
     func read(_ account: String, context: LAContext?) throws -> Data? {
         lock.lock(); defer { lock.unlock() }
@@ -35,12 +43,14 @@ final class MemoryStore: SecretStore, @unchecked Sendable {
 
     func update(_ data: Data, account: String) throws {
         lock.lock(); defer { lock.unlock() }
+        if failUpdating.contains(account) { throw StoreError.unexpected(errSecIO) }
         guard let existing = items[account] else { throw StoreError.unexpected(errSecItemNotFound) }
         items[account] = (data, existing.1, existing.2)
     }
 
     func delete(_ account: String) throws {
         lock.lock(); defer { lock.unlock() }
+        if failDeleting.contains(account) { throw StoreError.unexpected(errSecIO) }
         items[account] = nil
     }
 
@@ -78,6 +88,28 @@ final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
     private var passwords: [WrapSlot: Data] = [:]
     private let lock = NSLock()
     var refuseBiometry = false
+    /// Recusa o rosto so nestes slots (a segunda confirmacao de uma transicao).
+    var refuseSlots: Set<WrapSlot> = []
+    /// Quantas vezes cada chave foi usada para abrir: no slot biometrico, quantas vezes
+    /// o Face ID apareceu.
+    private(set) var unwrapCount: [WrapSlot: Int] = [:]
+    var unknownKeys: Set<WrapSlot> = []
+    /// Recusa o rosto a partir da enesima abertura deste slot (a confirmacao, nao a
+    /// autorizacao).
+    var refuseFrom: (slot: WrapSlot, count: Int)?
+
+    /// O que o SEP faz quando o cadastro de rostos muda: as chaves `.biometryCurrentSet`
+    /// deixam de existir.
+    func invalidateBiometry() {
+        lock.lock(); defer { lock.unlock() }
+        for slot in WrapSlot.allCases where slot.usesBiometry { keys[slot] = nil }
+    }
+
+    func probeKey(_ slot: WrapSlot) -> ItemState {
+        lock.lock(); defer { lock.unlock() }
+        if unknownKeys.contains(slot) { return .unknown }
+        return keys[slot] != nil ? .present : .absent
+    }
     /// Faz a criacao da chave deste slot falhar (para o teste da migracao interrompida).
     var failCreating: WrapSlot?
 
@@ -131,7 +163,9 @@ final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
     func unwrap(_ blob: Data, slot: WrapSlot, reason: String?) throws -> SecureBytes {
         lock.lock(); defer { lock.unlock() }
         guard let key = keys[slot] else { throw EnclaveError.keyMissing }
-        if slot == .biometry, refuseBiometry { throw EnclaveError.cancelled }
+        unwrapCount[slot, default: 0] += 1
+        if slot.usesBiometry, refuseBiometry || refuseSlots.contains(slot) { throw EnclaveError.cancelled }
+        if let refuseFrom, refuseFrom.slot == slot, unwrapCount[slot, default: 0] >= refuseFrom.count { throw EnclaveError.cancelled }
         guard blob.count > 65 else { throw EnclaveError.failed("embrulho curto") }
         let ephemeral = try P256.KeyAgreement.PublicKey(x963Representation: blob.prefix(65))
         let shared = try key.sharedSecretFromKeyAgreement(with: ephemeral)

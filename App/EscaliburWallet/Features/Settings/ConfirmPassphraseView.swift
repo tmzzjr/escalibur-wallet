@@ -69,7 +69,17 @@ struct ConfirmPassphraseView: View {
         defer { working = false }
         let matches: Bool
         if let expected {
-            matches = Hash.constantTimeEqual(expected, typed)
+            // As duas em NFKD: a importada foi gravada assim, e o teclado da os bytes em NFC
+            // (revisao do modo reforcado, M3).
+            let a = BIP39.nfkd(expected), b = BIP39.nfkd(typed)
+            defer { a.wipe(); b.wipe() }
+            // Gravada fora de NFKD por uma versao anterior: a copia nao traz a conta da
+            // Cardano de volta (revisao do modo reforcado, N1).
+            if Hash.constantTimeEqual(a, b), !Hash.constantTimeEqual(a, expected) {
+                message = HardenedEnableFlow.legacyPassphraseMessage(wallet.name)
+                return
+            }
+            matches = Hash.constantTimeEqual(a, b)
         } else {
             // O cofre fica com uma copia: o campo continua dono do buffer dele.
             let copy = SecureBytes(capacity: typed.count)
@@ -82,9 +92,16 @@ struct ConfirmPassphraseView: View {
                 guard let result = try await auth.perform(session, reason: String(localized: "Conferir a passphrase de \(wallet.name)"), presence: .pin, { rk in
                     let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                     defer { secret.wipe() }
-                    return Hash.constantTimeEqual(secret.passphrase, copy)
+                    let a = BIP39.nfkd(secret.passphrase), b = BIP39.nfkd(copy)
+                    defer { a.wipe(); b.wipe() }
+                    guard Hash.constantTimeEqual(a, b) else { return PassphraseCheck.mismatch }
+                    return Hash.constantTimeEqual(a, secret.passphrase) ? PassphraseCheck.match : PassphraseCheck.legacy
                 }) else { return }
-                matches = result
+                if result == .legacy {
+                    message = HardenedEnableFlow.legacyPassphraseMessage(wallet.name)
+                    return
+                }
+                matches = result == .match
             } catch {
                 message = String(localized: "Não foi possível abrir a carteira agora.")
                 return
@@ -105,6 +122,10 @@ struct ConfirmPassphraseView: View {
         onClose()
     }
 }
+
+/// O resultado da conferencia dentro do cofre: confere, nao confere, ou confere mas foi
+/// gravada fora de NFKD por uma versao anterior.
+enum PassphraseCheck: Sendable { case match, mismatch, legacy }
 
 /// O "Gravar agora" de uma carteira que ainda nao recebe: so a passphrase, quando as
 /// palavras ja estao conferidas e ela nao; senao a revelacao com a conferencia das

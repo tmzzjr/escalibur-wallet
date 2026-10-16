@@ -14,6 +14,8 @@ enum Credential: Sendable {
     /// O PIN e, com o Face ID ligado, o rosto tambem (A1): ver as palavras, lacrar o
     /// envelope, remover carteira, desligar o Face ID.
     case pinAndBiometry(SecureBytes, reason: String)
+    /// Modo reforcado: o PIN e o rosto pela criptografia, em tudo (docs/seguranca.md §2.6).
+    case hardened(SecureBytes, reason: String)
 }
 
 /// O estado de alto nivel do app.
@@ -133,9 +135,13 @@ final class AppSession {
     }
 
     func unlock(pin: SecureBytes) async throws {
+        let reason = String(localized: "Destravar a Escalibur")
         let (key, updates) = try await Offload.run {
             defer { pin.wipe() }
-            let rk = try KeyServices.root.unlock(pin: pin)
+            // No modo reforcado, abrir o app tambem pede o rosto depois do PIN.
+            let rk = KeyServices.root.securityMode == .hardened
+                ? try KeyServices.root.unlockHardened(pin: pin, reason: reason)
+                : try KeyServices.root.unlock(pin: pin)
             defer { rk.wipe() }
             return (IndexCipher.key(from: rk), Self.missingAccounts(rk: rk))
         }
@@ -261,6 +267,9 @@ final class AppSession {
             case .pinAndBiometry(let pin, let reason):
                 defer { pin.wipe() }
                 rk = try KeyServices.root.unlockWithPINAndBiometry(pin: pin, reason: reason)
+            case .hardened(let pin, let reason):
+                defer { pin.wipe() }
+                rk = try KeyServices.root.unlockHardened(pin: pin, reason: reason)
             }
             defer { rk.wipe() }
             return try body(rk)
@@ -306,6 +315,49 @@ final class AppSession {
         }
         metadata.settings.biometryEnabled = false
         try? persist()
+    }
+
+    // MARK: Modo reforcado
+
+    var hardenedModeOn: Bool { KeyServices.root.securityMode == .hardened }
+
+    /// Liga o modo reforcado. O cofre pede o PIN e o rosto pelo slot de hoje, roda a
+    /// conferencia das palavras com a RK aberta (`check`), grava o rk.and, abre de novo com
+    /// PIN e rosto, e so entao apaga o slot so-PIN.
+    func enableHardened(pin: SecureBytes, check: @escaping @Sendable (SecureBytes) throws -> Void) async throws {
+        let reason = String(localized: "Ligar o modo reforçado")
+        let confirm = String(localized: "Confirme o \(KeyServices.biometryName) para conferir o modo reforçado")
+        do {
+            try await Offload.run {
+                defer { pin.wipe() }
+                try KeyServices.root.enableHardened(pin: pin, reason: reason, confirmReason: confirm, check: check)
+            }
+        } catch RootKeyVault.Failure.wiped {
+            eraseEverything()
+            throw RootKeyVault.Failure.wiped
+        }
+        metadata.settings.biometryEnabled = false
+        try? persist()
+    }
+
+    /// Desliga o modo reforcado: o slot do PIN e o Face ID voltam, conferidos. Devolve se o
+    /// Face ID voltou (o segundo rosto pode ser recusado; ai fica desligado).
+    func disableHardened(pin: SecureBytes) async throws -> Bool {
+        let reason = String(localized: "Desligar o modo reforçado")
+        let biometry = String(localized: "Confirme o \(KeyServices.biometryName) para religar")
+        let restored: Bool
+        do {
+            restored = try await Offload.run {
+                defer { pin.wipe() }
+                return try KeyServices.root.disableHardened(pin: pin, reason: reason, biometryReason: biometry)
+            }
+        } catch RootKeyVault.Failure.wiped {
+            eraseEverything()
+            throw RootKeyVault.Failure.wiped
+        }
+        metadata.settings.biometryEnabled = restored
+        try? persist()
+        return restored
     }
 
     // MARK: Carteiras
@@ -375,7 +427,12 @@ final class AppSession {
             defer { original.wipe() }
             let entropy = SecureBytes(capacity: original.entropy.count)
             original.entropy.withUnsafeBytes { entropy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
-            let secret = WalletSecret(entropy: entropy, language: original.language, passphrase: passphrase)
+            // A 25a palavra em NFKD, como a importacao grava. A seed BIP-39 normaliza sozinha,
+            // mas a chave da Cardano (Icarus) usa os bytes como estao: com os bytes do teclado
+            // (NFC), "ação" aqui dava outra conta da Cardano que a da importacao das mesmas
+            // palavras (revisao do modo reforcado, N1).
+            let normalized = passphrase.withUnsafeBytes({ raw in raw.contains { $0 >= 0x80 } }) ? BIP39.nfkd(passphrase) : passphrase
+            let secret = WalletSecret(entropy: entropy, language: original.language, passphrase: normalized)
             defer { secret.wipe() }
             try KeyServices.wallets.save(secret, walletID: id, rk: rk)
             return try AccountDeriver.derive(secret)

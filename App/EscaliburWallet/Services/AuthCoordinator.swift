@@ -36,6 +36,16 @@ final class AuthCoordinator {
     /// A credencial para uma operacao. `reason` aparece no Face ID e na folha do PIN
     /// ("Enviar 50 XRP"). Nil quando o dono cancela.
     func credential(reason: String, forcePIN: Bool = false, notice: String? = nil, error: String? = nil) async -> Credential? {
+        // Modo reforcado: toda operacao e o PIN e depois o rosto, pela criptografia.
+        if KeyServices.root.securityMode == .hardened {
+            let pin: Credential? = await withCheckedContinuation { continuation in
+                let request = PINRequest(reason: reason, notice: notice ?? Self.hardenedNotice, error: error, continuation: continuation)
+                pinRequest = request
+                OverlayWindow.shared.show(PINRequestSheet(request: request, coordinator: self))
+            }
+            guard case .pin(let digits)? = pin else { return nil }
+            return .hardened(digits, reason: reason)
+        }
         let afterRestart = KeyServices.root.isBiometryEnabled && !KeyServices.root.pinEnteredThisBoot
         if !forcePIN, KeyServices.root.isBiometryEnabled, !afterRestart {
             return .biometry(reason: reason)
@@ -89,10 +99,31 @@ final class AuthCoordinator {
                 error = Self.wrongPINMessage(remaining)
             } catch RootKeyVault.Failure.throttled(let seconds) {
                 error = String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
+            } catch RootKeyVault.Failure.biometryNotConfirmed(let remaining) {
+                error = Self.faceNotConfirmedMessage(remaining)
             }
             guard let next = await credential(reason: reason, forcePIN: true, notice: notice ?? (both ? Self.bothNotice : nil), error: error) else { return nil }
             attempt = next
         }
+    }
+
+    /// Modo reforcado: o aviso acima do teclado de toda operacao.
+    private static var hardenedNotice: String {
+        String(localized: "Modo reforçado: depois do PIN, o \(KeyServices.biometryName) confirma que é você.")
+    }
+
+    /// O rosto que nao confirmou no modo reforcado conta como tentativa, como um PIN errado.
+    static func faceNotConfirmedMessage(_ remaining: UInt32?) -> String {
+        let base: String
+        if let remaining, remaining <= 3 {
+            base = String(localized: "O \(KeyServices.biometryName) não confirmou, e isso conta como tentativa. Depois de mais \(remaining), as carteiras deste iPhone são apagadas.")
+        } else {
+            base = String(localized: "O \(KeyServices.biometryName) não confirmou, e isso conta como tentativa.")
+        }
+        // O cadastro de rostos parece outro (o hash mudou e a chave continua la): o dono fica
+        // sabendo do caminho de volta, sem o app declarar o cofre perdido por um hash.
+        guard KeyServices.root.hardenedEnrollmentChanged else { return base }
+        return base + " " + String(localized: "Se o cadastro de rostos deste iPhone mudou, só as palavras de cada carteira trazem as carteiras de volta.")
     }
 
     /// Com o Face ID ligado, o aviso acima do teclado de uma operacao que pede os dois.
@@ -120,6 +151,10 @@ final class AuthCoordinator {
             return String(localized: "O \(KeyServices.biometryName) deste iPhone mudou desde que foi ligado aqui. Para isto, ligue o \(KeyServices.biometryName) de novo em Ajustes, Segurança; por segurança, volta a funcionar 24 horas depois.")
         case .biometryUnavailable:
             return String(localized: "O \(KeyServices.biometryName) não está disponível agora. Confira se ele está ligado para a Escalibur em Ajustes do iPhone e tente de novo. Pelo Espelhamento do iPhone, isto não funciona.")
+        case .biometryLockedOut:
+            return String(localized: "O iPhone bloqueou o \(KeyServices.biometryName) depois de tentativas demais. Bloqueie e desbloqueie o iPhone com o código, e tente de novo.")
+        case .hardenedSlotLost:
+            return String(localized: "O \(KeyServices.biometryName) deste iPhone mudou desde que o modo reforçado foi ligado. As carteiras não abrem mais aqui: só as palavras de cada carteira trazem de volta.")
         default:
             return nil
         }

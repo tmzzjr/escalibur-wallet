@@ -113,7 +113,7 @@ struct RootView: View {
                     if session.metadata.wallets.isEmpty, !toured, !Self.isDemo {
                         WelcomeTour { withAnimation(Motion.fade) { toured = true } }
                             .transition(.opacity)
-                    } else if !offeredBiometry, KeyServices.biometryAvailable, !session.biometryEnabled {
+                    } else if !offeredBiometry, KeyServices.biometryAvailable, !session.biometryEnabled, !session.hardenedModeOn {
                         BiometryOfferView { offeredBiometry = true }
                     } else {
                         AddWalletView(isFirst: true) { firstRun = false }

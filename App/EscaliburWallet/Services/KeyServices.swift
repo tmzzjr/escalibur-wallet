@@ -99,8 +99,9 @@ enum KeyServices {
             || files.fileExists(atPath: MetadataStore.file.path)
         if !installed {
             root.wipeAll()
-            let clean = !root.isSetUp && store.probe("rk.bio") == .absent && !WrapSlot.allCases.contains(where: wrapper.hasKey)
-            guard clean else { return true }
+            // Todo slot da RK (inclusive o rk.and do modo reforcado) e toda chave do SE,
+            // pelo proprio cofre: o app nao conhece nomes de conta.
+            guard !root.hasResidue else { return true }
         }
         Preferences.installMarked = true
         if !files.fileExists(atPath: marker.path) {
@@ -139,6 +140,14 @@ final class SimulatorWrapper: KeyWrapper, @unchecked Sendable {
 
     func hasKey(_ slot: WrapSlot) -> Bool { key(slot) != nil }
 
+    func probeKey(_ slot: WrapSlot) -> ItemState {
+        switch store.probe("sim.\(slot.rawValue)") {
+        case .present: return key(slot) != nil ? .present : .unknown
+        case .absent: return .absent
+        case .unknown: return .unknown
+        }
+    }
+
     func deleteKey(_ slot: WrapSlot) {
         try? store.delete("sim.\(slot.rawValue)")
         try? store.delete("sim.\(slot.rawValue).senha")
@@ -171,7 +180,7 @@ final class SimulatorWrapper: KeyWrapper, @unchecked Sendable {
 
     func unwrap(_ blob: Data, slot: WrapSlot, reason: String?) throws -> SecureBytes {
         guard let key = key(slot) else { throw EnclaveError.keyMissing }
-        if slot == .biometry {
+        if slot.usesBiometry {
             // O Face ID simulado (Features > Face ID no simulador) decide aqui.
             let context = LAContext()
             let semaphore = DispatchSemaphore(value: 0)

@@ -55,6 +55,7 @@
 		423716FB0CCE7B2E2778312E /* Bridges.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D88AA69992E5B71F258F14 /* Bridges.swift */; };
 		424496A6E4E34E2651C3AC55 /* DebugDemo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71977F38FE1026DDFD0C189A /* DebugDemo.swift */; };
 		4311115E36CE8A987E173E93 /* WordInputField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 290C3A2CEF411E071AA05800 /* WordInputField.swift */; };
+		43DAEE481CEF5F7BC991D1C7 /* HardenedModeFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31F34B4A57CB5481E90560D /* HardenedModeFlowTests.swift */; };
 		478026866DF85E9EF5D50A76 /* ImportPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839F9C92169FD1A8C5C69A3B /* ImportPreview.swift */; };
 		47F68D13E6EA84A3D27FA7DC /* SavedAddressesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00956B57FDDD41C22852289 /* SavedAddressesTests.swift */; };
 		4969D8FAA1778B206D93B390 /* BackupFirstArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EE4EBF2B576AD8F92E2DA9 /* BackupFirstArt.swift */; };
@@ -152,6 +153,7 @@
 		D9BE60229797504784BC6F97 /* KeyServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1722E329135DB398B784E8C8 /* KeyServices.swift */; };
 		DAC0E966C277EFDAF466D0EB /* DeviceIntegrity.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5ECD2EB5627AA912E7957E4 /* DeviceIntegrity.swift */; };
 		E09B8272656E909426D4987D /* Buttons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B99C8E82247CAD42E358D7 /* Buttons.swift */; };
+		E16275025311E5C68E120FB8 /* HardenedModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70EDC973CC393015723C0488 /* HardenedModeView.swift */; };
 		E345A5856750B23E38B8A35E /* SealEnvelopeFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */; };
 		E6F4BCF5A1C5733FBA004E5D /* TradeComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED594CB5884DB17FE81B8D4 /* TradeComponents.swift */; };
 		E74B179E19640B5584F2F303 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38287337A415C5A48CB564C8 /* Typography.swift */; };
@@ -278,6 +280,7 @@
 		64EDC4BD05696FA0BB3FB2BA /* OrderProgressViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderProgressViews.swift; sourceTree = "<group>"; };
 		676F5C1C45D103AD6705CD95 /* ReceiptWatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptWatchView.swift; sourceTree = "<group>"; };
 		6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalDocumentView.swift; sourceTree = "<group>"; };
+		70EDC973CC393015723C0488 /* HardenedModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardenedModeView.swift; sourceTree = "<group>"; };
 		71977F38FE1026DDFD0C189A /* DebugDemo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugDemo.swift; sourceTree = "<group>"; };
 		722DAC955BA5CAEA3DEB5274 /* PriceWidgetViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceWidgetViews.swift; sourceTree = "<group>"; };
 		72C75178B68BC09E156440A1 /* CoinActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinActions.swift; sourceTree = "<group>"; };
@@ -353,6 +356,7 @@
 		C07567528B0FFA2BAAED05D1 /* SwordCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwordCard.swift; sourceTree = "<group>"; };
 		C10914896D99BB58942178E3 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
 		C114911EA7725CA6C7171D11 /* VoiceGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceGate.swift; sourceTree = "<group>"; };
+		C31F34B4A57CB5481E90560D /* HardenedModeFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardenedModeFlowTests.swift; sourceTree = "<group>"; };
 		C89672710E00E2856C3A1EB7 /* TokenMarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenMarks.swift; sourceTree = "<group>"; };
 		C9A0D213F5797560FD754C92 /* voz-frase.m4a */ = {isa = PBXFileReference; path = "voz-frase.m4a"; sourceTree = "<group>"; };
 		C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinLogo.swift; sourceTree = "<group>"; };
@@ -556,6 +560,7 @@
 				0F3FC7ED2F0ACB292691CA0A /* EnvelopeFlowTests.swift */,
 				3475ED4BAF37DB955E275654 /* EnvelopeLookTests.swift */,
 				99E3B6E8E96F664B813E15B7 /* ForgotPINTests.swift */,
+				C31F34B4A57CB5481E90560D /* HardenedModeFlowTests.swift */,
 				B6269216B260E5FA27BB51E6 /* ImportPhraseTests.swift */,
 				F20B1A87ACEC7261C2CC5CCA /* LanguageTourTests.swift */,
 				AD4DB38ABFB63662F684831D /* LegalTests.swift */,
@@ -599,6 +604,7 @@
 			children = (
 				7D922E0AB84F33657681EBBB /* ConfirmPassphraseView.swift */,
 				85AD68422B44E0DD96545710 /* ContactsView.swift */,
+				70EDC973CC393015723C0488 /* HardenedModeView.swift */,
 				6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */,
 				B7E330A6D249E3EA26CE9BA4 /* PassphraseWalletView.swift */,
 				D13BB44FB767203C255AC794 /* PriceAlertsView.swift */,
@@ -1015,6 +1021,7 @@
 				A0E20FEC7CF495BB4B8AE0E1 /* EnvelopeFlowTests.swift in Sources */,
 				62A73934EFCC1BCF7C7F188F /* EnvelopeLookTests.swift in Sources */,
 				88CD26394B5179DE5B332364 /* ForgotPINTests.swift in Sources */,
+				43DAEE481CEF5F7BC991D1C7 /* HardenedModeFlowTests.swift in Sources */,
 				CEB6F2EDD5952E9EF8FB6517 /* ImportPhraseTests.swift in Sources */,
 				5EDCF2FDCD52C14B4B075E36 /* LanguageTourTests.swift in Sources */,
 				534A048CF1E6BBBFD3B89CFC /* LegalTests.swift in Sources */,
@@ -1096,6 +1103,7 @@
 				B21E851FF63CDD4C594DA02B /* EnvelopeSealScene.swift in Sources */,
 				17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */,
 				2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */,
+				E16275025311E5C68E120FB8 /* HardenedModeView.swift in Sources */,
 				F8EA2B1B268220A255B30FAB /* ImportPhraseView.swift in Sources */,
 				478026866DF85E9EF5D50A76 /* ImportPreview.swift in Sources */,
 				D9BE60229797504784BC6F97 /* KeyServices.swift in Sources */,

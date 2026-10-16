@@ -64,11 +64,22 @@ final class PhraseEntry {
     }
 }
 
-/// O6: importar com a senha da carteira.
+/// O6: importar com a senha da carteira. Tambem confere uma copia: com `verify`, a frase
+/// digitada nao vira carteira nova, vai para quem pediu (o modo reforcado confere a frase
+/// inteira de cada carteira antes de ligar, revisao do modo reforcado, M7).
 struct ImportPhraseView: View {
+    /// Conferir a copia de uma carteira que ja esta aqui, com o tamanho e a passphrase dela.
+    struct Verification {
+        let walletName: String
+        let wordCount: Int
+        let hasPassphrase: Bool
+        let onVerified: (WalletSecret) -> Void
+    }
+
     @Environment(AppSession.self) private var session
     @Environment(AuthCoordinator.self) private var auth
     let onFinished: () -> Void
+    var verify: Verification? = nil
 
     @State private var entry = PhraseEntry()
     @State private var typed = ""
@@ -117,6 +128,13 @@ struct ImportPhraseView: View {
                 form
             }
         }
+        .onAppear {
+            // Conferindo uma copia: o tamanho e a passphrase sao os da carteira, fixos.
+            if let verify, entry.filledCount == 0 {
+                entry.count = verify.wordCount
+                usesPassphrase = verify.hasPassphrase
+            }
+        }
         .onDisappear {
             pending?.secret.wipe()
             entry.wipe()
@@ -130,8 +148,11 @@ struct ImportPhraseView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     VStack(spacing: Space.xs) {
-                        Text("Importar com a senha da carteira").typeStyle(.title).foregroundStyle(Palette.ink)
-                        Text("Toque numa posição e digite a palavra. Ninguém da Escalibur pede estas palavras.")
+                        Text(verify.map { String(localized: "Confira a cópia de \($0.walletName)") } ?? String(localized: "Importar com a senha da carteira"))
+                            .typeStyle(.title).foregroundStyle(Palette.ink)
+                        Text(verify == nil
+                             ? String(localized: "Toque numa posição e digite a palavra. Ninguém da Escalibur pede estas palavras.")
+                             : String(localized: "Digite as palavras de onde você anotou, todas, em ordem. No modo reforçado, essa cópia é o único caminho de volta."))
                             .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -139,21 +160,28 @@ struct ImportPhraseView: View {
                     .frame(maxWidth: .infinity)
 
                     HStack(alignment: .top, spacing: Space.sm) {
+                        if verify == nil {
                         VStack(spacing: Space.xxs) {
                             Segmented(options: Mnemonic.validWordCounts.map { ($0, "\($0)") },
                                       selection: Binding(get: { entry.count }, set: { entry.count = $0; typed = "" }))
                             Text("palavras na senha").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                         }
-                        // O PasteButton do sistema le a area de transferencia sem o pedido de
-                        // permissao do iOS.
-                        PasteButton(payloadType: String.self) { strings in
-                            guard let text = strings.first else { return }
-                            Task { @MainActor in fill(with: text) }
+                        } else {
+                            Spacer()
                         }
-                        .labelStyle(.titleAndIcon)
-                        .buttonBorderShape(.capsule)
-                        .controlSize(.large)
-                        .tint(Palette.brand)
+                        // O PasteButton do sistema le a area de transferencia sem o pedido de
+                        // permissao do iOS. Conferindo uma copia, nada de colar: a conferencia e
+                        // do papel (segunda revisao do modo reforcado, N6).
+                        if verify == nil {
+                            PasteButton(payloadType: String.self) { strings in
+                                guard let text = strings.first else { return }
+                                Task { @MainActor in fill(with: text) }
+                            }
+                            .labelStyle(.titleAndIcon)
+                            .buttonBorderShape(.capsule)
+                            .controlSize(.large)
+                            .tint(Palette.brand)
+                        }
                     }
                     .padding(.top, Space.lg)
 
@@ -176,10 +204,12 @@ struct ImportPhraseView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 0) {
-                        Toggle(isOn: $usesPassphrase) {
-                            Text("Esta carteira usa passphrase").typeStyle(.body).foregroundStyle(Palette.ink)
+                        if verify == nil {
+                            Toggle(isOn: $usesPassphrase) {
+                                Text("Esta carteira usa passphrase").typeStyle(.body).foregroundStyle(Palette.ink)
+                            }
+                            .tint(Palette.accent)
                         }
-                        .tint(Palette.accent)
                         if usesPassphrase {
                             Text("Com a passphrase errada, a carteira abre vazia e sem aviso nenhum. Por isso ela é digitada duas vezes. Segure o dedo num campo para conferir as duas.")
                                 .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
@@ -232,9 +262,10 @@ struct ImportPhraseView: View {
                 suggestionBar
             } else {
                 ActionFooter {
-                    PrimaryButton(title: String(localized: "Importar"), enabled: entry.filledCount == entry.count, loading: working) {
+                    PrimaryButton(title: verify == nil ? String(localized: "Importar") : String(localized: "Conferir"), enabled: entry.filledCount == entry.count, loading: working) {
                         Task { await importWallet() }
                     }
+                    .accessibilityIdentifier(verify == nil ? "importar" : "conferir-copia")
                 }
             }
         }
@@ -436,6 +467,12 @@ struct ImportPhraseView: View {
                 if usesPassphrase { passphrase.withUnsafeBytes { pass.append(contentsOf: $0.bindMemory(to: UInt8.self)) } }
                 let secret = try WalletSecret.from(phrase: phrase, language: language, passphrase: pass)
                 phrase.wipe()
+                // Conferindo uma copia: a frase vai para quem pediu, sem conferencia de
+                // enderecos nem carteira nova.
+                if let verify {
+                    verify.onVerified(secret)
+                    return
+                }
                 do {
                     pending = (secret, try await ImportPreview.make(secret))
                 } catch {

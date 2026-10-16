@@ -372,6 +372,12 @@ struct SecuritySettingsView: View {
             VStack(alignment: .leading, spacing: 0) {
                 SettingsGroup {
                     Button { changingPIN = true } label: { SettingsRow(icon: "circle.grid.3x3", title: String(localized: "Mudar o PIN")) }
+                    NavigationLink { HardenedModeView() } label: {
+                        SettingsRow(icon: "lock.shield", title: String(localized: "Modo reforçado"),
+                                    value: session.hardenedModeOn ? String(localized: "Ligado") : String(localized: "Desligado"))
+                    }
+                    .accessibilityIdentifier("ajustes-reforcado")
+                    if !session.hardenedModeOn {
                     Toggle(isOn: Binding(get: { biometryOn }, set: { on in
                         if on { biometryPIN = true } else { Task { await turnBiometryOff() } }
                     })) {
@@ -383,6 +389,7 @@ struct SecuritySettingsView: View {
                     .tint(Palette.accent)
                     .disabled(!KeyServices.biometryAvailable)
                     .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
+                    }
                     NavigationLink { VoiceSettingsView() } label: {
                         SettingsRow(icon: "waveform", title: String(localized: "Confirmação por voz"), value: session.metadata.settings.voice.enabled ? String(localized: "Ligada") : String(localized: "Desligada"))
                     }
@@ -419,7 +426,9 @@ struct SecuritySettingsView: View {
                 }
                 .padding(.top, Space.lg)
 
-                Text("Todo envio, troca e ordem pede \(KeyServices.biometryName) ou PIN.")
+                Text(session.hardenedModeOn
+                     ? String(localized: "Modo reforçado: abrir o app e todo envio, troca e ordem pedem o PIN e o \(KeyServices.biometryName).")
+                     : String(localized: "Todo envio, troca e ordem pede \(KeyServices.biometryName) ou PIN."))
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
             }
@@ -480,7 +489,9 @@ struct WipeSettingsView: View {
                     }
                 }
                 .padding(.top, Space.md)
-                Text(error ?? String(localized: "Contra quem pega o iPhone e tenta adivinhar o PIN. Depois do número escolhido de PINs errados seguidos, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta. Mudar pede o PIN."))
+                Text(error ?? (session.hardenedModeOn
+                     ? String(localized: "Contra quem pega o iPhone e tenta adivinhar o PIN. No modo reforçado, conta como tentativa o PIN errado e o \(KeyServices.biometryName) que não confirmou. Depois do número escolhido de tentativas seguidas, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta.")
+                     : String(localized: "Contra quem pega o iPhone e tenta adivinhar o PIN. Depois do número escolhido de PINs errados seguidos, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta. Mudar pede o PIN.")))
                     .typeStyle(.note).foregroundStyle(error == nil ? Palette.inkMuted : Palette.down)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
@@ -578,6 +589,9 @@ struct ChangePINFlow: View {
         case .wrongPIN: return String(localized: "O PIN atual não confere.")
         case .throttled(let seconds): return String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
         case .malformedPIN: return String(localized: "O PIN precisa ter 4 ou 6 números.")
+        case .biometryNotConfirmed: return String(localized: "O \(KeyServices.biometryName) não confirmou, e isso contou como tentativa. O PIN atual continua valendo.")
+        case .biometryLockedOut, .biometryUnavailable, .hardenedSlotLost:
+            return AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível trocar. O PIN atual continua valendo.")
         default: return String(localized: "Não foi possível trocar. O PIN atual continua valendo.")
         }
     }
@@ -604,8 +618,16 @@ struct ChangePINFlow: View {
             working = true
             Task {
                 do {
+                    let reason = String(localized: "Mudar o PIN")
+                    let confirm = String(localized: "Confirme o \(KeyServices.biometryName) para conferir o PIN novo")
                     try await Offload.run {
                         defer { current.wipe(); newPIN.wipe() }
+                        // Modo reforcado: o PIN atual e o rosto abrem, e o rk.and e regravado com
+                        // o PIN novo, conferido com o rosto antes do commit.
+                        if KeyServices.root.securityMode == .hardened {
+                            try KeyServices.root.changeHardenedPIN(currentPIN: current, newPIN: newPIN, reason: reason, confirmReason: confirm)
+                            return
+                        }
                         let rk = try KeyServices.root.unlock(pin: current)
                         defer { rk.wipe() }
                         try KeyServices.root.changePIN(rk: rk, newPIN: newPIN)

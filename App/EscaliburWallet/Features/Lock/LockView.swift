@@ -11,6 +11,8 @@ struct LockView: View {
     @State private var working = false
     @State private var forgotPIN = false
     @State private var confirmErase = false
+    /// Modo reforcado com o cadastro de rostos trocado: o cofre nao abre mais aqui.
+    @State private var vaultLost = false
     @State private var throttleTask: Task<Void, Never>?
 
     /// Depois de reiniciar (ou de a bateria acabar), o Face ID so vale depois do PIN.
@@ -19,9 +21,11 @@ struct LockView: View {
     var body: some View {
         PINScreen(
             title: String(localized: "Digite o seu PIN"),
-            subtitle: restartNeedsPIN
-                ? String(localized: "O iPhone reiniciou. Depois de reiniciar ou de a bateria acabar, o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer.")
-                : nil,
+            subtitle: session.hardenedModeOn
+                ? String(localized: "Modo reforçado: depois do PIN, o \(KeyServices.biometryName) confirma que é você.")
+                : (restartNeedsPIN
+                    ? String(localized: "O iPhone reiniciou. Depois de reiniciar ou de a bateria acabar, o PIN é necessário uma vez antes do \(KeyServices.biometryName) voltar a valer.")
+                    : nil),
             entry: entry,
             showsBadge: true,
             biometryIcon: session.biometryEnabled && !restartNeedsPIN ? KeyServices.biometryIcon : nil,
@@ -84,6 +88,14 @@ struct LockView: View {
             showThrottleIfNeeded()
         case .wiped:
             session.eraseEverything()
+        case .biometryNotConfirmed(let remaining):
+            entry.fail(AuthCoordinator.faceNotConfirmedMessage(remaining))
+            showThrottleIfNeeded()
+        case .hardenedSlotLost:
+            vaultLost = true
+            forgotPIN = true
+        case .biometryLockedOut, .biometryUnavailable:
+            entry.fail(AuthCoordinator.refusalMessage(failure) ?? String(localized: "Não foi possível destravar. Tente de novo."))
         default:
             entry.fail(String(localized: "Não foi possível destravar. Tente de novo."))
         }
@@ -127,10 +139,12 @@ struct LockView: View {
                         .foregroundStyle(Palette.ink)
                         .frame(width: 72, height: 72)
                         .background(Circle().fill(Palette.control))
-                    Text("Não existe redefinir o PIN")
+                    Text(vaultLost ? String(localized: "O \(KeyServices.biometryName) mudou") : String(localized: "Não existe redefinir o PIN"))
                         .typeStyle(.title).foregroundStyle(Palette.ink)
                         .padding(.top, Space.md)
-                    Text("O PIN mora só neste iPhone, e ninguém tem cópia dele, nem a Escalibur. Para voltar a usar o app, comece de novo:")
+                    Text(vaultLost
+                         ? String(localized: "No modo reforçado, as carteiras deste iPhone só abrem com o PIN e o mesmo \(KeyServices.biometryName) de quando ele foi ligado. O cadastro mudou, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:")
+                         : String(localized: "O PIN mora só neste iPhone, e ninguém tem cópia dele, nem a Escalibur. Para voltar a usar o app, comece de novo:"))
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, Space.xs)
@@ -150,8 +164,15 @@ struct LockView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
             VStack(spacing: Space.sm) {
-                DestructiveButton(title: String(localized: "Apagar as carteiras deste iPhone")) { confirmErase = true }
-                SecondaryButton(title: String(localized: "Voltar e tentar o PIN")) { forgotPIN = false }
+                // Cofre reforcado que nao abriu: tentar de novo vem primeiro. Apagar e para
+                // sempre, e o motivo pode ter sido passageiro.
+                if vaultLost {
+                    PrimaryButton(title: String(localized: "Tentar de novo")) { forgotPIN = false; vaultLost = false }
+                    DestructiveButton(title: String(localized: "Apagar as carteiras deste iPhone")) { confirmErase = true }
+                } else {
+                    DestructiveButton(title: String(localized: "Apagar as carteiras deste iPhone")) { confirmErase = true }
+                    SecondaryButton(title: String(localized: "Voltar e tentar o PIN")) { forgotPIN = false }
+                }
             }
             .padding(.horizontal, Space.gutter)
             .padding(.top, Space.sm)

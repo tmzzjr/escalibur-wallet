@@ -32,6 +32,9 @@ public protocol KeyWrapper: Sendable {
     func createKey(_ slot: WrapSlot, password: Data) throws
     /// Desembrulha com a senha de aplicativo. Senha errada: `EnclaveError.wrongPassword`.
     func unwrap(_ blob: Data, slot: WrapSlot, password: Data) throws -> SecureBytes
+    /// Existe, nao existe, ou o SE e o chaveiro nao conseguiram dizer. "Nao sei" nunca vira
+    /// "nao existe": e o que separa "o Face ID mudou" de "o iPhone esta bloqueado".
+    func probeKey(_ slot: WrapSlot) -> ItemState
 }
 
 public enum WrapSlot: String, Sendable, CaseIterable {
@@ -41,6 +44,15 @@ public enum WrapSlot: String, Sendable, CaseIterable {
     case pin = "kpin"
     /// A do slot da troca de PIN em andamento.
     case pinPending = "kpin.novo"
+    /// Modo reforcado: a camada de fora do rk.and, `.biometryCurrentSet`.
+    case hardenedBiometry = "kand.bio"
+    /// Modo reforcado: a camada de dentro, `.applicationPassword` derivada do PIN. Duas
+    /// geracoes que se alternam na troca de PIN; o cabecalho do rk.and diz qual vale.
+    case hardenedPINA = "kand.pin.a"
+    case hardenedPINB = "kand.pin.b"
+
+    public var usesBiometry: Bool { self == .biometry || self == .hardenedBiometry }
+    public var usesPassword: Bool { [.pin, .pinPending, .hardenedPINA, .hardenedPINB].contains(self) }
 }
 
 public enum EnclaveError: Error, Equatable, Sendable {
@@ -69,7 +81,7 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
         // A chave do aparelho nunca e substituida em silencio: ela e o que abre a RK
         // de todas as carteiras. So a da biometria e recriada ao religar.
         if slot == .device, hasKey(.device) { throw EnclaveError.failed("chave do aparelho ja existe") }
-        guard slot == .device || slot == .biometry else { throw EnclaveError.failed("o slot do PIN pede senha") }
+        guard slot == .device || slot.usesBiometry else { throw EnclaveError.failed("o slot do PIN pede senha") }
         deleteKey(slot)
         let flags: SecAccessControlCreateFlags = slot == .device
             ? [.privateKeyUsage]
@@ -97,6 +109,24 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
         let context = LAContext()
         context.interactionNotAllowed = true
         return (try? privateKey(slot, context: context)) != nil
+    }
+
+    public func probeKey(_ slot: WrapSlot) -> ItemState {
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        defer { context.invalidate() }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassKey,
+            kSecAttrApplicationTag as String: tag(slot),
+            kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
+            kSecReturnAttributes as String: true,
+            kSecUseAuthenticationContext as String: context,
+        ]
+        switch SecItemCopyMatching(query as CFDictionary, nil) {
+        case errSecSuccess, errSecInteractionNotAllowed, errSecAuthFailed: return .present
+        case errSecItemNotFound: return .absent
+        default: return .unknown
+        }
     }
 
     public func deleteKey(_ slot: WrapSlot) {
@@ -163,7 +193,7 @@ public final class SecureEnclaveWrapper: KeyWrapper, @unchecked Sendable {
 
 extension SecureEnclaveWrapper {
     public func createKey(_ slot: WrapSlot, password: Data) throws {
-        guard slot == .pin || slot == .pinPending else { throw EnclaveError.failed("senha so nos slots do PIN") }
+        guard slot.usesPassword else { throw EnclaveError.failed("senha so nos slots do PIN") }
         deleteKey(slot)
         let context = LAContext()
         guard context.setCredential(password, type: .applicationPassword) else { throw EnclaveError.failed("credencial") }
