@@ -678,7 +678,7 @@ struct AboutView: View {
                 // A licenca CC BY pede o autor, o link da licenca e o que foi alterado.
                 VStack(alignment: .leading, spacing: Space.xs) {
                     Text("Créditos").typeStyle(.heading).foregroundStyle(Palette.ink)
-                    Text("A moeda 3D do tour usa a textura de “Bit Coin”, de marcio3d (sketchfab.com), com licença CC BY 4.0 (creativecommons.org/licenses/by/4.0). A textura foi recortada para a frente, o verso e a borda da moeda.")
+                    Text("A moeda 3D do tour usa a textura de “Bit Coin”, de marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec), com licença CC BY 4.0 (creativecommons.org/licenses/by/4.0). A textura foi recortada para a frente, o verso e a borda da moeda.")
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 }
                 SettingsGroup {

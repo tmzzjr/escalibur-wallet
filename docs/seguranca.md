@@ -75,7 +75,7 @@ No Escalibur de hoje nenhum destes achados é grave, porque lá o PIN não prote
 **T3. Execução de código no aparelho desbloqueado (jailbreak, exploit forense, malware com privilégio)**
 - Defesa:
   - Nenhum byte gravado abre fora deste Secure Enclave.
-  - O PIN não tem verificador extraível, então o ataque fica preso ao próprio aparelho: 1,5 dia em média, 3 dias no pior caso.
+  - O PIN não tem verificador extraível, mas o sal e os parâmetros do Argon2id podem ser lidos e os 10^6 Argon2id pré-calculados numa GPU; no aparelho sobra a passagem pelo SE, cerca de 22 ms por chute. Total: 3 a 6 horas em média, 6 a 11 horas no pior caso (auditoria de 15/10/2026).
   - A biometria continua exigindo o rosto, porque a decisão acontece no SEP.
   - As opções de valor alto (seção 2.6) sobem o custo para milhares de anos.
   - A seed só existe em memória durante a assinatura.
@@ -283,7 +283,7 @@ Consequência que vai por escrito no onboarding:
 |---|---|
 | Extraiu os dados e não tem o aparelho | impossível: K_dev nunca sai do SE, e nenhum blob abre em outro lugar |
 | Tem o aparelho desbloqueado, tenta pela interface | ~340 anos pela escada (~170 em média); com apagar-após-10, 1 chance em 10^5 |
-| Tem execução de código no aparelho desbloqueado | 10^6 × 0,8 s ÷ ~3 em paralelo ≈ **3 dias no pior caso, 1,5 em média** |
+| Tem execução de código no aparelho desbloqueado | Argon2id pré-calculado em GPU + 10^6 × 22 ms no SE ≈ **6 a 11 horas no pior caso, 3 a 6 em média** |
 | O mesmo, com senha alfanumérica sorteada de 8 caracteres | ~24 mil anos |
 | O mesmo, com modo reforçado | não há força bruta: precisa do rosto, e a decisão é no SEP |
 
@@ -914,7 +914,7 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
 
 ## Risco residual aceito, e o que faria deixar de ser
 
-1. **Exploit com execução de código no aparelho desbloqueado quebra o PIN de 6 dígitos em até 3 dias.**
+1. **Exploit com execução de código no aparelho desbloqueado quebra o PIN de 6 dígitos em horas (6 a 11 no pior caso).**
    - Aceito porque exige cadeia de exploit para o iOS atual e posse do aparelho desbloqueado.
    - Deixa de ser aceitável: com jailbreak público para a versão corrente do iOS, ou saldo acima do que o dono aceita perder. Nesses casos, modo reforçado ou senha longa passam a ser o padrão, e acima disso, carteira de hardware.
 2. **Malware dentro do processo durante uma assinatura vê a seed, ou adultera a tela.**

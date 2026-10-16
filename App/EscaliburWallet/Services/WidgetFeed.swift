@@ -83,6 +83,15 @@ final class WidgetFeed {
         WidgetCenter.shared.reloadTimelines(ofKind: Self.kind)
     }
 
+    /// Apagar tudo: o widget perde a ultima moeda e o logo dela e volta ao exemplo, e o
+    /// segundo plano deixa de ter widget para atualizar (auditoria de 15/10, N3).
+    static func erase() {
+        for url in [WidgetSnapshot.file, WidgetSnapshot.logo].compactMap({ $0 }) {
+            try? FileManager.default.removeItem(at: url)
+        }
+        WidgetCenter.shared.reloadTimelines(ofKind: kind)
+    }
+
     /// O logo embarcado da moeda, para o widget (que nao tem os logos do app).
     private func writeLogo(_ coinID: String) {
         guard let url = WidgetSnapshot.logo else { return }

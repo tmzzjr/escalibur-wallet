@@ -65,6 +65,7 @@ final class AppSession {
         ReceiptWatchStore.erase()
         LimitOrderWatchStore.erase()
         PriceAlertStore.erase()
+        WidgetFeed.erase()
         let center = UNUserNotificationCenter.current()
         center.removeAllPendingNotificationRequests()
         center.removeAllDeliveredNotifications()

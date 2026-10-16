@@ -18836,6 +18836,7 @@
       }
     },
     "A moeda 3D do tour usa a textura de “Bit Coin”, de marcio3d (sketchfab.com), com licença CC BY 4.0 (creativecommons.org/licenses/by/4.0). A textura foi recortada para a frente, o verso e a borda da moeda." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -18907,6 +18908,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "导览中的 3D 硬币使用了 marcio3d（sketchfab.com）创作的“Bit Coin”纹理，采用 CC BY 4.0 许可（creativecommons.org/licenses/by/4.0）。纹理经过裁剪，用于硬币的正面、背面和边缘。"
+          }
+        }
+      }
+    },
+    "A moeda 3D do tour usa a textura de “Bit Coin”, de marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec), com licença CC BY 4.0 (creativecommons.org/licenses/by/4.0). A textura foi recortada para a frente, o verso e a borda da moeda." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تستخدم العملة ثلاثية الأبعاد في الجولة نسيج “Bit Coin” من marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec)، بترخيص CC BY 4.0 (creativecommons.org/licenses/by/4.0). وقد قُصّ النسيج للوجه الأمامي والخلفي وحافة العملة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die 3D-Münze der Einführung nutzt die Textur von „Bit Coin“ von marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec), lizenziert unter CC BY 4.0 (creativecommons.org/licenses/by/4.0). Die Textur wurde für Vorderseite, Rückseite und Rand der Münze zugeschnitten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The tour's 3D coin uses the texture from “Bit Coin” by marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec), licensed under CC BY 4.0 (creativecommons.org/licenses/by/4.0). The texture was cropped into the front, back and edge of the coin."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La moneda 3D del recorrido usa la textura de “Bit Coin”, de marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec), con licencia CC BY 4.0 (creativecommons.org/licenses/by/4.0). La textura se recortó para el anverso, el reverso y el canto de la moneda."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La pièce 3D de la visite utilise la texture de « Bit Coin », de marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec), sous licence CC BY 4.0 (creativecommons.org/licenses/by/4.0). La texture a été découpée pour l’avers, le revers et la tranche de la pièce."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "टूर का 3D सिक्का marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec) के “Bit Coin” का टेक्सचर इस्तेमाल करता है, जो CC BY 4.0 लाइसेंस (creativecommons.org/licenses/by/4.0) के तहत है. टेक्सचर को सिक्के के आगे, पीछे और किनारे के लिए काटा गया है."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Koin 3D di tur memakai tekstur dari “Bit Coin” karya marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec), dengan lisensi CC BY 4.0 (creativecommons.org/licenses/by/4.0). Teksturnya dipotong untuk sisi depan, belakang, dan tepi koin."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツアーの 3D コインには、marcio3d（sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec）による「Bit Coin」のテクスチャを使用しています。ライセンスは CC BY 4.0（creativecommons.org/licenses/by/4.0）です。テクスチャはコインの表、裏、縁に合わせて切り出しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "투어의 3D 코인은 marcio3d(sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec)의 “Bit Coin” 텍스처를 사용하며, CC BY 4.0 라이선스(creativecommons.org/licenses/by/4.0)를 따릅니다. 텍스처는 코인의 앞면, 뒷면, 테두리에 맞게 잘라냈습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turdaki 3D jeton, marcio3d’nin (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec) “Bit Coin” dokusunu CC BY 4.0 lisansıyla (creativecommons.org/licenses/by/4.0) kullanır. Doku, jetonun ön yüzü, arka yüzü ve kenarı için kırpıldı."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đồng coin 3D trong phần giới thiệu dùng kết cấu từ “Bit Coin” của marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec), theo giấy phép CC BY 4.0 (creativecommons.org/licenses/by/4.0). Kết cấu đã được cắt cho mặt trước, mặt sau và viền của đồng coin."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导览中的 3D 硬币使用了 marcio3d（sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec）创作的“Bit Coin”纹理，采用 CC BY 4.0 许可（creativecommons.org/licenses/by/4.0）。纹理经过裁剪，用于硬币的正面、背面和边缘。"
           }
         }
       }
