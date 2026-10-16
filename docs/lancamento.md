@@ -39,6 +39,26 @@ do dono com o advogado.
   carteira pública de teste do BIP-39 no simulador, sem palavras na tela. Ficam em
   `build/loja/` (fora do git).
 
+## Estado em 16/10/2026 (auditoria do App Store Agent)
+
+- **App Store Connect preenchida pela API** (en-US, o idioma principal, e pt-BR): descrição,
+  texto promocional, palavras-chave, URLs de suporte, marketing e privacidade, subtítulo,
+  categorias Finance e Utilities, copyright, direitos de conteúdo de terceiros,
+  classificação etária (tudo "Não" e "Nenhum", 4+), e as notas da revisão em inglês. A
+  versão da loja virou 1.0.0, igual aos builds.
+- **Build 4** sai do commit publicado na main; o 3 já estava usado.
+- **Inglês completo** no app. Os outros onze idiomas ficam para depois (o dono adiou).
+- **TestFlight:** os builds estão só no grupo interno; o grupo externo "Amigos" (o link
+  público) não tem build nenhum, e nada foi para a revisão de beta.
+- **Enhanced Security** fica fora da 1.0: o validador da App Store já recusou essas chaves
+  (bug dela, relatos de 2025 e 2026). Entra num envio de teste ao TestFlight antes.
+- Ainda com o dono, além da lista abaixo: o rótulo de privacidade (com a Alchemy e a
+  NodeReal, "Outras informações financeiras, Funcionalidade do app, não vinculado, sem
+  rastreamento"; ou tirar as duas para voltar a "Dados não coletados") e o texto da página
+  de suporte que diz que a Escalibur não recebe dado; países e preço; contato da revisão
+  (nome, telefone, e-mail); não enviar a versão macOS criada por engano e desligar o Mac e
+  o Vision Pro em Pricing and Availability; capturas (adiadas pelo dono).
+
 ## Falta, e é com você
 
 1. **Países e parecer do advogado (diretriz 3.1.5(iii)).** A troca, a ordem limite e a
