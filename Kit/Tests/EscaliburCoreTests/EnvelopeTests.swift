@@ -70,6 +70,15 @@ struct EnvelopeTests {
         #expect(KDFCalibration.calibrate().memoryKiB >= KDFCalibration.sealFloorKiB)
     }
 
+    @Test("Regressao C7-14: a sonda da calibracao deriva de verdade e mede mais que zero")
+    func calibrationProbeMeasures() throws {
+        // Com 1 passe a derivacao recusava, a medida dava zero e a calibracao escolhia
+        // sempre o maximo. A sonda tem de estar na faixa aceita e rodar sem erro.
+        #expect(KDFCalibration.probeParameters.isWithinAcceptedRange)
+        let unitCost = try KDFCalibration.probeUnitCost()
+        #expect(unitCost > 0)
+    }
+
     @Test("Envelope de referencia, conferido pelo decifrar.py do Escalibur")
     func referenceFixture() throws {
         guard let url = Bundle.module.url(forResource: "interop", withExtension: "esclbr", subdirectory: "Fixtures") else {

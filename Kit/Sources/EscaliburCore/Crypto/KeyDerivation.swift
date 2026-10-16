@@ -241,22 +241,25 @@ public enum KDFCalibration {
         return max(kib, KDFParameters.memoryRange.lowerBound)
     }
 
-    /// Mede a taxa real deste aparelho com uma derivacao pequena e escolhe o maior
-    /// numero de passes que ainda cabe no tempo alvo.
     /// O piso de passes de um envelope novo. A abertura continua aceitando 2, o piso dos
     /// envelopes antigos.
     public static let sealPassesFloor: UInt32 = 3
 
-    public static func calibrate(password sample: SecureBytes? = nil) -> KDFParameters {
-        // Nunca abaixo do piso de lacre: um vale de memoria nao pode enfraquecer o
-        // arquivo. Quem lacra confere antes se ha memoria (`canSeal`).
-        let memory = max(memoryCeilingKiB(), sealFloorKiB)
+    /// A sonda da calibracao: 128 MiB e 2 passes, o minimo que a derivacao aceita
+    /// (`KDFParameters.passesRange`). Com 1 passe a derivacao recusava, o `try?` engolia o
+    /// erro, a medida dava zero e a calibracao escolhia sempre o maximo de passes, sem
+    /// medir nada (auditoria 4, C7-14).
+    static var probeParameters: KDFParameters {
+        KDFParameters(memoryKiB: 128 * 1024, passes: 2, lanes: lanes)
+    }
 
-        // A sonda: 128 MiB, 1 passe, duas vezes, valendo a segunda. A primeira paga a
-        // alocacao e o aquecimento, e uma sonda pequena e ruidosa demais: medida baixa
-        // escolhe menos passes e da ao atacante o dobro de chutes (auditoria do envelope,
-        // 14/10/2026, A2). Quem chama mede na mesma prioridade do lacre.
-        let probeMemory: UInt32 = 128 * 1024
+    /// Segundos por KiB por passe, pela sonda: duas derivacoes, valendo a segunda. A
+    /// primeira paga a alocacao e o aquecimento, e uma sonda pequena e ruidosa demais:
+    /// medida baixa escolhe menos passes e da ao atacante o dobro de chutes (auditoria do
+    /// envelope, 14/10/2026, A2). Lanca se a derivacao falhar: sonda que nao rodou nao e
+    /// medida.
+    static func probeUnitCost() throws -> Double {
+        let parameters = probeParameters
         let probe = SecureBytes(capacity: 16)
         probe.replaceAll(with: [UInt8](repeating: 0x61, count: 16))
         defer { probe.wipe() }
@@ -265,17 +268,32 @@ public enum KDFCalibration {
         var probeSeconds = 0.0
         for _ in 0..<2 {
             let started = Date()
-            _ = try? KeyDerivation.deriveMasterKey(
-                password: probe,
-                salt: salt,
-                parameters: KDFParameters(memoryKiB: probeMemory, passes: 1, lanes: Self.lanes)
-            )
+            let key = try KeyDerivation.deriveMasterKey(password: probe, salt: salt, parameters: parameters)
             probeSeconds = Date().timeIntervalSince(started)
+            key.wipe()
         }
+        // O custo do Argon2id e proporcional a memoria vezes passes: a medida dividida
+        // pelos passes da sonda e o custo de um.
+        return probeSeconds / Double(parameters.memoryKiB) / Double(parameters.passes)
+    }
 
-        // O custo do Argon2id e proporcional a memoria vezes passes, entao a medida
-        // pequena projeta a grande.
-        let unitCost = probeSeconds / Double(probeMemory)
+    /// Mede a taxa real deste aparelho com uma derivacao pequena e escolhe o maior
+    /// numero de passes que ainda cabe no tempo alvo.
+    public static func calibrate(password sample: SecureBytes? = nil) -> KDFParameters {
+        // Nunca abaixo do piso de lacre: um vale de memoria nao pode enfraquecer o
+        // arquivo. Quem lacra confere antes se ha memoria (`canSeal`).
+        let memory = max(memoryCeilingKiB(), sealFloorKiB)
+
+        // Quem chama mede na mesma prioridade do lacre. A medida pequena projeta a grande.
+        // Sem medida, o lado forte: o maximo de passes, mais lento para o dono e nunca mais
+        // barato para o atacante.
+        let unitCost: Double
+        do {
+            unitCost = try probeUnitCost()
+        } catch {
+            log.error("calibração: a sonda falhou, vale o máximo de passes")
+            unitCost = 0
+        }
 
         var chosenPasses: UInt32 = sealPassesFloor
         for candidate in [8, 6, 4, 3] as [UInt32] {
