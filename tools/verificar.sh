@@ -435,13 +435,19 @@ rm -rf "$saida_site"
 secao "texto"
 achados=$(swift_em "$APP" | xargs grep -nE '"[^"]*(—|–)[^"]*"' 2>/dev/null)
 [ -n "$achados" ] && { aviso "travessao em texto de interface"; echo "$achados"; } || ok "nenhum travessao em texto de interface"
-# Todo texto do catalogo traduzido nos doze idiomas, com os campos certos. Texto novo entra
-# pelo tools/traducao/sincronizar.sh e e traduzido antes do commit (tools/traducao/glossario.md).
-if resumo=$(python3 tools/traducao/conferir.py 2>&1); then
+# Toda traducao do catalogo com os campos certos: traducao invalida (campo trocado,
+# travessao) falha sempre. Texto sem traducao so e dito: o dono adiou as traducoes dos textos
+# novos (16/10/2026), e o iPhone mostra o original em portugues ate elas entrarem. Texto novo
+# entra pelo tools/traducao/sincronizar.sh (tools/traducao/glossario.md).
+resumo=$(python3 tools/traducao/conferir.py --resumo 2>&1)
+if echo "$resumo" | grep -qE ' [1-9][0-9]* invalidos'; then
+    aviso "traducao invalida no catalogo (tools/traducao/conferir.py --resumo)"
+    echo "$resumo" | grep -E ' [1-9][0-9]* invalidos' | head -14
+elif python3 tools/traducao/conferir.py >/dev/null 2>&1; then
     ok "todo texto de tela traduzido nos $(echo "$resumo" | grep -c 'traduzidos') idiomas, sem campo trocado"
 else
-    aviso "texto de tela sem traducao ou com traducao invalida (tools/traducao/conferir.py --resumo)"
-    echo "$resumo" | grep -vE ' 0 faltando, 0 invalidos' | head -14
+    faltando=$(echo "$resumo" | head -1 | sed -E 's/.* ([0-9]+) faltando.*/\1/')
+    ok "nenhuma traducao invalida; $faltando texto(s) ainda sem traducao, adiados pelo dono (em portugues ate entrarem)"
 fi
 
 # 10. Testes com vetores oficiais, e a fronteira conferida tambem no binario (regra 3

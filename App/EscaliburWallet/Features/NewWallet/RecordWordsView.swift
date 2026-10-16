@@ -62,6 +62,9 @@ struct RecordWordsView: View {
                     }
                 }
                 .scrollBounceBehavior(.basedOnSize)
+                // A chapa inclinada passa um pouco da largura: sem o recorte da rolagem, os
+                // cantos nao somem quando ela vira para os lados (pedido do dono, 16/10/2026).
+                .scrollClipDisabled()
                 .padding(.top, Space.sm)
             } else {
                 cards.padding(.top, Space.lg)
@@ -180,10 +183,12 @@ struct RecordWordsView: View {
                 let slot = depth == 0 ? 0 : (last ? 3 : min(depth, 3))
                 let visible = depth <= 2 || last
                 let place = CGFloat(slot)
-                plate(index)
+                // Atras, o cartao fica num cinza claro e sem as palavras: antes um veu preto
+                // cobria os de tras, e na troca o da frente passava pelo preto (pedido do
+                // dono, 16/10/2026).
+                plate(index, front: depth == 0, tone: Self.backTones[slot])
                     .frame(height: height)
-                    // Atras, so a borda do cartao aparece; as palavras dele ficam cobertas.
-                    .overlay(LacquerPlate().fill(Palette.void.opacity([0, 0.45, 0.65, 0.8][slot])))
+                    .shadow(color: .black.opacity(depth == 0 ? 0.3 : 0), radius: 10, y: 6)
                     .scaleEffect(1 - 0.06 * place, anchor: .bottom)
                     .offset(x: depth == 0 ? drag : 0, y: 10 * place)
                     .rotationEffect(.degrees(depth == 0 ? Double(drag) / 25 : 0), anchor: .bottom)
@@ -271,6 +276,12 @@ struct RecordWordsView: View {
         }
         .frame(maxWidth: .infinity)
         .background(MetalPlate(tiltX: plateRoll / 12, tiltY: platePitch / 12))
+        // A espessura da chapa: a borda de aco que aparece embaixo e do lado oposto ao giro.
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(LinearGradient(colors: [Color(hex: 0x8B8D95), Color(hex: 0x55575E)], startPoint: .top, endPoint: .bottom))
+                .offset(x: CGFloat(-plateRoll) * 0.35, y: 5 + CGFloat(max(platePitch, -4)) * 0.3)
+        )
         // Inclina um pouco com o dedo e com o iPhone, e volta ao soltar (pedido do dono,
         // 15/10/2026): a luz da chapa anda junto.
         .rotation3DEffect(.degrees(7 + platePitch), axis: (x: 1, y: 0, z: 0), anchor: .center, perspective: 0.45)
@@ -290,7 +301,10 @@ struct RecordWordsView: View {
         .transition(.opacity.combined(with: .scale(scale: 0.96)))
     }
 
-    private func plate(_ index: Int) -> some View {
+    /// O cartao da frente e os de tras, um pouco mais escuros a cada lugar da pilha.
+    static let backTones: [Color] = [Palette.live, Color(hex: 0xDADADF), Color(hex: 0xBEBEC4), Color(hex: 0xA4A4AB)]
+
+    private func plate(_ index: Int, front: Bool = true, tone: Color = Palette.live) -> some View {
         ZStack {
             VStack(spacing: 0) {
                 let words = shown[index] ?? []
@@ -308,9 +322,10 @@ struct RecordWordsView: View {
                 Spacer(minLength: 0)
             }
             .padding(.vertical, Space.xs)
-            .opacity(hidden ? 0 : 1)
+            .opacity(hidden || !front ? 0 : 1)
+            .animation(.easeOut(duration: 0.18), value: front)
 
-            if hidden {
+            if hidden, front {
                 VStack(spacing: Space.sm) {
                     Text("Escondidas para ninguém ler por cima do seu ombro.")
                         .typeStyle(.body).foregroundStyle(Palette.plateInk).multilineTextAlignment(.center)
@@ -326,7 +341,7 @@ struct RecordWordsView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(LacquerPlate().fill(Palette.live))
+        .background(LacquerPlate().fill(tone))
         .clipShape(LacquerPlate())
         .textSelection(.disabled)
         .accessibilityElement(children: .contain)
@@ -441,6 +456,7 @@ struct RecordWordsView: View {
 
 /// O4: conferir digitando 3 posicoes sorteadas, uma de cada terco da frase.
 struct ConfirmWordsView: View {
+    @Environment(AppSession.self) private var session
     let draft: PhraseDraft
     let onBack: () -> Void
     /// Sair sem conferir: a carteira fica marcada "Sem copia". Nil onde nao se aplica.
@@ -467,7 +483,8 @@ struct ConfirmWordsView: View {
                     .typeStyle(.heading).foregroundStyle(Palette.ink).padding(.top, Space.lg)
                 Text("\(current + 1) de \(positions.count)").typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xxs)
 
-                WordInputField(text: $typed, isFocused: $focused, placeholder: "palavra \(positions[current] + 1)", onSubmit: check)
+                WordInputField(text: $typed, isFocused: $focused, placeholder: "palavra \(positions[current] + 1)",
+                               ownKeyboard: session.ownKeyboardOn, onSubmit: check)
                     .padding(.horizontal, Space.md)
                     .frame(height: 56)
                     .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
@@ -565,7 +582,7 @@ struct WalletCreatedView: View {
             }
             VStack(spacing: Space.sm) {
                 Text("Carteira criada").typeStyle(.hero).foregroundStyle(Palette.ink)
-                Text("Endereços prontos em \(wallet.accounts.count) redes. Guarde o papel longe do iPhone: se o iPhone sumir, o papel traz a carteira de volta, aqui ou em qualquer carteira BIP-39.")
+                Text("Endereços prontos em \(wallet.accounts.count) redes. Guarde o papel longe do iPhone: se o iPhone sumir, o papel traz a carteira de volta, aqui ou em outros apps. Em Ajustes, na carteira, \"Abrir em outro app\" diz quais.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -685,60 +702,89 @@ private struct MetalPlate: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         ZStack {
-            // O aco escovado, parado: o fundo, os riscos e os rebites.
+            // O aco escovado, parado: o fundo, os riscos irregulares e os parafusos.
             Canvas { context, size in
                 let rect = CGRect(origin: .zero, size: size)
                 context.fill(Path(rect), with: .linearGradient(
-                    Gradient(stops: [.init(color: Color(hex: 0xE4E5E9), location: 0), .init(color: Color(hex: 0xCDCFD4), location: 0.5),
-                                     .init(color: Color(hex: 0xBCBEC4), location: 1)]),
+                    Gradient(stops: [.init(color: Color(hex: 0xE6E7EB), location: 0), .init(color: Color(hex: 0xCFD1D6), location: 0.45),
+                                     .init(color: Color(hex: 0xBABCC2), location: 1)]),
                     startPoint: .zero, endPoint: CGPoint(x: size.width * 0.3, y: size.height)))
-                // O escovado: riscos horizontais finos, claros e escuros, de largura irregular.
-                var y: CGFloat = 0.5
-                var row = 0
-                while y < size.height {
-                    let light = row % 2 == 0
-                    let alpha = light ? 0.16 + 0.1 * Double((row * 7) % 5) / 4 : 0.035 + 0.03 * Double((row * 3) % 4) / 3
-                    context.fill(Path(CGRect(x: 0, y: y, width: size.width, height: light ? 0.7 : 0.5)),
+                // O escovado de verdade: riscos de comprimento, altura e tom sorteados (sempre os
+                // mesmos), nao uma grade de linhas inteiras (pedido do dono, 16/10/2026: mais
+                // realista).
+                var seed: UInt64 = 0x9E37_79B9_7F4A_7C15
+                func next() -> Double {
+                    seed = seed &* 6364136223846793005 &+ 1442695040888963407
+                    return Double(seed >> 11) / Double(1 << 53)
+                }
+                let streaks = Int(size.height * 5)
+                for _ in 0..<streaks {
+                    let y = CGFloat(next()) * size.height
+                    let length = size.width * CGFloat(0.25 + 0.75 * next())
+                    let x = CGFloat(next()) * (size.width - length * 0.5) - length * 0.25
+                    let light = next() < 0.55
+                    let alpha = light ? 0.06 + 0.14 * next() : 0.02 + 0.06 * next()
+                    context.fill(Path(CGRect(x: x, y: y, width: length, height: CGFloat(0.35 + 0.5 * next()))),
                                  with: .color(light ? .white.opacity(alpha) : .black.opacity(alpha)))
-                    y += light ? 1.6 + CGFloat(row % 3) * 0.3 : 2.1
-                    row += 1
                 }
-                // Rebites nos quatro cantos.
-                for corner in [CGPoint(x: 14, y: 14), CGPoint(x: size.width - 14, y: 14),
-                               CGPoint(x: 14, y: size.height - 14), CGPoint(x: size.width - 14, y: size.height - 14)] {
-                    let rivet = CGRect(x: corner.x - 4.5, y: corner.y - 4.5, width: 9, height: 9)
-                    context.fill(Path(ellipseIn: rivet.offsetBy(dx: 0, dy: 1)), with: .color(.black.opacity(0.25)))
-                    context.fill(Path(ellipseIn: rivet), with: .radialGradient(
-                        Gradient(colors: [Color(hex: 0xF7F7F9), Color(hex: 0x9C9EA6)]),
-                        center: CGPoint(x: rivet.midX - 1.5, y: rivet.midY - 1.5), startRadius: 0, endRadius: 6))
+                // Parafusos de fenda cruzada nos quatro cantos, cada um num angulo.
+                let corners = [CGPoint(x: 15, y: 15), CGPoint(x: size.width - 15, y: 15),
+                               CGPoint(x: 15, y: size.height - 15), CGPoint(x: size.width - 15, y: size.height - 15)]
+                for (index, corner) in corners.enumerated() {
+                    let screw = CGRect(x: corner.x - 5.5, y: corner.y - 5.5, width: 11, height: 11)
+                    context.fill(Path(ellipseIn: screw.insetBy(dx: -1.5, dy: -1.5)), with: .color(.black.opacity(0.14)))
+                    context.fill(Path(ellipseIn: screw.offsetBy(dx: 0, dy: 1)), with: .color(.black.opacity(0.28)))
+                    context.fill(Path(ellipseIn: screw), with: .radialGradient(
+                        Gradient(colors: [Color(hex: 0xF8F8FA), Color(hex: 0xA6A8B0), Color(hex: 0x7C7E86)]),
+                        center: CGPoint(x: screw.midX - 2, y: screw.midY - 2), startRadius: 0, endRadius: 8))
+                    var slot = context
+                    slot.translateBy(x: corner.x, y: corner.y)
+                    slot.rotate(by: .degrees(Double([18, 63, 141, 102][index])))
+                    for angle in [0.0, 90.0] {
+                        var arm = slot
+                        arm.rotate(by: .degrees(angle))
+                        arm.fill(Path(roundedRect: CGRect(x: -3.6, y: -0.7, width: 7.2, height: 1.4), cornerRadius: 0.7), with: .color(Color(hex: 0x4A4C53)))
+                    }
                 }
+                // A marca gravada embaixo, como a do fabricante numa chapa de guardar seed.
+                context.draw(Text(verbatim: "ESCALIBUR").font(.system(size: 8, weight: .heavy)).kerning(2.2).foregroundColor(.black.opacity(0.22)),
+                             at: CGPoint(x: size.width / 2, y: size.height - 12), anchor: .center)
             }
             // O reflexo do escovado: no aco riscado na horizontal, a luz vira uma faixa
-            // vertical larga, que corre a chapa conforme ela inclina para os lados.
+            // vertical larga, que corre a chapa conforme ela inclina para os lados, e uma
+            // segunda, mais fina, um pouco atras.
             GeometryReader { geo in
-                LinearGradient(colors: [.white.opacity(0), .white.opacity(0.36), .white.opacity(0)], startPoint: .leading, endPoint: .trailing)
+                LinearGradient(colors: [.white.opacity(0), .white.opacity(0.4), .white.opacity(0)], startPoint: .leading, endPoint: .trailing)
                     .frame(width: geo.size.width * 0.42, height: geo.size.height)
                     .position(x: geo.size.width * (0.5 - tiltX * 0.9), y: geo.size.height / 2)
+                LinearGradient(colors: [.white.opacity(0), .white.opacity(0.22), .white.opacity(0)], startPoint: .leading, endPoint: .trailing)
+                    .frame(width: geo.size.width * 0.12, height: geo.size.height)
+                    .position(x: geo.size.width * (0.82 - tiltX * 1.3), y: geo.size.height / 2)
             }
             .blendMode(.screen)
             // A luz de cima: mais clara quando a chapa vira para cima, mais escura para baixo.
-            LinearGradient(colors: [.white.opacity(max(0.05, 0.16 - tiltY * 0.12)), .clear, .black.opacity(max(0, 0.08 + tiltY * 0.08))],
+            LinearGradient(colors: [.white.opacity(max(0.05, 0.16 - tiltY * 0.12)), .clear, .black.opacity(max(0, 0.1 + tiltY * 0.08))],
                            startPoint: .top, endPoint: .bottom)
+            // As bordas um pouco mais escuras, como metal de verdade sob uma luz so.
+            RadialGradient(colors: [.clear, .black.opacity(0.1)], center: .center, startRadius: 120, endRadius: 360)
         }
         .clipShape(shape)
-        // O chanfro: a borda de cima pega a luz, a de baixo fica na sombra.
-        .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.9), Color(hex: 0x8A8C94)], startPoint: .top, endPoint: .bottom), lineWidth: 2))
+        // O chanfro: a borda de cima pega a luz (mais quando a chapa vira para cima), a de
+        // baixo fica na sombra.
+        .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(min(1, 0.85 + max(-tiltY, 0) * 0.15)), Color(hex: 0x82848C)],
+                                                   startPoint: .top, endPoint: .bottom), lineWidth: 2))
         .overlay(shape.inset(by: 5).stroke(Color.black.opacity(0.08), lineWidth: 1))
         .allowsHitTesting(false)
     }
 }
 
-/// Texto gravado no metal: escuro, com a luz batendo na borda de baixo do sulco.
+/// Texto gravado no metal: o sulco escuro, com a sombra por dentro em cima e a luz batendo
+/// na borda de baixo.
 private extension View {
     func engraved(depth: CGFloat) -> some View {
-        self.foregroundStyle(MetalPlate.ink.opacity(0.92))
-            .shadow(color: .white.opacity(0.75), radius: 0, x: 0, y: depth)
-            .shadow(color: .black.opacity(0.18), radius: 0, x: 0, y: -depth * 0.6)
+        self.foregroundStyle(MetalPlate.ink.opacity(0.9).shadow(.inner(color: .black.opacity(0.55), radius: 0.5, x: 0, y: depth)))
+            .shadow(color: .white.opacity(0.8), radius: 0, x: 0, y: depth)
+            .shadow(color: .black.opacity(0.14), radius: 0, x: 0, y: -depth * 0.6)
     }
 }
 
@@ -804,34 +850,39 @@ private struct CopyPhraseSheet: View {
     }
 }
 
-/// A cena da copia (pedido do dono, 15/10/2026, no lugar do icone amarelo): tres palavras,
-/// so em barras, entram na prancheta; o anel de 1 minuto se esvazia, contando, e elas
-/// somem. Em ciclo, para dizer o que a tela diz: a copia vive pouco e so aqui. Com
-/// Reduzir Movimento, a prancheta cheia e o anel inteiro, parados.
+/// A cena da copia, em pixels (pedido do dono, 16/10/2026, no estilo do `SlideToConfirm`):
+/// tres palavras, so em pixels cinza que cifram, entram na prancheta; um anel de pixels em
+/// volta do relogio conta o minuto, apagando um por um; no fim os pixels das palavras se
+/// desfazem para cima e somem. Em ciclo, para dizer o que a tela diz: a copia vive pouco e
+/// so aqui. Com Reduzir Movimento, a prancheta cheia e o anel inteiro, parados.
 private struct ClipboardCountdown: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var start = Date()
 
-    static let period = 4.6
+    static let period = 5.2
+    /// Quantos pixels por palavra, e o anel.
+    static let lengths = [9, 7, 8]
+    static let ring = 24
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 60, paused: reduceMotion)) { timeline in
             let t = reduceMotion ? 1.4 : timeline.date.timeIntervalSince(start).truncatingRemainder(dividingBy: Self.period)
-            // 0 a 1,2 s: as barras entram; 1,2 a 3,8 s: o anel conta; 3,8 a 4,6 s: somem.
-            let left = Self.clamp((t - 1.2) / 2.6)
-            let fade = Self.clamp((t - 3.8) / 0.5)
+            let clock = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
+            // 0 a 1,2 s: as palavras entram; 1,3 a 4,0 s: o anel conta; 4,0 a 4,9 s: somem.
+            let left = Self.clamp((t - 1.3) / 2.7)
+            let dissolve = Self.clamp((t - 4.0) / 0.9)
             ZStack(alignment: .topTrailing) {
-                board(t: t, fade: fade)
-                ring(left: reduceMotion ? 0 : left, fade: fade)
-                    .offset(x: 18, y: -16)
+                board(t: t, clock: clock, dissolve: dissolve)
+                ring(left: reduceMotion ? 0 : left, fade: dissolve)
+                    .offset(x: 22, y: -20)
             }
-            .frame(width: 132, height: 104)
+            .frame(width: 140, height: 112)
         }
         .onAppear { start = Date() }
         .accessibilityHidden(true)
     }
 
-    private func board(t: Double, fade: Double) -> some View {
+    private func board(t: Double, clock: Double, dissolve: Double) -> some View {
         ZStack(alignment: .top) {
             RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Palette.body)
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Palette.edgeStrong, lineWidth: 1))
@@ -839,37 +890,51 @@ private struct ClipboardCountdown: View {
             Capsule().fill(Palette.control).frame(width: 46, height: 12)
                 .overlay(Capsule().stroke(Palette.edgeStrong, lineWidth: 1))
                 .offset(y: -6)
-            VStack(alignment: .leading, spacing: 9) {
-                ForEach(0..<3, id: \.self) { index in
-                    let enter = Self.ease(Self.clamp((t - 0.15 - Double(index) * 0.22) / 0.45))
-                    HStack(spacing: 6) {
-                        Capsule().fill(Palette.inkMuted).frame(width: 10, height: 6)
-                        Capsule().fill(Palette.ink.opacity(0.85)).frame(width: [52, 38, 46][index], height: 7)
+            Canvas { context, size in
+                for (line, count) in Self.lengths.enumerated() {
+                    let enter = Self.ease(Self.clamp((t - 0.15 - Double(line) * 0.22) / 0.45))
+                    let y = 28 + CGFloat(line) * 17
+                    // O numero da palavra, como na chapa.
+                    context.fill(Path(roundedRect: CGRect(x: 16, y: y + 1, width: 8, height: 5), cornerRadius: 1.5),
+                                 with: .color(Palette.inkMuted.opacity(enter * (1 - dissolve))))
+                    for index in 0..<count {
+                        let id = line * 16 + index
+                        let rise = dissolve * (14 + 24 * PixelFill.noise(id, 5, 0x91))
+                        let drift = dissolve * (PixelFill.noise(id, 6, 0x92) - 0.5) * 16
+                        let alpha = enter * (1 - Self.clamp(dissolve * 1.3 - PixelFill.noise(id, 7, 0x93) * 0.3))
+                        guard alpha > 0.01 else { continue }
+                        let x = 30 + CGFloat(index) * 7 - CGFloat(1 - enter) * 24 + CGFloat(drift)
+                        let side = 5.4 * (1 - 0.4 * CGFloat(dissolve))
+                        context.fill(Path(roundedRect: CGRect(x: x, y: y - CGFloat(rise), width: side, height: side), cornerRadius: 1.2),
+                                     with: .color(PixelFill.gray(Self.tone(id, clock: clock)).opacity(alpha)))
                     }
-                    .offset(x: CGFloat(1 - enter) * -24)
-                    .opacity(enter * (1 - fade))
                 }
             }
-            .padding(.top, 26)
-            .padding(.leading, 18)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 112, height: 96)
+        .frame(width: 116, height: 100)
     }
 
+    /// O relogio de 1 minuto, com o anel de pixels apagando conforme o tempo passa.
     private func ring(left: Double, fade: Double) -> some View {
         let remaining = 1 - left
         return ZStack {
             Circle().fill(Palette.void)
-            Circle().stroke(Palette.edgeStrong, lineWidth: 3)
-            Circle().trim(from: 0, to: remaining)
-                .stroke(Palette.ink, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                .rotationEffect(.degrees(-90))
+            Canvas { context, size in
+                let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                let lit = Int((remaining * Double(Self.ring)).rounded(.up))
+                for index in 0..<Self.ring {
+                    let angle = Double(index) / Double(Self.ring) * 2 * .pi - .pi / 2
+                    let point = CGPoint(x: center.x + 19 * CGFloat(cos(angle)), y: center.y + 19 * CGFloat(sin(angle)))
+                    let square = CGRect(x: point.x - 1.8, y: point.y - 1.8, width: 3.6, height: 3.6)
+                    context.fill(Path(roundedRect: square, cornerRadius: 0.9),
+                                 with: .color(index < lit ? Palette.ink : Palette.edgeStrong))
+                }
+            }
             Text(verbatim: Self.clock(remaining))
                 .font(.system(size: 11, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Palette.ink)
         }
-        .frame(width: 42, height: 42)
+        .frame(width: 48, height: 48)
         .opacity(1 - fade * 0.6)
     }
 
@@ -877,6 +942,15 @@ private struct ClipboardCountdown: View {
     static func clock(_ remaining: Double) -> String {
         let seconds = Int((remaining * 60).rounded(.up))
         return seconds >= 60 ? "1:00" : String(format: "0:%02d", seconds)
+    }
+
+    private static func tone(_ id: Int, clock: Double) -> Double {
+        let phase = PixelFill.noise(id, 4, 0x55)
+        let beat = clock * 6 * (0.6 + 0.8 * phase) + phase * 8
+        let step = beat.rounded(.down)
+        let blend = (beat - step) * (beat - step) * (3 - 2 * (beat - step))
+        let a = PixelFill.noise(id, 4, Int(step)), b = PixelFill.noise(id, 4, Int(step) + 1)
+        return 0.38 + 0.4 * (a + (b - a) * blend)
     }
 
     private static func clamp(_ x: Double) -> Double { min(max(x, 0), 1) }

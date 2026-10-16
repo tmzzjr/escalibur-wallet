@@ -7,6 +7,9 @@ import SwiftUI
 struct EnvelopeHowItWorks: View {
     @Environment(\.dismiss) private var dismiss
     @State private var page = 0
+    #if DEBUG
+    @MainActor private static var debugPageUsed = false
+    #endif
 
     struct Page {
         let title: String
@@ -14,10 +17,10 @@ struct EnvelopeHowItWorks: View {
     }
 
     static let pages = [
-        Page(title: String(localized: "A senha da carteira entra no envelope"),
-             text: String(localized: "O envelope guarda uma cópia criptografada da senha da sua carteira, trancada com outra senha que só você escolhe. Fica tudo num arquivo .esclbr, feito aqui no iPhone.")),
+        Page(title: String(localized: "As palavras viram um arquivo cifrado"),
+             text: String(localized: "O app cifra uma cópia da senha da sua carteira com outra senha, que só você escolhe. Tudo acontece aqui no iPhone, e o envelope fica salvo só aqui, até você decidir onde guardar uma cópia.")),
         Page(title: String(localized: "Sem a senha, o arquivo é ruído"),
-             text: String(localized: "Tudo dentro dele é criptografado aqui no iPhone. Sem a senha, o arquivo não diz de quem é, quantas palavras guarda nem o que tem dentro.")),
+             text: String(localized: "Tudo dentro dele é criptografado aqui no iPhone. Sem a senha, ele não mostra quantas palavras guarda nem o que tem dentro, e uma senha errada só devolve ruído.")),
         Page(title: String(localized: "Só a sua senha abre"),
              text: String(localized: "Com a senha certa, as palavras voltam. Sem ela, ninguém abre, nem a Escalibur, e senha esquecida não se recupera. Cada tentativa exige uma conta pesada, de propósito: adivinhar uma senha forte fica lento demais.")),
     ]
@@ -33,7 +36,9 @@ struct EnvelopeHowItWorks: View {
                             if page == index { illustration(index) } else { Color.clear }
                         }
                         .frame(height: 236)
-                        .padding(.top, Space.lg)
+                        // As duas do cartao cifrado descem um pouco, com o texto, para o
+                        // conjunto ficar no centro (pedido do dono, 16/10/2026).
+                        .padding(.top, index == 0 ? Space.lg : Space.lg + 32)
                         Text(Self.pages[index].title).typeStyle(.title).foregroundStyle(Palette.ink)
                             .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                             .padding(.top, Space.xl)
@@ -62,9 +67,12 @@ struct EnvelopeHowItWorks: View {
         #if DEBUG
         // A pagina vem logo depois do nome da tela: o passeio por idioma poe mais
         // argumentos no fim.
+        // So na primeira abertura: depois, o "Como funciona" abre na primeira pagina, como no
+        // app de verdade (antes reabria sempre na pagina do argumento).
         .onAppear {
-            guard DebugDemo.screen == "envelope-como", let index = DebugDemo.arguments.firstIndex(of: "envelope-como"),
+            guard !Self.debugPageUsed, DebugDemo.screen == "envelope-como", let index = DebugDemo.arguments.firstIndex(of: "envelope-como"),
                   DebugDemo.arguments.indices.contains(index + 1) else { return }
+            Self.debugPageUsed = true
             page = Int(DebugDemo.arguments[index + 1]) ?? 0
         }
         #endif
@@ -73,10 +81,10 @@ struct EnvelopeHowItWorks: View {
     @ViewBuilder
     private func illustration(_ index: Int) -> some View {
         switch index {
-        case 0: EnvelopeChain(mode: .working, direction: .inward)
-        // As duas seguintes sao o mesmo arquivo: primeiro so o cifrado; depois a senha
-        // digitada abre o envelope e revela as palavras.
-        case 1: EnvelopeCipherCard(mode: .sealed)
+        case 0: EnvelopePixelScene()
+        // As duas seguintes sao o mesmo arquivo: primeiro uma senha errada que nao abre;
+        // depois a senha certa abre o envelope e revela as palavras.
+        case 1: EnvelopeCipherCard(mode: .denied)
         default: EnvelopeCipherCard(mode: .reveal)
         }
     }

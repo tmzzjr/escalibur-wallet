@@ -18,8 +18,12 @@ struct SecureInputField: UIViewRepresentable {
     /// Mostra o texto enquanto e `true` (o dono segura o dedo no campo). Compartilhado
     /// entre a passphrase e a repeticao: segurar em uma mostra as duas.
     var reveal: Binding<Bool>? = nil
-    /// Esconde os pontos (o cursor continua): a cifra viva e desenhada por cima.
+    /// Esconde os pontos e o cursor: a cifra viva e o cursor dela sao desenhados por cima.
+    /// O cursor do sistema seguia a largura dos pontos, e os glifos sao mais estreitos: ele
+    /// corria na frente do que foi digitado (pedido do dono, 16/10/2026).
     var concealed = false
+    /// Se o campo esta com o teclado, para quem desenha o cursor por cima.
+    var editing: Binding<Bool>? = nil
     var onSubmit: (() -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -61,6 +65,7 @@ struct SecureInputField: UIViewRepresentable {
         if !field.isEnabled, field.isFirstResponder { field.resignFirstResponder() }
         let revealed = reveal?.wrappedValue == true
         field.textColor = concealed && !revealed ? .clear : UIColor(Palette.ink)
+        field.tintColor = concealed && !revealed ? .clear : UIColor(Palette.ink)
         Self.show(buffer, in: field, revealed: revealed)
     }
 
@@ -124,6 +129,14 @@ struct SecureInputField: UIViewRepresentable {
             return false
         }
 
+        func textFieldDidBeginEditing(_ field: UITextField) {
+            if parent.editing?.wrappedValue == false { parent.editing?.wrappedValue = true }
+        }
+
+        func textFieldDidEndEditing(_ field: UITextField) {
+            if parent.editing?.wrappedValue == true { parent.editing?.wrappedValue = false }
+        }
+
         @objc func pressed(_ gesture: UILongPressGestureRecognizer) {
             switch gesture.state {
             case .began: parent.reveal?.wrappedValue = true
@@ -152,18 +165,27 @@ struct PasswordBox: View {
     /// A cifra viva do que foi digitado (`LiveCipher`), no lugar dos pontos: os glifos
     /// trocam num relogio de 12 Hz, como os das palavras.
     var glyphs: ((UInt64) -> String)? = nil
+    @State private var editing = false
 
     var body: some View {
         let ciphered = glyphs != nil && length > 0 && reveal?.wrappedValue != true
         SecureInputField(buffer: buffer, length: $length, placeholder: placeholder, focusOnAppear: focusOnAppear, reveal: reveal,
-                         concealed: ciphered, onSubmit: onSubmit)
+                         concealed: ciphered, editing: $editing, onSubmit: onSubmit)
             .overlay(alignment: .leading) {
                 if ciphered, let glyphs {
                     TimelineView(.periodic(from: .now, by: 1.0 / 12)) { context in
-                        Text(verbatim: glyphs(UInt64(context.date.timeIntervalSinceReferenceDate * 12)))
-                            .font(.system(size: 17, weight: .medium, design: .monospaced))
-                            .foregroundStyle(Palette.inkSoft)
-                            .lineLimit(1)
+                        let time = context.date.timeIntervalSinceReferenceDate
+                        HStack(spacing: 1) {
+                            Text(verbatim: glyphs(UInt64(time * 12)))
+                                .font(.system(size: 17, weight: .medium, design: .monospaced))
+                                .foregroundStyle(Palette.inkSoft)
+                                .lineLimit(1)
+                            // O cursor logo depois do ultimo glifo, piscando como o do sistema.
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(Palette.ink)
+                                .frame(width: 2, height: 22)
+                                .opacity(editing && Int(time * 2) % 2 == 0 ? 1 : 0)
+                        }
                     }
                     .allowsHitTesting(false)
                 }

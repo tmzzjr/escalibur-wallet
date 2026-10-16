@@ -53,7 +53,10 @@ final class HardenedModeFlowTests: XCTestCase {
         let faceID = app.switches.matching(NSPredicate(format: "label CONTAINS 'Face ID'")).firstMatch
         XCTAssertTrue(faceID.waitForExistence(timeout: 10))
         // O interruptor fica na ponta direita da linha.
+        shot("h00-seguranca", app)
         faceID.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        sleep(1)
+        shot("h01-pin", app)
         type(pin: pin, in: app)
         allowFaceID()
         shot("h0-face-id", app)
@@ -69,13 +72,14 @@ final class HardenedModeFlowTests: XCTestCase {
         shot("h1-reforcado", app)
         app.tapWhenEnabled(enable)
 
-        // A frase inteira da carteira da demo, pela tela da importacao em modo de conferencia.
+        // A frase inteira da carteira da demo, pela tela da importacao em modo de conferencia,
+        // no teclado proprio: a conferencia para ligar o modo reforcado nunca usa o do iPhone.
         let first = app.otherElements["palavra-1"]
         XCTAssertTrue(first.waitForExistence(timeout: 10))
         first.tap()
-        for _ in 1...11 { app.typeText("abandon ") }
-        app.typeText("about")
-        app.typeText("\n")
+        XCTAssertEqual(app.keyboards.count, 0, "a conferencia abriu o teclado do iPhone")
+        for _ in 1...11 { app.typeOnOwnKeyboard("abandon") }
+        app.typeOnOwnKeyboard("about")
         app.tapWhenEnabled(app.buttons["conferir-copia"])
         let consent = app.buttons["reforcado-aceite"]
         XCTAssertTrue(consent.waitForExistence(timeout: 10))

@@ -117,7 +117,7 @@ struct SealEnvelopeFlow: View {
     private var intro: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-            EnvelopeChain(mode: .idle, height: 196).padding(.top, -Space.sm).padding(.bottom, Space.md)
+            EnvelopePixelScene(height: 196).padding(.top, -Space.sm).padding(.bottom, Space.md)
             VStack(spacing: Space.sm) {
                 Text("Guardar num envelope Escalibur").typeStyle(.title).foregroundStyle(Palette.ink)
                 Text("Uma cópia de segurança da senha da carteira, trancada com outra senha que só você conhece.")
@@ -131,7 +131,7 @@ struct SealEnvelopeFlow: View {
                 EnvelopePoint(icon: "lock.doc", text: String(localized: "A senha da carteira vira um arquivo criptografado, aqui no iPhone."))
                 EnvelopePoint(icon: "key", text: String(localized: "Só você cria a senha do arquivo. Ela nunca sai deste iPhone."))
                 EnvelopePoint(icon: "eye.slash", text: String(localized: "O arquivo não passa por nós. Sem a sua senha, ninguém abre."))
-                EnvelopePoint(icon: "externaldrive", text: String(localized: "Guarde onde quiser. Descriptografe no app ou no decifrador aberto."))
+                EnvelopePoint(icon: "externaldrive", text: String(localized: "Guarde onde quiser: sem a sua senha, o arquivo não abre."))
             }
             .padding(Space.base)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -227,12 +227,13 @@ struct SealEnvelopeFlow: View {
         let band = PasswordCost.band(bits: bits, kdf: kdf)
         let crime = PasswordCost.describe(PasswordCost.seconds(bits: bits, kdf: kdf))
         let state = PasswordCost.describe(PasswordCost.stateSeconds(bits: bits, kdf: kdf))
-        return VStack(alignment: .leading, spacing: 0) {
+        // Centralizada, e sem a frase do computador do atacante (pedido do dono, 16/10/2026).
+        return VStack(spacing: 0) {
             Image(systemName: band == .fair ? "exclamationmark.shield" : "exclamationmark.triangle.fill")
                 .font(.system(size: 34, weight: .semibold)).foregroundStyle(band == .fair ? Palette.ink : Palette.down)
             Text(band == .fair ? "Um governo abriria em \(state)" : "Esta senha cai em \(crime)")
                 .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
-            Text("Quem tiver uma cópia do arquivo (nuvem, e-mail, AirDrop) testa senhas no próprio computador, sem limite e sem você saber. Seis palavras sorteadas aguentam milhões de anos.")
+            Text("Seis palavras sorteadas aguentam milhões de anos.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
             if band == .veryWeak {
                 Text("Se usar mesmo assim, guarde o arquivo num pendrive ou no seu computador, nunca na nuvem nem por e-mail.")
@@ -247,7 +248,8 @@ struct SealEnvelopeFlow: View {
                 usingSuggestion = false
                 suggest()
             }
-            HoldButton(title: band.needsHold ? String(localized: "Segure para usar mesmo assim") : String(localized: "Usar mesmo assim"), holdSeconds: band.needsHold ? 2 : 0) {
+            HoldButton(title: band.needsHold ? String(localized: "Segure para usar mesmo assim") : String(localized: "Usar mesmo assim"), holdSeconds: band.needsHold ? 2 : 0,
+                       fill: band == .fair ? Palette.downTint : Palette.down) {
                 riskBits = nil
                 acceptedRisk = true
                 error = nil
@@ -255,6 +257,7 @@ struct SealEnvelopeFlow: View {
             }
             .padding(.top, Space.sm)
         }
+        .multilineTextAlignment(.center)
         .padding(Space.gutter)
         .presentationDetents([.medium, .large])
         .presentationBackground(Palette.body)

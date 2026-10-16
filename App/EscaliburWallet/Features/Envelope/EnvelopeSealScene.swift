@@ -116,7 +116,7 @@ struct EnvelopeSealScene: View {
     }
 }
 
-private struct FlapShape: Shape {
+struct FlapShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         path.move(to: CGPoint(x: rect.minX + 6, y: rect.minY))
@@ -129,7 +129,7 @@ private struct FlapShape: Shape {
     }
 }
 
-private struct PocketShape: Shape {
+struct PocketShape: Shape {
     func path(in rect: CGRect) -> Path {
         let r: CGFloat = 14
         var path = Path()

@@ -46,8 +46,8 @@ struct DeviceCheck: Identifiable, Equatable {
             Step(id: "tela", title: String(localized: "Tela sem gravação nem AirPlay"), run: screen),
             Step(id: "teclado", title: String(localized: "Teclados de terceiros bloqueados"), run: keyboards),
             Step(id: "sistema", title: "iOS \(version.majorVersion).\(version.minorVersion)", run: system),
-            Step(id: "copia", title: String(localized: "Área de transferência"), run: clipboard),
-            Step(id: "leitor", title: String(localized: "Leitor de tela"), run: voiceOver),
+            Step(id: "copia", title: String(localized: "Nada copiado na área de transferência"), run: clipboard),
+            Step(id: "leitor", title: String(localized: "Nada lendo a tela em voz alta"), run: voiceOver),
         ]
     }
 
@@ -84,6 +84,13 @@ struct DeviceCheck: Identifiable, Equatable {
     /// Os caminhos e a escrita fora da caixa de areia que so existem num iPhone com
     /// jailbreak.
     static func jailbreak() -> DeviceCheck {
+        #if DEBUG
+        // `-checagem-falha`: o jailbreak acusado, para ver a tela de quando uma checagem falha.
+        if DebugDemo.arguments.contains("-checagem-falha") {
+            return .init(id: "jailbreak", title: "Sinal de jailbreak encontrado",
+                         outcome: .fail("Este iPhone parece ter jailbreak. Num aparelho assim, outro app pode ler a memória e o que você digita."))
+        }
+        #endif
         #if targetEnvironment(simulator)
         return .init(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"), outcome: .caution(String(localized: "Simulador: a checagem só vale num iPhone de verdade.")))
         #else
@@ -101,7 +108,8 @@ struct DeviceCheck: Identifiable, Equatable {
         let writable = (try? "x".write(toFile: probe, atomically: false, encoding: .utf8)) != nil
         if writable { try? FileManager.default.removeItem(atPath: probe) }
         guard found == nil, !writable, !linked else {
-            return .init(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"),
+            // O titulo diz o que foi achado, como na area de transferencia e no leitor.
+            return .init(id: "jailbreak", title: String(localized: "Sinal de jailbreak encontrado"),
                          outcome: .fail(String(localized: "Este iPhone parece ter jailbreak. Num aparelho assim, outro app pode ler a memória e o que você digita.")))
         }
         return .init(id: "jailbreak", title: String(localized: "Nenhum sinal de jailbreak"), outcome: .pass)
@@ -122,7 +130,7 @@ struct DeviceCheck: Identifiable, Equatable {
         }
         let inserted = ProcessInfo.processInfo.environment["DYLD_INSERT_LIBRARIES"] != nil
         guard hit == nil, !inserted else {
-            return .init(id: "injecao", title: String(localized: "Nenhum código injetado encontrado"),
+            return .init(id: "injecao", title: String(localized: "Código injetado encontrado"),
                          outcome: .fail(String(localized: "Há uma biblioteca de interceptação carregada no app (\(hit ?? "DYLD_INSERT_LIBRARIES")). Alguém pode estar lendo o que a tela mostra.")))
         }
         return .init(id: "injecao", title: String(localized: "Nenhum código injetado encontrado"), outcome: .pass)
@@ -137,8 +145,10 @@ struct DeviceCheck: Identifiable, Equatable {
         #if DEBUG
         if traced { return .init(id: "depurador", title: "Nenhum depurador conectado", outcome: .caution("Build de teste rodando pelo Xcode.")) }
         #endif
-        return .init(id: "depurador", title: String(localized: "Nenhum depurador conectado"),
-                     outcome: traced ? .fail(String(localized: "Um depurador está preso ao app e pode ler a memória dele.")) : .pass)
+        return traced
+            ? .init(id: "depurador", title: String(localized: "Depurador conectado"),
+                    outcome: .fail(String(localized: "Um depurador está preso ao app e pode ler a memória dele.")))
+            : .init(id: "depurador", title: String(localized: "Nenhum depurador conectado"), outcome: .pass)
     }
 
     @MainActor
@@ -173,16 +183,21 @@ struct DeviceCheck: Identifiable, Equatable {
 
     @MainActor
     static func clipboard() -> DeviceCheck {
-        .init(id: "copia", title: String(localized: "Área de transferência"),
-              outcome: UIPasteboard.general.hasStrings
-                ? .caution(String(localized: "Há texto copiado. Se for a senha da carteira, apague depois de colar: a cópia pode ir para outros aparelhos Apple."))
-                : .pass)
+        // O titulo diz o que foi achado: "nada copiado" ao lado de um aviso de texto
+        // copiado se contradizia.
+        UIPasteboard.general.hasStrings
+            ? .init(id: "copia", title: String(localized: "Há texto copiado"),
+                    outcome: .caution(String(localized: "Se for a senha da carteira, apague depois de colar: a cópia pode ir para outros aparelhos Apple.")))
+            : .init(id: "copia", title: String(localized: "Nada copiado na área de transferência"), outcome: .pass)
     }
 
     @MainActor
     static func voiceOver() -> DeviceCheck {
-        .init(id: "leitor", title: String(localized: "Leitor de tela"),
-              outcome: UIAccessibility.isVoiceOverRunning ? .caution(String(localized: "O VoiceOver está ligado e lê as palavras em voz alta. Use fone de ouvido.")) : .pass)
+        // "Leitor de tela" sozinho nao dizia o que era conferido (pedido do dono, 16/10/2026).
+        UIAccessibility.isVoiceOverRunning
+            ? .init(id: "leitor", title: String(localized: "VoiceOver ligado"),
+                    outcome: .caution(String(localized: "O VoiceOver lê em voz alta o que aparece na tela, inclusive as palavras. Use fone de ouvido, ou desligue em Ajustes > Acessibilidade > VoiceOver.")))
+            : .init(id: "leitor", title: String(localized: "Nada lendo a tela em voz alta"), outcome: .pass)
     }
 }
 
@@ -194,6 +209,9 @@ struct DeviceCheck: Identifiable, Equatable {
 struct DeviceCheckView: View {
     /// O que o slider libera: digitar as palavras (importar) ou ver as palavras (carteira nova).
     var slideTitle = String(localized: "Deslize para digitar as palavras")
+    /// Carteira nova (as palavras nascem aqui) ou importacao (as palavras sao digitadas):
+    /// muda o que o dono declara ciente quando uma checagem falha.
+    var creating = false
     let onContinue: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var steps: [DeviceCheck.Step] = []
@@ -226,34 +244,41 @@ struct DeviceCheckView: View {
                 ScanRing(progress: steps.isEmpty ? 0 : Double(results.count) / Double(steps.count), done: finished,
                          alert: finished && !blocking.isEmpty)
                     .frame(height: 220).frame(maxWidth: .infinity)
-                Text(title)
-                    .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.sm)
-                    .contentTransition(.opacity)
-                    .accessibilityIdentifier("checagem-titulo")
-                Text(finished ? String(localized: "Tudo foi checado aqui, sem internet, e nada sai do aparelho. Um jailbreak escondido pode passar sem aparecer.")
-                     : (results.count < steps.count ? String(localized: "Checando: \(steps[results.count].title)") : String(localized: "Preparando a checagem")))
-                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let previous, !finished {
-                    stamp(String(localized: "A anterior foi às \(Self.clock(previous)). Esta é nova, item por item, agora."), icon: "arrow.clockwise")
+                // Titulo, subtitulo e horario no centro, embaixo do anel (pedido do dono, 16/10/2026).
+                VStack(spacing: 0) {
+                    Text(title)
+                        .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.sm)
+                        .contentTransition(.opacity)
+                        .accessibilityIdentifier("checagem-titulo")
+                    Text(finished ? String(localized: "Tudo foi checado aqui, sem internet, e nada sai do aparelho. Um jailbreak escondido pode passar sem aparecer.")
+                         : (results.count < steps.count ? String(localized: "Checando: \(steps[results.count].title)") : String(localized: "Preparando a checagem")))
+                        .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xxs)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let previous, !finished {
+                        stamp(String(localized: "A anterior foi às \(Self.clock(previous)). Esta é nova, item por item, agora."), icon: "arrow.clockwise")
+                    }
+                    if let checkedAt, finished {
+                        stamp(previous == nil ? String(localized: "Conferido às \(Self.clock(checkedAt))")
+                                              : String(localized: "Conferido de novo às \(Self.clock(checkedAt))"), icon: "clock")
+                            .accessibilityIdentifier("checagem-horario")
+                    }
                 }
-                if let checkedAt, finished {
-                    stamp(previous == nil ? String(localized: "Conferido às \(Self.clock(checkedAt))")
-                                          : String(localized: "Conferido de novo às \(Self.clock(checkedAt))"), icon: "clock")
-                        .accessibilityIdentifier("checagem-horario")
-                }
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
                 VStack(spacing: 0) {
                     ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
                         row(step, result: index < results.count ? results[index] : nil, running: index == results.count && !finished)
                     }
                 }
                 .padding(.top, Space.md)
+                // Uma checagem falhou e da para seguir: o dono declara, marcando, que sabe o que
+                // falhou e o que isso arrisca (pedido do dono, 16/10/2026).
                 if finished, !blocking.isEmpty, !screenBlocked {
-                    Toggle(isOn: $acceptedRisk) {
-                        Text("Entendo o risco e quero seguir mesmo assim").typeStyle(.row).foregroundStyle(Palette.ink)
-                    }
-                    .tint(Palette.accent)
-                    .padding(.top, Space.md)
+                    ConsentCheckbox(checked: $acceptedRisk, text: creating
+                        ? String(localized: "Estou ciente de que este iPhone falhou na verificação de integridade e de que gerar as palavras aqui pode expor a carteira. Quero seguir mesmo assim.")
+                        : String(localized: "Estou ciente de que este iPhone falhou na verificação de integridade e de que digitar as palavras aqui pode expor a carteira. Quero seguir mesmo assim."))
+                        .padding(.top, Space.md)
+                        .accessibilityIdentifier("checagem-ciente")
                 }
             }
             .padding(.horizontal, Space.gutter)
@@ -339,35 +364,59 @@ struct DeviceCheckView: View {
     }
 }
 
-/// O escaneamento: um feixe girando sobre o escudo, o anel enchendo conforme os itens
-/// ficam prontos; no fim, o escudo com o resultado.
+/// O escaneamento em pixels, no estilo do `SlideToConfirm` (pedido do dono, 16/10/2026):
+/// por fora, um anel de pixels que acende em verde, em ordem, conforme cada item fica
+/// pronto (o mais novo acende mais claro e assenta); por dentro, pixels cinza cifrando, com
+/// uma passada clara girando enquanto a checagem corre. No fim, o escudo com o resultado e
+/// os pixels parados.
 private struct ScanRing: View {
     let progress: Double
     let done: Bool
     let alert: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Quando cada pixel de fora acendeu, para o brilho de chegada.
+    @State private var litAt: [Int: Date] = [:]
+
+    private static let outer = 56
+    private static let inner = 40
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60, paused: reduceMotion || done)) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || (done && litAt.values.allSatisfy { Date().timeIntervalSince($0) > 1 }))) { timeline in
+            let now = timeline.date
+            let clock = reduceMotion || done ? 0 : now.timeIntervalSinceReferenceDate
             ZStack {
-                Circle().stroke(Palette.edge, lineWidth: 6).frame(width: 168, height: 168)
-                Circle().trim(from: 0, to: progress)
-                    .stroke(alert ? Palette.caution : Palette.success, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .rotationEffect(.degrees(-90)).frame(width: 168, height: 168)
-                    .animation(.easeOut(duration: 0.35), value: progress)
-                if !done {
-                    // O feixe do radar.
-                    Circle()
-                        .fill(AngularGradient(colors: [Palette.success.opacity(0), Palette.success.opacity(0.35)], center: .center,
-                                              startAngle: .degrees(0), endAngle: .degrees(70)))
-                        .frame(width: 150, height: 150)
-                        .rotationEffect(.degrees(reduceMotion ? 0 : (t * 160).truncatingRemainder(dividingBy: 360)))
-                        .mask(Circle().frame(width: 150, height: 150))
-                    ForEach(0..<3, id: \.self) { wave in
-                        let phase = (t * 0.6 + Double(wave) / 3).truncatingRemainder(dividingBy: 1)
-                        Circle().stroke(Palette.success.opacity(0.3 * (1 - phase)), lineWidth: 1)
-                            .frame(width: 70 + phase * 130, height: 70 + phase * 130)
+                Canvas { context, size in
+                    let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                    let lit = Int((progress * Double(Self.outer)).rounded(.down))
+                    let color = alert ? Palette.caution : Palette.success
+                    // Por fora: o progresso.
+                    for index in 0..<Self.outer {
+                        let angle = Double(index) / Double(Self.outer) * 2 * .pi - .pi / 2
+                        let point = CGPoint(x: center.x + 84 * CGFloat(cos(angle)), y: center.y + 84 * CGFloat(sin(angle)))
+                        let square = CGRect(x: point.x - 3.25, y: point.y - 3.25, width: 6.5, height: 6.5)
+                        if index < lit {
+                            let age = litAt[index].map { now.timeIntervalSince($0) } ?? 10
+                            let flash = reduceMotion ? 0 : exp(-max(age, 0) * 5)
+                            let grown = Path(roundedRect: square.insetBy(dx: -1.2 * flash, dy: -1.2 * flash), cornerRadius: 1.6)
+                            context.fill(grown, with: .color(color))
+                            // O recem-aceso, mais claro, e assenta (o iOS 17 nao tem `mix`).
+                            if flash > 0.01 { context.fill(grown, with: .color(.white.opacity(0.55 * flash))) }
+                        } else {
+                            context.fill(Path(roundedRect: square, cornerRadius: 1.6), with: .color(PixelFill.gray(Self.tone(index, ring: 0, clock: clock))))
+                        }
+                    }
+                    // Por dentro: a cifra, com a passada girando.
+                    let pass = (clock / 1.6).truncatingRemainder(dividingBy: 1) * 2 * .pi
+                    for index in 0..<Self.inner {
+                        let angle = Double(index) / Double(Self.inner) * 2 * .pi - .pi / 2
+                        var distance = abs(angle + .pi / 2 - pass)
+                        distance = min(distance, 2 * .pi - distance)
+                        let glow = done ? 0 : exp(-(distance / 0.5) * (distance / 0.5))
+                        let tone = Self.tone(index, ring: 1, clock: clock) + 0.4 * glow
+                        let point = CGPoint(x: center.x + 66 * CGFloat(cos(angle)), y: center.y + 66 * CGFloat(sin(angle)))
+                        let square = CGRect(x: point.x - 2.4, y: point.y - 2.4, width: 4.8, height: 4.8)
+                        let fill = done ? color.opacity(0.35 + 0.25 * Self.tone(index, ring: 1, clock: 0)) : PixelFill.gray(tone)
+                        context.fill(Path(roundedRect: square, cornerRadius: 1.2), with: .color(fill))
                     }
                 }
                 Image(systemName: done ? (alert ? "exclamationmark.shield.fill" : "checkmark.shield.fill") : "shield.lefthalf.filled")
@@ -378,6 +427,26 @@ private struct ScanRing: View {
                     .animation(.spring(response: 0.45, dampingFraction: 0.55), value: done)
             }
         }
+        .onChange(of: progress) { old, new in
+            let from = Int((old * Double(Self.outer)).rounded(.down)), to = Int((new * Double(Self.outer)).rounded(.down))
+            guard to > from else {
+                if to < from { litAt = [:] }
+                return
+            }
+            let start = Date()
+            for index in from..<to { litAt[index] = start.addingTimeInterval(Double(index - from) * 0.018) }
+        }
         .accessibilityHidden(true)
+    }
+
+    /// O tom cifrado de um pixel agora, como no `PixelFill`.
+    private static func tone(_ index: Int, ring: Int, clock: Double) -> Double {
+        let phase = PixelFill.noise(index, ring, 0x2B7F)
+        let beat = clock * 6 * (0.6 + 0.8 * phase) + phase * 8
+        let step = beat.rounded(.down)
+        let t = beat - step
+        let blend = t * t * (3 - 2 * t)
+        let a = PixelFill.noise(index, ring, Int(step)), b = PixelFill.noise(index, ring, Int(step) + 1)
+        return 0.16 + 0.22 * (a + (b - a) * blend)
     }
 }

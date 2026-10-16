@@ -31,7 +31,7 @@ Crypto assets have volatile prices and can lose all their value. Networks and co
 
 ## The software
 
-The app is provided as is, with open source code for anyone who wants to check it. We do our best for it to work and be secure, but we do not guarantee that it will be free of errors or always available. To the extent permitted by law, Escalibur is not liable for losses arising from the use of the app, from user error or from third-party services.
+The app is provided as is, with its code published for anyone who wants to audit it. We do our best for it to work and be secure, but we do not guarantee that it will be free of errors or always available. To the extent permitted by law, Escalibur is not liable for losses arising from the use of the app, from user error or from third-party services.
 
 ## Changes
 

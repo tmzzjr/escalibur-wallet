@@ -7,8 +7,11 @@ import SwiftUI
 ///
 /// - `sealed`: so o cifrado, trocando sem parar ("Sem a senha, o arquivo e ruido").
 /// - `reveal`: a historia em laco. A senha e digitada, o envelope e o cadeado abrem, as
-///   palavras se decifram uma a uma, ficam um tempo e voltam a cifrar ("So a sua senha
-///   abre" e a tela de abrir um envelope).
+///   palavras se decifram uma a uma, ficam um tempo e voltam a cifrar todas juntas, no
+///   instante em que o cadeado fecha ("So a sua senha abre" e a tela de abrir um envelope).
+/// - `denied`: alguem tenta uma senha errada: o app tenta abrir (a cifra acelera), nao abre,
+///   os pontos tremem e se apagam, e o cifrado se embaralha de novo numa onda ("Sem a senha,
+///   o arquivo e ruido"). O cadeado so balanca, sem cor.
 /// - `opening`: o app fazendo a conta da senha de verdade: o cifrado troca mais rapido e
 ///   uma faixa varre o cartao.
 /// - `opened`: abriu. O envelope e o cadeado abrem e o cifrado segue rolando, um por
@@ -20,7 +23,7 @@ import SwiftUI
 /// desenho, sorteados de um contador: nada aqui sai de chave nenhuma. Com Reduzir
 /// Movimento, um quadro parado de cada modo.
 struct EnvelopeCipherCard: View {
-    enum Mode: Equatable { case sealed, reveal, opening, opened }
+    enum Mode: Equatable { case sealed, reveal, opening, opened, denied }
 
     let mode: Mode
     var fileName = "envelope-7F3A.esclbr"
@@ -46,15 +49,35 @@ struct EnvelopeCipherCard: View {
         static let revealStep = 0.09
         static let settle = 0.32
         static let hideFrom = 7.0
-        static let hideStep = 0.045
         static let fieldOut = 7.5
+    }
+
+    /// A tentativa errada do `denied`, em segundos dentro do laco.
+    enum Wrong {
+        static let period = 5.4
+        static let fieldIn = 0.4
+        static let typeFrom = 0.7
+        static let keystroke = 0.15
+        static let keys = 6
+        /// A tentativa: a faixa varre e a cifra acelera.
+        static let tryFrom = 1.75
+        static let tryTime = 0.9
+        static let deny = 2.65
+        /// Os pontos se apagam, do ultimo para o primeiro.
+        static let eraseFrom = 3.05
+        static let eraseStep = 0.07
+        /// A onda que embaralha o cifrado de novo, da esquerda para a direita.
+        static let rippleFrom = 2.7
+        static let rippleStep = 0.05
+        static let fieldOut = 4.4
     }
 
     var body: some View {
         // So o cifrado trocando: 12 quadros por segundo; com a historia ou a faixa, 30.
-        TimelineView(.animation(minimumInterval: mode == .sealed || mode == .opened ? 1.0 / 12 : 1.0 / 30, paused: reduceMotion)) { timeline in
+        TimelineView(.animation(minimumInterval: mode == .sealed || mode == .opened ? 1.0 / 12 : 1.0 / 60, paused: reduceMotion)) { timeline in
             let now = timeline.date
-            card(state(at: now), tick: tick(at: now), scan: scan(at: now))
+            let frame = state(at: now)
+            card(frame, tick: frame.fast ? UInt64(max(now.timeIntervalSinceReferenceDate * 30, 0)) : tick(at: now), scan: scan(at: now))
         }
         .frame(maxWidth: 340)
         .frame(maxWidth: .infinity)
@@ -70,6 +93,15 @@ struct EnvelopeCipherCard: View {
         var keys = 0
         var caret = false
         var unlocked = false
+        /// A senha recusada: 0 nada, 1 o vermelho inteiro; e o tremor do campo, em pontos.
+        var denied = 0.0
+        var shake: CGFloat = 0
+        /// A cifra mais rapida enquanto o app tenta a senha.
+        var fast = false
+        /// O balanco do cadeado, em graus.
+        var lockSwing = 0.0
+        /// Por palavra: o brilho da onda que embaralha de novo.
+        var ripple = Array(repeating: 0.0, count: 12)
         /// Por palavra: 0 cifrada, 1 decifrada (palavra) ou aberta (visto).
         var shown = Array(repeating: 0.0, count: 12)
     }
@@ -83,6 +115,34 @@ struct EnvelopeCipherCard: View {
             f.unlocked = true
             f.shown = Array(repeating: 0, count: wordCount)
             return f
+        case .denied:
+            if reduceMotion {
+                f.field = 1
+                f.keys = Wrong.keys
+                f.denied = 1
+                return f
+            }
+            let t = now.timeIntervalSince(start).truncatingRemainder(dividingBy: Wrong.period)
+            f.field = Self.smooth((t - Wrong.fieldIn) / 0.25) * (1 - Self.smooth((t - Wrong.fieldOut) / 0.3))
+            let typed = min(max(Int((t - Wrong.typeFrom) / Wrong.keystroke) + 1, 0), Wrong.keys)
+            let erased = t < Wrong.eraseFrom ? 0 : min(Int((t - Wrong.eraseFrom) / Wrong.eraseStep) + 1, Wrong.keys)
+            f.keys = max(typed - erased, 0)
+            f.caret = f.field > 0.5 && (t < Wrong.tryFrom || t > Wrong.eraseFrom + 0.5) && Int(t * 2.4) % 2 == 0
+            // A tentativa: a cifra acelera um instante, sem faixa varrendo (pedido do dono,
+            // 16/10/2026).
+            let trying = (t - Wrong.tryFrom) / Wrong.tryTime
+            f.fast = trying >= 0 && trying < 1
+            let since = t - Wrong.deny
+            f.denied = since < 0 ? 0 : Self.smooth(since / 0.1) * (1 - Self.smooth((t - Wrong.eraseFrom) / 0.2))
+            // O tremor de quem errou: tres idas e voltas que acabam; o cadeado balanca junto.
+            f.shake = since > 0 && since < 0.45 ? CGFloat(sin(since * 40) * 7 * (1 - since / 0.45)) : 0
+            f.lockSwing = since > 0 && since < 0.5 ? sin(since * 30) * 14 * (1 - since / 0.5) : 0
+            // A onda: cada palavra brilha um instante e troca a cifra, em ordem.
+            f.ripple = (0..<12).map { i in
+                let local = t - Wrong.rippleFrom - Double(i) * Wrong.rippleStep
+                return local < 0 || local > 0.35 ? 0 : sin(local / 0.35 * .pi)
+            }
+            return f
         case .reveal:
             if reduceMotion {
                 f.field = 1
@@ -95,11 +155,12 @@ struct EnvelopeCipherCard: View {
             f.field = Self.smooth((t - Story.fieldIn) / 0.25) * (1 - Self.smooth((t - Story.fieldOut) / 0.3))
             f.keys = t < Story.hideFrom ? min(max(Int((t - Story.typeFrom) / Story.keystroke) + 1, 0), Story.keys) : 0
             f.caret = f.field > 0.5 && t < Story.unlock && Int(t * 2.4) % 2 == 0
-            f.unlocked = t >= Story.unlock && t < Story.hideFrom + 0.3
+            // O cadeado fecha e todas as palavras voltam a cifrar no mesmo instante (pedido do
+            // dono, 16/10/2026: antes elas sumiam uma a uma).
+            f.unlocked = t >= Story.unlock && t < Story.hideFrom
+            let hide = Self.smooth((t - Story.hideFrom) / 0.16)
             f.shown = (0..<12).map { i in
-                let show = Self.smooth((t - Story.revealFrom - Double(i) * Story.revealStep) / Story.settle)
-                let hide = Self.smooth((t - Story.hideFrom - Double(11 - i) * Story.hideStep) / 0.22)
-                return show * (1 - hide)
+                Self.smooth((t - Story.revealFrom - Double(i) * Story.revealStep) / Story.settle) * (1 - hide)
             }
             return f
         }
@@ -123,7 +184,10 @@ struct EnvelopeCipherCard: View {
         VStack(spacing: Space.sm) {
             header(f)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: f.shown.count > 12 ? 4 : 3), spacing: 6) {
-                ForEach(0..<f.shown.count, id: \.self) { i in chip(i, shown: f.shown[i], tick: tick) }
+                ForEach(0..<f.shown.count, id: \.self) { i in
+                    chip(i, shown: f.shown[i], tick: tick &+ UInt64(f.ripple.indices.contains(i) && f.ripple[i] > 0.5 ? 53 : 0),
+                         glow: f.ripple.indices.contains(i) ? f.ripple[i] : 0)
+                }
             }
             .overlay { if let scan { scanBand(scan) } }
         }
@@ -155,6 +219,9 @@ struct EnvelopeCipherCard: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(f.unlocked ? Palette.success : Palette.inkSoft)
                 .contentTransition(.symbolEffect(.replace))
+                // Na senha errada, o cadeado so balanca: continua fechado, sem cor (pedido do
+                // dono, 16/10/2026).
+                .rotationEffect(.degrees(f.lockSwing), anchor: .top)
                 .frame(width: 28)
         }
         .frame(height: 34)
@@ -166,7 +233,7 @@ struct EnvelopeCipherCard: View {
     private func passwordField(_ f: Frame) -> some View {
         HStack(spacing: 4) {
             ForEach(0..<f.keys, id: \.self) { _ in
-                Circle().fill(Palette.ink).frame(width: 7, height: 7)
+                Circle().fill(f.denied > 0.3 ? Palette.down : Palette.ink).frame(width: 7, height: 7)
                     .transition(.scale(scale: 0.4).combined(with: .opacity))
             }
             RoundedRectangle(cornerRadius: 1).fill(Palette.accent).frame(width: 2, height: 16).opacity(f.caret ? 1 : 0)
@@ -174,10 +241,12 @@ struct EnvelopeCipherCard: View {
         .animation(.spring(response: 0.18, dampingFraction: 0.6), value: f.keys)
         .padding(.horizontal, Space.sm)
         .frame(width: CGFloat(Story.keys) * 11 + 2 + 2 * Space.sm, height: 30, alignment: .leading)
-        .background(Capsule(style: .continuous).fill(Palette.void))
+        .background(Capsule(style: .continuous).fill(Palette.void)
+            .overlay(Capsule(style: .continuous).stroke(Palette.down.opacity(f.denied), lineWidth: 1.5)))
+        .offset(x: f.shake)
     }
 
-    private func chip(_ i: Int, shown: Double, tick: UInt64) -> some View {
+    private func chip(_ i: Int, shown: Double, tick: UInt64, glow: Double = 0) -> some View {
         let done = shown >= 0.5
         return HStack(spacing: 5) {
             Text(verbatim: "\(i + 1)")
@@ -206,6 +275,9 @@ struct EnvelopeCipherCard: View {
                 .fill(done ? Palette.control : Palette.void)
                 .overlay(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                     .stroke(done ? Palette.edge : Palette.edgeStrong, lineWidth: 1))
+                // A onda da senha errada: a palavra cifrada clareia um instante e troca.
+                .overlay(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+                    .fill(Palette.ink.opacity(0.1 * glow)))
         )
     }
 

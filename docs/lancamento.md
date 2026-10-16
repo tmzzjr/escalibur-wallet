@@ -91,7 +91,7 @@ do dono com o advogado.
   protocolos públicos de cada rede, crie ordens limite, leve USDC, ETH e USDT entre redes
   pela ponte e receba alertas de preço e de recebimento gerados no próprio iPhone. Antes
   de assinar, o app mostra destino, valor e taxa, e confere o que será assinado. Guarde a
-  senha da carteira num envelope cifrado com senha própria. O código é aberto.
+  senha da carteira num envelope cifrado com senha própria. O código é publicado para auditoria.
   - Sem preço, sem promessa de ganho e sem nome de outra carteira (2.3.7 e 2.3.10).
 
 **Privacidade do app:** "Não, não coletamos dados deste app". Rastreamento: não. O app não

@@ -30,7 +30,7 @@ Criptoativos têm preço volátil e podem perder todo o valor. Redes e contratos
 
 ## O software
 
-O app é fornecido como está, com código aberto para quem quiser conferir. Fazemos o possível para que ele funcione e seja seguro, mas não garantimos que estará livre de erros ou disponível sempre. Nos limites da lei, a Escalibur não responde por perdas decorrentes do uso do app, de erro do usuário ou de serviços de terceiros.
+O app é fornecido como está, com o código publicado para quem quiser auditar. Fazemos o possível para que ele funcione e seja seguro, mas não garantimos que estará livre de erros ou disponível sempre. Nos limites da lei, a Escalibur não responde por perdas decorrentes do uso do app, de erro do usuário ou de serviços de terceiros.
 
 ## Mudanças
 

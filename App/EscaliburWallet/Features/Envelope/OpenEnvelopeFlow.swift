@@ -124,7 +124,8 @@ struct OpenEnvelopeFlow: View {
     /// envelope e revela as palavras (de exemplo).
     private var chooseView: some View {
         VStack(spacing: 0) {
-            EnvelopeCipherCard(mode: .reveal).padding(.top, Space.sm).padding(.bottom, Space.xl)
+            // Um pouco mais para baixo, com o texto, como no "Como funciona".
+            EnvelopeCipherCard(mode: .reveal).padding(.top, Space.sm + 32).padding(.bottom, Space.xl)
             Text("Abrir um envelope").typeStyle(.title).foregroundStyle(Palette.ink)
                 .multilineTextAlignment(.center)
             Text("Escolha o arquivo .esclbr no app Arquivos. O original continua onde está.")

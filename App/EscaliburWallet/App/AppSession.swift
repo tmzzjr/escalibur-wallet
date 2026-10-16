@@ -320,6 +320,14 @@ final class AppSession {
     // MARK: Modo reforcado
 
     var hardenedModeOn: Bool { KeyServices.root.securityMode == .hardened }
+    /// As palavras no teclado proprio: escolhido em Seguranca, ou sempre no modo reforcado.
+    var ownKeyboardOn: Bool {
+        #if DEBUG
+        // `-teclado-proprio`: ligado, para ver o teclado sem passar pelos Ajustes.
+        if DebugDemo.arguments.contains("-teclado-proprio") { return true }
+        #endif
+        return metadata.settings.ownKeyboard == true || hardenedModeOn
+    }
 
     /// Liga o modo reforcado. O cofre pede o PIN e o rosto pelo slot de hoje, roda a
     /// conferencia das palavras com a RK aberta (`check`), grava o rk.and, abre de novo com

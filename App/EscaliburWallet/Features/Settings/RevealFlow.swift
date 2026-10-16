@@ -110,8 +110,8 @@ struct RevealFlow: View {
         String(localized: "quem tem as palavras tem o saldo"),
         String(localized: "a Escalibur nunca pede as palavras"),
         String(localized: "devo ver as palavras sozinho, longe de câmeras"),
-        // O app nao consegue saber do Espelhamento do iPhone no Mac (auditoria 4, C7-06).
-        String(localized: "no Espelhamento do iPhone, as palavras aparecem no Mac, e o app não consegue saber"),
+        // O "estou ciente" do Espelhamento do iPhone no Mac saiu a pedido do dono (16/10/2026):
+        // o aviso continua na checagem do aparelho, antes das palavras (auditoria 4, C7-06).
     ]
 
     private func open() async {

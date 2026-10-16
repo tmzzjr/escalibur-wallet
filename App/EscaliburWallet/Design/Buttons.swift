@@ -299,6 +299,8 @@ struct CopyButton: View {
 struct HoldButton: View {
     let title: String
     var holdSeconds: Double = 2
+    /// A cor que enche enquanto o dedo segura: a do alerta da tela.
+    var fill: Color = Palette.downTint
     let action: () -> Void
     @State private var progress: CGFloat = 0
     @State private var holding = false
@@ -309,8 +311,10 @@ struct HoldButton: View {
             .background(
                 ZStack(alignment: .leading) {
                     Capsule(style: .continuous).fill(Palette.rail)
+                    // A ponta que avanca e reta: so o lado de onde nasce acompanha a capsula,
+                    // pelo recorte de fora (pedido do dono, 16/10/2026).
                     GeometryReader { geometry in
-                        Capsule(style: .continuous).fill(Palette.downTint)
+                        Rectangle().fill(fill)
                             .frame(width: geometry.size.width * progress)
                     }
                 }
@@ -333,11 +337,10 @@ struct HoldButton: View {
 }
 
 /// Deslizar para seguir: o trilho com o cadeado que o dedo leva ate o fim. Para passos
-/// que pedem atencao (digitar as palavras): um toque sem querer nao segue. O verde
-/// cresce atras do cadeado em pixels quadrados (`PixelFill`, pedido do dono, 15/10/2026),
-/// o texto escurece onde o verde ja firmou, e em repouso o cadeado da uma espiada para a
-/// direita de tempos em tempos. Soltou antes do fim, volta. No VoiceOver, o toque duplo
-/// confirma.
+/// que pedem atencao (digitar as palavras): um toque sem querer nao segue. Atras do
+/// cadeado, pixels cinza cifrando (`PixelFill`), sem texto por cima; no fim eles selam
+/// num cinza so, e a acao vem na hora. Em repouso o cadeado da uma espiada para a direita
+/// de tempos em tempos. Soltou antes do fim, volta. No VoiceOver, o toque duplo confirma.
 struct SlideToConfirm: View {
     let title: String
     var enabled: Bool = true
@@ -349,6 +352,9 @@ struct SlideToConfirm: View {
     @State private var doneAt: Date?
     /// Depois da onda final a grade nao muda mais: a linha do tempo para.
     @State private var settled = false
+    /// `-deslize <fracao>` (so no build de teste): o cadeado parado nessa fracao do trilho,
+    /// para ver os pixels sem o dedo.
+    @State private var parked: CGFloat?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let height: CGFloat = 64
 
@@ -366,7 +372,7 @@ struct SlideToConfirm: View {
         GeometryReader { geo in
             let knob = height - 8
             let travel = max(geo.size.width - knob - 8, 1)
-            let shift = min(offset + hint, travel)
+            let shift = min((parked.map { $0 * travel } ?? offset) + hint, travel)
             let showing = enabled && (shift > 0 || done)
             ZStack(alignment: .leading) {
                 Capsule().fill(Palette.rail)
@@ -377,21 +383,23 @@ struct SlideToConfirm: View {
                         Canvas { context, size in pixels.draw(&context, size: size) }
                             .clipShape(Capsule())
                             .opacity(showing ? 1 : 0)
+                        // O texto so na frente do cadeado: onde os pixels ja preencheram, nada
+                        // (pedido do dono, 16/10/2026).
                         label(enabled ? Palette.ink : Palette.inkMuted, knob: knob)
-                        // A mesma frase, escura, so onde o verde ja firmou.
-                        label(Palette.void, knob: knob)
-                            .mask(alignment: .leading) { Rectangle().frame(width: max(pixels.solid, 0)) }
-                            .opacity(showing ? 1 : 0)
+                            .mask(alignment: .trailing) {
+                                Rectangle().frame(width: max(geo.size.width - (4 + shift + knob), 0))
+                            }
+                            .opacity(done ? 0 : 1)
                     }
                 }
                 Circle()
                     .fill(enabled ? Color.white : Palette.control)
                     .frame(width: knob, height: knob)
                     .overlay {
-                        Image(systemName: done ? "lock.open.fill" : "lock.fill")
+                        // Sem o cadeado abrindo no fim: a animacao atrasava a tela seguinte.
+                        Image(systemName: "lock.fill")
                             .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(enabled ? Palette.success : Palette.inkMuted)
-                            .contentTransition(.symbolEffect(.replace))
+                            .foregroundStyle(enabled ? Palette.void : Palette.inkMuted)
                     }
                     .offset(x: 4 + shift)
                     .gesture(
@@ -411,9 +419,8 @@ struct SlideToConfirm: View {
                                         offset = travel
                                         done = true
                                     }
+                                    action()
                                     Task {
-                                        try? await Task.sleep(for: .milliseconds(320))
-                                        action()
                                         try? await Task.sleep(for: .milliseconds(Int(PixelFill.finale * 1000)))
                                         settled = true
                                     }
@@ -434,6 +441,12 @@ struct SlideToConfirm: View {
             done = false
             doneAt = nil
             settled = false
+            #if DEBUG
+            if let index = DebugDemo.arguments.firstIndex(of: "-deslize"), DebugDemo.arguments.indices.contains(index + 1),
+               let fraction = Double(DebugDemo.arguments[index + 1]) {
+                parked = CGFloat(min(max(fraction, 0), 1))
+            }
+            #endif
         }
         // A espiada: o cadeado anda um pouco e volta, para dizer que desliza.
         .task(id: enabled) {
@@ -455,20 +468,21 @@ struct SlideToConfirm: View {
     }
 }
 
-/// O verde do `SlideToConfirm` em pixels, acendendo em ordem (pedido do dono, 15/10/2026:
-/// pixels, mas com cara de seguranca, nada de pisca-pisca). Longe do cadeado, a grade
-/// firme; na frente que avanca, cada pixel nasce pequeno e claro e encaixa no lugar, numa
-/// varredura diagonal suave, como um cofre trancando. No fim, a varredura corre o resto do
-/// trilho e as juntas fecham num verde so. Sem sorteio: o mesmo gesto da sempre o mesmo
-/// desenho.
+/// O preenchimento do `SlideToConfirm`: pixels cinza que cifram (pedido do dono,
+/// 16/10/2026, no lugar do verde de 15/10). Atras do cadeado, cada pixel troca de tom o
+/// tempo todo, como bits de um texto cifrado, e cada um no seu compasso, cruzando de um tom
+/// para o outro sem piscar. Na frente que avanca, os pixels nascem pequenos e com mais
+/// contraste, e encaixam; de tempos em tempos uma passada clara corre a parte cifrada. No
+/// fim, a varredura corre o resto do trilho, os tons param num cinza so e as juntas fecham:
+/// o selo. Sem sorteio: o mesmo gesto, no mesmo instante, da sempre o mesmo desenho.
 struct PixelFill {
-    /// Ate onde o verde chega: o centro do cadeado.
+    /// Ate onde os pixels chegam: o centro do cadeado.
     let edge: CGFloat
     let width: CGFloat
     /// Quando o dedo levou o cadeado ate o fim; nil enquanto nao chegou.
     let doneAt: Date?
     let now: Date
-    /// Reduzir Movimento: o fim vem sem a varredura.
+    /// Reduzir Movimento: nada de cifra correndo, e o fim vem sem a varredura.
     let still: Bool
 
     static let cell: CGFloat = 6
@@ -477,13 +491,19 @@ struct PixelFill {
     static let frontier: CGFloat = 48
     /// Quanto a linha de baixo atrasa em relacao a de cima: a varredura sai na diagonal.
     static let slant: CGFloat = 0.55
-    /// A varredura do fim e o fechar das juntas, em segundos.
+    /// Quantas trocas de tom por segundo, por pixel.
+    static let rate = 7.0
+    /// A passada clara, em segundos por volta.
+    static let pass = 1.8
+    /// A varredura do fim e o selar, em segundos.
     static let wave = 0.34
     static let finale = 0.8
+    /// O cinza do selo, e o fundo das juntas.
+    static let sealTone = 0.66
 
     private var elapsed: Double? { doneAt.map { now.timeIntervalSince($0) } }
 
-    /// A borda do verde, ja com a varredura do fim.
+    /// A borda dos pixels, ja com a varredura do fim.
     var reach: CGFloat {
         guard let elapsed else { return edge }
         if still { return width * 2 + Self.frontier }
@@ -491,11 +511,11 @@ struct PixelFill {
         return edge + (end - edge) * CGFloat(Self.easeOut(elapsed / Self.wave))
     }
 
-    /// Ate onde o verde ja firmou em todas as linhas: o texto escurece ate aqui.
+    /// Ate onde os pixels ja encaixaram em todas as linhas.
     var solid: CGFloat { reach - Self.frontier - 32 }
 
-    /// As juntas da grade: 0 com a grade marcada, 1 com o verde inteiro.
-    private var merge: Double {
+    /// O selo: 0 com a cifra correndo, 1 com o cinza inteiro e parado.
+    var merge: Double {
         guard let elapsed else { return 0 }
         if still { return 1 }
         return Self.smooth((elapsed - Self.wave * 0.8) / (Self.finale - Self.wave))
@@ -506,13 +526,16 @@ struct PixelFill {
         let columns = Int((size.width / pitch).rounded(.up))
         let rows = Int(((size.height + Self.gap) / pitch).rounded(.up))
         let top = (size.height - (CGFloat(rows) * pitch - Self.gap)) / 2
-        let green = Palette.success
         let reach = self.reach
+        let merge = self.merge
+        let clock = still ? 0 : now.timeIntervalSinceReferenceDate
+        // A passada clara anda da esquerda ate a frente, e some no selo.
+        let sweep = CGFloat((clock / Self.pass).truncatingRemainder(dividingBy: 1)) * max(reach + 40, 1) - 20
 
-        // Por baixo da parte firme, as juntas: um verde mais fundo que fecha no fim.
+        // Por baixo, as juntas: escuras com a cifra correndo, do cinza do selo no fim.
         if solid > 0 {
             context.fill(Path(CGRect(x: 0, y: 0, width: min(solid, size.width), height: size.height)),
-                         with: .color(green.opacity(0.55 + 0.45 * merge)))
+                         with: .color(Self.gray(0.14 + (Self.sealTone - 0.14) * merge)))
         }
         let middle = CGFloat(rows - 1) / 2
         for column in 0..<columns {
@@ -523,13 +546,47 @@ struct PixelFill {
                 let lag = (CGFloat(row) - middle) * pitch * Self.slant
                 let progress = Self.smooth(Double((reach - lag - (x + Self.cell / 2)) / Self.frontier))
                 guard progress > 0.02 else { continue }
-                // Nasce menor e encaixa no tamanho cheio.
-                let inset = Self.cell * 0.32 * CGFloat(1 - progress)
+                // O tom cifrado deste pixel agora: dois tons sorteados pelo hash do lugar e
+                // do compasso, cruzados devagar, cada pixel com a sua fase.
+                let phase = Self.noise(column, row, 0x9E37)
+                let beat = clock * Self.rate * (0.6 + 0.8 * phase) + phase * 8
+                let step = beat.rounded(.down)
+                let blend = Self.smooth(beat - step)
+                let a = Self.noise(column, row, Int(step)), b = Self.noise(column, row, Int(step) + 1)
+                let bit = a + (b - a) * blend
+                // Na frente, mais contraste: os bits mais claros acendem antes de encaixar.
+                let edgeHeat = 1 - progress
+                var tone = 0.17 + 0.26 * bit + 0.46 * edgeHeat * bit * bit * bit
+                // A passada clara.
+                let distance = Double((x + Self.cell / 2 - sweep) / 22)
+                tone += 0.16 * exp(-distance * distance) * (1 - merge)
+                // O selo: todos no mesmo cinza.
+                tone = tone + (Self.sealTone - tone) * merge
+                // Nasce menor e encaixa no tamanho cheio; no selo, as juntas fecham.
+                let inset = Self.cell * 0.32 * CGFloat(1 - progress) - Self.gap / 2 * CGFloat(merge)
                 let square = CGRect(x: x + inset, y: top + CGFloat(row) * pitch + inset,
                                     width: Self.cell - 2 * inset, height: Self.cell - 2 * inset)
-                context.fill(Path(roundedRect: square, cornerRadius: 1.4), with: .color(green.opacity(0.4 + 0.6 * progress)))
+                context.fill(Path(roundedRect: square, cornerRadius: 1.4 * CGFloat(1 - merge)),
+                             with: .color(Self.gray(tone).opacity(0.35 + 0.65 * progress)))
             }
         }
+    }
+
+    /// Um cinza do app: o mesmo tom levemente frio do trilho e dos textos.
+    static func gray(_ tone: Double) -> Color {
+        let t = min(max(tone, 0), 1)
+        return Color(red: t * 0.97, green: t * 0.97, blue: t)
+    }
+
+    /// Um numero de 0 a 1 que so depende do lugar e do compasso.
+    static func noise(_ column: Int, _ row: Int, _ step: Int) -> Double {
+        var h = UInt64(bitPattern: Int64(column &* 73_856_093 ^ row &* 19_349_663 ^ step &* 83_492_791))
+        h ^= h >> 33
+        h &*= 0xFF51_AFD7_ED55_8CCD
+        h ^= h >> 33
+        h &*= 0xC4CE_B9FE_1A85_EC53
+        h ^= h >> 33
+        return Double(h >> 11) / Double(1 << 53)
     }
 
     private static func smooth(_ x: Double) -> Double {

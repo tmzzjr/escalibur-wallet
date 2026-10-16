@@ -13,7 +13,7 @@ A Escalibur Wallet é oferecida por X TECH A.I FUND HOLDING E PARTICIPACOES LTDA
 
 ## O que a Escalibur recebe
 
-Nada. O app não tem análise de uso, relatório de falhas, anúncios nem rastreamento, e não fala com nenhum servidor da Escalibur. O código é aberto, e uma verificação automática recusa qualquer biblioteca desse tipo.
+Nada. O app não tem análise de uso, relatório de falhas, anúncios nem rastreamento, e não fala com nenhum servidor da Escalibur. O código é publicado para auditoria, e uma verificação automática recusa qualquer biblioteca desse tipo.
 
 ## Com quem o app fala
 
@@ -74,4 +74,4 @@ Dúvidas sobre esta política ou sobre os seus dados: thomaz@xtech.international
 
 ## Mudanças
 
-Mudanças nesta política vêm junto com uma versão nova do app e ficam registradas no código aberto.
+Mudanças nesta política vêm junto com uma versão nova do app e ficam registradas no código publicado.

@@ -16,48 +16,76 @@ struct HardenedModeView: View {
     /// O modo visto pelo cofre, relido depois de ligar e de desligar: o cofre nao e
     /// observavel, e a tela ficava com o estado de antes.
     @State private var on = KeyServices.root.securityMode == .hardened
+    /// O Face ID visto pela chave, relido depois de cada mudanca. Ligar daqui mesmo
+    /// (pedido do dono, 16/10/2026): o modo reforcado nasce dele.
+    @State private var biometryOn = KeyServices.root.isBiometryEnabled
+    @State private var biometryPIN = false
+    @State private var backingUp: WalletMeta?
 
     private var phraseWallets: [WalletMeta] { session.metadata.wallets.filter { !$0.isWatchOnly } }
     private var missingBackup: WalletMeta? { phraseWallets.first { !$0.hasBackup } }
-    private var ready: Bool { session.biometryEnabled && missingBackup == nil && !phraseWallets.isEmpty }
+    private var ready: Bool { biometryOn && missingBackup == nil && !phraseWallets.isEmpty }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Image(systemName: "lock.shield")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
-                    .frame(width: 56, height: 56)
-                    .background(Circle().fill(Palette.control))
-                Text("Modo reforçado").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
-                Text("Abrir o app, enviar, trocar e ver as palavras passam a pedir o PIN e o \(KeyServices.biometryName) juntos. O PIN sozinho não abre nada, e o rosto sozinho também não: é a própria cifra das carteiras que pede os dois.")
+                HardenedEmblem(joined: on)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, Space.xs)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Modo reforçado").typeStyle(.title).foregroundStyle(Palette.ink)
+                    Spacer(minLength: Space.sm)
+                    status
+                }
+                .padding(.top, Space.md)
+                Text("O PIN e o \(KeyServices.biometryName) juntos para abrir o app, enviar, trocar e ver as palavras. Nenhum dos dois sozinho abre nada: é a própria cifra das carteiras que pede os dois.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
 
+                section(String(localized: "O que muda"))
                 VStack(alignment: .leading, spacing: Space.md) {
                     point("person.badge.key", String(localized: "Quem viu o seu PIN não abre o app nem envia nada sem o seu rosto."))
-                    point("exclamationmark.triangle", String(localized: "Se o cadastro de rostos deste iPhone mudar (um rosto novo, o \(KeyServices.biometryName) redefinido), as carteiras daqui não abrem mais. Só as palavras de cada carteira trazem de volta."), caution: true)
+                    point("keyboard", String(localized: "As palavras passam a ser digitadas no teclado da Escalibur: o teclado do iPhone não recebe as letras, fora frases em japonês, chinês ou coreano."))
                     point("hand.raised", String(localized: "Um \(KeyServices.biometryName) que não confirma conta como tentativa, como um PIN errado."))
-                    point("iphone", String(localized: "Deixe ligados, nos Ajustes do iPhone, \"Exigir atenção para o \(KeyServices.biometryName)\" e a Proteção de Aparelho Roubado."))
                 }
                 .padding(Space.base)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
-                .padding(.top, Space.lg)
+
+                section(String(localized: "O preço"))
+                HStack(alignment: .top, spacing: Space.sm) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.caution)
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(Palette.caution.opacity(0.16)))
+                    Text("Se o cadastro de rostos deste iPhone mudar (um rosto novo, o \(KeyServices.biometryName) redefinido), as carteiras daqui não abrem mais. Só as palavras de cada carteira trazem de volta.")
+                        .typeStyle(.body).foregroundStyle(Palette.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 5)
+                }
+                .padding(Space.base)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.cautionTint))
 
                 if on {
                     Label("Ligado neste iPhone", systemImage: "checkmark.circle.fill")
                         .typeStyle(.row).foregroundStyle(Palette.success).padding(.top, Space.lg)
                 } else {
-                    VStack(alignment: .leading, spacing: Space.xs) {
-                        Text("Para ligar").typeStyle(.row).foregroundStyle(Palette.ink)
-                        requirement(session.biometryEnabled, String(localized: "\(KeyServices.biometryName) ligado neste app"))
-                        requirement(missingBackup == nil && !phraseWallets.isEmpty,
-                                    missingBackup.map { String(localized: "Cópia de \($0.name) conferida") } ?? String(localized: "Cópia de todas as carteiras conferida"))
-                        requirement(true, String(localized: "Na hora, as palavras de cada carteira, digitadas de onde você anotou"))
+                    section(String(localized: "Para ligar"))
+                    VStack(spacing: 0) {
+                        biometryRow
+                        backupRow
+                        requirementRow(icon: "text.word.spacing", met: nil,
+                                       title: String(localized: "As palavras de cada carteira"),
+                                       detail: String(localized: "Na hora, digitadas de onde você anotou."))
                     }
-                    .padding(.top, Space.lg)
+                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
                 }
+
+                Text("Deixe ligados, nos Ajustes do iPhone, \"Exigir atenção para o \(KeyServices.biometryName)\" e a Proteção de Aparelho Roubado.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.md)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let message { Banner(kind: .failure, title: message).padding(.top, Space.md) }
             }
             .padding(.horizontal, Space.gutter)
@@ -86,14 +114,132 @@ struct HardenedModeView: View {
         .background(Palette.void.ignoresSafeArea())
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { on = KeyServices.root.securityMode == .hardened }
+        .onAppear {
+            on = KeyServices.root.securityMode == .hardened
+            biometryOn = KeyServices.root.isBiometryEnabled
+        }
         .fullScreenCover(isPresented: $enabling) {
             HardenedEnableFlow(wallets: phraseWallets) { done in
                 enabling = false
                 on = KeyServices.root.securityMode == .hardened
+                biometryOn = KeyServices.root.isBiometryEnabled
                 if done { toasts.show(String(localized: "Modo reforçado ligado.")) }
             }
         }
+        .fullScreenCover(isPresented: $biometryPIN, onDismiss: { biometryOn = KeyServices.root.isBiometryEnabled }) {
+            EnableBiometrySheet { biometryPIN = false }
+        }
+        .fullScreenCover(item: $backingUp) { wallet in BackupNowFlow(wallet: wallet) { backingUp = nil } }
+    }
+
+    private var status: some View {
+        HStack(spacing: 6) {
+            Circle().fill(on ? Palette.success : Palette.inkMuted).frame(width: 7, height: 7)
+            Text(on ? String(localized: "Ligado") : String(localized: "Desligado")).typeStyle(.label)
+                .foregroundStyle(on ? Palette.ink : Palette.inkSoft)
+        }
+        .padding(.horizontal, Space.sm).frame(height: 28)
+        .background(Capsule().fill(Palette.control))
+    }
+
+    private func section(_ title: String) -> some View {
+        Text(title).typeStyle(.row).foregroundStyle(Palette.ink)
+            .padding(.top, Space.lg).padding(.bottom, Space.xs)
+    }
+
+    /// O Face ID ligado ou desligado daqui mesmo, como em Seguranca: ligar pede o PIN e
+    /// confere o rosto; desligar pede o PIN e o rosto (A1).
+    private var biometryRow: some View {
+        HStack(spacing: Space.sm) {
+            requirementIcon(KeyServices.biometryIcon, met: biometryOn)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(KeyServices.biometryName) neste app").typeStyle(.row).foregroundStyle(Palette.ink)
+                Text(biometryOn ? String(localized: "Ligado") : (KeyServices.biometryAvailable
+                     ? String(localized: "O modo reforçado nasce dele.")
+                     : String(localized: "Cadastre um rosto nos Ajustes do iPhone antes.")))
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: Space.xs)
+            Toggle("", isOn: Binding(get: { biometryOn }, set: { value in
+                if value { biometryPIN = true } else { Task { await turnBiometryOff() } }
+            }))
+            .labelsHidden()
+            .tint(Palette.success)
+            .disabled(!KeyServices.biometryAvailable)
+            .accessibilityLabel(Text("\(KeyServices.biometryName)"))
+            .accessibilityIdentifier("reforcado-face-id")
+        }
+        .padding(.horizontal, Space.md).padding(.vertical, Space.sm)
+    }
+
+    private var backupRow: some View {
+        HStack(spacing: Space.sm) {
+            requirementIcon("doc.text", met: missingBackup == nil && !phraseWallets.isEmpty)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(missingBackup.map { String(localized: "Cópia de \($0.name) conferida") } ?? String(localized: "Cópia de todas as carteiras conferida"))
+                    .typeStyle(.row).foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(missingBackup == nil ? String(localized: "Pronto") : String(localized: "No modo reforçado, a cópia é o único caminho de volta."))
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: Space.xs)
+            if let missingBackup {
+                Button { backingUp = missingBackup } label: {
+                    Text("Gravar agora").typeStyle(.label).foregroundStyle(Palette.ink)
+                        .padding(.horizontal, Space.sm).frame(height: 32)
+                        .background(Capsule().fill(Palette.control))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("reforcado-gravar")
+            }
+        }
+        .padding(.horizontal, Space.md).padding(.vertical, Space.sm)
+    }
+
+    private func requirementRow(icon: String, met: Bool?, title: String, detail: String) -> some View {
+        HStack(spacing: Space.sm) {
+            requirementIcon(icon, met: met)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).typeStyle(.row).foregroundStyle(Palette.ink)
+                Text(detail).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Space.md).padding(.vertical, Space.sm)
+    }
+
+    /// O icone do requisito, com o selo de pronto no canto quando ele ja vale.
+    private func requirementIcon(_ icon: String, met: Bool?) -> some View {
+        Image(systemName: icon)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(Palette.ink)
+            .frame(width: 36, height: 36)
+            .background(Circle().fill(Palette.control))
+            .overlay(alignment: .bottomTrailing) {
+                if met == true {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Palette.success)
+                        .background(Circle().fill(Palette.body).padding(1))
+                        .offset(x: 3, y: 3)
+                }
+            }
+    }
+
+    /// Desligar pede o PIN e o rosto (A1), como em Seguranca.
+    private func turnBiometryOff() async {
+        message = nil
+        do {
+            _ = try await auth.retrying(reason: String(localized: "Desligar o \(KeyServices.biometryName)"), presence: .pinAndBiometry) { credential in
+                try await session.disableBiometry(credential)
+            }
+        } catch {
+            message = AuthCoordinator.refusalMessage(error)
+        }
+        biometryOn = KeyServices.root.isBiometryEnabled
     }
 
     private func disable() async {
@@ -115,27 +261,64 @@ struct HardenedModeView: View {
         }
     }
 
-    private func point(_ icon: String, _ text: String, caution: Bool = false) -> some View {
+    private func point(_ icon: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: Space.sm) {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(caution ? Palette.caution : Palette.ink)
+                .foregroundStyle(Palette.ink)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(caution ? Palette.caution.opacity(0.16) : Palette.control))
+                .background(Circle().fill(Palette.control))
             Text(text).typeStyle(.body).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 5)
         }
     }
+}
 
-    private func requirement(_ met: Bool, _ text: String) -> some View {
-        HStack(alignment: .top, spacing: Space.xs) {
-            Image(systemName: met ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(met ? Palette.success : Palette.inkMuted)
-            Text(text).typeStyle(.note).foregroundStyle(met ? Palette.ink : Palette.inkSoft)
-                .fixedSize(horizontal: false, vertical: true)
+/// O emblema do modo reforcado: o PIN e o rosto, dois discos que se encontram e travam
+/// com o cadeado no meio. Desligado, eles se aproximam e se afastam devagar; ligado,
+/// ficam juntos.
+private struct HardenedEmblem: View {
+    let joined: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var together = false
+
+    var body: some View {
+        let close = joined || together
+        ZStack {
+            disc("circle.grid.3x3.fill").offset(x: close ? -30 : -50)
+            disc(KeyServices.biometryIcon).offset(x: close ? 30 : 50)
+            Image(systemName: "lock.fill")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Palette.ink)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Palette.edgeStrong))
+                .overlay(Circle().stroke(Palette.void, lineWidth: 3))
+                .scaleEffect(close ? 1 : 0.5)
+                .opacity(close ? 1 : 0)
         }
+        .frame(width: 200, height: 100)
+        .accessibilityHidden(true)
+        .task(id: joined) {
+            guard !joined, !reduceMotion else { together = false; return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(900))
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.72)) { together = true }
+                try? await Task.sleep(for: .milliseconds(2200))
+                withAnimation(.easeInOut(duration: 0.6)) { together = false }
+            }
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: together) { _, new in new }
+    }
+
+    private func disc(_ icon: String) -> some View {
+        Circle()
+            .fill(Palette.control)
+            .frame(width: 76, height: 76)
+            .overlay(Circle().stroke(Palette.void, lineWidth: 3))
+            .overlay {
+                Image(systemName: icon).font(.system(size: 26, weight: .medium)).foregroundStyle(Palette.ink)
+            }
     }
 }
 
@@ -209,33 +392,8 @@ struct HardenedEnableFlow: View {
     private var consent: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             Text("Antes de ligar").typeStyle(.title).foregroundStyle(Palette.ink)
-            Button { accepted.toggle() } label: {
-                HStack(alignment: .top, spacing: Space.sm) {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(accepted ? Palette.control : Palette.void)
-                        .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .stroke(accepted ? Palette.inkSoft : Palette.edgeStrong, lineWidth: 1.5))
-                        .overlay {
-                            if accepted {
-                                Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(Palette.ink)
-                            }
-                        }
-                        .frame(width: 24, height: 24)
-                        .padding(.top, 1)
-                    Text("Entendo que, se o cadastro de rostos deste iPhone mudar, as carteiras daqui não abrem mais, e só as palavras de cada carteira trazem de volta. Os nomes, endereços salvos e ajustes daqui se perdem junto.")
-                        .typeStyle(.note).foregroundStyle(accepted ? Palette.ink : Palette.inkSoft)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                }
-                .padding(Space.md)
-                .contentShape(Rectangle())
-                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
-            }
-            .buttonStyle(.plain)
-            .accessibilityValue(accepted ? "Marcado" : "Desmarcado")
-            .accessibilityAddTraits(accepted ? .isSelected : [])
-            .accessibilityIdentifier("reforcado-aceite")
+            ConsentCheckbox(checked: $accepted, text: String(localized: "Entendo que, se o cadastro de rostos deste iPhone mudar, as carteiras daqui não abrem mais, e só as palavras de cada carteira trazem de volta. Os nomes, endereços salvos e ajustes daqui se perdem junto."))
+                .accessibilityIdentifier("reforcado-aceite")
             Text("Depois, o PIN e o \(KeyServices.biometryName) duas vezes: uma para abrir, outra para conferir o modo novo antes de valer.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)

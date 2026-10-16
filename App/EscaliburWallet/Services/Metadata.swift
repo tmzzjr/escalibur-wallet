@@ -174,6 +174,10 @@ struct Settings: Codable, Equatable {
     var voice = VoiceSettings()
     var disabledChainIDs: Set<String> = []
     var mevProtection = true
+    /// O teclado proprio para as palavras (`WordKeyboardView`). Nil: desligado, o padrao;
+    /// opcional para os metadados gravados antes deste campo continuarem abrindo. No modo
+    /// reforcado ele vale ligado, qualquer que seja este valor.
+    var ownKeyboard: Bool?
     var voicePhraseHash: String?
     var voicePhraseSalt: String?
 }

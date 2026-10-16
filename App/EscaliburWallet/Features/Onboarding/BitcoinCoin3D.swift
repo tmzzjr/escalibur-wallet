@@ -81,3 +81,88 @@ struct BitcoinCoin3D: UIViewRepresentable {
         }
     }
 }
+
+/// O giro da moeda pelo dedo e a sombra no chao, iguais no tour e no aviso de recebimento.
+enum CoinMotion {
+    /// O embalo depois de soltar: de onde a moeda estava ate a volta inteira em que para.
+    struct Release {
+        let from: Double
+        let to: Double
+        let at: Date
+    }
+
+    /// Quanto o dedo precisa andar, em pontos, para a moeda girar um radiano.
+    static let pointsPerRadian = 55.0
+
+    /// O giro do dedo num instante: o embalo desacelera e para numa volta inteira.
+    static func handTurn(_ release: Release?, at date: Date) -> Double {
+        guard let release else { return 0 }
+        let p = min(max(date.timeIntervalSince(release.at) / 1.2, 0), 1)
+        return release.from + (release.to - release.from) * (1 - pow(1 - p, 3))
+    }
+
+    /// Solta a moeda em `from` com `extra` de embalo: ela para de frente, na volta inteira
+    /// mais perto de onde o embalo a levaria.
+    static func release(from: Double, extra: Double) -> Release {
+        let full = 2 * Double.pi
+        return Release(from: from, to: ((from + extra) / full).rounded() * full, at: Date())
+    }
+
+    /// A sombra no chao, embaixo da moeda.
+    static func drawShadow(_ context: inout GraphicsContext, size: CGSize, angle: Double, bob: Double, enter: Double) {
+        let diameter = Double(size.height) * 0.7
+        let floorY = size.height / 2 + diameter * 0.56
+        let width = diameter * (0.7 - bob * 0.01) * max(abs(cos(angle)), 0.35)
+        let center = size.width / 2
+        context.fill(Path(ellipseIn: CGRect(x: center - width / 2, y: floorY - 6, width: width, height: 12)),
+                     with: .radialGradient(Gradient(colors: [.black.opacity(0.45 * enter), .clear]),
+                                           center: CGPoint(x: center, y: floorY), startRadius: 0, endRadius: width / 2))
+    }
+}
+
+/// A moeda girando devagar no ar, que o dedo gira: arrastando ela acompanha, ao soltar
+/// segue no embalo e para de frente, e um toque da uma volta inteira. `onSpin` avisa a cada
+/// giro do dono (o aviso de recebimento faz chegar mais uma moeda).
+struct SpinningCoin: View {
+    var slowTurn = 6.0
+    var onSpin: () -> Void = {}
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var start = Date()
+    @State private var dragTurn: Double = 0
+    @State private var release: CoinMotion.Release?
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 60, paused: reduceMotion)) { timeline in
+            let t = reduceMotion ? 0 : timeline.date.timeIntervalSince(start)
+            let idle = reduceMotion ? 0 : t / slowTurn * 2 * .pi
+            let angle = idle + CoinMotion.handTurn(release, at: timeline.date) + dragTurn
+            let enter = reduceMotion ? 1 : 1 - pow(1 - min(max(t / 0.6, 0), 1), 3)
+            let bob = reduceMotion ? 0 : 4 * sin(t * 1.6)
+            ZStack {
+                Canvas { context, size in CoinMotion.drawShadow(&context, size: size, angle: angle, bob: bob, enter: enter) }
+                BitcoinCoin3D(angle: angle)
+                    .opacity(enter)
+                    .scaleEffect(0.8 + 0.2 * enter)
+                    .offset(y: bob - 8)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            release = CoinMotion.release(from: CoinMotion.handTurn(release, at: Date()), extra: 2 * .pi)
+            onSpin()
+        }
+        .highPriorityGesture(
+            DragGesture(minimumDistance: 6)
+                .onChanged { dragTurn = $0.translation.width / CoinMotion.pointsPerRadian }
+                .onEnded { value in
+                    let momentum = (value.predictedEndTranslation.width - value.translation.width) / CoinMotion.pointsPerRadian
+                    let from = CoinMotion.handTurn(release, at: Date()) + dragTurn
+                    dragTurn = 0
+                    release = CoinMotion.release(from: from, extra: momentum)
+                    if abs(momentum) + abs(from) > 0.5 { onSpin() }
+                }
+        )
+        .sensoryFeedback(.impact(weight: .light), trigger: release?.at)
+        .accessibilityHidden(true)
+    }
+}

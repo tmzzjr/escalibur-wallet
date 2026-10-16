@@ -87,7 +87,7 @@ struct NewWalletFlow: View {
                 case .pledge:
                     ResponsibilityView(continueTitle: String(localized: "Conferir o aparelho")) { step = .check }
                 case .check:
-                    DeviceCheckView(slideTitle: String(localized: "Deslize para ver as palavras")) { Task { await start() } }
+                    DeviceCheckView(slideTitle: String(localized: "Deslize para ver as palavras"), creating: true) { Task { await start() } }
                 case .record:
                     if let draft {
                         RecordWordsView(draft: draft, walletName: nil) { step = .confirm }
@@ -165,13 +165,9 @@ struct NewWalletFlow: View {
                 if let error {
                     Banner(kind: .failure, title: error).padding(.top, Space.md)
                 }
-                VStack(spacing: Space.xs) {
-                    Segmented(options: [(12, String(localized: "12 palavras")), (24, String(localized: "24 palavras"))], selection: $wordCount)
-                        .frame(width: 220)
-                    Text("12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar.")
-                        .typeStyle(.note).foregroundStyle(Palette.inkMuted).multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
+                Segmented(options: [(12, String(localized: "12 palavras")), (24, String(localized: "24 palavras"))], selection: $wordCount)
+                    .frame(width: 220)
+                    .frame(maxWidth: .infinity)
                 .padding(.top, Space.lg)
                 .padding(.bottom, Space.md)
             }

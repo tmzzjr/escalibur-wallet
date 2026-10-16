@@ -46,6 +46,8 @@ struct PassphraseWalletView: View {
                 VStack(alignment: .leading, spacing: Space.md) {
                     PassphrasePoint(icon: "eye.slash", text: String(localized: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não esta. Dentro deste app, quem tem o PIN vê as duas na lista de carteiras."))
                     PassphrasePoint(icon: "pencil.and.list.clipboard", text: String(localized: "Anote a passphrase longe das \(wordCount). Para abrir esta carteira em outro aparelho, você vai precisar das duas."))
+                    // Fora da Escalibur, poucos apps aceitam passphrase (folha de recuperacao, A2).
+                    PassphrasePoint(icon: "arrow.up.forward.app", text: String(localized: "Fora da Escalibur, poucos apps aceitam passphrase. Na TON, no Polkadot e na NEAR, nenhum app comum conhecido aceita: o saldo dessas redes nesta carteira só sai pela Escalibur ou por ferramenta técnica."))
                     PassphrasePoint(icon: "exclamationmark.triangle", text: String(localized: "Esquecer a passphrase é perder o que estiver nesta carteira. Ninguém recupera, nem a Escalibur."), caution: true)
                 }
                 .padding(Space.base)

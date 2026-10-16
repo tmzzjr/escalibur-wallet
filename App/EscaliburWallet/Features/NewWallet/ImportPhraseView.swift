@@ -1,6 +1,7 @@
 import EscaliburChains
 import EscaliburCore
 import EscaliburKeys
+import EscaliburNetwork
 import SwiftUI
 import UIKit
 
@@ -105,19 +106,22 @@ struct ImportPhraseView: View {
     @State private var confirmClear = false
     /// A carteira ja montada, esperando o dono conferir os enderecos.
     @State private var pending: (secret: WalletSecret, preview: ImportPreview)?
+    /// O dono tocou no globo do teclado proprio: nesta tela, o teclado do iPhone.
+    @State private var systemKeyboard = false
+    @State private var keyboardInfo = false
+    @State private var confirmSystemKeyboard = false
+    /// Os idiomas em que todas as palavras ja fechadas existem: as sugestoes e o teclado
+    /// seguem eles (revisao do teclado proprio, M2). Nil: qualquer um.
+    @State private var languages: Set<BIP39Language>?
+    /// O silencio da rede desta tela, aberto uma vez so e fechado uma vez so.
+    @State private var quiet = false
 
-    private var suggestions: [String] {
-        let prefix = Mnemonic.canonicalize(typed)
-        guard prefix.count >= 1 else { return [] }
-        var found: [String] = []
-        for language in [BIP39Language.english, .portuguese, .spanish] {
-            if let list = try? WordlistStore.shared.wordlist(for: language) {
-                found += list.completions(forPrefix: prefix, limit: 4).filter { !found.contains($0) }
-            }
-            if found.count >= 4 { break }
-        }
-        return Array(found.prefix(4))
-    }
+    /// O teclado proprio nas posicoes da frase: escolhido em Seguranca, do modo reforcado,
+    /// e sempre na conferencia das palavras para ligar o modo reforcado (revisao, M1).
+    private var ownKeyboard: Bool { (session.ownKeyboardOn || verify != nil) && !systemKeyboard }
+
+    /// Todas as listas, sem acento nas latinas: com o teclado proprio, "abaco" acha "ábaco".
+    private var suggestions: [String] { WordLexicon.completions(typed, preferring: languages, limit: 4) }
 
     var body: some View {
         // O ZStack fica de pe na troca entre o formulario e a conferencia: so sair da
@@ -153,10 +157,11 @@ struct ImportPhraseView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     VStack(spacing: Space.xs) {
+                        CipherEmblem().padding(.bottom, Space.xs)
                         Text(verify.map { String(localized: "Confira a cópia de \($0.walletName)") } ?? String(localized: "Importar com a senha da carteira"))
                             .typeStyle(.title).foregroundStyle(Palette.ink)
                         Text(verify == nil
-                             ? String(localized: "Toque numa posição e digite a palavra. Ninguém da Escalibur pede estas palavras.")
+                             ? String(localized: "Toque numa posição e digite a palavra.")
                              : String(localized: "Digite as palavras de onde você anotou, todas, em ordem. No modo reforçado, essa cópia é o único caminho de volta."))
                             .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                             .fixedSize(horizontal: false, vertical: true)
@@ -164,13 +169,9 @@ struct ImportPhraseView: View {
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
 
-                    HStack(alignment: .top, spacing: Space.sm) {
+                    HStack(alignment: .center, spacing: Space.sm) {
                         if verify == nil {
-                        VStack(spacing: Space.xxs) {
-                            Segmented(options: Mnemonic.validWordCounts.map { ($0, "\($0)") },
-                                      selection: Binding(get: { entry.count }, set: { entry.count = $0; typed = "" }))
-                            Text("palavras na senha").typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                        }
+                            WordCountPicker(count: Binding(get: { entry.count }, set: { entry.count = $0; typed = "" }))
                         } else {
                             Spacer()
                         }
@@ -185,7 +186,7 @@ struct ImportPhraseView: View {
                             .labelStyle(.titleAndIcon)
                             .buttonBorderShape(.capsule)
                             .controlSize(.large)
-                            .tint(Palette.brand)
+                            .modifier(ClearGlassPaste())
                         }
                     }
                     .padding(.top, Space.lg)
@@ -232,20 +233,24 @@ struct ImportPhraseView: View {
                     }
                     .padding(.top, Space.md)
 
-                    VStack(spacing: Space.xs) {
-                        Image(systemName: "lock.shield.fill").font(.system(size: 22, weight: .semibold)).foregroundStyle(Palette.inkSoft)
-                        // O texto diz so o que a tela faz (auditoria 4, C7-06 e C7-12): as sugestoes e o
-                        // balao das teclas mostram o que e digitado, e o Espelhamento do iPhone no
-                        // Mac nao aparece para os apps.
-                        Text("As palavras aparecem cifradas nos campos, com uma chave que só existe enquanto esta tela está aberta; as sugestões e o teclado mostram o que você digita. Gravação e AirPlay escondem a tela. O Espelhamento do iPhone no Mac e a captura de tela, o app não consegue bloquear. Segure uma palavra para conferir.")
-                            .typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
+                    // O que a tela faz, em tres linhas curtas (pedido do dono, 16/10/2026). O texto
+                    // diz so o que e verdade (auditoria 4, C7-06 e C7-12): cifradas nos campos,
+                    // nao na sugestao; o espelhamento ja foi dito na checagem antes desta tela.
+                    VStack(alignment: .leading, spacing: Space.md) {
+                        assurance("lock.fill", String(localized: "Cifradas nos campos"),
+                                  String(localized: "Segure uma palavra para conferir. As sugestões mostram a palavra para você escolher."))
+                        assurance("iphone", String(localized: "Só neste iPhone"),
+                                  String(localized: "O app não manda as palavras para lugar nenhum, e ninguém da Escalibur pede estas palavras."))
+                        // A tela fica em silencio (`HTTPClient.beginQuiet`): nada sai do iPhone enquanto
+                        // ela esta aberta, e a conferencia das palavras e toda local.
+                        assurance("wifi.slash", String(localized: "Sem internet nesta tela"),
+                                  String(localized: "Enquanto ela está aberta, o app não fala com rede nenhuma. A conferência é feita aqui: a última palavra traz uma soma de verificação das outras, calculada no iPhone com a lista de 2048 palavras que vem dentro do app."))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(Space.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(Space.base)
                     .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
                     .padding(.top, Space.lg)
+                    .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("tela-protegida")
                 }
                 .padding(.horizontal, Space.gutter)
@@ -285,9 +290,10 @@ struct ImportPhraseView: View {
         .onAppear {
             #if DEBUG
             // `-tela frase`: a frase publica de teste do BIP-39 nas 11 primeiras posicoes e a
-            // 12a em digitacao, para conferir a cifra viva na tela.
-            if DebugDemo.screen == "frase", entry.filledCount == 0 {
-                entry.paste(Array(repeating: "abandon", count: 11).joined(separator: " "))
+            // 12a em digitacao, para conferir a cifra viva na tela; com `-frase-topo`, a tela
+            // vazia, de cima. Colar 11 palavras nao preenche nada (C7-17): uma por uma.
+            if DebugDemo.screen == "frase", entry.filledCount == 0, !DebugDemo.arguments.contains("-frase-topo") {
+                for index in 0..<11 { entry.set("abandon", at: index) }
                 entry.active = 11
                 focused = true
                 typed = "abo"
@@ -304,6 +310,45 @@ struct ImportPhraseView: View {
         .background(Palette.void.ignoresSafeArea())
         .statusBarBackdrop()
         .guardedAgainstCapture()
+        // Silencio na rede so enquanto as palavras estao na tela: a conferencia dos
+        // enderecos, depois, le a Tron.
+        .onAppear {
+            guard !quiet else { return }
+            HTTPClient.shared.beginQuiet()
+            quiet = true
+        }
+        .onDisappear {
+            guard quiet else { return }
+            HTTPClient.shared.endQuiet()
+            quiet = false
+        }
+        .onChange(of: entry.revision) { _, _ in lockLanguages() }
+        .onChange(of: entry.active) { _, _ in lockLanguages() }
+        // O globo pergunta antes: o teclado do iPhone recebe as letras (revisao, B3).
+        .alert("Usar o teclado do iPhone?", isPresented: $confirmSystemKeyboard) {
+            Button("Usar o do iPhone") { systemKeyboard = true }
+            Button("Cancelar", role: .cancel) {}
+        } message: {
+            Text("Só para frases em japonês, chinês ou coreano, que o teclado da Escalibur não escreve. O teclado do iPhone recebe as letras que você digitar.")
+        }
+        .sheet(isPresented: $keyboardInfo) {
+            KeyboardInfoSheet(onSystemKeyboard: { systemKeyboard = true }) { keyboardInfo = false }
+        }
+    }
+
+    private func assurance(_ icon: String, _ title: String, _ detail: String) -> some View {
+        HStack(alignment: .top, spacing: Space.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Palette.inkSoft)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Palette.control))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).typeStyle(.row).foregroundStyle(Palette.ink)
+                Text(detail).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     /// Posicoes da cifra viva para a passphrase e a repeticao, fora das das palavras.
@@ -323,7 +368,10 @@ struct ImportPhraseView: View {
                 PhraseSlot(index: index, display: slotText(index), isActive: focused && entry.active == index,
                            text: textBinding(index), isFocused: focusBinding(index),
                            word: { [entry] in entry.word(at: index) },
-                           sealed: sealedGlyphs(index), typing: typingGlyphs(index)) { submit() }
+                           sealed: sealedGlyphs(index), typing: typingGlyphs(index),
+                           ownKeyboard: ownKeyboard, onSystemKeyboard: { confirmSystemKeyboard = true },
+                           onKeyboardInfo: { focused = false; keyboardInfo = true }, languages: languages,
+                           systemKeyboardType: systemKeyboard ? .default : .asciiCapable) { submit() }
                     .id(index)
             }
         }
@@ -449,11 +497,19 @@ struct ImportPhraseView: View {
             : String(localized: "O texto colado tem \(pasted) palavras, e uma frase tem 12, 15, 18, 21 ou 24. Nada foi preenchido: confira o que você copiou.")
     }
 
-    /// O Seguinte do teclado: a palavra digitada se ela existe na lista, senao a primeira
-    /// sugestao.
+    /// O Seguinte do teclado: sempre a sugestao destacada, a primeira (a palavra exata vem
+    /// antes das que so comecam assim); sem sugestao, o que foi digitado.
     private func submit() {
-        let clean = Mnemonic.canonicalize(typed)
-        if suggestions.contains(clean) || suggestions.isEmpty { commit(typed) } else if let first = suggestions.first { commit(first) }
+        if let first = suggestions.first { commit(first) } else { commit(typed) }
+    }
+
+    /// Os idiomas das palavras ja fechadas, fora a posicao em digitacao, lidos direto dos
+    /// buffers seguros (segunda revisao, N2). Nenhum idioma com todas: sem preferencia, e a
+    /// importacao diz o que esta errado.
+    private func lockLanguages() {
+        let words = entry.slots.enumerated().filter { $0.offset != entry.active }.map(\.element)
+        let found = WordLexicon.languages(containing: words)
+        languages = found?.isEmpty == true ? nil : found
     }
 
     private func commit(_ word: String) {
@@ -467,8 +523,16 @@ struct ImportPhraseView: View {
 
     private func importWallet() async {
         message = nil
-        let phrase = entry.phrase()
-        switch BIP39.validate(phrase) {
+        var phrase = entry.phrase()
+        var verdict = BIP39.validate(phrase)
+        // Digitada sem acento, a frase fecha no idioma dela trocando cada palavra pela de
+        // acento (revisao do teclado proprio, M2).
+        if case .valid = verdict {} else if let resolved = WordLexicon.resolve(entry.slots) {
+            phrase.wipe()
+            phrase = resolved.phrase
+            verdict = .valid(language: resolved.language)
+        }
+        switch verdict {
         case .valid(let language):
             if usesPassphrase {
                 let same = Hash.constantTimeEqual(passphrase, passphraseAgain)
@@ -568,6 +632,11 @@ private struct PhraseSlot: View {
     /// A forma cifrada da palavra confirmada, e da que esta sendo digitada, por tique.
     var sealed: ((UInt64) -> String)? = nil
     var typing: ((UInt64) -> String)? = nil
+    var ownKeyboard = false
+    var onSystemKeyboard: (() -> Void)?
+    var onKeyboardInfo: (() -> Void)?
+    var languages: Set<BIP39Language>? = nil
+    var systemKeyboardType: UIKeyboardType = .asciiCapable
     let onSubmit: () -> Void
     @State private var holding = false
 
@@ -586,7 +655,7 @@ private struct PhraseSlot: View {
         HStack(spacing: Space.xs) {
             Text(String(format: "%02d", index + 1))
                 .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                .foregroundStyle(isActive ? Palette.purple : Palette.inkMuted)
+                .foregroundStyle(isActive ? Palette.inkSoft : Palette.inkMuted)
             ZStack(alignment: .leading) {
                 if text.isEmpty {
                     if holding {
@@ -607,7 +676,9 @@ private struct PhraseSlot: View {
                     // invisivel, so com o cursor.
                     glyphRow(typing, color: Palette.inkSoft)
                 }
-                WordInputField(text: $text, isFocused: $isFocused, fontSize: 15, returnKey: .next, masked: typing != nil, onSubmit: onSubmit)
+                WordInputField(text: $text, isFocused: $isFocused, fontSize: 15, returnKey: .next, masked: typing != nil,
+                               ownKeyboard: ownKeyboard, onSystemKeyboard: onSystemKeyboard, onKeyboardInfo: onKeyboardInfo,
+                               languages: languages, systemKeyboardType: systemKeyboardType, onSubmit: onSubmit)
                 // Posicao preenchida e fora de edicao: segurar mostra a palavra enquanto
                 // o dedo esta em cima; tocar e soltar abre a posicao para corrigir.
                 if !isActive, display != nil {
@@ -629,12 +700,88 @@ private struct PhraseSlot: View {
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .fill(Palette.body)
                 .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                    .stroke(isActive ? Palette.brand : Palette.edge, lineWidth: isActive ? 1.5 : 1))
+                    .stroke(isActive ? Palette.inkSoft : Palette.edge, lineWidth: isActive ? 1.5 : 1))
         )
         .contentShape(Rectangle())
         .onTapGesture { isFocused = true }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(display == nil ? "Palavra \(index + 1), vazia" : "Palavra \(index + 1), preenchida")
         .accessibilityIdentifier("palavra-\(index + 1)")
+    }
+}
+
+/// O Colar em vidro, sem cor (pedido do dono, 16/10/2026). O PasteButton e do sistema (so
+/// assim o iOS cola sem o pedido de permissao) e nao aceita o estilo de vidro: a capsula
+/// dele fica transparente, com o vidro liquido por tras; antes do iOS 26, o cinza do app.
+/// O teste `ImportKeyboardTests` confere que o iOS continua aceitando o toque.
+private struct ClearGlassPaste: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content.tint(.clear).foregroundStyle(Palette.ink)
+                .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+        } else {
+            content.tint(Palette.control)
+        }
+    }
+}
+
+/// Quantas palavras: 12 e 24 grandes, que sao quase todas as frases, e o "+" abre 15, 18 e
+/// 21. Escolhida uma das outras, voltam duas: a escolhida e a de 24 (pedido do dono,
+/// 16/10/2026).
+private struct WordCountPicker: View {
+    @Binding var count: Int
+    @State private var expanded = false
+
+    private var options: [Int] {
+        if expanded { return Mnemonic.validWordCounts }
+        return count == 24 ? [12, 24] : [count, 24]
+    }
+
+    var body: some View {
+        HStack(spacing: Space.xs) {
+            ForEach(options, id: \.self) { option in
+                Button {
+                    withAnimation(Motion.select) {
+                        count = option
+                        expanded = false
+                    }
+                } label: {
+                    VStack(spacing: 0) {
+                        Text("\(option)").font(.system(size: expanded ? 17 : 20, weight: .semibold)).monospacedDigit()
+                        if !expanded {
+                            Text("palavras").typeStyle(.note)
+                        }
+                    }
+                    .foregroundStyle(option == count ? Palette.ink : Palette.inkMuted)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background {
+                        if option != count {
+                            Capsule(style: .continuous).stroke(Palette.edge, lineWidth: 1)
+                        }
+                    }
+                    .modifier(SelectionGlass(active: option == count))
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("\(option) palavras"))
+                .accessibilityAddTraits(option == count ? .isSelected : [])
+                .accessibilityIdentifier("palavras-\(option)")
+            }
+            if !expanded {
+                Button { withAnimation(Motion.select) { expanded = true } } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Palette.inkSoft)
+                        .frame(width: 52, height: 52)
+                        .background(Circle().stroke(Palette.edge, lineWidth: 1))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Outros tamanhos de frase")
+                .accessibilityIdentifier("palavras-mais")
+            }
+        }
+        .sensoryFeedback(.selection, trigger: count)
     }
 }

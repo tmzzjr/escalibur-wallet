@@ -1,8 +1,12 @@
 {
   "sourceLanguage" : "pt-BR",
   "strings" : {
-    "" : {},
-    " " : {},
+    "" : {
+
+    },
+    " " : {
+
+    },
     " (%@ do volume)" : {
       "localizations" : {
         "ar" : {
@@ -313,7 +317,9 @@
         }
       }
     },
-    "%@" : {},
+    "%@" : {
+
+    },
     "%@ %@" : {
       "localizations" : {
         "pt-BR" : {
@@ -3061,6 +3067,7 @@
       }
     },
     "%@ ligado neste app" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -3369,6 +3376,9 @@
           }
         }
       }
+    },
+    "%@ neste app" : {
+
     },
     "%@ no %@" : {
       "localizations" : {
@@ -5160,7 +5170,9 @@
         }
       }
     },
-    "%@%%" : {},
+    "%@%%" : {
+
+    },
     "%@%% abaixo da máxima" : {
       "localizations" : {
         "ar" : {
@@ -6785,7 +6797,9 @@
         }
       }
     },
-    "%lld" : {},
+    "%lld" : {
+
+    },
     "%lld %@, %@: pequenas, sem confirmação ou que não pagam a própria taxa" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10302,9 +10316,15 @@
         }
       }
     },
-    "%lld%%" : {},
-    "+%@%%" : {},
-    "+%lld" : {},
+    "%lld%%" : {
+
+    },
+    "+%@%%" : {
+
+    },
+    "+%lld" : {
+
+    },
     ", %@ em 24 h." : {
       "localizations" : {
         "ar" : {
@@ -10457,8 +10477,12 @@
         }
       }
     },
-    "0" : {},
-    "09:41" : {},
+    "0" : {
+
+    },
+    "09:41" : {
+
+    },
     "1 %@ a %@ %@, na %@. Refeita, vale por mais %@." : {
       "localizations" : {
         "ar" : {
@@ -11692,6 +11716,7 @@
       }
     },
     "12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -12305,7 +12330,9 @@
         }
       }
     },
-    "5.000" : {},
+    "5.000" : {
+
+    },
     "6 escondidos" : {
       "localizations" : {
         "ar" : {
@@ -13458,6 +13485,9 @@
         }
       }
     },
+    "A Rabby aceita; a MetaMask não." : {
+
+    },
     "A Velora fica com o que vier acima da estimativa. O mínimo garantido não muda." : {
       "localizations" : {
         "ar" : {
@@ -13533,6 +13563,9 @@
           }
         }
       }
+    },
+    "A Xaman aceita." : {
+
     },
     "A anterior foi às %@. Esta é nova, item por item, agora." : {
       "localizations" : {
@@ -16879,6 +16912,9 @@
           }
         }
       }
+    },
+    "A conta é o código de 64 caracteres, não um nome .near." : {
+
     },
     "A cotação está %@ pior que o preço de referência do mercado. Troca bloqueada." : {
       "localizations" : {
@@ -25164,6 +25200,7 @@
       }
     },
     "A senha da carteira entra no envelope" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -32426,6 +32463,9 @@
         }
       }
     },
+    "Abre em" : {
+
+    },
     "Abrindo o envelope" : {
       "localizations" : {
         "ar" : {
@@ -32806,6 +32846,9 @@
         }
       }
     },
+    "Abrir em outro app" : {
+
+    },
     "Abrir envelope" : {
       "localizations" : {
         "ar" : {
@@ -33071,6 +33114,7 @@
       }
     },
     "Abrir o app, enviar, trocar e ver as palavras passam a pedir o PIN e o %@ juntos. O PIN sozinho não abre nada, e o rosto sozinho também não: é a própria cifra das carteiras que pede os dois." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -35508,6 +35552,9 @@
         }
       }
     },
+    "Animação: o teclado próprio digitando uma palavra da lista" : {
+
+    },
     "Anotar e confirmar depois" : {
       "localizations" : {
         "ar" : {
@@ -36116,6 +36163,9 @@
           }
         }
       }
+    },
+    "Antes de mover tudo, confira se o endereço que o outro app mostra começa e termina como o daqui. Mova um valor pequeno primeiro." : {
+
     },
     "Antes de ver as palavras" : {
       "localizations" : {
@@ -37750,6 +37800,16 @@
         }
       }
     },
+    "As %lld palavras de %@ abrem o mesmo saldo em outros apps, se você não tiver mais a Escalibur. Cada rede tem os apps que abrem a mesma conta." : {
+      "localizations" : {
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "As %1$lld palavras de %2$@ abrem o mesmo saldo em outros apps, se você não tiver mais a Escalibur. Cada rede tem os apps que abrem a mesma conta."
+          }
+        }
+      }
+    },
     "As %lld palavras saem desta tela. Você digita de novo, a partir da primeira." : {
       "localizations" : {
         "ar" : {
@@ -38669,6 +38729,7 @@
       }
     },
     "As palavras aparecem cifradas nos campos, com uma chave que só existe enquanto esta tela está aberta; as sugestões e o teclado mostram o que você digita. Gravação e AirPlay escondem a tela. O Espelhamento do iPhone no Mac e a captura de tela, o app não consegue bloquear. Segure uma palavra para conferir." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -38743,6 +38804,15 @@
           }
         }
       }
+    },
+    "As palavras da carteira digitadas num teclado desenhado pela Escalibur, no lugar do teclado do iPhone." : {
+
+    },
+    "As palavras de cada carteira" : {
+
+    },
+    "As palavras passam a ser digitadas no teclado da Escalibur: o teclado do iPhone não recebe as letras." : {
+
     },
     "As palavras recuperam" : {
       "localizations" : {
@@ -38895,6 +38965,9 @@
           }
         }
       }
+    },
+    "As palavras viram um arquivo cifrado" : {
+
     },
     "As palavras voltam quando isso parar." : {
       "localizations" : {
@@ -39352,6 +39425,9 @@
         }
       }
     },
+    "As sugestões e as teclas acesas mostram a palavra: digite longe de olhos e câmeras." : {
+
+    },
     "As transações assinadas não conferem com o plano revisado. Nada foi transmitido." : {
       "localizations" : {
         "ar" : {
@@ -39503,6 +39579,9 @@
           }
         }
       }
+    },
+    "Atenção" : {
+
     },
     "Atenção antes de seguir" : {
       "localizations" : {
@@ -41948,6 +42027,9 @@
         }
       }
     },
+    "Baixe o outro app só da loja oficial. Nunca digite as palavras num site nem as mande a ninguém: quem oferece recuperar saldo quer o saldo." : {
+
+    },
     "Banda" : {
       "localizations" : {
         "ar" : {
@@ -43850,6 +43932,9 @@
           }
         }
       }
+    },
+    "Cadastre um rosto nos Ajustes do iPhone antes." : {
+
     },
     "Caiu %@" : {
       "localizations" : {
@@ -46407,6 +46492,9 @@
         }
       }
     },
+    "Chegou %@ BTC" : {
+
+    },
     "Chegou na %@" : {
       "localizations" : {
         "ar" : {
@@ -46786,6 +46874,12 @@
           }
         }
       }
+    },
+    "Cifradas nos campos" : {
+
+    },
+    "Cifrado na tela" : {
+
     },
     "Cifrando a senha da carteira" : {
       "localizations" : {
@@ -47705,6 +47799,9 @@
           }
         }
       }
+    },
+    "Com passphrase" : {
+
     },
     "Comentário" : {
       "localizations" : {
@@ -48997,6 +49094,9 @@
           }
         }
       }
+    },
+    "Conferido em outubro de 2026, no código e na documentação de cada app. Os apps mudam: confira o endereço antes de mover." : {
+
     },
     "Conferido na %@. Abra a Escalibur para ver." : {
       "localizations" : {
@@ -53879,6 +53979,9 @@
         }
       }
     },
+    "Continuar digitando" : {
+
+    },
     "Continuar o envio" : {
       "localizations" : {
         "ar" : {
@@ -57083,6 +57186,9 @@
         }
       }
     },
+    "Código injetado encontrado" : {
+
+    },
     "Cópia de %@ conferida" : {
       "localizations" : {
         "ar" : {
@@ -58893,6 +58999,9 @@
         }
       }
     },
+    "Depurador conectado" : {
+
+    },
     "Depósito no %@" : {
       "localizations" : {
         "ar" : {
@@ -58968,6 +59077,9 @@
           }
         }
       }
+    },
+    "Desativar o teclado próprio" : {
+
     },
     "Desligada" : {
       "localizations" : {
@@ -63031,6 +63143,9 @@
         }
       }
     },
+    "Ele escreve as palavras em inglês, português, espanhol, francês, italiano e tcheco. Para japonês, chinês ou coreano, o globo do teclado traz o do iPhone." : {
+
+    },
     "Em %@, os ajustes da voz abrem só com o PIN. Reiniciar o iPhone recomeça a espera." : {
       "localizations" : {
         "ar" : {
@@ -66762,7 +66877,11 @@
         }
       }
     },
+    "Endereços prontos em %lld redes. Guarde o papel longe do iPhone: se o iPhone sumir, o papel traz a carteira de volta, aqui ou em outros apps. Em Ajustes, na carteira, \"Abrir em outro app\" diz quais." : {
+
+    },
     "Endereços prontos em %lld redes. Guarde o papel longe do iPhone: se o iPhone sumir, o papel traz a carteira de volta, aqui ou em qualquer carteira BIP-39." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "variations" : {
@@ -67025,6 +67144,9 @@
           }
         }
       }
+    },
+    "Enquanto ela está aberta, o app não fala com rede nenhuma. A conferência é feita aqui: a última palavra traz uma soma de verificação das outras, calculada no iPhone com a lista de 2048 palavras que vem dentro do app." : {
+
     },
     "Enquanto não terminar, em Ordens abertas: pedido à CoW, grátis mas sem garantia, ou na rede, garantido, pagando taxa" : {
       "localizations" : {
@@ -67331,6 +67453,7 @@
       }
     },
     "Entendo o risco e quero seguir mesmo assim" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -73663,6 +73786,9 @@
           }
         }
       }
+    },
+    "Esta carteira tem passphrase: sem ela, ou com uma letra diferente, abre outra carteira, vazia." : {
+
     },
     "Esta carteira usa passphrase" : {
       "localizations" : {
@@ -84580,6 +84706,12 @@
         }
       }
     },
+    "Estou ciente de que este iPhone falhou na verificação de integridade e de que digitar as palavras aqui pode expor a carteira. Quero seguir mesmo assim." : {
+
+    },
+    "Estou ciente de que este iPhone falhou na verificação de integridade e de que gerar as palavras aqui pode expor a carteira. Quero seguir mesmo assim." : {
+
+    },
     "Estou ciente que:" : {
       "localizations" : {
         "ar" : {
@@ -84971,6 +85103,12 @@
           }
         }
       }
+    },
+    "Eternl ou Trust Wallet. A Yoroi só aceita 15 ou 24 palavras." : {
+
+    },
+    "Eternl, Yoroi ou Trust Wallet." : {
+
     },
     "Euro" : {
       "localizations" : {
@@ -87984,6 +88122,9 @@
         }
       }
     },
+    "Feito para a segurança das palavras: desenhado pelo próprio app, no lugar do teclado do iPhone." : {
+
+    },
     "Fica na carteira" : {
       "localizations" : {
         "ar" : {
@@ -88445,6 +88586,9 @@
           }
         }
       }
+    },
+    "Fora da Escalibur, poucos apps aceitam passphrase. Na TON, no Polkadot e na NEAR, nenhum app comum conhecido aceita: o saldo dessas redes nesta carteira só sai pela Escalibur ou por ferramenta técnica." : {
+
     },
     "Fora da leitura" : {
       "localizations" : {
@@ -89357,6 +89501,9 @@
           }
         }
       }
+    },
+    "Freighter, LOBSTR ou Trust Wallet." : {
+
     },
     "Ganho estimado" : {
       "localizations" : {
@@ -91212,6 +91359,7 @@
       }
     },
     "Guarde onde quiser. Descriptografe no app ou no decifrador aberto." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -91286,6 +91434,9 @@
           }
         }
       }
+    },
+    "Guarde onde quiser: sem a sua senha, o arquivo não abre." : {
+
     },
     "Hoje" : {
       "localizations" : {
@@ -91439,7 +91590,11 @@
         }
       }
     },
+    "Há texto copiado" : {
+
+    },
     "Há texto copiado. Se for a senha da carteira, apague depois de colar: a cópia pode ir para outros aparelhos Apple." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -95510,6 +95665,7 @@
       }
     },
     "Leitor de tela" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -100455,6 +100611,9 @@
         }
       }
     },
+    "MetaMask, Rabby ou Trust Wallet, na primeira conta." : {
+
+    },
     "Minhas carteiras" : {
       "localizations" : {
         "ar" : {
@@ -103040,6 +103199,9 @@
         }
       }
     },
+    "MyNearWallet ou Trust Wallet." : {
+
+    },
     "Máx" : {
       "localizations" : {
         "ar" : {
@@ -103818,6 +103980,9 @@
         }
       }
     },
+    "Na Ledger, a mesma frase abre outra conta." : {
+
+    },
     "Na Stellar todo ativo tem 7 casas decimais, pela própria rede." : {
       "localizations" : {
         "ar" : {
@@ -103970,6 +104135,9 @@
         }
       }
     },
+    "Na Tonkeeper, escolha a versão V4R2: a W5 da mesma frase é outro endereço." : {
+
+    },
     "Na Tron, a Escalibur envia só TRX e USDT. Um TRC-20 qualquer pede a leitura da energia do contrato dele, que ainda não existe aqui. A moeda aparece no saldo e você recebe normalmente." : {
       "localizations" : {
         "ar" : {
@@ -104121,6 +104289,9 @@
           }
         }
       }
+    },
+    "Na Trust Wallet e no Ledger Live, a mesma frase mostra outro endereço." : {
+
     },
     "Na carteira" : {
       "localizations" : {
@@ -104884,6 +105055,7 @@
       }
     },
     "Na hora, as palavras de cada carteira, digitadas de onde você anotou" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -104958,6 +105130,9 @@
           }
         }
       }
+    },
+    "Na hora, digitadas de onde você anotou." : {
+
     },
     "Na lenda do rei Arthur, a espada ficou cravada na pedra com uma promessa: quem a tirasse seria rei. Cavaleiros e reis tentaram e falharam. Arthur tirou." : {
       "localizations" : {
@@ -105487,6 +105662,15 @@
         }
       }
     },
+    "Na tela, cada letra vira um símbolo que muda. Nada é gravado no iPhone." : {
+
+    },
+    "Nada copiado na área de transferência" : {
+
+    },
+    "Nada de previsão, ditado ou palavra aprendida. A Escalibur também não vê: não existe servidor nosso." : {
+
+    },
     "Nada foi assinado." : {
       "localizations" : {
         "ar" : {
@@ -105638,6 +105822,9 @@
           }
         }
       }
+    },
+    "Nada lendo a tela em voz alta" : {
+
     },
     "Nada sai sem você" : {
       "extractionState" : "stale",
@@ -105960,6 +106147,9 @@
           }
         }
       }
+    },
+    "Nenhum app comum conhecido aceita a passphrase nesta rede. O saldo daqui só sai pela Escalibur ou por ferramenta técnica." : {
+
     },
     "Nenhum app de e-mail abriu. Toque e segure o endereço acima para copiar." : {
       "localizations" : {
@@ -109057,6 +109247,9 @@
         }
       }
     },
+    "No modo reforçado, a cópia é o único caminho de volta." : {
+
+    },
     "No modo reforçado, as carteiras deste iPhone só abrem com o PIN e o mesmo %@ de quando ele foi ligado. O cadastro mudou, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:" : {
       "localizations" : {
         "ar" : {
@@ -109132,6 +109325,12 @@
           }
         }
       }
+    },
+    "No modo reforçado, o teclado da Escalibur volta na próxima vez." : {
+
+    },
+    "No modo reforçado, o teclado próprio fica sempre ligado." : {
+
     },
     "No máximo %lld envios seguidos" : {
       "localizations" : {
@@ -120147,6 +120346,9 @@
         }
       }
     },
+    "O PIN e o %@ juntos para abrir o app, enviar, trocar e ver as palavras. Nenhum dos dois sozinho abre nada: é a própria cifra das carteiras que pede os dois." : {
+
+    },
     "O PIN mora só neste iPhone, e ninguém tem cópia dele, nem a Escalibur. Para voltar a usar o app, comece de novo:" : {
       "localizations" : {
         "ar" : {
@@ -120756,6 +120958,7 @@
       }
     },
     "O VoiceOver está ligado e lê as palavras em voz alta. Use fone de ouvido." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -120830,6 +121033,9 @@
           }
         }
       }
+    },
+    "O VoiceOver lê em voz alta o que aparece na tela, inclusive as palavras. Use fone de ouvido, ou desligue em Ajustes > Acessibilidade > VoiceOver." : {
+
     },
     "O andamento da ordem não está disponível nesta rede." : {
       "localizations" : {
@@ -120982,6 +121188,12 @@
           }
         }
       }
+    },
+    "O app cifra uma cópia da senha da sua carteira com outra senha, que só você escolhe. Tudo acontece aqui no iPhone, e o envelope fica salvo só aqui, até você decidir onde guardar uma cópia." : {
+
+    },
+    "O app não manda as palavras para lugar nenhum, e ninguém da Escalibur pede estas palavras." : {
+
     },
     "O app não reconhece este tipo de link. Cole só o endereço." : {
       "localizations" : {
@@ -124648,6 +124860,9 @@
         }
       }
     },
+    "O endereço é o mesmo em todas as redes EVM. Se a rede não aparece, adicione pelo número da rede; se um token não aparece, importe pelo contrato." : {
+
+    },
     "O envelope abriu, mas a senha da carteira dentro dele está num idioma que esta versão não reconhece." : {
       "localizations" : {
         "ar" : {
@@ -124725,6 +124940,7 @@
       }
     },
     "O envelope guarda uma cópia criptografada da senha da sua carteira, trancada com outra senha que só você escolhe. Fica tudo num arquivo .esclbr, feito aqui no iPhone." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -126895,6 +127111,9 @@
         }
       }
     },
+    "O modo reforçado nasce dele." : {
+
+    },
     "O máximo conta as %lld maiores moedas da conta, o que cabe num envio." : {
       "localizations" : {
         "ar" : {
@@ -127995,6 +128214,9 @@
         }
       }
     },
+    "O preço" : {
+
+    },
     "O preço da última moeda que você abriu ou recebeu na Escalibur." : {
       "localizations" : {
         "ar" : {
@@ -129059,6 +129281,9 @@
         }
       }
     },
+    "O que muda" : {
+
+    },
     "O que o suporte não consegue fazer" : {
       "localizations" : {
         "ar" : {
@@ -129743,6 +129968,15 @@
         }
       }
     },
+    "O teclado do iPhone não recebe as letras" : {
+
+    },
+    "O teclado não fala com rede nenhuma, e esta tela inteira fica sem internet enquanto está aberta." : {
+
+    },
+    "O teclado não tem conexão nenhuma, e a tela das palavras fica sem internet enquanto está aberta." : {
+
+    },
     "O texto colado tem %lld palavras, e uma frase tem 12, 15, 18, 21 ou 24. Nada foi preenchido: confira o que você copiou." : {
       "localizations" : {
         "ar" : {
@@ -129970,6 +130204,9 @@
           }
         }
       }
+    },
+    "O troco fica em endereços próprios da carteira, e esses três os encontram. Em Taproot, Legacy ou Nested, o app mostra outra conta." : {
+
     },
     "O valor fica abaixo do mínimo que a rede repassa, depois da taxa. Envie um valor maior." : {
       "localizations" : {
@@ -135380,6 +135617,9 @@
         }
       }
     },
+    "Outros tamanhos de frase" : {
+
+    },
     "Outros tokens" : {
       "localizations" : {
         "ar" : {
@@ -137751,6 +137991,9 @@
         }
       }
     },
+    "Para mover USDT é preciso ter TRX." : {
+
+    },
     "Para mudar ou desligar a confirmação por voz, fale a sua frase. Só o PIN não basta: quem viu o PIN não pode tirar a voz." : {
       "localizations" : {
         "ar" : {
@@ -138757,6 +139000,9 @@
           }
         }
       }
+    },
+    "Parte do XLM fica reservada pela rede." : {
+
     },
     "Pass" : {
       "localizations" : {
@@ -140436,6 +140682,12 @@
         }
       }
     },
+    "Petra ou Trust Wallet." : {
+
+    },
+    "Phantom." : {
+
+    },
     "Pode falar" : {
       "localizations" : {
         "ar" : {
@@ -140587,6 +140839,9 @@
           }
         }
       }
+    },
+    "Polkadot.js, Nova, Talisman e Ledger mostram outra conta, vazia. O saldo está na Polkadot Asset Hub." : {
+
     },
     "Política de privacidade" : {
       "localizations" : {
@@ -145542,6 +145797,7 @@
       }
     },
     "Quem tiver uma cópia do arquivo (nuvem, e-mail, AirDrop) testa senhas no próprio computador, sem limite e sem você saber. Seis palavras sorteadas aguentam milhões de anos." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -147149,6 +147405,9 @@
         }
       }
     },
+    "Rede por rede" : {
+
+    },
     "Rede reconhecida." : {
       "localizations" : {
         "ar" : {
@@ -147376,6 +147635,9 @@
           }
         }
       }
+    },
+    "Redes EVM (%lld)" : {
+
     },
     "Refazer a ordem" : {
       "localizations" : {
@@ -152558,6 +152820,9 @@
         }
       }
     },
+    "Se a Xaman perguntar a curva, escolha secp256k1. A conta guarda 1 XRP de reserva." : {
+
+    },
     "Se alguma palavra saiu errada, corrija digitando. Na hora de confirmar uma operação não tem teclado: só vale falar." : {
       "localizations" : {
         "ar" : {
@@ -152861,6 +153126,9 @@
           }
         }
       }
+    },
+    "Se for a senha da carteira, apague depois de colar: a cópia pode ir para outros aparelhos Apple." : {
+
     },
     "Se não chegar" : {
       "localizations" : {
@@ -153553,7 +153821,6 @@
       }
     },
     "Seguinte" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -154513,6 +154780,9 @@
         }
       }
     },
+    "Segure uma palavra para conferir. As sugestões mostram a palavra para você escolher." : {
+
+    },
     "Sei que este envio não pode ser desfeito. Depois de confirmado na rede, ninguém consegue devolver, nem a Escalibur." : {
       "localizations" : {
         "ar" : {
@@ -154741,6 +155011,9 @@
           }
         }
       }
+    },
+    "Seis palavras sorteadas aguentam milhões de anos." : {
+
     },
     "Seis palavras sorteadas neste iPhone. Anote em outro lugar, longe do papel da senha da carteira." : {
       "localizations" : {
@@ -155351,6 +155624,9 @@
           }
         }
       }
+    },
+    "Sem conexão com a internet" : {
+
     },
     "Sem conexão com a internet." : {
       "localizations" : {
@@ -156161,6 +156437,12 @@
         }
       }
     },
+    "Sem internet" : {
+
+    },
+    "Sem internet nesta tela" : {
+
+    },
     "Sem internet. Os saldos aparecem quando a conexão voltar." : {
       "localizations" : {
         "ar" : {
@@ -156541,6 +156823,9 @@
           }
         }
       }
+    },
+    "Sem previsão, ditado nem palavra aprendida no dicionário do aparelho. E a Escalibur não tem como ver: não existe servidor nosso." : {
+
     },
     "Sem preço confiável por contrato. Fica fora do saldo total." : {
       "localizations" : {
@@ -158268,6 +158553,9 @@
         }
       }
     },
+    "Slush ou Trust Wallet." : {
+
+    },
     "Sobraria na conta menos SOL que a reserva mínima da rede. Use o Máx ou diminua o valor." : {
       "localizations" : {
         "ar" : {
@@ -158572,6 +158860,9 @@
         }
       }
     },
+    "Sobre o teclado da Escalibur" : {
+
+    },
     "Sortear outras" : {
       "localizations" : {
         "ar" : {
@@ -158647,6 +158938,12 @@
           }
         }
       }
+    },
+    "Sparrow, Electrum e BlueWallet aceitam." : {
+
+    },
+    "Sparrow, Electrum ou BlueWallet, no tipo Native SegWit (bc1q)." : {
+
     },
     "Sua atividade aparece aqui" : {
       "localizations" : {
@@ -159808,6 +160105,12 @@
         }
       }
     },
+    "Só a Trezor e a ferramenta cardano-address." : {
+
+    },
+    "Só a Trust Wallet." : {
+
+    },
     "Só a sua senha abre" : {
       "localizations" : {
         "ar" : {
@@ -160111,6 +160414,9 @@
           }
         }
       }
+    },
+    "Só neste iPhone" : {
+
     },
     "Só o aviso" : {
       "localizations" : {
@@ -160492,6 +160798,12 @@
           }
         }
       }
+    },
+    "Só para frases em japonês, chinês ou coreano, que o teclado da Escalibur não escreve. O teclado do iPhone recebe as letras que você digitar." : {
+
+    },
+    "Só pela linha de comando (solana-keygen)." : {
+
     },
     "Só ver as palavras" : {
       "localizations" : {
@@ -163540,6 +163852,12 @@
         }
       }
     },
+    "Teclado da Escalibur" : {
+
+    },
+    "Teclado próprio" : {
+
+    },
     "Teclados de terceiros bloqueados" : {
       "localizations" : {
         "ar" : {
@@ -163999,6 +164317,9 @@
           }
         }
       }
+    },
+    "Tem um envelope Escalibur? O programa público decifrar.py, no código da Escalibur, abre o envelope num computador, sem o iPhone, e devolve as palavras e a passphrase." : {
+
     },
     "Tempo estimado" : {
       "localizations" : {
@@ -165826,6 +166147,9 @@
         }
       }
     },
+    "Tonkeeper, MyTonWallet ou Trust Wallet." : {
+
+    },
     "Toque duas vezes para virar a carta." : {
       "localizations" : {
         "ar" : {
@@ -166206,7 +166530,11 @@
         }
       }
     },
+    "Toque numa posição e digite a palavra." : {
+
+    },
     "Toque numa posição e digite a palavra. Ninguém da Escalibur pede estas palavras." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -168318,6 +168646,15 @@
         }
       }
     },
+    "Trust Wallet ou TronLink." : {
+
+    },
+    "Trust Wallet, endereço ltc1q." : {
+
+    },
+    "Trust Wallet." : {
+
+    },
     "Três palavras por vez. Arraste o cartão ou toque em Próximas." : {
       "localizations" : {
         "ar" : {
@@ -168622,7 +168959,11 @@
         }
       }
     },
+    "Tudo dentro dele é criptografado aqui no iPhone. Sem a senha, ele não mostra quantas palavras guarda nem o que tem dentro, e uma senha errada só devolve ruído." : {
+
+    },
     "Tudo dentro dele é criptografado aqui no iPhone. Sem a senha, o arquivo não diz de quem é, quantas palavras guarda nem o que tem dentro." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -171998,6 +172339,21 @@
         }
       }
     },
+    "Usar o do iPhone" : {
+
+    },
+    "Usar o teclado do iPhone" : {
+
+    },
+    "Usar o teclado do iPhone nesta tela" : {
+
+    },
+    "Usar o teclado do iPhone?" : {
+
+    },
+    "Usar o teclado próprio" : {
+
+    },
     "Use 3 palavras ou mais." : {
       "localizations" : {
         "ar" : {
@@ -172225,6 +172581,9 @@
           }
         }
       }
+    },
+    "Use sempre a primeira conta do outro app. Digite as palavras em minúsculas, com um espaço entre elas." : {
+
     },
     "Vai para a sua própria conta na %@, o mesmo endereço" : {
       "localizations" : {
@@ -176419,6 +176778,9 @@
         }
       }
     },
+    "VoiceOver ligado" : {
+
+    },
     "Voltar" : {
       "localizations" : {
         "ar" : {
@@ -177178,6 +177540,9 @@
           }
         }
       }
+    },
+    "Xaman, em Importar com frase, ou Trust Wallet." : {
+
     },
     "Zerar a autorização atual (exigência do %@)" : {
       "localizations" : {
@@ -181372,7 +181737,11 @@
         }
       }
     },
+    "palavras" : {
+
+    },
     "palavras na senha" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -182582,6 +182951,7 @@
       }
     },
     "Área de transferência" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -182809,8 +183179,12 @@
         }
       }
     },
-    "••••••" : {},
-    "≈ %@" : {},
+    "••••••" : {
+
+    },
+    "≈ %@" : {
+
+    },
     "≈ %@ hoje" : {
       "localizations" : {
         "ar" : {

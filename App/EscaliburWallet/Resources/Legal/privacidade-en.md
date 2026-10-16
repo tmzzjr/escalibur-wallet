@@ -15,7 +15,7 @@ Escalibur Wallet is offered by X TECH A.I FUND HOLDING E PARTICIPACOES LTDA, CNP
 
 ## What Escalibur receives
 
-Nothing. The app has no usage analytics, crash reporting, ads or tracking, and talks to no Escalibur server. The code is open, and an automatic check rejects any library of that kind.
+Nothing. The app has no usage analytics, crash reporting, ads or tracking, and talks to no Escalibur server. The code is published for audit, and an automatic check rejects any library of that kind.
 
 ## Who the app talks to
 
@@ -76,4 +76,4 @@ Questions about this policy or about your data: thomaz@xtech.international. An e
 
 ## Changes
 
-Changes to this policy come with a new version of the app and are recorded in the open source code.
+Changes to this policy come with a new version of the app and are recorded in the published code.

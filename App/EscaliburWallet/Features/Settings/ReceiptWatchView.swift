@@ -178,52 +178,104 @@ struct ReceiptWatchOffer: View {
     @Environment(AppSession.self) private var session
     let onDone: () -> Void
     @State private var working = false
+    @State private var shownArrival = false
+    /// Quantas vezes o dono girou a moeda: cada giro troca o valor que chegou.
+    @State private var arrivals = 0
 
-    /// O preco do aviso, igual aqui e em Ajustes.
+    /// Valores de exemplo, nunca um saldo de verdade.
+    private static let samples: [Double] = [0.0042, 0.015, 0.0008, 0.12]
+
+    /// O aviso de exemplo, como o iPhone mostraria.
+    private var arrival: some View {
+        let amount = Self.samples[arrivals % Self.samples.count]
+        return HStack(spacing: Space.xs) {
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Palette.success)
+            Text("Chegou \(amount.formatted(.number.precision(.fractionLength(2...4)).locale(Fmt.locale))) BTC")
+                .typeStyle(.row).foregroundStyle(Palette.ink)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, Space.md).frame(height: 40)
+        .background(Capsule().fill(Palette.control))
+        .overlay(Capsule().stroke(Palette.edge, lineWidth: 1))
+        .accessibilityHidden(true)
+    }
+
+    /// O preco do aviso, dito em Ajustes, Aviso de recebimento.
     static var price: String {
         String(localized: "Para conferir com o iPhone bloqueado, os endereços públicos das suas carteiras e o último saldo visto de cada moeda ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Quem extrair os dados de um iPhone nesse estado lê esses endereços. Nenhuma chave, frase ou nome de carteira entra nele.")
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Image(systemName: "arrow.down.circle")
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(Palette.ink)
-                .frame(width: 56, height: 56)
-                .background(Circle().fill(Palette.control))
-            Text("Avisar quando chegar moeda?").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("O próprio iPhone confere o saldo e avisa, sem servidor da Escalibur no caminho.")
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(Self.price)
-                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.md)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("Carteiras com passphrase ficam de fora. Dá para mudar em Ajustes, Aviso de recebimento.")
-                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: Space.lg)
-            PrimaryButton(title: String(localized: "Ligar o aviso"), loading: working) {
-                working = true
-                Task {
-                    await ReceiptAccounts.accept(session)
-                    working = false
+        ScrollView {
+            VStack(spacing: 0) {
+                // A moeda girando, que o dedo gira, e o aviso de que ela chegou (pedido do
+                // dono, 16/10/2026). Cada giro do dono faz chegar mais uma.
+                ZStack(alignment: .top) {
+                    SpinningCoin { withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) { arrivals += 1 } }
+                        .frame(height: 200)
+                        // Um respiro entre a notificacao e a moeda (pedido do dono, 16/10/2026).
+                        .padding(.top, 60)
+                    if shownArrival {
+                        arrival
+                            .id(arrivals)
+                            .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity),
+                                                    removal: .opacity))
+                    }
+                }
+                .frame(height: 268)
+                .frame(maxWidth: .infinity)
+
+                Text("Avisar quando chegar moeda?").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("O próprio iPhone confere o saldo e avisa, sem servidor da Escalibur no caminho.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Os dois itens do arquivo a parte sairam a pedido do dono (16/10/2026): o preco
+                // inteiro continua em Ajustes, Aviso de recebimento (`price`).
+                Text("Carteiras com passphrase ficam de fora. Dá para mudar em Ajustes, Aviso de recebimento.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.lg)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, Space.gutter)
+            // Tudo um pouco mais para baixo, mais perto do centro da folha.
+            .padding(.top, Space.xl + Space.sm)
+            .padding(.bottom, Space.md)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: Space.sm) {
+                PrimaryButton(title: String(localized: "Ligar o aviso"), loading: working) {
+                    working = true
+                    Task {
+                        await ReceiptAccounts.accept(session)
+                        working = false
+                        onDone()
+                    }
+                }
+                .accessibilityIdentifier("recebimento-oferta-ligar")
+                SecondaryButton(title: String(localized: "Agora não")) {
+                    Preferences.receiptWatchChosen = true
+                    Preferences.receiptOfferSeen = true
+                    // Ligado pelo padrao antigo, sem a folha: o "nao" desliga e apaga o arquivo.
+                    Task { await ReceiptWatchCenter.shared.disable() }
                     onDone()
                 }
             }
-            .accessibilityIdentifier("recebimento-oferta-ligar")
-            SecondaryButton(title: String(localized: "Agora não")) {
-                Preferences.receiptWatchChosen = true
-                Preferences.receiptOfferSeen = true
-                // Ligado pelo padrao antigo, sem a folha: o "nao" desliga e apaga o arquivo.
-                Task { await ReceiptWatchCenter.shared.disable() }
-                onDone()
-            }
+            .padding(.horizontal, Space.gutter)
             .padding(.top, Space.sm)
+            .padding(.bottom, Space.xs)
+            .background(Palette.body)
         }
-        .padding(.horizontal, Space.gutter)
-        .padding(.top, Space.lg)
-        .padding(.bottom, Space.xs)
+        .task {
+            guard !shownArrival else { return }
+            try? await Task.sleep(for: .milliseconds(900))
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) { shownArrival = true }
+        }
+        .sensoryFeedback(.success, trigger: arrivals)
         .presentationDetents([.large])
         .presentationBackground(Palette.body)
         .presentationCornerRadius(Radius.sheet)

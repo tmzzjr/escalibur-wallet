@@ -27,7 +27,8 @@ Auditoria de segurança completa pedida pelo dono, com sete revisores em paralel
 |---|---|---|
 | C7-08 | A documentação pública afirmava mais do que o código fazia (escada, `kern.bootsessionuuid`, K_dev no diagrama, revelação com biometria, 60 s, widgets, QR com frase). | Feito em docs/seguranca.md. |
 | C7-10 | Ligar o Face ID com o PIN que disparava o apagar-após-N deixava a sessão aberta. | Feito. |
-| C7-12 | O texto da importação prometia cada letra cifrada, mas as sugestões e o teclado mostram a palavra. | Texto corrigido. O teclado BIP-39 próprio (que fecha também N1 e N4) fica para depois. |
+| C7-12 | O texto da importação prometia cada letra cifrada, mas as sugestões e o teclado mostram a palavra. | Feito. Texto corrigido, e o teclado BIP-39 próprio (opcional, sempre ligado no modo reforçado e na conferência para ligá-lo), revisado antes do commit: a revisão achou a conferência ainda no teclado do sistema, a troca de palavra de outro idioma no Seguinte e textos que prometiam demais, fechados antes do commit. |
+| C7-09 | Não havia folha de recuperação por rede, e a tela prometia "qualquer carteira BIP-39". | Feito. Ajustes, na carteira, "Abrir em outro app": rede por rede, os apps que abrem a mesma conta, a armadilha de cada uma e quem aceita a passphrase, sem segredo nenhum (`RecoveryGuideView`). O texto da carteira criada e o da passphrase dizem o que vale. |
 | C7-13 | QR com a frase não era recusado e ia em claro para o campo do destino. | Feito, no envio e em Endereços salvos, também para o SeedQR. |
 | C7-19 / R7-B3 | O widget mostrava a moeda recebida com o aviso discreto. | Feito. |
 | C7-20 | Remover carteira engolia a falha do chaveiro: a carteira saía da lista e a frase podia ficar. | Feito. |
@@ -49,7 +50,7 @@ Auditoria de segurança completa pedida pelo dono, com sete revisores em paralel
 | C7-21 | Segredos em memória por mais tempo. | Feito no cofre: senha do SE zerada e contextos invalidados. A frase durante a escolha da senha do envelope continua em memória. |
 | B3 | Ed25519 deixava intermediários do segredo no heap. | Feito: área de trabalho fixa, zerada; o estado do SHA-512 fica como limite documentado. |
 | B-4, B-8, B-10 (revisão do envio) | Link de outra rede aceito na tela de Bitcoin; frase colada em campo de endereço; nenhum teste do M até o XDR. | Feito. |
-| C7-09, C7-12, C7-23, B-5, B-6, B-9 | Folha de recuperação por rede; teclado BIP-39 próprio (fecha também N1 e N4); Enhanced Security e pilha zerada no C; sósias de ponta curta onde a tela come o prefixo; troca só do ID num M; contas com nome da NEAR. | Abertos. |
+| C7-23, B-5, B-6, B-9 | Enhanced Security e pilha zerada no C; sósias de ponta curta onde a tela come o prefixo; troca só do ID num M; contas com nome da NEAR. | Em revisão, em ramos à parte. |
 
 ## Depois: o modo reforçado
 

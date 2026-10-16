@@ -4,11 +4,11 @@ import XCTest
 /// "Sua carteira, so sua" virou o tour depois do primeiro PIN (15/10/2026).
 extension XCUIApplication {
     /// A checagem do aparelho: espera terminar e segue. Com aviso (simulador: jailbreak so
-    /// vale no iPhone), marca o "Entendo o risco" quando ele aparece.
+    /// vale no iPhone), marca o "Estou ciente" quando ele aparece.
     func passDeviceCheck() {
         let slider = descendants(matching: .any)["deslizar-digitar"].firstMatch
         XCTAssertTrue(slider.waitForExistence(timeout: 15), "a checagem do aparelho nao apareceu")
-        let risk = switches["Entendo o risco e quero seguir mesmo assim"]
+        let risk = buttons["checagem-ciente"]
         // A conferencia termina quando o slider passa a dizer o que faz.
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label BEGINSWITH 'Deslize para'"), object: slider)], timeout: 20)
         let done = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: slider)
@@ -17,6 +17,16 @@ extension XCUIApplication {
         }
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: slider)], timeout: 5)
         slideToConfirm(slider)
+    }
+
+    /// Digita uma palavra no teclado proprio do app, tecla por tecla, e fecha com o Seguinte.
+    func typeOnOwnKeyboard(_ word: String) {
+        for letter in word {
+            let key = buttons["teclado-\(letter)"]
+            XCTAssertTrue(key.waitForExistence(timeout: 10), "tecla \(letter)")
+            key.tap()
+        }
+        buttons["teclado-seguinte"].tap()
     }
 
     /// Toca quando o botao habilita: depois de um aceite, ele habilita um instante depois.

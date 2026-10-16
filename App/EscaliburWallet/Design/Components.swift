@@ -163,6 +163,47 @@ struct Chip: View {
     }
 }
 
+// MARK: Aceite
+
+/// A caixa de marcar de um aceite: o dono declara, com um toque, que leu o que esta
+/// escrito. O mesmo desenho dos aceites da importacao e do modo reforcado.
+struct ConsentCheckbox: View {
+    @Binding var checked: Bool
+    let text: String
+
+    var body: some View {
+        Button { checked.toggle() } label: {
+            HStack(alignment: .top, spacing: Space.sm) {
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(checked ? Palette.control : Palette.void)
+                    .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(checked ? Palette.inkSoft : Palette.edgeStrong, lineWidth: 1.5))
+                    .overlay {
+                        if checked {
+                            Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(Palette.ink)
+                                .transition(.scale(scale: 0.6).combined(with: .opacity))
+                        }
+                    }
+                    .frame(width: 24, height: 24)
+                    .padding(.top, 1)
+                Text(text)
+                    .typeStyle(.note).foregroundStyle(checked ? Palette.ink : Palette.inkSoft)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(Space.md)
+            .contentShape(Rectangle())
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: checked)
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: checked)
+        .accessibilityValue(checked ? "Marcado" : "Desmarcado")
+        .accessibilityAddTraits(checked ? .isSelected : [])
+    }
+}
+
 // MARK: Escolha exclusiva
 
 /// O unico desenho de escolha exclusiva do app ("Imediata | Limite", "12 | 24

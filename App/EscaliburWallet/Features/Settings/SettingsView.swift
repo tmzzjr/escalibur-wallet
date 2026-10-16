@@ -60,7 +60,7 @@ struct SettingsView: View {
                         }
                         .accessibilityIdentifier("ajustes-suporte")
                         NavigationLink { AboutView() } label: {
-                            SettingsRow(icon: "info.circle", title: String(localized: "Taxas, código aberto e versão"))
+                            SettingsRow(icon: "info.circle", title: String(localized: "Taxas, código auditável e versão"))
                         }
                     }
                 }
@@ -247,6 +247,10 @@ struct WalletSettingsView: View {
                             NavigationLink { PassphraseWalletView(base: wallet) } label: {
                                 SettingsRow(icon: "key.horizontal", title: String(localized: "Abrir ou criar com passphrase"))
                             }
+                            NavigationLink { RecoveryGuideView(wallet: wallet) } label: {
+                                SettingsRow(icon: "arrow.up.forward.app", title: String(localized: "Abrir em outro app"))
+                            }
+                            .accessibilityIdentifier("abrir-outro-app")
                         }
                         .padding(.top, Space.lg)
                     }
@@ -377,6 +381,11 @@ struct SecuritySettingsView: View {
                                     value: session.hardenedModeOn ? String(localized: "Ligado") : String(localized: "Desligado"))
                     }
                     .accessibilityIdentifier("ajustes-reforcado")
+                    NavigationLink { OwnKeyboardView() } label: {
+                        SettingsRow(icon: "keyboard", title: String(localized: "Teclado próprio"),
+                                    value: session.ownKeyboardOn ? String(localized: "Ligado") : String(localized: "Desligado"))
+                    }
+                    .accessibilityIdentifier("ajustes-teclado")
                     if !session.hardenedModeOn {
                     Toggle(isOn: Binding(get: { biometryOn }, set: { on in
                         if on { biometryPIN = true } else { Task { await turnBiometryOff() } }
@@ -746,7 +755,7 @@ struct NetworksSettingsView: View {
                                 Text(chain.name).typeStyle(.body).foregroundStyle(Palette.ink)
                             }
                         }
-                        .tint(Palette.accent)
+                        .tint(Palette.success)
                         .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     }
                 }
@@ -771,8 +780,10 @@ struct AboutView: View {
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 }
                 VStack(alignment: .leading, spacing: Space.xs) {
-                    Text("Código aberto").typeStyle(.heading).foregroundStyle(Palette.ink)
-                    Text("Todo o código que guarda chaves, assina e fala com as redes é aberto e conferível. As bibliotecas de criptografia são compiladas do fonte e travadas por digesto.")
+                    // Publicado para auditoria, nao de codigo aberto: a licenca deixa ler e conferir,
+                    // nao reaproveitar (LICENSE, 16/10/2026).
+                    Text("Código auditável").typeStyle(.heading).foregroundStyle(Palette.ink)
+                    Text("Todo o código que guarda chaves, assina e fala com as redes é publicado para quem quiser auditar, linha por linha. A licença deixa ler e conferir, não reaproveitar. As bibliotecas de criptografia são compiladas do fonte e travadas por digesto.")
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                     Text("Versão \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""))")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)

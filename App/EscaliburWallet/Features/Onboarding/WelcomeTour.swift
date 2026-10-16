@@ -38,7 +38,7 @@ struct WelcomeTour: View {
                 .tag(0)
                 TourPage(
                     title: String(localized: "Só você assina"),
-                    text: String(localized: "Antes de cada envio, você vê o que sai e para onde, e confirma com o seu \(KeyServices.biometryName) ou PIN. O código é aberto: qualquer pessoa pode conferir.")
+                    text: String(localized: "Antes de cada envio, você vê o que sai e para onde, e confirma com o seu \(KeyServices.biometryName) ou PIN. O código é publicado para auditoria: qualquer pessoa pode conferir.")
                 ) { SignScene(active: page == 1) }
                 .tag(1)
             }
@@ -216,17 +216,9 @@ private struct SignScene: View {
     @State private var confirmed = false
     /// O giro do dedo: o que esta sendo arrastado agora e o embalo depois de soltar.
     @State private var dragTurn: Double = 0
-    @State private var release: Release?
-
-    struct Release {
-        let from: Double
-        let to: Double
-        let at: Date
-    }
+    @State private var release: CoinMotion.Release?
 
     static let slowTurn = 3.4
-    /// Quanto o dedo precisa andar, em pontos, para a moeda girar um radiano.
-    static let pointsPerRadian = 55.0
     static let finale = 1.1
 
     var body: some View {
@@ -234,12 +226,12 @@ private struct SignScene: View {
             Spacer(minLength: 0)
             TimelineView(.animation(minimumInterval: 1 / 60, paused: !active || reduceMotion)) { timeline in
                 let t = reduceMotion ? 10 : start.map { timeline.date.timeIntervalSince($0) } ?? 0
-                let angle = Self.angle(t: t, confirmedAt: reduceMotion ? 0 : confirmedAt) + Self.handTurn(release, at: timeline.date) + dragTurn
+                let angle = Self.angle(t: t, confirmedAt: reduceMotion ? 0 : confirmedAt) + CoinMotion.handTurn(release, at: timeline.date) + dragTurn
                 let enter = 1 - pow(1 - Self.clamp(t / 0.6), 3)
                 let bob = 4 * sin(t * 1.6)
                 ZStack {
                     // A sombra no chao, que encolhe quando a moeda sobe e quando ela esta de lado.
-                    Canvas { context, size in Self.drawShadow(&context, size: size, angle: angle, bob: bob, enter: enter) }
+                    Canvas { context, size in CoinMotion.drawShadow(&context, size: size, angle: angle, bob: bob, enter: enter) }
                     BitcoinCoin3D(angle: angle)
                         .opacity(enter)
                         .scaleEffect(0.8 + 0.2 * enter)
@@ -248,15 +240,15 @@ private struct SignScene: View {
             }
             .frame(height: 200)
             .contentShape(Rectangle())
-            .onTapGesture { spin(to: Self.handTurn(release, at: Date()), extra: 2 * .pi) }
+            .onTapGesture { release = CoinMotion.release(from: CoinMotion.handTurn(release, at: Date()), extra: 2 * .pi) }
             .highPriorityGesture(
                 DragGesture(minimumDistance: 6)
-                    .onChanged { dragTurn = $0.translation.width / Self.pointsPerRadian }
+                    .onChanged { dragTurn = $0.translation.width / CoinMotion.pointsPerRadian }
                     .onEnded { value in
-                        let momentum = (value.predictedEndTranslation.width - value.translation.width) / Self.pointsPerRadian
-                        let from = Self.handTurn(release, at: Date()) + dragTurn
+                        let momentum = (value.predictedEndTranslation.width - value.translation.width) / CoinMotion.pointsPerRadian
+                        let from = CoinMotion.handTurn(release, at: Date()) + dragTurn
                         dragTurn = 0
-                        spin(to: from, extra: momentum)
+                        release = CoinMotion.release(from: from, extra: momentum)
                     }
             )
             biometry
@@ -317,20 +309,6 @@ private struct SignScene: View {
 
     private static func clamp(_ value: Double) -> Double { min(max(value, 0), 1) }
 
-    /// O giro do dedo num instante: o embalo desacelera e para numa volta inteira.
-    static func handTurn(_ release: Release?, at date: Date) -> Double {
-        guard let release else { return 0 }
-        let p = clamp(date.timeIntervalSince(release.at) / 1.2)
-        return release.from + (release.to - release.from) * (1 - pow(1 - p, 3))
-    }
-
-    /// Solta a moeda em `from` com `extra` de embalo: ela para de frente, na volta inteira
-    /// mais perto de onde o embalo a levaria.
-    private func spin(to from: Double, extra: Double) {
-        let full = 2 * Double.pi
-        release = Release(from: from, to: ((from + extra) / full).rounded() * full, at: Date())
-    }
-
     /// O angulo da moeda: giro lento ate a confirmacao; depois, um giro rapido que para de
     /// frente numa volta inteira.
     static func angle(t: Double, confirmedAt: Double?) -> Double {
@@ -341,16 +319,5 @@ private struct SignScene: View {
         let to = (floor(from / (2 * .pi)) + 2) * 2 * .pi
         let p = clamp((t - confirmedAt) / finale)
         return from + (to - from) * (1 - pow(1 - p, 3))
-    }
-
-    /// A sombra no chao, embaixo da moeda.
-    static func drawShadow(_ context: inout GraphicsContext, size: CGSize, angle: Double, bob: Double, enter: Double) {
-        let diameter = Double(size.height) * 0.7
-        let floorY = size.height / 2 + diameter * 0.56
-        let width = diameter * (0.7 - bob * 0.01) * max(abs(cos(angle)), 0.35)
-        let center = size.width / 2
-        context.fill(Path(ellipseIn: CGRect(x: center - width / 2, y: floorY - 6, width: width, height: 12)),
-                     with: .radialGradient(Gradient(colors: [.black.opacity(0.45 * enter), .clear]),
-                                           center: CGPoint(x: center, y: floorY), startRadius: 0, endRadius: width / 2))
     }
 }

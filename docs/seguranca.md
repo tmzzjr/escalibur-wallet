@@ -786,8 +786,15 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
 - **Teclados**:
   - `application(_:shouldAllowExtensionPointIdentifier:)` devolve falso para `.keyboard`.
   - Campos de frase e senha com `autocorrectionType = .no`, `spellCheckingType = .no`, `smartInsertDeleteType = .no`, `inlinePredictionType = .no` (iOS 17), `writingToolsBehavior = .none` (iOS 18), `isSecureTextEntry = true`, `textContentType = nil`.
-  - Para a frase, o preferível é um seletor de palavras BIP-39 do próprio app: sem teclado do sistema, sem ditado, sem aprendizado de vocabulário.
+  - Teclado próprio das palavras (`WordKeyboardView`, como `inputView` do campo), opcional em Ajustes, Segurança, desligado por padrão, sempre ligado no modo reforçado e na conferência das palavras para ligá-lo (16/10/2026, fecha C7-12):
+    - O teclado do iPhone não recebe as letras: sem previsão, ditado, aprendizado de vocabulário nem balão da tecla.
+    - Só acendem as letras que ainda formam uma palavra das listas latinas (`WordLexicon`, no Kit). A forma sem acento é única em cada uma das seis listas, e no fim a frase digitada sem acento é resolvida no idioma em que ela fecha (`WordLexicon.resolve`).
+    - O campo (`WordTextField`) recusa o ditado quando o iOS informa o modo ditado (a conferir no aparelho) e, com o teclado próprio, recusa colar e ler texto pela câmera pelo menu e qualquer letra que não forme palavra das listas latinas, venha do teclado físico ou do Mac.
+    - O idioma das palavras já fechadas só ordena as sugestões, nunca apaga letra; as palavras fechadas são lidas direto dos buffers seguros, sem virar `String`.
+    - O globo pergunta antes de trazer o teclado do iPhone, só para frases em japonês, chinês ou coreano.
+    - Limite dito na tela: as sugestões e as teclas acesas mostram a palavra. O texto em digitação continua numa `String` do campo, como antes.
   - PIN pelo teclado próprio.
+- **Rede na tela das palavras**: enquanto o formulário de importar ou conferir as palavras está aberto, o `HTTPClient` fica em silêncio (`beginQuiet`/`endQuiet`): nenhuma requisição sai, e as que estavam no ar são canceladas. A conferência da frase é toda local (checksum BIP-39 sobre as listas embarcadas). A conferência dos endereços, depois, volta a ler a rede.
 - **Área de transferência**:
   - A frase só vai para a área de transferência pelo botão Copiar da chapa com todas as palavras, depois da `CopyPhraseSheet`: três "estou ciente" (qualquer app aberto pode ler a cópia; colar num site, chat ou nota pode custar o saldo; a Escalibur nunca pede as palavras) liberam o botão. A cópia é `.localOnly` (o Universal Clipboard não leva ao Mac) e expira em 60 s. Pedido do dono, 15/10/2026. Risco aceito: um app aberto dentro desse minuto lê a frase; o aviso diz isso com essas palavras. Fora desse botão, `.textSelection(.disabled)`.
   - Endereços: `UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: endereço]], options: [.localOnly: true, .expirationDate: agora + 120 s])`.

@@ -309,6 +309,8 @@ struct DemoEnvelopes: ViewModifier {
                         WalletCreatedView(wallet: wallet, isFirst: false) { newWallet = nil }
                     }
                 case .checagem: NavigationStack { DeviceCheckView {} }
+                // `-tela aviso`: a folha que oferece o aviso de recebimento.
+                case .aviso: ReceiptWatchOffer { newWallet = nil }
                 // `-tela transacao` com `-transacao recebida|enviada|troca`: o detalhe de
                 // uma transacao inventada, sem rede.
                 case .transacao: NavigationStack { ActivityDetailView(entry: DemoNewWallet.sampleEntry) }
@@ -346,7 +348,7 @@ struct DemoEnvelopes: ViewModifier {
 
 /// As telas de carteira nova que `-tela` abre direto.
 enum DemoNewWallet: String, Identifiable {
-    case adicionar, criar, seguranca, observar, promessa, checagem, frase, selo, criada, palavras, transacao, camera
+    case adicionar, criar, seguranca, observar, promessa, checagem, frase, selo, criada, palavras, transacao, camera, aviso
     var id: String { rawValue }
 
     static var sampleEntry: ActivityEntry {
