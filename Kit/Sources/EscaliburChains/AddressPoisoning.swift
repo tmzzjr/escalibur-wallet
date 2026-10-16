@@ -63,9 +63,43 @@ public enum AddressPoisoning {
                 if tail >= cardanoSameStakeSuffix, cardanoSameStakeOtherPayment(address, other) { return true }
             }
             if head >= minimumPrefix && tail >= minimumSuffix && head + tail >= minimumTotal { return true }
+            if chain.family == .near, !isHex64(candidate), !isHex64(target.body), similarNames(candidate, target.body) { return true }
             guard let single = singleEndLength(chain, candidate, target.body) else { return false }
             return max(head, tail) >= single
         }
+    }
+
+    /// Dois nomes da NEAR parecidos entre si: ate 2 edicoes (letra trocada, posta ou
+    /// tirada) com corpo de 8 ou mais, ou um comeco comum que cobre o nome menor menos 2.
+    /// Registrar um nome sob ".near" custa centavos e nao pede nenhum caractere gerado:
+    /// "coinbase-hot-wa11et", "coinbase-hot-wallets" e "binance-deposit-02" imitam
+    /// "coinbase-hot-wallet" e "binance-deposit-01" so com o fim mudado, e o fim do corpo,
+    /// sem o ".near", ja nao contava como ponta (revisao do B-9).
+    static func similarNames(_ a: String, _ b: String) -> Bool {
+        let shorter = min(a.count, b.count)
+        if commonPrefix(a, b) >= max(nameSharedPrefix, shorter - 2) { return true }
+        return shorter >= nameMinimumForEdits && editDistance(a, b, limit: nameEdits) <= nameEdits
+    }
+
+    static let nameSharedPrefix = 6
+    static let nameMinimumForEdits = 8
+    static let nameEdits = 2
+
+    /// Distancia de edicao (Levenshtein) entre `a` e `b`, parando em `limit + 1`.
+    static func editDistance(_ a: String, _ b: String, limit: Int) -> Int {
+        let x = Array(a.utf8), y = Array(b.utf8)
+        guard abs(x.count - y.count) <= limit else { return limit + 1 }
+        guard !x.isEmpty, !y.isEmpty else { return max(x.count, y.count) }
+        var previous = Array(0...y.count)
+        for i in 1...x.count {
+            var current = [i] + [Int](repeating: 0, count: y.count)
+            for j in 1...y.count {
+                current[j] = min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (x[i - 1] == y[j - 1] ? 0 : 1))
+            }
+            if current.min()! > limit { return limit + 1 }
+            previous = current
+        }
+        return min(previous[y.count], limit + 1)
     }
 
     /// Um endereco como a comparacao le, em minusculas: `text`, tudo depois do prefixo da
@@ -93,10 +127,12 @@ public enum AddressPoisoning {
             return singleEnd
         case .near:
             // Conta com nome e escolhida letra a letra, e nomes com o mesmo comeco ou o
-            // mesmo fim sao comuns ("alex...", "...-wallet"): a ponta so vale entre contas
-            // implicitas, 64 caracteres hexadecimais. Pelo tamanho so, um nome de 64 letras
-            // tambem entrava (revisao dos enderecos parecidos, B-9).
-            return isHex64(a) && isHex64(b) ? singleEnd : nil
+            // mesmo fim sao comuns ("alex...", "...-wallet"): entre dois nomes a ponta so nao
+            // vale, e a regra e a de `similarNames`. Com uma conta implicita (64 caracteres
+            // hexadecimais) de um lado, vale: um nome feito dos 59 primeiros hex de uma
+            // implicita, mais ".near", e um sosia dela. Pelo tamanho so, um nome de 64
+            // letras tambem entrava (revisao dos enderecos parecidos, B-9).
+            return isHex64(a) || isHex64(b) ? singleEnd : nil
         case .ton:
             // A grafia crua ("0:" e 64 hex) e hexadecimal; a amigavel, base64.
             return isHex64(a) && isHex64(b) ? singleEnd : singleEndWide

@@ -268,12 +268,46 @@ struct AddressPoisoningTests {
         #expect(AddressPoisoning.lookalike("binance-hot-wallet.near", among: ["binance-hot-wallet.near"], chain: .near) == nil)
     }
 
+    @Test("NEAR: nome que imita outro nome, ou o comeco de uma implicita, continua marcado")
+    func nearNameMimics() {
+        // O nome feito dos 59 primeiros hex de uma implicita, mais ".near": entre nome e
+        // implicita, a ponta so com 5 vale sobre o corpo.
+        let implicit = NEARAccountTests.implicit
+        let mimic = String(implicit.prefix(59)) + ".near"
+        #expect(NEARAccountID.parse(mimic).map(\.kind) == .success(.named))
+        #expect(AddressPoisoning.lookalike(mimic, among: [implicit], chain: .near) == implicit)
+        #expect(AddressPoisoning.lookalike(implicit, among: [mimic], chain: .near) == mimic)
+        // Um nome de 64 que troca uma letra da implicita por uma que nao e hex.
+        for fake in ["g" + implicit.dropFirst(), "9g" + implicit.dropFirst(2), String(implicit.dropLast()) + "g"] {
+            #expect(AddressPoisoning.lookalike(fake, among: [implicit], chain: .near) == implicit, "\(fake)")
+        }
+        // Nomes que imitam um nome: uma ou duas edicoes, ou o nome inteiro com algo no fim.
+        let hot = "coinbase-hot-wallet.near"
+        for fake in ["coinbase-hot-wallets.near", "coinbase-hot-wallet1.near", "coinbase-hot-wa11et.near", "c0inbase-hot-wallet.near",
+                     "coinbase-hot-walet.near", "xcoinbase-hot-wallet.near", "coinbase-hot-wallet-tg.near", "coinbase-hot-wallet.tg"] {
+            #expect(AddressPoisoning.lookalike(fake, among: [hot], chain: .near) == hot, "\(fake)")
+        }
+        #expect(AddressPoisoning.lookalike("binance-deposit-02.near", among: ["binance-deposit-01.near"], chain: .near) == "binance-deposit-01.near")
+        #expect(AddressPoisoning.lookalike("binance-hot.near", among: ["binance-hot-wallet.near"], chain: .near) == "binance-hot-wallet.near")
+        // E os falsos positivos que o registro tirou continuam fora.
+        #expect(AddressPoisoning.lookalike("alexis-exchange.near", among: ["alexander-wallet.near"], chain: .near) == nil)
+        #expect(AddressPoisoning.lookalike("bob-savings-account.tg", among: ["bob-trading-desk.tg"], chain: .near) == nil)
+        #expect(AddressPoisoning.lookalike("someone-else-wallet.near", among: ["my-own-main-wallet.near"], chain: .near) == nil)
+        #expect(AddressPoisoning.lookalike("alice-savings.near", among: ["alice-spending.near"], chain: .near) == nil)
+        // Distancia de edicao, com limite.
+        #expect(AddressPoisoning.editDistance("coinbase-hot-wallet", "coinbase-hot-wa11et", limit: 2) == 2)
+        #expect(AddressPoisoning.editDistance("wallet", "wallets", limit: 2) == 1)
+        #expect(AddressPoisoning.editDistance("abc", "abc", limit: 2) == 0)
+        #expect(AddressPoisoning.editDistance("alexis-exchange", "alexander-wallet", limit: 2) == 3)
+    }
+
     /// Os pares marcados entre todos os pares de `addresses`. So pode marcar o par com 4 ou
     /// mais caracteres iguais numa ponta do corpo: a regra de ponta so pede 4 ou 5, e a das
     /// duas pontas (3 e 3, com 7 no total) tem uma delas com 4. Esses pares saem de baldes
     /// pelos 4 primeiros e pelos 4 ultimos do corpo, e so eles passam por `lookalike`; o
     /// resto conta no total, sem marcar. A regra do stake da Cardano pede o mesmo stake,
-    /// que bytes ao acaso nao repetem.
+    /// que bytes ao acaso nao repetem, e a dos nomes da NEAR so vale entre dois nomes (as
+    /// contas da NEAR aqui sao implicitas).
     static func falsePositives(_ addresses: [String], chain: Chain) -> (flagged: Int, pairs: Int) {
         let n = addresses.count
         var buckets: [String: [Int]] = [:]
