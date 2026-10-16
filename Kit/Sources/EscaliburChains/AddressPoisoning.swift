@@ -75,7 +75,14 @@ public enum AddressPoisoning {
     /// "coinbase-hot-wa11et", "coinbase-hot-wallets" e "binance-deposit-02" imitam
     /// "coinbase-hot-wallet" e "binance-deposit-01" so com o fim mudado, e o fim do corpo,
     /// sem o ".near", ja nao contava como ponta (revisao do B-9).
+    ///
+    /// As duas regras valem tambem sobre o nome como o olho le (`visualFold`): com tres
+    /// trocas ou mais, "coinbase-h0t-wa11et" e "binanse-dep0sit-07" passavam.
     static func similarNames(_ a: String, _ b: String) -> Bool {
+        similarSpelling(a, b) || similarSpelling(visualFold(a), visualFold(b))
+    }
+
+    static func similarSpelling(_ a: String, _ b: String) -> Bool {
         let shorter = min(a.count, b.count)
         if commonPrefix(a, b) >= max(nameSharedPrefix, shorter - 2) { return true }
         return shorter >= nameMinimumForEdits && editDistance(a, b, limit: nameEdits) <= nameEdits
@@ -84,6 +91,23 @@ public enum AddressPoisoning {
     static let nameSharedPrefix = 6
     static let nameMinimumForEdits = 8
     static let nameEdits = 2
+
+    /// Pares de letras que se leem como uma so, e os caracteres que se passam por outros
+    /// num nome de conta (so minusculas, algarismos, "-", "_" e "."): "rn" por "m", "vv" por
+    /// "w", "cl" por "d", "0" por "o", "5" por "s", e "1", "i" e "l" juntos. Ficam de fora o
+    /// "_" no lugar do "-" (ja e uma edicao, e dobrado somava nomes de numeros diferentes,
+    /// "camila-5948" e "camila_9998") e os algarismos que so lembram letras (2, 6, 8, 9),
+    /// que transformavam numeros em palavras ("andrew-9016" e "andrew-gomes") sem ganhar
+    /// sosia nenhum nas amostras (teste `nearVisualMimics`).
+    static let visualPairs: [(String, String)] = [("rn", "m"), ("vv", "w"), ("cl", "d")]
+    static let visualSingles: [Character: Character] = ["0": "o", "1": "l", "i": "l", "5": "s"]
+
+    /// O nome como o olho le: dois nomes que so diferem por um sosia visual dobram no mesmo.
+    static func visualFold(_ name: String) -> String {
+        var text = name
+        for (pair, single) in visualPairs { text = text.replacingOccurrences(of: pair, with: single) }
+        return String(text.map { visualSingles[$0] ?? $0 })
+    }
 
     /// Distancia de edicao (Levenshtein) entre `a` e `b`, parando em `limit + 1`.
     static func editDistance(_ a: String, _ b: String, limit: Int) -> Int {

@@ -342,6 +342,40 @@ struct AddressPoisoningTests {
         #expect(AddressPoisoning.editDistance("alexis-exchange", "alexander-wallet", limit: 2) == 3)
     }
 
+    /// Tres trocas ou mais por sosias visuais (0 por o, 1 por l, rn por m...) escapavam da
+    /// distancia de edicao. Com o nome dobrado como o olho le, deixam de escapar.
+    ///
+    /// Falso positivo nome contra nome, medido em 16/10/2026 com as amostras do revisor
+    /// (contas com nome de 16 caracteres ou mais, todos os pares, por `lookalike`):
+    ///
+    ///     amostra                          nomes      pares    marcados   por par
+    ///     contas reais da mainnet           319      50.721       59      1,2e-3
+    ///     nomes plausiveis (sinteticos)    2404   2.888.406     2124      7,4e-4
+    ///
+    /// A dobra visual nao acrescenta nenhum par nas contas reais e 6 nos plausiveis
+    /// (2,1e-6 por par), como "larissa_clark" e "larissa_davis" (o "cl" lido como "d").
+    /// Dobrando tambem 2, 6, 8 e 9, eram 13; com o "_" ainda, 120.
+    /// Quase todo o resto vem das duas pontas iguais, que ja valiam no main: nomes da NEAR
+    /// repetem comeco e fim ("...-wallet", "alex...") por desenho.
+    @Test("NEAR: sosias visuais em tres trocas ou mais tambem sao marcados")
+    func nearVisualMimics() {
+        #expect(AddressPoisoning.visualFold("c0inbase-h0t-wa11et") == AddressPoisoning.visualFold("coinbase-hot-wallet"))
+        #expect(AddressPoisoning.visualFold("bitflnex-rnain") == "bltflnex-maln")
+        #expect(AddressPoisoning.visualFold("vvallet_cl") == "wallet_d")
+        let hot = "coinbase-hot-wallet.near"
+        for fake in ["coinbase-h0t-wa11et.near", "c0inbase-h0t-wa11et.near", "colnbase-hot-wa1let.near", "c0lnbase-h0t-vva11et.near"] {
+            #expect(AddressPoisoning.lookalike(fake, among: [hot], chain: .near) == hot, "\(fake)")
+        }
+        #expect(AddressPoisoning.lookalike("binanse-dep0sit-07.near", among: ["binance-deposit-01.near"], chain: .near) == "binance-deposit-01.near")
+        #expect(AddressPoisoning.lookalike("bitflnex-rnain-acct.near", among: ["bitfinex-main-acct.near"], chain: .near) == "bitfinex-main-acct.near")
+        #expect(AddressPoisoning.lookalike("kraken-dep0slt-acct5.near", among: ["kraken-deposit-accts.near"], chain: .near) == "kraken-deposit-accts.near")
+        // Nomes diferentes de verdade continuam sem marca.
+        #expect(AddressPoisoning.lookalike("alexis-exchange.near", among: ["alexander-wallet.near"], chain: .near) == nil)
+        #expect(AddressPoisoning.lookalike("anna-oliveira-01.near", among: ["maria-ferreira-01.near"], chain: .near) == nil)
+        #expect(AddressPoisoning.lookalike("ahmed-2265-vault.near", among: ["ahmed-4246-vault.near"], chain: .near) != nil)  // duas pontas, como no main
+        #expect(AddressPoisoning.lookalike("camila-5948.near", among: ["camila_9998.near"], chain: .near) == nil)
+    }
+
     /// Os pares marcados entre todos os pares de `addresses`. So pode marcar o par com 4 ou
     /// mais caracteres iguais numa ponta do corpo: a regra de ponta so pede 4 ou 5, e a das
     /// duas pontas (3 e 3, com 7 no total) tem uma delas com 4. Esses pares saem de baldes
