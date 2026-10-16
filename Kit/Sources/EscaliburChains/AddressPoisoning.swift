@@ -18,12 +18,23 @@ public enum AddressPoisoning {
     static let minimumTotal = 7
     /// Uma ponta so, longa: quem confere so o comeco ou so o fim cai em 2+6, 2+8 ou 0+10,
     /// que as duas pontas juntas deixavam passar (auditoria 4, C7-07). Ao acaso, cinco
-    /// caracteres iguais numa ponta saem uma vez em um milhao de pares, em hexadecimal.
+    /// caracteres iguais numa ponta saem uma vez em um milhao de pares, em hexadecimal
+    /// (16^5 = 2^20).
     static let singleEnd = 5
+    /// A mesma ponta so, com 32 simbolos ou mais (bech32, base58, base32 da Stellar,
+    /// base64 da TON): quatro caracteres ja sao os mesmos 20 bits (32^4 = 2^20). O sosia que
+    /// casa so os 4 do fim, os que a tela mostra, custa o mesmo milhao de tentativas que
+    /// os 5 do hexadecimal, e passava sem aviso (revisao dos enderecos parecidos, B-5).
+    static let singleEndWide = 4
     /// Na Cardano, o comeco do corpo e a credencial de pagamento inteira (28 bytes, 44
     /// caracteres de bech32): com ela igual, os dois enderecos sao da mesma chave de
     /// pagamento, com outra parte de stake, e nao um sosia gerado.
     static let cardanoPaymentCharacters = 44
+    /// Na Cardano, a credencial de stake de um endereco e publica: o atacante poe a de um
+    /// endereco que o dono usou no seu, com o pagamento dele, e a segunda metade dos dois
+    /// fica igual de graca. Com o stake igual e o pagamento diferente, tres caracteres
+    /// iguais no fim (o checksum) ja marcam (B-5).
+    static let cardanoSameStakeSuffix = 3
 
     /// O primeiro endereco de `known` parecido com `address`, se houver.
     public static func lookalike(_ address: String, among known: [String], chain: Chain) -> String? {
@@ -42,17 +53,48 @@ public enum AddressPoisoning {
             }
             let head = commonPrefix(candidate, target)
             let tail = commonPrefix(String(candidate.reversed()), String(target.reversed()))
-            if chain.family == .cardano, head >= cardanoPaymentCharacters { return false }
+            if chain.family == .cardano {
+                if head >= cardanoPaymentCharacters { return false }
+                if tail >= cardanoSameStakeSuffix, cardanoSameStakeOtherPayment(address, other) { return true }
+            }
             if head >= minimumPrefix && tail >= minimumSuffix && head + tail >= minimumTotal { return true }
-            return singleEndApplies(chain, candidate, target) && max(head, tail) >= singleEnd
+            guard let single = singleEndLength(chain, candidate, target) else { return false }
+            return max(head, tail) >= single
         }
     }
 
-    /// Conta com nome na NEAR ("alguem.near") termina igual por desenho: a ponta so vale
-    /// entre contas implicitas, de 64 caracteres hexadecimais.
-    static func singleEndApplies(_ chain: Chain, _ a: String, _ b: String) -> Bool {
-        guard chain.family == .near else { return true }
-        return a.count == 64 && b.count == 64
+    /// Quantos caracteres iguais numa ponta so ja fazem o par parecido, ou `nil` quando a
+    /// regra da ponta so nao vale. Quatro com 32 simbolos ou mais, cinco em hexadecimal:
+    /// os dois sao 20 bits, e ao acaso saem perto de duas vezes em um milhao de pares
+    /// (as taxas medidas por rede estao no teste).
+    static func singleEndLength(_ chain: Chain, _ a: String, _ b: String) -> Int? {
+        switch chain.family {
+        case .evm, .sui, .aptos:
+            return singleEnd
+        case .near:
+            // Conta com nome ("alguem.near") termina igual por desenho: a ponta so vale
+            // entre contas implicitas, de 64 caracteres hexadecimais.
+            return a.count == 64 && b.count == 64 ? singleEnd : nil
+        case .ton:
+            // A grafia crua ("0:" e 64 hex) e hexadecimal; a amigavel, base64.
+            return isHex64(a) && isHex64(b) ? singleEnd : singleEndWide
+        case .utxo, .tron, .xrpl, .stellar, .solana, .cardano, .polkadot:
+            return singleEndWide
+        }
+    }
+
+    /// 64 caracteres hexadecimais (o corpo ja vem em minusculas).
+    static func isHex64(_ text: String) -> Bool {
+        text.utf8.count == 64 && text.utf8.allSatisfy { (0x30...0x39).contains($0) || (0x61...0x66).contains($0) }
+    }
+
+    /// Dois enderecos base da Cardano com a mesma credencial de stake e pagamentos
+    /// diferentes.
+    static func cardanoSameStakeOtherPayment(_ a: String, _ b: String) -> Bool {
+        guard case .success(let first) = CardanoAddress.parse(a), case .success(let second) = CardanoAddress.parse(b),
+              let stake = first.stakeHash, stake == second.stakeHash
+        else { return false }
+        return first.paymentHash != second.paymentHash
     }
 
     /// Um trecho do endereco, em posicoes de caractere do texto como ele e mostrado.
@@ -82,7 +124,7 @@ public enum AddressPoisoning {
         let target = body(shown, chain: chain)
         let candidate = body(other, chain: chain)
         guard target.count >= length, target != candidate else { return nil }
-        let fixed = shown.count - target.count
+        let fixed = bodySegment(shown, chain: chain).start
         let first = fixed + commonPrefix(target, candidate)
         let start = min(first, shown.count - length)
         return Segment(start: max(start, fixed), length: length)
@@ -90,36 +132,44 @@ public enum AddressPoisoning {
 
     /// O endereco sem o prefixo que a rede impoe, em minusculas.
     static func body(_ address: String, chain: Chain) -> String {
-        var text = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let text = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        return bodySegment(text, chain: chain).text(in: text).lowercased()
+    }
+
+    /// Onde fica o corpo do endereco, no texto como ele e mostrado (sem espaco nas pontas):
+    /// tudo depois do prefixo que a rede impoe. A tela abrevia por aqui (`Fmt.address`),
+    /// para os 6 do comeco serem do corpo, e nao o "addr1q" que todo endereco tem.
+    public static func bodySegment(_ address: String, chain: Chain) -> Segment {
+        let text = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let count = text.count
+        let start: Int
         switch chain.family {
-        case .evm:
-            if text.hasPrefix("0x") { text.removeFirst(2) }
+        case .evm, .sui, .aptos:
+            start = text.hasPrefix("0x") ? 2 : 0
         case .utxo:
             if let hrp = UTXOParams.for(chain).bech32HRP, text.hasPrefix(hrp + "1") {
-                text.removeFirst(hrp.count + 2)  // hrp, separador e versao (q, p)
-            } else if !text.isEmpty {
-                text.removeFirst()  // caractere de versao do base58
+                start = min(hrp.count + 2, count)  // hrp, separador e versao (q, p)
+            } else {
+                start = min(1, count)  // caractere de versao do base58
             }
         case .tron, .xrpl, .stellar:
-            if !text.isEmpty { text.removeFirst() }
+            start = min(1, count)
         case .ton:
-            if text.hasPrefix("0:") { text.removeFirst(2) } else if text.count > 2 { text.removeFirst(2) }
+            start = text.hasPrefix("0:") || count > 2 ? 2 : 0
         case .solana:
-            break
-        case .sui, .aptos:
-            if text.hasPrefix("0x") { text.removeFirst(2) }
+            start = 0
         case .cardano:
             // "addr1" e o caractere do cabecalho (tipo de endereco), que o atacante copia
             // de graca, como o hrp e a versao do bech32 no Bitcoin.
-            if text.hasPrefix("addr1"), text.count > 6 { text.removeFirst(6) }
+            start = text.hasPrefix("addr1") && count > 6 ? 6 : 0
         case .polkadot:
             // O prefixo de rede 0 faz todo endereco da Polkadot comecar com 1.
-            if !text.isEmpty { text.removeFirst() }
+            start = min(1, count)
         case .near:
             // Conta implicita sem prefixo; nome inteiro, que o dono escolhe letra a letra.
-            break
+            start = 0
         }
-        return text
+        return Segment(start: start, length: count - start)
     }
 
     static func commonPrefix(_ a: String, _ b: String) -> Int {

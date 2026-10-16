@@ -383,7 +383,7 @@ struct SendStages: View {
                                     .frame(width: 36, height: 36).background(Circle().fill(Palette.rail))
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: item.wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
-                                    Text(verbatim: Fmt.address(item.address)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
+                                    Text(verbatim: Fmt.address(item.address, chain: model.chain)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
@@ -569,7 +569,7 @@ struct SendStages: View {
                     HStack {
                         Text(verbatim: contact.name).typeStyle(.row).foregroundStyle(Palette.ink)
                         Spacer()
-                        Text(verbatim: Fmt.address(contact.address)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
+                        Text(verbatim: Fmt.address(contact.address, chain: model.chain)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
                     }
                     .frame(minHeight: Height.rowCompact)
                 }
@@ -1214,7 +1214,7 @@ struct SendStages: View {
 
     private func warnings(_ plan: SigningPlan) -> [String] {
         var out: [String] = []
-        if let lookalike = model.lookalike { out.append(String(localized: "Endereço parecido com \(Fmt.address(lookalike)). Confira o endereço inteiro.")) }
+        if let lookalike = model.lookalike { out.append(String(localized: "Endereço parecido com \(Fmt.address(lookalike, chain: model.chain)). Confira o endereço inteiro.")) }
         if model.skippedTag {
             switch tagKind {
             case .tag: out.append(String(localized: "Envio sem tag de destino, por sua escolha."))
@@ -1232,7 +1232,7 @@ struct SendStages: View {
             // O aviso de token fora da lista saiu do envio (pedido do dono, 14/10/2026): a
             // moeda e do saldo do dono, e o ativo do plano e conferido em `planMatches`.
             if case .unverifiedToken = warning { continue }
-            out.append(PlanWarningText.text(warning, tag: tagKind))
+            out.append(PlanWarningText.text(warning, tag: tagKind, chain: model.chain))
         }
         return out
     }
@@ -1420,7 +1420,7 @@ struct SendStages: View {
         let amount = model.plan?.review.outgoing?.amount ?? model.amount ?? 0
         let value = Fmt.crypto(amount, decimals: holding.asset.decimals, symbol: holding.asset.symbol, style: .full)
         guard let address = model.destination?.address else { return value }
-        return String(localized: "\(value) para \(KnownExchanges.name(for: address) ?? Fmt.address(address))")
+        return String(localized: "\(value) para \(KnownExchanges.name(for: address) ?? Fmt.address(address, chain: model.chain))")
     }
 
     @ViewBuilder

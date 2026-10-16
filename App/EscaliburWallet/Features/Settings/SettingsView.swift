@@ -278,7 +278,7 @@ struct WalletSettingsView: View {
                                         NetworkBadge(chain: chain, size: 24, ring: Palette.body)
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(chain.name).typeStyle(.note).foregroundStyle(Palette.ink)
-                                            Text(verbatim: Fmt.address(account.address, head: 8, tail: 6)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
+                                            Text(verbatim: Fmt.address(account.address, chain: chain, head: 8, tail: 6)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
                                         }
                                         Spacer()
                                         Image(systemName: "doc.on.doc").font(.system(size: 13)).foregroundStyle(Palette.inkMuted)

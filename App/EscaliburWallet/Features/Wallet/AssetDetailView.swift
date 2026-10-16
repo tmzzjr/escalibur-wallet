@@ -177,7 +177,7 @@ struct AssetDetailView: View {
             HStack(spacing: Space.xs) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(chain.id == "xrpl" ? "Contrato no \(chain.name)" : "Contrato na \(chain.name)").typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                    Text(verbatim: Fmt.address(address)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
+                    Text(verbatim: Fmt.address(address, chain: chain)).typeStyle(.monoSmall).foregroundStyle(Palette.inkSoft)
                 }
                 Spacer()
                 Button {

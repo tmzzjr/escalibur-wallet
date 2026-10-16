@@ -74,7 +74,7 @@ struct ContactsView: View {
                 Text(verbatim: contact.name).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
                 Text(verbatim: (chain?.name ?? contact.chainID) + (contact.tag.map { " · tag \($0)" } ?? ""))
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
-                Text(verbatim: Fmt.address(contact.address, head: 8, tail: 6))
+                Text(verbatim: Fmt.address(contact.address, chain: chain, head: 8, tail: 6))
                     .typeStyle(.monoSmall).foregroundStyle(Palette.inkMuted).lineLimit(1)
             }
             Spacer(minLength: Space.xs)
@@ -432,7 +432,7 @@ struct ManageAssetsView: View {
                                          logoAsset: asset)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: asset.symbol).typeStyle(.body).foregroundStyle(Palette.ink).lineLimit(1)
-                                    Text(verbatim: "\(asset.chain?.name ?? asset.chainID) · \(Fmt.address(CustomToken.reference(asset.kind) ?? ""))")
+                                    Text(verbatim: "\(asset.chain?.name ?? asset.chainID) · \(Fmt.address(CustomToken.reference(asset.kind) ?? "", chain: asset.chain))")
                                         .typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
                                 }
                                 Spacer()
