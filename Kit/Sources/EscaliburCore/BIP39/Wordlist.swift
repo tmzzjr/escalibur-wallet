@@ -19,6 +19,43 @@ public enum BIP39Language: String, CaseIterable, Hashable, Sendable {
     case czech
     case portuguese
 
+    /// O codigo do idioma em disco: no registro da carteira (`WalletVault`) e no conteudo
+    /// do envelope (`SealingContents`). Fixo e escrito aqui, nunca a posicao em `allCases`:
+    /// reordenar o enum trocaria em silencio o idioma de toda carteira gravada (auditoria
+    /// 4, C7-16). Os mesmos codigos de `IDIOMAS` no tools/referencia/decifrar.py.
+    public var storageCode: UInt8 {
+        switch self {
+        case .english: 0
+        case .japanese: 1
+        case .chineseSimplified: 2
+        case .chineseTraditional: 3
+        case .french: 4
+        case .italian: 5
+        case .korean: 6
+        case .spanish: 7
+        case .czech: 8
+        case .portuguese: 9
+        }
+    }
+
+    /// O idioma de um codigo lido do disco. Codigo desconhecido e nil: quem le recusa o
+    /// registro, nunca abre a frase em outro idioma.
+    public init?(storageCode: UInt8) {
+        switch storageCode {
+        case 0: self = .english
+        case 1: self = .japanese
+        case 2: self = .chineseSimplified
+        case 3: self = .chineseTraditional
+        case 4: self = .french
+        case 5: self = .italian
+        case 6: self = .korean
+        case 7: self = .spanish
+        case 8: self = .czech
+        case 9: self = .portuguese
+        default: return nil
+        }
+    }
+
     /// O separador do japones e o espaco ideografico. Ele decompoe para espaco comum
     /// na normalizacao, mas ao devolver a frase ao dono ela volta no separador dele.
     public var separator: String {

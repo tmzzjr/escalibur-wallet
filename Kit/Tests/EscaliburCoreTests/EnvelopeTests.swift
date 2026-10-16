@@ -70,6 +70,55 @@ struct EnvelopeTests {
         #expect(KDFCalibration.calibrate().memoryKiB >= KDFCalibration.sealFloorKiB)
     }
 
+    @Test("Regressao C7-16: o idioma em disco e um codigo fixo, o mesmo do decifrar.py; codigo desconhecido nao vira idioma")
+    func languageStorageCodes() {
+        // `IDIOMAS` no tools/referencia/decifrar.py, nesta ordem, de 0 a 9.
+        let reference = [
+            "english", "japanese", "chinese_simplified", "chinese_traditional", "french",
+            "italian", "korean", "spanish", "czech", "portuguese",
+        ]
+        #expect(BIP39Language.allCases.count == reference.count)
+        for (code, name) in reference.enumerated() {
+            let language = BIP39Language(rawValue: name)
+            #expect(language?.storageCode == UInt8(code), "\(name)")
+            #expect(BIP39Language(storageCode: UInt8(code)) == language, "\(name)")
+        }
+        for code in [10, 11, 127, 255] as [UInt8] {
+            #expect(BIP39Language(storageCode: code) == nil)
+        }
+    }
+
+    @Test("Regressao C7-16: frase em japones grava o codigo 1 e abre em japones; codigo desconhecido recusa")
+    func languageInEnvelopeBlock() throws {
+        let phrase = try Mnemonic.generate(wordCount: 12, language: .japanese)
+        let sealing = SealingContents(
+            mnemonic: Self.secure(Mnemonic.canonicalize(phrase)), passphrase: SecureBytes(capacity: 1),
+            label: "", notes: "", language: .japanese, kind: .bip39
+        )
+        var block = try sealing.encoded()
+        #expect(block[2] == 1)
+        let opened = try Envelope.decode(Self.block(block))
+        #expect(opened.language == .japanese)
+        opened.wipe()
+        block[2] = 10
+        #expect(throws: Envelope.Failure.unknownLanguage) { try Envelope.decode(Self.block(block)) }
+    }
+
+    static func block(_ bytes: [UInt8]) -> SecureBytes {
+        let out = SecureBytes(capacity: bytes.count)
+        out.replaceAll(with: bytes)
+        return out
+    }
+
+    @Test("Regressao C7-14: a sonda da calibracao deriva de verdade e mede mais que zero")
+    func calibrationProbeMeasures() throws {
+        // Com 1 passe a derivacao recusava, a medida dava zero e a calibracao escolhia
+        // sempre o maximo. A sonda tem de estar na faixa aceita e rodar sem erro.
+        #expect(KDFCalibration.probeParameters.isWithinAcceptedRange)
+        let unitCost = try KDFCalibration.probeUnitCost()
+        #expect(unitCost > 0)
+    }
+
     @Test("Envelope de referencia, conferido pelo decifrar.py do Escalibur")
     func referenceFixture() throws {
         guard let url = Bundle.module.url(forResource: "interop", withExtension: "esclbr", subdirectory: "Fixtures") else {

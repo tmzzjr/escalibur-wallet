@@ -167,6 +167,63 @@ struct StellarEngineTests {
         }
     }
 
+    // MARK: Endereco M
+
+    /// O vetor do SEP-23 com id (acima do int64 maximo, 2^63) e a conta base dele.
+    static let muxed = "MA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVAAAAAAAAAAAAAJLK"
+    static let muxedBase = "GA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVSGZ"
+
+    /// As gravacoes de sempre, com a conta base do M existindo nas duas Horizons: a
+    /// gravacao da conta comum, com o endereco trocado pelo da base.
+    static func muxedNetwork() throws -> FakeHTTP {
+        let fake = try network()
+        for (host, name) in [("horizon-a.test", "sdf"), ("horizon-b.test", "lobstr")] {
+            fake.on("\(host)/accounts/\(muxedBase)",
+                    data: try EngineFixture.data("stellar", "account-comum-\(name).json", replacing: [(plain, muxedBase)]))
+        }
+        return fake
+    }
+
+    @Test("Regressao B-10: endereco M ate o XDR, destino KEY_TYPE_MUXED_ED25519 com o id e a chave, memo NONE")
+    func muxedDestinationXDR() async throws {
+        let engine = StellarSendEngine(reader: Self.reader(try Self.muxedNetwork()))
+        let plan = try await engine.plan(Self.request(to: Self.muxed, amount: 20_000_000))
+        #expect(plan.review.recipient == Self.muxed && plan.review.recipientTag == nil)
+        let tx = try #require(plan.transactions.first as? StellarTransaction).tx
+        #expect(tx.memo == .none)
+
+        // O XDR da Transaction, campo a campo: origem G (tipo 0 e 32 bytes), taxa (4),
+        // sequence (8), precondicoes, memo, operacoes e ext.
+        let xdr = tx.xdr
+        let key = try #require(StellarAccountID(address: Self.muxedBase)).publicKey
+        var at = 4 + 32 + 4 + 8
+        func next(_ count: Int) -> [UInt8] {
+            defer { at += count }
+            return at + count <= xdr.count ? Array(xdr[at..<(at + count)]) : []
+        }
+        #expect(next(4) == [0, 0, 0, 1])  // PRECOND_TIME
+        _ = next(16)  // minTime e maxTime
+        #expect(next(4) == [0, 0, 0, 0])  // MEMO_NONE
+        #expect(next(4) == [0, 0, 0, 1])  // uma operacao
+        #expect(next(4) == [0, 0, 0, 0])  // sem origem propria
+        #expect(next(4) == [0, 0, 0, 1])  // PAYMENT
+        #expect(next(4) == [0, 0, 0x01, 0x00])  // KEY_TYPE_MUXED_ED25519
+        #expect(next(8) == [0x80, 0, 0, 0, 0, 0, 0, 0])  // o id primeiro...
+        #expect(next(32) == key)  // ...e so depois a chave da conta base
+        #expect(next(4) == [0, 0, 0, 0])  // XLM nativo
+        #expect(next(8) == UInt64(20_000_000).bigEndianByteArray)
+        #expect(next(4) == [0, 0, 0, 0])  // ext v0
+        #expect(at == xdr.count)
+    }
+
+    @Test("Regressao B-10: endereco M com memo ID e recusado, o id do M ja identifica o cliente")
+    func muxedRefusesMemoID() async throws {
+        let engine = StellarSendEngine(reader: Self.reader(try Self.muxedNetwork()))
+        await #expect(throws: SendEngineError.message(StellarPlanError.memoIDWithMuxedDestination.reason)) {
+            _ = try await engine.plan(Self.request(to: Self.muxed, amount: 20_000_000, tag: "12345"))
+        }
+    }
+
     // MARK: Transmissao e acompanhamento
 
     /// Um envelope com a transacao do plano e uma assinatura de mentira: a Horizon de

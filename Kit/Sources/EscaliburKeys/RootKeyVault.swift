@@ -110,10 +110,20 @@ public final class RootKeyVault: @unchecked Sendable {
 
     /// A senha de aplicativo da chave do PIN no SE: derivada do AP, separada da chave da
     /// camada interna pelo `info`.
-    static func devicePassword(ap: SecureBytes, salt: [UInt8]) -> Data {
+    ///
+    /// Sai em buffer seguro, que quem chama zera; o `Data` que o SE pede so existe dentro
+    /// de `withUnsafeData`, zerado na volta. Antes era um `Data` que ninguem zerava, e a
+    /// senha do PIN no SE ficava no heap depois do uso (auditoria 4, C7-21).
+    static func devicePassword(ap: SecureBytes, salt: [UInt8]) -> SecureBytes {
         let material = ap.withUnsafeBytes { SymmetricKey(data: $0) }
-        let key = HKDF<SHA256>.deriveKey(inputKeyMaterial: material, salt: salt, info: SlotFormat.passwordInfo, outputByteCount: 32)
-        return key.withUnsafeBytes { Data($0) }
+        return secure(HKDF<SHA256>.deriveKey(inputKeyMaterial: material, salt: salt, info: SlotFormat.passwordInfo, outputByteCount: 32))
+    }
+
+    /// Os bytes de uma chave do CryptoKit num buffer seguro.
+    static func secure(_ key: SymmetricKey) -> SecureBytes {
+        let out = SecureBytes(capacity: key.bitCount / 8)
+        key.withUnsafeBytes { out.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
+        return out
     }
 
     /// Camada interna do slot do PIN: versao, nonce (12), RK cifrada (32), tag (16).
@@ -789,7 +799,9 @@ public final class RootKeyVault: @unchecked Sendable {
         defer { inner.wipe() }
         // Formato 2: a chave do SE deste slot so desembrulha com a senha derivada do PIN.
         let slot = Self.wrapSlot(suffix)
-        try wrapper.createKey(slot, password: Self.devicePassword(ap: ap, salt: salt))
+        let password = Self.devicePassword(ap: ap, salt: salt)
+        defer { password.wipe() }
+        try password.withUnsafeData { try wrapper.createKey(slot, password: $0) }
         let blob: Data
         do {
             blob = try wrapper.wrap(inner, slot: slot)
@@ -864,8 +876,10 @@ public final class RootKeyVault: @unchecked Sendable {
         guard let blob else { throw Failure.notSetUp }
         let inner: SecureBytes
         if version == 2 {
+            let password = Self.devicePassword(ap: ap, salt: salt)
+            defer { password.wipe() }
             do {
-                inner = try wrapper.unwrap(blob, slot: Self.wrapSlot(suffix), password: Self.devicePassword(ap: ap, salt: salt))
+                inner = try password.withUnsafeData { try wrapper.unwrap(blob, slot: Self.wrapSlot(suffix), password: $0) }
             } catch EnclaveError.wrongPassword {
                 throw Failure.wrongPIN(remainingBeforeWipe: nil)
             }
@@ -1013,10 +1027,11 @@ extension RootKeyVault {
         return accounts.map(store.probe).contains { $0 != .absent } || WrapSlot.allCases.contains { wrapper.probeKey($0) != .absent }
     }
 
-    static func hardenedPassword(ap: SecureBytes, salt: [UInt8]) -> Data {
+    /// A senha de aplicativo da chave do PIN do modo reforcado. Como `devicePassword`, sai
+    /// em buffer seguro, que quem chama zera.
+    static func hardenedPassword(ap: SecureBytes, salt: [UInt8]) -> SecureBytes {
         let material = ap.withUnsafeBytes { SymmetricKey(data: $0) }
-        return HKDF<SHA256>.deriveKey(inputKeyMaterial: material, salt: salt, info: HardenedHeader.passwordInfo, outputByteCount: 32)
-            .withUnsafeBytes { Data($0) }
+        return secure(HKDF<SHA256>.deriveKey(inputKeyMaterial: material, salt: salt, info: HardenedHeader.passwordInfo, outputByteCount: 32))
     }
 
     static func sealHardenedInner(_ rk: SecureBytes, ap: SecureBytes, header: HardenedHeader) throws -> SecureBytes {
@@ -1147,9 +1162,13 @@ extension RootKeyVault {
         let ap: SecureBytes
         do { ap = try KeyDerivation.deriveMasterKey(password: pin, salt: header.salt, parameters: header.kdf) } catch { throw Failure.storage }
         defer { ap.wipe() }
+        let password = Self.hardenedPassword(ap: ap, salt: header.salt)
+        defer { password.wipe() }
         let inner: SecureBytes
         do {
-            inner = try middle.withUnsafeData { try wrapper.unwrap($0, slot: header.pinKey, password: Self.hardenedPassword(ap: ap, salt: header.salt)) }
+            inner = try middle.withUnsafeData { body in
+                try password.withUnsafeData { try wrapper.unwrap(body, slot: header.pinKey, password: $0) }
+            }
         } catch EnclaveError.wrongPassword {
             throw Failure.wrongPIN(remainingBeforeWipe: nil)
         } catch EnclaveError.keyMissing {
@@ -1189,7 +1208,9 @@ extension RootKeyVault {
         let ap = try KeyDerivation.deriveMasterKey(password: pin, salt: salt, parameters: kdf)
         defer { ap.wipe() }
         let header = HardenedHeader(pinLength: UInt8(pin.count), pinKey: pinKey, salt: salt, kdf: kdf)
-        try wrapper.createKey(pinKey, password: Self.hardenedPassword(ap: ap, salt: salt))
+        let password = Self.hardenedPassword(ap: ap, salt: salt)
+        defer { password.wipe() }
+        try password.withUnsafeData { try wrapper.createKey(pinKey, password: $0) }
         let inner = try Self.sealHardenedInner(rk, ap: ap, header: header)
         defer { inner.wipe() }
         var middleData = try wrapper.wrap(inner, slot: pinKey)
