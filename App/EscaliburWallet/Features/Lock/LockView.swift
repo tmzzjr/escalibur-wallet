@@ -35,6 +35,8 @@ struct LockView: View {
         // bloqueado: ai nao ha rosto para ler e o chaveiro nao responde. O Face ID
         // automatico espera o app vir para a frente, uma vez a cada vinda.
         .task(id: scenePhase) {
+            // Aberta em segundo plano, com o chaveiro mudo, a tela nao sabia o tamanho do PIN.
+            if scenePhase == .active { entry.refreshStoredLength() }
             guard scenePhase == .active, !triedBiometry else { return }
             triedBiometry = true
             showThrottleIfNeeded()

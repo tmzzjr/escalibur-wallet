@@ -57,6 +57,36 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertTrue(app.buttons["Começar"].waitForExistence(timeout: 5))
     }
 
+    /// PIN de 4 digitos: escolher, repetir, e ao reabrir o PIN de 4 fecha sozinho no
+    /// quarto digito, recusa o errado e abre com o certo.
+    func testFourDigitPIN() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Começar"].waitForExistence(timeout: 15))
+        app.buttons["Começar"].tap()
+        XCTAssertTrue(app.staticTexts["Escolha um PIN"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["0 de 6 dígitos"].exists)
+        app.buttons["pin-tamanho"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["0 de 4 dígitos"].waitForExistence(timeout: 5))
+        shot("02f-pin-4-digitos", app)
+        type(pin: "2580", in: app)
+        XCTAssertTrue(app.staticTexts["Repita o PIN"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Os mesmos quatro dígitos."].exists)
+        type(pin: "2580", in: app)
+        XCTAssertTrue(app.staticTexts["Uma chave para todas as suas moedas"].waitForExistence(timeout: 15))
+
+        app.terminate()
+        app.launchArguments = []
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Digite o seu PIN"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.descendants(matching: .any)["0 de 4 dígitos"].exists)
+        type(pin: "1234", in: app)
+        XCTAssertTrue(app.staticTexts["PIN incorreto."].waitForExistence(timeout: 15))
+        type(pin: "2580", in: app)
+        XCTAssertTrue(app.staticTexts["Digite o seu PIN"].waitForNonExistence(timeout: 15))
+    }
+
     func testCreateWalletFromScratch() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-reset"]

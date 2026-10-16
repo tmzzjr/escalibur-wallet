@@ -113425,6 +113425,82 @@
         }
       }
     },
+    "O PIN precisa ter 4 ou 6 números." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The PIN must have 4 or 6 digits."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El PIN debe tener 4 o 6 números."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le PIN doit comporter 4 ou 6 chiffres."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die PIN muss 4 oder 6 Ziffern haben."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN में 4 या 6 अंक होने चाहिए."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN 码必须是 4 位或 6 位数字。"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN は 4 桁または 6 桁の数字にしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN은 4자리 또는 6자리 숫자여야 합니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN 4 veya 6 rakamdan oluşmalı."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PIN harus terdiri dari 4 atau 6 angka."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mã PIN phải có 4 hoặc 6 chữ số."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يجب أن يتكون PIN من 4 أو 6 أرقام."
+          }
+        }
+      }
+    },
     "O TRX desta conta não cobre as taxas da rede deste envio. A Escalibur não paga essa taxa por você. Envie mais TRX para esta conta e tente de novo." : {
       "localizations" : {
         "ar" : {
@@ -126149,6 +126225,82 @@
         }
       }
     },
+    "Os mesmos quatro dígitos." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The same four digits."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los mismos cuatro dígitos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les mêmes quatre chiffres."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieselben vier Ziffern."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "वही चार अंक."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相同的四位数字。"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同じ 4 桁の数字。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "같은 4자리 숫자."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aynı dört rakam."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empat digit yang sama."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cùng bốn chữ số đó."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأرقام الأربعة نفسها."
+          }
+        }
+      }
+    },
     "Os mesmos seis dígitos." : {
       "localizations" : {
         "ar" : {
@@ -136912,6 +137064,158 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要发送的可用金额比例"
+          }
+        }
+      }
+    },
+    "Quatro dígitos para destravar o app e confirmar envios quando o %@ falhar. São mais fáceis de adivinhar que seis. Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Four digits to unlock the app and confirm transfers when %@ fails. They are easier to guess than six. Don't use your iPhone passcode: whoever steals an iPhone has usually already seen it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuatro dígitos para desbloquear la app y confirmar envíos cuando %@ falle. Son más fáciles de adivinar que seis. No uses el código del iPhone: quien roba un iPhone normalmente ya vio ese código."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quatre chiffres pour déverrouiller l’app et confirmer les envois quand %@ échoue. Ils sont plus faciles à deviner que six. N’utilisez pas le code de l’iPhone : qui vole un iPhone a généralement déjà vu ce code."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vier Ziffern, um die App zu entsperren und Transfers zu bestätigen, wenn %@ nicht klappt. Sie sind leichter zu erraten als sechs. Nutze nicht den iPhone-Code: Wer ein iPhone stiehlt, hat diesen Code meist schon gesehen."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जब %@ काम न करे, तब ऐप अनलॉक करने और ट्रांसफ़र की पुष्टि करने के लिए चार अंक. इनका अनुमान छह अंकों से ज़्यादा आसानी से लगाया जा सकता है. iPhone पासकोड का इस्तेमाल न करें: iPhone चुराने वाला आम तौर पर यह कोड पहले ही देख चुका होता है."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "四位数字，用于在 %@ 失败时解锁 App 和确认转账。比六位数字更容易被猜中。不要使用 iPhone 密码：偷 iPhone 的人通常已经看过这个密码。"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ に失敗したときに、アプリのロック解除と送金の確認に使う 4 桁の数字です。6 桁より推測されやすくなります。iPhone のパスコードは使わないでください。iPhone を盗む人は、たいていそのパスコードをすでに見ています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@가 실패할 때 앱 잠금을 해제하고 전송을 확인하는 4자리 숫자입니다. 6자리보다 추측하기 쉽습니다. iPhone 암호를 사용하지 마세요. iPhone을 훔치는 사람은 대개 그 암호를 이미 봤습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ başarısız olduğunda uygulamanın kilidini açmak ve transferleri onaylamak için dört rakam. Altı rakamdan daha kolay tahmin edilir. iPhone parolasını kullanma: iPhone’u çalan kişi genellikle bu parolayı zaten görmüştür."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empat digit untuk membuka aplikasi dan mengonfirmasi pengiriman saat %@ gagal. Lebih mudah ditebak daripada enam digit. Jangan pakai kode sandi iPhone: pencuri iPhone biasanya sudah pernah melihat kode itu."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bốn chữ số để mở khóa ứng dụng và xác nhận lần gửi khi %@ không thành công. Dễ bị đoán hơn sáu chữ số. Đừng dùng mật mã iPhone: người lấy cắp iPhone thường đã thấy mật mã đó."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أربعة أرقام لفتح قفل التطبيق وتأكيد التحويلات عندما يتعذّر %@. من الأسهل تخمينها مقارنة بستة أرقام. لا تستخدم رمز دخول iPhone: من يسرق iPhone يكون قد رأى هذا الرمز غالبًا."
+          }
+        }
+      }
+    },
+    "Quatro dígitos são mais fáceis de adivinhar que seis. Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Four digits are easier to guess than six. Don't use your iPhone passcode: whoever steals an iPhone has usually already seen it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuatro dígitos son más fáciles de adivinar que seis. No uses el código del iPhone: quien roba un iPhone normalmente ya vio ese código."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quatre chiffres sont plus faciles à deviner que six. N’utilisez pas le code de l’iPhone : qui vole un iPhone a généralement déjà vu ce code."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vier Ziffern sind leichter zu erraten als sechs. Nutze nicht den iPhone-Code: Wer ein iPhone stiehlt, hat diesen Code meist schon gesehen."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चार अंकों का अनुमान छह अंकों से ज़्यादा आसानी से लगाया जा सकता है. iPhone पासकोड का इस्तेमाल न करें: iPhone चुराने वाला आम तौर पर यह कोड पहले ही देख चुका होता है."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "四位数字比六位数字更容易被猜中。不要使用 iPhone 密码：偷 iPhone 的人通常已经看过这个密码。"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 桁は 6 桁より推測されやすくなります。iPhone のパスコードは使わないでください。iPhone を盗む人は、たいていそのパスコードをすでに見ています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4자리는 6자리보다 추측하기 쉽습니다. iPhone 암호를 사용하지 마세요. iPhone을 훔치는 사람은 대개 그 암호를 이미 봤습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dört rakam, altı rakamdan daha kolay tahmin edilir. iPhone parolasını kullanma: iPhone’u çalan kişi genellikle bu parolayı zaten görmüştür."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empat digit lebih mudah ditebak daripada enam digit. Jangan pakai kode sandi iPhone: pencuri iPhone biasanya sudah pernah melihat kode itu."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bốn chữ số dễ bị đoán hơn sáu chữ số. Đừng dùng mật mã iPhone: người lấy cắp iPhone thường đã thấy mật mã đó."
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الأرقام الأربعة أسهل في التخمين من الستة. لا تستخدم رمز دخول iPhone: من يسرق iPhone يكون قد رأى هذا الرمز غالبًا."
           }
         }
       }
@@ -162452,6 +162756,158 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用 6 个随机单词"
+          }
+        }
+      }
+    },
+    "Usar PIN de 4 dígitos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a 4-digit PIN"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar PIN de 4 dígitos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser un PIN à 4 chiffres"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4-stellige PIN verwenden"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 अंकों का PIN इस्तेमाल करें"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 4 位 PIN 码"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 桁の PIN を使う"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4자리 PIN 사용"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 haneli PIN kullan"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gunakan PIN 4 digit"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dùng PIN 4 chữ số"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استخدام PIN من 4 أرقام"
+          }
+        }
+      }
+    },
+    "Usar PIN de 6 dígitos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use a 6-digit PIN"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar PIN de 6 dígitos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser un PIN à 6 chiffres"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6-stellige PIN verwenden"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6 अंकों का PIN इस्तेमाल करें"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 6 位 PIN 码"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6 桁の PIN を使う"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6자리 PIN 사용"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6 haneli PIN kullan"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gunakan PIN 6 digit"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dùng PIN 6 chữ số"
+          }
+        },
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "استخدام PIN من 6 أرقام"
           }
         }
       }

@@ -68,18 +68,18 @@ No Escalibur de hoje nenhum destes achados é grave, porque lá o PIN não prote
   - O app pede PIN ou biometria ao abrir. Trava ao ir para segundo plano (tolerância de no máximo 60 s) e trava na hora em `UIApplication.protectedDataWillBecomeUnavailableNotification`.
   - A biometria usa `.biometryCurrentSet`, **nunca** `.userPresence` nem `.devicePasscode`. O código do iPhone não abre nada aqui.
   - Cadastrar um rosto novo destrói o slot biométrico em vez de abri-lo.
-  - A escada de atraso do PIN exige cerca de 340 anos para varrer 10^6 pela interface.
+  - A escada de atraso do PIN exige cerca de 340 anos para varrer 10^6 pela interface, e cerca de 3,4 anos para varrer 10^4 quando o dono escolhe 4 dígitos.
   - Revelar ou exportar a frase exige PIN.
 - O que sobra: nada, sem o PIN, sem o rosto do dono e sem exploit.
 
 **T3. Execução de código no aparelho desbloqueado (jailbreak, exploit forense, malware com privilégio)**
 - Defesa:
   - Nenhum byte gravado abre fora deste Secure Enclave.
-  - O PIN não tem verificador extraível, mas o sal e os parâmetros do Argon2id podem ser lidos e os 10^6 Argon2id pré-calculados numa GPU; no aparelho sobra a passagem pelo SE, cerca de 22 ms por chute. Total: 3 a 6 horas em média, 6 a 11 horas no pior caso (auditoria de 15/10/2026).
+  - O PIN não tem verificador extraível, mas o sal e os parâmetros do Argon2id podem ser lidos e os 10^6 Argon2id pré-calculados numa GPU; no aparelho sobra a passagem pelo SE, cerca de 22 ms por chute. Total: 3 a 6 horas em média, 6 a 11 horas no pior caso (auditoria de 15/10/2026). Com PIN de 4 dígitos, 2 a 3 minutos em média e 4 a 6 no pior caso.
   - A biometria continua exigindo o rosto, porque a decisão acontece no SEP.
   - As opções de valor alto (seção 2.6) sobem o custo para milhares de anos.
   - A seed só existe em memória durante a assinatura.
-- O que sobra: o PIN de 6 dígitos cai em dias. Malware dentro do processo durante uma assinatura vê a seed. A interface pode ser adulterada para mostrar A e assinar B. Isso está aceito, com os números, no fim do relatório.
+- O que sobra: o PIN de 6 dígitos cai em horas, e o de 4 em minutos. Malware dentro do processo durante uma assinatura vê a seed. A interface pode ser adulterada para mostrar A e assinar B. Isso está aceito, com os números, no fim do relatório.
 
 **T4. MITM (Wi-Fi hostil, perfil com CA instalada pelo usuário, CA comprometida)**
 - Defesa: ATS padrão sem exceções, pinning só do relay, e principalmente nenhuma decisão de assinatura baseada em dado de rede (seções 4 e 5).
@@ -176,7 +176,7 @@ Chaves no Secure Enclave, via `SecKeyCreateRandomKey`:
 Itens de chaveiro (`kSecClassGenericPassword`):
 - Atributos comuns: `kSecAttrService "app.escalibur.wallet"`, `kSecAttrSynchronizable: false`, `kSecUseDataProtectionKeychain: true`, e o access group do próprio app. Nenhum grupo compartilhado com extensões.
 - `rk.pin`: `kSecAttrAccessControl = SecAccessControlCreateWithFlags(nil, kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly, [.applicationPassword], nil)`. Tanto gravar quanto ler usam `kSecUseAuthenticationContext` com um `LAContext` que recebeu `setCredential(AP, type: .applicationPassword)` e `interactionNotAllowed = true`.
-- `rk.bio`, `seed.<uuid>` (DEK embrulhada mais o registro), `pin.kdf` (salt e parâmetros, não secretos), `pin.tentativas` e `bio.estado`: todos com `kSecAttrAccessible: kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`.
+- `rk.bio`, `seed.<uuid>` (DEK embrulhada mais o registro), `pin.kdf` (salt e parâmetros, não secretos), `pin.digitos` (quantos dígitos tem o PIN, não secreto), `pin.tentativas` e `bio.estado`: todos com `kSecAttrAccessible: kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`.
 - Nunca use `kSecAttrAccessible` e `kSecAttrAccessControl` no mesmo item. A classe de proteção vai dentro do `SecAccessControl`.
 - **Proibido no projeto inteiro**: `.userPresence`, `.devicePasscode`, `.biometryAny`, `.or` com código do aparelho, `AfterFirstUnlock` e `Always`. O motivo: quem viu o código do iPhone passa por `.userPresence`, e com `.biometryAny` o ladrão cadastra o próprio rosto.
 
@@ -207,7 +207,11 @@ Consequência que vai por escrito no onboarding:
 ### 2.4 O PIN
 
 - A entrada vem de um teclado numérico do próprio app e vai direto para `SecureBytes`. O PIN nunca vira `String`.
-- **Lista de bloqueio** na ordem de mil a três mil PINs: repetições, sequências, datas DDMMAA. É o mesmo tipo de lista que o iOS usa para o código do aparelho, estudada por Markert et al. (IEEE S&P 2020). Com poucas tentativas permitidas, é a lista que decide o jogo.
+- **4 ou 6 dígitos (escolha do dono desde 16/10/2026).** Seis é o padrão; quatro é escolhido na própria tela, que diz que quatro são mais fáceis de adivinhar.
+  - O tamanho fica em `pin.digitos` (1 byte), um item por slot (`pin.digitos` e `pin.digitos.novo`), gravado antes do slot e apagado junto com ele. A tela precisa dele para fechar o PIN no último dígito sem gastar tentativa.
+  - Sem o item, o PIN tem 6 dígitos: é o caso de todo slot gravado antes da escolha. Com o chaveiro mudo ou o registro ilegível, a tela aceita os dois tamanhos: fecha sozinha em 6 e mostra OK em 4. Relê o tamanho ao voltar para a frente e no primeiro dígito de cada PIN.
+  - Não é segredo: o iPhone também mostra quantos pontos o código tem. Quem tem execução de código lê o tamanho, e quem tenta pela interface o vê na tela.
+- **Sem lista de bloqueio** (decisão do dono, 26/09/2026; ver §2.7). Markert et al. (IEEE S&P 2020) mostram que, com poucas tentativas permitidas, é a lista que decide o jogo; sem ela, o PIN óbvio é o primeiro palpite.
 - **AP = Argon2id(PIN, salt 16 bytes do CSPRNG, m=256 MiB, p=2, t calibrado entre 2 e 4 para dar até cerca de 0,8 s).**
   - Os parâmetros ficam gravados em `pin.kdf` e são lidos de lá, o que permite migrar depois.
   - O Argon2 existe mesmo com o chaveiro fazendo a checagem porque é ele que o atacante no aparelho paga a cada chute. Sem ele, cada chute custa milissegundos e 10^6 PINs saem em horas.
@@ -222,10 +226,10 @@ Consequência que vai por escrito no onboarding:
   1. Grava `rk.pin.novo` com AP e salt novos, e lê de volta para conferir.
   2. O ponto sem volta é apagar `rk.pin`. Antes dele, qualquer falha apaga o pendente e o PIN antigo continua o único.
   3. Depois dele, a troca está feita: o pendente abre com o PIN novo. A promoção a principal (gravar `rk.pin` com o PIN novo, conferir, apagar o pendente) é tentada na hora e, se falhar, concluída no próximo desbloqueio.
-  - Com os dois slots presentes (crash entre os passos 1 e 2), o desbloqueio tenta os dois na mesma tentativa. O antigo abrindo desfaz a troca; o novo abrindo a conclui.
+  - Com os dois slots presentes (crash entre os passos 1 e 2), o desbloqueio tenta os dois na mesma tentativa. O antigo abrindo desfaz a troca; o novo abrindo a conclui. Se os dois slots têm tamanhos diferentes, a tela fecha sozinha no maior, e o menor vai pela tecla OK, sem gastar tentativa.
   - Uma troca nova é recusada enquanto houver uma interrompida: o desbloqueio resolve primeiro.
 - **Cadastro só com resposta definitiva.** O chaveiro que não consegue responder (`probe` = desconhecido) nunca vira "não existe": `isSetUp` responde sim e o cadastro recusa. `createKey(.device)` nunca substitui a K_dev em silêncio. Sobras de um cadastro interrompido só são apagadas quando nenhum slot da RK existe.
-- **Contador de tentativas.** O prazo usa só o relógio monotônico (`CLOCK_MONOTONIC_RAW`, que conta o tempo dormindo) e a identidade do boot (`kern.bootsessionuuid`). Mudar o relógio de parede não encurta nem estica a espera. Depois de reiniciar, a espera recomeça cheia; ler o contador nunca grava, quem regrava é a abertura do app e a volta ao primeiro plano. Face ID aceito zera o contador, como no iPhone.
+- **Contador de tentativas.** O prazo usa só o relógio monotônico (`CLOCK_MONOTONIC_RAW`, que conta o tempo dormindo) e a identidade do boot (`kern.bootsessionuuid`). Mudar o relógio de parede não encurta nem estica a espera. Depois de reiniciar, a espera recomeça cheia; ler o contador nunca grava, quem regrava é a abertura do app e a volta ao primeiro plano. Face ID aceito não zera o contador (auditoria 2, B4): só o PIN certo zera.
 - **Face ID recusado não apaga o atalho.** Só o cadastro de rostos diferente do gravado ao ligar, ou a K_bio que o SEP já destruiu, apagam `rk.bio`.
 
 **Spike obrigatório antes de construir sobre isto.**
@@ -277,23 +281,27 @@ Consequência que vai por escrito no onboarding:
   - Opcional. Só pode ser ligado depois que o backup de todas as carteiras foi conferido.
   - Antes da 10ª tentativa, o app avisa na tela.
   - Apagar é destruição criptográfica: `SecItemDelete` de K_dev, K_bio e dos itens `rk.*` primeiro, que em milissegundos tornam inúteis todos os blobs, e depois o resto.
-  - Contra quem tenta pela interface, a chance de acerto é de 1 em 100 mil para um PIN sorteado. Contra quem tem execução de código, é inútil, e isso vai escrito.
-- **Sem lista de PINs fáceis** (decisão do dono, 2026-09-26): qualquer combinação de 6 dígitos vale, inclusive 111111 e 123456. O app só confere a forma. O risco fica com o dono: um PIN óbvio é o primeiro palpite de quem pega o iPhone, e contra isso sobram a escada de atraso e o apagar após erros, se ligado.
+  - Contra quem tenta pela interface, a chance de acerto é de 1 em 100 mil para um PIN sorteado de 6 dígitos, e de 1 em mil para um de 4. Contra quem tem execução de código, é inútil, e isso vai escrito.
+- **Sem lista de PINs fáceis** (decisão do dono, 2026-09-26): qualquer combinação de 4 ou 6 dígitos vale, inclusive 1111 e 123456. O app só confere a forma. O risco fica com o dono: um PIN óbvio é o primeiro palpite de quem pega o iPhone, e contra isso sobram a escada de atraso e o apagar após erros, se ligado.
 
 ### 2.8 Força bruta no PIN: o Secure Enclave resolve?
 
-| Atacante | Custo para varrer 10^6 PINs |
+| Atacante | Custo para varrer todos os PINs |
 |---|---|
 | Extraiu os dados e não tem o aparelho | impossível: K_dev nunca sai do SE, e nenhum blob abre em outro lugar |
 | Tem o aparelho desbloqueado, tenta pela interface | ~340 anos pela escada (~170 em média); com apagar-após-10, 1 chance em 10^5 |
+| O mesmo, com PIN de 4 dígitos | ~3,4 anos pela escada (~1,7 em média); com apagar-após-10, 1 chance em 10^3 |
 | Tem execução de código no aparelho desbloqueado | Argon2id pré-calculado em GPU + 10^6 × 22 ms no SE ≈ **6 a 11 horas no pior caso, 3 a 6 em média** |
+| O mesmo, com PIN de 4 dígitos | Argon2id pré-calculado em GPU (1 a 2 min) + 10^4 × 22 ms no SE ≈ **4 a 6 minutos no pior caso, 2 a 3 em média**; sem GPU, só no iPhone, 10^4 × 0,82 s ≈ 2,3 horas |
 | O mesmo, com senha alfanumérica sorteada de 8 caracteres | ~24 mil anos |
 | O mesmo, com modo reforçado | não há força bruta: precisa do rosto, e a decisão é no SEP |
 
 A resposta honesta: **o SE converte ataque offline em ataque preso ao aparelho, mas não limita as tentativas de segredos do app.**
 - O único limite por hardware que existe é o do código do iPhone (80 ms mais atrasos crescentes no SEP).
 - Para usar esse limite, o item teria de ser `.devicePasscode`, e quem viu o código do iPhone passa por ele.
-- Por isso o PIN de 6 dígitos é defesa contra T2, não contra T3.
+- Por isso o PIN de 6 dígitos é defesa contra T2, não contra T3. O de 4 também é só contra T2.
+  - Pela interface, contra PIN escolhido por gente e sem lista de bloqueio, o tamanho quase não muda a chance (Markert et al., S&P 2020): em 10 chutes, 4,6% dos PINs de 4 e 6,5% dos de 6; em 30, 7,6% e 8,9%; em 100, 16,2% e 13,3%.
+  - O preço real dos 4 dígitos está contra o PIN sorteado (10^4 em vez de 10^6) e contra quem tem execução de código: minutos em vez de horas.
 
 ### 2.9 Ciclo de vida da seed na assinatura
 
@@ -870,7 +878,7 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
 **MUST (bloqueia o lançamento)**
 1. Hierarquia K_dev, `rk.pin` com applicationPassword, K_bio com biometryCurrentSet, RK, DEK por carteira, tudo `WhenPasscodeSetThisDeviceOnly` e não sincronizável. **O spike do applicationPassword aprovado em iOS 17, 18 e 26 físicos; se reprovar, plano B.**
 2. Nenhum verificador de PIN gravado. Proibidos `.userPresence`, `.devicePasscode`, `.biometryAny`.
-3. Contador de tentativas com `SecItemUpdate`, falhando fechado, com o conserto de boot (A2, A3). A lista de bloqueio de PIN foi retirada por decisão do dono em 26/09/2026: qualquer PIN de 6 dígitos vale (ver §2.7).
+3. Contador de tentativas com `SecItemUpdate`, falhando fechado, com o conserto de boot (A2, A3). A lista de bloqueio de PIN foi retirada por decisão do dono em 26/09/2026: qualquer PIN de 4 ou 6 dígitos vale (ver §2.7).
 4. Autenticação nova por lote de assinatura; nada de RK ou seed em memória fora da assinatura; caminho síncrono; `verify` depois de assinar; HMAC e PBKDF2 em `SecureBytes`.
 5. Intenções tipadas, sem assinatura às cegas. As recusas da 4.1, EIP-7702 incluída. Sem WalletConnect nem navegador de dapps.
 6. Validação de swap (4.3) com allowlist compilada, ranking por `minOut`, approve exato, sem Permit2 nem EIP-2612 na v1.
@@ -917,7 +925,7 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
 
 ## Risco residual aceito, e o que faria deixar de ser
 
-1. **Exploit com execução de código no aparelho desbloqueado quebra o PIN de 6 dígitos em horas (6 a 11 no pior caso).**
+1. **Exploit com execução de código no aparelho desbloqueado quebra o PIN de 6 dígitos em horas (6 a 11 no pior caso), e o de 4 dígitos em minutos (4 a 6 no pior caso).**
    - Aceito porque exige cadeia de exploit para o iOS atual e posse do aparelho desbloqueado.
    - Deixa de ser aceitável: com jailbreak público para a versão corrente do iOS, ou saldo acima do que o dono aceita perder. Nesses casos, modo reforçado ou senha longa passam a ser o padrão, e acima disso, carteira de hardware.
 2. **Malware dentro do processo durante uma assinatura vê a seed, ou adultera a tela.**

@@ -6,7 +6,7 @@ import SwiftUI
 struct OnboardingFlow: View {
     @Environment(AppSession.self) private var session
     @State private var step: Step = .welcome
-    @State private var entry = PINEntry()
+    @State private var entry = PINEntry(choosing: PINPolicy.digits)
     @State private var firstPIN: SecureBytes?
     @State private var working = false
     @State private var legalDocument: LegalDocument?
@@ -21,11 +21,15 @@ struct OnboardingFlow: View {
             case .choosePIN, .repeatPIN:
                 // Uma tela so para escolher e repetir: so o titulo e o texto trocam. Duas
                 // telas com fade piscavam, e o teclado mudava de altura com o texto.
-                let chooseText = String(localized: "Seis dígitos para destravar o app e confirmar envios quando o \(KeyServices.biometryName) falhar. Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código.")
+                let sixText = String(localized: "Seis dígitos para destravar o app e confirmar envios quando o \(KeyServices.biometryName) falhar. Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código.")
+                // Quatro digitos e escolha do dono, com o preco dito na tela (16/10/2026).
+                let fourText = String(localized: "Quatro dígitos para destravar o app e confirmar envios quando o \(KeyServices.biometryName) falhar. São mais fáceis de adivinhar que seis. Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código.")
+                let four = entry.length == 4
                 PINScreen(
                     title: step == .choosePIN ? String(localized: "Escolha um PIN") : String(localized: "Repita o PIN"),
-                    subtitle: step == .choosePIN ? chooseText : String(localized: "Os mesmos seis dígitos."),
-                    subtitleSpace: chooseText,
+                    subtitle: step == .choosePIN ? (four ? fourText : sixText)
+                        : (four ? String(localized: "Os mesmos quatro dígitos.") : String(localized: "Os mesmos seis dígitos.")),
+                    subtitleSpace: fourText,
                     entry: entry, working: working,
                     onComplete: { if step == .choosePIN { choose() } else { Task { await confirm() } } }
                 ) { pinFooter }
@@ -143,11 +147,18 @@ struct OnboardingFlow: View {
     }
 
     private var pinFooter: some View {
-        Text("O PIN não recupera a carteira. Se você esquecer o PIN, a senha da carteira traz tudo de volta.")
-            .typeStyle(.note)
-            .foregroundStyle(Palette.inkMuted)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, Space.xl)
+        VStack(spacing: Space.sm) {
+            // So ao escolher; ao repetir, o lugar fica reservado e o teclado nao se mexe.
+            PINLengthToggle(entry: entry)
+                .opacity(step == .choosePIN ? 1 : 0)
+                .disabled(step != .choosePIN)
+                .accessibilityHidden(step != .choosePIN)
+            Text("O PIN não recupera a carteira. Se você esquecer o PIN, a senha da carteira traz tudo de volta.")
+                .typeStyle(.note)
+                .foregroundStyle(Palette.inkMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, Space.xl)
+        }
     }
 
     private func choose() {

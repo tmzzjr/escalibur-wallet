@@ -47,7 +47,7 @@ struct RootKeyVaultTests {
         #expect(!(0...(raw.count - key.count)).contains { Array(raw[$0..<($0 + key.count)]) == key })
     }
 
-    @Test("Qualquer PIN de 6 digitos vale, inclusive os faceis; so a forma e conferida")
+    @Test("Qualquer PIN de 4 ou 6 digitos vale, inclusive os faceis; so a forma e conferida")
     func anyPIN() throws {
         for pin in ["111111", "123456", "000000", "250390"] {
             let (vault, _, _) = makeVault()
@@ -55,11 +55,79 @@ struct RootKeyVaultTests {
             #expect(bytes(try vault.unlock(pin: secure(pin))) == bytes(rk))
         }
         #expect(PINPolicy.isWellFormed([1, 1, 1, 1, 1, 1]))
-        // Digito fora de 0 a 9, ou tamanho diferente de 6, nunca passa.
+        #expect(PINPolicy.isWellFormed([1, 1, 1, 1]))
+        // Digito fora de 0 a 9, ou tamanho diferente de 4 e de 6, nunca passa.
         #expect(!PINPolicy.isWellFormed([4, 8, 2, 9, 1, 0x2F]))
         #expect(!PINPolicy.isWellFormed([4, 8, 2, 9, 1]))
+        #expect(!PINPolicy.isWellFormed([4, 8, 2]))
+        #expect(!PINPolicy.isWellFormed([4, 8, 2, 9, 1, 0, 7]))
         let (vault, _, _) = makeVault()
         #expect(throws: RootKeyVault.Failure.malformedPIN) { try vault.setUp(pin: secure("12345a")) }
+    }
+
+    @Test("PIN de 4 digitos: grava o tamanho, abre, e o de 6 da instalacao antiga continua 6")
+    func fourDigits() throws {
+        let (vault, store, _) = makeVault()
+        let rk = try vault.setUp(pin: secure("4829"))
+        #expect(vault.pinLengths == [4])
+        #expect(store.raw("pin.digitos") == Data([4]))
+        #expect(bytes(try vault.unlock(pin: secure("4829"))) == bytes(rk))
+        #expect(throws: RootKeyVault.Failure.wrongPIN(remainingBeforeWipe: nil)) { try vault.unlock(pin: secure("4828")) }
+        // Slot gravado antes da escolha, sem o registro do tamanho: 6.
+        try store.delete("pin.digitos")
+        #expect(vault.pinLengths == [6])
+        // Registro estranho nao vira um chute: a tela aceita os dois tamanhos.
+        try store.add(Data([5]), account: "pin.digitos", protection: .standard, context: nil)
+        #expect(vault.pinLengths == [4, 6])
+        let (fresh, _, _) = makeVault()
+        #expect(fresh.pinLengths == [6])
+        // PIN sem forma e recusado antes de contar a tentativa.
+        #expect(throws: RootKeyVault.Failure.malformedPIN) { try vault.unlock(pin: secure("")) }
+        #expect(throws: RootKeyVault.Failure.malformedPIN) { try vault.unlock(pin: secure("48291")) }
+        #expect(vault.failureCount() == 1)
+    }
+
+    @Test("Troca de PIN de 6 para 4 e de volta: o tamanho acompanha o slot, inclusive pendente")
+    func changeLength() throws {
+        let (vault, store, _) = makeVault()
+        let rk = try vault.setUp(pin: secure("482916"))
+        #expect(vault.pinLengths == [6])
+        try vault.changePIN(rk: rk, newPIN: secure("7351"))
+        #expect(vault.pinLengths == [4])
+        #expect(store.raw("pin.digitos.novo") == nil)
+        #expect(bytes(try vault.unlock(pin: secure("7351"))) == bytes(rk))
+        #expect(throws: RootKeyVault.Failure.self) { try vault.unlock(pin: secure("482916")) }
+        try vault.changePIN(rk: rk, newPIN: secure("905128"))
+        #expect(vault.pinLengths == [6])
+        // Depois do ponto sem volta, so com o pendente: o tamanho e o dele.
+        try vault.writePINSlot(rk: rk, pin: secure("2468"), kdf: fastKDF, suffix: ".novo")
+        try store.delete("rk.pin")
+        #expect(vault.pinLengths == [4])
+        #expect(bytes(try vault.unlock(pin: secure("2468"))) == bytes(rk))
+        #expect(vault.pinLengths == [4])
+        #expect(store.raw("pin.digitos.novo") == nil)
+    }
+
+    @Test("Troca interrompida entre tamanhos: a tela aceita os dois, e os dois PINs abrem")
+    func interruptedChangeAcrossLengths() throws {
+        // Antigo de 4, novo de 6, com o app morto antes de apagar o antigo.
+        let (vault, store, _) = makeVault()
+        let rk = try vault.setUp(pin: secure("7305"))
+        try vault.writePINSlot(rk: rk, pin: secure("905128"), kdf: fastKDF, suffix: ".novo")
+        #expect(vault.pinLengths == [4, 6])
+        // O novo conclui a troca.
+        #expect(bytes(try vault.unlock(pin: secure("905128"))) == bytes(rk))
+        #expect(vault.pinLengths == [6])
+        #expect(store.probe("rk.pin.novo") == .absent)
+        #expect(vault.failureCount() == 0)
+
+        // O antigo desfaz a troca.
+        let (other, otherStore, _) = makeVault()
+        let otherRK = try other.setUp(pin: secure("7305"))
+        try other.writePINSlot(rk: otherRK, pin: secure("905128"), kdf: fastKDF, suffix: ".novo")
+        #expect(bytes(try other.unlock(pin: secure("7305"))) == bytes(otherRK))
+        #expect(other.pinLengths == [4])
+        #expect(otherStore.probe("rk.pin.novo") == .absent)
     }
 
     @Test("Escada de atraso: o terceiro erro ja espera, e o acerto zera")
@@ -194,7 +262,8 @@ struct RootKeyVaultTests {
         // PIN facil tambem vale na troca; so a forma e recusada.
         try vault.changePIN(rk: rk, newPIN: secure("111111"))
         #expect(bytes(try vault.unlock(pin: secure("111111"))) == bytes(rk))
-        #expect(throws: RootKeyVault.Failure.malformedPIN) { try vault.changePIN(rk: rk, newPIN: secure("1111")) }
+        #expect(throws: RootKeyVault.Failure.malformedPIN) { try vault.changePIN(rk: rk, newPIN: secure("11111")) }
+        #expect(throws: RootKeyVault.Failure.malformedPIN) { try vault.changePIN(rk: rk, newPIN: secure("111a")) }
     }
 
     @Test("Troca interrompida antes do ponto sem volta: o PIN antigo desfaz, o novo conclui")

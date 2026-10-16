@@ -24,6 +24,10 @@ enum KeyServices {
     }()
 
     static let root = RootKeyVault(store: store, wrapper: wrapper)
+
+    /// Quantos digitos pode ter o PIN gravado: quase sempre um tamanho so; os dois quando
+    /// nao da para saber (`RootKeyVault.pinLengths`).
+    static var pinLengths: Set<Int> { root.pinLengths }
     static let wallets = WalletVault(store: store)
 
     /// App de iPhone rodando num Mac com Apple Silicon: la outros programas leem teclado

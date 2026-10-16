@@ -32,7 +32,7 @@ public final class RootKeyVault: @unchecked Sendable {
         case alreadySetUp
         case wrongPIN(remainingBeforeWipe: UInt32?)
         case throttled(seconds: TimeInterval)
-        /// Nao sao exatamente 6 digitos de 0 a 9.
+        /// Nao sao 4 nem 6 digitos de 0 a 9.
         case malformedPIN
         case biometryNotEnabled
         /// O cadastro de rostos mudou desde que o Face ID foi ligado: o slot foi
@@ -51,6 +51,9 @@ public final class RootKeyVault: @unchecked Sendable {
 
     enum Account {
         static let pinKDF = "pin.kdf"
+        /// Quantos digitos tem o PIN do slot (1 byte), para a tela saber quando o PIN
+        /// acabou sem gastar tentativa. Sem o item, 6: o tamanho de antes da escolha.
+        static let pinLength = "pin.digitos"
         static let rootByPIN = "rk.pin"
         static let rootByBiometry = "rk.bio"
         static let biometryState = "bio.estado"
@@ -169,6 +172,8 @@ public final class RootKeyVault: @unchecked Sendable {
         guard main != .unknown, pending != .unknown else { throw Failure.storage }
         guard main == .present || pending == .present else { throw Failure.notSetUp }
 
+        // PIN sem forma (envio duplo com o buffer vazio) nunca gasta tentativa.
+        guard Self.isWellFormed(pin) else { throw Failure.malformedPIN }
         let record = try rebasedAttemptsLocked()
         let waiting = record.remaining()
         guard waiting <= 0 else { throw Failure.throttled(seconds: waiting) }
@@ -225,6 +230,38 @@ public final class RootKeyVault: @unchecked Sendable {
 
     /// O formato do slot principal do PIN (1 ou 2), para a tela e os testes. So le.
     public var pinSlotFormat: Int? { slotVersion(suffix: "") }
+
+    /// Quantos digitos pode ter o PIN que abre: o tamanho de cada slot que existe. Quase
+    /// sempre um so; dois quando uma troca entre tamanhos diferentes foi interrompida antes
+    /// do ponto sem volta (o PIN antigo desfaz, o novo conclui, e a tela aceita os dois).
+    /// Sem o registro, 6 (slot de antes da escolha). Chaveiro mudo ou registro estranho:
+    /// os dois tamanhos, nunca um chute, para a tela nao gastar tentativa fechando no
+    /// tamanho errado. Nao e segredo (o iPhone tambem mostra quantos pontos o codigo tem).
+    /// So le.
+    public var pinLengths: Set<Int> {
+        var lengths = Set<Int>()
+        for suffix in ["", Account.pendingSuffix] {
+            switch store.probe(Account.rootByPIN + suffix) {
+            case .absent: continue
+            case .unknown: return Set(PINPolicy.lengths)
+            case .present:
+                guard let length = slotLength(suffix: suffix) else { return Set(PINPolicy.lengths) }
+                lengths.insert(length)
+            }
+        }
+        return lengths.isEmpty ? [PINPolicy.digits] : lengths
+    }
+
+    private func slotLength(suffix: String) -> Int? {
+        switch store.probe(Account.pinLength + suffix) {
+        case .absent: return PINPolicy.digits
+        case .unknown: return nil
+        case .present:
+            guard let data = try? store.read(Account.pinLength + suffix, context: nil), data.count == 1,
+                  PINPolicy.lengths.contains(Int(data[0])) else { return nil }
+            return Int(data[0])
+        }
+    }
 
     /// O formato do slot: 1 (chave do aparelho sem senha), 2 (chave do PIN com senha) ou
     /// nil (sem slot, registro ilegivel).
@@ -388,6 +425,7 @@ public final class RootKeyVault: @unchecked Sendable {
         }
         // Ponto sem volta passado: o PIN antigo nao abre mais nada.
         try? store.delete(Account.pinKDF)
+        try? store.delete(Account.pinLength)
         try? promotePendingLocked(rk: rk, pin: newPIN)
     }
 
@@ -405,6 +443,7 @@ public final class RootKeyVault: @unchecked Sendable {
     private func deleteSlot(suffix: String) {
         try? store.delete(Account.rootByPIN + suffix)
         try? store.delete(Account.pinKDF + suffix)
+        try? store.delete(Account.pinLength + suffix)
         // A chave do SE do slot pendente vai junto; a do principal, nunca aqui: so a
         // gravacao de um principal novo a substitui.
         if !suffix.isEmpty { wrapper.deleteKey(.pinPending) }
@@ -516,12 +555,17 @@ public final class RootKeyVault: @unchecked Sendable {
         kdfRecord += kdf.memoryKiB.bigEndianByteArray + kdf.passes.bigEndianByteArray + [kdf.lanes]
         kdfRecord.append(SlotFormat.version)
         try? store.delete(Account.pinKDF + suffix)
+        try? store.delete(Account.pinLength + suffix)
         do {
+            // O tamanho vai antes do slot e sai junto se ele falhar: nunca existe um slot
+            // de 4 digitos que a tela trate como de 6.
+            try store.add(Data([UInt8(pin.count)]), account: Account.pinLength + suffix, protection: .standard, context: nil)
             try store.add(Data(kdfRecord), account: Account.pinKDF + suffix, protection: .standard, context: nil)
             let context = try store.applicationPasswordContext(ap)
             try store.add(blob, account: Account.rootByPIN + suffix, protection: .applicationPassword, context: context)
         } catch {
             try? store.delete(Account.pinKDF + suffix)
+            try? store.delete(Account.pinLength + suffix)
             wrapper.deleteKey(slot)
             throw error
         }
@@ -623,7 +667,7 @@ public final class RootKeyVault: @unchecked Sendable {
         return rk
     }
 
-    /// A forma do PIN (6 digitos), sem deixar copia deles para tras.
+    /// A forma do PIN (4 ou 6 digitos), sem deixar copia deles para tras.
     public static func isWellFormed(_ pin: SecureBytes) -> Bool {
         var digits = pin.withUnsafeBytes { raw in raw.map { $0 &- 0x30 } }
         defer { digits.withUnsafeMutableBytes { if let base = $0.baseAddress { memset_s(base, $0.count, 0, $0.count) } } }

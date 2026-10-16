@@ -4,14 +4,20 @@ import Foundation
 /// As regras do PIN: a forma, a escada de atraso e o relogio que sobrevive a
 /// reinicio sem trancar o dono por dias.
 public enum PINPolicy {
+    /// O tamanho padrao, e o de todo PIN gravado antes de existir a escolha.
     public static let digits = 6
 
-    /// O PIN e do dono: qualquer combinacao de 6 digitos vale, inclusive 111111 e
+    /// Os tamanhos que o dono pode escolher (pedido do dono, 16/10/2026: 4 tambem). Com 4,
+    /// sao 10^4 combinacoes em vez de 10^6: contra quem tem execucao de codigo no
+    /// aparelho, minutos em vez de horas (docs/seguranca.md §2.8).
+    public static let lengths = [4, 6]
+
+    /// O PIN e do dono: qualquer combinacao de 4 ou 6 digitos vale, inclusive 1111 e
     /// 123456. Decisao do dono em 2026-09-26, que retirou a lista de PINs faceis. So a
-    /// forma e conferida: exatamente 6 digitos de 0 a 9. Contra quem tenta pela
-    /// interface ficam a escada de atraso e, se o dono ligar, o apagar apos erros.
+    /// forma e conferida: 4 ou 6 digitos de 0 a 9. Contra quem tenta pela interface
+    /// ficam a escada de atraso e, se o dono ligar, o apagar apos erros.
     public static func isWellFormed(_ digits: [UInt8]) -> Bool {
-        digits.count == Self.digits && digits.allSatisfy { $0 <= 9 }
+        lengths.contains(digits.count) && digits.allSatisfy { $0 <= 9 }
     }
 
     /// A escada de atraso, em segundos, depois de `failures` erros seguidos.

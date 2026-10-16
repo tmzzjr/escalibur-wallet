@@ -9,14 +9,63 @@ import SwiftUI
 @Observable
 final class PINEntry {
     private(set) var count = 0
-    private var buffer = SecureBytes(capacity: PINPolicy.digits)
+    /// Os tamanhos que fecham o PIN. Conferir o PIN que existe usa os do cofre, relidos
+    /// no primeiro digito de cada PIN (o app pode ter aberto em segundo plano, com o
+    /// chaveiro mudo); escolher um PIN novo usa o que o dono escolheu. Com dois tamanhos
+    /// (troca interrompida, registro ilegivel), o PIN fecha sozinho no maior e o menor vai
+    /// pela tecla OK: o teclado nunca gasta tentativa fechando no tamanho errado.
+    private(set) var lengths: Set<Int>
+    private var storedLength: Bool
+    private var buffer = SecureBytes(capacity: PINEntry.capacity)
     var error: String?
     var shake = 0
+
+    private static let capacity = PINPolicy.lengths.max() ?? PINPolicy.digits
+
+    /// Quantos pontos a tela mostra: o maior tamanho possivel.
+    var length: Int { lengths.max() ?? PINPolicy.digits }
+
+    /// Para conferir o PIN gravado no cofre.
+    init() {
+        storedLength = true
+        lengths = KeyServices.pinLengths
+    }
+
+    /// Para escolher um PIN novo, de `length` digitos.
+    init(choosing length: Int) {
+        storedLength = false
+        lengths = [length]
+    }
+
+    /// Passa a escolher um PIN novo de `length` digitos (4 ou 6). Apaga o que foi digitado.
+    func choose(length: Int) {
+        guard PINPolicy.lengths.contains(length) else { return }
+        reset()
+        storedLength = false
+        lengths = [length]
+    }
+
+    /// Volta a conferir o PIN gravado no cofre.
+    func useStoredLength() {
+        reset()
+        storedLength = true
+        lengths = KeyServices.pinLengths
+    }
+
+    /// Rele os tamanhos do cofre se nada foi digitado (o app voltou para a frente).
+    func refreshStoredLength() {
+        guard storedLength, count == 0 else { return }
+        lengths = KeyServices.pinLengths
+    }
+
+    /// O PIN digitado ja tem um tamanho valido menor que o maior: a tecla OK aparece.
+    var acceptsShorter: Bool { lengths.count > 1 && lengths.contains(count) && count < length }
 
     /// O erro fica na tela enquanto o PIN novo e digitado e sai quando ele fica completo:
     /// os pontos ja apagaram, e a mensagem diz o que aconteceu.
     func append(_ digit: Int) {
-        guard count < PINPolicy.digits else { return }
+        if storedLength, count == 0 { lengths = KeyServices.pinLengths }
+        guard count < length else { return }
         buffer.append(UInt8(0x30 + digit))
         count = buffer.count
     }
@@ -26,12 +75,12 @@ final class PINEntry {
         count = buffer.count
     }
 
-    var isComplete: Bool { count == PINPolicy.digits }
+    var isComplete: Bool { count == length }
 
     /// Entrega o PIN digitado (o chamador zera) e comeca um buffer novo.
     func take() -> SecureBytes {
         let taken = buffer
-        buffer = SecureBytes(capacity: PINPolicy.digits)
+        buffer = SecureBytes(capacity: Self.capacity)
         count = 0
         error = nil
         return taken
@@ -51,16 +100,17 @@ final class PINEntry {
     }
 }
 
-/// Os seis pontos. Erro: os pontos apagam, os aros ficam vermelhos ate o primeiro
-/// digito novo, e uma sacudida curta.
+/// Um ponto por digito (4 ou 6). Erro: os pontos apagam, os aros ficam vermelhos ate o
+/// primeiro digito novo, e uma sacudida curta.
 struct PINDots: View {
     let filled: Int
+    var length: Int = PINPolicy.digits
     var failed: Bool = false
     var shake: Int = 0
 
     var body: some View {
         HStack(spacing: 16) {
-            ForEach(0..<PINPolicy.digits, id: \.self) { index in
+            ForEach(0..<length, id: \.self) { index in
                 ZStack {
                     Circle().stroke(failed ? Palette.down : Palette.inkMuted, lineWidth: 1.5)
                     Circle()
@@ -75,7 +125,7 @@ struct PINDots: View {
         .modifier(Shake(animatableData: CGFloat(shake)))
         .animation(.easeOut(duration: 0.26), value: shake)
         .accessibilityElement()
-        .accessibilityLabel("\(filled) de \(PINPolicy.digits) dígitos")
+        .accessibilityLabel("\(filled) de \(length) dígitos")
     }
 }
 
@@ -127,7 +177,17 @@ struct PINPad: View {
             .accessibilityLabel("\(digit)")
             .accessibilityIdentifier("tecla-\(digit)")
         case .none:
-            if let biometryIcon, let onBiometry {
+            if entry.acceptsShorter {
+                // Dois tamanhos possiveis: o menor so vai quando o dono manda.
+                Button(action: onComplete) {
+                    Text("OK")
+                        .typeStyle(.key)
+                        .foregroundStyle(Palette.ink)
+                        .frame(width: Height.pinKey, height: Height.pinKey)
+                }
+                .buttonStyle(PINKeyStyle())
+                .accessibilityIdentifier("tecla-ok")
+            } else if let biometryIcon, let onBiometry {
                 functionKey(systemImage: biometryIcon, label: String(localized: "Usar \(KeyServices.biometryName)"), action: onBiometry)
             } else {
                 Color.clear.frame(width: Height.pinKey, height: Height.pinKey)
@@ -193,7 +253,7 @@ struct PINScreen<Footer: View>: View {
                 if working {
                     ProgressView().tint(Palette.inkSoft)
                 } else {
-                    PINDots(filled: entry.count, failed: entry.error != nil && entry.count == 0, shake: entry.shake)
+                    PINDots(filled: entry.count, length: entry.length, failed: entry.error != nil && entry.count == 0, shake: entry.shake)
                 }
             }
             .frame(height: 24)
@@ -217,5 +277,17 @@ struct PINScreen<Footer: View>: View {
         .frame(maxWidth: .infinity)
         .background(Palette.void.ignoresSafeArea())
         .sensoryFeedback(.error, trigger: entry.shake)
+    }
+}
+
+/// Trocar o tamanho do PIN novo entre 6 e 4 digitos, ao escolher. Seis e o padrao.
+struct PINLengthToggle: View {
+    let entry: PINEntry
+
+    var body: some View {
+        TertiaryButton(title: entry.length == 4 ? String(localized: "Usar PIN de 6 dígitos") : String(localized: "Usar PIN de 4 dígitos")) {
+            entry.choose(length: entry.length == 4 ? 6 : 4)
+        }
+        .accessibilityIdentifier("pin-tamanho")
     }
 }

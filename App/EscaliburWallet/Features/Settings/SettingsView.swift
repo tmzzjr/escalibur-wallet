@@ -490,10 +490,20 @@ struct ChangePINFlow: View {
     var body: some View {
         PINScreen(
             title: [String(localized: "Digite o PIN atual"), String(localized: "Escolha o novo PIN"), String(localized: "Repita o novo PIN")][step],
-            subtitle: step == 1 ? String(localized: "Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código.") : nil,
+            subtitle: step == 1
+                ? (entry.length == 4
+                    ? String(localized: "Quatro dígitos são mais fáceis de adivinhar que seis. Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código.")
+                    : String(localized: "Não use o código do iPhone: quem rouba o iPhone geralmente já viu esse código."))
+                : nil,
             entry: entry, working: working, onComplete: advance
         ) {
-            TertiaryButton(title: String(localized: "Cancelar")) { current?.wipe(); newPIN?.wipe(); onDone() }
+            VStack(spacing: Space.sm) {
+                PINLengthToggle(entry: entry)
+                    .opacity(step == 1 ? 1 : 0)
+                    .disabled(step != 1)
+                    .accessibilityHidden(step != 1)
+                TertiaryButton(title: String(localized: "Cancelar")) { current?.wipe(); newPIN?.wipe(); onDone() }
+            }
         }
     }
 
@@ -502,7 +512,7 @@ struct ChangePINFlow: View {
         switch error as? RootKeyVault.Failure {
         case .wrongPIN: return String(localized: "O PIN atual não confere.")
         case .throttled(let seconds): return String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
-        case .malformedPIN: return "O PIN precisa ter 6 números."
+        case .malformedPIN: return String(localized: "O PIN precisa ter 4 ou 6 números.")
         default: return String(localized: "Não foi possível trocar. O PIN atual continua valendo.")
         }
     }
@@ -513,6 +523,7 @@ struct ChangePINFlow: View {
         case 0:
             current = pin
             step = 1
+            entry.choose(length: PINPolicy.digits)
         case 1:
             newPIN = pin
             step = 2
@@ -541,6 +552,7 @@ struct ChangePINFlow: View {
                 } catch {
                     working = false
                     step = 0
+                    entry.useStoredLength()
                     entry.fail(Self.message(for: error))
                 }
             }
