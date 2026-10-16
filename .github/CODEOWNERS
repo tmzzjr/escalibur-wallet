@@ -1,7 +1,14 @@
-# Quem revisa o que guarda segredo, valida o que se assina ou trava dependencia.
-# docs/seguranca.md §8.3 pede dois revisores nestes caminhos. Hoje o repositorio tem um
-# dono so e a regra da main (ruleset "main protegida") so impede force push e apagar:
-# ainda nao exige aprovacao. O segundo revisor entra aqui quando existir.
+# Quem revisa o que guarda segredo, valida o que se assina, trava dependencia ou monta
+# o build que vai para a Apple. docs/seguranca.md §8.3 pede dois revisores nestes
+# caminhos. Hoje o repositorio tem um dono so, e o segundo revisor entra aqui quando
+# existir.
+#
+# A regra da main (ruleset "main protegida"): sem force push, sem apagar, e o check
+# `verificar` (.github/workflows/verificar.yml) passando no commit antes de ele entrar.
+# Aprovacao de revisor ainda nao e exigida: o unico revisor e o proprio autor.
+# As tags testflight-* e v* tem regra propria, so o dono cria, move ou apaga; e o
+# release.yml so monta de tag assinada por uma chave de .github/assinantes, depois de o
+# dono aprovar o environment release (docs/release.md).
 
 *                                   @tmzzjr
 
@@ -16,5 +23,19 @@
 /tools/                             @tmzzjr
 /App/EscaliburWallet/Resources/Info.plist                     @tmzzjr
 /App/EscaliburWallet/Resources/EscaliburWallet.entitlements   @tmzzjr
+/App/EscaliburWidgets/EscaliburWidgets.entitlements           @tmzzjr
 /tools/referencia/                  @tmzzjr
 /.github/                           @tmzzjr
+
+# O caminho do release: o que monta e envia, o que ele chama, quem pode assinar a tag e
+# como o .ipa e exportado.
+/.github/workflows/release.yml      @tmzzjr
+/.github/workflows/verificar.yml    @tmzzjr
+/.github/assinantes                 @tmzzjr
+/.github/ExportOptions.plist        @tmzzjr
+/tools/conferir-entitlements.py     @tmzzjr
+
+# Os termos de uso do codigo.
+/LICENSE                            @tmzzjr
+/LICENSE.pt.md                      @tmzzjr
+/THIRD_PARTY_NOTICES.md             @tmzzjr
