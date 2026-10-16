@@ -83188,6 +83188,82 @@
         }
       }
     },
+    "Este pedido de pagamento é de uma rede que a Escalibur não envia. Confira com quem pediu." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "طلب الدفع هذا لشبكة لا يرسل عليها Escalibur. تحقق مع من طلبه."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Zahlungsanforderung ist für ein Netzwerk, auf dem Escalibur nicht sendet. Frag beim Absender der Anforderung nach."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This payment request is for a network Escalibur doesn't send on. Check with whoever requested it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta solicitud de pago es de una red en la que Escalibur no envía. Confírmalo con quien te lo pidió."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette demande de paiement concerne un réseau sur lequel Escalibur n’envoie pas. Vérifiez auprès de la personne qui l’a faite."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह भुगतान अनुरोध ऐसे नेटवर्क का है जिस पर Escalibur नहीं भेजता. अनुरोध करने वाले से जांच लें."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permintaan pembayaran ini untuk jaringan yang tidak didukung Escalibur untuk pengiriman. Periksa dengan pihak yang meminta."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この支払いリクエストは、Escalibur が送金しないネットワーク用です。依頼した相手に確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 결제 요청은 Escalibur가 전송하지 않는 네트워크용입니다. 요청한 사람에게 확인하세요."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu ödeme isteği Escalibur'un gönderim yapmadığı bir ağ için. İsteyen kişiyle kontrol et."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yêu cầu thanh toán này dành cho một mạng mà Escalibur không gửi được. Hãy kiểm tra với bên yêu cầu."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此付款请求属于 Escalibur 不支持发送的网络。请向请求方核对。"
+          }
+        }
+      }
+    },
     "Este pedido traz um memo que o app não envia como está. Cole só o endereço e digite o memo, conferindo com quem pediu." : {
       "localizations" : {
         "ar" : {
@@ -83342,6 +83418,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此请求属于 %@ 网络，而转账是在 %@ 上进行。发送前请向请求方核对。"
+          }
+        }
+      }
+    },
+    "Este pedido é de outra rede, e o envio é pela %@. Confira com quem pediu antes de enviar." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هذا الطلب لشبكة أخرى، والتحويل على %@. تحقق مع من طلبه قبل الإرسال."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Anforderung ist für ein anderes Netzwerk, und der Transfer läuft über %@. Frag beim Absender der Anforderung nach, bevor du sendest."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This request is for another network, and the transfer is on %@. Check with whoever requested it before sending."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta solicitud es de otra red, y el envío es por %@. Confírmalo con quien te lo pidió antes de enviar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette demande concerne un autre réseau, et l’envoi se fait sur %@. Vérifiez auprès de la personne qui l’a faite avant d’envoyer."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह अनुरोध किसी दूसरे नेटवर्क का है, और ट्रांसफ़र %@ पर है. भेजने से पहले अनुरोध करने वाले से जांच लें."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permintaan ini untuk jaringan lain, sedangkan pengiriman lewat %@. Periksa dengan pihak yang meminta sebelum mengirim."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このリクエストは別のネットワーク用ですが、送金は %@ で行われます。送金する前に、依頼した相手に確認してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 요청은 다른 네트워크용인데, 전송은 %@ 네트워크로 진행됩니다. 보내기 전에 요청한 사람에게 확인하세요."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu istek başka bir ağ için, transfer ise %@ ağı üzerinden. Göndermeden önce isteyen kişiyle kontrol et."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yêu cầu này dành cho một mạng khác, còn lần gửi là trên %@. Hãy kiểm tra với bên yêu cầu trước khi gửi."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此请求属于另一个网络，而转账是在 %@ 上进行。发送前请向请求方核对。"
           }
         }
       }

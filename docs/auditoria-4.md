@@ -40,7 +40,16 @@ Auditoria de segurança completa pedida pelo dono, com sete revisores em paralel
 | B4 | Só o vetor 1 do BIP-32 e do SLIP-10 nos testes. | Feito. Vetores 1 a 4 do BIP-32 e 1 e 2 do SLIP-10, secp256k1 e Ed25519. |
 | R7-B4 / C7-22 | O `verificar.sh` só olhava `.swift` e só procurava `DebugDemo.`. | Feito. Falha fonte não-Swift fora dos dois C vendorizados, fase de script, framework fora do SDK, flag de linker, `DEBUG` fora da configuração Debug, e argumento de inicialização lido fora de `#if DEBUG`. |
 | Revisão do lote | A tag de um código lido antes ficava no campo, às vezes escondida; o link cortava parâmetros em 64 caracteres (o destino M quebrava); memo ID com zero à esquerda ou caractere invisível passava; a conferência ao salvar endereço se respondia olhando a tela; Celo e X Layer sem fila pública recebiam o aviso de robôs. | Feito: a tag sai com o destino novo, nada é cortado em silêncio, tag invisível ou ambígua é recusada, o trecho a digitar fica escondido na tela, e as duas redes saíram do aviso. |
-| C7-09, C7-11, C7-14 a C7-18, C7-21, C7-23, B3 | Ver o relatório consolidado. | Próximo lote. |
+| C7-11 | Buracos na guarda de captura. | Feito: a guarda nasce sabendo se a tela está sendo gravada, fecha o teclado quando a captura começa, e cobre a criação de carteira e a frase de voz. |
+| C7-14 | A calibração do envelope nunca media. | Feito: sonda com 2 passes, dividida por 2, e um teste que falha se ela lançar erro. |
+| C7-15 | O campo seguro contava bytes. | Feito: conta e apaga por caractere. |
+| C7-16 | Idioma da frase gravado como posição no enum. | Feito: códigos fixos, os mesmos do `decifrar.py`, com teste e um registro em português. |
+| C7-17 | Colar 13 palavras preenchia as 12 primeiras. | Feito: contagem fora do padrão não preenche nada e diz quantas vieram. |
+| C7-18 | O tipo `.esclbr` era só importado, com prioridade Alternate. | Feito: exportado, dono. |
+| C7-21 | Segredos em memória por mais tempo. | Feito no cofre: senha do SE zerada e contextos invalidados. A frase durante a escolha da senha do envelope continua em memória. |
+| B3 | Ed25519 deixava intermediários do segredo no heap. | Feito: área de trabalho fixa, zerada; o estado do SHA-512 fica como limite documentado. |
+| B-4, B-8, B-10 (revisão do envio) | Link de outra rede aceito na tela de Bitcoin; frase colada em campo de endereço; nenhum teste do M até o XDR. | Feito. |
+| C7-09, C7-12, C7-23, B-5, B-6, B-9 | Folha de recuperação por rede; teclado BIP-39 próprio (fecha também N1 e N4); Enhanced Security e pilha zerada no C; sósias de ponta curta onde a tela come o prefixo; troca só do ID num M; contas com nome da NEAR. | Abertos. |
 
 ## Depois: o modo reforçado
 

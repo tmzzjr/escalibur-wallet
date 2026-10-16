@@ -262,9 +262,15 @@ struct AddContactSheet: View {
                     // O mesmo leitor do envio: um QR com as palavras de uma carteira nunca
                     // vai para o campo (auditoria 4, C7-13), e a tag do link vem junto.
                     let reading = PaymentURI.read(text)
-                    address = reading.address
-                    if let linkTag = reading.tag, !linkTag.isEmpty { tag = linkTag }
-                    qrProblem = reading.problem
+                    // O QR de outra rede que a escolhida nao entra (auditoria 4, B-4).
+                    if let problem = reading.problem ?? PaymentURI.networkProblem(reading, chain: chain) {
+                        address = ""
+                        qrProblem = problem
+                    } else {
+                        address = reading.address
+                        if let linkTag = reading.tag, !linkTag.isEmpty { tag = linkTag }
+                        qrProblem = nil
+                    }
                     scanning = false
                 }
             }

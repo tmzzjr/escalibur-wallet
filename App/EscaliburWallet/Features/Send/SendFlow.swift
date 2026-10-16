@@ -672,9 +672,8 @@ struct SendStages: View {
     /// qualquer edicao do dono o solta.
     private func apply(_ reading: PaymentURI.Reading) {
         var problem = reading.problem
-        if problem == nil, let asked = reading.chainID, let chain = model.chain, asked != chain.id {
-            let name = Chain.find(asked)?.name ?? String(localized: "outra rede")
-            problem = String(localized: "Este pedido é da rede \(name), e o envio é pela \(chain.name). Confira com quem pediu antes de enviar.")
+        if problem == nil, let chain = model.chain {
+            problem = PaymentURI.networkProblem(reading, chain: chain)
         }
         model.linkProblem = problem.map { (text: reading.address, message: $0) }
         model.destinationText = reading.address
@@ -1457,20 +1456,38 @@ enum PaymentURI {
     struct Reading: Equatable {
         let address: String
         let chainID: String?
+        /// A familia que o esquema do link indica ("ethereum:" e EVM mesmo sem rede).
+        var family: ChainFamily? = nil
         var tag: String? = nil
         /// Por que o link foi recusado; nil quando foi lido.
         let problem: String?
     }
 
+    /// O link de outra rede que a da tela: "litecoin:" na tela de Bitcoin, ou "ethereum:"
+    /// sem rede na tela da Aptos (os dois aceitam endereco com a mesma forma), e recusado
+    /// (auditoria 4, B-4).
+    static func networkProblem(_ reading: Reading, chain: Chain) -> String? {
+        if let asked = reading.chainID, asked != chain.id {
+            let name = Chain.find(asked)?.name ?? String(localized: "outra rede")
+            return String(localized: "Este pedido é da rede \(name), e o envio é pela \(chain.name). Confira com quem pediu antes de enviar.")
+        }
+        if let family = reading.family, family != chain.family {
+            return String(localized: "Este pedido é de outra rede, e o envio é pela \(chain.name). Confira com quem pediu antes de enviar.")
+        }
+        return nil
+    }
+
     static func read(_ text: String) -> Reading {
         do {
             let reading = try PaymentLink.read(text)
-            return Reading(address: reading.address, chainID: reading.chainID, tag: reading.tag, problem: nil)
+            return Reading(address: reading.address, chainID: reading.chainID, family: reading.family, tag: reading.tag, problem: nil)
         } catch PaymentLink.Problem.tooLong {
             return Reading(address: "", chainID: nil, problem: String(localized: "Este código é longo demais para ser um endereço."))
         } catch PaymentLink.Problem.containsPhrase {
             // Nada do codigo vai para o campo (auditoria 4, C7-13).
             return Reading(address: "", chainID: nil, problem: String(localized: "Este código traz as palavras de uma senha de carteira, não um endereço. Quem tem essas palavras tem o saldo: não mostre a ninguém."))
+        } catch PaymentLink.Problem.unsupportedNetwork {
+            return Reading(address: "", chainID: nil, problem: String(localized: "Este pedido de pagamento é de uma rede que a Escalibur não envia. Confira com quem pediu."))
         } catch PaymentLink.Problem.unsupportedMemo {
             return Reading(address: "", chainID: nil, problem: String(localized: "Este pedido traz um memo que o app não envia como está. Cole só o endereço e digite o memo, conferindo com quem pediu."))
         } catch {
