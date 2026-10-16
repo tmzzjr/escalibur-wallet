@@ -92,7 +92,7 @@ struct ReceiptWatchView: View {
 
                 if denied {
                     Banner(kind: .caution, title: String(localized: "As notificações da Escalibur estão desligadas no iPhone."),
-                           message: String(localized: "Ligue em Ajustes do iPhone, Notificações, Escalibur Wallet."),
+                           message: String(localized: "Ligue em Ajustes do iPhone, Notificações, Escalibur."),
                            actionTitle: String(localized: "Abrir Ajustes do iPhone")) {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) }
                     }

@@ -97,8 +97,8 @@ private struct CameraAccessView: View {
 
     /// Do iOS 18 em diante, a pagina de cada app fica em Ajustes, Apps.
     static var path: String {
-        if #available(iOS 18, *) { return String(localized: "Em Ajustes, Apps, Escalibur Wallet, ligue:") }
-        return String(localized: "Nos Ajustes da Escalibur Wallet, ligue:")
+        if #available(iOS 18, *) { return String(localized: "Em Ajustes, Apps, Escalibur, ligue:") }
+        return String(localized: "Nos Ajustes da Escalibur, ligue:")
     }
 
     var body: some View {

@@ -57368,78 +57368,78 @@
         }
       }
     },
-    "Destravar a Escalibur Wallet" : {
+    "Destravar a Escalibur" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "فتح قفل Escalibur Wallet"
+            "value" : "فتح قفل Escalibur"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escalibur Wallet entsperren"
+            "value" : "Escalibur entsperren"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Unlock Escalibur Wallet"
+            "value" : "Unlock Escalibur"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Desbloquear Escalibur Wallet"
+            "value" : "Desbloquear Escalibur"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Déverrouiller Escalibur Wallet"
+            "value" : "Déverrouiller Escalibur"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escalibur Wallet अनलॉक करें"
+            "value" : "Escalibur अनलॉक करें"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Buka kunci Escalibur Wallet"
+            "value" : "Buka kunci Escalibur"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escalibur Wallet のロックを解除"
+            "value" : "Escalibur のロックを解除"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escalibur Wallet 잠금 해제"
+            "value" : "Escalibur 잠금 해제"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escalibur Wallet kilidini aç"
+            "value" : "Escalibur kilidini aç"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mở khóa Escalibur Wallet"
+            "value" : "Mở khóa Escalibur"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "解锁 Escalibur Wallet"
+            "value" : "解锁 Escalibur"
           }
         }
       }
@@ -59915,78 +59915,78 @@
         }
       }
     },
-    "Em Ajustes, Apps, Escalibur Wallet, ligue:" : {
+    "Em Ajustes, Apps, Escalibur, ligue:" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "في الإعدادات، التطبيقات، Escalibur Wallet، فعّل:"
+            "value" : "في الإعدادات، التطبيقات، Escalibur، فعّل:"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Einstellungen, Apps, Escalibur Wallet, aktiviere:"
+            "value" : "In Einstellungen, Apps, Escalibur, aktiviere:"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Settings, Apps, Escalibur Wallet, turn on:"
+            "value" : "In Settings, Apps, Escalibur, turn on:"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En Ajustes, Apps, Escalibur Wallet, activa:"
+            "value" : "En Ajustes, Apps, Escalibur, activa:"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dans Réglages, Apps, Escalibur Wallet, activez :"
+            "value" : "Dans Réglages, Apps, Escalibur, activez :"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "सेटिंग्स, ऐप्स, Escalibur Wallet में जाकर चालू करें:"
+            "value" : "सेटिंग्स, ऐप्स, Escalibur में जाकर चालू करें:"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Di Pengaturan, App, Escalibur Wallet, aktifkan:"
+            "value" : "Di Pengaturan, App, Escalibur, aktifkan:"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「設定」>「アプリ」>「Escalibur Wallet」で、次をオンにしてください："
+            "value" : "「設定」>「アプリ」>「Escalibur」で、次をオンにしてください："
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "설정 > 앱 > Escalibur Wallet에서 다음을 켜세요:"
+            "value" : "설정 > 앱 > Escalibur에서 다음을 켜세요:"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ayarlar > Uygulamalar > Escalibur Wallet bölümünde şunu aç:"
+            "value" : "Ayarlar > Uygulamalar > Escalibur bölümünde şunu aç:"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trong Cài đặt, Ứng dụng, Escalibur Wallet, hãy bật:"
+            "value" : "Trong Cài đặt, Ứng dụng, Escalibur, hãy bật:"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在“设置”>“App”>“Escalibur Wallet”中，开启："
+            "value" : "在“设置”>“App”>“Escalibur”中，开启："
           }
         }
       }
@@ -93048,78 +93048,78 @@
         }
       }
     },
-    "Ligue em Ajustes do iPhone, Notificações, Escalibur Wallet." : {
+    "Ligue em Ajustes do iPhone, Notificações, Escalibur." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "فعّلها في إعدادات iPhone، الإشعارات، Escalibur Wallet."
+            "value" : "فعّلها في إعدادات iPhone، الإشعارات، Escalibur."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schalte sie in den iPhone-Einstellungen ein: Mitteilungen, Escalibur Wallet."
+            "value" : "Schalte sie in den iPhone-Einstellungen ein: Mitteilungen, Escalibur."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turn them on in iPhone Settings, Notifications, Escalibur Wallet."
+            "value" : "Turn them on in iPhone Settings, Notifications, Escalibur."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Actívalas en Ajustes del iPhone, Notificaciones, Escalibur Wallet."
+            "value" : "Actívalas en Ajustes del iPhone, Notificaciones, Escalibur."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Activez-les dans les Réglages de l’iPhone, Notifications, Escalibur Wallet."
+            "value" : "Activez-les dans les Réglages de l’iPhone, Notifications, Escalibur."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPhone सेटिंग्स, नोटिफ़िकेशन, Escalibur Wallet में इन्हें चालू करें."
+            "value" : "iPhone सेटिंग्स, नोटिफ़िकेशन, Escalibur में इन्हें चालू करें."
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aktifkan di Pengaturan iPhone, Notifikasi, Escalibur Wallet."
+            "value" : "Aktifkan di Pengaturan iPhone, Notifikasi, Escalibur."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPhone の「設定」>「通知」>「Escalibur Wallet」でオンにしてください。"
+            "value" : "iPhone の「設定」>「通知」>「Escalibur」でオンにしてください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPhone 설정 > 알림 > Escalibur Wallet에서 켜세요."
+            "value" : "iPhone 설정 > 알림 > Escalibur에서 켜세요."
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "iPhone Ayarları > Bildirimler > Escalibur Wallet bölümünden aç."
+            "value" : "iPhone Ayarları > Bildirimler > Escalibur bölümünden aç."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hãy bật trong Cài đặt iPhone, Thông báo, Escalibur Wallet."
+            "value" : "Hãy bật trong Cài đặt iPhone, Thông báo, Escalibur."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请前往 iPhone“设置”>“通知”>“Escalibur Wallet”开启。"
+            "value" : "请前往 iPhone“设置”>“通知”>“Escalibur”开启。"
           }
         }
       }
@@ -104449,78 +104449,78 @@
         }
       }
     },
-    "Nos Ajustes da Escalibur Wallet, ligue:" : {
+    "Nos Ajustes da Escalibur, ligue:" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "في إعدادات Escalibur Wallet، فعّل:"
+            "value" : "في إعدادات Escalibur، فعّل:"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In den Einstellungen von Escalibur Wallet, aktiviere:"
+            "value" : "In den Einstellungen von Escalibur, aktiviere:"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Escalibur Wallet settings, turn on:"
+            "value" : "In Escalibur settings, turn on:"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "En los ajustes de Escalibur Wallet, activa:"
+            "value" : "En los ajustes de Escalibur, activa:"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dans les réglages d’Escalibur Wallet, activez :"
+            "value" : "Dans les réglages d’Escalibur, activez :"
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escalibur Wallet की सेटिंग्स में चालू करें:"
+            "value" : "Escalibur की सेटिंग्स में चालू करें:"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Di Pengaturan Escalibur Wallet, aktifkan:"
+            "value" : "Di Pengaturan Escalibur, aktifkan:"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escalibur Wallet の設定で、次をオンにしてください："
+            "value" : "Escalibur の設定で、次をオンにしてください："
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escalibur Wallet 설정에서 다음을 켜세요:"
+            "value" : "Escalibur 설정에서 다음을 켜세요:"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escalibur Wallet ayarlarında şunu aç:"
+            "value" : "Escalibur ayarlarında şunu aç:"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trong cài đặt của Escalibur Wallet, hãy bật:"
+            "value" : "Trong cài đặt của Escalibur, hãy bật:"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 Escalibur Wallet 的设置中，开启："
+            "value" : "在 Escalibur 的设置中，开启："
           }
         }
       }
@@ -130198,78 +130198,78 @@
         }
       }
     },
-    "Para receber alertas de preço, ligue as notificações da Escalibur Wallet nos Ajustes do iPhone." : {
+    "Para receber alertas de preço, ligue as notificações da Escalibur nos Ajustes do iPhone." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "لتلقي تنبيهات الأسعار، فعّل إشعارات Escalibur Wallet في إعدادات iPhone."
+            "value" : "لتلقي تنبيهات الأسعار، فعّل إشعارات Escalibur في إعدادات iPhone."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Für Preisalarme schalte die Mitteilungen für Escalibur Wallet in den iPhone-Einstellungen ein."
+            "value" : "Für Preisalarme schalte die Mitteilungen für Escalibur in den iPhone-Einstellungen ein."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To get price alerts, turn on notifications for Escalibur Wallet in iPhone Settings."
+            "value" : "To get price alerts, turn on notifications for Escalibur in iPhone Settings."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Para recibir alertas de precio, activa las notificaciones de Escalibur Wallet en los Ajustes del iPhone."
+            "value" : "Para recibir alertas de precio, activa las notificaciones de Escalibur en los Ajustes del iPhone."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pour recevoir les alertes de prix, activez les notifications d’Escalibur Wallet dans les Réglages de l’iPhone."
+            "value" : "Pour recevoir les alertes de prix, activez les notifications d’Escalibur dans les Réglages de l’iPhone."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "प्राइस अलर्ट पाने के लिए, iPhone सेटिंग्स में Escalibur Wallet की नोटिफ़िकेशन चालू करें."
+            "value" : "प्राइस अलर्ट पाने के लिए, iPhone सेटिंग्स में Escalibur की नोटिफ़िकेशन चालू करें."
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Untuk menerima peringatan harga, aktifkan notifikasi Escalibur Wallet di Pengaturan iPhone."
+            "value" : "Untuk menerima peringatan harga, aktifkan notifikasi Escalibur di Pengaturan iPhone."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "価格アラートを受け取るには、iPhone の設定で Escalibur Wallet の通知をオンにしてください。"
+            "value" : "価格アラートを受け取るには、iPhone の設定で Escalibur の通知をオンにしてください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "가격 알림을 받으려면 iPhone 설정에서 Escalibur Wallet 알림을 켜세요."
+            "value" : "가격 알림을 받으려면 iPhone 설정에서 Escalibur 알림을 켜세요."
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fiyat alarmları almak için iPhone Ayarları'ndan Escalibur Wallet bildirimlerini aç."
+            "value" : "Fiyat alarmları almak için iPhone Ayarları'ndan Escalibur bildirimlerini aç."
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Để nhận cảnh báo giá, hãy bật thông báo cho Escalibur Wallet trong Cài đặt iPhone."
+            "value" : "Để nhận cảnh báo giá, hãy bật thông báo cho Escalibur trong Cài đặt iPhone."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "要接收价格提醒，请在 iPhone“设置”中开启 Escalibur Wallet 的通知。"
+            "value" : "要接收价格提醒，请在 iPhone“设置”中开启 Escalibur 的通知。"
           }
         }
       }
@@ -151790,6 +151790,82 @@
         }
       }
     },
+    "Só você" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أنت وحدك"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur du"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only you"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo tú"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous seul"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सिर्फ़ आप"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hanya Anda"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなただけ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오직 나만"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yalnızca sen"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chỉ bạn"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "唯有你"
+          }
+        }
+      }
+    },
     "Só você assina" : {
       "localizations" : {
         "ar" : {
@@ -152085,82 +152161,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "只有你能从石中拔出宝剑"
-          }
-        }
-      }
-    },
-    "Só você é digno" : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "أنت وحدك جدير"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nur du bist würdig"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Only you are worthy"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Solo tú eres digno"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vous seul êtes digne"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "सिर्फ़ आप योग्य हैं"
-          }
-        },
-        "id" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hanya Anda yang layak"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ふさわしいのはあなただけ"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "오직 나만이 자격이 있습니다"
-          }
-        },
-        "tr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Yalnızca sen layıksın"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chỉ bạn xứng đáng"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "唯有你配得上"
           }
         }
       }

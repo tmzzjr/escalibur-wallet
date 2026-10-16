@@ -42,16 +42,53 @@ final class AppSession {
             PriceAlertStore.erase()
         }
         #endif
-        KeyServices.firstLaunchCleanup()
         // Os alertas de preco abrem o app em segundo plano, as vezes com o iPhone
-        // bloqueado: ai o chaveiro nao responde e a contagem de tentativas fica para a
-        // volta ao primeiro plano (`scenePhaseChanged`). `isSetUp` le "nao sei" como
-        // configurado, e o app abre travado, nunca na criacao do PIN.
-        if UIApplication.shared.isProtectedDataAvailable { KeyServices.root.rebaseAttempts() }
+        // bloqueado: ai o chaveiro nao responde. `isSetUp` le "nao sei" como configurado,
+        // e o app abre travado, nunca na criacao do PIN.
         phase = KeyServices.root.isSetUp ? .locked : .onboarding
-        // Sem chaves (o codigo do iPhone foi tirado e o chaveiro apagou o cofre): o que o
-        // segundo plano guardava fora do cofre nao tem mais dono (pentest de 14/10/2026, B6).
-        if phase == .onboarding, UIApplication.shared.isProtectedDataAvailable {
+        launchChecks()
+        // Este init roda antes de o iOS terminar de abrir o app, e ai
+        // `isProtectedDataAvailable` ainda diz "nao" com o iPhone desbloqueado (visto em
+        // 16/10/2026): a limpeza da instalacao nova nunca rodava, e quem reinstalava o app
+        // achava o PIN e o cofre da instalacao anterior no chaveiro. As conferencias de
+        // abertura rodam de novo quando o app termina de abrir e quando os dados
+        // protegidos ficam disponiveis (o app aberto em segundo plano antes do primeiro
+        // desbloqueio), uma vez so.
+        guard !launchChecked else { return }
+        launchObservers = [UIApplication.didFinishLaunchingNotification, UIApplication.protectedDataDidBecomeAvailableNotification].map { name in
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.launchChecks() }
+            }
+        }
+    }
+
+    /// As conferencias de abertura, que precisam do chaveiro e dos arquivos protegidos:
+    /// a limpeza da instalacao nova, o relogio das tentativas e, sem cofre, os arquivos
+    /// do segundo plano. So rodam com os dados protegidos disponiveis, e uma vez so.
+    @ObservationIgnored private var launchChecked = false
+    @ObservationIgnored private var launchObservers: [any NSObjectProtocol] = []
+
+    private func launchChecks() {
+        guard !launchChecked, UIApplication.shared.isProtectedDataAvailable else { return }
+        launchChecked = true
+        launchObservers.forEach(NotificationCenter.default.removeObserver)
+        launchObservers = []
+        // A limpeza apagou o cofre de uma instalacao anterior: o app abre na criacao do
+        // PIN, nunca no PIN que sobrou no chaveiro, e nada da sessao fica de pe, qualquer
+        // que seja a fase.
+        if KeyServices.firstLaunchCleanup() {
+            indexKey = nil
+            metadata = Metadata()
+            phase = .onboarding
+        }
+        // A contagem de tentativas que veio de outro boot; com o chaveiro mudo, fica para
+        // a volta ao primeiro plano (`scenePhaseChanged`).
+        KeyServices.root.rebaseAttempts()
+        if phase == .locked, !KeyServices.root.isSetUp { phase = .onboarding }
+        // Sem chaves (o codigo do iPhone foi tirado e o chaveiro apagou o cofre, ou uma
+        // instalacao nova): o que o segundo plano guardava fora do cofre nao tem mais dono
+        // (pentest de 14/10/2026, B6).
+        if phase == .onboarding {
             Self.eraseBackgroundFiles()
             Preferences.receiptWatchChosen = false
             Preferences.priceAlertsChosen = false
@@ -103,7 +140,7 @@ final class AppSession {
 
     func unlockWithBiometry() async throws {
         let (key, updates) = try await Offload.run {
-            let rk = try KeyServices.root.unlockWithBiometry(reason: String(localized: "Destravar a Escalibur Wallet"))
+            let rk = try KeyServices.root.unlockWithBiometry(reason: String(localized: "Destravar a Escalibur"))
             defer { rk.wipe() }
             return (IndexCipher.key(from: rk), Self.missingAccounts(rk: rk))
         }

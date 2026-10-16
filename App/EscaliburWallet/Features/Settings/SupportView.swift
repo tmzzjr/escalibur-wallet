@@ -12,7 +12,7 @@ enum SupportContact {
         components.path = email
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
-        components.queryItems = [URLQueryItem(name: "subject", value: "Escalibur Wallet \(version) (\(build))")]
+        components.queryItems = [URLQueryItem(name: "subject", value: "Escalibur \(version) (\(build))")]
         return components.url
     }
 }

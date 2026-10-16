@@ -80,9 +80,14 @@ enum KeyServices {
     /// metadados). O iOS pode abrir o app em segundo plano antes do primeiro
     /// desbloqueio, quando as preferencias leem vazio; um "instalacao nova" falso ali
     /// apagaria tudo.
+    ///
+    /// Devolve se apagou o que sobrou de uma instalacao anterior. As marcas so sao
+    /// gravadas depois de conferir que nada sobrou: uma exclusao que falhou fica para a
+    /// proxima abertura, em vez de marcada como feita (revisao de 16/10/2026).
     @MainActor
-    static func firstLaunchCleanup() {
-        guard UIApplication.shared.isProtectedDataAvailable else { return }
+    @discardableResult
+    static func firstLaunchCleanup() -> Bool {
+        guard UIApplication.shared.isProtectedDataAvailable else { return false }
         let files = FileManager.default
         let marker = installMarker
         let installed = Preferences.installMarked
@@ -90,6 +95,8 @@ enum KeyServices {
             || files.fileExists(atPath: MetadataStore.file.path)
         if !installed {
             root.wipeAll()
+            let clean = !root.isSetUp && store.probe("rk.bio") == .absent && !WrapSlot.allCases.contains(where: wrapper.hasKey)
+            guard clean else { return true }
         }
         Preferences.installMarked = true
         if !files.fileExists(atPath: marker.path) {
@@ -100,6 +107,7 @@ enum KeyServices {
             values.isExcludedFromBackup = true
             try? url.setResourceValues(values)
         }
+        return !installed
     }
 
     private static var installMarker: URL {

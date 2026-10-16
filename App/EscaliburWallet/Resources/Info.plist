@@ -9,7 +9,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>pt-BR</string>
 	<key>CFBundleDisplayName</key>
-	<string>Escalibur Wallet</string>
+	<string>Escalibur</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

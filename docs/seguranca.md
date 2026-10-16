@@ -193,7 +193,10 @@ Pré-condições para criar ou importar carteira:
 - `SecureEnclave.isAvailable`.
 
 Primeira execução depois da instalação:
-- O item de chaveiro sobrevive à desinstalação no iOS. Se o marcador em `UserDefaults` não existir e houver itens no chaveiro, o app apaga tudo, as chaves do SE primeiro.
+- O item de chaveiro sobrevive à desinstalação no iOS. Na primeira abertura depois de instalar, o app apaga o que sobrou, as chaves do SE primeiro.
+- Instalação nova é a falta dos três sinais de uso ao mesmo tempo: o marcador nas preferências, o arquivo `instalacao.marca` e o arquivo de metadados (os dois arquivos fora do backup). Só se decide com os dados protegidos disponíveis.
+- A conferência roda quando o app termina de abrir (antes do primeiro quadro) e, se o iPhone ainda não tinha sido desbloqueado, quando os dados protegidos ficam disponíveis. No `init` da sessão os dados protegidos ainda aparecem como indisponíveis, mesmo com o iPhone desbloqueado; até o build 3 a limpeza só rodava ali e nunca acontecia (corrigido em 16/10/2026).
+- As marcas só são gravadas depois de conferir que nenhum slot da RK e nenhuma chave do SE sobrou. Se uma exclusão falhar, a próxima abertura tenta de novo.
 - Com isso, "apagar o app apaga as carteiras" passa a ser verdade, e reinstalar para zerar o contador de tentativas também destrói o que se queria atacar.
 
 Consequência que vai por escrito no onboarding:

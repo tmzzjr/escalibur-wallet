@@ -31,7 +31,7 @@ struct PriceAlertsView: View {
 
                 if denied {
                     Banner(kind: .caution, title: String(localized: "As notificações da Escalibur estão desligadas no iPhone."),
-                           message: String(localized: "Ligue em Ajustes do iPhone, Notificações, Escalibur Wallet."),
+                           message: String(localized: "Ligue em Ajustes do iPhone, Notificações, Escalibur."),
                            actionTitle: String(localized: "Abrir Ajustes do iPhone")) {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) }
                     }
@@ -375,7 +375,7 @@ struct PriceAlertBell: View {
             }
             Button("Agora não", role: .cancel) {}
         } message: {
-            Text("Para receber alertas de preço, ligue as notificações da Escalibur Wallet nos Ajustes do iPhone.")
+            Text("Para receber alertas de preço, ligue as notificações da Escalibur nos Ajustes do iPhone.")
         }
     }
 
