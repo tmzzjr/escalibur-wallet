@@ -248,7 +248,10 @@ struct SolanaSendEngineTests {
         var raw = signed.raw
         raw[raw.count - 1] ^= 0x01  // um byte da mensagem: a assinatura deixa de valer
         let tampered = SignedTransaction(chainID: signed.chainID, raw: raw, encoded: Data(raw).base64EncodedString(), id: signed.id)
-        let wrongID = SignedTransaction(chainID: signed.chainID, raw: signed.raw, encoded: signed.encoded, id: String(signed.id.dropLast()) + "1")
+        // A assinatura Ed25519 do CryptoKit e sorteada: o id pode ja terminar em "1", e
+        // trocar por "1" deixava o id igual ao certo (1 vez em 58, visto no CI).
+        let swapped: Character = signed.id.last == "1" ? "2" : "1"
+        let wrongID = SignedTransaction(chainID: signed.chainID, raw: signed.raw, encoded: signed.encoded, id: String(signed.id.dropLast()) + String(swapped))
         let wrongEncoding = SignedTransaction(chainID: signed.chainID, raw: signed.raw, encoded: Data(raw).base64EncodedString(), id: signed.id)
         let refused = SolanaEngineMessages.text(SolanaEngineProblem.signedMismatch)
         for bad in [[tampered], [wrongID], [wrongEncoding], [signed, signed], []] {
