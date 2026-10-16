@@ -79,6 +79,58 @@ struct PaymentLinkTests {
         #expect((try? PaymentLink.read("abandon abandon about")) != nil)
     }
 
+    @Test("Regressao B-4: o esquema diz a rede e a familia, com os ids de Chain.swift")
+    func schemeNetwork() throws {
+        let g = "GA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVSGZ"
+        let cases: [(link: String, address: String, chain: Chain)] = [
+            ("bitcoin:bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq?amount=0.1", "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", .bitcoin),
+            ("BITCOIN:BC1QAR0SRRR7XFKVY5L643LYDNW9RE59GTZZWF5MDQ", "BC1QAR0SRRR7XFKVY5L643LYDNW9RE59GTZZWF5MDQ", .bitcoin),
+            ("litecoin:3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy", "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy", .litecoin),
+            ("dogecoin:DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L?amount=5", "DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L", .dogecoin),
+            ("solana:7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", .solana),
+            ("xrpl:rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh", "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh", .xrpl),
+            ("ripple:rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh?dt=7", "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh", .xrpl),
+            ("ton://transfer/EQD__________________________________________0vo", "EQD__________________________________________0vo", .ton),
+            ("web+stellar:pay?destination=\(g)", g, .stellar),
+            ("tron:TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t", .tron),
+        ]
+        for item in cases {
+            let reading = try PaymentLink.read(item.link)
+            #expect(reading.address == item.address, "\(item.link)")
+            #expect(reading.chainID == item.chain.id && reading.family == item.chain.family, "\(item.link)")
+            // O id e o de uma rede de verdade: a tela compara com o `id` da dela.
+            #expect(Chain.find(item.chain.id) == item.chain)
+        }
+        // O P2SH da Litecoin antiga tem a forma de um endereco de Bitcoin: so o esquema diz
+        // a rede, e a tela de Bitcoin recusa pelo `chainID`.
+        #expect(try PaymentLink.read("litecoin:3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy").chainID != Chain.bitcoin.id)
+        // EIP-681: a familia sempre; a rede, so com `@chain_id`.
+        let any = try PaymentLink.read("ethereum:\(to)?value=1")
+        #expect(any.chainID == nil && any.family == .evm)
+        let base = try PaymentLink.read("ethereum:\(to)@8453?value=1")
+        #expect(base.chainID == "base" && base.family == .evm)
+        // Sem esquema, nem rede nem familia: a tela valida o endereco como e.
+        let plain = try PaymentLink.read("rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh")
+        #expect(plain.chainID == nil && plain.family == nil)
+        let raw = try PaymentLink.read("0:83dfd552e63729b472fcbcc8c45ebcc6691702558b68ec7527e1ba403a0f31a8")
+        #expect(raw.chainID == nil && raw.family == nil)
+    }
+
+    @Test("Regressao B-4: esquema de rede que o app nao tem, ou desconhecido, e recusado")
+    func unsupportedSchemes() {
+        // O Bitcoin Cash usa enderecos legados iguais aos do Bitcoin: lido como endereco
+        // qualquer, ia para a tela de Bitcoin.
+        #expect(throws: PaymentLink.Problem.unsupportedNetwork("bitcoincash")) {
+            try PaymentLink.read("bitcoincash:1BoatSLRHtKNngkdXEeobR76b53LETtpyT")
+        }
+        #expect(throws: PaymentLink.Problem.unsupportedNetwork("bitcoincash")) {
+            try PaymentLink.read("BitcoinCash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a?amount=1")
+        }
+        for scheme in ["ecash", "monero", "zcash", "dash", "cardano", "https", "wc"] {
+            #expect(throws: PaymentLink.Problem.unsupportedNetwork(scheme)) { try PaymentLink.read("\(scheme):1BoatSLRHtKNngkdXEeobR76b53LETtpyT") }
+        }
+    }
+
     @Test("Outros esquemas: so o endereco")
     func otherSchemes() throws {
         #expect(try PaymentLink.read("bitcoin:bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq?amount=0.1&label=x").address

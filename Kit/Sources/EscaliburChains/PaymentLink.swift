@@ -12,19 +12,36 @@ import Foundation
 /// A tag e o memo antes eram descartados sem aviso: o QR de deposito de uma corretora no
 /// XRP Ledger virava so o endereco, e o deposito sem tag nao era creditado (auditoria 4,
 /// B5). Agora vao para o campo, mostrados para o dono conferir.
+///
+/// O esquema diz a rede, e nao so no EIP-681: "litecoin:3J98..." ou "bitcoincash:1Boat..."
+/// eram lidos como um endereco qualquer, e a tela de Bitcoin aceitava, porque a Litecoin
+/// antiga e o Bitcoin Cash usam enderecos com a forma dos do Bitcoin (auditoria 4, B-4).
+/// Agora a leitura diz a rede e a familia do esquema, e esquema de rede que o app nao tem
+/// (ou que ele nao conhece) e recusado.
 public enum PaymentLink {
     public struct Reading: Equatable, Sendable {
         public let address: String
-        /// A rede que o link pede, quando ele diz (EIP-681 com `@chain_id`).
+        /// A rede que o link pede, quando ele diz: o `@chain_id` do EIP-681, ou o esquema
+        /// de uma rede de esquema proprio ("litecoin:" e a Litecoin, "ripple:" o XRP
+        /// Ledger). Quem le recusa o link cuja rede nao e a da tela. Nil sem esquema, e no
+        /// "ethereum:" sem `@chain_id`, que serve a qualquer rede EVM.
         public let chainID: String?
+        /// A familia que o esquema indica: `.evm` no "ethereum:", com ou sem `@chain_id`, e
+        /// a da rede nos outros. Nil sem esquema.
+        public let family: ChainFamily?
         /// A tag de destino ou o memo que o link traz: `dt` do XRP Ledger, `text` da TON,
         /// `memo` do SEP-7. Nil quando nao traz.
         public let tag: String?
 
-        init(address: String, chainID: String?, tag: String? = nil) {
+        init(address: String, chainID: String?, family: ChainFamily?, tag: String? = nil) {
             self.address = address
             self.chainID = chainID
+            self.family = family
             self.tag = tag
+        }
+
+        init(address: String, chain: Chain, tag: String? = nil) {
+            self.init(address: address, chainID: chain.id, family: chain.family, tag: tag)
         }
     }
 
@@ -46,10 +63,22 @@ public enum PaymentLink {
         /// Tag ou memo com caractere invisivel, de controle ou espaco nas pontas, longo
         /// demais, ou com duas tags (X-address do XRP Ledger, que ja traz a sua, e um `dt`).
         case invalidTag
+        /// O esquema do link (o valor, em minusculas) e de uma rede em que o app nao envia,
+        /// como "bitcoincash", cujos enderecos tem a forma dos do Bitcoin, ou de nenhuma que
+        /// ele conheca. O resto do link nunca vira destino da rede da tela (auditoria 4, B-4).
+        case unsupportedNetwork(String)
     }
 
     public static let maxLength = 512
     static let maxTagLength = 64
+
+    /// As redes de esquema proprio. O "ethereum:" (EIP-681), o "web+stellar:" (SEP-7) e o
+    /// "ton://transfer/" tem leitura propria; o "ton:" daqui so cobre o "ton://" de outra
+    /// acao, que nao traz endereco e continua recusado pela validacao.
+    static let schemes: [String: Chain] = [
+        "bitcoin": .bitcoin, "litecoin": .litecoin, "dogecoin": .dogecoin,
+        "solana": .solana, "xrpl": .xrpl, "ripple": .xrpl, "tron": .tron, "ton": .ton,
+    ]
 
     public static func read(_ text: String) throws -> Reading {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -63,28 +92,33 @@ public enum PaymentLink {
             }
             switch request.payment {
             case .native(let recipient, _), .token(_, let recipient, _):
-                return Reading(address: recipient.description, chainID: request.chain?.id)
+                return Reading(address: recipient.description, chainID: request.chain?.id, family: .evm)
             }
         }
         if lower.hasPrefix("web+stellar:") { return try stellarRequest(trimmed) }
         if lower.hasPrefix("ton://transfer/") {
             let rest = trimmed.dropFirst("ton://transfer/".count)
             let address = String(rest.prefix { $0 != "?" && $0 != "/" })
-            return Reading(address: address, chainID: nil, tag: try tag("text", in: trimmed))
+            return Reading(address: address, chain: .ton, tag: try tag("text", in: trimmed))
         }
         var body = Substring(trimmed)
-        var scheme = ""
-        if let colon = body.firstIndex(of: ":"), body[..<colon].allSatisfy({ $0.isLetter }) {
-            scheme = body[..<colon].lowercased()
+        var chain: Chain?
+        if let colon = body.firstIndex(of: ":"), colon != body.startIndex, body[..<colon].allSatisfy({ $0.isLetter }) {
+            // Esquema que nao e de uma rede do app recusa: ler o resto como endereco da tela
+            // e o que mandava "bitcoincash:1Boat..." para o Bitcoin.
+            let scheme = body[..<colon].lowercased()
+            guard let known = Self.schemes[scheme] else { throw Problem.unsupportedNetwork(scheme) }
+            chain = known
             body = body[body.index(after: colon)...]
         }
         if body.hasPrefix("pay-") { body = body.dropFirst(4) }
         let address = String(body.prefix { $0 != "?" && $0 != "@" && $0 != "/" })
-        let found = ["xrpl", "ripple"].contains(scheme) ? try tag("dt", in: trimmed) : nil
+        let found = chain == .xrpl ? try tag("dt", in: trimmed) : nil
         // O X-address ja traz a tag dele: um `dt` junto e uma segunda tag disputando o
         // credito, sem leitura segura.
         if found != nil, address.hasPrefix("X") { throw Problem.invalidTag }
-        return Reading(address: address, chainID: nil, tag: found)
+        guard let chain else { return Reading(address: address, chainID: nil, family: nil) }
+        return Reading(address: address, chain: chain, tag: found)
     }
 
     /// SEP-7: `web+stellar:pay?destination=G...&memo=...&memo_type=MEMO_ID`. So o destino
@@ -96,7 +130,7 @@ public enum PaymentLink {
             throw Problem.unsupportedStellarRequest
         }
         guard let memo = try tag("memo", in: text), !memo.isEmpty else {
-            return Reading(address: destination, chainID: nil)
+            return Reading(address: destination, chain: .stellar)
         }
         switch (try parameter("memo_type", in: text) ?? "MEMO_TEXT").uppercased() {
         case "MEMO_ID":
@@ -109,7 +143,7 @@ public enum PaymentLink {
         default:
             throw Problem.unsupportedMemo
         }
-        return Reading(address: destination, chainID: nil, tag: memo)
+        return Reading(address: destination, chain: .stellar, tag: memo)
     }
 
     /// Um parametro da query, decodificado e inteiro (o destino M da Stellar tem 69
