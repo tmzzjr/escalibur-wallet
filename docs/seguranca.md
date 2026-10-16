@@ -349,6 +349,7 @@ Regras:
   - EVM e Tron assinam com `secp256k1_ecdsa_sign_recoverable`; BTC e XRPL com `secp256k1_ecdsa_sign` mais DER. O S baixo é garantido pela biblioteca.
   - Toda assinatura passa por `secp256k1_ecdsa_verify` antes de sair. Uma assinatura defeituosa com nonce determinístico entrega a chave.
 - Ed25519 (Solana, Stellar) pelo `Curve25519.Signing` do CryptoKit, também verificado.
+- Ed25519 com chave estendida (Cardano) em Swift, sobre o TweetNaCl: os temporários da curva ficam numa área de tamanho fixo, zerada com `memset_s` no fim; o estado do SHA-512 que passa por kR é do CryptoKit e não é zerável daqui (auditoria 4, B3).
 - Nada de hex, `description` ou `Data` de segredo em código de produção.
 - Nada de xprv em cache: só xpub e chaves públicas.
 

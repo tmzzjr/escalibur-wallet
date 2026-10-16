@@ -20,6 +20,12 @@ import Foundation
 // mascara (`sel25519`), nunca um desvio nem um indice: a escada de Montgomery gasta o
 // mesmo tempo para qualquer chave.
 //
+// Como no C, as funcoes do corpo escrevem no destino que recebem e nenhuma aloca: todo
+// elemento que passa perto do escalar mora numa area de trabalho de tamanho fixo
+// (`Workspace`), alocada uma vez por multiplicacao e zerada com `memset_s` no fim. Antes
+// cada soma e cada produto devolvia um vetor novo, a escada copiava o ponto a cada bit, e
+// o heap ficava com os estados intermediarios sem ninguem zerar (auditoria 4, B3).
+//
 // A prova de que esta certo esta nos testes: com kL e kR tirados de uma semente como
 // manda a RFC 8032 (SHA-512, com os bits de kL ajustados), a assinatura daqui e byte a
 // byte a dos vetores da RFC, porque a Ed25519 e deterministica; e com as chaves das
@@ -51,11 +57,13 @@ extension Ed25519 {
 /// A aritmetica da curva para as duas operacoes acima. Nada daqui e publico.
 enum Ed25519Extended {
     /// Elemento do corpo de ordem p = 2^255 - 19: 16 limbs de 16 bits em Int64, como o
-    /// `gf` do TweetNaCl.
-    typealias GF = [Int64]
+    /// `gf` do TweetNaCl. Aponta para dentro de uma `Workspace`; `Limbs` e o mesmo, so
+    /// para ler (aceita tambem as constantes abaixo).
+    typealias GF = UnsafeMutablePointer<Int64>
+    typealias Limbs = UnsafePointer<Int64>
 
-    static func gf(_ values: [Int64] = []) -> GF {
-        var out = GF(repeating: 0, count: 16)
+    static func gf(_ values: [Int64] = []) -> [Int64] {
+        var out = [Int64](repeating: 0, count: 16)
         for (index, value) in values.enumerated() { out[index] = value }
         return out
     }
@@ -74,10 +82,79 @@ enum Ed25519Extended {
     static let order: [Int64] = [0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,
                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x10]
 
+    // MARK: Area de trabalho
+
+    /// Um ponto em coordenadas estendidas (X, Y, Z, T): quatro elementos seguidos.
+    struct Point {
+        let base: GF
+        subscript(_ i: Int) -> GF { base + 16 * i }
+    }
+
+    /// Tudo o que uma multiplicacao `s * Q` escreve: os dois pontos da escada, os
+    /// temporarios de `addPoint`, `pack`, `inv25519` e `pack25519`, as 31 colunas do
+    /// produto e os 32 bytes de `par25519`. Cada funcao usa so os seus, e nenhuma chama
+    /// outra que use os mesmos no meio do caminho.
+    struct Workspace {
+        static let elements = 23
+        static let columnCount = 31
+        static let limbCount = elements * 16 + columnCount
+
+        let limbs: GF
+        let bytes: UnsafeMutablePointer<UInt8>
+
+        private func element(_ index: Int) -> GF { limbs + 16 * index }
+
+        var p: Point { Point(base: element(0)) }
+        var q: Point { Point(base: element(4)) }
+        // `addPoint`
+        var a: GF { element(8) }
+        var b: GF { element(9) }
+        var c: GF { element(10) }
+        var d: GF { element(11) }
+        var t: GF { element(12) }
+        var e: GF { element(13) }
+        var f: GF { element(14) }
+        var g: GF { element(15) }
+        var h: GF { element(16) }
+        // `pack`
+        var tx: GF { element(17) }
+        var ty: GF { element(18) }
+        var zi: GF { element(19) }
+        // `inv25519`
+        var inverse: GF { element(20) }
+        // `pack25519`
+        var packT: GF { element(21) }
+        var packM: GF { element(22) }
+        // `mul`
+        var columns: GF { limbs + 16 * Self.elements }
+    }
+
+    /// Roda `body` com uma area de trabalho nova e zerada, e a zera com `memset_s` na
+    /// volta, antes de devolver a memoria.
+    static func withWorkspace<R>(_ body: (Workspace) -> R) -> R {
+        let limbCount = Workspace.limbCount
+        let limbBytes = limbCount * MemoryLayout<Int64>.stride
+        let limbs = GF.allocate(capacity: limbCount)
+        limbs.initialize(repeating: 0, count: limbCount)
+        let bytes = UnsafeMutablePointer<UInt8>.allocate(capacity: 32)
+        bytes.initialize(repeating: 0, count: 32)
+        defer {
+            memset_s(limbs, limbBytes, 0, limbBytes)
+            memset_s(bytes, 32, 0, 32)
+            limbs.deallocate()
+            bytes.deallocate()
+        }
+        return body(Workspace(limbs: limbs, bytes: bytes))
+    }
+
     // MARK: Corpo
 
+    static func set25519(_ r: GF, _ a: Limbs) {
+        for i in 0..<16 { r[i] = a[i] }
+    }
+
     /// `car25519`: propaga o vai-um; o do limb 15 volta ao 0 vezes 38 (2^256 = 38 mod p).
-    static func car25519(_ o: inout GF) {
+    static func car25519(_ o: GF) {
         for i in 0..<16 {
             o[i] += 1 << 16
             let c = o[i] >> 16
@@ -91,7 +168,7 @@ enum Ed25519Extended {
     }
 
     /// `sel25519`: troca p e q quando b = 1, por mascara, sem desvio.
-    static func sel25519(_ p: inout GF, _ q: inout GF, _ b: Int64) {
+    static func sel25519(_ p: GF, _ q: GF, _ b: Int64) {
         let c = ~(b - 1)
         for i in 0..<16 {
             let t = c & (p[i] ^ q[i])
@@ -100,13 +177,13 @@ enum Ed25519Extended {
         }
     }
 
-    /// `pack25519`: forma canonica em 32 bytes little-endian.
-    static func pack25519(_ n: GF) -> [UInt8] {
-        var t = n
-        car25519(&t)
-        car25519(&t)
-        car25519(&t)
-        var m = gf()
+    /// `pack25519`: forma canonica em 32 bytes little-endian, escrita em `o`.
+    static func pack25519(_ o: UnsafeMutablePointer<UInt8>, _ n: Limbs, _ w: Workspace) {
+        let t = w.packT, m = w.packM
+        set25519(t, n)
+        car25519(t)
+        car25519(t)
+        car25519(t)
         for _ in 0..<2 {
             m[0] = t[0] - 0xffed
             for i in 1..<15 {
@@ -116,120 +193,130 @@ enum Ed25519Extended {
             m[15] = t[15] - 0x7fff - ((m[14] >> 16) & 1)
             let b = (m[15] >> 16) & 1
             m[14] &= 0xffff
-            sel25519(&t, &m, 1 - b)
+            sel25519(t, m, 1 - b)
         }
-        var out = [UInt8](repeating: 0, count: 32)
         for i in 0..<16 {
-            out[2 * i] = UInt8(truncatingIfNeeded: t[i] & 0xff)
-            out[2 * i + 1] = UInt8(truncatingIfNeeded: t[i] >> 8)
+            o[2 * i] = UInt8(truncatingIfNeeded: t[i] & 0xff)
+            o[2 * i + 1] = UInt8(truncatingIfNeeded: t[i] >> 8)
         }
-        return out
     }
 
-    static func par25519(_ a: GF) -> UInt8 { pack25519(a)[0] & 1 }
+    static func par25519(_ a: Limbs, _ w: Workspace) -> UInt8 {
+        pack25519(w.bytes, a, w)
+        return w.bytes[0] & 1
+    }
 
     /// `A`
-    static func add(_ a: GF, _ b: GF) -> GF {
-        var o = gf()
+    static func add(_ o: GF, _ a: Limbs, _ b: Limbs) {
         for i in 0..<16 { o[i] = a[i] + b[i] }
-        return o
     }
 
     /// `Z`
-    static func sub(_ a: GF, _ b: GF) -> GF {
-        var o = gf()
+    static func sub(_ o: GF, _ a: Limbs, _ b: Limbs) {
         for i in 0..<16 { o[i] = a[i] - b[i] }
-        return o
     }
 
-    /// `M`: produto escolar em 31 colunas; as de 16 a 30 voltam vezes 38.
-    static func mul(_ a: GF, _ b: GF) -> GF {
-        var t = [Int64](repeating: 0, count: 31)
-        t.withUnsafeMutableBufferPointer { t in
-            a.withUnsafeBufferPointer { a in
-                b.withUnsafeBufferPointer { b in
-                    for i in 0..<16 {
-                        for j in 0..<16 { t[i + j] += a[i] * b[j] }
-                    }
-                }
-            }
-            for i in 0..<15 { t[i] += 38 * t[i + 16] }
+    /// `M`: produto escolar em 31 colunas; as de 16 a 30 voltam vezes 38. `o` pode ser
+    /// `a` ou `b`: o produto inteiro fica nas colunas antes de `o` ser escrito.
+    static func mul(_ o: GF, _ a: Limbs, _ b: Limbs, _ w: Workspace) {
+        let t = w.columns
+        for i in 0..<31 { t[i] = 0 }
+        for i in 0..<16 {
+            for j in 0..<16 { t[i + j] += a[i] * b[j] }
         }
-        var o = Array(t[0..<16])
-        car25519(&o)
-        car25519(&o)
-        return o
+        for i in 0..<15 { t[i] += 38 * t[i + 16] }
+        for i in 0..<16 { o[i] = t[i] }
+        car25519(o)
+        car25519(o)
     }
 
     /// `inv25519`: a^(p-2), expoente publico e fixo.
-    static func inv25519(_ i: GF) -> GF {
-        var c = i
+    static func inv25519(_ o: GF, _ i: Limbs, _ w: Workspace) {
+        let c = w.inverse
+        set25519(c, i)
         for a in stride(from: 253, through: 0, by: -1) {
-            c = mul(c, c)
-            if a != 2, a != 4 { c = mul(c, i) }
+            mul(c, c, c, w)
+            if a != 2, a != 4 { mul(c, c, i, w) }
         }
-        return c
+        set25519(o, c)
     }
 
     // MARK: Pontos (coordenadas estendidas X, Y, Z, T)
 
-    typealias Point = [GF]
-
-    /// `add`: p = p + q.
-    static func addPoint(_ p: inout Point, _ q: Point) {
-        var a = mul(sub(p[1], p[0]), sub(q[1], q[0]))
-        var b = mul(add(p[0], p[1]), add(q[0], q[1]))
-        var c = mul(mul(p[3], q[3]), d2)
-        var d = mul(p[2], q[2])
-        d = add(d, d)
-        let e = sub(b, a), f = sub(d, c), g = add(d, c), h = add(b, a)
-        p[0] = mul(e, f)
-        p[1] = mul(h, g)
-        p[2] = mul(g, f)
-        p[3] = mul(e, h)
-        wipe(&a); wipe(&b); wipe(&c); wipe(&d)
+    /// `add`: p = p + q. `p` e `q` podem ser o mesmo ponto (a duplicacao da escada): tudo
+    /// que le os dois acontece antes de `p` ser escrito, como no C.
+    static func addPoint(_ p: Point, _ q: Point, _ w: Workspace) {
+        let a = w.a, b = w.b, c = w.c, d = w.d, t = w.t
+        let e = w.e, f = w.f, g = w.g, h = w.h
+        sub(a, p[1], p[0])
+        sub(t, q[1], q[0])
+        mul(a, a, t, w)
+        add(b, p[0], p[1])
+        add(t, q[0], q[1])
+        mul(b, b, t, w)
+        mul(c, p[3], q[3], w)
+        mul(c, c, d2, w)
+        mul(d, p[2], q[2], w)
+        add(d, d, d)
+        sub(e, b, a)
+        sub(f, d, c)
+        add(g, d, c)
+        add(h, b, a)
+        mul(p[0], e, f, w)
+        mul(p[1], h, g, w)
+        mul(p[2], g, f, w)
+        mul(p[3], e, h, w)
     }
 
-    static func cswap(_ p: inout Point, _ q: inout Point, _ b: Int64) {
-        for i in 0..<4 { sel25519(&p[i], &q[i], b) }
+    static func cswap(_ p: Point, _ q: Point, _ b: Int64) {
+        for i in 0..<4 { sel25519(p[i], q[i], b) }
     }
 
-    /// `pack`: y com o bit de sinal de x.
-    static func pack(_ p: Point) -> [UInt8] {
-        let zi = inv25519(p[2])
-        let tx = mul(p[0], zi)
-        let ty = mul(p[1], zi)
-        var r = pack25519(ty)
-        r[31] ^= par25519(tx) << 7
-        return r
+    /// `pack`: y com o bit de sinal de x, em `r`.
+    static func pack(_ r: UnsafeMutablePointer<UInt8>, _ p: Point, _ w: Workspace) {
+        inv25519(w.zi, p[2], w)
+        mul(w.tx, p[0], w.zi, w)
+        mul(w.ty, p[1], w.zi, w)
+        pack25519(r, w.ty, w)
+        r[31] ^= par25519(w.tx, w) << 7
     }
 
     /// `scalarmult`: escada de Montgomery sobre os 256 bits de `s`, do mais alto ao mais
-    /// baixo, com troca por mascara em cada bit.
-    static func scalarmult(_ q: Point, _ s: UnsafeRawBufferPointer) -> Point {
+    /// baixo, com troca por mascara em cada bit. Os dois pontos ficam no lugar: nenhuma
+    /// copia por bit.
+    static func scalarmult(_ p: Point, _ q: Point, _ s: UnsafeRawBufferPointer, _ w: Workspace) {
         precondition(s.count == 32)
-        var p: Point = [gf0, gf1, gf1, gf0]
-        var q = q
+        set25519(p[0], gf0)
+        set25519(p[1], gf1)
+        set25519(p[2], gf1)
+        set25519(p[3], gf0)
         for i in stride(from: 255, through: 0, by: -1) {
             let b = Int64((s[i / 8] >> UInt8(i & 7)) & 1)
-            cswap(&p, &q, b)
-            addPoint(&q, p)
-            let doubled = p
-            addPoint(&p, doubled)
-            cswap(&p, &q, b)
+            cswap(p, q, b)
+            addPoint(q, p, w)
+            addPoint(p, p, w)
+            cswap(p, q, b)
         }
-        for i in 0..<4 { wipe(&q[i]) }
-        return p
     }
 
-    static func scalarbase(_ s: UnsafeRawBufferPointer) -> Point {
-        scalarmult([baseX, baseY, gf1, mul(baseX, baseY)], s)
+    static func scalarbase(_ p: Point, _ s: UnsafeRawBufferPointer, _ w: Workspace) {
+        let q = w.q
+        set25519(q[0], baseX)
+        set25519(q[1], baseY)
+        set25519(q[2], gf1)
+        mul(q[3], baseX, baseY, w)
+        scalarmult(p, q, s, w)
     }
 
+    /// s * B empacotado. O ponto e publico (a chave publica ou o R da assinatura); o
+    /// caminho ate ele fica na area de trabalho, zerada na volta.
     static func scalarbasePacked(_ s: UnsafeRawBufferPointer) -> [UInt8] {
-        var point = scalarbase(s)
-        defer { for i in 0..<4 { wipe(&point[i]) } }
-        return pack(point)
+        withWorkspace { w in
+            scalarbase(w.p, s, w)
+            var out = [UInt8](repeating: 0, count: 32)
+            out.withUnsafeMutableBufferPointer { pack($0.baseAddress!, w.p, w) }
+            return out
+        }
     }
 
     // MARK: Escalares mod L
@@ -278,6 +365,10 @@ enum Ed25519Extended {
         let publicKey = scalarbasePacked(kL)
 
         // O nonce: r = SHA-512(kR || m) mod L. Segredo: vive so ate o fim da funcao.
+        //
+        // Limite conhecido: o estado do `SHA512` do CryptoKit passou por kR, e nem ele nem
+        // o digesto que `finalize` devolve sao zeraveis daqui (o tipo nao expoe a memoria
+        // dele). O que e nosso, os 64 bytes copiados e o nonce reduzido, e zerado.
         var hasher = SHA512()
         hasher.update(bufferPointer: kR)
         hasher.update(data: message)
@@ -305,8 +396,11 @@ enum Ed25519Extended {
         return commitment + s
     }
 
-    /// Zera um vetor de trabalho que passou perto do escalar secreto.
+    /// Zera um vetor de trabalho que passou perto do escalar secreto, com `memset_s`: um
+    /// laco de atribuicoes antes de a memoria ser solta pode sair como escrita morta.
     static func wipe(_ v: inout [Int64]) {
-        for i in v.indices { v[i] = 0 }
+        v.withUnsafeMutableBytes { raw in
+            if let base = raw.baseAddress { memset_s(base, raw.count, 0, raw.count) }
+        }
     }
 }
