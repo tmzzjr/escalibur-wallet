@@ -25,6 +25,12 @@ ENG=Kit/Sources/EscaliburEngines
 APP=App/EscaliburWallet
 
 swift_em() { find "$@" -name "*.swift" 2>/dev/null; }
+# As regras de codigo leem so .swift. Estas sao as outras extensoes que o Xcode ou o
+# SwiftPM compilam ou incluem; fora do C vendorizado (secao "fontes e build"), nenhuma
+# pode existir.
+nao_swift=( -iname "*.m" -o -iname "*.mm" -o -iname "*.c" -o -iname "*.cc" -o -iname "*.cpp" -o -iname "*.cxx" -o -iname "*.c++"
+    -o -iname "*.s" -o -iname "*.asm" -o -iname "*.h" -o -iname "*.hh" -o -iname "*.hpp" -o -iname "*.hxx" -o -iname "*.inc"
+    -o -iname "*.modulemap" -o -iname "*.metal" )
 # Procura um padrao em codigo, ignorando linhas que sao so comentario (a regra vale
 # para o que compila, nao para a explicacao de por que a regra existe).
 procurar() { local padrao="$1"; shift; swift_em "$@" | xargs grep -nE "$padrao" 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//'; }
@@ -34,7 +40,7 @@ echo "ESCALIBUR WALLET: verificacoes"
 
 # Caminho com espaco quebra o "find | xargs grep" das regras e deixa arquivo sem
 # conferencia. Nenhum fonte pode ter espaco no caminho.
-com_espaco=$(find Kit/Sources Kit/Tests App tools \( -name "*.swift" -o -name "*.c" -o -name "*.h" -o -name "*.py" -o -name "*.sh" \) 2>/dev/null | grep '[[:space:]]')
+com_espaco=$(find Kit/Sources Kit/Tests App tools \( -name "*.swift" -o -name "*.py" -o -name "*.sh" -o "${nao_swift[@]}" \) 2>/dev/null | grep '[[:space:]]')
 if [ -n "$com_espaco" ]; then
     echo "  ✗ arquivo com espaco no caminho escapa das regras: renomeie"
     echo "$com_espaco"
@@ -126,6 +132,37 @@ if grep -q '\.package(url' Kit/Package.swift; then aviso "pacote remoto no Packa
 if grep -q '\.binaryTarget(' Kit/Package.swift; then aviso "alvo binario no Package.swift"; else ok "nenhum alvo binario"; fi
 achados=$(find . \( -name "*.xcframework" -o -name "*.framework" -o -name "*.a" -o -name "*.dylib" -o -name Podfile -o -name Cartfile \) -not -path "./build/*" -not -path "*/.build/*" -not -path "./.git/*" -not -path "./.claude/*" 2>/dev/null)
 [ -n "$achados" ] && { aviso "binario ou gerenciador de terceiro"; echo "$achados"; } || ok "nenhum binario de terceiro"
+
+# 3b. Fontes e build. As regras de rede, segredo e registro leem so .swift, e a pasta do
+# app inteira e fonte do alvo (project.yml): um .m ou .c ali compilaria sem passar por
+# nenhuma delas. O unico codigo que nao e Swift e o C vendorizado, travado por digesto.
+# Um shader .metal so entra pela lista abaixo, revisado como codigo (hoje, nenhum).
+secao "fontes e build"
+# Caminhos separados por espaco; a lista so vale para .metal.
+metal_permitidos=""
+achados=$(find App Kit/Sources Kit/Tests -type f \( "${nao_swift[@]}" \) -not -path "Kit/Sources/CArgon2/*" -not -path "Kit/Sources/CSecp256k1/*" 2>/dev/null \
+    | while read -r fonte; do
+        [[ "$fonte" == *.metal ]] && printf '%s\n' $metal_permitidos | grep -qxF "$fonte" && continue
+        echo "$fonte"
+    done)
+[ -n "$achados" ] && { aviso "fonte que nao e Swift fora do C vendorizado (CArgon2 e CSecp256k1)"; echo "$achados"; } \
+    || ok "fora do C vendorizado (CArgon2 e CSecp256k1), todo fonte e Swift"
+# Nada roda nem entra no binario por fora do fonte: fase de script de build (shell a cada
+# build, com o repositorio e a rede na mao), acao de esquema, plugin do SwiftPM, framework
+# ou biblioteca que nao e do SDK, flag de linker (carregaria codigo de fora). Hoje nao ha
+# nenhum; o que for legitimo um dia entra aqui por nome.
+pbx=EscaliburWallet.xcodeproj/project.pbxproj
+achados=$( {
+    grep -nE 'PBXShellScriptBuildPhase|shellScript|PBXBuildRule|OTHER_LDFLAGS|OTHER_LIBTOOLFLAGS|-Xlinker' "$pbx" | sed "s|^|$pbx:|"
+    grep -nE '(lastKnownFileType|explicitFileType) = "?(wrapper\.(xc)?framework|archive\.ar|compiled\.mach-o\.dylib|sourcecode\.text-based-dylib-definition)' "$pbx" \
+        | grep -v 'sourceTree = SDKROOT' | sed "s|^|$pbx:|"
+    grep -nHE 'ShellScriptAction|<PreActions|<PostActions' EscaliburWallet.xcodeproj/xcshareddata/xcschemes/*.xcscheme
+    grep -nE 'preBuildScripts|postCompileScripts|postBuildScripts|buildRules|buildToolPlugins|preActions|postActions|OTHER_LDFLAGS|OTHER_LIBTOOLFLAGS|-Xlinker|^[[:space:]]*- (framework|carthage|bundle):' project.yml \
+        | sed 's|^|project.yml:|'
+    grep -nE 'linkerSettings|unsafeFlags|\.plugin\(|plugins:|\.systemLibrary\(|linkedFramework|linkedLibrary' Kit/Package.swift | sed 's|^|Kit/Package.swift:|'
+} 2>/dev/null)
+[ -n "$achados" ] && { aviso "script de build, framework fora do SDK ou flag de linker no projeto"; echo "$achados"; } \
+    || ok "sem fase de script, acao de esquema, plugin de build, framework fora do SDK nem flag de linker"
 
 # 4. Codigo vendorizado travado por digesto.
 secao "codigo vendorizado"
@@ -305,6 +342,20 @@ secao "depuracao"
 head -1 "$APP/App/DebugDemo.swift" | grep -q '^#if DEBUG' && ok "DebugDemo.swift inteiro atras de #if DEBUG" || aviso "DebugDemo.swift fora de #if DEBUG"
 achados=$(awk 'FNR==1{d=0} /#if DEBUG/{d=1} /#endif/{d=0} /DebugDemo\./{ if(!d) print FILENAME": "FNR }' $(swift_em "$APP" | grep -v DebugDemo.swift))
 [ -n "$achados" ] && { aviso "uso de DebugDemo fora de #if DEBUG"; echo "$achados"; } || ok "nenhum uso de DebugDemo fora de #if DEBUG"
+# Argumento de inicializacao so em depuracao: quem abre o app passando argumentos (Xcode,
+# um atalho, um app de terceiros) mudaria o comportamento do app da loja. Mesma tecnica da
+# regra acima; `#else` e `#elseif` encerram o bloco, e um `#if` aninhado tambem, o que so
+# pode acusar a mais, nunca deixar passar.
+achados=$(awk 'FNR==1{d=0} /^[[:space:]]*#if DEBUG/{d=1} /^[[:space:]]*#(else|elseif|endif)/{d=0}
+    /(ProcessInfo\.processInfo|ProcessInfo\(\)|processInfo)\.arguments|CommandLine\.(arguments|unsafeArgv|argc)/{ if(!d && $0 !~ /^[[:space:]]*\/\//) print FILENAME": "FNR": "$0 }' \
+    $(swift_em App/EscaliburWallet App/Shared App/EscaliburWidgets))
+[ -n "$achados" ] && { aviso "argumento de inicializacao lido fora de #if DEBUG"; echo "$achados"; } || ok "argumentos de inicializacao so lidos dentro de #if DEBUG"
+# E o DEBUG so existe na configuracao Debug do projeto: com ele no Release, todo #if DEBUG
+# iria para a loja, e as duas regras acima nao protegeriam nada.
+achados=$(awk '/^[[:space:]]*[0-9A-F]+ \/\* [^*]+ \*\/ = \{/{ match($0, /\/\* [^*]+ \*\//); cfg=substr($0, RSTART+3, RLENGTH-6) }
+    /SWIFT_ACTIVE_COMPILATION_CONDITIONS|GCC_PREPROCESSOR_DEFINITIONS|OTHER_SWIFT_FLAGS|OTHER_CFLAGS/{f=1}
+    f && /DEBUG/{ if(cfg != "Debug") print FILENAME": "NR" ("cfg"): "$0 } /;[[:space:]]*$/{f=0}' "$pbx")
+[ -n "$achados" ] && { aviso "DEBUG ligado fora da configuracao Debug"; echo "$achados"; } || ok "DEBUG so na configuracao Debug (o Release nao compila nada de #if DEBUG)"
 
 # 9. Texto que o usuario le, sem travessao.
 secao "determinismo"
