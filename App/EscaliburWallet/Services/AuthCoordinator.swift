@@ -125,16 +125,22 @@ final class AuthCoordinator {
         } else {
             base = String(localized: "O \(KeyServices.biometryName) não confirmou, e isso conta como tentativa.")
         }
-        // Com a trava, o cadastro de rostos parece outro (o hash mudou e a chave continua la):
-        // o dono fica sabendo do caminho de volta, sem o app declarar o cofre perdido por um
-        // hash. Nas outras politicas, um rosto novo nao fecha nada.
-        guard KeyServices.root.hardenedFaceChange == .lock, KeyServices.root.hardenedEnrollmentChanged else { return base }
-        return base + " " + String(localized: "Se o cadastro de rostos deste iPhone mudou, só as palavras de cada carteira trazem as carteiras de volta.")
+        // O cadastro de rostos parece outro (o hash mudou e a chave continua la): o dono fica
+        // sabendo do caminho de volta, sem o app declarar o cofre perdido por um hash. Fora da
+        // trava, um rosto novo nao fecha nada, mas uma redefinicao do Face ID pode fechar.
+        guard KeyServices.root.hardenedEnrollmentChanged else { return base }
+        if KeyServices.root.hardenedFaceChange == .lock {
+            return base + " " + String(localized: "Se o cadastro de rostos deste iPhone mudou, só as palavras de cada carteira trazem as carteiras de volta.")
+        }
+        return base + " " + String(localized: "Se o \(KeyServices.biometryName) deste iPhone foi redefinido, as carteiras daqui podem não abrir mais: só as palavras de cada carteira trazem de volta.")
     }
 
-    /// A espera de "Esperar 24 horas", na faixa da Carteira e de Seguranca e em toda recusa.
+    /// A espera de "Esperar 24 horas", na faixa da Carteira e de Seguranca e em toda recusa. Nao
+    /// manda redefinir o Face ID: a redefinicao pode fechar as carteiras daqui.
     static func hardenedHoldMessage(_ seconds: TimeInterval) -> String {
-        String(localized: "O \(KeyServices.biometryName) deste iPhone mudou. Enviar, trocar e ver as palavras voltam em \(LockView.duration(seconds)). Se não foi você, troque o código do iPhone e redefina o \(KeyServices.biometryName).")
+        KeyServices.usesFingerprint
+            ? String(localized: "O Touch ID deste iPhone mudou. Enviar, trocar e ver as palavras voltam em \(LockView.duration(seconds)). São 24 horas com o iPhone ligado; reiniciar ou uma digital nova recomeça a contagem. Se não foi você, troque o código do iPhone.")
+            : String(localized: "O \(KeyServices.biometryName) deste iPhone mudou. Enviar, trocar e ver as palavras voltam em \(LockView.duration(seconds)). São 24 horas com o iPhone ligado; reiniciar ou um rosto novo recomeça a contagem. Se não foi você, troque o código do iPhone.")
     }
 
     /// Com o Face ID ligado, o aviso acima do teclado de uma operacao que pede os dois.
@@ -173,7 +179,9 @@ final class AuthCoordinator {
             if KeyServices.root.hardenedFaceChange == .lock {
                 return String(localized: "O \(KeyServices.biometryName) deste iPhone mudou desde que o bloqueio foi ligado. As carteiras não abrem mais aqui: só as palavras de cada carteira trazem de volta.")
             }
-            return String(localized: "O \(KeyServices.biometryName) deste iPhone mudou desde que o modo reforçado foi ligado. As carteiras não abrem mais aqui: só as palavras de cada carteira trazem de volta.")
+            return String(localized: "A chave do \(KeyServices.biometryName) das carteiras deste iPhone não existe mais, como depois de redefinir o \(KeyServices.biometryName). As carteiras não abrem mais aqui: só as palavras de cada carteira trazem de volta.")
+        case .hardenedFaceKeyFailed:
+            return String(localized: "O \(KeyServices.biometryName) deste iPhone não conseguiu abrir a chave das carteiras, e isso não contou como tentativa. Tente de novo. Se o \(KeyServices.biometryName) foi redefinido, as carteiras daqui podem não abrir mais: só as palavras de cada carteira trazem de volta.")
         default:
             return nil
         }

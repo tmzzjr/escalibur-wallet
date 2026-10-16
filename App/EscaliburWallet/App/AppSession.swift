@@ -396,7 +396,7 @@ final class AppSession {
     /// so na ida para "Bloquear as carteiras" (`check`, que o cofre so roda nela), e o rosto de
     /// novo para conferir o registro novo antes de valer.
     func setHardenedFaceChange(_ target: RootKeyVault.HardenedFaceChange, pin: SecureBytes,
-                               check: @escaping @Sendable (SecureBytes) throws -> Void = { _ in }) async throws {
+                               check: @escaping @Sendable (SecureBytes) throws -> Void) async throws {
         let reason = String(localized: "Mudar o que acontece quando o \(KeyServices.biometryName) mudar")
         let confirm = String(localized: "Confirme o \(KeyServices.biometryName) para conferir o modo reforçado")
         do {

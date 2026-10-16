@@ -102,7 +102,7 @@ struct LockView: View {
         case .hardenedSlotLost:
             vaultLost = true
             forgotPIN = true
-        case .biometryLockedOut, .biometryUnavailable, .biometryNotEnrolled:
+        case .biometryLockedOut, .biometryUnavailable, .biometryNotEnrolled, .hardenedFaceKeyFailed:
             entry.fail(AuthCoordinator.refusalMessage(failure) ?? String(localized: "Não foi possível destravar. Tente de novo."))
         default:
             entry.fail(String(localized: "Não foi possível destravar. Tente de novo."))
@@ -151,7 +151,10 @@ struct LockView: View {
                         .typeStyle(.title).foregroundStyle(Palette.ink)
                         .padding(.top, Space.md)
                     Text(vaultLost
-                         ? String(localized: "No modo reforçado, as carteiras deste iPhone só abrem com o PIN e o mesmo \(KeyServices.biometryName) de quando ele foi ligado. O cadastro mudou, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:")
+                         ? (KeyServices.root.hardenedFaceChange == .lock
+                            ? String(localized: "No modo reforçado, as carteiras deste iPhone só abrem com o PIN e o mesmo \(KeyServices.biometryName) de quando ele foi ligado. O cadastro mudou, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:")
+                            // Fora da trava, so a chave que sumiu (uma redefinicao do Face ID, por exemplo).
+                            : String(localized: "No modo reforçado, as carteiras deste iPhone só abrem com o PIN e a chave do \(KeyServices.biometryName) que nasceu com ele. A chave não existe mais, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:"))
                          : String(localized: "O PIN mora só neste iPhone, e ninguém tem cópia dele, nem a Escalibur. Para voltar a usar o app, comece de novo:"))
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                         .fixedSize(horizontal: false, vertical: true)

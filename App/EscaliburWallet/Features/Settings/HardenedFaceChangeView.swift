@@ -18,26 +18,29 @@ extension RootKeyVault.HardenedFaceChange {
         let finger = KeyServices.usesFingerprint
         switch self {
         case .continue:
-            return finger ? String(localized: "Uma digital nova abre as carteiras com o PIN, na hora.")
-                : String(localized: "Um rosto novo abre as carteiras com o PIN, na hora.")
+            return finger ? String(localized: "Uma digital nova abre as carteiras com o PIN, na hora. Quem sabe o seu PIN e o código do iPhone leva tudo na hora.")
+                : String(localized: "Um rosto novo ou a aparência alternativa abre as carteiras com o PIN, na hora. Quem sabe o seu PIN e o código do iPhone leva tudo na hora.")
         case .wait:
             return finger ? String(localized: "Uma digital nova abre o app e mostra o saldo. O resto espera 24 horas.")
-                : String(localized: "Um rosto novo abre o app e mostra o saldo. O resto espera 24 horas.")
+                : String(localized: "Um rosto novo ou a aparência alternativa abre o app e mostra o saldo. O resto espera 24 horas.")
         case .lock:
             return finger ? String(localized: "Uma digital nova fecha as carteiras daqui de vez. Só as palavras trazem de volta.")
                 : String(localized: "Um rosto novo fecha as carteiras daqui de vez. Só as palavras trazem de volta.")
         }
     }
 
-    /// O que muda com ela, em "O que muda" do modo reforcado.
+    /// O que muda com ela, em "O que muda" do modo reforcado. So o bloqueio promete algo
+    /// sobre redefinir o Face ID: a chave que sobrevive a um rosto novo pode nao sobreviver a
+    /// uma redefinicao (ha relato de itens assim perdidos numa redefinicao interrompida), e o
+    /// texto nao promete o que nao foi provado no aparelho.
     var consequence: String {
         let name = KeyServices.biometryName
         let finger = KeyServices.usesFingerprint
         switch self {
         case .continue:
             return finger
-                ? String(localized: "Se o \(name) deste iPhone mudar, as carteiras continuam abrindo com o PIN e a digital nova. Quem sabe o seu PIN e o código do iPhone poderia cadastrar a própria digital: para isso, ligue a Proteção de Aparelho Roubado, ou escolha esperar 24 horas ou bloquear as carteiras.")
-                : String(localized: "Se o \(name) deste iPhone mudar, as carteiras continuam abrindo com o PIN e o rosto novo. Quem sabe o seu PIN e o código do iPhone poderia cadastrar o próprio rosto: para isso, ligue a Proteção de Aparelho Roubado, ou escolha esperar 24 horas ou bloquear as carteiras.")
+                ? String(localized: "Com uma digital nova no Touch ID deste iPhone, as carteiras continuam abrindo com o PIN. Quem sabe o seu PIN e o código do iPhone poderia cadastrar a própria digital: para isso, ligue a Proteção de Aparelho Roubado, ou escolha esperar 24 horas ou bloquear as carteiras. Apagar todas as digitais pode fechar as carteiras daqui, e aí só as palavras de cada carteira trazem de volta.")
+                : String(localized: "Com um rosto novo ou a aparência alternativa no \(name) deste iPhone, as carteiras continuam abrindo com o PIN. Quem sabe o seu PIN e o código do iPhone poderia cadastrar o próprio rosto: para isso, ligue a Proteção de Aparelho Roubado, ou escolha esperar 24 horas ou bloquear as carteiras. Redefinir o \(name) pode fechar as carteiras daqui, e aí só as palavras de cada carteira trazem de volta.")
         case .wait:
             return HardenedWaitNote.text
         case .lock:
@@ -133,10 +136,10 @@ struct HardenedFaceChangeOptions: View {
 
 /// A explicacao curta da espera, ao escolher "Esperar 24 horas".
 struct HardenedWaitNote: View {
-    static var text: String {
+    nonisolated static var text: String {
         KeyServices.usesFingerprint
-            ? String(localized: "Se o \(KeyServices.biometryName) mudar, as carteiras continuam aqui. Por 24 horas, só dá para ver o saldo: enviar, trocar, ver as palavras e mudar a segurança esperam. É o tempo contra quem sabe o código do iPhone e cadastrou a própria digital.")
-            : String(localized: "Se o \(KeyServices.biometryName) mudar, as carteiras continuam aqui. Por 24 horas, só dá para ver o saldo: enviar, trocar, ver as palavras e mudar a segurança esperam. É o tempo contra quem sabe o código do iPhone e cadastrou o próprio rosto.")
+            ? String(localized: "Com uma digital nova, as carteiras continuam aqui. Por 24 horas, só dá para ver o saldo: enviar, trocar, ver as palavras e mudar a segurança esperam. São 24 horas com o iPhone ligado; reiniciar ou uma digital nova recomeça a contagem. É o tempo contra quem sabe o código do iPhone e cadastrou a própria digital. Apagar todas as digitais pode fechar as carteiras daqui, e aí só as palavras de cada carteira trazem de volta.")
+            : String(localized: "Com um rosto novo ou a aparência alternativa, as carteiras continuam aqui. Por 24 horas, só dá para ver o saldo: enviar, trocar, ver as palavras e mudar a segurança esperam. São 24 horas com o iPhone ligado; reiniciar ou um rosto novo recomeça a contagem. É o tempo contra quem sabe o código do iPhone e cadastrou o próprio rosto. Redefinir o \(KeyServices.biometryName) pode fechar as carteiras daqui, e aí só as palavras de cada carteira trazem de volta.")
     }
 
     var body: some View {
@@ -177,8 +180,8 @@ struct HardenedFaceChangeView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Quando o \(KeyServices.biometryName) mudar").typeStyle(.title).foregroundStyle(Palette.ink)
                 Text(KeyServices.usesFingerprint
-                     ? String(localized: "Uma digital nova ou apagada muda o cadastro do Touch ID deste iPhone. Escolha o que acontece com as carteiras daqui.")
-                     : String(localized: "Um rosto novo, a aparência alternativa ou o \(KeyServices.biometryName) redefinido mudam o cadastro deste iPhone. Escolha o que acontece com as carteiras daqui."))
+                     ? String(localized: "Escolha o que acontece com as carteiras daqui quando uma digital nova entra no Touch ID deste iPhone. Apagar todas as digitais pode fechar as carteiras daqui em qualquer uma das três, e aí só as palavras de cada carteira trazem de volta.")
+                     : String(localized: "Escolha o que acontece com as carteiras daqui quando um rosto novo ou a aparência alternativa entra no \(KeyServices.biometryName) deste iPhone. Redefinir o \(KeyServices.biometryName) pode fechar as carteiras daqui em qualquer uma das três, e aí só as palavras de cada carteira trazem de volta."))
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
                 if on, session.hardenedHold > 0 {
@@ -246,7 +249,8 @@ struct HardenedFaceChangeView: View {
         working = policy
         defer { working = nil }
         do {
-            try await session.setHardenedFaceChange(policy, pin: pin)
+            // So a ida para o bloqueio pede as palavras, e ela tem a tela dela.
+            try await session.setHardenedFaceChange(policy, pin: pin, check: { _ in })
             choice = policy
             session.refreshHardenedHold()
             toasts.show(Self.doneMessage(policy))

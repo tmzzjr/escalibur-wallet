@@ -622,7 +622,7 @@ struct ChangePINFlow: View {
         case .throttled(let seconds): return String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
         case .malformedPIN: return String(localized: "O PIN precisa ter 4 ou 6 números.")
         case .biometryNotConfirmed: return String(localized: "O \(KeyServices.biometryName) não confirmou, e isso contou como tentativa. O PIN atual continua valendo.")
-        case .biometryLockedOut, .biometryUnavailable, .hardenedSlotLost, .biometryHold, .biometryNotEnrolled:
+        case .biometryLockedOut, .biometryUnavailable, .hardenedSlotLost, .biometryHold, .biometryNotEnrolled, .hardenedFaceKeyFailed:
             return AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível trocar. O PIN atual continua valendo.")
         default: return String(localized: "Não foi possível trocar. O PIN atual continua valendo.")
         }
