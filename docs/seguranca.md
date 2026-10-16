@@ -686,6 +686,7 @@ Limites:
 - **Nonce e sequence**: 2 ou mais provedores concordando. Se divergirem, usa o registro local de envios; se ainda assim não fechar, bloqueia.
 - **Saldo**: mostra quando 2 concordam; se não, mostra "divergente" com os dois valores.
 - **Taxa**: mediana, com teto.
+- **Bloco das leituras EVM concordantes** (saldo, código, `balanceOf`, `allowance`, casas): a menor ponta de 2 provedores, menos o recuo da rede; pontas a mais de 3 recuos uma da outra (uns 30 s de blocos) bloqueiam.
 - **Recebimento "confirmado"**: 2 provedores mais N confirmações. Recibo falso é golpe comum em negociação P2P.
 - **Tabelas de lookup da Solana e registro do Settler da 0x**: 2 provedores.
 - **Privacidade**: consulta endereço por endereço, **nunca xpub** para provedor. Mandar a xpub entrega a carteira inteira.

@@ -106,6 +106,41 @@ struct EVMReaderTests {
         #expect(pinned.allSatisfy { $0 == "0x18da4d2" })
     }
 
+    @Test("Regressao B2: o bloco fixado sai da menor ponta de dois provedores; pontas longe demais recusam")
+    func pinnedBlockFromTwoHeads() async throws {
+        func pinned(_ transport: FixtureTransport) -> Set<String> {
+            Set(transport.requests.compactMap { request -> String? in
+                let body = request.body.flatMap { try? StrictJSON.parse($0) }
+                guard FixtureTransport.method(body) == "eth_getBalance" else { return nil }
+                return try? FixtureTransport.params(body)[1].string("block")
+            })
+        }
+        // "b" dois blocos atras da ponta gravada (0x18da4d3): vale a dele, menos 1.
+        let behind = try Self.transport(overrides: ["b.test": ["eth_blockNumber": rpcResult("\"0x18da4d1\"")]])
+        _ = try await Self.reader(behind).networkState(chain: .ethereum, account: Self.owner, intent: .native(to: Self.destination, amount: 1))
+        #expect(pinned(behind) == ["0x18da4d0"])
+        #expect(behind.requests.filter { FixtureTransport.method($0.body.flatMap { try? StrictJSON.parse($0) }) == "eth_blockNumber" }.count == 2)
+
+        // Um provedor que diz uma ponta de mil blocos atras (ou a frente) fixaria as leituras
+        // num estado velho: recusa, nas leituras do envio e nas do token.
+        for head in ["\"0x18da0eb\"", "\"0x18da8bb\""] {
+            let far = try Self.transport(overrides: ["b.test": ["eth_blockNumber": rpcResult(head)]])
+            await #expect(throws: ReaderError.providersDisagree(field: "eth_blockNumber")) {
+                _ = try await Self.reader(far).networkState(chain: .ethereum, account: Self.owner, intent: .native(to: Self.destination, amount: 1))
+            }
+            let token = EVMToken(chain: .ethereum, contract: try EVMAddress("0xdAC17F958D2ee523a2206206994597C13D831ec7"), symbol: "USDT", decimals: 6)
+            await #expect(throws: ReaderError.providersDisagree(field: "eth_blockNumber")) {
+                _ = try await Self.reader(far).tokenState(token: token, owner: Self.owner)
+            }
+        }
+
+        // A folga e o triplo do recuo do pin: 3 blocos na Ethereum, 120 na Arbitrum.
+        #expect(EVMReader.maxHeadGap(.ethereum) == 3 && EVMReader.maxHeadGap(.arbitrum) == 120)
+        #expect(try EVMReader.pin(heads: [100, 103], chain: .ethereum) == 99)
+        #expect(throws: ReaderError.providersDisagree(field: "eth_blockNumber")) { try EVMReader.pin(heads: [100, 104], chain: .ethereum) }
+        #expect(throws: ReaderError.notEnoughProviders(needed: 2, got: 1)) { try EVMReader.pin(heads: [100], chain: .ethereum) }
+    }
+
     @Test("Provedor com chainId de outra rede e descartado; os outros dois bastam")
     func wrongChainProviderDropped() async throws {
         let base = try ReaderFixtures.data("evm", "eth_chainId-base")

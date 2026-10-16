@@ -655,16 +655,36 @@ public actor EVMReader {
         ])
     }
 
-    /// Um bloco recente e fixo para as leituras que dois provedores precisam confirmar.
+    /// Um bloco recente e fixo para as leituras que dois provedores precisam confirmar: a
+    /// ponta de dois provedores diferentes, a menor das duas, menos o recuo da rede. Com a
+    /// ponta de um so, esse provedor fixaria as leituras num bloco antigo, e os dois
+    /// concordariam sobre saldo, codigo e allowance que ja nao valem (auditoria de
+    /// 16/10/2026, B2).
     private func pinnedBlock(_ chain: Chain, pool: ProviderPool, providers: [Provider]) async throws -> String {
         let transport = self.transport
-        let head = try await Quorum.first(providers, pool: pool) { provider in
+        let heads = try await Quorum.collect(providers, pool: pool, count: 2) { provider in
             try await self.verify(provider, chain: chain)
             return try await Self.call(transport, provider.baseURL, "eth_blockNumber", []).quantity("eth_blockNumber")
         }
-        let lag = BigUInt(Self.pinLag(chain))
-        guard head > lag else { throw ReaderError.implausibleValue(field: "eth_blockNumber") }
-        return (head - lag).hexString
+        return try Self.pin(heads: heads.map(\.value), chain: chain).hexString
+    }
+
+    /// Quantos blocos as pontas de dois provedores podem diferir: o triplo do recuo do
+    /// pin, uns 30 s na maior parte das redes (na Linea, de bloco irregular, seis blocos).
+    /// Dois nos em dia ficam a um ou dois blocos um do outro; mais que isso e no parado ou
+    /// mentindo, e o pin pela ponta dele ficaria velho.
+    static func maxHeadGap(_ chain: Chain) -> UInt64 { 3 * pinLag(chain) }
+
+    /// O bloco fixado a partir das pontas: a menor, menos o recuo. Pontas longe demais uma
+    /// da outra, recusa.
+    static func pin(heads: [BigUInt], chain: Chain) throws -> BigUInt {
+        guard heads.count >= 2, let low = heads.min(), let high = heads.max() else {
+            throw ReaderError.notEnoughProviders(needed: 2, got: heads.count)
+        }
+        guard high - low <= BigUInt(maxHeadGap(chain)) else { throw ReaderError.providersDisagree(field: "eth_blockNumber") }
+        let lag = BigUInt(pinLag(chain))
+        guard low > lag else { throw ReaderError.implausibleValue(field: "eth_blockNumber") }
+        return low - lag
     }
 
     private func pendingNonces(_ chain: Chain, account: EVMAddress, pool: ProviderPool, providers: [Provider]) async throws -> [UInt64] {
