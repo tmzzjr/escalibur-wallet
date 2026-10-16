@@ -2,20 +2,19 @@ import EscaliburChains
 import EscaliburCore
 import SwiftUI
 
-/// Depois do primeiro PIN e antes da primeira carteira: o que a Escalibur e, em tres
-/// passos com uma cena cada (pedido do dono, 15/10/2026). Substitui a lista de cinco
-/// promessas que vinha antes de criar e de importar.
+/// Depois do primeiro PIN e antes da primeira carteira: o que a Escalibur e, em dois
+/// passos com uma cena cada (pedido do dono, 15/10/2026). A espada ja abriu o app, antes
+/// do PIN, e nao se repete aqui.
 ///
-/// 1. A espada na pedra, a mesma da abertura: so sai pelas maos certas.
-/// 2. As moedas: o icone do app no centro e as moedas em orbitas em perspectiva.
-/// 3. A assinatura: uma moeda de Bitcoin em 3D gira esperando, e o Face ID confirma.
+/// 1. As moedas: o selo da carteira no centro e as moedas em duas orbitas.
+/// 2. A assinatura: uma moeda de Bitcoin em 3D gira esperando, e o Face ID confirma.
 ///
 /// Cada cena roda quando o passo aparece. Com Reduzir Movimento, ela ja aparece pronta.
 struct WelcomeTour: View {
     let onFinish: () -> Void
     @State private var page = 0
 
-    private static let pages = 3
+    private static let pages = 2
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,20 +32,15 @@ struct WelcomeTour: View {
 
             TabView(selection: $page) {
                 TourPage(
-                    title: String(localized: "Só você é digno"),
-                    text: String(localized: "Na lenda, só as mãos certas tiram a Escalibur da pedra. Nesta carteira, as mãos certas são as suas.")
-                ) { SwordCard() }
-                .tag(0)
-                TourPage(
                     title: String(localized: "Uma chave para todas as suas moedas"),
                     text: String(localized: "Bitcoin, Ethereum, Solana e as maiores moedas do mundo, com a chave criada e guardada neste iPhone. Envie, receba e troque entre redes, com a taxa à vista antes de assinar.")
-                ) { NetworksScene(active: page == 1) }
-                .tag(1)
+                ) { NetworksScene(active: page == 0) }
+                .tag(0)
                 TourPage(
                     title: String(localized: "Só você assina"),
                     text: String(localized: "Antes de cada envio, você vê o que sai e para onde, e confirma com o seu \(KeyServices.biometryName) ou PIN. O código é aberto: qualquer pessoa pode conferir.")
-                ) { SignScene(active: page == 2) }
-                .tag(2)
+                ) { SignScene(active: page == 1) }
+                .tag(1)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
 
@@ -65,7 +59,6 @@ struct WelcomeTour: View {
         }
         .background(Palette.void.ignoresSafeArea())
         .sensoryFeedback(.selection, trigger: page)
-        // Enquanto a espada cai, os logos da cena seguinte ja ficam decodificados.
     }
 }
 

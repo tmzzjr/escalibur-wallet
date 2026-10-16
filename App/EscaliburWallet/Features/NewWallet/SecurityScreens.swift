@@ -187,6 +187,8 @@ struct DeviceCheck: Identifiable, Equatable {
 /// checagem nova, feita naquele instante. Voltar da tela de digitar nao refaz (a
 /// conferencia continua valendo ali).
 struct DeviceCheckView: View {
+    /// O que o slider libera: digitar as palavras (importar) ou ver as palavras (carteira nova).
+    var slideTitle = String(localized: "Deslize para digitar as palavras")
     let onContinue: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var steps: [DeviceCheck.Step] = []
@@ -257,7 +259,7 @@ struct DeviceCheckView: View {
                 if finished, screenBlocked {
                     SecondaryButton(title: String(localized: "Checar de novo")) { Task { await run() } }
                 }
-                SlideToConfirm(title: finished ? String(localized: "Deslize para digitar as palavras") : String(localized: "Conferindo"),
+                SlideToConfirm(title: finished ? slideTitle : String(localized: "Conferindo"),
                                enabled: canContinue) { onContinue() }
                     .accessibilityIdentifier("deslizar-digitar")
             }

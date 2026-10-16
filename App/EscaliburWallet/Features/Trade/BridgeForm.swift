@@ -99,23 +99,28 @@ struct BridgeForm: View {
         #endif
     }
 
+    /// As redes na mesma ordem da troca (pedido do dono, 15/10/2026).
+    private var bridgeChains: [Chain] { Chain.all.filter { BridgeEngine.chains.contains($0) } }
+
+    /// De e Para em colunas de largura igual: o botao de inverter fica parado no meio,
+    /// qualquer que seja o nome da rede (pedido do dono, 15/10/2026).
     private var networks: some View {
         HStack(spacing: Space.xs) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("De").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                NetworkMenu(chains: BridgeEngine.chains, selected: model.from) { model.setFrom($0) }
+                NetworkMenu(chains: bridgeChains, selected: model.from) { model.setFrom($0) }
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
             Button { withAnimation(Motion.flip) { model.swapNetworks() } } label: {
                 Image(systemName: "arrow.left.arrow.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
                     .frame(width: 36, height: 36).background(Circle().fill(Palette.rail))
             }
             .accessibilityLabel("Inverter redes")
-            Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 4) {
                 Text("Para").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                NetworkMenu(chains: BridgeEngine.chains, selected: model.to) { model.setTo($0) }
+                NetworkMenu(chains: bridgeChains, selected: model.to) { model.setTo($0) }
             }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
 

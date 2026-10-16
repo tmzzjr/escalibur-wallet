@@ -10,7 +10,7 @@ extension XCUIApplication {
         XCTAssertTrue(slider.waitForExistence(timeout: 15), "a checagem do aparelho nao apareceu")
         let risk = switches["Entendo o risco e quero seguir mesmo assim"]
         // A conferencia termina quando o slider passa a dizer o que faz.
-        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Deslize para digitar as palavras'"), object: slider)], timeout: 20)
+        _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label BEGINSWITH 'Deslize para'"), object: slider)], timeout: 20)
         let done = XCTNSPredicateExpectation(predicate: NSPredicate(format: "isEnabled == true"), object: slider)
         if XCTWaiter.wait(for: [done], timeout: 15) != .completed, risk.waitForExistence(timeout: 3) {
             risk.tap()

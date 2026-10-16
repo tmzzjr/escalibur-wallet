@@ -147,7 +147,7 @@ struct WalletsListView: View {
                                 WalletGlyph(id: wallet.id, size: 32, selected: true, watchOnly: wallet.isWatchOnly)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
-                                    Text(wallet.hasBackup || wallet.isWatchOnly ? originText(wallet) : String(localized: "Sem cópia"))
+                                    Text(wallet.hasBackup || wallet.isWatchOnly ? originText(wallet) : String(localized: "Palavras não confirmadas"))
                                         .typeStyle(.note).foregroundStyle(wallet.hasBackup || wallet.isWatchOnly ? Palette.inkSoft : Palette.caution)
                                 }
                                 Spacer()
@@ -211,12 +211,20 @@ struct WalletSettingsView: View {
                         .padding(.horizontal, Space.gutter)
 
                     if !wallet.isWatchOnly {
+                        // Tocar leva a cada copia (pedido do dono, 15/10/2026): o papel abre as
+                        // palavras (e a conferencia, se ainda nao foi feita); o envelope, o lacre.
                         SettingsSection(title: String(localized: "Cópias")) {
-                            SettingsRow(icon: "doc.text", title: String(localized: "Papel"),
-                                        value: wallet.hasBackup ? (wallet.backupConfirmedAt.map { String(localized: "confirmado em \(Self.day($0))") } ?? String(localized: "importada")) : String(localized: "não confirmado"),
-                                        valueColor: wallet.hasBackup ? Palette.inkSoft : Palette.caution, chevron: false)
-                            SettingsRow(icon: "envelope", title: String(localized: "Envelope Escalibur"),
-                                        value: wallet.envelopeSealedAt.map { String(localized: "lacrado em \(Self.day($0))") } ?? String(localized: "nenhum"), chevron: false)
+                            Button { revealing = true } label: {
+                                SettingsRow(icon: "doc.text", title: String(localized: "Papel"),
+                                            value: wallet.hasBackup ? (wallet.backupConfirmedAt.map { String(localized: "confirmado em \(Self.day($0))") } ?? String(localized: "importada")) : String(localized: "não confirmado"),
+                                            valueColor: wallet.hasBackup ? Palette.inkSoft : Palette.caution)
+                            }
+                            .accessibilityIdentifier("copia-papel")
+                            Button { sealing = true } label: {
+                                SettingsRow(icon: "envelope", title: String(localized: "Envelope Escalibur"),
+                                            value: wallet.envelopeSealedAt.map { String(localized: "lacrado em \(Self.day($0))") } ?? String(localized: "nenhum"))
+                            }
+                            .accessibilityIdentifier("copia-envelope")
                         }
                         if let last = wallet.lastRevealedAt {
                             Text("Última vez que a senha da carteira foi exibida: \(Fmt.relative(last, inSentence: true)).")

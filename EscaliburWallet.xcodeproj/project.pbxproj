@@ -28,6 +28,7 @@
 		21A2E4CF04770FD56E788AF9 /* LegalDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */; };
 		220758F4EB4CE3A033641B8E /* EscaliburWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A7D908F19AB59E10BE3323CD /* EscaliburWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		23F2FD5E0D08C33DB73E5584 /* PassphraseWalletTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2552656E9F2EA038F885C9CB /* PassphraseWalletTests.swift */; };
+		24256C0001B53F5C64680B09 /* DesignPassLookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4409BFB320568047D719B61C /* DesignPassLookTests.swift */; };
 		2468359EF9FB1503F19395D5 /* AuthCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D423B66DA20C4DA018418902 /* AuthCoordinator.swift */; };
 		26ABABDDB73200E71CD0D50F /* WalletHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E3E554F1FF4F3B1B0A077A6 /* WalletHomeView.swift */; };
 		271A5135782331B746AC5833 /* VoiceGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C114911EA7725CA6C7171D11 /* VoiceGate.swift */; };
@@ -123,6 +124,7 @@
 		AB7B23776FBF7C6424A8874C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8C9605AF6B0175CB6F7E648C /* PrivacyInfo.xcprivacy */; };
 		AD4A5C7FD936DD94FDAABC41 /* LimitRenewalPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCB20AFE4A43091DEB9D551 /* LimitRenewalPrompt.swift */; };
 		AF3BC69E48877AAA3F75D755 /* EnvelopeChain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9533E741733252A8A22C3477 /* EnvelopeChain.swift */; };
+		B21E851FF63CDD4C594DA02B /* EnvelopeSealScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9F35DE5F373188D58D75DA /* EnvelopeSealScene.swift */; };
 		B259A28741C3A8C0F7D74759 /* CoinLogo.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9DC6B0CBDCCFACCFD0295B9 /* CoinLogo.swift */; };
 		B2E357AE866645BCDECE92A2 /* SwordCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C07567528B0FFA2BAAED05D1 /* SwordCard.swift */; };
 		B59CE2C6DE9F56E0556EE53E /* AssetActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A24B9F4B37805A47D0B7B78 /* AssetActivity.swift */; };
@@ -253,6 +255,7 @@
 		3D50F34B146D744EA6BF4F27 /* LimitRenewals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitRenewals.swift; sourceTree = "<group>"; };
 		3FD7ECCFEABE053AB8919C2F /* ActivityCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCache.swift; sourceTree = "<group>"; };
 		4027F05D922AF46864DCED58 /* Portfolio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Portfolio.swift; sourceTree = "<group>"; };
+		4409BFB320568047D719B61C /* DesignPassLookTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignPassLookTests.swift; sourceTree = "<group>"; };
 		44AE65BCC609869DC729178D /* PriceAlerts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PriceAlerts.swift; sourceTree = "<group>"; };
 		464E41DA23598ED80A750BD4 /* EscaliburWalletUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EscaliburWalletUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		49EE4EBF2B576AD8F92E2DA9 /* BackupFirstArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupFirstArt.swift; sourceTree = "<group>"; };
@@ -321,6 +324,7 @@
 		A7A7441A95891CC1A307A355 /* CustomTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTokenTests.swift; sourceTree = "<group>"; };
 		A7D908F19AB59E10BE3323CD /* EscaliburWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = EscaliburWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A98E0FCFFA466C4A03F3490A /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
+		AA9F35DE5F373188D58D75DA /* EnvelopeSealScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeSealScene.swift; sourceTree = "<group>"; };
 		AAEF81421478F9FA6F85FE56 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
 		AD4DB38ABFB63662F684831D /* LegalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalTests.swift; sourceTree = "<group>"; };
 		AE76619E0AC218A55627033C /* VoiceListeningPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceListeningPanel.swift; sourceTree = "<group>"; };
@@ -540,6 +544,7 @@
 				745CFBE75BE45B95EF64F171 /* CameraAccessTests.swift */,
 				3D40F7F537F7FF07C6720903 /* CoinDetailTests.swift */,
 				A7A7441A95891CC1A307A355 /* CustomTokenTests.swift */,
+				4409BFB320568047D719B61C /* DesignPassLookTests.swift */,
 				89761B8456F11EAF49B39AD5 /* DeviceCheckTests.swift */,
 				0F3FC7ED2F0ACB292691CA0A /* EnvelopeFlowTests.swift */,
 				3475ED4BAF37DB955E275654 /* EnvelopeLookTests.swift */,
@@ -677,6 +682,7 @@
 				9533E741733252A8A22C3477 /* EnvelopeChain.swift */,
 				A6C11BE5AEBC12EB41028609 /* EnvelopeCipherCard.swift */,
 				BF8FC12457C9F9A1A205F7AB /* EnvelopeHowItWorks.swift */,
+				AA9F35DE5F373188D58D75DA /* EnvelopeSealScene.swift */,
 				782DB62D8556B5675B57F47E /* OpenEnvelopeFlow.swift */,
 				31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */,
 			);
@@ -986,6 +992,7 @@
 				2809DE2FADD5826ABB2508B5 /* CameraAccessTests.swift in Sources */,
 				F442789E52824CD5BF6184A6 /* CoinDetailTests.swift in Sources */,
 				CE372781780EEF980A965AD3 /* CustomTokenTests.swift in Sources */,
+				24256C0001B53F5C64680B09 /* DesignPassLookTests.swift in Sources */,
 				D7A6D1437FED0ACB9DED3001 /* DeviceCheckTests.swift in Sources */,
 				A0E20FEC7CF495BB4B8AE0E1 /* EnvelopeFlowTests.swift in Sources */,
 				62A73934EFCC1BCF7C7F188F /* EnvelopeLookTests.swift in Sources */,
@@ -1067,6 +1074,7 @@
 				AF3BC69E48877AAA3F75D755 /* EnvelopeChain.swift in Sources */,
 				EF6E616D0E1DFBB1C2E03E2F /* EnvelopeCipherCard.swift in Sources */,
 				3E8349E3BD6D903122396BAF /* EnvelopeHowItWorks.swift in Sources */,
+				B21E851FF63CDD4C594DA02B /* EnvelopeSealScene.swift in Sources */,
 				17CA7D116449E54B8C9164F4 /* EscaliburWalletApp.swift in Sources */,
 				2ADDAFAC91F93366C64CECDF /* Format.swift in Sources */,
 				F8EA2B1B268220A255B30FAB /* ImportPhraseView.swift in Sources */,

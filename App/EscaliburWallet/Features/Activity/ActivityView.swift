@@ -238,6 +238,9 @@ struct ActivityView: View {
         return order.map { ($0, groups[$0] ?? []) }
     }
 
+    /// Sem nada na lista e lendo pela primeira vez: o carregando no meio da tela.
+    private var loadingFirstTime: Bool { feed.entries.isEmpty && (feed.loading || !feed.loadedOnce) }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -250,10 +253,9 @@ struct ActivityView: View {
                     }
 
                     if feed.entries.isEmpty {
-                        if feed.loading || !feed.loadedOnce {
-                            ActivityLoading(chains: session.selectedWallet?.accounts.compactMap { Chain.find($0.chainID) } ?? [])
-                                .frame(maxWidth: .infinity)
-                                .containerRelativeFrame(.vertical, alignment: .center) { length, _ in length * 0.72 }
+                        if loadingFirstTime {
+                            // O carregando fica por cima da lista, no meio da tela (abaixo).
+                            Color.clear.frame(height: 1)
                         } else {
                             empty
                                 .frame(maxWidth: .infinity)
@@ -320,6 +322,13 @@ struct ActivityView: View {
                 .padding(.bottom, Space.xl)
             }
             .refreshable { await reload(force: true) }
+            .overlay {
+                if loadingFirstTime {
+                    ActivityLoading(chains: session.selectedWallet?.accounts.compactMap { Chain.find($0.chainID) } ?? [])
+                        .frame(maxWidth: .infinity)
+                        .allowsHitTesting(false)
+                }
+            }
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .statusBarBackdrop()

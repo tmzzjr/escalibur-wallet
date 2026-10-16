@@ -54,7 +54,7 @@ enum PasswordCost {
         switch band(bits: bits, kdf: kdf) {
         case .veryWeak: return String(localized: "Muito fraca. Quem pegar o arquivo abre em \(describe(seconds(bits: bits, kdf: kdf))).")
         case .weak: return String(localized: "Fraca. Um grupo com placas de vídeo abre em \(describe(seconds(bits: bits, kdf: kdf))).")
-        case .fair: return String(localized: "Boa contra ladrão comum. Um governo abriria em \(describe(stateSeconds(bits: bits, kdf: kdf))).")
+        case .fair: return String(localized: "Média. Um grupo com placas de vídeo levaria \(describe(seconds(bits: bits, kdf: kdf))), e um governo, \(describe(stateSeconds(bits: bits, kdf: kdf))).")
         case .strong: return String(localized: "Forte. Nem um governo abre em tempo útil.")
         }
     }

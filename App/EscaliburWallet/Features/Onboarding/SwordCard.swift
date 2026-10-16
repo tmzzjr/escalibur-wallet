@@ -100,21 +100,39 @@ struct SwordCard: View {
     }
 }
 
-/// O holografico: uma faixa estreita de arco-iris que corre a carta conforme o angulo,
-/// como a luz batendo numa carta holografica, um veu de cor bem leve na carta inteira, o
-/// fio fino da folha metalica e o reflexo de luz. Quanto mais a carta inclina, mais ele
-/// aparece; de frente, quase some. So desenho: nao pega toque.
-private struct Hologram: View {
+/// O holografico, como numa carta holografica de verdade (pedido do dono, 15/10/2026):
+/// - um veu de cor bem leve na carta inteira;
+/// - a faixa de arco-iris que atravessa a carta conforme o angulo;
+/// - o padrao de difracao: riscos finos na diagonal, cada um de uma cor do espectro, e as
+///   cores correm pelos riscos quando a carta inclina;
+/// - a purpurina: pontinhos que acendem e apagam conforme o angulo, cada um no seu;
+/// - o reflexo de luz onde a luz bate.
+/// Quanto mais a carta inclina, mais ele aparece; de frente, quase some. `intensity`
+/// baixa o conjunto (o verso usa menos). So desenho: nao pega toque.
+struct Hologram: View {
     let yaw: Double
     let pitch: Double
+    var intensity: Double = 1
 
     static let spectrum: [Color] = [Color(hex: 0x00E5FF), Color(hex: 0x7B61FF), Color(hex: 0xFF4FD8), Color(hex: 0xFFE14D),
                                     Color(hex: 0x5CFF9D), Color(hex: 0x00E5FF)]
 
+    /// Os pontos da purpurina: lugares e fases fixos (o mesmo desenho sempre).
+    static let glitter: [(x: Double, y: Double, phase: Double)] = (0..<140).map { index in
+        var z = UInt64(index + 1) &* 0x9E37_79B9_7F4A_7C15
+        func next() -> Double {
+            z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+            z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+            z ^= z >> 31
+            return Double(z >> 11) / Double(1 << 53)
+        }
+        return (next(), next(), next() * 2 * .pi)
+    }
+
     var body: some View {
         let x = sin(yaw * .pi / 180)
         let y = sin(pitch * .pi / 180)
-        let strength = min(0.12 + abs(x) * 2.2 + abs(y) * 2.2, 1)
+        let strength = min(0.12 + abs(x) * 2.2 + abs(y) * 2.2, 1) * intensity
         ZStack {
             LinearGradient(colors: Self.spectrum, startPoint: UnitPoint(x: 0.5 - x, y: 0), endPoint: UnitPoint(x: 0.5 + x + 0.6, y: 1))
                 .blendMode(.softLight)
@@ -134,20 +152,35 @@ private struct Hologram: View {
             }
             .blendMode(.colorDodge)
             .opacity(0.42 * strength)
+            // A difracao e a purpurina, num desenho so.
             Canvas { context, size in
-                // O fio da folha holografica: riscos finos na diagonal.
-                var lines = Path()
+                let shift = x * 2.4 + y * 1.6
                 var start: CGFloat = -size.height
+                var line = 0
+                var diffraction = context
+                diffraction.blendMode = .colorDodge
                 while start < size.width {
-                    lines.move(to: CGPoint(x: start, y: size.height))
-                    lines.addLine(to: CGPoint(x: start + size.height, y: 0))
-                    start += 5
+                    var path = Path()
+                    path.move(to: CGPoint(x: start, y: size.height))
+                    path.addLine(to: CGPoint(x: start + size.height, y: 0))
+                    let hue = (Double(line) / 9 + shift).truncatingRemainder(dividingBy: 1)
+                    diffraction.stroke(path, with: .color(Color(hue: hue < 0 ? hue + 1 : hue, saturation: 0.5, brightness: 1).opacity(0.08 * strength)),
+                                       lineWidth: 0.8)
+                    start += 3
+                    line += 1
                 }
-                context.stroke(lines, with: .color(.white.opacity(0.1)), lineWidth: 1)
+                var sparkle = context
+                sparkle.blendMode = .plusLighter
+                for dot in Self.glitter {
+                    let glow = pow(max(0, sin(dot.phase + x * 9 + y * 7)), 12) * strength
+                    guard glow > 0.04 else { continue }
+                    let point = CGPoint(x: dot.x * size.width, y: dot.y * size.height)
+                    let r = 1.0 + 1.4 * glow
+                    sparkle.fill(Path(ellipseIn: CGRect(x: point.x - r, y: point.y - r, width: 2 * r, height: 2 * r)),
+                                 with: .color(.white.opacity(0.85 * glow)))
+                }
             }
-            .blendMode(.overlay)
-            .opacity(strength)
-            RadialGradient(colors: [.white.opacity(0.4), .white.opacity(0)], center: UnitPoint(x: 0.5 - x * 1.2, y: 0.35 - y * 1.2),
+            RadialGradient(colors: [.white.opacity(0.4 * intensity), .white.opacity(0)], center: UnitPoint(x: 0.5 - x * 1.2, y: 0.35 - y * 1.2),
                            startRadius: 0, endRadius: 260)
                 .blendMode(.softLight)
         }
@@ -155,7 +188,10 @@ private struct Hologram: View {
     }
 }
 
-/// O verso: a lenda, e a mesma regra numa carteira sem custodia.
+/// O verso, como o de uma carta de colecao (pedido do dono, 15/10/2026: sem o rosa):
+/// grafite com a espada gravada de leve ao fundo, um emblema de prata no alto, a lenda e a
+/// mesma regra numa carteira sem custodia em tons neutros, e o holografico so na borda e
+/// no emblema, fraco no resto.
 private struct SwordCardBack: View {
     let yaw: Double
     let pitch: Double
@@ -173,16 +209,28 @@ private struct SwordCardBack: View {
     }
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
         ZStack {
-            LinearGradient(colors: [Color(hex: 0x1F1F24), Palette.body, Color(hex: 0x0E0E11)], startPoint: .topLeading, endPoint: .bottomTrailing)
-            Hologram(yaw: yaw + 180, pitch: pitch).opacity(0.6)
+            LinearGradient(colors: [Color(hex: 0x1C1C21), Color(hex: 0x131317), Color(hex: 0x0C0C0F)], startPoint: .topLeading, endPoint: .bottomTrailing)
+            // A espada do icone gravada ao fundo, grande e quase apagada.
+            SwordEmblem()
+                .fill(LinearGradient(colors: [.white.opacity(0.07), .white.opacity(0.02)], startPoint: .top, endPoint: .bottom))
+                .frame(width: 260, height: 300)
+                .offset(x: 70, y: 70)
+            Hologram(yaw: yaw + 180, pitch: pitch, intensity: 0.35)
             VStack(alignment: .leading, spacing: Space.sm) {
-                Text("A lenda").typeStyle(.note).foregroundStyle(Palette.accent)
-                Text("A espada na pedra").typeStyle(.title).foregroundStyle(Palette.ink)
+                HStack(spacing: Space.sm) {
+                    SwordEmblem()
+                        .fill(LinearGradient(colors: [Color(hex: 0xF4F5F8), Color(hex: 0xA9ACB4)], startPoint: .top, endPoint: .bottom))
+                        .overlay(Hologram(yaw: yaw + 180, pitch: pitch).mask(SwordEmblem()))
+                        .frame(width: 26, height: 30)
+                    Text("A lenda").typeStyle(.row).foregroundStyle(Palette.inkSoft)
+                }
+                Text("A espada na pedra").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.xs)
                 Text(Self.legend).typeStyle(.body).foregroundStyle(Palette.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Na sua carteira").typeStyle(.note).foregroundStyle(Palette.accent).padding(.top, Space.xs)
-                Text(Self.rule).typeStyle(.body).foregroundStyle(Palette.ink)
+                Text("Na sua carteira").typeStyle(.row).foregroundStyle(Palette.ink).padding(.top, Space.sm)
+                Text(Self.rule).typeStyle(.body).foregroundStyle(Palette.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
                 Label("Toque para virar", systemImage: "arrow.uturn.backward").typeStyle(.note).foregroundStyle(Palette.inkMuted)
@@ -191,8 +239,30 @@ private struct SwordCardBack: View {
             .padding(Space.lg)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(.white.opacity(0.14), lineWidth: 1))
+        .clipShape(shape)
+        // A borda de folha holografica: prata, com o arco-iris correndo conforme o angulo.
+        .overlay(shape.stroke(LinearGradient(colors: [Color(hex: 0xC9CCD3), Color(hex: 0x6F737C)], startPoint: .top, endPoint: .bottom), lineWidth: 1.5))
+        .overlay(Hologram(yaw: yaw + 180, pitch: pitch).mask(shape.stroke(lineWidth: 2.5)))
+    }
+}
+
+/// A silhueta da espada do icone (pomo, punho, travessao e lamina), para gravar e cunhar.
+struct SwordEmblem: Shape {
+    func path(in rect: CGRect) -> Path {
+        // As proporcoes do icone (606 de travessao em 1024), com a lamina terminando em ponta.
+        let w = rect.width, h = rect.height
+        let cx = rect.midX
+        var path = Path()
+        path.addRect(CGRect(x: cx - w * 0.12, y: rect.minY, width: w * 0.24, height: h * 0.09))
+        path.addRect(CGRect(x: cx - w * 0.06, y: rect.minY + h * 0.09, width: w * 0.12, height: h * 0.2))
+        path.addRect(CGRect(x: rect.minX, y: rect.minY + h * 0.29, width: w, height: h * 0.07))
+        path.move(to: CGPoint(x: cx - w * 0.105, y: rect.minY + h * 0.36))
+        path.addLine(to: CGPoint(x: cx + w * 0.105, y: rect.minY + h * 0.36))
+        path.addLine(to: CGPoint(x: cx + w * 0.105, y: rect.minY + h * 0.88))
+        path.addLine(to: CGPoint(x: cx, y: rect.maxY))
+        path.addLine(to: CGPoint(x: cx - w * 0.105, y: rect.minY + h * 0.88))
+        path.closeSubpath()
+        return path
     }
 }
 
@@ -200,11 +270,15 @@ private struct SwordCardBack: View {
 /// (nao pede permissao: e o mesmo sensor da rotacao de tela), 30 vezes por segundo, so
 /// enquanto a carta esta na tela, e mede a partir de como o iPhone estava quando ela
 /// apareceu. Fica entre -1 e 1.
+@MainActor
 @Observable
 final class TiltReader {
     private(set) var roll: Double = 0
     private(set) var pitch: Double = 0
-    @ObservationIgnored private let manager = CMMotionManager()
+    /// A Apple pede um gerenciador de movimento so por app (auditoria de 15/10/2026): a
+    /// carta e a chapa das palavras dividem este.
+    @ObservationIgnored private static let sharedManager = CMMotionManager()
+    @ObservationIgnored private var manager: CMMotionManager { Self.sharedManager }
     @ObservationIgnored private var base: (x: Double, y: Double)?
 
     func start() {
@@ -212,13 +286,17 @@ final class TiltReader {
         base = nil
         manager.deviceMotionUpdateInterval = 1.0 / 30
         manager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
-            guard let self, let gravity = motion?.gravity else { return }
-            let reference = self.base ?? (gravity.x, gravity.y)
-            self.base = reference
-            let clamp = { (value: Double) in min(max(value / 0.35, -1), 1) }
-            // Suaviza: um tremor da mao nao faz a carta tremer.
-            self.roll += (clamp(gravity.x - reference.x) - self.roll) * 0.2
-            self.pitch += (clamp(gravity.y - reference.y) - self.pitch) * 0.2
+            guard let gravity = motion?.gravity else { return }
+            // A fila e a principal: o mesmo ator da tela.
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                let reference = self.base ?? (gravity.x, gravity.y)
+                self.base = reference
+                let clamp = { (value: Double) in min(max(value / 0.35, -1), 1) }
+                // Suaviza: um tremor da mao nao faz a carta tremer.
+                self.roll += (clamp(gravity.x - reference.x) - self.roll) * 0.2
+                self.pitch += (clamp(gravity.y - reference.y) - self.pitch) * 0.2
+            }
         }
     }
 

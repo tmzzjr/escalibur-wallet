@@ -50,6 +50,9 @@ struct OpenEnvelopeFlow: View {
     @State private var data: Data?
     @State private var password = SecureBytes(capacity: 256)
     @State private var passwordLength = 0
+    /// A senha digitada vira cifra viva; segurar o dedo no campo mostra o que foi digitado.
+    @State private var cipher = LiveCipher()
+    @State private var revealPassword = false
     @State private var opening = false
     @State private var estimate = 3
     /// Envelope que pede mais de 10 s de conta: o dono confirma antes (auditoria do
@@ -151,8 +154,12 @@ struct OpenEnvelopeFlow: View {
             Text("Senha do envelope").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.xs)
             Text("A senha escolhida quando o envelope foi lacrado. No app Escalibur, é a senha do cofre.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
-            PasswordBox(buffer: password, length: $passwordLength, placeholder: String(localized: "Senha do envelope")) { Task { await open() } }
+            PasswordBox(buffer: password, length: $passwordLength, placeholder: String(localized: "Senha do envelope"),
+                        reveal: $revealPassword, onSubmit: { Task { await open() } }, glyphs: passwordGlyphs)
                 .padding(.top, Space.lg)
+                .onChange(of: passwordLength) { _, _ in cipher.seal(0, buffer: password) }
+            Text("Segure o dedo no campo para ver o que digitou.")
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
             if let error {
                 Text(error).typeStyle(.note).foregroundStyle(Palette.down).padding(.top, Space.sm).fixedSize(horizontal: false, vertical: true)
             }
@@ -320,7 +327,15 @@ struct OpenEnvelopeFlow: View {
         pending = nil
     }
 
+    private var passwordGlyphs: ((UInt64) -> String)? {
+        guard passwordLength > 0 else { return nil }
+        let cipher = self.cipher
+        let count = passwordLength
+        return { tick in cipher.glyphs(0, count: count, tick: tick) }
+    }
+
     private func close() {
+        cipher.clearAll()
         password.wipe()
         opened?.wipe()
         revealDraft?.wipe()

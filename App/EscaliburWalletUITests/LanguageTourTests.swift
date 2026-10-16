@@ -81,13 +81,10 @@ final class LanguageTourTests: XCTestCase {
         shot("12-camera", app)
         app.terminate()
 
-        // O tour: a espada, as moedas em orbita e a assinatura.
+        // O tour: as moedas em orbita e a assinatura.
         app = launch(["-demo", "-tela", "promessa"])
         let next = app.buttons["tour-continuar"]
         if next.waitForExistence(timeout: 40) {
-            sleep(2)
-            shot("13-tour-espada", app)
-            next.tap()
             sleep(4)
             shot("14-tour-moedas", app)
             next.tap()

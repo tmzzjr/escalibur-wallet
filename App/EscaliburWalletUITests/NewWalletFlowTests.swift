@@ -46,7 +46,9 @@ final class NewWalletFlowTests: XCTestCase {
         app.buttons["Marque o aceite para continuar"].tap()
         XCTAssertFalse(app.staticTexts["Confirme com o PIN"].waitForExistence(timeout: 1), "continuou sem o aceite")
         app.buttons["aceite-responsabilidade"].tap()
-        app.buttons["Mostrar as palavras"].tap()
+        app.buttons["Conferir o aparelho"].tap()
+        // A carteira nova passa pela conferencia do aparelho antes das palavras.
+        app.passDeviceCheck()
         XCTAssertTrue(app.staticTexts["Confirme com o PIN"].waitForExistence(timeout: 10))
         type(pin: pin, in: app)
     }
@@ -119,10 +121,13 @@ final class NewWalletFlowTests: XCTestCase {
         XCTAssertTrue(text("Palavras 1 a 3 de 12", in: app, timeout: 15))
         let plate = app.staticTexts["palavra-2"]
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Esconde em'")).firstMatch.exists)
-        plate.swipeLeft()
+        // Arrasto de dedo, com a carta parada antes: o swipe do XCUITest e curto e rapido
+        // demais, e caia na carta ainda assentando.
+        drag(plate, by: -200)
         XCTAssertTrue(text("Palavras 4 a 6 de 12", in: app), "arrastar para a esquerda nao avancou")
         shot("placa-arrastavel", app)
-        app.staticTexts["palavra-5"].swipeRight()
+        sleep(1)
+        drag(app.staticTexts["palavra-5"], by: 200)
         XCTAssertTrue(text("Palavras 1 a 3 de 12", in: app), "arrastar para a direita nao voltou")
 
         for _ in 0..<3 { app.buttons["Próximas"].tap() }
@@ -141,7 +146,13 @@ final class NewWalletFlowTests: XCTestCase {
         XCTAssertTrue(app.alerts["Confirmar depois?"].waitForExistence(timeout: 5))
         app.alerts.buttons["Confirmar depois"].tap()
 
-        XCTAssertTrue(app.staticTexts["Esta carteira ainda não tem cópia"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Falta confirmar que você anotou as palavras"].waitForExistence(timeout: 10))
+    }
+
+    /// Arrasta o elemento na horizontal, como um dedo.
+    private func drag(_ element: XCUIElement, by dx: CGFloat) {
+        let start = element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: dx, dy: 0)), withVelocity: 600, thenHoldForDuration: 0)
     }
 
     /// Importar passa pela tela de seguranca; o link abre os Termos.

@@ -30,6 +30,13 @@ struct RecordWordsView: View {
     /// sair; `body` so le daqui.
     @State private var shown: [Int: [String]] = [:]
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// A chapa de "ver todas": o dedo e o iPhone inclinam ela um pouco.
+    @State private var plateDrag: CGSize = .zero
+    @State private var plateTilt = TiltReader()
+    /// Graus de giro da chapa: para os lados e para frente/tras.
+    private var plateRoll: Double { Double(plateDrag.width) / 10 + plateTilt.roll * 6 }
+    private var platePitch: Double { -Double(plateDrag.height) / 12 - plateTilt.pitch * 5 }
 
     private let perGroup = 3
     private let rowHeight: CGFloat = 84
@@ -78,11 +85,17 @@ struct RecordWordsView: View {
             Spacer()
             HStack(spacing: Space.sm) {
                 if group > 0, !showingAll {
-                    SecondaryButton(title: String(localized: "Anteriores"), height: Height.primary) { move(-1) }
+                    SecondaryButton(title: String(localized: "Anteriores"), height: Height.primary) { throwCard(-1) }
+                        .transition(.move(edge: .leading).combined(with: .opacity))
                 }
                 PrimaryButton(title: isLast ? (walletName == nil ? String(localized: "Já anotei as \(draft.wordCount)") : String(localized: "Fechar")) : String(localized: "Próximas")) {
-                    isLast ? onDone() : move(1)
+                    isLast ? onDone() : throwCard(1)
                 }
+            }
+            // Os botoes andam numa animacao curta so deles: a mola longa das cartas fazia o
+            // "Proximas" encolher aos trancos (pedido do dono, 15/10/2026).
+            .transaction { transaction in
+                if transaction.animation != nil { transaction.animation = .easeOut(duration: 0.22) }
             }
         }
         .padding(.horizontal, Space.gutter)
@@ -192,7 +205,8 @@ struct RecordWordsView: View {
 
     /// A frase inteira, numa chapa de aco escovado como as de guardar seed (pedido do dono,
     /// 15/10/2026): as palavras gravadas em baixo-relevo, duas colunas em ordem de cima
-    /// para baixo, rebites nos cantos, a chapa levemente inclinada e um brilho que passa.
+    /// para baixo, rebites nos cantos. A chapa inclina com o dedo e com o iPhone, e o
+    /// reflexo do metal anda junto; nao ha brilho correndo sozinho.
     private var allPlate: some View {
         let count = draft.wordCount
         let half = (count + 1) / 2
@@ -243,9 +257,21 @@ struct RecordWordsView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .background(MetalPlate())
-        .rotation3DEffect(.degrees(7), axis: (x: 1, y: 0, z: 0), anchor: .center, perspective: 0.45)
-        .shadow(color: .black.opacity(0.55), radius: 18, x: 0, y: 16)
+        .background(MetalPlate(tiltX: plateRoll / 12, tiltY: platePitch / 12))
+        // Inclina um pouco com o dedo e com o iPhone, e volta ao soltar (pedido do dono,
+        // 15/10/2026): a luz da chapa anda junto.
+        .rotation3DEffect(.degrees(7 + platePitch), axis: (x: 1, y: 0, z: 0), anchor: .center, perspective: 0.45)
+        .rotation3DEffect(.degrees(plateRoll), axis: (x: 0, y: 1, z: 0), anchor: .center, perspective: 0.45)
+        .shadow(color: .black.opacity(0.55), radius: 18, x: CGFloat(-plateRoll), y: 16)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 4)
+                .onChanged { value in
+                    plateDrag = CGSize(width: min(max(value.translation.width, -70), 70), height: min(max(value.translation.height, -70), 70))
+                }
+                .onEnded { _ in withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) { plateDrag = .zero } }
+        )
+        .onAppear { if !reduceMotion { plateTilt.start() } }
+        .onDisappear { plateTilt.stop() }
         .textSelection(.disabled)
         .accessibilityElement(children: .contain)
         .transition(.opacity.combined(with: .scale(scale: 0.96)))
@@ -340,6 +366,26 @@ struct RecordWordsView: View {
         guard target != group else { return }
         withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
             group = target
+        }
+    }
+
+    /// Os botoes fazem o mesmo que o dedo (pedido do dono, 15/10/2026): a carta da frente
+    /// sai para o lado, girando um pouco, e depois passa para o fundo da pilha enquanto a
+    /// seguinte sobe. Seguir joga para a esquerda; voltar, para a direita.
+    private func throwCard(_ delta: Int) {
+        let target = max(0, min(groups - 1, group + delta))
+        guard target != group else { return }
+        if reduceMotion {
+            move(delta)
+            return
+        }
+        withAnimation(.easeIn(duration: 0.16)) { drag = delta > 0 ? -240 : 240 }
+        Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.84)) {
+                group = target
+                drag = 0
+            }
         }
     }
 }
@@ -577,45 +623,36 @@ private struct CreatedEmblem: View {
 }
 
 /// A chapa de aco escovado da frase: degrade da luz para a sombra, riscos finos do
-/// escovado, chanfro aceso em cima e escuro embaixo, quatro rebites e um brilho que
-/// atravessa de tempos em tempos. Com Reduzir Movimento, sem o brilho.
+/// escovado de largura irregular, chanfro aceso em cima e escuro embaixo e quatro rebites.
+/// O reflexo do escovado (uma faixa vertical) e a luz de cima seguem a inclinacao que
+/// quem usa a chapa passa em `tiltX`/`tiltY`.
 private struct MetalPlate: View {
     static let ink = Color(hex: 0x2E2F35)
     static let groove = Color(hex: 0x8E9098)
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// A inclinacao, de -1 a 1: para os lados (x) e para frente/tras (y).
+    var tiltX: Double = 0
+    var tiltY: Double = 0
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { timeline in
-            let cycle = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 5)
+        ZStack {
+            // O aco escovado, parado: o fundo, os riscos e os rebites.
             Canvas { context, size in
                 let rect = CGRect(origin: .zero, size: size)
                 context.fill(Path(rect), with: .linearGradient(
-                    Gradient(stops: [.init(color: Color(hex: 0xE9EAEE), location: 0), .init(color: Color(hex: 0xC9CBD1), location: 0.45),
-                                     .init(color: Color(hex: 0xD9DADF), location: 0.7), .init(color: Color(hex: 0xB4B6BD), location: 1)]),
-                    startPoint: .zero, endPoint: CGPoint(x: size.width, y: size.height)))
-                // O escovado: riscos horizontais finos, claros e escuros alternados.
-                var y: CGFloat = 1
-                var light = true
+                    Gradient(stops: [.init(color: Color(hex: 0xE4E5E9), location: 0), .init(color: Color(hex: 0xCDCFD4), location: 0.5),
+                                     .init(color: Color(hex: 0xBCBEC4), location: 1)]),
+                    startPoint: .zero, endPoint: CGPoint(x: size.width * 0.3, y: size.height)))
+                // O escovado: riscos horizontais finos, claros e escuros, de largura irregular.
+                var y: CGFloat = 0.5
+                var row = 0
                 while y < size.height {
-                    context.fill(Path(CGRect(x: 0, y: y, width: size.width, height: 0.6)),
-                                 with: .color(light ? .white.opacity(0.22) : .black.opacity(0.05)))
-                    y += light ? 1.7 : 2.3
-                    light.toggle()
-                }
-                // O brilho que corre a chapa na diagonal.
-                if !reduceMotion, cycle < 1.4 {
-                    let phase = cycle / 1.4
-                    let x = -size.width * 0.4 + size.width * 1.8 * phase
-                    var band = Path()
-                    band.move(to: CGPoint(x: x, y: 0))
-                    band.addLine(to: CGPoint(x: x + size.width * 0.18, y: 0))
-                    band.addLine(to: CGPoint(x: x + size.width * 0.18 - size.height * 0.5, y: size.height))
-                    band.addLine(to: CGPoint(x: x - size.height * 0.5, y: size.height))
-                    band.closeSubpath()
-                    context.fill(band, with: .linearGradient(
-                        Gradient(colors: [.white.opacity(0), .white.opacity(0.45), .white.opacity(0)]),
-                        startPoint: CGPoint(x: x - size.height * 0.25, y: 0), endPoint: CGPoint(x: x + size.width * 0.18, y: 0)))
+                    let light = row % 2 == 0
+                    let alpha = light ? 0.16 + 0.1 * Double((row * 7) % 5) / 4 : 0.035 + 0.03 * Double((row * 3) % 4) / 3
+                    context.fill(Path(CGRect(x: 0, y: y, width: size.width, height: light ? 0.7 : 0.5)),
+                                 with: .color(light ? .white.opacity(alpha) : .black.opacity(alpha)))
+                    y += light ? 1.6 + CGFloat(row % 3) * 0.3 : 2.1
+                    row += 1
                 }
                 // Rebites nos quatro cantos.
                 for corner in [CGPoint(x: 14, y: 14), CGPoint(x: size.width - 14, y: 14),
@@ -627,11 +664,23 @@ private struct MetalPlate: View {
                         center: CGPoint(x: rivet.midX - 1.5, y: rivet.midY - 1.5), startRadius: 0, endRadius: 6))
                 }
             }
+            // O reflexo do escovado: no aco riscado na horizontal, a luz vira uma faixa
+            // vertical larga, que corre a chapa conforme ela inclina para os lados.
+            GeometryReader { geo in
+                LinearGradient(colors: [.white.opacity(0), .white.opacity(0.36), .white.opacity(0)], startPoint: .leading, endPoint: .trailing)
+                    .frame(width: geo.size.width * 0.42, height: geo.size.height)
+                    .position(x: geo.size.width * (0.5 - tiltX * 0.9), y: geo.size.height / 2)
+            }
+            .blendMode(.screen)
+            // A luz de cima: mais clara quando a chapa vira para cima, mais escura para baixo.
+            LinearGradient(colors: [.white.opacity(max(0.05, 0.16 - tiltY * 0.12)), .clear, .black.opacity(max(0, 0.08 + tiltY * 0.08))],
+                           startPoint: .top, endPoint: .bottom)
         }
         .clipShape(shape)
         // O chanfro: a borda de cima pega a luz, a de baixo fica na sombra.
         .overlay(shape.strokeBorder(LinearGradient(colors: [.white.opacity(0.9), Color(hex: 0x8A8C94)], startPoint: .top, endPoint: .bottom), lineWidth: 2))
         .overlay(shape.inset(by: 5).stroke(Color.black.opacity(0.08), lineWidth: 1))
+        .allowsHitTesting(false)
     }
 }
 
@@ -659,10 +708,8 @@ private struct CopyPhraseSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Image(systemName: "doc.on.clipboard")
-                .font(.system(size: 26, weight: .semibold)).foregroundStyle(Palette.caution)
-                .frame(width: 60, height: 60)
-                .background(Circle().fill(Palette.cautionTint))
+            ClipboardCountdown()
+                .frame(maxWidth: .infinity)
                 .padding(.top, Space.lg)
             Text("Copiar a senha da carteira?")
                 .typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
@@ -706,4 +753,83 @@ private struct CopyPhraseSheet: View {
         .background(Palette.void.ignoresSafeArea())
         .guardedAgainstCapture()
     }
+}
+
+/// A cena da copia (pedido do dono, 15/10/2026, no lugar do icone amarelo): tres palavras,
+/// so em barras, entram na prancheta; o anel de 1 minuto se esvazia, contando, e elas
+/// somem. Em ciclo, para dizer o que a tela diz: a copia vive pouco e so aqui. Com
+/// Reduzir Movimento, a prancheta cheia e o anel inteiro, parados.
+private struct ClipboardCountdown: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var start = Date()
+
+    static let period = 4.6
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+            let t = reduceMotion ? 1.4 : timeline.date.timeIntervalSince(start).truncatingRemainder(dividingBy: Self.period)
+            // 0 a 1,2 s: as barras entram; 1,2 a 3,8 s: o anel conta; 3,8 a 4,6 s: somem.
+            let left = Self.clamp((t - 1.2) / 2.6)
+            let fade = Self.clamp((t - 3.8) / 0.5)
+            ZStack(alignment: .topTrailing) {
+                board(t: t, fade: fade)
+                ring(left: reduceMotion ? 0 : left, fade: fade)
+                    .offset(x: 18, y: -16)
+            }
+            .frame(width: 132, height: 104)
+        }
+        .onAppear { start = Date() }
+        .accessibilityHidden(true)
+    }
+
+    private func board(t: Double, fade: Double) -> some View {
+        ZStack(alignment: .top) {
+            RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Palette.body)
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Palette.edgeStrong, lineWidth: 1))
+            // O prendedor da prancheta.
+            Capsule().fill(Palette.control).frame(width: 46, height: 12)
+                .overlay(Capsule().stroke(Palette.edgeStrong, lineWidth: 1))
+                .offset(y: -6)
+            VStack(alignment: .leading, spacing: 9) {
+                ForEach(0..<3, id: \.self) { index in
+                    let enter = Self.ease(Self.clamp((t - 0.15 - Double(index) * 0.22) / 0.45))
+                    HStack(spacing: 6) {
+                        Capsule().fill(Palette.inkMuted).frame(width: 10, height: 6)
+                        Capsule().fill(Palette.ink.opacity(0.85)).frame(width: [52, 38, 46][index], height: 7)
+                    }
+                    .offset(x: CGFloat(1 - enter) * -24)
+                    .opacity(enter * (1 - fade))
+                }
+            }
+            .padding(.top, 26)
+            .padding(.leading, 18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(width: 112, height: 96)
+    }
+
+    private func ring(left: Double, fade: Double) -> some View {
+        let remaining = 1 - left
+        return ZStack {
+            Circle().fill(Palette.void)
+            Circle().stroke(Palette.edgeStrong, lineWidth: 3)
+            Circle().trim(from: 0, to: remaining)
+                .stroke(Palette.ink, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            Text(verbatim: Self.clock(remaining))
+                .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                .foregroundStyle(Palette.ink)
+        }
+        .frame(width: 42, height: 42)
+        .opacity(1 - fade * 0.6)
+    }
+
+    /// 1:00 ate 0:00, no ritmo do anel.
+    static func clock(_ remaining: Double) -> String {
+        let seconds = Int((remaining * 60).rounded(.up))
+        return seconds >= 60 ? "1:00" : String(format: "0:%02d", seconds)
+    }
+
+    private static func clamp(_ x: Double) -> Double { min(max(x, 0), 1) }
+    private static func ease(_ x: Double) -> Double { 1 - pow(1 - x, 3) }
 }

@@ -92,10 +92,11 @@ struct PriceChart: View {
                     }
                     // So a linha e o brilho: a area em pontinhos embaixo dela saiu (pedido do
                     // dono, 14/10/2026).
-                    // O brilho: a linha larga e desfocada por baixo da linha nitida.
+                    // O brilho: a linha larga e desfocada por baixo da linha nitida, 38% mais
+                    // fraco desde 15/10/2026 (pedido do dono).
                     context.drawLayer { glow in
                         glow.addFilter(.blur(radius: 14))
-                        glow.stroke(line, with: .color(color.opacity(0.55)), style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
+                        glow.stroke(line, with: .color(color.opacity(0.34)), style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
                     }
                     context.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
 

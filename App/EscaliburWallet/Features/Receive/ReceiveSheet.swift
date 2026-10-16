@@ -142,7 +142,7 @@ struct ReceiveSheet: View {
             BackupFirstArt(height: 280)
             VStack(spacing: Space.sm) {
                 Text("Grave a senha da carteira antes de receber").typeStyle(.title).foregroundStyle(Palette.ink)
-                Text("Esta carteira ainda não tem cópia. Se o iPhone sumir antes disso, o que chegar aqui se perde.")
+                Text("Você ainda não confirmou que anotou as palavras desta carteira. Se o iPhone sumir antes disso, o que chegar aqui se perde.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 Label("Leva 2 minutos", systemImage: "clock")
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted)

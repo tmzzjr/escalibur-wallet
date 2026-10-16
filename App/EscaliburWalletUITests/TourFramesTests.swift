@@ -33,8 +33,6 @@ final class TourFramesTests: XCTestCase {
         app.launch()
         let next = app.buttons["tour-continuar"]
         XCTAssertTrue(next.waitForExistence(timeout: 40))
-        frames("1-espada", at: [1.2])
-        next.tap()
         frames("2-moedas", at: [0.4, 1.0, 1.8, 3.0, 5.0])
         next.tap()
         frames("3-assinatura", at: [0.6, 1.6, 2.6, 3.4, 4.2, 5.5])

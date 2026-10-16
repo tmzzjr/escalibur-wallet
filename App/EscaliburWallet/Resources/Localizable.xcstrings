@@ -14075,6 +14075,7 @@
       }
     },
     "A carteira não vai para o backup do iPhone. Num iPhone novo, só as palavras ou um envelope trazem ela de volta." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -34750,6 +34751,7 @@
       }
     },
     "Anote no papel, à mão. Captura de tela vai para a Fototeca e sobe para o iCloud." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -36230,6 +36232,7 @@
       }
     },
     "Aparecem 3 palavras por vez. Arraste o cartão para ver as próximas." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -41341,6 +41344,7 @@
       }
     },
     "Boa contra ladrão comum. Um governo abriria em %@." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -43741,6 +43745,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "市值"
+          }
+        }
+      }
+    },
+    "Captura de tela vai para a Fototeca e sobe para o iCloud." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لقطات الشاشة تذهب إلى مكتبة الصور وتُرفع إلى iCloud."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildschirmfotos landen in deiner Mediathek und werden in iCloud geladen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screenshots go to your photo library and get uploaded to iCloud."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Las capturas de pantalla van a la Fototeca y se suben a iCloud."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les captures d’écran vont dans la Photothèque et sont envoyées sur iCloud."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्क्रीनशॉट आपकी फ़ोटो लाइब्रेरी में जाते हैं और iCloud पर अपलोड हो जाते हैं."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tangkapan layar masuk ke Pustaka Foto dan terunggah ke iCloud."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スクリーンショットは写真ライブラリに保存され、iCloud にアップロードされます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "스크린샷은 사진 보관함에 저장되고 iCloud에 업로드됩니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran görüntüleri fotoğraf arşivine gider ve iCloud’a yüklenir."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ảnh chụp màn hình sẽ vào Thư viện ảnh và được tải lên iCloud."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "截屏会存入照片图库并上传到 iCloud。"
           }
         }
       }
@@ -56604,6 +56684,82 @@
         }
       }
     },
+    "Deslize para ver as palavras" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اسحب لرؤية الكلمات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schieben, um die Wörter zu sehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide to see the words"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desliza para ver las palabras"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glissez pour voir les mots"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "शब्द देखने के लिए स्लाइड करें"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geser untuk melihat kata-katanya"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スライドして単語を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "밀어서 단어 보기"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kelimeleri görmek için kaydır"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trượt để xem các từ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滑动以查看单词"
+          }
+        }
+      }
+    },
     "Desmarcado" : {
       "localizations" : {
         "ar" : {
@@ -68864,6 +69020,7 @@
       }
     },
     "Esta carteira ainda não tem cópia" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -68940,6 +69097,7 @@
       }
     },
     "Esta carteira ainda não tem cópia. Se o iPhone sumir antes disso, o que chegar aqui se perde." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -83141,6 +83299,82 @@
         }
       }
     },
+    "Falta confirmar que você anotou as palavras" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم تؤكد بعد أنك دوّنت الكلمات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast noch nicht bestätigt, dass du die Wörter aufgeschrieben hast"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You haven't confirmed that you wrote down the words"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falta confirmar que anotaste las palabras"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous n’avez pas encore confirmé avoir noté les mots"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपने अभी पुष्टि नहीं की है कि शब्द लिख लिए हैं"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anda belum mengonfirmasi bahwa kata-katanya sudah dicatat"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単語を書き留めたことがまだ確認されていません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단어를 적어 두었는지 아직 확인하지 않았습니다"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kelimeleri yazdığını henüz onaylamadın"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bạn chưa xác nhận đã ghi lại các từ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你还没有确认已抄下单词"
+          }
+        }
+      }
+    },
     "Faltam %lld envios sem a frase." : {
       "localizations" : {
         "ar" : {
@@ -84553,6 +84787,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这些网络之间不支持跨链。"
+          }
+        }
+      }
+    },
+    "Fora do backup do iPhone" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "خارج النسخة الاحتياطية لـ iPhone"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht im iPhone-Backup"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not in the iPhone backup"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fuera de la copia de seguridad del iPhone"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hors de la sauvegarde de l’iPhone"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone बैकअप से बाहर"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tidak ikut cadangan iPhone"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone のバックアップには含まれません"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 백업에 포함되지 않음"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone yedeğinin dışında"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không có trong bản sao lưu iPhone"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不在 iPhone 备份中"
           }
         }
       }
@@ -92276,6 +92586,7 @@
       }
     },
     "Leva cerca de 2 minutos." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -96870,6 +97181,7 @@
       }
     },
     "Mostrar as palavras" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -98005,6 +98317,88 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "历史最高"
+          }
+        }
+      }
+    },
+    "Média. Um grupo com placas de vídeo levaria %@, e um governo, %@." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متوسطة. تحتاج مجموعة تملك بطاقات رسوميات إلى %@، وحكومة إلى %@."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mittel. Eine Gruppe mit Grafikkarten bräuchte %@, eine Regierung %@."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium. A group with graphics cards would take %@, and a government, %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media. Un grupo con tarjetas gráficas tardaría %@, y un gobierno, %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moyenne. Un groupe équipé de cartes graphiques mettrait %@, et un gouvernement, %@."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मध्यम. ग्राफ़िक्स कार्ड वाले किसी ग्रुप को %@ लगेंगे, और किसी सरकार को %@."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sedang. Sekelompok orang dengan kartu grafis butuh %@, dan pemerintah, %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "普通。グラフィックカードを持つグループなら %@、政府なら %@ かかります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "보통. 그래픽 카드를 가진 그룹은 %@, 정부는 %@ 걸립니다."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Média. Um grupo com placas de vídeo levaria %1$@, e um governo, %2$@."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Orta. Ekran kartlı bir grubun süresi %@, bir hükümetinki %@."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trung bình. Một nhóm có card đồ họa cần %@, và một chính phủ cần %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中等。拥有显卡集群的团伙需要 %@，政府需要 %@。"
           }
         }
       }
@@ -99537,6 +99931,7 @@
       }
     },
     "Na lenda, só as mãos certas tiram a Escalibur da pedra. Nesta carteira, as mãos certas são as suas." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -103674,6 +104069,82 @@
         }
       }
     },
+    "No papel, à mão" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "على الورق، بخط اليد"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Papier, von Hand"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On paper, by hand"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En papel, a mano"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur papier, à la main"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कागज़ पर, हाथ से"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di kertas, dengan tangan"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紙に手書きで"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "종이에 손으로"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kâğıda, elle"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viết tay ra giấy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "手写在纸上"
+          }
+        }
+      }
+    },
     "Nome" : {
       "localizations" : {
         "ar" : {
@@ -104202,6 +104673,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 秒后重新报价"
+          }
+        }
+      }
+    },
+    "Num iPhone novo, só as palavras ou um envelope trazem a carteira de volta." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "على iPhone جديد، وحدها الكلمات أو المغلف تعيد المحفظة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf einem neuen iPhone bringen nur die Wörter oder ein Umschlag das Wallet zurück."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On a new iPhone, only the words or an envelope can bring the wallet back."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En un iPhone nuevo, solo las palabras o un sobre recuperan la billetera."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sur un nouvel iPhone, seuls les mots ou une enveloppe permettent de récupérer le portefeuille."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नए iPhone पर सिर्फ़ शब्द या लिफ़ाफ़ा ही वॉलेट वापस ला सकते हैं."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Di iPhone baru, hanya kata-kata atau amplop yang bisa memulihkan dompet."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい iPhone では、単語かエンベロープでしかウォレットを復元できません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새 iPhone에서는 단어나 봉투로만 지갑을 복원할 수 있습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yeni bir iPhone’da cüzdanı yalnızca kelimeler veya bir zarf geri getirebilir."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trên iPhone mới, chỉ các từ hoặc một phong bì mới khôi phục được ví."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在新 iPhone 上，只有助记词或信封能恢复钱包。"
           }
         }
       }
@@ -128241,6 +128788,82 @@
         }
       }
     },
+    "Palavras não confirmadas" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الكلمات غير مؤكدة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wörter nicht bestätigt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Words not confirmed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palabras sin confirmar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mots non confirmés"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "शब्दों की पुष्टि नहीं"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kata belum dikonfirmasi"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単語は未確認"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "단어 미확인"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kelimeler onaylanmadı"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chưa xác nhận các từ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单词未确认"
+          }
+        }
+      }
+    },
     "Papel" : {
       "localizations" : {
         "ar" : {
@@ -144912,6 +145535,82 @@
         }
       }
     },
+    "Segure o dedo no campo para ver o que digitou." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المس الحقل مطولًا لرؤية ما كتبته."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Halte das Feld gedrückt, um zu sehen, was du eingegeben hast."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch and hold the field to see what you typed."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén pulsado el campo para ver lo que escribiste."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maintenez le doigt sur le champ pour voir ce que vous avez saisi."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपने जो टाइप किया है, उसे देखने के लिए फ़ील्ड को दबाकर रखें."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sentuh dan tahan kolom untuk melihat yang Anda ketik."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力した内容を見るには、フィールドを長押ししてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "입력한 내용을 보려면 입력란을 길게 누르세요."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ne yazdığını görmek için alana basılı tut."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chạm và giữ ô để xem những gì bạn đã nhập."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按住输入框即可查看你输入的内容。"
+          }
+        }
+      }
+    },
     "Segure para usar mesmo assim" : {
       "localizations" : {
         "ar" : {
@@ -145493,7 +146192,84 @@
         }
       }
     },
+    "Sem a senha da carteira anotada, perder o iPhone é perder os ativos. Até você confirmar, a carteira fica marcada Palavras não confirmadas e não recebe." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "بدون تدوين عبارة الاسترداد، فقدان iPhone يعني فقدان أصولك. إلى أن تؤكد، تُوسم المحفظة بـ «الكلمات غير مؤكدة» ولا تستطيع الاستلام."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne aufgeschriebene Wiederherstellungsphrase heißt ein verlorenes iPhone verlorene Assets. Bis du bestätigst, ist das Wallet als „Wörter nicht bestätigt“ markiert und kann nicht empfangen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without the recovery phrase written down, losing the iPhone means losing your assets. Until you confirm, the wallet is marked Words not confirmed and can't receive."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sin la frase de recuperación anotada, perder el iPhone es perder los activos. Hasta que la confirmes, la billetera queda marcada como Palabras sin confirmar y no recibe."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans la phrase de récupération notée, perdre l’iPhone, c’est perdre vos actifs. Tant que vous n’avez pas confirmé, le portefeuille est marqué Mots non confirmés et ne peut pas recevoir."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रिकवरी फ़्रेज़ लिखे बिना iPhone खोने का मतलब है अपने एसेट खोना. जब तक आप पुष्टि नहीं करते, वॉलेट “शब्दों की पुष्टि नहीं” के रूप में मार्क रहता है और प्राप्त नहीं कर सकता."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tanpa frasa pemulihan yang tercatat, kehilangan iPhone berarti kehilangan aset Anda. Sampai Anda mengonfirmasi, dompet ditandai Kata belum dikonfirmasi dan tidak bisa menerima."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リカバリーフレーズを書き留めていないと、iPhone をなくしたときに資産も失います。確認するまで、ウォレットには「単語は未確認」と表示され、受け取りはできません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복구 구문을 적어 두지 않으면 iPhone을 잃어버렸을 때 자산도 잃습니다. 확인할 때까지 지갑은 단어 미확인으로 표시되며 받기를 사용할 수 없습니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kurtarma ifadesi yazılmadan iPhone’u kaybetmek varlıkları kaybetmek demektir. Sen onaylayana kadar cüzdan Kelimeler onaylanmadı olarak işaretlenir ve para alamaz."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nếu chưa ghi lại cụm từ khôi phục, mất iPhone đồng nghĩa với mất tài sản. Cho đến khi bạn xác nhận, ví sẽ được đánh dấu Chưa xác nhận các từ và không thể nhận."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果没有抄下助记词，丢失 iPhone 就等于丢失资产。在你确认之前，钱包会被标记为“单词未确认”，且无法接收。"
+          }
+        }
+      }
+    },
     "Sem a senha da carteira anotada, perder o iPhone é perder os ativos. Até você confirmar, a carteira fica marcada Sem cópia e não recebe." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -146260,6 +147036,7 @@
       }
     },
     "Sem cópia" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -158531,6 +159308,82 @@
         }
       }
     },
+    "Três palavras por vez. Arraste o cartão ou toque em Próximas." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ثلاث كلمات في كل مرة. اسحب البطاقة أو اضغط التالية."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drei Wörter auf einmal. Wische die Karte oder tippe auf Nächste."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Three words at a time. Swipe the card or tap Next."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tres palabras a la vez. Desliza la tarjeta o toca Siguientes."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trois mots à la fois. Faites glisser la carte ou touchez Suivants."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "एक बार में तीन शब्द. कार्ड को स्वाइप करें या अगले पर टैप करें."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tiga kata sekaligus. Geser kartu atau ketuk Berikutnya."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一度に 3 つの単語。カードをスワイプするか、「次へ」をタップします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "한 번에 세 단어. 카드를 밀거나 다음을 탭하세요."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bir seferde üç kelime. Kartı kaydır ya da Sonraki’ye dokun."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mỗi lần ba từ. Vuốt thẻ hoặc chạm Tiếp."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每次显示三个单词。滑动卡片或轻点“下一组”。"
+          }
+        }
+      }
+    },
     "Tudo" : {
       "localizations" : {
         "ar" : {
@@ -161295,6 +162148,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "约 %lld 分钟"
+          }
+        }
+      }
+    },
+    "Uns 2 minutos" : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نحو دقيقتين"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etwa 2 Minuten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About 2 minutes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unos 2 minutos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Environ 2 minutes"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लगभग 2 मिनट"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sekitar 2 menit"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "約 2 分"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "약 2분"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yaklaşık 2 dakika"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khoảng 2 phút"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大约 2 分钟"
           }
         }
       }
@@ -164885,6 +165814,82 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "版本 %@ (%@)"
+          }
+        }
+      }
+    },
+    "Você ainda não confirmou que anotou as palavras desta carteira. Se o iPhone sumir antes disso, o que chegar aqui se perde." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم تؤكد بعد أنك دوّنت كلمات هذه المحفظة. إذا فُقد iPhone قبل ذلك، فسيضيع كل ما يصل إليها."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du hast noch nicht bestätigt, dass du die Wörter dieses Wallets aufgeschrieben hast. Geht das iPhone vorher verloren, ist alles verloren, was hier eingeht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You haven't confirmed that you wrote down this wallet's words. If the iPhone is lost before that, whatever arrives here will be lost."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todavía no confirmaste que anotaste las palabras de esta billetera. Si pierdes el iPhone antes, lo que llegue aquí se pierde."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vous n’avez pas encore confirmé avoir noté les mots de ce portefeuille. Si l’iPhone est perdu avant, tout ce qui arrive ici sera perdu."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आपने अभी पुष्टि नहीं की है कि इस वॉलेट के शब्द लिख लिए हैं. अगर उससे पहले iPhone खो जाए, तो यहां आने वाला सब कुछ खो जाएगा."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anda belum mengonfirmasi bahwa kata-kata dompet ini sudah dicatat. Jika iPhone hilang sebelum itu, apa pun yang masuk ke sini akan hilang."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このウォレットの単語を書き留めたことがまだ確認されていません。その前に iPhone をなくすと、ここに届いたものは失われます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 지갑의 단어를 적어 두었는지 아직 확인하지 않았습니다. 그 전에 iPhone을 잃어버리면 여기로 들어온 자금을 잃게 됩니다."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bu cüzdanın kelimelerini yazdığını henüz onaylamadın. Bundan önce iPhone kaybolursa buraya gelen her şey kaybolur."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bạn chưa xác nhận đã ghi lại các từ của ví này. Nếu iPhone bị mất trước đó, mọi thứ chuyển đến đây sẽ bị mất."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你还没有确认已抄下此钱包的单词。如果在此之前 iPhone 丢失，转入这里的资产将会丢失。"
           }
         }
       }

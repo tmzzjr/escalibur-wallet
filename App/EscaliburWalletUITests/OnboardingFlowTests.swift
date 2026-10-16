@@ -72,10 +72,8 @@ final class OnboardingFlowTests: XCTestCase {
         shot("02-repita-pin", app)
         type(pin: pin, in: app)
 
-        // O tour de tres passos, logo depois do PIN.
-        XCTAssertTrue(app.staticTexts["Só você é digno"].waitForExistence(timeout: 10))
-        app.buttons["tour-continuar"].tap()
-        XCTAssertTrue(app.staticTexts["Uma chave para todas as suas moedas"].waitForExistence(timeout: 5))
+        // O tour de dois passos, logo depois do PIN: a espada ja abriu o app.
+        XCTAssertTrue(app.staticTexts["Uma chave para todas as suas moedas"].waitForExistence(timeout: 10))
         sleep(3)
         shot("02b-tour-moedas", app)
         app.buttons["tour-continuar"].tap()
@@ -101,7 +99,9 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertTrue(app.buttons["aceite-responsabilidade"].waitForExistence(timeout: 5))
         shot("05b-seguranca", app)
         app.buttons["aceite-responsabilidade"].tap()
-        app.buttons["Mostrar as palavras"].tap()
+        app.buttons["Conferir o aparelho"].tap()
+        // A carteira nova passa pela conferencia do aparelho antes das palavras.
+        app.passDeviceCheck()
 
         // Sem Face ID ligado, a folha do PIN confirma a gravacao.
         XCTAssertTrue(app.staticTexts["Confirme com o PIN"].waitForExistence(timeout: 10))

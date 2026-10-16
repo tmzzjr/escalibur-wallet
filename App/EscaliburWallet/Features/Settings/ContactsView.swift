@@ -18,6 +18,7 @@ struct ContactsView: View {
         ScrollView {
             if contacts.isEmpty {
                 empty
+                    .containerRelativeFrame(.vertical, alignment: .center) { length, _ in length * 0.86 }
             } else {
                 VStack(spacing: Space.xs) {
                     ForEach(contacts) { contact in card(contact) }
@@ -53,11 +54,8 @@ struct ContactsView: View {
 
     private var empty: some View {
         VStack(spacing: Space.sm) {
-            Image(systemName: "book.closed")
-                .font(.system(size: 28, weight: .semibold))
-                .foregroundStyle(Palette.ink)
-                .frame(width: 72, height: 72)
-                .background(Circle().fill(Palette.control))
+            SavedAddressesIllustration()
+                .padding(.bottom, Space.md)
             Text("Nenhum endereço salvo").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.xs)
             Text("Salve os endereços para onde você envia sempre, com a tag de destino junto quando houver. No envio, é só escolher.")
                 .typeStyle(.body).foregroundStyle(Palette.inkSoft)
@@ -65,7 +63,6 @@ struct ContactsView: View {
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, Space.gutter)
-        .padding(.top, Space.xl)
         .frame(maxWidth: .infinity)
     }
 
@@ -376,5 +373,56 @@ struct ManageAssetsView: View {
         try? session.persist()
         portfolio.customChanged(session.selectedWallet, session: session)
         Task { await portfolio.refresh(session.selectedWallet, session: session) }
+    }
+}
+
+/// A lista vazia de enderecos salvos (pedido do dono, 15/10/2026): tres cartoes de endereco,
+/// de redes diferentes, que chegam empilhados e se abrem um embaixo do outro, e flutuam de
+/// leve. Com Reduzir Movimento, ja abertos e parados.
+private struct SavedAddressesIllustration: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var open = false
+
+    private static let chains = ["bitcoin", "ethereum", "xrpl"].compactMap { Chain.find($0) }
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+            let time = timeline.date.timeIntervalSinceReferenceDate
+            ZStack {
+                ForEach(Array(Self.chains.enumerated()), id: \.offset) { index, chain in
+                    let place = CGFloat(index) - 1
+                    card(chain, index: index)
+                        .offset(y: (open ? place * 58 : place * 6) + (reduceMotion ? 0 : CGFloat(sin(time * 1.3 + Double(index) * 1.1)) * 2))
+                        .rotationEffect(.degrees(open ? 0 : Double(place) * -5))
+                        .scaleEffect(open ? 1 : 0.94 - 0.02 * abs(place))
+                        .zIndex(Double(3 - index))
+                }
+            }
+            .frame(height: 190)
+        }
+        .onAppear {
+            if reduceMotion {
+                open = true
+            } else {
+                withAnimation(.spring(response: 0.7, dampingFraction: 0.72).delay(0.25)) { open = true }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func card(_ chain: Chain, index: Int) -> some View {
+        HStack(spacing: Space.sm) {
+            NetworkBadge(chain: chain, size: 30, ring: Palette.body)
+            VStack(alignment: .leading, spacing: 6) {
+                Capsule().fill(Palette.ink.opacity(0.85)).frame(width: [92, 74, 104][index % 3], height: 7)
+                Capsule().fill(Palette.inkMuted.opacity(0.6)).frame(width: [132, 150, 118][index % 3], height: 6)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "bookmark.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+        }
+        .padding(.horizontal, Space.md)
+        .frame(width: 250, height: 52)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
     }
 }

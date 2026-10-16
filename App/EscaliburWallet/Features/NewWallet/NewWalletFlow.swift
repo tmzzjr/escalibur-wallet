@@ -74,8 +74,10 @@ struct NewWalletFlow: View {
     @State private var error: String?
     @State private var askingLater = false
 
-    /// `pledge` e o aceite de responsabilidade, logo antes de a frase nascer.
-    enum Step { case before, pledge, record, confirm, created }
+    /// `pledge` e o aceite de responsabilidade; `check`, a conferencia do aparelho, igual a
+    /// de antes de digitar as palavras ao importar (pedido do dono, 15/10/2026). So depois
+    /// dela a frase nasce e aparece.
+    enum Step { case before, pledge, check, record, confirm, created }
 
     var body: some View {
         NavigationStack {
@@ -83,7 +85,9 @@ struct NewWalletFlow: View {
                 switch step {
                 case .before: before
                 case .pledge:
-                    ResponsibilityView(continueTitle: String(localized: "Mostrar as palavras"), loading: saving) { Task { await start() } }
+                    ResponsibilityView(continueTitle: String(localized: "Conferir o aparelho")) { step = .check }
+                case .check:
+                    DeviceCheckView(slideTitle: String(localized: "Deslize para ver as palavras")) { Task { await start() } }
                 case .record:
                     if let draft {
                         RecordWordsView(draft: draft, walletName: nil) { step = .confirm }
@@ -98,12 +102,13 @@ struct NewWalletFlow: View {
             }
             .background(Palette.void.ignoresSafeArea())
             .toolbar {
-                if step == .pledge || step == .confirm {
+                if step == .pledge || step == .check || step == .confirm {
                     // Voltar um passo: a carteira em criacao e as palavras continuam.
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
                             switch step {
                             case .pledge: step = .before
+                            case .check: step = .pledge
                             default: step = .record
                             }
                         } label: {
@@ -125,46 +130,73 @@ struct NewWalletFlow: View {
                 Button("Voltar e anotar", role: .cancel) {}
                 Button("Confirmar depois", role: .destructive) { cancel() }
             } message: {
-                Text("Sem a senha da carteira anotada, perder o iPhone é perder os ativos. Até você confirmar, a carteira fica marcada Sem cópia e não recebe.")
+                Text("Sem a senha da carteira anotada, perder o iPhone é perder os ativos. Até você confirmar, a carteira fica marcada Palavras não confirmadas e não recebe.")
             }
         }
         .interactiveDismissDisabled()
     }
 
+    /// Antes das palavras (pedido do dono, 15/10/2026: mais bonita e com animacao): a
+    /// folha de papel sendo preenchida a mao, linha por linha, e o que vale saber, no
+    /// mesmo desenho do "So voce tem a chave". O botao fica preso embaixo; no iPhone
+    /// pequeno o texto rola por tras dele.
     private var before: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Antes de ver as palavras").typeStyle(.title).foregroundStyle(Palette.ink)
-            Text("A senha da carteira são \(wordCount) palavras, em ordem. Quem tiver as palavras tem o saldo. Sem elas, ninguém recupera a carteira, nem a Escalibur.")
-                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
-                .fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: Space.md) {
-                fact("clock", String(localized: "Leva cerca de 2 minutos."))
-                fact("pencil.and.scribble", String(localized: "Anote no papel, à mão. Captura de tela vai para a Fototeca e sobe para o iCloud."))
-                fact("eye.slash", String(localized: "Aparecem 3 palavras por vez. Arraste o cartão para ver as próximas."))
-                fact("iphone.slash", String(localized: "A carteira não vai para o backup do iPhone. Num iPhone novo, só as palavras ou um envelope trazem ela de volta."))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                PaperScribble(words: wordCount)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, Space.xs)
+                Text("Antes de ver as palavras").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
+                Text("A senha da carteira são \(wordCount) palavras, em ordem. Quem tiver as palavras tem o saldo. Sem elas, ninguém recupera a carteira, nem a Escalibur.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: Space.md) {
+                    point("pencil.and.scribble", String(localized: "No papel, à mão"),
+                          String(localized: "Captura de tela vai para a Fototeca e sobe para o iCloud."))
+                    point("clock", String(localized: "Uns 2 minutos"),
+                          String(localized: "Três palavras por vez. Arraste o cartão ou toque em Próximas."))
+                    point("iphone.slash", String(localized: "Fora do backup do iPhone"),
+                          String(localized: "Num iPhone novo, só as palavras ou um envelope trazem a carteira de volta."))
+                }
+                .padding(.top, Space.lg)
+                if let error {
+                    Banner(kind: .failure, title: error).padding(.top, Space.md)
+                }
+                VStack(spacing: Space.xs) {
+                    Segmented(options: [(12, String(localized: "12 palavras")), (24, String(localized: "24 palavras"))], selection: $wordCount)
+                        .frame(width: 220)
+                    Text("12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkMuted).multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, Space.lg)
+                .padding(.bottom, Space.md)
             }
-            .padding(.top, Space.lg)
-            if let error {
-                Banner(kind: .failure, title: error).padding(.top, Space.md)
-            }
-            Spacer()
-            Segmented(options: [(12, String(localized: "12 palavras")), (24, String(localized: "24 palavras"))], selection: $wordCount)
-                .frame(width: 220)
-            Text("12 bastam. 24 dá a mesma proteção na prática e dobra o que anotar.")
-                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.xs)
-                .padding(.bottom, Space.lg)
-            PrimaryButton(title: String(localized: "Continuar")) { error = nil; step = .pledge }
+            .padding(.horizontal, Space.gutter)
+            .padding(.top, Space.md)
         }
-        .padding(.horizontal, Space.gutter)
-        .padding(.top, Space.md)
-        .padding(.bottom, Space.xs)
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom) {
+            ActionFooter { PrimaryButton(title: String(localized: "Continuar")) { error = nil; step = .pledge } }
+        }
     }
 
-    private func fact(_ icon: String, _ text: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
-            Image(systemName: icon).font(.system(size: 17, weight: .regular)).foregroundStyle(Palette.inkSoft).frame(width: 24)
-            Text(text).typeStyle(.body).foregroundStyle(Palette.ink).fixedSize(horizontal: false, vertical: true)
+    private func point(_ icon: String, _ title: String, _ detail: String) -> some View {
+        HStack(alignment: .top, spacing: Space.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Palette.ink)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(Palette.control))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).typeStyle(.row).foregroundStyle(Palette.ink)
+                Text(detail).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
         }
+        .accessibilityElement(children: .combine)
     }
 
     /// A carteira e guardada **antes** de mostrar as palavras: se o dono sair no
@@ -218,5 +250,76 @@ struct NewWalletFlow: View {
         draft?.wipe()
         dismiss()
         onFinished()
+    }
+}
+
+/// A folha de anotar as palavras (pedido do dono, 15/10/2026): papel claro com as linhas
+/// numeradas, em duas colunas, preenchidas uma a uma com um risco de letra a mao, e o lapis
+/// correndo junto. Cheia, ela segura um instante, apaga e recomeca. Nenhuma palavra de
+/// verdade: so o risco. Com Reduzir Movimento, a folha cheia e parada.
+private struct PaperScribble: View {
+    let words: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var start = Date()
+
+    var body: some View {
+        let perRow = words > 12 ? 0.16 : 0.3
+        let writing = Double(words) * perRow
+        let period = writing + 1.6
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+            let t = reduceMotion ? writing + 0.5 : timeline.date.timeIntervalSince(start).truncatingRemainder(dividingBy: period)
+            let fade = reduceMotion ? 0 : min(max((t - writing - 1.1) / 0.4, 0), 1)
+            Canvas { context, size in
+                draw(&context, size: size, t: t, perRow: perRow, fade: fade)
+            }
+        }
+        .frame(width: 270, height: 178)
+        .rotationEffect(.degrees(-2))
+        .shadow(color: .black.opacity(0.45), radius: 14, y: 10)
+        .onAppear { start = Date() }
+        .onChange(of: words) { _, _ in start = Date() }
+        .accessibilityHidden(true)
+    }
+
+    private func draw(_ context: inout GraphicsContext, size: CGSize, t: Double, perRow: Double, fade: Double) {
+        let paper = Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 10, style: .continuous)
+        context.fill(paper, with: .color(Palette.live))
+        let rows = (words + 1) / 2
+        let top: CGFloat = 16, bottom: CGFloat = 12
+        let rowHeight = (size.height - top - bottom) / CGFloat(rows)
+        let columnWidth = (size.width - 24) / 2
+        var pencil: CGPoint?
+        for index in 0..<words {
+            let column = index / rows, row = index % rows
+            let x = 14 + CGFloat(column) * (columnWidth + 4)
+            let baseline = top + (CGFloat(row) + 0.78) * rowHeight
+            // A linha do caderno e o numero.
+            context.fill(Path(CGRect(x: x + 20, y: baseline + 2, width: columnWidth - 26, height: 0.8)), with: .color(Palette.plateRule))
+            context.draw(Text(verbatim: "\(index + 1)").font(.system(size: words > 12 ? 7.5 : 9, weight: .semibold).monospacedDigit())
+                            .foregroundColor(Palette.plateMuted), at: CGPoint(x: x + 8, y: baseline - rowHeight * 0.18))
+            // O risco: uma letra a mao inventada, larguras diferentes por linha.
+            let progress = min(max((t - Double(index) * perRow) / perRow, 0), 1)
+            guard progress > 0 else { continue }
+            let length = (columnWidth - 40) * CGFloat(0.55 + 0.4 * Double((index * 37) % 10) / 10)
+            var scribble = Path()
+            let steps = 28
+            let drawn = Int(Double(steps) * progress)
+            var last = CGPoint(x: x + 24, y: baseline - 2)
+            scribble.move(to: last)
+            for step in 0...drawn {
+                let u = CGFloat(step) / CGFloat(steps)
+                let wave = sin(Double(u) * 22 + Double(index)) * 0.5 + sin(Double(u) * 9 + Double(index) * 2) * 0.5
+                last = CGPoint(x: x + 24 + length * u, y: baseline - 2 - CGFloat(wave) * rowHeight * (words > 12 ? 0.16 : 0.2))
+                scribble.addLine(to: last)
+            }
+            context.stroke(scribble, with: .color(Palette.plateInk.opacity(0.85 * (1 - fade))),
+                           style: StrokeStyle(lineWidth: words > 12 ? 1.1 : 1.5, lineCap: .round, lineJoin: .round))
+            if progress < 1 { pencil = last }
+        }
+        // O lapis, com a ponta onde o risco esta.
+        if let pencil, fade == 0 {
+            context.draw(Text(Image(systemName: "pencil")).font(.system(size: 18, weight: .semibold)).foregroundColor(Palette.plateInk),
+                         at: CGPoint(x: pencil.x + 7, y: pencil.y - 8))
+        }
     }
 }

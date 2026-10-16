@@ -24,7 +24,7 @@ struct WalletHomeView: View {
                     header
                     actions.padding(.top, Space.lg)
                     if let wallet, !wallet.hasBackup, !wallet.isWatchOnly {
-                        Banner(kind: .caution, title: String(localized: "Esta carteira ainda não tem cópia"),
+                        Banner(kind: .caution, title: String(localized: "Falta confirmar que você anotou as palavras"),
                                message: String(localized: "Grave as \(wordCount(wallet)) palavras antes de receber. Leva 2 minutos."),
                                actionTitle: String(localized: "Gravar agora")) { backingUp = true }
                             .padding(.horizontal, Space.gutter)
@@ -616,7 +616,7 @@ struct WalletSwitcherSheet: View {
         switch wallet.kind {
         case .watch(let chainID): return String(localized: "Só observar · \(Chain.find(chainID)?.name ?? chainID)")
         case .phrase(let count):
-            if !wallet.hasBackup { return String(localized: "Sem cópia") }
+            if !wallet.hasBackup { return String(localized: "Palavras não confirmadas") }
             return wallet.accounts.count == 1 ? String(localized: "\(count) palavras · 1 rede")
                 : String(localized: "\(count) palavras · \(wallet.accounts.count) redes")
         }
