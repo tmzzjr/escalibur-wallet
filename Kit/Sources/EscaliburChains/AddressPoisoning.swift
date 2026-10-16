@@ -46,7 +46,8 @@ public enum AddressPoisoning {
             guard candidate.count >= 16, candidate != target else { return false }
             if let targetAccount, Address.canonicalRecipient(other, chain: chain) == targetAccount { return false }
             // Na Stellar, o endereco M e a conta base G dele (ou dois M da mesma base) sao
-            // a mesma conta com ids diferentes, nao um sosia.
+            // a mesma conta com ids diferentes, nao um sosia. O ID trocado entre dois M e
+            // outra conferencia (`sameAccountOtherID`).
             if chain.family == .stellar, let a = StellarMuxedAccount(address: other.trimmingCharacters(in: .whitespacesAndNewlines))?.account,
                let b = StellarMuxedAccount(address: address.trimmingCharacters(in: .whitespacesAndNewlines))?.account, a == b {
                 return false
@@ -95,6 +96,47 @@ public enum AddressPoisoning {
               let stake = first.stakeHash, stake == second.stakeHash
         else { return false }
         return first.paymentHash != second.paymentHash
+    }
+
+    // MARK: Mesma conta, outro ID (Stellar)
+
+    /// O endereco M conhecido com a mesma conta base de `address` e outro ID, quando
+    /// `address` e um M e nenhum conhecido e ele mesmo (revisao dos enderecos parecidos,
+    /// B-6).
+    ///
+    /// `lookalike` deixa de fora, de proposito, dois M da mesma base: sao a mesma conta, e
+    /// nao um sosia gerado. So que numa corretora o ID e o que diz de qual cliente e o
+    /// deposito. Um programa que troca o endereco copiado pode decodificar o M, trocar so
+    /// o ID pelo de uma conta do atacante na mesma corretora e codificar de novo: o
+    /// endereco continua valido, da mesma conta, e passava por todas as conferencias.
+    ///
+    /// So M contra M: o G da conta (ou o historico da rede, que da a conta base) nao diz
+    /// qual ID o dono usou, e nao tem o que comparar.
+    public static func sameAccountOtherID(_ address: String, among known: [String], chain: Chain) -> String? {
+        guard chain.family == .stellar, let target = muxedAccount(address), target.isMuxed else { return nil }
+        let muxed: [(text: String, account: StellarMuxedAccount)] = known.compactMap { text in
+            guard let account = muxedAccount(text), account.isMuxed else { return nil }
+            return (text, account)
+        }
+        // O mesmo M ja usado: e o destino de sempre.
+        if muxed.contains(where: { $0.account == target }) { return nil }
+        return muxed.first { $0.account.account == target.account }?.text
+    }
+
+    /// O trecho do endereco M depois da chave: o ID e o checksum, o que muda quando so o
+    /// ID muda. A versao e a chave ocupam 33 bytes, 264 bits; o caractere 52 ainda leva os
+    /// 4 ultimos bits da chave (e o bit mais alto do ID), e do 53 em diante e so ID e
+    /// checksum.
+    public static func muxedIDSegment(_ address: String) -> Segment? {
+        let text = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let account = muxedAccount(text), account.isMuxed, text.count > muxedIDStart else { return nil }
+        return Segment(start: muxedIDStart, length: text.count - muxedIDStart)
+    }
+
+    static let muxedIDStart = (1 + 32) * 8 / 5 + 1
+
+    static func muxedAccount(_ address: String) -> StellarMuxedAccount? {
+        StellarMuxedAccount(address: address.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     /// Um trecho do endereco, em posicoes de caractere do texto como ele e mostrado.

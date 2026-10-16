@@ -196,6 +196,41 @@ struct AddressPoisoningTests {
         }
     }
 
+    // MARK: B-6: endereco M da Stellar com o ID trocado
+
+    @Test("Stellar: a mesma conta base com outro ID e dita, com o trecho do ID depois da chave")
+    func stellarOtherID() throws {
+        let key = StellarStrKeyTests.sep23Key
+        let base = try StellarKey.accountID(key)
+        let mine = StellarKey.muxedAddress(publicKey: key, id: 1_234_567)
+        let attacker = StellarKey.muxedAddress(publicKey: key, id: 7_654_321)
+        // Para o parecido, a mesma conta, nao um sosia; o ID trocado e a outra conferencia.
+        #expect(AddressPoisoning.lookalike(attacker, among: [mine], chain: .stellar) == nil)
+        #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [base, mine], chain: .stellar) == mine)
+        #expect(AddressPoisoning.sameAccountOtherID(" \(attacker)\n", among: [mine], chain: .stellar) == mine)
+        // Os vetores do SEP-0023: ID 0 e ID 2^63 da mesma chave.
+        let m0 = "MA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJUAAAAAAAAAAAACJUQ"
+        let mBig = "MA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVAAAAAAAAAAAAAJLK"
+        #expect(AddressPoisoning.sameAccountOtherID(mBig, among: [m0], chain: .stellar) == m0)
+        // O M de sempre, mesmo com outro M da conta tambem conhecido: nada a conferir.
+        #expect(AddressPoisoning.sameAccountOtherID(mine, among: [attacker, mine], chain: .stellar) == nil)
+        // Sem M dos dois lados, outra conta ou outra rede: nada.
+        #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [base], chain: .stellar) == nil)
+        #expect(AddressPoisoning.sameAccountOtherID(base, among: [mine], chain: .stellar) == nil)
+        #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [mine], chain: ethereum) == nil)
+        let stranger = StellarKey.muxedAddress(publicKey: [UInt8](repeating: 7, count: 32), id: 1_234_567)
+        #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [stranger], chain: .stellar) == nil)
+
+        // O trecho do ID: do caractere 53 ao fim. Antes dele, os dois sao iguais.
+        let segment = try #require(AddressPoisoning.muxedIDSegment(attacker))
+        #expect(segment == AddressPoisoning.Segment(start: 53, length: 16))
+        #expect(attacker.prefix(53) == mine.prefix(53))
+        #expect(segment.text(in: attacker) != segment.text(in: mine))
+        #expect(AddressPoisoning.muxedIDSegment(mine) == segment)
+        #expect(AddressPoisoning.muxedIDSegment(base) == nil)
+        #expect(AddressPoisoning.muxedIDSegment("M123") == nil)
+    }
+
     /// Os pares marcados entre todos os pares de `addresses`. So pode marcar o par com 4 ou
     /// mais caracteres iguais numa ponta do corpo: a regra de ponta so pede 4 ou 5, e a das
     /// duas pontas (3 e 3, com 7 no total) tem uma delas com 4. Esses pares saem de baldes
