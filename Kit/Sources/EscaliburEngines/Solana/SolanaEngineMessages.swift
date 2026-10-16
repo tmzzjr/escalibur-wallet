@@ -176,7 +176,7 @@ enum SolanaEngineMessages {
         case .leavesBalanceBelowRent:
             return kitText("A troca deixaria na conta menos SOL que a reserva mínima da rede. Diminua o valor.")
         case .simulationFailed, .simulationMissingAccount, .simulationWrongAccount, .simulationSpentTooMuch,
-             .simulationReceivedTooLittle, .simulationNoComputeUnits:
+             .simulationReceivedTooLittle, .simulationNoComputeUnits, .simulationUnavailable:
             return swapSimulationFailed
         case .simulationTouchedOtherAccount:
             return kitText("A simulação mostrou outra conta de token sua perdendo saldo. Troca bloqueada. Nada foi assinado.")

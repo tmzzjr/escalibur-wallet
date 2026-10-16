@@ -16,7 +16,7 @@ Arquivos: `Kit/Sources/EscaliburNetwork/Solana/` (SolanaRPC, SolanaAccountParser
 
 API que o app chama:
 - `SolanaPlanningService.shared`: `planSendSOL`, `planSendToken`, `quoteSwap`, `planSwap` (devolvem `SigningPlan`, sem assinar).
-- `SolanaNetworkReader.shared`: `networkState`, `destinationAccount`, `destinationTokenAccount` e `mintInfo` (2 RPCs concordando), `tokenState`, `swapAsset`, `swapAccounts` (com as contas de token do dono nos mints da lista, para a simulação), `lookupTables` (2 RPCs), `simulate`, `snapshots`, `blockHeight`, `finalizedBlockHeights` (2 RPCs).
+- `SolanaNetworkReader.shared`: `networkState`, `destinationAccount`, `destinationTokenAccount` e `mintInfo` (2 RPCs concordando), `tokenState`, `swapAsset`, `swapAccounts` (com as contas de token do dono nos mints da lista, para a simulação), `lookupTables` (2 RPCs), `simulate`, `simulateOnTwo` (a troca, 2 RPCs), `snapshots`, `blockHeight`, `finalizedBlockHeights` (2 RPCs).
 - `SolanaBroadcaster.shared`: `send(SignedTransaction)` (2 provedores, `skipPreflight: false`), `status(of:)`, `historyStatuses(of:)` (2 RPCs), `waitForConfirmation(_:lastValidBlockHeight:target:)` (reenvia os mesmos bytes ate confirmar ou vencer; vencida so com a altura finalizada de 2 RPCs 150 blocos alem do prazo e o historico dos 2 sem a assinatura).
 - `SolanaHistoryReader.shared.recentActivity(owner:limit:knownAddresses:)` devolve `[SolanaActivity]` (carteira + ATAs dos tokens da lista, 30 por padrao).
 

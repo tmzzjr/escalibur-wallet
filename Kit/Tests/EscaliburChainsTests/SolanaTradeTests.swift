@@ -137,7 +137,7 @@ struct SolanaTradePlanTests {
         #expect(unsigned.messageBytes == draft.message.serialize())
         #expect(unsigned.signatures == [[UInt8](repeating: 0, count: 64)])
 
-        let plan = try SolanaSwapPlanner.plan(draft, simulation: try F.honestSimulation(draft, units: 150_000), now: F.now)
+        let plan = try SolanaSwapPlanner.plan(draft, simulations: F.both(try F.honestSimulation(draft, units: 150_000)), now: F.now)
         #expect(plan.review.kind == .swap)
         #expect(plan.chain == .solana)
         let transaction = try #require(plan.transactions.first as? SolanaTransaction)
@@ -175,7 +175,7 @@ struct SolanaTradePlanTests {
     @Test("Revisao em portugues: sai, entra no minimo, preco, taxa da rede, sem taxa da Escalibur, provedor")
     func review() throws {
         let draft = try F.draft(F.solToUSDC())
-        let plan = try SolanaSwapPlanner.plan(draft, simulation: try F.honestSimulation(draft), now: F.now)
+        let plan = try SolanaSwapPlanner.plan(draft, simulations: F.both(try F.honestSimulation(draft)), now: F.now)
         let lines = Dictionary(plan.review.lines.map { ($0.label, $0.value) }, uniquingKeysWith: { a, _ in a })
         #expect(plan.review.title == "Trocar 0,05 SOL por USDC")
         #expect(lines["Sai"] == "0,05 SOL")
@@ -209,7 +209,7 @@ struct SolanaTradePlanTests {
         let feeUSDC = SolanaSwapAsset(mint: F.usdcMint, program: .token, decimals: 6, symbol: "USDC", isVerified: true,
                                       extensions: [.transferFee(basisPoints: 100, maximumFee: BigUInt(1_000_000))])
         let draft = try F.draft(F.solToUSDC(buy: feeUSDC))
-        let plan = try SolanaSwapPlanner.plan(draft, simulation: try F.honestSimulation(draft), now: F.now)
+        let plan = try SolanaSwapPlanner.plan(draft, simulations: F.both(try F.honestSimulation(draft)), now: F.now)
         #expect(plan.review.lines.contains(PlanReview.Line("Taxa do emissor de USDC", "até 1%")))
         #expect(plan.review.warnings.contains(.highFee(percentOfAmount: 1)))
     }
@@ -217,7 +217,7 @@ struct SolanaTradePlanTests {
     @Test("Prioridade absurda do RPC: o plano sai com a taxa no teto compilado")
     func priorityCap() throws {
         let draft = try F.draft(F.solToUSDC(), network: try F.network(price: 1_000_000_000_000))
-        let plan = try SolanaSwapPlanner.plan(draft, simulation: try F.honestSimulation(draft), now: F.now)
+        let plan = try SolanaSwapPlanner.plan(draft, simulations: F.both(try F.honestSimulation(draft)), now: F.now)
         let transaction = try #require(plan.transactions.first as? SolanaTransaction)
         let verified = try SolanaMessageVerifier.verify(
             transaction.message,
@@ -432,10 +432,10 @@ struct SolanaTradeReferenceTests {
             try F.draft(F.solToUSDC(reference: TradeMarketReference(oracleOut: 6_500_000)))
         }
         let draft = try F.draft(F.solToUSDC(reference: TradeMarketReference(oracleOut: 6_250_000)))
-        let plan = try SolanaSwapPlanner.plan(draft, simulation: try F.honestSimulation(draft), now: F.now)
+        let plan = try SolanaSwapPlanner.plan(draft, simulations: F.both(try F.honestSimulation(draft)), now: F.now)
         #expect(plan.review.lines.contains(PlanReview.Line("Preço de referência", "2,71% pior que o preço médio de mercado")))
         let calm = try F.draft(F.solToUSDC())
-        let quiet = try SolanaSwapPlanner.plan(calm, simulation: try F.honestSimulation(calm), now: F.now)
+        let quiet = try SolanaSwapPlanner.plan(calm, simulations: F.both(try F.honestSimulation(calm)), now: F.now)
         #expect(!quiet.review.lines.contains { $0.label == "Preço de referência" })
     }
 
@@ -455,22 +455,22 @@ struct SolanaTradeReferenceTests {
         let draft = try F.draft(guarded)
         #expect(draft.simulationAccounts.contains(jupATA))
         let honest = try F.honestSimulation(draft).accounts
-        _ = try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: honest + [before]), now: F.now)
+        _ = try SolanaSwapPlanner.plan(draft, simulations: F.both(SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: honest + [before])), now: F.now)
 
         let drained = SolanaAccountSnapshot(
             address: jupATA, exists: true, lamports: 2_039_280, programOwner: SolanaProgramID.token,
             tokenMint: jupMint, tokenOwner: owner, tokenAmount: 0
         )
         #expect(throws: SolanaSwapError.simulationTouchedOtherAccount(jupATA)) {
-            try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: honest + [drained]), now: F.now)
+            try SolanaSwapPlanner.plan(draft, simulations: F.both(SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: honest + [drained])), now: F.now)
         }
         #expect(throws: SolanaSwapError.simulationTouchedOtherAccount(jupATA)) {
-            try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(
+            try SolanaSwapPlanner.plan(draft, simulations: F.both(SolanaSimulationOutcome(
                 error: nil, unitsConsumed: 150_000, accounts: honest + [.missing(jupATA)]
-            ), now: F.now)
+            )), now: F.now)
         }
         #expect(throws: SolanaSwapError.simulationMissingAccount(jupATA)) {
-            try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: honest), now: F.now)
+            try SolanaSwapPlanner.plan(draft, simulations: F.both(SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: honest)), now: F.now)
         }
     }
 }
@@ -482,9 +482,60 @@ struct SolanaTradeSimulationTests {
     func failed() throws {
         let draft = try F.draft(F.solToUSDC())
         let outcome = SolanaSimulationOutcome(error: #"{"InstructionError":[5,{"Custom":6001}]}"#, unitsConsumed: 90_000, accounts: [])
-        #expect(throws: SolanaSwapError.simulationFailed(#"{"InstructionError":[5,{"Custom":6001}]}"#)) { try SolanaSwapPlanner.plan(draft, simulation: outcome, now: F.now) }
+        #expect(throws: SolanaSwapError.simulationFailed(#"{"InstructionError":[5,{"Custom":6001}]}"#)) { try SolanaSwapPlanner.plan(draft, simulations: F.both(outcome), now: F.now) }
         let noUnits = SolanaSimulationOutcome(error: nil, unitsConsumed: nil, accounts: try F.honestSimulation(draft).accounts)
-        #expect(throws: SolanaSwapError.simulationNoComputeUnits) { try SolanaSwapPlanner.plan(draft, simulation: noUnits, now: F.now) }
+        #expect(throws: SolanaSwapError.simulationNoComputeUnits) { try SolanaSwapPlanner.plan(draft, simulations: F.both(noUnits), now: F.now) }
+    }
+
+    @Test("Regressao B1: uma simulacao so, ou duas do mesmo provedor, nao bastam")
+    func needsTwoSources() throws {
+        let draft = try F.draft(F.solToUSDC())
+        let honest = try F.honestSimulation(draft)
+        #expect(throws: SolanaSwapError.simulationUnavailable) { try SolanaSwapPlanner.plan(draft, simulations: [], now: F.now) }
+        #expect(throws: SolanaSwapError.simulationUnavailable) {
+            try SolanaSwapPlanner.plan(draft, simulations: [F.from("publicnode", honest)], now: F.now)
+        }
+        #expect(throws: SolanaSwapError.simulationUnavailable) {
+            try SolanaSwapPlanner.plan(draft, simulations: [F.from("publicnode", honest), F.from("publicnode", honest)], now: F.now)
+        }
+        _ = try SolanaSwapPlanner.plan(draft, simulations: [F.from("publicnode", honest), F.from("solana", honest)], now: F.now)
+    }
+
+    @Test("Regressao B1: o segundo provedor mostra o dreno ou a falha: recusa, mesmo com o primeiro honesto")
+    func secondSourceDisagrees() throws {
+        let draft = try F.draft(F.solToUSDC())
+        let honest = try F.honestSimulation(draft)
+        var drained = honest.accounts
+        drained[0] = SolanaAccountSnapshot(address: drained[0].address, exists: true, lamports: drained[0].lamports - 500_000_000, programOwner: SolanaProgramID.system)
+        let lying = SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: drained, source: "solana")
+        #expect(throws: (any Error).self) { try SolanaSwapPlanner.plan(draft, simulations: [F.from("publicnode", honest), lying], now: F.now) }
+        #expect(throws: (any Error).self) { try SolanaSwapPlanner.plan(draft, simulations: [lying, F.from("publicnode", honest)], now: F.now) }
+        let failing = SolanaSimulationOutcome(error: #"{"InstructionError":[5,{"Custom":6001}]}"#, unitsConsumed: 90_000, accounts: [], source: "solana")
+        #expect(throws: SolanaSwapError.simulationFailed(#"{"InstructionError":[5,{"Custom":6001}]}"#)) {
+            try SolanaSwapPlanner.plan(draft, simulations: [F.from("publicnode", honest), failing], now: F.now)
+        }
+        let unmeasured = SolanaSimulationOutcome(error: nil, unitsConsumed: nil, accounts: honest.accounts, source: "solana")
+        #expect(throws: SolanaSwapError.simulationNoComputeUnits) {
+            try SolanaSwapPlanner.plan(draft, simulations: [F.from("publicnode", honest), unmeasured], now: F.now)
+        }
+    }
+
+    @Test("Limite de CU: o maior dos dois consumos, mais 10%")
+    func largerComputeUnits() throws {
+        let owner = try F.owner().publicKey
+        let draft = try F.draft(F.solToUSDC())
+        let low = F.from("publicnode", try F.honestSimulation(draft, units: 150_000))
+        let high = F.from("solana", try F.honestSimulation(draft, units: 200_000))
+        for simulations in [[low, high], [high, low]] {
+            let plan = try SolanaSwapPlanner.plan(draft, simulations: simulations, now: F.now)
+            let transaction = try #require(plan.transactions.first as? SolanaTransaction)
+            let verified = try SolanaMessageVerifier.verify(
+                transaction.message,
+                policy: SolanaVerificationPolicy(owner: owner, allowedPrograms: Set(SolanaProgram.allCases), allowedRecipients: [try F.ata(owner, SolanaWrappedSOL.mint)]),
+                lookupTables: try F.tables()
+            )
+            #expect(verified.computeUnitLimit == 220_000)
+        }
     }
 
     @Test("Entra menos que o minimo na conta do dono")
@@ -495,7 +546,7 @@ struct SolanaTradeSimulationTests {
         accounts[1] = SolanaAccountSnapshot(address: destination.address, exists: true, lamports: destination.lamports, programOwner: destination.programOwner,
                                             tokenMint: destination.tokenMint, tokenOwner: destination.tokenOwner, tokenAmount: 6_050_063)
         #expect(throws: SolanaSwapError.simulationReceivedTooLittle(asset: "USDC", received: BigUInt(6_050_063), minimum: BigUInt(6_050_064))) {
-            try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts), now: F.now)
+            try SolanaSwapPlanner.plan(draft, simulations: F.both(SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts)), now: F.now)
         }
     }
 
@@ -504,9 +555,9 @@ struct SolanaTradeSimulationTests {
         let draft = try F.draft(F.solToUSDC())
         var accounts = try F.honestSimulation(draft).accounts
         accounts[0] = SolanaAccountSnapshot(address: accounts[0].address, exists: true, lamports: accounts[0].lamports - 500_000_000, programOwner: SolanaProgramID.system)
-        #expect(throws: (any Error).self) { try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts), now: F.now) }
+        #expect(throws: (any Error).self) { try SolanaSwapPlanner.plan(draft, simulations: F.both(SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts)), now: F.now) }
         do {
-            _ = try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts), now: F.now)
+            _ = try SolanaSwapPlanner.plan(draft, simulations: F.both(SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts)), now: F.now)
         } catch SolanaSwapError.simulationSpentTooMuch(let asset, _, _) {
             #expect(asset == "SOL")
         }
@@ -524,7 +575,7 @@ struct SolanaTradeSimulationTests {
                                          destinationRentMinimum: F.tokenRent, wrappedSOLRentMinimum: F.tokenRent)
         let draft2 = try F.draft(F.Case(name: "build-usdc-usdt", intent: draft.intent, accounts: tighter))
         #expect(throws: SolanaSwapError.simulationSpentTooMuch(asset: "USDC", spent: BigUInt(9_000_000), limit: BigUInt(5_000_000))) {
-            try SolanaSwapPlanner.plan(draft2, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts), now: F.now)
+            try SolanaSwapPlanner.plan(draft2, simulations: F.both(SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts)), now: F.now)
         }
     }
 
@@ -536,10 +587,10 @@ struct SolanaTradeSimulationTests {
         accounts[1] = SolanaAccountSnapshot(address: destination.address, exists: true, lamports: destination.lamports, programOwner: destination.programOwner,
                                             tokenMint: destination.tokenMint, tokenOwner: F.stranger, tokenAmount: destination.tokenAmount)
         #expect(throws: SolanaSwapError.simulationWrongAccount(destination.address)) {
-            try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts), now: F.now)
+            try SolanaSwapPlanner.plan(draft, simulations: F.both(SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts)), now: F.now)
         }
         #expect(throws: SolanaSwapError.simulationMissingAccount(destination.address)) {
-            try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: [accounts[0]]), now: F.now)
+            try SolanaSwapPlanner.plan(draft, simulations: F.both(SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: [accounts[0]])), now: F.now)
         }
     }
 
@@ -547,11 +598,11 @@ struct SolanaTradeSimulationTests {
     func buySOL() throws {
         let owner = try F.owner().publicKey
         let draft = try F.draft(try F.usdcToSOL(owner: owner))
-        _ = try SolanaSwapPlanner.plan(draft, simulation: try F.honestSimulation(draft), now: F.now)
+        _ = try SolanaSwapPlanner.plan(draft, simulations: F.both(try F.honestSimulation(draft)), now: F.now)
         var accounts = try F.honestSimulation(draft).accounts
         accounts[0] = SolanaAccountSnapshot(address: owner, exists: true, lamports: 2_000_000_000, programOwner: SolanaProgramID.system)
         #expect(throws: (any Error).self) {
-            try SolanaSwapPlanner.plan(draft, simulation: SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts), now: F.now)
+            try SolanaSwapPlanner.plan(draft, simulations: F.both(SolanaSimulationOutcome(error: nil, unitsConsumed: 150_000, accounts: accounts)), now: F.now)
         }
     }
 

@@ -517,7 +517,7 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
   - Resultado esperado: sai exatamente amountIn do token vendido (mais gás), entra pelo menos minOut do token comprado.
   - Nenhum `Approval` ou `ApprovalForAll` do usuário além do esperado.
   - Provedores divergindo, ou revert, bloqueiam.
-- **Solana**: `simulateTransaction` com `accounts` das contas de token do usuário.
+- **Solana**: `simulateTransaction` com `accounts` das contas de token do usuário, em 2 RPCs de operadores diferentes; os dois precisam confirmar o efeito, e o limite de CU sai do maior consumo.
 - **XRPL**: `simulate` (rippled 2.4.0+).
 - **Stellar clássica**: só validação local.
 - Sem simulação disponível, envio simples continua funcionando, mas swap, approve e ordem ficam bloqueados.

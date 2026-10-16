@@ -181,6 +181,9 @@ public enum SolanaSwapError: Error, Equatable, Sendable {
     case simulationSpentTooMuch(asset: String, spent: BigUInt, limit: BigUInt)
     case simulationReceivedTooLittle(asset: String, received: BigUInt, minimum: BigUInt)
     case simulationNoComputeUnits
+    /// Menos de duas simulacoes, de provedores diferentes: um RPC so que mentisse o
+    /// estado final aprovaria sozinho a troca que drena a conta.
+    case simulationUnavailable
     /// Outra conta de token do dono perde saldo na simulacao.
     case simulationTouchedOtherAccount(SolanaPublicKey)
     /// Par que nao e de dois stablecoins, sem preco de referencia de fora da Jupiter.
@@ -340,17 +343,27 @@ public enum SolanaSwapPlanner {
 
     // MARK: Passo 2: plano
 
-    /// Com a simulacao do rascunho confirmando o efeito, monta a transacao final
+    /// Com as simulacoes do rascunho confirmando o efeito, monta a transacao final
     /// (limite de CU medido) e devolve o plano.
-    public static func plan(_ draft: SolanaSwapDraft, simulation: SolanaSimulationOutcome, now: Date = .now) throws -> SigningPlan {
+    ///
+    /// Duas simulacoes de provedores diferentes, e cada uma tem de passar inteira: sucesso,
+    /// consumo medido e o efeito que a rota promete nas contas do dono. O limite de CU e
+    /// o maior dos dois consumos: um provedor que mede menos deixaria a transacao sem CU
+    /// na rede, e falhar ali cobra a taxa.
+    public static func plan(_ draft: SolanaSwapDraft, simulations: [SolanaSimulationOutcome], now: Date = .now) throws -> SigningPlan {
         do {
             try SolanaPlanner.checkFreshness(draft.network, now: now)
         } catch let error as SolanaPlanError {
             throw SolanaSwapError.plan(error)
         }
-        guard simulation.succeeded else { throw SolanaSwapError.simulationFailed(simulation.error ?? "") }
-        guard let units = simulation.suggestedComputeUnitLimit else { throw SolanaSwapError.simulationNoComputeUnits }
-        try checkSimulation(draft, simulation)
+        guard Set(simulations.map(\.source)).count >= 2 else { throw SolanaSwapError.simulationUnavailable }
+        var units: UInt32 = 0
+        for simulation in simulations {
+            guard simulation.succeeded else { throw SolanaSwapError.simulationFailed(simulation.error ?? "") }
+            guard let measured = simulation.suggestedComputeUnitLimit else { throw SolanaSwapError.simulationNoComputeUnits }
+            try checkSimulation(draft, simulation)
+            units = max(units, measured)
+        }
 
         let intent = draft.intent
         let me = draft.owner.publicKey

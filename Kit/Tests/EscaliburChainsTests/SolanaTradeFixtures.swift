@@ -156,6 +156,16 @@ enum SolanaTradeFixtures {
         return SolanaSimulationOutcome(error: nil, unitsConsumed: units, accounts: accounts)
     }
 
+    /// A mesma simulacao de um provedor com outro nome, para montar as duas fontes.
+    static func from(_ source: String, _ outcome: SolanaSimulationOutcome) -> SolanaSimulationOutcome {
+        SolanaSimulationOutcome(error: outcome.error, unitsConsumed: outcome.unitsConsumed, accounts: outcome.accounts, logs: outcome.logs, source: source)
+    }
+
+    /// A mesma simulacao vinda de dois provedores, como a rede entrega ao planejador.
+    static func both(_ outcome: SolanaSimulationOutcome) -> [SolanaSimulationOutcome] {
+        [from("publicnode", outcome), from("solana", outcome)]
+    }
+
     /// Troca campos da proposta sem mexer no resto.
     static func with(
         _ p: SolanaSwapProposal, setup: [SolanaInstruction]? = nil, swap: SolanaInstruction? = nil, cleanup: SolanaInstruction?? = nil,

@@ -614,7 +614,7 @@ Os agregadores já dividem entre DEXes internamente.
    - programas no topo ∈ {Jupiter v6 `JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4` [P], OKX, Token, Token-2022, ATA, ComputeBudget, System};
    - **teto de prioridade e de tip**;
    - recusar `SetAuthority`, `Approve` a delegado estranho, `CloseAccount` com destino ≠ dono, `Transfer` de SOL a desconhecido e `AdvanceNonce`.
-3. `simulateTransaction` com `accounts` das contas de token do dono e diff pré/pós. **Na v1 (código):** o dono, as duas contas da troca e as contas de token do dono nos mints da lista, que não podem perder saldo. Preço de referência do oráculo do app, com os degraus da EVM; par que não é de dois stablecoins da lista, sem referência, é recusado.
+3. `simulateTransaction` com `accounts` das contas de token do dono e diff pré/pós. **Na v1 (código):** o dono, as duas contas da troca e as contas de token do dono nos mints da lista, que não podem perder saldo; a simulação roda em 2 RPCs de operadores diferentes, as duas precisam confirmar o efeito, e o limite de CU sai do maior consumo. Preço de referência do oráculo do app, com os degraus da EVM; par que não é de dois stablecoins da lista, sem referência, é recusado.
 
 **Cross-chain**
 - Endereço de destino e de refund = endereços que **o app derivou**.
