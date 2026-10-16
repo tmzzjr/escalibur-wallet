@@ -455,11 +455,12 @@ struct SlideToConfirm: View {
     }
 }
 
-/// O verde do `SlideToConfirm` em pixels quadrados, como dado sendo cifrado. Longe do
-/// cadeado, a grade firme; na frente que avanca, os pixels acendem e apagam, mais cheios
-/// quanto mais perto do verde firme, e uns poucos escapam na frente. No fim, uma onda
-/// acende o resto do trilho e as juntas da grade fecham num verde so. So desenho: o
-/// sorteio dos pixels sai de um contador, nada sai de chave.
+/// O verde do `SlideToConfirm` em pixels, acendendo em ordem (pedido do dono, 15/10/2026:
+/// pixels, mas com cara de seguranca, nada de pisca-pisca). Longe do cadeado, a grade
+/// firme; na frente que avanca, cada pixel nasce pequeno e claro e encaixa no lugar, numa
+/// varredura diagonal suave, como um cofre trancando. No fim, a varredura corre o resto do
+/// trilho e as juntas fecham num verde so. Sem sorteio: o mesmo gesto da sempre o mesmo
+/// desenho.
 struct PixelFill {
     /// Ate onde o verde chega: o centro do cadeado.
     let edge: CGFloat
@@ -467,34 +468,36 @@ struct PixelFill {
     /// Quando o dedo levou o cadeado ate o fim; nil enquanto nao chegou.
     let doneAt: Date?
     let now: Date
-    /// Reduzir Movimento: os mesmos pixels, parados.
+    /// Reduzir Movimento: o fim vem sem a varredura.
     let still: Bool
 
     static let cell: CGFloat = 6
     static let gap: CGFloat = 1.5
-    /// A largura da frente que pisca, atras do cadeado.
-    static let frontier: CGFloat = 76
-    /// Quanto os pixels soltos escapam na frente do verde.
-    static let sparks: CGFloat = 16
-    /// A onda do fim e o fechar das juntas, em segundos.
+    /// A largura da frente onde os pixels ainda estao encaixando.
+    static let frontier: CGFloat = 48
+    /// Quanto a linha de baixo atrasa em relacao a de cima: a varredura sai na diagonal.
+    static let slant: CGFloat = 0.55
+    /// A varredura do fim e o fechar das juntas, em segundos.
     static let wave = 0.34
     static let finale = 0.8
 
     private var elapsed: Double? { doneAt.map { now.timeIntervalSince($0) } }
 
-    /// A borda do verde, ja com a onda do fim.
+    /// A borda do verde, ja com a varredura do fim.
     var reach: CGFloat {
         guard let elapsed else { return edge }
-        let end = width + Self.frontier + Self.sparks
+        if still { return width * 2 + Self.frontier }
+        let end = width + Self.frontier + 64
         return edge + (end - edge) * CGFloat(Self.easeOut(elapsed / Self.wave))
     }
 
-    /// Ate onde o verde ja firmou: o texto escurece ate aqui.
-    var solid: CGFloat { reach - Self.frontier }
+    /// Ate onde o verde ja firmou em todas as linhas: o texto escurece ate aqui.
+    var solid: CGFloat { reach - Self.frontier - 32 }
 
     /// As juntas da grade: 0 com a grade marcada, 1 com o verde inteiro.
     private var merge: Double {
         guard let elapsed else { return 0 }
+        if still { return 1 }
         return Self.smooth((elapsed - Self.wave * 0.8) / (Self.finale - Self.wave))
     }
 
@@ -503,48 +506,30 @@ struct PixelFill {
         let columns = Int((size.width / pitch).rounded(.up))
         let rows = Int(((size.height + Self.gap) / pitch).rounded(.up))
         let top = (size.height - (CGFloat(rows) * pitch - Self.gap)) / 2
-        let tick = still ? 0 : UInt64(max(now.timeIntervalSinceReferenceDate * 18, 0))
         let green = Palette.success
         let reach = self.reach
 
         // Por baixo da parte firme, as juntas: um verde mais fundo que fecha no fim.
         if solid > 0 {
             context.fill(Path(CGRect(x: 0, y: 0, width: min(solid, size.width), height: size.height)),
-                         with: .color(green.opacity(0.5 + 0.5 * merge)))
+                         with: .color(green.opacity(0.55 + 0.45 * merge)))
         }
+        let middle = CGFloat(rows - 1) / 2
         for column in 0..<columns {
             let x = CGFloat(column) * pitch
-            let distance = reach - (x + Self.cell / 2)
-            if distance < -Self.sparks { break }
-            let level = Double(min(max(distance / Self.frontier, 0), 1))
+            if x - reach > Self.frontier { break }
             for row in 0..<rows {
-                let square = Path(CGRect(x: x, y: top + CGFloat(row) * pitch, width: Self.cell, height: Self.cell))
-                if level >= 1 {
-                    context.fill(square, with: .color(green))
-                    continue
-                }
-                let roll = Self.noise(column, row, tick)
-                if distance < 0 {
-                    // Os que escapam na frente: poucos, e cada vez menos.
-                    let chance = 0.14 * Double(1 + distance / Self.sparks)
-                    if roll < chance { context.fill(square, with: .color(green.opacity(0.4))) }
-                    continue
-                }
-                // Na frente: mais pixels e mais fortes quanto mais perto do verde firme.
-                guard roll < 0.1 + 0.9 * level * level else { continue }
-                let shade = 0.35 + 0.65 * max(Self.noise(column &+ 131, row &+ 17, tick / 2), level)
-                context.fill(square, with: .color(green.opacity(shade)))
+                // A linha do meio acompanha o cadeado; as de baixo vem um pouco atras.
+                let lag = (CGFloat(row) - middle) * pitch * Self.slant
+                let progress = Self.smooth(Double((reach - lag - (x + Self.cell / 2)) / Self.frontier))
+                guard progress > 0.02 else { continue }
+                // Nasce menor e encaixa no tamanho cheio.
+                let inset = Self.cell * 0.32 * CGFloat(1 - progress)
+                let square = CGRect(x: x + inset, y: top + CGFloat(row) * pitch + inset,
+                                    width: Self.cell - 2 * inset, height: Self.cell - 2 * inset)
+                context.fill(Path(roundedRect: square, cornerRadius: 1.4), with: .color(green.opacity(0.4 + 0.6 * progress)))
             }
         }
-    }
-
-    /// Um numero de 0 a 1 por pixel e por quadro (SplitMix64).
-    static func noise(_ column: Int, _ row: Int, _ tick: UInt64) -> Double {
-        var x = UInt64(bitPattern: Int64(column &* 73_856_093 ^ row &* 19_349_663)) &+ tick &* 0x9E37_79B9_7F4A_7C15
-        x = (x ^ (x >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        x = (x ^ (x >> 27)) &* 0x94D0_49BB_1331_11EB
-        x ^= x >> 31
-        return Double(x >> 11) / Double(1 << 53)
     }
 
     private static func smooth(_ x: Double) -> Double {
