@@ -31,7 +31,7 @@ public struct EVMSendEngine: SendEngine {
 
     /// `nil` fora das sete redes EVM compiladas.
     public init?(chain: Chain) {
-        self.init(chain: chain, reader: .shared, prices: MarketPriceOracle.shared)
+        self.init(chain: chain, reader: .shared, prices: MarketPriceOracle.anyAge)
     }
 
     init?(chain: Chain, reader: EVMReader, prices: (any TradePriceOracle)? = nil) {

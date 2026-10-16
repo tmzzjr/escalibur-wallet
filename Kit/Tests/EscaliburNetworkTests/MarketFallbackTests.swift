@@ -153,6 +153,40 @@ struct MarketFallbackTests {
         #expect(stale.count == 3 && stale["bitcoin"]?.price == 444_495 && stale["dogecoin"]?.price == 0.49592777325919163)
     }
 
+    @Test("Regressao R7-B2: cotacao com a hora da fonte; o ultimo preco bom vem com a hora velha, e maxAge o tira")
+    func datedQuotes() async throws {
+        let fake = Fake(), clock = Clock()
+        try fake.on(Self.gecko + "simple/price", fixture: "gecko-price")
+        let service = Self.service(fake, clock)
+        let first = clock.now
+        let fresh = try await service.datedQuotes(ids: ["bitcoin", "dogecoin", "litecoin"], currency: "brl", maxAge: 120)
+        #expect(fresh.count == 3 && fresh.values.allSatisfy { $0.fetchedAt == first })
+        #expect(fresh["bitcoin"]?.quote.price == 444_495)
+
+        // Do cache, a hora continua a da resposta, nao a da leitura.
+        clock.advance(20)
+        #expect(try await service.datedQuotes(ids: ["bitcoin"], currency: "brl")["bitcoin"]?.fetchedAt == first)
+
+        // As fontes caem: o ultimo preco bom volta com a hora dele, e dentro de 2 minutos
+        // ainda passa pelo teto de idade.
+        fake.on(Self.gecko + "simple/price", status: 500)
+        clock.advance(80)
+        #expect(try await service.datedQuotes(ids: ["bitcoin"], currency: "brl", maxAge: 120)["bitcoin"]?.fetchedAt == first)
+
+        // Com 2 minutos: as cotacoes da tela ainda trazem o preco; com o teto, nada, e erro.
+        clock.advance(20)
+        #expect(try await service.quotes(ids: ["bitcoin", "dogecoin"], currency: "brl").count == 2)
+        #expect(try await service.datedQuotes(ids: ["bitcoin"], currency: "brl")["bitcoin"]?.fetchedAt == first)
+        await #expect(throws: HTTPClient.Failure.offline) {
+            _ = try await service.datedQuotes(ids: ["bitcoin", "dogecoin"], currency: "brl", maxAge: 120)
+        }
+
+        // A fonte volta: preco novo, com a hora nova.
+        try fake.on(Self.gecko + "simple/price", fixture: "gecko-price")
+        let again = try await service.datedQuotes(ids: ["bitcoin"], currency: "brl", maxAge: 120)
+        #expect(again["bitcoin"]?.fetchedAt == clock.now)
+    }
+
     // MARK: Detalhe
 
     @Test("Detalhe pelo CoinGecko: 24 h, maxima historica, oferta, valor diluido e Sobre em ingles")

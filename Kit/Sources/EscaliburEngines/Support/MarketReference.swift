@@ -17,14 +17,30 @@ protocol TradePriceOracle: Sendable {
 
 /// O `MarketService` do app. O preco chega como `Double` (so exibicao); vira texto
 /// decimal aqui, e daqui em diante as contas sao inteiras.
+///
+/// So preco de agora. Com as fontes fora, o `MarketService` devolve o ultimo preco bom,
+/// que pode ser de horas atras; como referencia, ele deixaria passar com uma cotacao so
+/// a troca que o mercado de agora ja nao sustenta (auditoria de 16/10/2026, R7-B2).
+/// Mais velho que `maxAge`, o preco nao vem, e a troca segue como sem referencia: duas
+/// cotacoes e a maior estimativa como ancora (`TradeValidator.anchored`), ou recusa na
+/// Solana.
 struct MarketPriceOracle: TradePriceOracle {
     let service: MarketService
+    /// `nil`: qualquer idade. So o aviso de taxa alta do envio usa assim: ele compara a
+    /// taxa com o valor em ordem de grandeza e nao decide minimo nenhum.
+    var maxAge: TimeInterval? = MarketPriceOracle.referenceMaxAge
+
+    /// Dois minutos: quatro vezes a validade do cache de cotacao (30 s), folga para uma
+    /// consulta que falhou, e curto para o preco andar pouco nesse tempo.
+    static let referenceMaxAge: TimeInterval = 120
 
     static let shared = MarketPriceOracle(service: .shared)
+    /// O do aviso de taxa alta do envio EVM, que aceita o ultimo preco bom de qualquer idade.
+    static let anyAge = MarketPriceOracle(service: .shared, maxAge: nil)
 
     func usdPrices(_ ids: [String]) async throws -> [String: String] {
-        let quotes = try await service.quotes(ids: ids, currency: "usd")
-        return quotes.compactMapValues { Self.decimalText($0.price) }
+        let quotes = try await service.datedQuotes(ids: ids, currency: "usd", maxAge: maxAge)
+        return quotes.compactMapValues { Self.decimalText($0.quote.price) }
     }
 
     /// Texto decimal sem expoente, ou `nil` para preco nao positivo ou nao finito.

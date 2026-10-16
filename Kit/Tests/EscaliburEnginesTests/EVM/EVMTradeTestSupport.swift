@@ -214,6 +214,25 @@ actor FakeCoW: EVMCoWService {
     }
 }
 
+/// A rede do `MarketService` nos testes da idade do preco: o CoinGecko responde o texto
+/// guardado ou cai (500), e o CoinPaprika esta sempre fora. O relogio anda pelo teste.
+final class FakeMarketNetwork: ReaderTransport, @unchecked Sendable {
+    private let lock = NSLock()
+    private var gecko: Data?
+    private var clock = Date(timeIntervalSince1970: 1_791_133_200)
+
+    var now: Date { lock.withLock { clock } }
+    func advance(_ seconds: TimeInterval) { lock.withLock { clock = clock.addingTimeInterval(seconds) } }
+    /// `nil`: o CoinGecko fora do ar.
+    func answer(_ json: String?) { lock.withLock { gecko = json.map { Data($0.utf8) } } }
+
+    func send(_ request: ReaderRequest) async throws -> Data {
+        let data = lock.withLock { request.url.host == "api.coingecko.com" ? gecko : nil }
+        guard let data else { throw HTTPClient.Failure.status(500) }
+        return data
+    }
+}
+
 struct FakeOracle: EVMPriceOracle {
     let prices: [String: String]?
     /// Demora da resposta, para o caso da rede lenta entre o inicio do plano e a recotacao.
@@ -253,14 +272,17 @@ enum EVMTradeHarness {
         }
     }
 
+    /// `oracle`: um oraculo de verdade no lugar do `FakeOracle` (o `MarketPriceOracle` sobre
+    /// um `MarketService` sem rede, para a idade do preco).
     static func engine(
         chain: Chain = .base, state: FakeTradeChain = FakeTradeChain(), cow: FakeCoW = FakeCoW(), prices: [String: String]? = nil,
-        oracleDelay: Duration = .zero, sources: [any TradeQuoteSource], transport: EVMFixtureTransport
+        oracleDelay: Duration = .zero, oracle: (any EVMPriceOracle)? = nil, sources: [any TradeQuoteSource], transport: EVMFixtureTransport
     ) -> EVMTradeEngine {
         let reader = EVMReader(transport: transport, rpc: [chain.id: testProviders("a", "b")], history: [:],
                                privateRelays: testProviders("relay1", "relay2"))
         let services = EVMTradeServices(
-            aggregator: TradeAggregator(sources: sources), chainState: state, reader: reader, cow: cow, prices: FakeOracle(prices: prices, delay: oracleDelay),
+            aggregator: TradeAggregator(sources: sources), chainState: state, reader: reader, cow: cow,
+            prices: oracle ?? FakeOracle(prices: prices, delay: oracleDelay),
             pendingOrders: EVMPendingLimitOrders(), confirmation: EVMConfirmationPolicy(interval: .milliseconds(1), attempts: 3)
         )
         return EVMTradeEngine(chain: chain, services: services)!
