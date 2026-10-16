@@ -99,9 +99,15 @@ final class SendModel {
     var chain: Chain? { holding?.asset.chain }
     var account: DerivedAccount? { chain.flatMap { wallet.account($0) } }
 
+    /// O disponivel que a tela mostra antes de o motor responder quanto da para gastar.
+    var availableFallback: BigUInt?
+
     var amount: BigUInt? {
         guard let holding else { return nil }
-        if sendAll { return spendable?.amount }
+        // Enviar tudo antes da conta do motor (ou se ela falhou): o disponivel da tela, e o
+        // motor desconta a taxa ao montar. Antes, a tela mostrava 0 (pedido do dono,
+        // 16/10/2026).
+        if sendAll { return spendable?.amount ?? availableFallback }
         return Fmt.parseAmount(amountText, decimals: holding.asset.decimals)
     }
 
@@ -318,6 +324,8 @@ struct SendStages: View {
     @State private var pickingWallet = false
     /// O slider da tela de valor, de 0 a 1 do disponivel.
     @State private var sliderFraction: Double = 0
+    /// O teclado do valor: tocar fora fecha, e o OK em cima dele tambem.
+    @FocusState private var amountFocused: Bool
 
     private var engine: (any SendEngine)? { model.chain.flatMap { SendEngines.engine(for: $0) } }
 
@@ -942,12 +950,13 @@ struct SendStages: View {
         let over = model.amount.map { $0 > limit } ?? false
         return VStack(alignment: .leading, spacing: 0) {
             header
-            let shown = model.sendAll ? Fmt.plainDecimal(model.spendable?.amount ?? 0, decimals: holding.asset.decimals) : model.amountText
+            let shown = model.sendAll ? Fmt.plainDecimal(model.spendable?.amount ?? limit, decimals: holding.asset.decimals) : model.amountText
             HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
                 TextField("0", text: Binding(get: { shown }, set: { model.sendAll = false; model.amountText = $0 }))
                     .font(.system(size: Self.amountFontSize(shown), weight: .bold).monospacedDigit())
                     .foregroundStyle(over ? Palette.down : Palette.ink)
                     .keyboardType(.decimalPad)
+                    .focused($amountFocused)
                     .fixedSize()
                 Text(holding.asset.symbol).typeStyle(.heading).foregroundStyle(Palette.inkSoft).lineLimit(1)
             }
@@ -959,7 +968,12 @@ struct SendStages: View {
                 Text("Disponível \(Fmt.crypto(limit, decimals: holding.asset.decimals, symbol: holding.asset.symbol, style: .full))")
                     .typeStyle(.note).foregroundStyle(over ? Palette.down : Palette.inkSoft)
                 Spacer()
-                Button { model.sendAll = true } label: {
+                Button {
+                    model.sendAll = true
+                    amountFocused = false
+                    // Sem a conta do motor ainda (ou ela falhou): pede de novo.
+                    if model.spendable == nil { Task { await loadSpendable() } }
+                } label: {
                     Text("Máx").typeStyle(.label).foregroundStyle(Palette.ink)
                         .padding(.horizontal, Space.sm).frame(height: 28)
                         .background(Capsule(style: .continuous).fill(Palette.rail))
@@ -1001,6 +1015,19 @@ struct SendStages: View {
                 if lockedOver { model.showingLockedOrders = true } else { Task { await review() } }
             }
         }
+        // Tocar fora do campo fecha o teclado numerico, que nao tem tecla de fechar; e o OK
+        // em cima dele faz o mesmo (pedido do dono, 16/10/2026).
+        .contentShape(Rectangle())
+        .onTapGesture { amountFocused = false }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(String(localized: "OK")) { amountFocused = false }
+                    .foregroundStyle(Palette.ink)
+            }
+        }
+        .onAppear { model.availableFallback = limit }
+        .onChange(of: limit) { _, value in model.availableFallback = value }
         .task {
             await loadSpendable()
             #if DEBUG
