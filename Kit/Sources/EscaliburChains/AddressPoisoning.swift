@@ -36,14 +36,17 @@ public enum AddressPoisoning {
     /// iguais no fim (o checksum) ja marcam (B-5).
     static let cardanoSameStakeSuffix = 3
 
+    /// Menos que isso depois do prefixo da rede nao e endereco gerado (nome curto da NEAR).
+    /// O tamanho conta o registro do nome da NEAR: tirar o ".near" do corpo nao deixa de
+    /// comparar um nome que ja era comparado.
+    static let minimumLength = 16
+
     /// O primeiro endereco de `known` parecido com `address`, se houver.
     public static func lookalike(_ address: String, among known: [String], chain: Chain) -> String? {
-        let target = body(address, chain: chain)
-        guard target.count >= 16 else { return nil }
+        guard let target = Compared(address, chain: chain) else { return nil }
         let targetAccount = Address.canonicalRecipient(address, chain: chain)
         return known.first { other in
-            let candidate = body(other, chain: chain)
-            guard candidate.count >= 16, candidate != target else { return false }
+            guard let compared = Compared(other, chain: chain), compared.text != target.text else { return false }
             if let targetAccount, Address.canonicalRecipient(other, chain: chain) == targetAccount { return false }
             // Na Stellar, o endereco M e a conta base G dele (ou dois M da mesma base) sao
             // a mesma conta com ids diferentes, nao um sosia. O ID trocado entre dois M e
@@ -52,15 +55,31 @@ public enum AddressPoisoning {
                let b = StellarMuxedAccount(address: address.trimmingCharacters(in: .whitespacesAndNewlines))?.account, a == b {
                 return false
             }
-            let head = commonPrefix(candidate, target)
-            let tail = commonPrefix(String(candidate.reversed()), String(target.reversed()))
+            let candidate = compared.body
+            let head = commonPrefix(candidate, target.body)
+            let tail = commonPrefix(String(candidate.reversed()), String(target.body.reversed()))
             if chain.family == .cardano {
                 if head >= cardanoPaymentCharacters { return false }
                 if tail >= cardanoSameStakeSuffix, cardanoSameStakeOtherPayment(address, other) { return true }
             }
             if head >= minimumPrefix && tail >= minimumSuffix && head + tail >= minimumTotal { return true }
-            guard let single = singleEndLength(chain, candidate, target) else { return false }
+            guard let single = singleEndLength(chain, candidate, target.body) else { return false }
             return max(head, tail) >= single
+        }
+    }
+
+    /// Um endereco como a comparacao le, em minusculas: `text`, tudo depois do prefixo da
+    /// rede, diz se dois sao o mesmo; `body`, tambem sem o sufixo de nome da NEAR, e de
+    /// onde saem as pontas. O mesmo nome sob ".near" e sob ".tg" tem o corpo igual e o
+    /// texto diferente: sao contas diferentes, e as duas pontas iguais o marcam.
+    private struct Compared {
+        let text: String
+        let body: String
+
+        init?(_ address: String, chain: Chain) {
+            text = AddressPoisoning.afterPrefix(address, chain: chain)
+            guard text.count >= AddressPoisoning.minimumLength else { return nil }
+            body = AddressPoisoning.body(address, chain: chain)
         }
     }
 
@@ -73,9 +92,11 @@ public enum AddressPoisoning {
         case .evm, .sui, .aptos:
             return singleEnd
         case .near:
-            // Conta com nome ("alguem.near") termina igual por desenho: a ponta so vale
-            // entre contas implicitas, de 64 caracteres hexadecimais.
-            return a.count == 64 && b.count == 64 ? singleEnd : nil
+            // Conta com nome e escolhida letra a letra, e nomes com o mesmo comeco ou o
+            // mesmo fim sao comuns ("alex...", "...-wallet"): a ponta so vale entre contas
+            // implicitas, 64 caracteres hexadecimais. Pelo tamanho so, um nome de 64 letras
+            // tambem entrava (revisao dos enderecos parecidos, B-9).
+            return isHex64(a) && isHex64(b) ? singleEnd : nil
         case .ton:
             // A grafia crua ("0:" e 64 hex) e hexadecimal; a amigavel, base64.
             return isHex64(a) && isHex64(b) ? singleEnd : singleEndWide
@@ -163,24 +184,33 @@ public enum AddressPoisoning {
     /// as pontas o atacante copia, o meio ele nao consegue (auditoria 2, M2).
     public static func differingSegment(_ address: String, from other: String, chain: Chain, length: Int = 6) -> Segment? {
         let shown = address.trimmingCharacters(in: .whitespacesAndNewlines)
-        let target = body(shown, chain: chain)
-        let candidate = body(other, chain: chain)
+        let target = afterPrefix(shown, chain: chain)
+        let candidate = afterPrefix(other, chain: chain)
         guard target.count >= length, target != candidate else { return nil }
-        let fixed = bodySegment(shown, chain: chain).start
+        let fixed = shown.count - target.count
         let first = fixed + commonPrefix(target, candidate)
         let start = min(first, shown.count - length)
         return Segment(start: max(start, fixed), length: length)
     }
 
-    /// O endereco sem o prefixo que a rede impoe, em minusculas.
+    /// O endereco sem o prefixo que a rede impoe (e, na NEAR, sem o registro do nome), em
+    /// minusculas.
     static func body(_ address: String, chain: Chain) -> String {
         let text = address.trimmingCharacters(in: .whitespacesAndNewlines)
         return bodySegment(text, chain: chain).text(in: text).lowercased()
     }
 
+    /// Tudo depois do prefixo que a rede impoe, em minusculas, com o registro do nome da
+    /// NEAR: e por ele que se sabe se dois enderecos sao o mesmo texto.
+    static func afterPrefix(_ address: String, chain: Chain) -> String {
+        let text = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        return String(text.dropFirst(bodySegment(text, chain: chain).start)).lowercased()
+    }
+
     /// Onde fica o corpo do endereco, no texto como ele e mostrado (sem espaco nas pontas):
-    /// tudo depois do prefixo que a rede impoe. A tela abrevia por aqui (`Fmt.address`),
-    /// para os 6 do comeco serem do corpo, e nao o "addr1q" que todo endereco tem.
+    /// tudo depois do prefixo que a rede impoe e, na NEAR, antes do registro do nome. A
+    /// tela abrevia por aqui (`Fmt.address`), para os 6 do comeco serem do corpo, e nao o
+    /// "addr1q" que todo endereco tem.
     public static func bodySegment(_ address: String, chain: Chain) -> Segment {
         let text = address.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let count = text.count
@@ -208,7 +238,13 @@ public enum AddressPoisoning {
             // O prefixo de rede 0 faz todo endereco da Polkadot comecar com 1.
             start = min(1, count)
         case .near:
-            // Conta implicita sem prefixo; nome inteiro, que o dono escolhe letra a letra.
+            // Conta implicita sem prefixo; nome inteiro, que o dono escolhe letra a letra,
+            // menos o registro do fim (".near", ".tg"): ele e igual por desenho, e contado
+            // como ponta fazia "alexis-exchange.near" parecido com "alexander-wallet.near"
+            // (B-9).
+            if let suffix = NEARAccountID.registrySuffixes.first(where: { text.hasSuffix($0) && count > $0.count }) {
+                return Segment(start: 0, length: count - suffix.count)
+            }
             start = 0
         }
         return Segment(start: start, length: count - start)

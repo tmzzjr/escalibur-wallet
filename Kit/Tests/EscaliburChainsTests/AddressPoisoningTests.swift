@@ -231,6 +231,43 @@ struct AddressPoisoningTests {
         #expect(AddressPoisoning.muxedIDSegment("M123") == nil)
     }
 
+    // MARK: B-9: NEAR com nome
+
+    @Test("NEAR: o registro do nome (.near, .tg) sai do corpo, e a ponta so vale entre implicitas")
+    func nearNames() {
+        // Os registros que o app reconhece como da NEAR sao os que saem do corpo.
+        #expect(NEARAccountID.registrySuffixes == [".near", ".tg"])
+        #expect(AddressPoisoning.bodySegment("alexis-exchange.near", chain: .near) == AddressPoisoning.Segment(start: 0, length: 15))
+        #expect(AddressPoisoning.body("app_1.alice.near", chain: .near) == "app_1.alice")
+        #expect(AddressPoisoning.body("hot-wallet-user.tg", chain: .near) == "hot-wallet-user")
+        #expect(AddressPoisoning.body("near", chain: .near) == "near")
+
+        // Falsos positivos que deixam de acontecer: o ".near" (ou o ".tg") era a ponta do
+        // fim, e somava com o comeco do nome.
+        #expect(AddressPoisoning.lookalike("alexis-exchange.near", among: ["alexander-wallet.near"], chain: .near) == nil)
+        #expect(AddressPoisoning.lookalike("bob-savings-account.tg", among: ["bob-trading-desk.tg"], chain: .near) == nil)
+        // Nome de 64 letras nao e conta implicita: 5 iguais no fim nao bastam. Pelo
+        // tamanho, antes, bastavam.
+        let longName = String(repeating: "q", count: 59) + "54321"
+        let otherName = String(repeating: "w", count: 59) + "54321"
+        #expect(longName.count == 64 && NEARAccountID.parse(longName).map(\.kind) == .success(.named))
+        #expect(AddressPoisoning.lookalike(otherName, among: [longName], chain: .near) == nil)
+
+        // O sosia de conta implicita continua marcado, com 5 numa ponta (hexadecimal).
+        let implicit = String(repeating: "1", count: 59) + "a5c3e"
+        #expect(AddressPoisoning.lookalike(String(repeating: "7", count: 59) + "a5c3e", among: [implicit], chain: .near) == implicit)
+        #expect(AddressPoisoning.lookalike(String(repeating: "7", count: 60) + "5c3e", among: [implicit], chain: .near) == nil)
+        #expect(AddressPoisoning.lookalike("2b9f" + String(repeating: "0", count: 56) + "c3e1", among: ["2b9f" + String(repeating: "d", count: 56) + "c3e1"], chain: .near) != nil)
+        // Nome parecido continua parecido pelas duas pontas do nome; o mesmo nome em outro
+        // registro tambem, e o trecho do desafio cai no registro.
+        #expect(AddressPoisoning.lookalike("alice-wellet.near", among: ["alice-wallet.near"], chain: .near) == "alice-wallet.near")
+        #expect(AddressPoisoning.lookalike("binance-hot-wallet.tg", among: ["binance-hot-wallet.near"], chain: .near) == "binance-hot-wallet.near")
+        let segment = AddressPoisoning.differingSegment("binance-hot-wallet.tg", from: "binance-hot-wallet.near", chain: .near)
+        #expect(segment?.text(in: "binance-hot-wallet.tg") == "let.tg")
+        // A mesma conta nao e parecida com ela mesma.
+        #expect(AddressPoisoning.lookalike("binance-hot-wallet.near", among: ["binance-hot-wallet.near"], chain: .near) == nil)
+    }
+
     /// Os pares marcados entre todos os pares de `addresses`. So pode marcar o par com 4 ou
     /// mais caracteres iguais numa ponta do corpo: a regra de ponta so pede 4 ou 5, e a das
     /// duas pontas (3 e 3, com 7 no total) tem uma delas com 4. Esses pares saem de baldes
