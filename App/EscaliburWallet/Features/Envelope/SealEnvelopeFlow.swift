@@ -117,9 +117,10 @@ struct SealEnvelopeFlow: View {
     private var intro: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-            EnvelopePixelScene(height: 196).padding(.top, -Space.sm).padding(.bottom, Space.md)
+            EnvelopePixelScene(height: 236, pixelOnClose: true).padding(.top, -Space.sm).padding(.bottom, Space.md)
             VStack(spacing: Space.sm) {
-                Text("Guardar num envelope Escalibur").typeStyle(.title).foregroundStyle(Palette.ink)
+                // Um nome mais limpo, que diz o que acontece (pedido do dono, 16/10/2026).
+                Text("Criptografar a senha da carteira").typeStyle(.title).foregroundStyle(Palette.ink)
                 Text("Uma cópia de segurança da senha da carteira, trancada com outra senha que só você conhece.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
             }
@@ -130,8 +131,8 @@ struct SealEnvelopeFlow: View {
                 // 15/10/2026). O decifrador e o tools/referencia/decifrar.py, publico.
                 EnvelopePoint(icon: "lock.doc", text: String(localized: "A senha da carteira vira um arquivo criptografado, aqui no iPhone."))
                 EnvelopePoint(icon: "key", text: String(localized: "Só você cria a senha do arquivo. Ela nunca sai deste iPhone."))
-                EnvelopePoint(icon: "eye.slash", text: String(localized: "O arquivo não passa por nós. Sem a sua senha, ninguém abre."))
-                EnvelopePoint(icon: "externaldrive", text: String(localized: "Guarde onde quiser: sem a sua senha, o arquivo não abre."))
+                EnvelopePoint(icon: "eye.slash", text: String(localized: "O arquivo não passa por nós. Sem a sua senha, ninguém abre. Só você."))
+                EnvelopePoint(icon: "externaldrive", text: String(localized: "Guarde onde quiser: sem a sua senha, o arquivo criptografado não abre."))
             }
             .padding(Space.base)
             .frame(maxWidth: .infinity, alignment: .leading)

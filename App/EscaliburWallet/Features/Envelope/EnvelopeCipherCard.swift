@@ -275,9 +275,6 @@ struct EnvelopeCipherCard: View {
                 .fill(done ? Palette.control : Palette.void)
                 .overlay(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                     .stroke(done ? Palette.edge : Palette.edgeStrong, lineWidth: 1))
-                // A onda da senha errada: a palavra cifrada clareia um instante e troca.
-                .overlay(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
-                    .fill(Palette.ink.opacity(0.1 * glow)))
         )
     }
 

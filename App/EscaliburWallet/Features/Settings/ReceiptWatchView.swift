@@ -118,7 +118,7 @@ struct ReceiptWatchView: View {
                 }
 
                 VStack(alignment: .leading, spacing: Space.sm) {
-                    note(String(localized: "Sem servidor, quem decide a hora de conferir é o iOS: algumas vezes por hora com o iPhone em uso, menos quando ele está parado ou com pouca bateria. O aviso pode chegar alguns minutos depois de a moeda entrar. Com o app aberto, a conferência é a cada 2 minutos."))
+                    note(String(localized: "Por segurança, a Escalibur não tem servidor: não existe ninguém para avisar o iPhone na hora em que a moeda chega. Quem confere é o próprio iPhone, quando o iOS deixa: algumas vezes por hora em uso, menos parado ou com pouca bateria. Por isso o aviso pode chegar alguns minutos depois. Com o app aberto, a conferência é a cada 2 minutos."))
                     note(ReceiptWatchOffer.price)
                     note(String(localized: "Carteiras com passphrase e carteiras com as palavras ainda não confirmadas ficam de fora. Desligar apaga o arquivo."))
                     note(String(localized: "Contam a moeda de cada rede e os tokens da lista conferida. Token fora da lista não avisa: é por ele que chega o spam."))
@@ -154,6 +154,9 @@ struct ReceiptWatchView: View {
             }
             denied = false
             await ReceiptWatchCenter.shared.enable(accounts: accounts)
+            // Ligar o aviso liga junto o valor e a moeda (pedido do dono, 16/10/2026); da para
+            // desligar em seguida, e a tela bloqueada volta a dizer so que entrou moeda.
+            await ReceiptWatchCenter.shared.setShowDetails(true)
             file = await ReceiptWatchCenter.shared.file()
         }
     }
@@ -181,6 +184,9 @@ struct ReceiptWatchOffer: View {
     @State private var shownArrival = false
     /// Quantas vezes o dono girou a moeda: cada giro troca o valor que chegou.
     @State private var arrivals = 0
+
+    /// O fundo da folha: quase preto, um cinza bem escuro (pedido do dono, 16/10/2026).
+    static let sheetColor = Color(hex: 0x0E0E10)
 
     /// Valores de exemplo, nunca um saldo de verdade.
     private static let samples: [Double] = [0.0042, 0.015, 0.0008, 0.12]
@@ -268,7 +274,7 @@ struct ReceiptWatchOffer: View {
             .padding(.horizontal, Space.gutter)
             .padding(.top, Space.sm)
             .padding(.bottom, Space.xs)
-            .background(Palette.body)
+            .background(Self.sheetColor)
         }
         .task {
             guard !shownArrival else { return }
@@ -277,7 +283,7 @@ struct ReceiptWatchOffer: View {
         }
         .sensoryFeedback(.success, trigger: arrivals)
         .presentationDetents([.large])
-        .presentationBackground(Palette.body)
+        .presentationBackground(Self.sheetColor)
         .presentationCornerRadius(Radius.sheet)
         .interactiveDismissDisabled()
     }

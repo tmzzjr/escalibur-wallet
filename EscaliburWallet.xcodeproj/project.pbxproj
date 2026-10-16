@@ -99,6 +99,7 @@
 		7C50A38C1B47EECC201A7925 /* ActivityDetailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3D353EB5D825C3E1AE9273 /* ActivityDetailTests.swift */; };
 		7D2DB36B42D12E24ACBC4DFB /* OwnKeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DDBB5924E1B23491D8B56CA /* OwnKeyboardView.swift */; };
 		7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09754506E0869351661279D1 /* SendFlow.swift */; };
+		817277CABD8D71CD9F08ADE3 /* TodayLookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D23FDC02F7097259FB45F7A /* TodayLookTests.swift */; };
 		8209971855BF1B93A25ADB15 /* MarketFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE7F2431E841450CA0BCE4D /* MarketFacts.swift */; };
 		88CD26394B5179DE5B332364 /* ForgotPINTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99E3B6E8E96F664B813E15B7 /* ForgotPINTests.swift */; };
 		88D2C04FCBCC1B39D08662B7 /* ActivityExplorerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1230FF61D7222514EB7DF821 /* ActivityExplorerTests.swift */; };
@@ -114,6 +115,7 @@
 		94C21BC26784B1AD6AE63CB8 /* NewWalletFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15276BF5A254093B41A55B40 /* NewWalletFlow.swift */; };
 		94DBFEF727803296C21B8924 /* VoiceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1083A2AC68687CB05E28823A /* VoiceSettingsView.swift */; };
 		95162F26E032C805F7080A78 /* EnvelopeCipherCardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF8F61687E90B12A2151DEC8 /* EnvelopeCipherCardTests.swift */; };
+		96D8BCA3777CD33B5A035B1B /* PixelVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4E76B5A496F393035235CB4 /* PixelVault.swift */; };
 		96F7FD520325D595BB6C1AE5 /* ReceiveNetworkSwitchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B9EB37901CCCCF752510F2E /* ReceiveNetworkSwitchTests.swift */; };
 		9748EBACC301B2E714AAE4E2 /* ActivityEmptyArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BAD724431DF1B7C99C5C031 /* ActivityEmptyArt.swift */; };
 		97CF129B575D1FADCA905FC3 /* PriceWidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 722DAC955BA5CAEA3DEB5274 /* PriceWidgetViews.swift */; };
@@ -268,6 +270,7 @@
 		37D84E0A686FA11B05D65064 /* privacidade-en.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "privacidade-en.md"; sourceTree = "<group>"; };
 		38287337A415C5A48CB564C8 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		39490B905A2AF9D9891711F3 /* SecurityFlowHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityFlowHelpers.swift; sourceTree = "<group>"; };
+		3D23FDC02F7097259FB45F7A /* TodayLookTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayLookTests.swift; sourceTree = "<group>"; };
 		3D40F7F537F7FF07C6720903 /* CoinDetailTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoinDetailTests.swift; sourceTree = "<group>"; };
 		3D50F34B146D744EA6BF4F27 /* LimitRenewals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LimitRenewals.swift; sourceTree = "<group>"; };
 		3D8A839613EC9672A1FC7AD2 /* RecordWordsLookTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordWordsLookTests.swift; sourceTree = "<group>"; };
@@ -344,6 +347,7 @@
 		A1BADB432EFAFD601991FB0A /* MarketView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketView.swift; sourceTree = "<group>"; };
 		A2D88AA69992E5B71F258F14 /* Bridges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridges.swift; sourceTree = "<group>"; };
 		A43EDADAE75F46D2B89C22C9 /* BitcoinCoin3D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitcoinCoin3D.swift; sourceTree = "<group>"; };
+		A4E76B5A496F393035235CB4 /* PixelVault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelVault.swift; sourceTree = "<group>"; };
 		A6C11BE5AEBC12EB41028609 /* EnvelopeCipherCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeCipherCard.swift; sourceTree = "<group>"; };
 		A7A7441A95891CC1A307A355 /* CustomTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTokenTests.swift; sourceTree = "<group>"; };
 		A7D908F19AB59E10BE3323CD /* EscaliburWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = EscaliburWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -607,6 +611,7 @@
 				98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */,
 				181F92A204322FBD6A14F483 /* SliderLookTests.swift */,
 				E69562A3B34E6A12123BA181 /* SwordCardLookTests.swift */,
+				3D23FDC02F7097259FB45F7A /* TodayLookTests.swift */,
 				261F3EEB46DB0F22480FE3BC /* TourFramesTests.swift */,
 				1020538B4146BC659BF384E8 /* TradeQuoteTests.swift */,
 				6095C38283534AF48C451BC4 /* VoiceFlowTests.swift */,
@@ -753,6 +758,7 @@
 				E7441E45998B7F6AA7BCE1E4 /* Marks.swift */,
 				E7B2519CA657D4A05E4C4A06 /* Metrics.swift */,
 				AAEF81421478F9FA6F85FE56 /* Palette.swift */,
+				A4E76B5A496F393035235CB4 /* PixelVault.swift */,
 				178D0EBBB2AA6CB89DC6772B /* PlanReviewViews.swift */,
 				77C53992781573FB54743C00 /* SecureInputField.swift */,
 				C89672710E00E2856C3A1EB7 /* TokenMarks.swift */,
@@ -1078,6 +1084,7 @@
 				4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */,
 				F5EC5DFE0A5FECD6FF4C6935 /* SliderLookTests.swift in Sources */,
 				FCD170BEABB7752C0DF67270 /* SwordCardLookTests.swift in Sources */,
+				817277CABD8D71CD9F08ADE3 /* TodayLookTests.swift in Sources */,
 				10D1C888F93713A30F2929CC /* TourFramesTests.swift in Sources */,
 				046D4A66EDC4E578C0246247 /* TradeQuoteTests.swift in Sources */,
 				0EA6EDD44AB204C413E8EDC3 /* VoiceFlowTests.swift in Sources */,
@@ -1170,6 +1177,7 @@
 				9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */,
 				5ECB862AD137C04F475B0CD2 /* PassphraseWalletView.swift in Sources */,
 				3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */,
+				96D8BCA3777CD33B5A035B1B /* PixelVault.swift in Sources */,
 				17A65BEC30C064A2F585BA4E /* PlanReviewViews.swift in Sources */,
 				90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */,
 				9A8477455F2ABEB9D91113AF /* Portfolio.swift in Sources */,

@@ -78,12 +78,15 @@ struct WordKeyboardView: View {
                     .simultaneousGesture(LongPressGesture(minimumDuration: 0.45).onEnded { _ in if !demo { model.clear() } })
                 }
                 HStack(spacing: spacing) {
+                    // O globo e o Seguinte com a mesma largura: o nome do teclado fica no centro.
                     if model.offersSystemKeyboard {
-                        key(width: unit * 2.4, enabled: true, label: String(localized: "Usar o teclado do iPhone"), identifier: "teclado-sistema") {
+                        key(width: unit * 2.5, enabled: true, label: String(localized: "Usar o teclado do iPhone"), identifier: "teclado-sistema") {
                             model.systemKeyboard()
                         } content: {
                             Image(systemName: "globe").font(.system(size: 18, weight: .medium))
                         }
+                    } else {
+                        Color.clear.frame(width: unit * 2.5, height: Self.keyHeight)
                     }
                     // O nome do teclado abre a explicacao dele (pedido do dono, 16/10/2026).
                     Button { if !demo { model.info() } } label: {
@@ -102,7 +105,7 @@ struct WordKeyboardView: View {
                     .disabled(!model.offersInfo || demo)
                     .accessibilityLabel(Text("Sobre o teclado da Escalibur"))
                     .accessibilityIdentifier("teclado-sobre")
-                    key(width: unit * 2.6, enabled: model.canSubmit, label: String(localized: "Seguinte"), identifier: "teclado-seguinte", strong: true) {
+                    key(width: unit * 2.5, enabled: model.canSubmit, label: String(localized: "Seguinte"), identifier: "teclado-seguinte", strong: true) {
                         model.submit()
                     } content: {
                         Text("Seguinte").typeStyle(.action)

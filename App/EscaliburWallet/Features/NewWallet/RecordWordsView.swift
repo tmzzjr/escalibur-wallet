@@ -33,6 +33,8 @@ struct RecordWordsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// A chapa de "ver todas": o dedo e o iPhone inclinam ela um pouco.
     @State private var plateDrag: CGSize = .zero
+    /// A chapa virada: 0 com as palavras na frente, 180 com o verso.
+    @State private var plateFlip: Double = 0
     @State private var plateTilt = TiltReader()
     /// Graus de giro da chapa: para os lados e para frente/tras.
     private var plateRoll: Double { Double(plateDrag.width) / 10 + plateTilt.roll * 6 }
@@ -264,24 +266,35 @@ struct RecordWordsView: View {
         }
         .padding(.horizontal, Space.lg)
         .padding(.vertical, Space.lg)
-        .opacity(hidden ? 0 : 1)
-        .overlay {
-            if hidden {
-                Button { hidden = false } label: {
-                    Text("Mostrar de novo").typeStyle(.action).foregroundStyle(MetalPlate.ink)
-                        .padding(.horizontal, Space.md).frame(height: 40)
-                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(MetalPlate.ink, lineWidth: 1.5))
-                }
-            }
-        }
         .frame(maxWidth: .infinity)
+        // Escondidas, a chapa vira: as palavras na frente, o "Mostrar de novo" no verso, e
+        // mostrar de novo vira a chapa de volta (pedido do dono, 16/10/2026).
         .background(MetalPlate(tiltX: plateRoll / 12, tiltY: platePitch / 12))
-        // A espessura da chapa: a borda de aco que aparece embaixo e do lado oposto ao giro.
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(LinearGradient(colors: [Color(hex: 0x8B8D95), Color(hex: 0x55575E)], startPoint: .top, endPoint: .bottom))
-                .offset(x: CGFloat(-plateRoll) * 0.35, y: 5 + CGFloat(max(platePitch, -4)) * 0.3)
-        )
+        .background(plateEdge)
+        .modifier(PlateFace(angle: plateFlip, front: true))
+        .overlay {
+            // O verso: o mesmo aco, com o botao. Mesmo tamanho da frente.
+            MetalPlate(tiltX: -plateRoll / 12, tiltY: platePitch / 12)
+                .overlay {
+                    VStack(spacing: Space.sm) {
+                        Text("Escondidas para ninguém ler por cima do seu ombro.")
+                            .typeStyle(.note).foregroundStyle(MetalPlate.ink.opacity(0.75))
+                            .multilineTextAlignment(.center)
+                        Button { hidden = false } label: {
+                            Text("Mostrar de novo").typeStyle(.action).foregroundStyle(MetalPlate.ink)
+                                .padding(.horizontal, Space.md).frame(height: 40)
+                                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(MetalPlate.ink, lineWidth: 1.5))
+                        }
+                        .disabled(!hidden)
+                    }
+                    .padding(Space.lg)
+                }
+                .background(plateEdge)
+                .modifier(PlateFace(angle: plateFlip, front: false))
+        }
+        .onChange(of: hidden, initial: true) { _, isHidden in
+            withAnimation(reduceMotion ? nil : .spring(response: 0.7, dampingFraction: 0.82)) { plateFlip = isHidden ? 180 : 0 }
+        }
         // Inclina um pouco com o dedo e com o iPhone, e volta ao soltar (pedido do dono,
         // 15/10/2026): a luz da chapa anda junto.
         .rotation3DEffect(.degrees(7 + platePitch), axis: (x: 1, y: 0, z: 0), anchor: .center, perspective: 0.45)
@@ -303,6 +316,15 @@ struct RecordWordsView: View {
 
     /// O cartao da frente e os de tras, um pouco mais escuros a cada lugar da pilha.
     static let backTones: [Color] = [Palette.live, Color(hex: 0xDADADF), Color(hex: 0xBEBEC4), Color(hex: 0xA4A4AB)]
+
+    /// A espessura da chapa: a borda de aco que aparece embaixo e do lado oposto ao giro. Vai
+    /// junto de cada face, para virar com ela: parada atras, ela parecia um cartao cinza
+    /// durante o giro (pedido do dono, 16/10/2026).
+    private var plateEdge: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(LinearGradient(colors: [Color(hex: 0x8B8D95), Color(hex: 0x55575E)], startPoint: .top, endPoint: .bottom))
+            .offset(x: CGFloat(-plateRoll) * 0.35, y: 5 + CGFloat(max(platePitch, -4)) * 0.3)
+    }
 
     private func plate(_ index: Int, front: Bool = true, tone: Color = Palette.live) -> some View {
         ZStack {
@@ -746,9 +768,6 @@ private struct MetalPlate: View {
                         arm.fill(Path(roundedRect: CGRect(x: -3.6, y: -0.7, width: 7.2, height: 1.4), cornerRadius: 0.7), with: .color(Color(hex: 0x4A4C53)))
                     }
                 }
-                // A marca gravada embaixo, como a do fabricante numa chapa de guardar seed.
-                context.draw(Text(verbatim: "ESCALIBUR").font(.system(size: 8, weight: .heavy)).kerning(2.2).foregroundColor(.black.opacity(0.22)),
-                             at: CGPoint(x: size.width / 2, y: size.height - 12), anchor: .center)
             }
             // O reflexo do escovado: no aco riscado na horizontal, a luz vira uma faixa
             // vertical larga, que corre a chapa conforme ela inclina para os lados, e uma
@@ -782,9 +801,12 @@ private struct MetalPlate: View {
 /// na borda de baixo.
 private extension View {
     func engraved(depth: CGFloat) -> some View {
-        self.foregroundStyle(MetalPlate.ink.opacity(0.9).shadow(.inner(color: .black.opacity(0.55), radius: 0.5, x: 0, y: depth)))
-            .shadow(color: .white.opacity(0.8), radius: 0, x: 0, y: depth)
-            .shadow(color: .black.opacity(0.14), radius: 0, x: 0, y: -depth * 0.6)
+        // Mais fundo (pedido do dono, 16/10/2026): a sombra por dentro mais forte, a luz na
+        // borda de baixo mais larga, e um fio escuro na borda de cima do sulco.
+        self.foregroundStyle(MetalPlate.ink.opacity(0.94).shadow(.inner(color: .black.opacity(0.8), radius: 0.9, x: 0, y: depth * 1.4)))
+            .shadow(color: .white.opacity(0.9), radius: 0, x: 0, y: depth * 1.3)
+            .shadow(color: .white.opacity(0.35), radius: 0.6, x: 0, y: depth * 2)
+            .shadow(color: .black.opacity(0.28), radius: 0, x: 0, y: -depth * 0.8)
     }
 }
 
@@ -955,4 +977,24 @@ private struct ClipboardCountdown: View {
 
     private static func clamp(_ x: Double) -> Double { min(max(x, 0), 1) }
     private static func ease(_ x: Double) -> Double { 1 - pow(1 - x, 3) }
+}
+
+/// Uma face da chapa que vira: aparece so enquanto esta de frente para quem olha, e o verso
+/// ja nasce virado, para o texto dele nao sair espelhado. Animavel pelo angulo.
+private struct PlateFace: ViewModifier, @preconcurrency Animatable {
+    var angle: Double
+    let front: Bool
+
+    var animatableData: Double {
+        get { angle }
+        set { angle = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        let facing = cos(angle * .pi / 180) > 0
+        content
+            .opacity(front == facing ? 1 : 0)
+            .rotation3DEffect(.degrees(front ? angle : angle - 180), axis: (x: 0, y: 1, z: 0), anchor: .center, perspective: 0.45)
+            .allowsHitTesting(front == facing)
+    }
 }

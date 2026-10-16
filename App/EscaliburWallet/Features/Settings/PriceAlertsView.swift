@@ -93,7 +93,7 @@ struct PriceAlertsView: View {
     private var rules: some View {
         SettingsSection(title: String(localized: "Quando avisar")) {
             Toggle(isOn: Binding(get: { file.roundNumbers }, set: { on in apply { $0.roundNumbers = on } })) {
-                rowLabel("number", String(localized: "Números redondos"), String(localized: "Ex.: Bitcoin passou de \(exampleLevel)"))
+                rowLabel("bitcoinsign", String(localized: "Números redondos"), String(localized: "Ex.: Bitcoin passou de \(exampleLevel)"))
             }
             .tint(Palette.accent)
             .padding(.horizontal, Space.md).frame(minHeight: Height.row)

@@ -29,11 +29,8 @@ struct PassphraseWalletView: View {
         ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 0) {
-                Image(systemName: "key.horizontal")
-                    .font(.system(size: 26, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
-                    .frame(width: 64, height: 64)
-                    .background(Circle().fill(Palette.control))
+                // O cofre de pixels: outra carteira, trancada pelo que so voce sabe.
+                PixelVault()
                 VStack(spacing: Space.xs) {
                     Text("Carteira com passphrase").typeStyle(.title).foregroundStyle(Palette.ink)
                     Text("Uma senha extra, escolhida por você. Junto com a senha de \(base.name), ela abre outra carteira, com outros endereços.")
@@ -46,9 +43,7 @@ struct PassphraseWalletView: View {
                 VStack(alignment: .leading, spacing: Space.md) {
                     PassphrasePoint(icon: "eye.slash", text: String(localized: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não esta. Dentro deste app, quem tem o PIN vê as duas na lista de carteiras."))
                     PassphrasePoint(icon: "pencil.and.list.clipboard", text: String(localized: "Anote a passphrase longe das \(wordCount). Para abrir esta carteira em outro aparelho, você vai precisar das duas."))
-                    // Fora da Escalibur, poucos apps aceitam passphrase (folha de recuperacao, A2).
-                    PassphrasePoint(icon: "arrow.up.forward.app", text: String(localized: "Fora da Escalibur, poucos apps aceitam passphrase. Na TON, no Polkadot e na NEAR, nenhum app comum conhecido aceita: o saldo dessas redes nesta carteira só sai pela Escalibur ou por ferramenta técnica."))
-                    PassphrasePoint(icon: "exclamationmark.triangle", text: String(localized: "Esquecer a passphrase é perder o que estiver nesta carteira. Ninguém recupera, nem a Escalibur."), caution: true)
+                    PassphrasePoint(icon: "exclamationmark.triangle", text: String(localized: "Esquecer a passphrase é perder o acesso a esta carteira. Ninguém recupera, nem a Escalibur."), caution: true)
                 }
                 .padding(Space.base)
                 .frame(maxWidth: .infinity, alignment: .leading)

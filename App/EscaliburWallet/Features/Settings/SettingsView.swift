@@ -144,7 +144,7 @@ struct WalletsListView: View {
                     ForEach(Array(wallets.enumerated()), id: \.element.id) { index, wallet in
                         NavigationLink { WalletSettingsView(walletID: wallet.id) } label: {
                             HStack(spacing: Space.sm) {
-                                WalletGlyph(id: wallet.id, size: 32, selected: true, watchOnly: wallet.isWatchOnly)
+                                WalletGlyph(id: wallet.id, size: 32, selected: true, watchOnly: wallet.isWatchOnly, plain: true)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
                                     Text(wallet.hasBackup || wallet.isWatchOnly ? originText(wallet)
@@ -243,7 +243,7 @@ struct WalletSettingsView: View {
                         }
                         SettingsGroup {
                             Button { revealing = true } label: { SettingsRow(icon: "eye", title: String(localized: "Ver a senha da carteira")) }
-                            Button { sealing = true } label: { SettingsRow(icon: "envelope.badge.shield.half.filled", title: String(localized: "Guardar num envelope Escalibur")) }
+                            Button { sealing = true } label: { SettingsRow(icon: "envelope.badge.shield.half.filled", title: String(localized: "Criptografar a senha da carteira")) }
                             NavigationLink { PassphraseWalletView(base: wallet) } label: {
                                 SettingsRow(icon: "key.horizontal", title: String(localized: "Abrir ou criar com passphrase"))
                             }
@@ -660,18 +660,20 @@ struct AutoLockView: View {
     @Environment(AppSession.self) private var session
     @Environment(AuthCoordinator.self) private var auth
     @State private var error: String?
-    static let options = [0, 30, 60]
+    /// 5 minutos entrou a pedido do dono (16/10/2026); alongar continua pedindo o PIN.
+    static let options = [0, 30, 60, 300]
 
-    /// O maior prazo oferecido. Um valor gravado por uma versao anterior (5 ou 15
-    /// minutos) vale como este.
-    static func clamped(_ seconds: Int) -> Int { min(max(seconds, 0), options.last ?? 60) }
+    /// O maior prazo oferecido. Um valor gravado por uma versao anterior (15 minutos) vale
+    /// como este.
+    static func clamped(_ seconds: Int) -> Int { min(max(seconds, 0), options.last ?? 300) }
 
     /// O motivo que o Face ID mostra ao mudar o prazo.
     static func reason(_ seconds: Int) -> String {
         switch clamped(seconds) {
         case 0: return String(localized: "Bloquear o app ao sair dele")
         case 30: return String(localized: "Bloquear o app depois de 30 segundos")
-        default: return String(localized: "Bloquear o app depois de 1 minuto")
+        case 60: return String(localized: "Bloquear o app depois de 1 minuto")
+        default: return String(localized: "Bloquear o app depois de 5 minutos")
         }
     }
 
@@ -679,7 +681,8 @@ struct AutoLockView: View {
         switch clamped(seconds) {
         case 0: return String(localized: "Ao sair do app")
         case 30: return String(localized: "Depois de 30 segundos")
-        default: return String(localized: "Depois de 1 minuto")
+        case 60: return String(localized: "Depois de 1 minuto")
+        default: return String(localized: "Depois de 5 minutos")
         }
     }
 

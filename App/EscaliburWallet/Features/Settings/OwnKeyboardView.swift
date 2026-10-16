@@ -13,9 +13,9 @@ struct OwnKeyboardView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                KeyboardDemo()
-                    .padding(.top, Space.sm)
-                Text("Teclado próprio").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
+                // O titulo e o interruptor em cima, a animacao embaixo, e os idiomas logo abaixo
+                // dela (pedido do dono, 16/10/2026).
+                Text("Teclado próprio").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.sm)
                 Text("As palavras da carteira digitadas num teclado desenhado pela Escalibur, no lugar do teclado do iPhone.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
@@ -30,11 +30,17 @@ struct OwnKeyboardView: View {
                     .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
                 .accessibilityIdentifier("teclado-proprio")
                 .padding(.top, Space.lg)
+                if let note = error ?? (session.hardenedModeOn ? String(localized: "No modo reforçado, o teclado próprio fica sempre ligado.") : nil) {
+                    Text(note)
+                        .typeStyle(.note).foregroundStyle(error == nil ? Palette.inkMuted : Palette.down)
+                        .padding(.top, Space.xs)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
-                Text(error ?? (session.hardenedModeOn
-                     ? String(localized: "No modo reforçado, o teclado próprio fica sempre ligado.")
-                     : String(localized: "Ele escreve as palavras em inglês, português, espanhol, francês, italiano e tcheco. Para japonês, chinês ou coreano, o globo do teclado traz o do iPhone.")))
-                    .typeStyle(.note).foregroundStyle(error == nil ? Palette.inkMuted : Palette.down)
+                KeyboardDemo()
+                    .padding(.top, Space.lg)
+                Text("Ele escreve as palavras em inglês, português, espanhol, francês, italiano e tcheco. Para japonês, chinês ou coreano, o globo do teclado traz o do iPhone.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     .padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
                 // Pedido do dono (16/10/2026): menos itens, e o que tranquiliza, dito sem rodeio.
@@ -43,10 +49,6 @@ struct OwnKeyboardView: View {
                           String(localized: "Sem previsão, ditado nem palavra aprendida no dicionário do aparelho. E as palavras nunca saem do iPhone."))
                     point("wifi.slash", String(localized: "Sem internet"),
                           String(localized: "O teclado não tem conexão nenhuma, e a tela das palavras fica sem internet enquanto está aberta."))
-                    // O que ainda mostra a palavra, dito na mesma tela (revisao do teclado, M3).
-                    Text("As sugestões e as teclas acesas mostram a palavra: digite longe de olhos e câmeras.")
-                        .typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(Space.base)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -97,7 +99,12 @@ struct KeyboardDemo: View {
     /// O fundo do cartao: o da tela por baixo pede outro tom (a folha ja e `body`).
     var surface = Palette.body
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var model = WordKeyboardModel()
+    /// Com o globo, como na tela de digitar as palavras.
+    @State private var model: WordKeyboardModel = {
+        let model = WordKeyboardModel()
+        model.offersSystemKeyboard = true
+        return model
+    }()
     @State private var letters = 0
     @State private var word = 0
     @State private var sealed = false

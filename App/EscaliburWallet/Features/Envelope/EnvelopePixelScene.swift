@@ -11,6 +11,10 @@ import SwiftUI
 /// Movimento, o envelope trancado, parado.
 struct EnvelopePixelScene: View {
     var height: CGFloat = 236
+    /// No "Guardar num envelope" (pedido do dono, 16/10/2026): aberto, o envelope desenhado
+    /// como papel; ao fechar, sem fresta nas bordas, ele vira pixels. No "Como funciona", todo
+    /// em pixels desde o comeco.
+    var pixelOnClose = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var start = Date()
 
@@ -50,6 +54,10 @@ struct EnvelopePixelScene: View {
         static let flapTime = 0.45
         static let sealFrom = 3.25
         static let ringFrom = 3.45
+        /// Com `pixelOnClose`: o envelope fechado vira pixels, e o cadeado vem depois.
+        static let pixelFrom = 3.2
+        static let pixelTime = 0.45
+        static let pixelDelay = 0.3
         static let ringTime = 0.45
         static let fadeFrom = 6.0
     }
@@ -74,12 +82,67 @@ struct EnvelopePixelScene: View {
     private func draw(_ context: inout GraphicsContext, t: Double, clock: Double) {
         // Tudo some junto no fim do laco e nasce de novo no comeco.
         context.opacity = min(Self.smooth(t / 0.35), 1 - Self.smooth((t - T.fadeFrom) / (T.period - T.fadeFrom)))
+        if pixelOnClose {
+            // Fechado, uma linha varre o envelope da esquerda para a direita, e por onde ela
+            // passa o papel vira pixel: antes os dois desenhos se sobrepunham, esmaecendo
+            // juntos (pedido do dono, 16/10/2026).
+            let p = reduceMotion ? 1 : Self.easeInOut((t - T.pixelFrom) / T.pixelTime)
+            let sweep = G.envelope.minX - 8 + (G.envelope.width + 16) * CGFloat(p)
+            if p < 1 {
+                var solid = context
+                if p > 0 { solid.clip(to: Path(CGRect(x: sweep, y: 0, width: G.width, height: G.height))) }
+                drawSolid(&solid, t: t, clock: clock)
+                drawChips(&context, t: t, clock: clock)
+            }
+            if p > 0 { drawEnvelope(&context, closing: 1, clock: clock, wipe: p < 1 ? sweep : nil) }
+            drawLock(&context, t: t - T.pixelDelay)
+            drawRing(&context, t: t - T.pixelDelay)
+            return
+        }
         let closing = reduceMotion ? 1 : Self.easeInOut((t - T.flapFrom) / T.flapTime)
         drawEnvelope(&context, closing: closing, clock: clock)
         drawPixels(&context, t: t, clock: clock)
         drawChips(&context, t: t, clock: clock)
         drawLock(&context, t: t)
         drawRing(&context, t: t)
+    }
+
+    /// O envelope de papel: o fundo, a aba aberta atras das palavras que caem, o bolso da
+    /// frente e a aba que fecha por cima.
+    private func drawSolid(_ context: inout GraphicsContext, t: Double, clock: Double) {
+        let flap = CGFloat(-1 + 2 * Self.easeInOut((t - T.flapFrom) / T.flapTime))
+        let envelope = Path(roundedRect: G.envelope, cornerRadius: 14, style: .continuous)
+        context.fill(envelope, with: .color(Palette.rail))
+        context.stroke(envelope, with: .color(Palette.edgeStrong), lineWidth: 1)
+        if flap < 0 { drawFlap(&context, scale: flap) }
+        drawPixels(&context, t: t, clock: clock)
+        let pocket = PocketShape().path(in: G.envelope)
+        context.fill(pocket, with: .color(Palette.control))
+        context.stroke(pocket, with: .color(Palette.edgeStrong), lineWidth: 1)
+        if flap >= 0 { drawFlap(&context, scale: flap) }
+    }
+
+    /// A aba: -1 aberta para cima, 1 fechada sobre o envelope. Os cantos dela seguem os
+    /// cantos arredondados do envelope: fechada, encaixa sem fresta; aberta, nao sobra quina
+    /// para fora (pedido do dono, 16/10/2026).
+    private func drawFlap(_ context: inout GraphicsContext, scale: CGFloat) {
+        var layer = context
+        layer.translateBy(x: 0, y: G.envelope.minY)
+        layer.scaleBy(x: 1, y: max(abs(scale), 0.02) * (scale < 0 ? -1 : 1))
+        let rect = CGRect(x: G.envelope.minX, y: 0, width: G.envelope.width, height: G.flapHeight)
+        let r: CGFloat = 14
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + r, y: 0))
+        path.addLine(to: CGPoint(x: rect.maxX - r, y: 0))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: r), control: CGPoint(x: rect.maxX, y: 0))
+        path.addQuadCurve(to: CGPoint(x: rect.midX + 14, y: rect.maxY - 6), control: CGPoint(x: rect.midX + 40, y: rect.maxY * 0.72))
+        path.addQuadCurve(to: CGPoint(x: rect.midX - 14, y: rect.maxY - 6), control: CGPoint(x: rect.midX, y: rect.maxY + 4))
+        path.addQuadCurve(to: CGPoint(x: rect.minX, y: r), control: CGPoint(x: rect.midX - 40, y: rect.maxY * 0.72))
+        path.addQuadCurve(to: CGPoint(x: rect.minX + r, y: 0), control: CGPoint(x: rect.minX, y: 0))
+        path.closeSubpath()
+        layer.fill(path, with: .linearGradient(Gradient(colors: [Palette.edgeStrong, Palette.control]),
+                                               startPoint: CGPoint(x: rect.midX, y: 0), endPoint: CGPoint(x: rect.midX, y: rect.maxY)))
+        layer.stroke(path, with: .color(Palette.edgeStrong), lineWidth: 1)
     }
 
     /// Um pixel da grade do envelope, na coluna e na linha dadas (linha negativa: acima da
@@ -100,7 +163,7 @@ struct EnvelopePixelScene: View {
     /// O envelope de pixels, cifrando ao vivo: o corpo, a borda e as dobras mais claras, e
     /// uma passada de luz que corre devagar. A aba aberta fica acima e some de cima para
     /// baixo enquanto a fechada desce, linha por linha, ate a ponta (`closing`, de 0 a 1).
-    private func drawEnvelope(_ context: inout GraphicsContext, closing: Double, clock: Double) {
+    private func drawEnvelope(_ context: inout GraphicsContext, closing: Double, clock: Double, wipe: CGFloat? = nil) {
         let columns = G.columns, rows = G.rows, flapRows = G.flapRows
         let left = CGPoint(x: G.envelope.minX + G.grid / 2, y: G.envelope.minY + G.grid / 2)
         let right = CGPoint(x: G.envelope.maxX - G.grid / 2, y: G.envelope.minY + G.grid / 2)
@@ -128,6 +191,12 @@ struct EnvelopePixelScene: View {
                 var tone = (inFlap ? 0.2 : 0.13) + 0.16 * bit
                 if edge || flapEdge { tone = 0.4 + 0.14 * bit } else if pocketFold { tone = 0.3 + 0.1 * bit }
                 tone += light(center)
+                // Na varredura, so ate a linha; os pixels logo atras dela acendem mais.
+                if let wipe {
+                    guard center.x < wipe else { continue }
+                    let near = Double(max(0, 1 - (wipe - center.x) / 18))
+                    tone += 0.35 * near
+                }
                 context.fill(Path(roundedRect: rect, cornerRadius: 1.1), with: .color(PixelFill.gray(tone)))
             }
         }

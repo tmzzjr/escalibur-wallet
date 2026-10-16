@@ -31,6 +31,11 @@ struct RevealFlow: View {
                     RecordWordsView(draft: draft, walletName: purpose == .reveal ? wallet.name : nil, passphrase: passphrase) {
                         if purpose == .backup { confirming = true } else { finish() }
                     }
+                } else if working {
+                    // Do toque em "Ver as palavras" ate elas abrirem (PIN, rosto e o cofre), a
+                    // lista sai da tela: antes ela reaparecia por baixo, e um toque rapido no
+                    // teclado do PIN desmarcava um "estou ciente" (pedido do dono, 16/10/2026).
+                    opening
                 } else {
                     warning
                 }
@@ -55,6 +60,18 @@ struct RevealFlow: View {
                 }
             }
         }
+    }
+
+    private var opening: some View {
+        VStack(spacing: Space.md) {
+            Spacer()
+            CipherEmblem()
+            Text("Abrindo as palavras").typeStyle(.heading).foregroundStyle(Palette.ink)
+            Spacer()
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityIdentifier("revelar-abrindo")
     }
 
     private var warning: some View {

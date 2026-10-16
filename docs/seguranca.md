@@ -65,7 +65,7 @@ No Escalibur de hoje nenhum destes achados é grave, porque lá o PIN não prote
 
 **T2. Ladrão com o aparelho desbloqueado, ou que viu o código do iPhone. É o caso real mais comum.**
 - Defesa:
-  - O app pede PIN ou biometria ao abrir. Trava ao ir para segundo plano (tolerância de no máximo 60 s) e trava na hora em `UIApplication.protectedDataWillBecomeUnavailableNotification`.
+  - O app pede PIN ou biometria ao abrir. Trava ao ir para segundo plano (tolerância escolhida pelo dono: na hora, 30 s, 1 min ou 5 min; alongar pede o PIN) e trava na hora em `UIApplication.protectedDataWillBecomeUnavailableNotification`.
   - A biometria usa `.biometryCurrentSet`, **nunca** `.userPresence` nem `.devicePasscode`. O código do iPhone não abre nada aqui.
   - Cadastrar um rosto novo destrói o slot biométrico em vez de abri-lo.
   - A escada de atraso do PIN dobra do nono erro em diante, de 3 horas até 7 dias por tentativa: pela interface são 18 chutes em 30 dias e 66 em um ano (§2.7).
@@ -756,7 +756,7 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
   - Zerada assim que `open` retorna, com sucesso ou não. Não entra em cache para "tentar de novo".
 - **Seed revelada**:
   - O padrão é **não mostrar**. A importação vai direto para o armazenamento, e a tela mostra a identidade para conferência: fingerprint BIP-32 e o primeiro endereço BTC e EVM.
-  - "Ver palavras" exige PIN e, com o Face ID ligado, o rosto (A1), e segue a sessão de revelação do Escalibur: 3 palavras por vez, ou as 12 (ou 24) numa chapa só em "Ver todas de uma vez" (pedido do dono, 15/10/2026). As mesmas palavras por 60 s seguidos escondem sozinhas e voltam com um toque (N2); escondem também ao sair do primeiro plano. Proteção de captura e sem seleção. Antes, quatro "estou ciente", o último sobre o Espelhamento do iPhone no Mac, que o app não consegue ver (C7-06). Copiar, só pelo aviso descrito em "Área de transferência".
+  - "Ver palavras" exige PIN e, com o Face ID ligado, o rosto (A1), e segue a sessão de revelação do Escalibur: 3 palavras por vez, ou as 12 (ou 24) numa chapa só em "Ver todas de uma vez" (pedido do dono, 15/10/2026). As mesmas palavras por 60 s seguidos escondem sozinhas e voltam com um toque (N2); escondem também ao sair do primeiro plano. Proteção de captura e sem seleção. Antes, três "estou ciente"; o do Espelhamento do iPhone no Mac saiu a pedido do dono, e o aviso dele fica na checagem do aparelho (C7-06). Do toque em "Ver as palavras" até elas abrirem, a lista sai da tela. Copiar, só pelo aviso descrito em "Área de transferência".
   - A passphrase aparece com o espaço visível (␣) e a contagem de caracteres: um espaço a mais já abre outra carteira.
 - **Importar** (frase ou envelope): a conferência antes de guardar mostra endereços e impressão digital, e só guarda com o aceite de que quem deu as palavras (ou o envelope e a senha) controla a carteira. Na Tron, as permissões da conta são lidas na rede (`TronReader.ownerControl`): outra chave no controle vira aviso vermelho, o golpe da "frase com saldo". A carteira de um envelope não passa a ser a carteira em uso sozinha, e nome repetido ganha "(envelope)" (auditoria 4, C7-05).
 - **Exportar**:

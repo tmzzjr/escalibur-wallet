@@ -25,6 +25,8 @@ struct EscaliburMark: Shape {
 /// punho cinza e a lamina em dois tons (o lado do fio mais escuro).
 struct WalletBadge: View {
     var size: CGFloat = 44
+    /// O fundo do icone: o rosa da marca, ou preto onde o rosa disputa com as moedas.
+    var background: Color = Palette.brand
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: size * 0.2237, style: .continuous)
@@ -34,7 +36,7 @@ struct WalletBadge: View {
             let rect = { (x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) in
                 Path(CGRect(x: x * w, y: y * h, width: width * w, height: height * h))
             }
-            context.fill(Path(CGRect(origin: .zero, size: canvas)), with: .color(Palette.brand))
+            context.fill(Path(CGRect(origin: .zero, size: canvas)), with: .color(background))
             // A espada do Escalibur, em proporcao com o icone de 1024 pontos.
             let steel = Color(hex: 0xF2F2F3)
             context.fill(rect(0.4297, 0.2900, 0.1406, 0.0615), with: .color(steel))  // pomo
@@ -55,15 +57,19 @@ struct WalletGlyph: View {
     var size: CGFloat = 36
     var selected: Bool = false
     var watchOnly: Bool = false
+    /// So o icone, sem o fundo, um pouco maior e um pouco acima do centro (a lista de
+    /// Carteiras nos Ajustes, pedido do dono, 16/10/2026).
+    var plain: Bool = false
 
     var body: some View {
         RoundedRectangle(cornerRadius: size <= 24 ? 6 : Radius.card, style: .continuous)
-            .fill(Palette.rail)
+            .fill(plain ? Color.clear : Palette.rail)
             .frame(width: size, height: size)
             .overlay {
                 Image(systemName: watchOnly ? "eye" : "wallet.bifold.fill")
-                    .font(.system(size: size * 0.42, weight: .semibold))
+                    .font(.system(size: size * (plain ? 0.62 : 0.42), weight: .semibold))
                     .foregroundStyle(selected ? Palette.ink : Palette.inkMuted)
+                    .offset(y: plain ? -2 : 0)
             }
             .accessibilityHidden(true)
     }
