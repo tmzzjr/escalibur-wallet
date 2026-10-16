@@ -142,12 +142,22 @@ struct AddContactSheet: View {
         destination.flatMap { AddressPoisoning.lookalike($0.address, among: known, chain: chain) }
     }
 
-    /// O trecho que o dono digita: onde difere do parecido, ou o meio do endereco como foi
-    /// colado (a forma que esta na fonte, nao a normalizada).
+    /// Um M da mesma conta de um conhecido, com outro ID: salvo, ele virava conhecido para
+    /// sempre, e o desafio do meio nao pegava a troca, porque o meio de um M e a chave
+    /// (revisao do B-6). O mesmo aviso do envio; o parecido, se houver, vem antes.
+    private var otherID: AddressPoisoning.SameAccount? {
+        guard lookalike == nil, let destination else { return nil }
+        return AddressPoisoning.sameAccountOtherID(destination.address, among: known,
+                                                   tagged: SendStages.taggedContacts(chain, session: session), chain: chain)
+    }
+
+    /// O trecho que o dono digita: onde difere do parecido, ou um trecho escondido do
+    /// endereco como foi colado (a forma que esta na fonte, nao a normalizada): o meio, ou
+    /// o fim do ID num M.
     private var segment: AddressPoisoning.Segment? {
         guard let destination else { return nil }
         if let lookalike { return AddressPoisoning.differingSegment(destination.address, from: lookalike, chain: chain) }
-        return AddressPoisoning.middleSegment(trimmed)
+        return AddressPoisoning.blindSegment(trimmed, chain: chain)
     }
 
     /// Onde o trecho e lido: o endereco normalizado quando ha parecido (os dois lado a lado),
@@ -155,7 +165,8 @@ struct AddContactSheet: View {
     private var checkedText: String { lookalike == nil ? trimmed : (destination?.address ?? trimmed) }
 
     private var checked: Bool {
-        guard destination != nil else { return false }
+        guard let destination else { return false }
+        if otherID != nil { return AddressPoisoning.muxedIDConfirmed(check, address: destination.address) }
         guard let segment else { return lookalike == nil }
         let typed = check.trimmingCharacters(in: .whitespaces).lowercased()
         return typed.count == segment.length && typed == segment.text(in: checkedText).lowercased()
@@ -231,7 +242,10 @@ struct AddContactSheet: View {
                     if let qrProblem {
                         Banner(kind: .failure, title: qrProblem)
                     }
-                    if let destination, let segment {
+                    if let destination, let otherID {
+                        OtherIDCheck(pasted: destination.address, known: otherID, knownLabel: KnownAddress.label(otherID.known, chain: chain, session: session),
+                                     check: $check, field: Palette.rail, identifier: "contato-conferir-id")
+                    } else if let destination, let segment {
                         sourceCheck(destination, segment)
                     }
                     if chain.destinationTag != .none {

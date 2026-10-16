@@ -27,12 +27,11 @@ final class SendModel {
     var lookalikeCheck = ""
     var lookalikeSegment: AddressPoisoning.Segment?
     /// Endereco M da Stellar da mesma conta de um ja usado, com outro ID: o conhecido, e o
-    /// trecho do ID que o dono digita. Um programa que troca o endereco copiado pode trocar
-    /// so o ID pelo de uma conta do atacante na mesma corretora (revisao dos enderecos
-    /// parecidos, B-6).
-    var otherID: String?
+    /// que o dono digita (o numero do ID, ou os 6 ultimos lidos na fonte). Um programa que
+    /// troca o endereco copiado pode trocar so o ID pelo de uma conta do atacante na mesma
+    /// corretora (revisao dos enderecos parecidos, B-6).
+    var otherID: AddressPoisoning.SameAccount?
     var otherIDCheck = ""
-    var otherIDSegment: AddressPoisoning.Segment?
     /// Para quem esta carteira ja pagou, lido do historico da rede: o endereco
     /// envenenado chega como recebido, entao so os enviados contam.
     var historyRecipients: [String] = []
@@ -114,16 +113,14 @@ final class SendModel {
 
     /// Sem endereco parecido, nada a conferir. Com ele, so segue quem digitou o trecho
     /// do meio onde o destino difere do conhecido, lendo-o em vez de reconhecer as
-    /// pontas. Com a mesma conta e outro ID, quem digitou o trecho do ID.
+    /// pontas. Com a mesma conta e outro ID, quem digitou o ID que quem recebe mostra.
     var lookalikeCleared: Bool {
         if let segment = blindSegment {
             let typed = blindCheck.trimmingCharacters(in: .whitespaces).lowercased()
             guard typed.count == segment.length, typed == segment.text(in: blindSource).lowercased() else { return false }
         }
         if otherID != nil {
-            guard let segment = otherIDSegment, let address = destination?.address else { return false }
-            let typed = otherIDCheck.trimmingCharacters(in: .whitespaces).lowercased()
-            guard typed.count == segment.length, typed == segment.text(in: address).lowercased() else { return false }
+            guard let address = destination?.address, AddressPoisoning.muxedIDConfirmed(otherIDCheck, address: address) else { return false }
         }
         guard lookalike != nil, let address = destination?.address else { return true }
         guard let segment = lookalikeSegment else { return false }
@@ -498,26 +495,10 @@ struct SendStages: View {
                 }
 
                 if let known = model.otherID, let destination = model.destination, let chain = model.chain {
-                    Banner(kind: .caution, title: String(localized: "Mesma conta de um endereço que você já usou, com outro ID"),
-                           message: String(localized: "Confira o ID com quem vai receber."))
+                    OtherIDCheck(pasted: destination.address, known: known,
+                                 knownLabel: KnownAddress.label(known.known, chain: chain, session: session, history: model.historyRecipients),
+                                 check: $model.otherIDCheck)
                         .padding(.top, Space.md)
-                    VStack(alignment: .leading, spacing: Space.sm) {
-                        comparedAddress(Self.withMuxedID(String(localized: "Você colou"), destination.address), destination.address, model.otherIDSegment)
-                        comparedAddress(Self.withMuxedID(KnownAddress.label(known, chain: chain, session: session, history: model.historyRecipients), known), known,
-                                        AddressPoisoning.muxedIDSegment(known))
-                    }
-                    .padding(.top, Space.sm)
-                    Text(String(localized: "Para seguir, digite o trecho do ID marcado no endereço que você colou."))
-                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
-                        .fixedSize(horizontal: false, vertical: true)
-                    TextField("", text: $model.otherIDCheck, prompt: Text(String(localized: "Trecho do ID")).foregroundColor(Palette.inkDead))
-                        .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .padding(Space.sm)
-                        .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(Palette.body))
-                        .frame(maxWidth: 260, alignment: .leading)
-                        .padding(.top, Space.xs)
-                        .accessibilityIdentifier("conferir-id-endereco")
                 }
 
                 if model.lookalike == nil, let segment = model.blindSegment, let destination = model.destination {
@@ -682,10 +663,18 @@ struct SendStages: View {
         MarkedAddress(label: label, address: address, segment: segment)
     }
 
-    /// "Você colou · ID 1234567": o ID do endereco M em numero, como a corretora mostra.
-    static func withMuxedID(_ label: String, _ address: String) -> String {
-        guard let id = StellarMuxedAccount(address: address)?.id else { return label }
-        return String(localized: "\(label) · ID \(String(id))")
+    /// Os contatos desta rede salvos com tag ou memo: um G com o ID no memo e o mesmo par
+    /// (conta, ID) de um M da Stellar (revisao do B-6).
+    static func taggedContacts(_ chain: Chain, session: AppSession) -> [(address: String, tag: String)] {
+        session.metadata.contacts.filter { $0.chainID == chain.id }.compactMap { contact in contact.tag.map { (address: contact.address, tag: $0) } }
+    }
+
+    /// Tudo que o dono pode reconhecer de vista nesta rede: para onde ja enviou, os
+    /// contatos, os enderecos das carteiras deste iPhone e o historico lido. A que so
+    /// observa fica de fora: o endereco dela nao e do dono (auditoria 4, C7-07).
+    private func knownAddresses(_ chain: Chain) -> [String] {
+        (session.metadata.sentTo[chain.id] ?? []) + session.metadata.contacts.filter { $0.chainID == chain.id }.map(\.address)
+            + session.metadata.wallets.filter { !$0.isWatchOnly }.compactMap { $0.account(chain)?.address } + model.historyRecipients
     }
 
     /// Para quem esta carteira ja pagou nesta rede, do historico da propria rede.
@@ -743,7 +732,6 @@ struct SendStages: View {
         model.lookalikeSegment = nil
         model.lookalikeCheck = ""
         model.otherID = nil
-        model.otherIDSegment = nil
         model.otherIDCheck = ""
         model.blindSegment = nil
         model.networkSuggestion = nil
@@ -777,25 +765,24 @@ struct SendStages: View {
             if chain.destinationTag == .none || model.isMuxedStellar { model.tagText = ""; model.linkTag = nil }
             let sent = session.metadata.sentTo[chain.id] ?? []
             model.isFirstSend = !sent.contains(destination.address)
-            // Tudo que o dono pode reconhecer de vista: para onde ja enviou, os
-            // contatos e os enderecos das carteiras deste iPhone. A que so observa fica de
-            // fora: o endereco dela nao e do dono (auditoria 4, C7-07).
             let contacts = session.metadata.contacts.filter { $0.chainID == chain.id }.map(\.address)
             let wallets = session.metadata.wallets.filter { !$0.isWatchOnly }.compactMap { $0.account(chain)?.address }
-            let known = sent + contacts + wallets + model.historyRecipients
+            let known = knownAddresses(chain)
             model.lookalike = AddressPoisoning.lookalike(destination.address, among: known, chain: chain)
             model.lookalikeSegment = model.lookalike.flatMap { AddressPoisoning.differingSegment(destination.address, from: $0, chain: chain) }
-            // Endereco M da mesma conta de um ja usado, com outro ID: o parecido deixa de
-            // fora (e a mesma conta), e o ID e o que diz de quem e o deposito (B-6).
-            model.otherID = AddressPoisoning.sameAccountOtherID(destination.address, among: known, chain: chain)
-            model.otherIDSegment = model.otherID.flatMap { _ in AddressPoisoning.muxedIDSegment(destination.address) }
+            // Endereco M da mesma conta de um ja usado (ou de um contato G salvo com o ID no
+            // memo), com outro ID: o parecido deixa de fora, porque e a mesma conta, e o ID
+            // e o que diz de quem e o deposito (B-6).
+            model.otherID = AddressPoisoning.sameAccountOtherID(destination.address, among: known,
+                                                                tagged: Self.taggedContacts(chain, session: session), chain: chain)
             // Sem historico da rede, o primeiro envio para endereco que nao e contato nem
-            // carteira deste iPhone pede o meio do endereco digitado. Com o ID trocado, o
-            // meio e a chave que o dono ja conhece: o trecho do ID basta.
+            // carteira deste iPhone pede um trecho do endereco digitado, escondido: o meio,
+            // ou, num M, o fim do ID (o meio de um M e a chave, igual em todo M da conta).
+            // Com o ID trocado, o desafio do ID basta.
             if model.lookalike == nil, model.otherID == nil, model.isFirstSend, model.historyUnavailable,
                !contacts.contains(destination.address), !wallets.contains(destination.address) {
                 model.blindSource = text
-                model.blindSegment = AddressPoisoning.middleSegment(text)
+                model.blindSegment = AddressPoisoning.blindSegment(text, chain: chain)
             }
         case .failure(let problem):
             model.destinationProblem = Self.message(problem, chain: chain)
@@ -1262,10 +1249,22 @@ struct SendStages: View {
         .sensoryFeedback(.selection, trigger: checked)
     }
 
+    /// Destino G da Stellar com um memo que e numero, contra um M conhecido (ou um contato G
+    /// com outro memo) da mesma conta: o mesmo par (conta, ID) do B-6, com o ID no memo. O
+    /// memo chega depois da tela do destino, entao o aviso fica na revisao.
+    private var memoOtherID: AddressPoisoning.SameAccount? {
+        guard let chain = model.chain, chain.family == .stellar, let destination = model.destination, !model.isMuxedStellar,
+              !model.tagText.isEmpty else { return nil }
+        return AddressPoisoning.sameAccountOtherID(destination.address, tag: model.tagText, among: knownAddresses(chain),
+                                                   tagged: Self.taggedContacts(chain, session: session), chain: chain)
+    }
+
     private func warnings(_ plan: SigningPlan) -> [String] {
         var out: [String] = []
         if let lookalike = model.lookalike { out.append(String(localized: "Endereço parecido com \(Fmt.address(lookalike, chain: model.chain)). Confira o endereço inteiro.")) }
-        if model.otherID != nil { out.append(String(localized: "Mesma conta de um endereço que você já usou, com outro ID. Confira o ID com quem vai receber.")) }
+        if model.otherID != nil || memoOtherID != nil {
+            out.append(String(localized: "Mesma conta de um endereço que você já usou, com outro ID. Confira o ID com quem vai receber."))
+        }
         if model.skippedTag {
             switch tagKind {
             case .tag: out.append(String(localized: "Envio sem tag de destino, por sua escolha."))
@@ -1693,6 +1692,40 @@ struct MarkedAddress: View {
             Text(text).font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.disabled)
+        }
+    }
+}
+
+/// Endereco M da Stellar da mesma conta de um conhecido, com outro ID (revisao dos
+/// enderecos parecidos, B-6), no envio e ao salvar contato. O ID do colado fica escondido,
+/// no endereco e no rotulo, e o do conhecido a vista: o dono digita o numero do ID que quem
+/// vai receber mostra (ou os 6 ultimos caracteres, lidos onde copiou), e a resposta nao
+/// sai da tela.
+struct OtherIDCheck: View {
+    let pasted: String
+    let known: AddressPoisoning.SameAccount
+    let knownLabel: String
+    @Binding var check: String
+    var field: Color = Palette.body
+    var identifier = "conferir-id-endereco"
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Banner(kind: .caution, title: String(localized: "Mesma conta de um endereço que você já usou, com outro ID"),
+                   message: String(localized: "Confira o ID com quem vai receber."))
+            MarkedAddress(label: String(localized: "Você colou"), address: pasted, segment: AddressPoisoning.muxedIDSegment(pasted), masked: true)
+            MarkedAddress(label: String(localized: "\(knownLabel) · ID \(String(known.knownID))"), address: known.known,
+                          segment: AddressPoisoning.muxedIDSegment(known.known))
+            Text(String(localized: "Para seguir, digite o número do ID que quem vai receber mostra, ou os 6 últimos caracteres do endereço, lendo onde você o copiou."))
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField("", text: $check, prompt: Text(String(localized: "Número do ID")).foregroundColor(Palette.inkDead))
+                .font(TypeStyle.mono.font).foregroundStyle(Palette.ink)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .padding(Space.sm)
+                .background(RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).fill(field))
+                .frame(maxWidth: 220, alignment: .leading)
+                .accessibilityIdentifier(identifier)
         }
     }
 }

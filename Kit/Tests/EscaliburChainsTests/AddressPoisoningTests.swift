@@ -204,22 +204,52 @@ struct AddressPoisoningTests {
         let base = try StellarKey.accountID(key)
         let mine = StellarKey.muxedAddress(publicKey: key, id: 1_234_567)
         let attacker = StellarKey.muxedAddress(publicKey: key, id: 7_654_321)
+        let mineKnown = AddressPoisoning.SameAccount(known: mine, knownID: 1_234_567)
         // Para o parecido, a mesma conta, nao um sosia; o ID trocado e a outra conferencia.
         #expect(AddressPoisoning.lookalike(attacker, among: [mine], chain: .stellar) == nil)
-        #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [base, mine], chain: .stellar) == mine)
-        #expect(AddressPoisoning.sameAccountOtherID(" \(attacker)\n", among: [mine], chain: .stellar) == mine)
+        #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [base, mine], chain: .stellar) == mineKnown)
+        #expect(AddressPoisoning.sameAccountOtherID(" \(attacker)\n", among: [mine], chain: .stellar) == mineKnown)
         // Os vetores do SEP-0023: ID 0 e ID 2^63 da mesma chave.
         let m0 = "MA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJUAAAAAAAAAAAACJUQ"
         let mBig = "MA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVAAAAAAAAAAAAAJLK"
-        #expect(AddressPoisoning.sameAccountOtherID(mBig, among: [m0], chain: .stellar) == m0)
+        #expect(AddressPoisoning.sameAccountOtherID(mBig, among: [m0], chain: .stellar) == .init(known: m0, knownID: 0))
         // O M de sempre, mesmo com outro M da conta tambem conhecido: nada a conferir.
         #expect(AddressPoisoning.sameAccountOtherID(mine, among: [attacker, mine], chain: .stellar) == nil)
-        // Sem M dos dois lados, outra conta ou outra rede: nada.
+        // Sem ID dos dois lados, outra conta ou outra rede: nada.
         #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [base], chain: .stellar) == nil)
         #expect(AddressPoisoning.sameAccountOtherID(base, among: [mine], chain: .stellar) == nil)
         #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [mine], chain: ethereum) == nil)
         let stranger = StellarKey.muxedAddress(publicKey: [UInt8](repeating: 7, count: 32), id: 1_234_567)
         #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [stranger], chain: .stellar) == nil)
+
+        // O contato G salvo com o ID no memo e o mesmo par (conta, ID) de um M.
+        let contact = [(address: base, tag: "1234567")]
+        #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [], tagged: contact, chain: .stellar) == .init(known: base, knownID: 1_234_567))
+        #expect(AddressPoisoning.sameAccountOtherID(mine, among: [], tagged: contact, chain: .stellar) == nil)
+        #expect(AddressPoisoning.sameAccountOtherID(attacker, among: [], tagged: [(address: base, tag: "memo de texto")], chain: .stellar) == nil)
+        // E o destino G com o memo do envio, contra um M conhecido.
+        #expect(AddressPoisoning.sameAccountOtherID(base, tag: "7654321", among: [mine], chain: .stellar) == mineKnown)
+        #expect(AddressPoisoning.sameAccountOtherID(base, tag: "1234567", among: [mine], chain: .stellar) == nil)
+
+        // Para seguir: o numero do ID, ou os 6 ultimos do endereco, nunca o trecho que a
+        // tela mostra do conhecido.
+        #expect(AddressPoisoning.muxedIDConfirmed("7654321", address: attacker))
+        #expect(AddressPoisoning.muxedIDConfirmed(" 7 654 321 ", address: attacker))
+        #expect(AddressPoisoning.muxedIDConfirmed(String(attacker.suffix(6)).lowercased(), address: attacker))
+        #expect(!AddressPoisoning.muxedIDConfirmed("1234567", address: attacker))
+        #expect(!AddressPoisoning.muxedIDConfirmed(String(mine.suffix(6)), address: attacker))
+        #expect(!AddressPoisoning.muxedIDConfirmed("", address: attacker))
+        #expect(!AddressPoisoning.muxedIDConfirmed("0", address: base))
+
+        // Sem historico, o trecho escondido de um M e o fim (o meio e a chave, igual nos dois).
+        let middle = try #require(AddressPoisoning.middleSegment(attacker))
+        #expect(middle.text(in: attacker) == middle.text(in: mine))
+        let blind = try #require(AddressPoisoning.blindSegment(attacker, chain: .stellar))
+        #expect(blind == AddressPoisoning.Segment(start: 63, length: 6))
+        #expect(blind.text(in: attacker) != blind.text(in: mine))
+        #expect(AddressPoisoning.blindSegment(base, chain: .stellar) == AddressPoisoning.middleSegment(base))
+        #expect(AddressPoisoning.blindSegment("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", chain: bitcoin)
+            == AddressPoisoning.middleSegment("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"))
 
         // O trecho do ID: do caractere 53 ao fim. Antes dele, os dois sao iguais.
         let segment = try #require(AddressPoisoning.muxedIDSegment(attacker))

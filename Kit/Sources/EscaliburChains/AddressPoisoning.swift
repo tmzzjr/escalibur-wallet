@@ -157,9 +157,8 @@ public enum AddressPoisoning {
 
     // MARK: Mesma conta, outro ID (Stellar)
 
-    /// O endereco M conhecido com a mesma conta base de `address` e outro ID, quando
-    /// `address` e um M e nenhum conhecido e ele mesmo (revisao dos enderecos parecidos,
-    /// B-6).
+    /// O conhecido com a mesma conta base de `address` e outro ID, quando nenhum conhecido
+    /// tem a mesma conta com o mesmo ID (revisao dos enderecos parecidos, B-6).
     ///
     /// `lookalike` deixa de fora, de proposito, dois M da mesma base: sao a mesma conta, e
     /// nao um sosia gerado. So que numa corretora o ID e o que diz de qual cliente e o
@@ -167,17 +166,60 @@ public enum AddressPoisoning {
     /// o ID pelo de uma conta do atacante na mesma corretora e codificar de novo: o
     /// endereco continua valido, da mesma conta, e passava por todas as conferencias.
     ///
-    /// So M contra M: o G da conta (ou o historico da rede, que da a conta base) nao diz
-    /// qual ID o dono usou, e nao tem o que comparar.
-    public static func sameAccountOtherID(_ address: String, among known: [String], chain: Chain) -> String? {
-        guard chain.family == .stellar, let target = muxedAccount(address), target.isMuxed else { return nil }
-        let muxed: [(text: String, account: StellarMuxedAccount)] = known.compactMap { text in
-            guard let account = muxedAccount(text), account.isMuxed else { return nil }
-            return (text, account)
+    /// O que se compara e o par (conta base, ID): o M traz os dois, e um G traz o ID no memo
+    /// que vai junto. Por isso `tag` e o memo de um destino G, e `tagged` sao os contatos G
+    /// salvos com o memo (revisao do B-6). Um G sem memo (o historico da rede so da a conta
+    /// base) nao diz qual ID o dono usou, e nao tem o que comparar.
+    public static func sameAccountOtherID(_ address: String, tag: String? = nil, among known: [String],
+                                          tagged: [(address: String, tag: String)] = [], chain: Chain) -> SameAccount? {
+        guard chain.family == .stellar, let target = muxedPair(address, tag: tag) else { return nil }
+        let pairs = known.compactMap { text in muxedPair(text, tag: nil).map { (text: text, pair: $0) } }
+            + tagged.compactMap { entry in muxedPair(entry.address, tag: entry.tag).map { (text: entry.address, pair: $0) } }
+        // O mesmo par ja usado: e o destino de sempre.
+        if pairs.contains(where: { $0.pair == target }) { return nil }
+        return pairs.first { $0.pair.account == target.account }.map { SameAccount(known: $0.text, knownID: $0.pair.id) }
+    }
+
+    /// Um conhecido com a mesma conta base e outro ID.
+    public struct SameAccount: Equatable, Sendable {
+        /// O endereco como o dono o tem: um M, ou o G de um contato salvo com o ID no memo.
+        public let known: String
+        /// O ID desse conhecido.
+        public let knownID: UInt64
+    }
+
+    /// Conta base e ID: do M, ou do G com um memo que e numero.
+    static func muxedPair(_ address: String, tag: String?) -> (account: StellarAccountID, id: UInt64)? {
+        guard let account = muxedAccount(address) else { return nil }
+        if let id = account.id { return (account.account, id) }
+        guard let tag, let id = UInt64(tag.trimmingCharacters(in: .whitespacesAndNewlines)) else { return nil }
+        return (account.account, id)
+    }
+
+    /// O dono confirmou o ID de um M com a mesma conta de um conhecido: digitou o numero
+    /// do ID que quem vai receber mostra, ou os 6 ultimos caracteres do endereco, lidos onde
+    /// ele foi copiado. Na tela os dois ficam escondidos, para a resposta nao sair dela
+    /// (revisao do B-6).
+    public static func muxedIDConfirmed(_ typed: String, address: String) -> Bool {
+        let text = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let id = muxedAccount(text)?.id else { return false }
+        let answer = typed.filter { !$0.isWhitespace }
+        if let number = UInt64(answer), number == id { return true }
+        return answer.count == muxedTailLength && answer.uppercased() == String(text.suffix(muxedTailLength)).uppercased()
+    }
+
+    static let muxedTailLength = 6
+
+    /// O trecho que o dono digita lendo na fonte, quando nao ha com o que comparar: os 6 do
+    /// meio do endereco. Num M da Stellar o meio ainda e a chave, igual em todo M da mesma
+    /// conta, e a troca so do ID passava; ali o trecho e o fim, o ID e o checksum (revisao
+    /// do B-6).
+    public static func blindSegment(_ address: String, chain: Chain, length: Int = 6) -> Segment? {
+        let text = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        if chain.family == .stellar, muxedAccount(text)?.isMuxed == true {
+            return Segment(start: text.count - length, length: length)
         }
-        // O mesmo M ja usado: e o destino de sempre.
-        if muxed.contains(where: { $0.account == target }) { return nil }
-        return muxed.first { $0.account.account == target.account }?.text
+        return middleSegment(address, length: length)
     }
 
     /// O trecho do endereco M depois da chave: o ID e o checksum, o que muda quando so o
