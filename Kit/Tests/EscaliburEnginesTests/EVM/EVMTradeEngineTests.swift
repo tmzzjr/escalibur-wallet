@@ -299,7 +299,7 @@ struct EVMTradeEngineTests {
 
     /// Uma cotacao dividida em duas pernas de 100 USDC (Velora e KyberSwap), montada com os
     /// garantidos que a recotacao vai dar.
-    static func splitQuote() throws -> TradeQuote {
+    static func splitQuote(alternatives: [String] = []) throws -> TradeQuote {
         let velora = try F.validated(.velora)
         let kyber = try F.validated(.kyberSwap)
         return TradeQuote(
@@ -309,7 +309,8 @@ struct EVMTradeEngineTests {
                 .init(provider: "Velora", fraction: 0.5, amountIn: F.amount, expectedOut: velora.expectedOut),
                 .init(provider: "KyberSwap", fraction: 0.5, amountIn: F.amount, expectedOut: kyber.expectedOut),
             ],
-            alternatives: [], providersCompared: 4, needsApproval: true, expiresAt: .now.addingTimeInterval(60)
+            alternatives: alternatives.map { .init(provider: $0, out: 0) }, providersCompared: 4, needsApproval: true,
+            expiresAt: .now.addingTimeInterval(60)
         )
     }
 
@@ -326,6 +327,62 @@ struct EVMTradeEngineTests {
         #expect(plan.review.lines.contains { $0.label.hasPrefix("Etapa 2 · ") })
         // A segunda perna le o estado com o nonce local depois da primeira.
         #expect(await state.reads.map(\.localNextNonce) == [nil, 9])
+        // E as duas rodam em sequencia, num bloco so, antes de assinar.
+        #expect(await state.sequences == [[.velora, .kyberSwap]])
+    }
+
+    @Test("Regressao: com preco de referencia, cada perna e conferida contra a sua parte do preco, e a divisao sai")
+    func splitWithOracle() async throws {
+        let quote = try Self.splitQuote()
+        let ethMicros = BigUInt(100) * BigUInt.power(of: 10, 24) / (quote.expectedOut / BigUInt(2))
+        let text = ethMicros.decimalString
+        let prices = ["usd-coin": "1", "ethereum": String(text.dropLast(6)) + "." + String(text.suffix(6))]
+        let state = FakeTradeChain(tokenBalance: BigUInt(250_000_000))
+        let engine = H.engine(state: state, prices: prices, sources: try H.sources(EVMCallCounter()), transport: try H.baseTransport())
+        let plan = try await engine.plan(try F.request(amount: F.amount * BigUInt(2)), quote: quote)
+        #expect(plan.review.title == "Trocar 200\u{00A0}USDC por ETH em 2 etapas")
+        #expect(await state.sequences == [[.velora, .kyberSwap]])
+    }
+
+    @Test("Divisao que nao se sustenta em sequencia (pool em comum): cai para um provedor so, com a troca inteira")
+    func splitSequenceFallsBack() async throws {
+        let counter = EVMCallCounter()
+        let total = F.amount * BigUInt(2)
+        let quote = try Self.splitQuote(alternatives: ["PancakeSwap"])
+        // A PancakeSwap cota os 200 USDC inteiros, com o mesmo estimado somado das duas pernas.
+        let single = try Self.pancake(amount: total, expectedOut: quote.expectedOut)
+        let sources = try H.sources(counter, proposals: [try F.proposals()[0], try F.proposals()[1]])
+            + [RecordedQuoteSource(provider: .pancakeswap, proposal: single, amountIn: total, counter: counter)]
+        let ethMicros = BigUInt(100) * BigUInt.power(of: 10, 24) / (quote.expectedOut / BigUInt(2))
+        let text = ethMicros.decimalString
+        let prices = ["usd-coin": "1", "ethereum": String(text.dropLast(6)) + "." + String(text.suffix(6))]
+
+        let state = FakeTradeChain(tokenBalance: BigUInt(250_000_000), failingSequenceLeg: 1)
+        let engine = H.engine(state: state, prices: prices, sources: sources, transport: try H.baseTransport())
+        let plan = try await engine.plan(try F.request(amount: total), quote: quote)
+        #expect(await state.sequences == [[.velora, .kyberSwap]])
+        #expect(await state.reads.map(\.provider) == [.velora, .kyberSwap, .pancakeswap])
+        let swap = try #require(plan.transactions.last as? EVMTransaction)
+        #expect(plan.transactions.count == 2 && swap.to == TradeAllowlist.router(for: .pancakeswap, on: .base)?.address)
+        #expect(plan.review.lines.contains { $0.label == "Provedor" && $0.value == "PancakeSwap" })
+
+        // Sem alternativa que cubra o minimo: nada sai, com a mensagem da simulacao.
+        let lone = H.engine(state: FakeTradeChain(tokenBalance: BigUInt(250_000_000), failingSequenceLeg: 1), prices: prices,
+                            sources: try H.sources(EVMCallCounter()), transport: try H.baseTransport())
+        await #expect(throws: SendEngineError.message("A simulação mostra que esta troca falharia agora. Nada foi assinado.")) {
+            _ = try await lone.plan(try F.request(amount: total), quote: try Self.splitQuote())
+        }
+    }
+
+    /// A PancakeSwap pela v3 USDC/WETH 0,05% num valor qualquer, com o estimado dado.
+    static func pancake(amount: BigUInt, expectedOut: BigUInt) throws -> TradeProposal {
+        let intent = try F.intent(amount: amount)
+        let deployment = PancakeDeployment.on(.base)!
+        let built = try PancakeCalldata.encode(route: .v3(tokens: [F.usdcToken.contract, deployment.wrappedNative], fees: [500]), intent: intent,
+                                               minimumOut: intent.minimumOut(forExpected: expectedOut),
+                                               deadline: UInt64(Date().addingTimeInterval(600).timeIntervalSince1970), deployment: deployment)
+        return TradeProposal(provider: .pancakeswap, chainID: 8453, from: intent.owner, to: deployment.router, value: built.value, data: built.data,
+                             expectedOut: expectedOut, spender: deployment.router, gasEstimate: 170_000, routeSources: nil, reportedPriceImpactBps: nil)
     }
 
     @Test("Divisao sem saldo para as duas pernas: a segunda recusa, nada sai")

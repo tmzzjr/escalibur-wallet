@@ -96,6 +96,13 @@ public struct TradeMarketReference: Sendable, Equatable {
         self.oracleOut = numerator / denominator
     }
 
+    /// A referencia de uma parte do valor (uma perna da divisao): o mesmo preco, para `part`
+    /// de `whole`. Sem isto, a perna de 50% pareceria pagar metade do mercado e seria recusada.
+    public func portion(_ part: BigUInt, of whole: BigUInt) -> TradeMarketReference {
+        guard let oracleOut, !whole.isZero, part != whole else { return self }
+        return TradeMarketReference(oracleOut: oracleOut * part / whole)
+    }
+
     /// Quanto `expected` fica abaixo da referencia, em bps (negativo = melhor). nil sem
     /// referencia.
     public func deviationBps(expected: BigUInt) -> Int? {

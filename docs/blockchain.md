@@ -491,6 +491,7 @@ Os agregadores já dividem entre DEXes internamente.
 - divida só quando as `routeSources` forem disjuntas;
 - **recote a perna 2 depois de a perna 1 confirmar**, com um `minOut` próprio.
 - **Na v1 (código):** as pernas são recotadas no plano, cada uma com o seu `minOut`, e montadas num plano só (`TradePlanner.combineSplit`), com nonces seguidos e assinadas de uma vez. A revisão diz que são transações independentes; a perna 2 não espera a 1 confirmar.
+- **Na v1 (código), desde 17/10/2026:** antes de assinar, as pernas são simuladas **em sequência**, num bloco só, em duas fontes (`TradeSimulationSequence`): a perna 2 roda sobre o estado que a perna 1 deixou. Se duas rotas cotaram a mesma liquidez (a lista de pools vem da API e pode estar incompleta), a perna 2 recebe menos que o garantido dela e a divisão cai antes de qualquer assinatura; vale a troca inteira por um provedor só, na ordem do ranking, presa ao mínimo mostrado menos a tolerância. A execução continua imediata: tudo assinado de uma vez e enviado junto, sem espera entre as pernas. E cada perna é conferida contra a sua parte do preço de referência (`TradeMarketReference.portion`); antes disso, com o oráculo respondendo, a perna de 50% parecia pagar metade do mercado e a divisão era descartada em silêncio.
 
 **Atomicidade**
 

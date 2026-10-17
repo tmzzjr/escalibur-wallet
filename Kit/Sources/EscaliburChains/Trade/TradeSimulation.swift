@@ -81,6 +81,47 @@ public struct TradeSimulationRequest: Sendable, Equatable {
     var permit2: EVMPermit2Approval? = nil
 }
 
+/// Uma perna da troca dividida, com as chamadas que ela vai fazer.
+public struct TradeSimulationLeg: Sendable {
+    public let quote: ValidatedTradeQuote
+    public let request: TradeSimulationRequest
+
+    public init(quote: ValidatedTradeQuote, request: TradeSimulationRequest) {
+        self.quote = quote
+        self.request = request
+    }
+}
+
+/// A divisao simulada em sequencia. Cada perna ja passou pela simulacao sozinha, sobre o
+/// estado de agora; aqui todas rodam num bloco so, na ordem em que vao executar, e a
+/// segunda ve o que a primeira deixou. Dois provedores que cotaram no mesmo pool (a lista de
+/// pools e o que a API diz, e a divisao so junta listas disjuntas) contam a mesma liquidez
+/// duas vezes: depois da primeira perna, a segunda recebe menos que o garantido dela, e a
+/// sequencia recusa antes de qualquer assinatura. Cada fonte devolve as chamadas de todas as
+/// pernas emendadas; elas sao cortadas por perna e cada perna passa pela conferencia de sempre.
+public enum TradeSimulationSequence {
+    public static func calls(_ legs: [TradeSimulationLeg]) -> [TradeSimulationRequest.Call] {
+        legs.flatMap(\.request.calls)
+    }
+
+    public static func verify(_ simulations: [TradeSimulation], legs: [TradeSimulationLeg]) throws {
+        let total = legs.reduce(0) { $0 + $1.request.calls.count }
+        var perLeg = [[TradeSimulation]](repeating: [], count: legs.count)
+        for simulation in simulations {
+            guard simulation.calls.count == total else { throw TradeRefusal.simulationShape }
+            var start = 0
+            for (index, leg) in legs.enumerated() {
+                let end = start + leg.request.calls.count
+                perLeg[index].append(TradeSimulation(source: simulation.source, calls: Array(simulation.calls[start..<end])))
+                start = end
+            }
+        }
+        for (index, leg) in legs.enumerated() {
+            _ = try TradeSimulationCheck.verify(perLeg[index], request: leg.request, quote: leg.quote)
+        }
+    }
+}
+
 enum TradeSimulationCheck {
     static let transferTopic = Hash.keccak256(Array("Transfer(address,address,uint256)".utf8))
     static let approvalTopic = Hash.keccak256(Array("Approval(address,address,uint256)".utf8))

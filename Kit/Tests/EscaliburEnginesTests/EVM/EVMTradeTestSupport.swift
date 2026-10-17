@@ -151,14 +151,28 @@ actor FakeTradeChain: EVMTradeChainReading {
     var failingSimulationSource: String?
     /// Os provedores cuja rota reverte na simulacao, nas duas fontes.
     var failingSimulationProviders: Set<TradeProvider> = []
+    /// A perna da divisao que reverte quando as pernas rodam em sequencia (pool em comum:
+    /// sozinha ela passa).
+    var failingSequenceLeg: Int?
+    private(set) var sequences: [[TradeProvider]] = []
     private(set) var reads: [(provider: TradeProvider, localNextNonce: UInt64?)] = []
 
     init(tokenBalance: BigUInt = BigUInt(1_000_000_000), allowance: BigUInt = 0, failingSimulationSource: String? = nil,
-         failingSimulationProviders: Set<TradeProvider> = []) {
+         failingSimulationProviders: Set<TradeProvider> = [], failingSequenceLeg: Int? = nil) {
         self.tokenBalance = tokenBalance
         self.allowance = allowance
         self.failingSimulationSource = failingSimulationSource
         self.failingSimulationProviders = failingSimulationProviders
+        self.failingSequenceLeg = failingSequenceLeg
+    }
+
+    func simulateSequence(_ legs: [TradeSimulationLeg]) async throws -> [TradeSimulation] {
+        sequences.append(legs.map(\.quote.provider))
+        return ["publicnode", "drpc"].map { source in
+            TradeSimulation(source: source, calls: legs.enumerated().flatMap { index, leg in
+                EVMTradeFixtures.simulation(leg.quote, allowance: allowance, source: source, success: index != failingSequenceLeg).calls
+            })
+        }
     }
 
     func network(chain: Chain, owner: EVMAddress, localNextNonce: UInt64?, gasEstimate: UInt64, l1DataFee: BigUInt?,

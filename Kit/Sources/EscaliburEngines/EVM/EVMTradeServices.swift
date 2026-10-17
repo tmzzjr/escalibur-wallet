@@ -17,6 +17,8 @@ protocol EVMTradeChainReading: Sendable {
     func l1DataFee(chain: Chain, calldataSize: Int) async throws -> BigUInt?
     func token(chain: Chain, token: EVMAddress, owner: EVMAddress, spender: EVMAddress) async throws -> EVMTokenState
     func read(for quote: ValidatedTradeQuote, localNextNonce: UInt64?) async throws -> TradeChainState
+    /// As pernas da divisao simuladas em sequencia, num bloco so, em duas fontes.
+    func simulateSequence(_ legs: [TradeSimulationLeg]) async throws -> [TradeSimulation]
     func readCoW(intent: CoWLimitOrderIntent, openOrdersSellTotal: BigUInt, localNextNonce: UInt64?) async throws -> CoWChainState
     func readCancellation(chain: Chain, owner: EVMAddress, uid: [UInt8], localNextNonce: UInt64?) async throws -> EVMNetworkState
 }

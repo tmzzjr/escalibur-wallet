@@ -15,12 +15,18 @@ import Foundation
 //     melhor cotacao unica.
 //
 // Liquidez correlacionada: agregadores diferentes batem nos mesmos pools, e a perna 1
-// move o preco da perna 2. Por isso so entram juntas curvas com `routeSources`
-// conhecidas e disjuntas (rota opaca nunca divide), e a perna 2 e recotada depois de a
-// perna 1 confirmar, com minOut proprio.
+// move o preco da perna 2; somar as duas curvas contaria a mesma liquidez duas vezes. Por
+// isso so entram juntas curvas com `routeSources` conhecidas e disjuntas, por pool e por
+// DEX, somadas em todas as fracoes cotadas (rota opaca nunca divide: Uniswap, PancakeSwap,
+// ShibaSwap, LI.FI e De¹ ficam de fora). A lista e o que a API diz; a garantia de verdade
+// vem depois: cada perna e recotada na hora do plano com o seu minOut, e as pernas sao
+// simuladas em sequencia, num bloco so (`TradeSimulationSequence`). Se a segunda nao se
+// sustenta depois da primeira, a divisao cai antes de qualquer assinatura e vale a troca
+// por um provedor so.
 //
 // Na EVM nao ha atomicidade (sem router proprio, sem 7702): sao N transacoes
-// independentes, e o plano diz isso antes de comecar.
+// independentes, assinadas de uma vez e enviadas juntas, em nonces seguidos, e o plano diz
+// isso antes de comecar.
 
 public struct TradeSplitCurve: Sendable, Equatable {
     public struct Point: Sendable, Equatable {
@@ -207,9 +213,9 @@ public enum TradeSplitOptimizer {
     }
 }
 
-/// A troca dividida em etapas: o que a tela mostra antes de comecar, e a intencao de
-/// cada perna. Cada perna vira um `SigningPlan` proprio, montado na hora (a perna 2 so
-/// depois da perna 1 confirmar, com cotacao e minOut novos).
+/// A troca dividida em etapas: a decisao do otimizador e a intencao de cada perna. O motor
+/// recota cada perna, monta um `SigningPlan` por perna e junta tudo num plano so
+/// (`TradePlanner.combineSplit`), que e a revisao que a tela mostra.
 public struct TradeSplitPlan: Sendable, Equatable {
     public let intent: TradeIntent
     public let decision: TradeSplitDecision
@@ -246,7 +252,6 @@ public struct TradeSplitPlan: Sendable, Equatable {
             .init(kitText("Sai"), TradeText.amount(intent.amountIn, intent.sell), role: .sold),
             .init(kitText("Divisão"), parts.joined(separator: ", ")),
             .init(kitText("Transações"), kitText("\(decision.legs.count) trocas independentes, uma depois da outra, mais as autorizações exatas que faltarem")),
-            .init(kitText("Ordem"), kitText("Cada etapa é recotada só depois que a anterior confirmar, com o seu próprio mínimo garantido")),
             .init(kitText("Se uma etapa falhar"), kitText("Você fica com cerca de \(TradeText.percent(bps: first.shareBps)) em \(intent.buy.symbol) e \(rest) em \(intent.sell.symbol). Não existe desfazer: perde só a taxa de rede da etapa que falhou, e o app oferece recotar o restante.")),
             .init(kitText("Ganho estimado"), kitText("\(TradeText.amount(decision.gain, intent.buy)) sobre a melhor cotação única, já descontada a taxa de rede extra")),
             .init(kitText("Taxa da Escalibur"), kitText("Sem taxa da Escalibur")),

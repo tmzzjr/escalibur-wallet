@@ -243,6 +243,13 @@ public actor TradeStateReader {
         try await simulate(chain: chain, calls: calls, stateOverrides: nil)
     }
 
+    /// A divisao inteira num bloco so, na ordem das pernas: o estado passa de uma chamada para
+    /// a seguinte (`TradeSimulationSequence`).
+    public func simulateSequence(_ legs: [TradeSimulationLeg]) async throws -> [TradeSimulation] {
+        guard let chain = legs.first?.quote.intent.chain else { return [] }
+        return try await simulate(chain: chain, calls: TradeSimulationSequence.calls(legs))
+    }
+
     /// `stateOverrides` so existe para os testes ao vivo darem saldo a conta de teste; o
     /// app nunca passa (a simulacao tem de ver o estado real).
     func simulate(chain: Chain, calls: [TradeSimulationRequest.Call], stateOverrides: JSONValue?) async throws -> [TradeSimulation] {

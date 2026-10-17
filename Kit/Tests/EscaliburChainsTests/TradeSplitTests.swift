@@ -109,6 +109,15 @@ struct TradeSplitTests {
         #expect(partial.out(atBps: 7_500) == nil)
     }
 
+    @Test("A referencia de preco de uma perna e a parte proporcional da referencia do total")
+    func referencePortion() {
+        let whole = TradeMarketReference(oracleOut: 1_000_000)
+        #expect(whole.portion(250, of: 1_000).oracleOut == 250_000)
+        #expect(whole.portion(1_000, of: 1_000) == whole)
+        #expect(TradeMarketReference.none.portion(1, of: 2) == .none)
+        #expect(whole.portion(1, of: 0) == whole)
+    }
+
     @Test("Plano de varias etapas: revisao diz N transacoes independentes e o que acontece se uma falhar")
     func splitPlan() throws {
         let intent = try S.baseIntent()
@@ -121,7 +130,7 @@ struct TradeSplitTests {
         let lines = Dictionary(uniqueKeysWithValues: plan.review.lines.map { ($0.label, $0.value) })
         #expect(lines["Divisão"] == "50% pela Velora, 50% pela KyberSwap")
         #expect(lines["Transações"]?.hasPrefix("2 trocas independentes") == true)
-        #expect(lines["Ordem"]?.contains("só depois que a anterior confirmar") == true)
+        #expect(lines["Ordem"] == nil)
         #expect(lines["Se uma etapa falhar"] == "Você fica com cerca de 50% em ETH e 50% em USDC. Não existe desfazer: perde só a taxa de rede da etapa que falhou, e o app oferece recotar o restante.")
         #expect(lines["Taxa da Escalibur"] == "Sem taxa da Escalibur")
         let leg0 = try plan.legIntent(0)

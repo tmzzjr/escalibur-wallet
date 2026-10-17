@@ -164,7 +164,8 @@ public struct EVMTradeEngine: TradeEngine {
             for index in legs.indices {
                 group.addTask {
                     guard let intent = try? split.legIntent(index) else { return (index, nil) }
-                    let quote = try? await aggregator.requote(legs[index].provider, intent: intent, market: market.reference, gasPriceWei: market.gasPriceWei)
+                    let reference = market.reference.portion(intent.amountIn, of: split.intent.amountIn)
+                    let quote = try? await aggregator.requote(legs[index].provider, intent: intent, market: reference, gasPriceWei: market.gasPriceWei)
                     return (index, quote)
                 }
             }
@@ -234,7 +235,25 @@ public struct EVMTradeEngine: TradeEngine {
                 }
             }
             throw refusal
+        } catch let failure as EVMSplitSequenceFailure {
+            // A divisao nao se sustenta em sequencia (a segunda perna, depois da primeira,
+            // receberia menos que o garantido dela). Vale a troca inteira por um provedor so,
+            // na ordem do ranking: recotada, validada, simulada e presa ao minimo que a tela
+            // mostrou, menos a tolerancia. A revisao diz qual executa.
+            for alternative in quote.alternatives {
+                guard let provider = EVMTradeQuoteMapping.provider(named: alternative.provider) else { continue }
+                if let plan = try? await planLegs([(provider, intent.amountIn, 10_000)], request: request, quote: quote, context: context,
+                                                  market: market, riskConfirmed: riskConfirmed) {
+                    return plan
+                }
+            }
+            throw failure.refusal
         }
+    }
+
+    /// A divisao que falhou na simulacao em sequencia, com a recusa da perna.
+    struct EVMSplitSequenceFailure: Error {
+        let refusal: TradeRefusal
     }
 
     /// A recusa e da simulacao (a troca montada nao faria o que diz), nao da falta dela.
@@ -276,8 +295,13 @@ public struct EVMTradeEngine: TradeEngine {
         var plannedAhead: UInt64 = 0
         var spentNative = BigUInt()
         var spentSell = BigUInt()
+        var simulationLegs = [TradeSimulationLeg]()
         for (index, leg) in requoted.enumerated() {
             let fetched = try await services.chainState.read(for: leg.quote, localNextNonce: nextNonce ?? request.nonceQueue?.nextNonce)
+            simulationLegs.append(TradeSimulationLeg(
+                quote: leg.quote,
+                request: TradePlanner.simulationRequest(for: leg.quote, currentAllowance: fetched.sellToken?.allowance, permit2: fetched.permit2)
+            ))
             let read = fetched.replacingNetwork(fetched.network.applying(request.nonceQueue, plannedNext: nextNonce, plannedAhead: plannedAhead))
             let state = Self.remaining(read, spentNative: spentNative, spentSell: spentSell)
             let step = requoted.count > 1 ? TradeSplitStep(index: index, count: requoted.count, shareBps: leg.shareBps) : nil
@@ -295,6 +319,16 @@ public struct EVMTradeEngine: TradeEngine {
         }
         let warning: [PlanReview.Warning] = Self.sandwichExposed(chain) ? [.publicMempool] : []
         guard plans.count > 1 else { return plans[0].addingWarnings(warning) }
+
+        // Cada perna passou pela simulacao sozinha; agora todas em sequencia, num bloco so,
+        // como vao executar (`TradeSimulationSequence`). Uma perna que nao se sustenta depois
+        // das anteriores derruba a divisao.
+        do {
+            let simulations = try await services.chainState.simulateSequence(simulationLegs)
+            try TradeSimulationSequence.verify(simulations, legs: simulationLegs)
+        } catch let refusal as TradeRefusal where Self.failedInSimulation(refusal) {
+            throw EVMSplitSequenceFailure(refusal: refusal)
+        }
         // A revisao da divisao e escrita pelo compositor de EscaliburChains, a partir das
         // pernas e das cotacoes validadas; o motor nao escreve titulo nem linha.
         return try TradePlanner.combineSplit(plans, quotes: requoted.map(\.quote)).addingWarnings(warning)
@@ -337,7 +371,8 @@ public struct EVMTradeEngine: TradeEngine {
             for (index, leg) in legs.enumerated() {
                 let legIntent = legs.count == 1 ? intent : try intent.withAmount(leg.amountIn)
                 group.addTask {
-                    (index, try await aggregator.requote(leg.provider, intent: legIntent, market: market.reference, gasPriceWei: market.gasPriceWei))
+                    (index, try await aggregator.requote(leg.provider, intent: legIntent, market: market.reference.portion(leg.amountIn, of: intent.amountIn),
+                                                         gasPriceWei: market.gasPriceWei))
                 }
             }
             var found = [Int: ValidatedTradeQuote]()
