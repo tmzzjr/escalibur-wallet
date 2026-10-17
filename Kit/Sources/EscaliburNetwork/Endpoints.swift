@@ -362,7 +362,9 @@ public enum Endpoints {
     /// historico e os tokens fora da lista dessas quatro (na BNB, os tokens voltam pela
     /// lista do CoinGecko, `TokenListScan`); saldo, envio e troca nao passam por aqui.
     /// Conferido ao vivo em 15/10/2026 (Base, Arbitrum e Polygon) e 16/10/2026 (BNB Chain,
-    /// `eth_chainId` 0x38) com a conta publica de teste do BIP-39.
+    /// `eth_chainId` 0x38) com a conta publica de teste do BIP-39. Na BNB, o historico
+    /// tambem le nonce, codigo, bloco, recibo e saldo do dono em bloco antigo pela mesma
+    /// URL, para achar as falhas e o BNB mandado por contrato (`EVMHistoryRecovery.swift`).
     public static let alchemy: [String: URL] = [
         "base": url("https://base-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
         "arbitrum": url("https://arb-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),

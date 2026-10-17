@@ -481,10 +481,14 @@ struct EVMReaderTests {
     }
 
     /// Responde a Alchemy pelas gravacoes de 15/10/2026 (Ethereum e Base) e 16/10/2026
-    /// (BNB Chain): uma por categoria e lado, e o lote de recibos (um corpo que e lista).
-    /// `tokens: false` faz as consultas de token falharem.
+    /// (BNB Chain): uma por categoria e lado, o lote de recibos (um corpo que e lista) e,
+    /// na BNB, o lote do nonce e do codigo da recuperacao. `tokens: false` faz as
+    /// consultas de token falharem.
     private func alchemyTransport(_ chain: String, receipts: Bool = true, tokens: Bool = true) -> FixtureTransport {
         FixtureTransport([{ request, body in
+            if case .array(let calls)? = body, calls.contains(where: { FixtureTransport.method($0) == "eth_getCode" }) {
+                return try ReaderFixtures.data("evm", "alchemy-deteccao-\(chain)")
+            }
             if case .array? = body { return receipts ? try ReaderFixtures.data("evm", "alchemy-recibos-\(chain)") : nil }
             guard FixtureTransport.method(body) == "alchemy_getAssetTransfers",
                   case .object(let query)? = FixtureTransport.params(body).first,
@@ -596,9 +600,16 @@ struct EVMReaderTests {
         let reader = EVMReader(transport: transport, rpc: [:], history: ["bnb": [provider]], privateRelays: [])
         let page = try await reader.history(chain: .bnb, address: owner)
 
-        // Envio e recebimento nativos, token de e para, e o lote de recibos. A categoria
-        // interna nem e pedida: na BNB a Alchemy recusa o pedido inteiro (-32602).
-        #expect(transport.requests.count == 5)
+        // Envio e recebimento nativos, token de e para, o lote de recibos e o lote do nonce
+        // e do codigo. A categoria interna nem e pedida: na BNB a Alchemy recusa o pedido
+        // inteiro (-32602). A conta de teste do BIP-39 tem delegacao EIP-7702 na BNB (o
+        // codigo `0xef0100...`): a recuperacao das falhas e do BNB mandado por contrato
+        // para ali, sem busca e sem saldo.
+        #expect(transport.requests.count == 6)
+        #expect(!transport.requests.contains { request in
+            let body = request.body.flatMap { try? StrictJSON.parse($0) }
+            return ["eth_blockNumber", "eth_getBlockByNumber"].contains(FixtureTransport.method(body) ?? "")
+        })
         #expect(askedCategories(transport).sorted() == ["erc20", "erc20", "external", "external"])
         #expect(transport.requests.allSatisfy { !$0.url.absoluteString.lowercased().contains(owner.checksummed.lowercased()) })
         #expect(page.isComplete)

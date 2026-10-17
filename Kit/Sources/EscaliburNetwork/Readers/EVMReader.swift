@@ -43,6 +43,9 @@ public actor EVMReader {
     private var pools: [String: ProviderPool] = [:]
     private var chainIDChecks: [String: Task<Bool, Error>] = [:]
     private var wrongNetwork: Set<String> = []
+    /// O que a recuperacao do historico da Alchemy ja achou nesta sessao, por rede e dono
+    /// (`EVMHistoryRecovery.swift`).
+    var recoveryMemos: [String: AlchemyRecoveryMemo] = [:]
 
     public init(
         transport: ReaderTransport = HTTPClient.shared,
@@ -484,12 +487,29 @@ public actor EVMReader {
                 async let tokensOut = try? query("fromAddress", "erc20")
                 async let internals = internalTransfers()
                 let outgoing = try await sent
-                let fees = await Self.alchemyFees(transport, provider.baseURL, sent: outgoing)
-                let transactions = [outgoing, try await received]
+                let incoming = try await received
+                let receipts = await Self.alchemyReceipts(transport, provider.baseURL, sent: outgoing)
+                let fees = receipts.mapValues(\.fee)
                 let tokens = [await tokensIn, await tokensOut]
+                let tokenLists = tokens.compactMap { $0 }
+                let complete = !tokens.contains { $0 == nil }
+                let inner = await internals
+                let page = try Self.parseAlchemyHistory(
+                    chain: chain, owner: address, transactions: [outgoing, incoming], tokenTransfers: tokenLists,
+                    complete: complete, internals: inner, fees: fees
+                )
+                // BNB Chain: as falhas do dono e o BNB que um contrato mandou para ele, que
+                // a Alchemy nao lista (`EVMHistoryRecovery.swift`). Opcional como as taxas.
+                guard Self.alchemyRecoveryChains.contains(chain.id) else { return page }
+                let recovered = await self.recoverAlchemyHistory(
+                    chain: chain, owner: address, url: provider.baseURL, sent: outgoing, received: incoming,
+                    tokenTransfers: tokenLists, receipts: receipts, page: page
+                )
+                guard !recovered.isEmpty else { return page }
                 return try Self.parseAlchemyHistory(
-                    chain: chain, owner: address, transactions: transactions, tokenTransfers: tokens.compactMap { $0 },
-                    complete: !tokens.contains { $0 == nil }, internals: await internals, fees: fees
+                    chain: chain, owner: address, transactions: [outgoing, incoming], tokenTransfers: tokenLists,
+                    complete: complete && !recovered.incomplete, internals: inner, fees: fees,
+                    extraRows: recovered.rows, extraInternals: recovered.internals
                 )
             }
             if provider.name == "routescan" {
@@ -1055,9 +1075,12 @@ public actor EVMReader {
     /// com casas decimais, arredondado, e nunca e lido. Nome e simbolo que o provedor
     /// manda sao ignorados: o ativo vem da lista curada. A Alchemy so lista o que se
     /// moveu, entao tudo sai confirmado; a taxa vem dos recibos (`fees`), quando vierem.
+    /// `extraRows` e `extraInternals`: o que a recuperacao achou fora das listas (as
+    /// falhas do dono e o BNB mandado por contrato, `EVMHistoryRecovery.swift`).
     static func parseAlchemyHistory(
         chain: Chain, owner: EVMAddress, transactions: [StrictJSON], tokenTransfers: [StrictJSON], complete: Bool = true,
-        internals: StrictJSON? = nil, fees: [String: BigUInt] = [:]
+        internals: StrictJSON? = nil, fees: [String: BigUInt] = [:], extraRows: [TransactionRow] = [],
+        extraInternals: [InternalRow] = []
     ) throws -> ActivityPage {
         func transfers(_ json: StrictJSON, _ path: String) throws -> [StrictJSON] {
             try json.field("transfers", path).array(path + ".transfers")
@@ -1118,13 +1141,25 @@ public actor EVMReader {
             else { continue }
             inner.append(InternalRow(hash: hash, index: "i\(offset)", date: date, from: from, to: to, value: value))
         }
-        return assemble(chain: chain, owner: owner, rows: rows, tokens: tokens, internals: inner, complete: complete)
+        return assemble(
+            chain: chain, owner: owner, rows: rows + extraRows, tokens: tokens, internals: inner + extraInternals, complete: complete
+        )
     }
 
-    /// A taxa das transacoes do dono, pelos recibos num lote JSON-RPC so: `gasUsed` vezes
-    /// `effectiveGasPrice`, mais a taxa da L1 (`l1Fee`) na OP Stack. Opcional: sem
-    /// resposta, os itens saem sem a linha da taxa.
-    static func alchemyFees(_ transport: ReaderTransport, _ url: URL, sent: StrictJSON) async -> [String: BigUInt] {
+    /// O que o leitor tira do recibo de uma transacao do dono.
+    struct ReceiptFacts: Sendable, Equatable {
+        /// `gasUsed` vezes `effectiveGasPrice`, mais `l1Fee` na OP Stack.
+        let fee: BigUInt
+        /// `status` 0x1; `nil` se o recibo nao trouxe.
+        let success: Bool?
+        /// Quantos eventos; `nil` se o recibo nao trouxe a lista.
+        let logs: Int?
+    }
+
+    /// A taxa, o status e os eventos das transacoes do dono, pelos recibos num lote
+    /// JSON-RPC so: `gasUsed` vezes `effectiveGasPrice`, mais a taxa da L1 (`l1Fee`) na
+    /// OP Stack. Opcional: sem resposta, os itens saem sem a linha da taxa.
+    static func alchemyReceipts(_ transport: ReaderTransport, _ url: URL, sent: StrictJSON) async -> [String: ReceiptFacts] {
         guard let items = try? sent.field("transfers", "sent").array("sent.transfers") else { return [:] }
         var hashes: [String] = []
         for item in items {
@@ -1136,22 +1171,36 @@ public actor EVMReader {
             .object(["jsonrpc": .string("2.0"), "id": .int(id), "method": .string("eth_getTransactionReceipt"), "params": .array([.string(hash)])])
         })
         guard let data = try? await transport.send(.post(url, batch)), let json = try? StrictJSON.parse(data) else { return [:] }
-        return parseReceiptFees(json)
+        return parseReceipts(json)
     }
 
     static func parseReceiptFees(_ json: StrictJSON) -> [String: BigUInt] {
+        parseReceipts(json).mapValues(\.fee)
+    }
+
+    /// As respostas de um lote de `eth_getTransactionReceipt`, pelo hash. Recibo fora do
+    /// formato fica de fora.
+    static func parseReceipts(_ json: StrictJSON) -> [String: ReceiptFacts] {
         guard let answers = try? json.array("recibos") else { return [:] }
-        var fees: [String: BigUInt] = [:]
+        var out: [String: ReceiptFacts] = [:]
         for answer in answers {
-            guard let receipt = answer.optionalField("result"),
-                  let hash = try? receipt.field("transactionHash", "recibo").string("recibo.transactionHash"),
-                  let used = try? receipt.field("gasUsed", "recibo").quantity("recibo.gasUsed"),
-                  let price = try? receipt.field("effectiveGasPrice", "recibo").quantity("recibo.effectiveGasPrice")
+            guard let receipt = answer.optionalField("result"), let facts = receiptFacts(receipt),
+                  let hash = try? receipt.field("transactionHash", "recibo").string("recibo.transactionHash")
             else { continue }
-            let l1 = (try? receipt.optionalField("l1Fee")?.quantity("recibo.l1Fee")) ?? 0
-            fees[hash.lowercased()] = used * price + l1
+            out[hash.lowercased()] = facts
         }
-        return fees
+        return out
+    }
+
+    static func receiptFacts(_ receipt: StrictJSON) -> ReceiptFacts? {
+        guard let used = try? receipt.field("gasUsed", "recibo").quantity("recibo.gasUsed"),
+              let price = try? receipt.field("effectiveGasPrice", "recibo").quantity("recibo.effectiveGasPrice")
+        else { return nil }
+        let l1 = (try? receipt.optionalField("l1Fee")?.quantity("recibo.l1Fee")) ?? 0
+        let status: BigUInt? = try? receipt.optionalField("status")?.quantity("recibo.status")
+        let success: Bool? = status.flatMap { $0 == 1 ? true : ($0.isZero ? false : nil) }
+        let events: [StrictJSON]? = try? receipt.optionalField("logs")?.array("recibo.logs")
+        return ReceiptFacts(fee: used * price + l1, success: success, logs: events?.count)
     }
 
     /// Contratos ERC-20 que sao a propria moeda nativa. Celo: o CELO e nativo e ERC-20
