@@ -111,6 +111,9 @@ enum TradeTestSupport {
             return try uniswapProposal(name)
         case .pancakeswap:
             return try pancakeProposal(name)
+        case .shibaswap:
+            // So na Ethereum, sem gravacao: os testes dela montam a calldata (ShibaSwapTests).
+            throw CocoaError(.fileNoSuchFile)
         }
     }
 

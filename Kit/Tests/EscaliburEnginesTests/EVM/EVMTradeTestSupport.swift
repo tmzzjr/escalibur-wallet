@@ -75,6 +75,10 @@ enum EVMTradeFixtures {
                      buy: .native(.base), amountIn: amount, slippageBasisPoints: 50)
     }
 
+    /// Os provedores que tem router na Base, onde estao as gravacoes (a ShibaSwap so existe
+    /// na Ethereum).
+    static var baseProviders: [TradeProvider] { TradeProvider.allCases.filter { TradeAllowlist.router(for: $0, on: .base) != nil } }
+
     /// A mesma cotacao validada que o agregador produz, para o teste saber o esperado.
     static func validated(_ provider: TradeProvider) throws -> ValidatedTradeQuote {
         let proposal = try #require(try proposals().first { $0.provider == provider })

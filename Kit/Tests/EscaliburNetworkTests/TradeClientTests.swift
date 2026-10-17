@@ -180,7 +180,10 @@ struct TradeAggregatorTests {
     @Test("Todos respondem: ranking pelo garantido, na ordem")
     func allAnswer() async throws {
         let p = try Self.proposals()
-        let aggregator = TradeAggregator(sources: TradeProvider.allCases.map { StubSource(provider: $0, delay: .milliseconds(10), proposal: p[$0]) })
+        // As gravacoes sao da Base: a ShibaSwap, so na Ethereum, fica de fora.
+        let aggregator = TradeAggregator(sources: TradeProvider.allCases.filter { p[$0] != nil }.map {
+            StubSource(provider: $0, delay: .milliseconds(10), proposal: p[$0])
+        })
         let set = await aggregator.quote(try S.baseIntent(), costs: .free)
         #expect(set.ranked.count == 6)
         #expect(set.failures.isEmpty && set.pending.isEmpty)
@@ -224,12 +227,16 @@ struct TradeAggregatorTests {
 
     @Test("Cada provedor de troca tem endereco em Endpoints.trade")
     func everyProviderHasEndpoint() {
-        // A Uniswap cota na cadeia, pelos RPCs da rede: no circuit breaker ela e so o nome.
-        for provider in TradeProvider.allCases where provider != .uniswap && provider != .pancakeswap {
+        // Uniswap, PancakeSwap e ShibaSwap cotam na cadeia, pelos RPCs da rede: no circuit
+        // breaker sao so o nome.
+        let onChain: Set<TradeProvider> = [.uniswap, .pancakeswap, .shibaswap]
+        for provider in TradeProvider.allCases where !onChain.contains(provider) {
             #expect(Endpoints.trade[provider.rawValue] != nil, "\(provider)")
         }
         #expect(Endpoints.trade["uniswap"] == nil)
-        #expect(TradeAggregator.poolEntry(.uniswap).name == "uniswap")
+        for provider in onChain {
+            #expect(Endpoints.trade[provider.rawValue] == nil && TradeAggregator.poolEntry(provider).name == provider.rawValue)
+        }
     }
 
     @Test("Prazo duro: quem nao respondeu ate o duro fica de fora, marcado como prazo")

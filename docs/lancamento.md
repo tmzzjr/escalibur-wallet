@@ -164,7 +164,7 @@ e-mail.
 > screen, which exchanges one crypto asset for another on-chain. There is no fiat, no card
 > payment, no on-ramp, no in-app purchase and no fee charged by us. Each transaction is
 > signed by the user's own key on the device and sent directly to public non-custodial
-> protocols: CoW Protocol, Uniswap, PancakeSwap, KyberSwap, Velora, LI.FI, De1 (OpenOcean), Jupiter, the XRP
+> protocols: CoW Protocol, Uniswap, PancakeSwap, ShibaSwap, KyberSwap, Velora, LI.FI, De1 (OpenOcean), Jupiter, the XRP
 > Ledger and Stellar native order books, Circle CCTP and Across. We do not operate an
 > exchange, do not hold or route user funds and receive nothing from these protocols. The
 > user pays only the network fee and the protocol spread, shown before signing. No mining,

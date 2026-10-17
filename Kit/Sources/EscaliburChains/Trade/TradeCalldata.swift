@@ -103,11 +103,12 @@ extension TradeRouter {
         case .de1: return try De1Calldata.decode(function: function, arguments: arguments, context: context)
         case .uniswap: return try UniswapCalldata.decode(function: function, arguments: arguments, context: context)
         case .pancakeswap: return try PancakeCalldata.decode(function: function, arguments: arguments, context: context)
+        case .shibaswap: return try ShibaSwapCalldata.decode(function: function, arguments: arguments, context: context)
         }
     }
 
     /// Como este provedor escreve a moeda nativa.
     var nativeSentinel: EVMAddress {
-        provider == .lifi || provider == .uniswap || provider == .pancakeswap ? .zero : TradeConstants.eeeeSentinel
+        [.lifi, .uniswap, .pancakeswap, .shibaswap].contains(provider) ? .zero : TradeConstants.eeeeSentinel
     }
 }

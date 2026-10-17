@@ -17,7 +17,7 @@ struct EVMTradeEngineTests {
     /// O ranking esperado com o mesmo custo que o motor usa: gas a 0,006 gwei (baseFee
     /// mais gorjeta), taxa L1 de 20 gwei, ETH comprado sem conversao, allowance zero.
     static func expectedRanking() throws -> [TradeCandidate] {
-        let quotes = try TradeProvider.allCases.map { try F.validated($0) }
+        let quotes = try F.baseProviders.map { try F.validated($0) }
         return TradeRanking.rank(quotes, costs: TradeCostModel(gasPriceWei: 6_000_000, l1FeePerTransactionWei: F.l1Fee, nativeToBuy: .identity))
     }
 
@@ -44,7 +44,7 @@ struct EVMTradeEngineTests {
         #expect(quote.networkFeeFiat == nil)
         #expect(quote.sell == F.usdc && quote.buy == .native(.base) && quote.amountIn == F.amount)
         #expect(quote.expiresAt.timeIntervalSinceNow > 50 && quote.expiresAt.timeIntervalSinceNow <= 60)
-        for provider in TradeProvider.allCases { #expect(await counter.count(provider.rawValue) == 1) }
+        for provider in F.baseProviders { #expect(await counter.count(provider.rawValue) == 1) }
     }
 
     @Test("Autorizacao que ja cobre o valor: a cotacao nao pede autorizar")
@@ -161,7 +161,7 @@ struct EVMTradeEngineTests {
                 #expect(TradeFeeSchedule.escaliburFee(provider: provider, chain: chain).isNone, "\(chain.id) \(provider)")
             }
         }
-        for provider in TradeProvider.allCases { #expect(try F.validated(provider).decoded.integratorFee.isNone) }
+        for provider in F.baseProviders { #expect(try F.validated(provider).decoded.integratorFee.isNone) }
     }
 
     // MARK: Plano

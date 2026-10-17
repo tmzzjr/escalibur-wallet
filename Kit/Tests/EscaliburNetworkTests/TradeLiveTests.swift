@@ -83,7 +83,7 @@ struct TradeLiveTests {
         // Cada provedor e recotado na hora de planejar, como o app faz com a escolhida
         // (cotacao com RFQ envelhece em segundos). Quem nao respondeu na rodada tem mais
         // uma chance aqui; so entao conta como falha.
-        for provider in TradeProvider.allCases {
+        for provider in TradeProvider.allCases where TradeAllowlist.router(for: provider, on: chain) != nil {
             try await Task.sleep(for: .milliseconds(800))  // RPC publico limita taxa
             let quote: ValidatedTradeQuote
             do {
@@ -243,6 +243,61 @@ struct TradeLiveTests {
             #expect(plan.transactions.count == 2, "approve exato e troca")
         } catch {
             Issue.record("bnb: plano da PancakeSwap recusado: \(error) \(simulations.flatMap { $0.calls.compactMap(\.error) })")
+        }
+    }
+
+    @Test("ShibaSwap direta na Ethereum: ETH por SHIB e SHIB por ETH pelas reservas, validados, simulados em duas fontes e plano")
+    func shibaswap() async throws {
+        let chain = Chain.ethereum
+        let account = try Self.account()
+        let shib = EVMToken(chain: chain, contract: try EVMAddress("0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE"), symbol: "SHIB", decimals: 18)
+        let reader = TradeStateReader()
+        let network = try await reader.network(chain: chain, owner: account.address)
+        let rich = BigUInt(decimal: "100000000000000000000")!
+        let funded = EVMNetworkState(chain: chain, pendingNonces: network.pendingNonces, baseFeePerGas: network.baseFeePerGas,
+                                     priorityFees: network.priorityFees, gasEstimate: 21_000, nativeBalance: rich, destinationHasCode: true)
+
+        // Comprando: 0,01 ETH em SHIB.
+        let buy = try TradeIntent(owner: account.address, sell: .native(chain), buy: .token(shib),
+                                  amountIn: BigUInt(decimal: "10000000000000000")!, slippageBps: 100)
+        let bought = try TradeValidator.validate(
+            try await ShibaSwapClient(reader: reader).propose(TradeQuoteRequest(intent: buy, gasPriceWei: network.baseFeePerGas)), intent: buy)
+        Live.note("ethereum: ShibaSwap garante \(bought.guaranteedOut) SHIB (wei) por 0,01 ETH (\(bought.decoded.function))")
+        let buySimulations = try await reader.simulate(chain: chain, calls: TradePlanner.simulationRequest(for: bought, currentAllowance: nil).calls,
+                                                       stateOverrides: .object(["0x" + Hex.encode(account.address.bytes): .object(["balance": .string(rich.hexString)])]))
+        do {
+            let state = TradeChainState(network: funded, sellToken: nil, routerHasCode: try await reader.hasCode(chain: chain, bought.to), routerPin: nil,
+                                        simulations: buySimulations)
+            let plan = try TradePlanner.planSwap(walletID: UUID(), account: account, quote: bought, state: state, riskConfirmed: true)
+            #expect(plan.transactions.count == 1)
+        } catch {
+            Issue.record("ethereum: compra pela ShibaSwap recusada: \(error) \(buySimulations.flatMap { $0.calls.compactMap(\.error) })")
+        }
+
+        // Vendendo: o SHIB que a compra garantiu, de volta em ETH, com o approve exato ao router.
+        try await Task.sleep(for: .milliseconds(800))
+        let amount = bought.guaranteedOut
+        let sell = try TradeIntent(owner: account.address, sell: .token(shib), buy: .native(chain), amountIn: amount, slippageBps: 100)
+        let sold = try TradeValidator.validate(
+            try await ShibaSwapClient(reader: reader).propose(TradeQuoteRequest(intent: sell, gasPriceWei: network.baseFeePerGas)), intent: sell)
+        Live.note("ethereum: ShibaSwap garante \(sold.guaranteedOut) wei de ETH pelo SHIB (\(sold.decoded.function))")
+        let slot = try #require(try await BridgeLiveTests.balanceSlot(shib.contract, owner: account.address, chain: chain, reader: reader))
+        let key = Hash.keccak256([UInt8](repeating: 0, count: 12) + account.address.bytes + (BigUInt(slot).bigEndianBytes(padTo: 32) ?? []))
+        let real = try await reader.token(chain: chain, token: shib.contract, owner: account.address, spender: sold.spender)
+        let sellSimulations = try await reader.simulate(chain: chain, calls: TradePlanner.simulationRequest(for: sold, currentAllowance: real.allowance).calls,
+                                                        stateOverrides: .object([
+            "0x" + Hex.encode(account.address.bytes): .object(["balance": .string(rich.hexString)]),
+            "0x" + Hex.encode(shib.contract.bytes): .object(["stateDiff": .object([
+                Hex.encode(key, prefix: true): .string(Hex.encode(amount.bigEndianBytes(padTo: 32)!, prefix: true)),
+            ])]),
+        ]))
+        do {
+            let state = TradeChainState(network: funded, sellToken: EVMTokenState(contractHasCode: true, balance: amount, allowance: real.allowance),
+                                        routerHasCode: try await reader.hasCode(chain: chain, sold.to), routerPin: nil, simulations: sellSimulations)
+            let plan = try TradePlanner.planSwap(walletID: UUID(), account: account, quote: sold, state: state, riskConfirmed: true)
+            #expect(plan.transactions.count == 2, "approve exato e troca")
+        } catch {
+            Issue.record("ethereum: venda pela ShibaSwap recusada: \(error) \(sellSimulations.flatMap { $0.calls.compactMap(\.error) })")
         }
     }
 

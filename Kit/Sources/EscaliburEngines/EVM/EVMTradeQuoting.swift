@@ -184,7 +184,7 @@ enum EVMTradeQuoteMapping {
             return kitText("A Velora fica com o que vier acima da estimativa. O mínimo garantido não muda.")
         case .de1:
             return kitText("A De¹ embute a própria taxa na rota. O mínimo garantido já considera essa taxa.")
-        case .kyberSwap, .uniswap, .pancakeswap:
+        case .kyberSwap, .uniswap, .pancakeswap, .shibaswap:
             return nil
         }
     }

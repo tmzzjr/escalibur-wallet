@@ -195,6 +195,11 @@ public enum TradeAllowlist {
             guard let deployment = PancakeDeployment.all[chainID] else { return nil }
             return TradeRouter(provider: .pancakeswap, chainID: chainID, address: deployment.router, spender: deployment.router,
                                pin: .immutable, functions: PancakeCalldata.functions, feeForwarder: nil)
+        case .shibaswap:
+            // UniswapV2Router02 sem proxy e sem dono, com o approve exato a ele mesmo.
+            guard let deployment = ShibaSwapDeployment.all[chainID] else { return nil }
+            return TradeRouter(provider: .shibaswap, chainID: chainID, address: deployment.router, spender: deployment.router,
+                               pin: .immutable, functions: ShibaSwapCalldata.functions, feeForwarder: nil)
         }
     }
 

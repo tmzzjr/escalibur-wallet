@@ -48,7 +48,8 @@ struct TradeAllowlistTests {
     /// Quem atende cada rede, conferido ao vivo em 25/09/2026 (as 7 da v1) e 26/09/2026
     /// (a segunda leva). X Layer e Celo nao tem troca.
     static let coverageTable: [String: Set<TradeProvider>] = [
-        "ethereum": [.velora, .kyberSwap, .lifi, .de1, .uniswap, .pancakeswap], "arbitrum": [.velora, .kyberSwap, .lifi, .de1, .uniswap, .pancakeswap],
+        "ethereum": [.velora, .kyberSwap, .lifi, .de1, .uniswap, .pancakeswap, .shibaswap],
+        "arbitrum": [.velora, .kyberSwap, .lifi, .de1, .uniswap, .pancakeswap],
         "base": [.velora, .kyberSwap, .lifi, .de1, .uniswap, .pancakeswap], "optimism": [.velora, .kyberSwap, .lifi, .de1, .uniswap],
         "polygon": [.velora, .kyberSwap, .lifi, .de1, .uniswap], "bnb": [.velora, .kyberSwap, .lifi, .de1, .uniswap, .pancakeswap],
         "avalanche": [.velora, .kyberSwap, .lifi, .uniswap],
@@ -82,6 +83,7 @@ struct TradeAllowlistTests {
         #expect(TradeAllowlist.router(for: .lifi, on: .sonic)?.pin == .diamondFacet(T.address("0xf24c9914D3a89F16aD9C87fa549FF24359a31715")))
         #expect(TradeAllowlist.router(for: .kyberSwap, on: .plasma)?.address == TradeAllowlist.kyber)
         #expect(TradeAllowlist.router(for: .velora, on: .unichain)?.pin == .immutable)
+        #expect(TradeAllowlist.router(for: .shibaswap, on: .ethereum)?.spender == T.address("0x03f7724180AA6b939894B5Ca4314783B0b36b329"))
         // CoW na Plasma e na Linea: o VaultRelayer entra na lista de revogacao.
         #expect(TradeAllowlist.spenders(on: .plasma) == [TradeAllowlist.kyber, CoWProtocol.vaultRelayer])
         #expect(TradeAllowlist.spenders(on: .linea).contains(CoWProtocol.vaultRelayer))

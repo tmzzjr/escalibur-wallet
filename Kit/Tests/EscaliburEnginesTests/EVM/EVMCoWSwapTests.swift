@@ -17,7 +17,7 @@ struct EVMCoWSwapTests {
 
     /// A maior estimativa entre os agregadores e a melhor cotacao deles.
     static func aggregators() throws -> (maxExpected: BigUInt, best: TradeCandidate) {
-        let quotes = try TradeProvider.allCases.map { try F.validated($0) }
+        let quotes = try F.baseProviders.map { try F.validated($0) }
         let best = try #require(try EVMTradeEngineTests.expectedRanking().first)
         return (quotes.map(\.expectedOut).max() ?? 0, best)
     }
