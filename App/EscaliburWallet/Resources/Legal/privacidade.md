@@ -29,7 +29,7 @@ Para a busca de Receber achar qualquer moeda, o texto que você digita vai ao Co
 
 A lista abaixo é completa: o app não consegue falar com nenhum outro endereço, e o código confere isso a cada versão.
 
-- **Preços, gráficos e logos das moedas:** `api.coingecko.com`, `api.coinpaprika.com`, `assets.coingecko.com`, `coin-images.coingecko.com`, `www.okx.com`
+- **Preços, gráficos e logos das moedas:** `api.coingecko.com`, `api.coinpaprika.com`, `assets.coingecko.com`, `coin-images.coingecko.com`, `api.kraken.com`, `www.okx.com`
 - **Gráfico de tokens que o CoinGecko não lista:** `api.geckoterminal.com`. Recebe só o contrato do token e a rede, nunca o seu endereço. O preço de lá desenha o gráfico e não entra no saldo total.
 - **Lista de tokens da X Layer e da Sonic, e da BNB Chain quando a Alchemy não responde:** `tokens.coingecko.com`. A mesma lista para todo mundo, baixada para o app achar os tokens dessas redes; o saldo de cada um é lido nos serviços da própria rede.
 - **Logos de tokens fora da lista:** `raw.githubusercontent.com`, só o repositório público de logos da Trust Wallet. O GitHub vê o IP e o contrato de cada token cuja logo o app busca.

@@ -19,6 +19,7 @@ enum AllowedHosts {
         "api.geckoterminal.com",
         "api.jup.ag",
         "api.koios.rest",
+        "api.kraken.com",
         "api.mainnet.aptoslabs.com",
         "api.mainnet.solana.com",
         "api.routescan.io",

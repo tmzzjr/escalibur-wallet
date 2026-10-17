@@ -276,4 +276,22 @@ struct MarketFallbackTests {
         }
         #expect(Set(MarketService.generatedGeckoIDs.values).count == MarketService.generatedGeckoIDs.count)
     }
+
+    @Test("Tudo: as velas semanais da Kraken viram o historico em ordem; erro da Kraken e resposta vazia sao recusados")
+    func krakenHistory() throws {
+        let json = try JSONDecoder().decode(JSONValue.self, from: Data(#"""
+        {"error":[],"result":{"XXBTZUSD":[[1381104000,"123.84","130.0","120.0","130.11","125.0","10.0",100],
+        [1380499200,"110.0","124.0","109.0","123.84","120.0","8.0",80]],"last":1792200000}}
+        """#.utf8))
+        let points = try MarketService.parseKraken(json)
+        #expect(points.map(\.close) == [123.84, 130.11])
+        #expect(points.first?.time == Date(timeIntervalSince1970: 1_380_499_200))
+        let refused = try JSONDecoder().decode(JSONValue.self, from: Data(#"{"error":["EQuery:Unknown asset pair"]}"#.utf8))
+        #expect(throws: (any Error).self) { try MarketService.parseKraken(refused) }
+        let empty = try JSONDecoder().decode(JSONValue.self, from: Data(#"{"error":[],"result":{"XXBTZUSD":[],"last":1}}"#.utf8))
+        #expect(throws: (any Error).self) { try MarketService.parseKraken(empty) }
+        // As stablecoins tambem tem historia inteira.
+        for id in ["bitcoin", "ethereum", "tether", "usd-coin", "dai"] { #expect(MarketService.krakenPairs[id] != nil, "\(id)") }
+    }
+
 }

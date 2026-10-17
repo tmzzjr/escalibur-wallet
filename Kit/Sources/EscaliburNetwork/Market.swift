@@ -61,6 +61,7 @@ public enum MarketSource: String, Sendable, Codable, Hashable {
     case coinpaprika = "CoinPaprika"
     case okx = "OKX"
     case geckoTerminal = "GeckoTerminal"
+    case kraken = "Kraken"
 }
 
 /// A pool de DEX de onde vem o preco de um token que o CoinGecko nao lista.
@@ -188,6 +189,7 @@ public actor MarketService {
     static let gecko = URL(string: "https://api.coingecko.com/api/v3")!
     static let paprika = URL(string: "https://api.coinpaprika.com/v1")!
     static let okx = URL(string: "https://www.okx.com/api/v5")!
+    static let kraken = URL(string: "https://api.kraken.com/0/public")!
     static let geckoTerminal = URL(string: "https://api.geckoterminal.com/api/v2")!
 
     // MARK: Rede
@@ -684,11 +686,13 @@ public actor MarketService {
         if let cached = charts[key], !cached.isStale, now().timeIntervalSince(cached.fetchedAt) < Self.chartLifetime(range) { return cached }
         let fresh: ChartSnapshot
         do {
-            // "Tudo": o CoinGecko sem chave so entrega os ultimos 365 dias, e o grafico de
-            // "Tudo" saia igual ao de 1 ano (visto pelo dono, 16/10/2026). Para a moeda que a
-            // OKX negocia, a historia inteira vem dela, semana a semana; o CoinGecko fica de reserva.
-            if range == .all, Self.okxSymbols[id] != nil, let points = try? await okxChart(id: id, currency: currency, range: range) {
-                fresh = ChartSnapshot(points: points, fetchedAt: now(), source: .okx, isStale: false)
+            // "Tudo": o CoinGecko e o CoinPaprika sem chave so entregam os ultimos 365 dias. A
+            // historia inteira vem, semana a semana, da Kraken e da OKX, as duas em paralelo, e
+            // fica a serie que comeca mais cedo: na OKX o BTC so existe desde 2017, e as
+            // stablecoins nem estao (visto pelo dono, 17/10/2026); na Kraken o BTC vai a 2013 e
+            // o USDT a 2017, mas a BNB so a 2025. O CoinGecko, de um ano, fica de reserva.
+            if range == .all, let (points, source) = await fullHistory(id: id, currency: currency) {
+                fresh = ChartSnapshot(points: points, fetchedAt: now(), source: source, isStale: false)
             } else {
                 let points = try await fromGecko { try await self.geckoChart(id: id, currency: currency, range: range) }
                 fresh = ChartSnapshot(points: points, fetchedAt: now(), source: .coingecko, isStale: false)
@@ -913,6 +917,56 @@ public actor MarketService {
     }
 
     private struct GeckoChart: Decodable { let prices: [[Double]] }
+
+    /// A historia inteira pela Kraken e pela OKX, a que comeca mais cedo; nil sem nenhuma.
+    func fullHistory(id: String, currency: String) async -> ([PricePoint], MarketSource)? {
+        async let kraken = Self.krakenPairs[id] == nil ? nil : try? await krakenChart(id: id, currency: currency)
+        async let okx = Self.okxSymbols[id] == nil ? nil : try? await okxChart(id: id, currency: currency, range: .all)
+        let options = [(await kraken, MarketSource.kraken), (await okx, MarketSource.okx)].compactMap { pair -> ([PricePoint], MarketSource)? in
+            guard let points = pair.0, !points.isEmpty else { return nil }
+            return (points, pair.1)
+        }
+        return options.min { ($0.0.first?.time ?? .distantFuture) < ($1.0.first?.time ?? .distantFuture) }
+    }
+
+    /// Velas semanais da Kraken em dolar (`OHLC`, `interval=10080`: as ultimas 720 semanas,
+    /// mais que a historia de qualquer par la), convertidas pela cotacao do USDT na moeda pedida.
+    func krakenChart(id: String, currency: String) async throws -> [PricePoint] {
+        guard let pair = Self.krakenPairs[id] else { throw HTTPClient.Failure.offline }
+        let json = try await get(JSONValue.self, Self.url(Self.kraken, "OHLC", [("pair", pair), ("interval", "10080")]))
+        let rows = try Self.parseKraken(json)
+        let rate = currency == "usd" ? 1 : (try await quotes(ids: ["tether"], currency: currency)["tether"]?.price ?? 0)
+        guard rate > 0 else { throw HTTPClient.Failure.invalidResponse }
+        return rows.map { PricePoint(time: $0.time, price: $0.close * rate) }
+    }
+
+    /// `{"error": [], "result": {"<par>": [[tempo, abertura, maxima, minima, fechamento, ...]], "last": ...}}`:
+    /// o fechamento de cada vela, da mais antiga para a mais nova.
+    static func parseKraken(_ json: JSONValue) throws -> [(time: Date, close: Double)] {
+        if let errors = json["error"]?.arrayValue, !errors.isEmpty { throw HTTPClient.Failure.invalidResponse }
+        guard case .object(let result)? = json["result"],
+              let rows = result.first(where: { $0.key != "last" })?.value.arrayValue
+        else { throw HTTPClient.Failure.invalidResponse }
+        let points = rows.compactMap { row -> (time: Date, close: Double)? in
+            guard let ts = row[0]?.doubleValue, let close = row[4]?.stringValue.flatMap(Double.init), close.isFinite, close > 0 else { return nil }
+            return (Date(timeIntervalSince1970: ts), close)
+        }
+        .sorted { $0.time < $1.time }
+        guard !points.isEmpty else { throw HTTPClient.Failure.invalidResponse }
+        return points
+    }
+
+    /// Os pares em dolar da Kraken, conferidos ao vivo em 17/10/2026 (a primeira vela semanal
+    /// de cada um: BTC e LTC 2013, ETH 2015, XLM e XRP 2017, USDT 2017, USDC 2020).
+    static let krakenPairs: [String: String] = [
+        "bitcoin": "XBTUSD", "ethereum": "ETHUSD", "solana": "SOLUSD", "ripple": "XRPUSD", "stellar": "XLMUSD", "tron": "TRXUSD",
+        "litecoin": "LTCUSD", "dogecoin": "XDGUSD", "cardano": "ADAUSD", "polkadot": "DOTUSD", "chainlink": "LINKUSD",
+        "uniswap": "UNIUSD", "avalanche-2": "AVAXUSD", "tether": "USDTUSD", "usd-coin": "USDCUSD", "dai": "DAIUSD",
+        "binancecoin": "BNBUSD", "the-open-network": "TONUSD", "near": "NEARUSD", "aptos": "APTUSD", "sui": "SUIUSD",
+        "polygon-ecosystem-token": "POLUSD", "arbitrum": "ARBUSD", "optimism": "OPUSD", "celo": "CELOUSD", "shiba-inu": "SHIBUSD",
+        "pepe": "PEPEUSD", "wrapped-bitcoin": "WBTCUSD", "okb": "OKBUSD", "sonic-3": "SUSD", "plasma": "XPLUSD",
+        "ethena-usde": "USDEUSD", "paypal-usd": "PYUSDUSD",
+    ]
 
     /// Contingencia de historico: velas publicas da OKX em USDT, convertidas pela
     /// cotacao do USDT na moeda pedida.

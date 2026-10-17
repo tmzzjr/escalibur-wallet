@@ -21,6 +21,23 @@ struct MarketLiveTests {
         #expect(coins.first?.sparkline.isEmpty == false)
     }
 
+    @Test("Tudo: a historia inteira, da fonte que comeca mais cedo (BTC antes de 2014, USDT e USDC com anos de historia)")
+    func fullHistory() async throws {
+        let market = MarketService()
+        let bitcoin = try await market.chartSnapshot(id: "bitcoin", currency: "usd", range: .all)
+        #expect(bitcoin.source == .kraken)
+        #expect((bitcoin.points.first?.time ?? .now) < Date(timeIntervalSince1970: 1_388_534_400), "BTC antes de 2014")
+        for (id, before) in [("tether", 1_514_764_800.0), ("usd-coin", 1_609_459_200.0)] {
+            let stable = try await market.chartSnapshot(id: id, currency: "usd", range: .all)
+            #expect((stable.points.first?.time ?? .now) < Date(timeIntervalSince1970: before), "\(id)")
+            // Uma stablecoin fica perto de um dolar a historia inteira (o USDT foi a 0,92 em 2017).
+            #expect(stable.points.allSatisfy { $0.price > 0.85 && $0.price < 1.15 }, "\(id)")
+        }
+        // A BNB vem da OKX, que tem mais anos dela que a Kraken.
+        let bnb = try await market.chartSnapshot(id: "binancecoin", currency: "usd", range: .all)
+        #expect(bnb.source == .okx)
+    }
+
     @Test("Historico de 7 dias e contingencia da OKX")
     func chart() async throws {
         let points = try await MarketService().chart(id: "bitcoin", currency: "brl", range: .week)

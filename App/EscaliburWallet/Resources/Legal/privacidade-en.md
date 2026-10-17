@@ -31,7 +31,7 @@ So the Receive search can find any coin, the text you type goes to CoinGecko, an
 
 The list below is complete: the app cannot talk to any other address, and the code checks this in every version.
 
-- **Coin prices, charts and logos:** `api.coingecko.com`, `api.coinpaprika.com`, `assets.coingecko.com`, `coin-images.coingecko.com`, `www.okx.com`
+- **Coin prices, charts and logos:** `api.coingecko.com`, `api.coinpaprika.com`, `assets.coingecko.com`, `coin-images.coingecko.com`, `api.kraken.com`, `www.okx.com`
 - **Charts for tokens CoinGecko does not list:** `api.geckoterminal.com`. It receives only the token contract and the network, never your address. The price from there draws the chart and does not count in the total balance.
 - **Token list for X Layer and Sonic, and for BNB Chain when Alchemy does not respond:** `tokens.coingecko.com`. The same list for everyone, downloaded so the app can find tokens on these networks; the balance of each one is read from the network's own services.
 - **Logos of unlisted tokens:** `raw.githubusercontent.com`, only Trust Wallet's public logo repository. GitHub sees the IP and the contract of each token whose logo the app fetches.
