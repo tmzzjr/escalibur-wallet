@@ -26,6 +26,14 @@ struct WalletHomeView: View {
                     Color.clear.frame(height: 0).id(Self.top)
                     header
                     actions.padding(.top, Space.lg)
+                    // Modo reforcado com "Esperar 24 horas": o Face ID mudou, e so o saldo vale
+                    // ate a espera acabar.
+                    if session.hardenedHold > 0 {
+                        Banner(kind: .caution, title: AuthCoordinator.hardenedHoldMessage(session.hardenedHold))
+                            .padding(.horizontal, Space.gutter)
+                            .padding(.top, Space.lg)
+                            .accessibilityIdentifier("reforcado-espera")
+                    }
                     if let wallet, !wallet.hasBackup, !wallet.isWatchOnly {
                         Group {
                             if wallet.wordsConfirmed {

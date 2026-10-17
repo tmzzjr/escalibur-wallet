@@ -2,6 +2,7 @@ import CryptoKit
 import EscaliburCore
 import Foundation
 import LocalAuthentication
+import Testing
 @testable import EscaliburKeys
 
 /// Armazenamento em memoria. Simula a recusa por senha de aplicativo comparando a
@@ -19,6 +20,8 @@ final class MemoryStore: SecretStore, @unchecked Sendable {
     /// Contas cuja exclusao ou alteracao falha (disco cheio, chaveiro mudo).
     var failDeleting: Set<String> = []
     var failUpdating: Set<String> = []
+    /// Contas cuja gravacao de um item novo falha.
+    var failAdding: Set<String> = []
 
     func protection(_ account: String) -> ItemProtection? {
         lock.lock(); defer { lock.unlock() }
@@ -37,15 +40,23 @@ final class MemoryStore: SecretStore, @unchecked Sendable {
 
     func add(_ data: Data, account: String, protection: ItemProtection, context: LAContext?) throws {
         lock.lock(); defer { lock.unlock() }
+        if failAdding.contains(account) { throw StoreError.unexpected(errSecIO) }
         guard items[account] == nil else { throw StoreError.unexpected(errSecDuplicateItem) }
         items[account] = (data, protection, protection == .applicationPassword ? pendingCredential : nil)
     }
 
+    /// Chamado depois de cada alteracao gravada: o que acontece entre o update e a leitura de
+    /// volta.
+    var onUpdate: ((String) -> Void)?
+
     func update(_ data: Data, account: String) throws {
-        lock.lock(); defer { lock.unlock() }
-        if failUpdating.contains(account) { throw StoreError.unexpected(errSecIO) }
-        guard let existing = items[account] else { throw StoreError.unexpected(errSecItemNotFound) }
+        lock.lock()
+        if failUpdating.contains(account) { lock.unlock(); throw StoreError.unexpected(errSecIO) }
+        guard let existing = items[account] else { lock.unlock(); throw StoreError.unexpected(errSecItemNotFound) }
         items[account] = (data, existing.1, existing.2)
+        let hook = onUpdate
+        lock.unlock()
+        hook?(account)
     }
 
     func delete(_ account: String) throws {
@@ -97,12 +108,36 @@ final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
     /// Recusa o rosto a partir da enesima abertura deste slot (a confirmacao, nao a
     /// autorizacao).
     var refuseFrom: (slot: WrapSlot, count: Int)?
+    /// Quantas vezes o Face ID apareceu, em qualquer chave biometrica. A vigia, aberta na
+    /// mesma sessao, nao conta.
+    private(set) var faces = 0
+    /// Recusa o rosto a partir do enesimo Face ID (contado em `faces`).
+    var refuseFaceFrom: Int?
+    /// A vigia nao responde na mesma sessao: o contexto que nao serve para a outra chave.
+    var watchUnknown = false
+    /// Chaves cuja exclusao nao acontece: a queda antes da limpeza.
+    var failDeletingKeys: Set<WrapSlot> = []
+    /// O SE recusa abrir com estas chaves por um erro que nao vem do Face ID (a chave que
+    /// existe e nao serve, como depois de uma redefinicao do Face ID interrompida).
+    var failSlots: Set<WrapSlot> = []
 
     /// O que o SEP faz quando o cadastro de rostos muda: as chaves `.biometryCurrentSet`
-    /// deixam de existir.
+    /// deixam de existir. A `.biometryAny` (`kand.qualquer`) continua.
     func invalidateBiometry() {
         lock.lock(); defer { lock.unlock() }
-        for slot in WrapSlot.allCases where slot.usesBiometry { keys[slot] = nil }
+        for slot in WrapSlot.allCases where slot.followsEnrollment { keys[slot] = nil }
+    }
+
+    func unwrap(_ blob: Data, slot: WrapSlot, reason: String, watching watch: Data, with watchSlot: WrapSlot) throws -> (SecureBytes, WatchResult) {
+        let opened = try unwrap(blob, slot: slot, reason: reason)
+        lock.lock(); defer { lock.unlock() }
+        if watchUnknown { return (opened, .unknown) }
+        guard let key = keys[watchSlot] else { return (opened, .gone) }
+        unwrapCount[watchSlot, default: 0] += 1
+        // A chave existe mas nao abre esta camada (outra geracao): o SE devolveria um erro
+        // que nao se classifica.
+        guard let plain = try? Self.open(watch, key: key) else { return (opened, .unknown) }
+        return (opened, .opened(plain))
     }
 
     func probeKey(_ slot: WrapSlot) -> ItemState {
@@ -146,6 +181,7 @@ final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
 
     func deleteKey(_ slot: WrapSlot) {
         lock.lock(); defer { lock.unlock() }
+        if failDeletingKeys.contains(slot) { return }
         keys[slot] = nil
         passwords[slot] = nil
     }
@@ -153,6 +189,18 @@ final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
     func wrap(_ secret: SecureBytes, slot: WrapSlot) throws -> Data {
         lock.lock(); defer { lock.unlock() }
         guard let key = keys[slot] else { throw EnclaveError.keyMissing }
+        // A invariante da kand.qualquer, vigiada em todo teste: ela so embrulha o miolo, o ECIES
+        // de uma kand.pin, nunca a RK nem outra coisa (o verificar.sh so ve o literal).
+        if slot == .hardenedBiometryAny {
+            let isMiddle = [WrapSlot.hardenedPINA, .hardenedPINB].contains { pinSlot in
+                guard let pinKey = keys[pinSlot] else { return false }
+                return secret.withUnsafeData { (try? Self.open($0, key: pinKey)) != nil }
+            }
+            guard secret.count > 32, isMiddle else {
+                Issue.record("a kand.qualquer embrulhou algo que nao e o miolo da kand.pin (\(secret.count) bytes)")
+                throw EnclaveError.failed("kand.qualquer so embrulha o miolo")
+            }
+        }
         let ephemeral = P256.KeyAgreement.PrivateKey()
         let shared = try ephemeral.sharedSecretFromKeyAgreement(with: key.publicKey)
         let symmetric = shared.hkdfDerivedSymmetricKey(using: SHA256.self, salt: Data(), sharedInfo: Data("wrap".utf8), outputByteCount: 32)
@@ -164,8 +212,15 @@ final class SoftwareWrapper: KeyWrapper, @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         guard let key = keys[slot] else { throw EnclaveError.keyMissing }
         unwrapCount[slot, default: 0] += 1
+        if slot.usesBiometry, reason != nil { faces += 1 }
+        if failSlots.contains(slot) { throw EnclaveError.failed("desembrulho") }
         if slot.usesBiometry, refuseBiometry || refuseSlots.contains(slot) { throw EnclaveError.cancelled }
+        if slot.usesBiometry, let refuseFaceFrom, faces >= refuseFaceFrom { throw EnclaveError.cancelled }
         if let refuseFrom, refuseFrom.slot == slot, unwrapCount[slot, default: 0] >= refuseFrom.count { throw EnclaveError.cancelled }
+        return try Self.open(blob, key: key)
+    }
+
+    private static func open(_ blob: Data, key: P256.KeyAgreement.PrivateKey) throws -> SecureBytes {
         guard blob.count > 65 else { throw EnclaveError.failed("embrulho curto") }
         let ephemeral = try P256.KeyAgreement.PublicKey(x963Representation: blob.prefix(65))
         let shared = try key.sharedSecretFromKeyAgreement(with: ephemeral)

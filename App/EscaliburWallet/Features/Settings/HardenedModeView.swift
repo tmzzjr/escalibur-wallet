@@ -3,9 +3,9 @@ import EscaliburKeys
 import SwiftUI
 
 /// Modo reforcado (docs/seguranca.md §2.6): abrir o app, assinar e ver as palavras pedem o
-/// PIN e o Face ID juntos, e o "juntos" e da criptografia. O preco, dito antes de ligar:
-/// se o cadastro de rostos mudar, as carteiras deste iPhone nao abrem mais, e so as
-/// palavras trazem de volta.
+/// PIN e o Face ID juntos, e o "juntos" e da criptografia. "Quando o Face ID mudar" escolhe o
+/// que um rosto novo faz: continuar normal (o padrao), esperar 24 horas ou bloquear as
+/// carteiras. O preco do bloqueio so aparece na tela dele, antes de escolher.
 struct HardenedModeView: View {
     @Environment(AppSession.self) private var session
     @Environment(AuthCoordinator.self) private var auth
@@ -21,6 +21,10 @@ struct HardenedModeView: View {
     @State private var biometryOn = KeyServices.root.isBiometryEnabled
     @State private var biometryPIN = false
     @State private var backingUp: WalletMeta?
+    /// Ligado, a politica que vale; desligado, a escolhida para ligar (o padrao, continuar
+    /// normal). O aceite do bloqueio dado na tela dele vai junto para o fluxo de ligar.
+    @State private var faceChange = KeyServices.root.hardenedFaceChange ?? .continue
+    @State private var lockAccepted = false
 
     private var phraseWallets: [WalletMeta] { session.metadata.wallets.filter { !$0.isWatchOnly } }
     private var missingBackup: WalletMeta? { phraseWallets.first { !$0.hasBackup } }
@@ -41,32 +45,33 @@ struct HardenedModeView: View {
                 Text("O PIN e o \(KeyServices.biometryName) juntos para abrir o app, enviar, trocar e ver as palavras. Nenhum dos dois sozinho abre nada: é a própria cifra das carteiras que pede os dois.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
+                if on, session.hardenedHold > 0 {
+                    Banner(kind: .caution, title: AuthCoordinator.hardenedHoldMessage(session.hardenedHold))
+                        .padding(.top, Space.md)
+                        .accessibilityIdentifier("reforcado-espera")
+                }
 
                 section(String(localized: "O que muda"))
                 VStack(alignment: .leading, spacing: Space.md) {
-                    point("person.badge.key", String(localized: "Quem viu o seu PIN não abre o app nem envia nada sem o seu rosto."))
+                    point("person.badge.key", String(localized: "Quem viu só o seu PIN não abre o app nem envia nada sem o seu rosto."))
                     point("keyboard", String(localized: "As palavras passam a ser digitadas no teclado da Escalibur: o teclado do iPhone não recebe as letras."))
                     point("hand.raised", String(localized: "Um \(KeyServices.biometryName) que não confirma conta como tentativa, como um PIN errado."))
+                    point(KeyServices.biometryIcon, faceChange.consequence)
                 }
                 .padding(Space.base)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
 
-                section(String(localized: "O preço"))
-                HStack(alignment: .top, spacing: Space.sm) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Palette.caution)
-                        .frame(width: 32, height: 32)
-                        .background(Circle().fill(Palette.caution.opacity(0.16)))
-                    Text("Se o cadastro de rostos deste iPhone mudar (um rosto novo, o \(KeyServices.biometryName) redefinido), as carteiras daqui não abrem mais. Só as palavras de cada carteira trazem de volta.")
-                        .typeStyle(.body).foregroundStyle(Palette.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 5)
+                // A linha da politica: o valor, e a tela das tres opcoes. Ligado com o cabecalho
+                // ilegivel, o cofre nao diz qual vale, e a linha some.
+                if !on || session.hardenedFaceChange != nil {
+                    NavigationLink {
+                        HardenedFaceChangeView(choice: $faceChange, lockAccepted: $lockAccepted, on: on, wallets: phraseWallets)
+                    } label: { faceChangeRow }
+                    .buttonStyle(.plain)
+                    .padding(.top, Space.md)
+                    .accessibilityIdentifier("reforcado-politica")
                 }
-                .padding(Space.base)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.cautionTint))
 
                 if on {
                     Label("Ligado neste iPhone", systemImage: "checkmark.circle.fill")
@@ -83,7 +88,7 @@ struct HardenedModeView: View {
                     .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
                 }
 
-                Text("Deixe ligados, nos Ajustes do iPhone, \"Exigir atenção para o \(KeyServices.biometryName)\" e a Proteção de Aparelho Roubado.")
+                Text("Deixe ligados, nos Ajustes do iPhone, \"Exigir atenção para o \(KeyServices.biometryName)\" e a Proteção de Aparelho Roubado, com o atraso de segurança em Sempre.")
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.md)
                     .fixedSize(horizontal: false, vertical: true)
                 if let message { Banner(kind: .failure, title: message).padding(.top, Space.md) }
@@ -114,15 +119,11 @@ struct HardenedModeView: View {
         .background(Palette.void.ignoresSafeArea())
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            on = KeyServices.root.securityMode == .hardened
-            biometryOn = KeyServices.root.isBiometryEnabled
-        }
+        .onAppear { reload() }
         .fullScreenCover(isPresented: $enabling) {
-            HardenedEnableFlow(wallets: phraseWallets) { done in
+            HardenedEnableFlow(wallets: phraseWallets, faceChange: faceChange, lockAccepted: lockAccepted) { done in
                 enabling = false
-                on = KeyServices.root.securityMode == .hardened
-                biometryOn = KeyServices.root.isBiometryEnabled
+                reload()
                 if done { toasts.show(String(localized: "Modo reforçado ligado.")) }
             }
         }
@@ -130,6 +131,31 @@ struct HardenedModeView: View {
             EnableBiometrySheet { biometryPIN = false }
         }
         .fullScreenCover(item: $backingUp) { wallet in BackupNowFlow(wallet: wallet) { backingUp = nil } }
+    }
+
+    /// O modo, o Face ID e a politica como o cofre ve agora: o cofre nao e observavel.
+    private func reload() {
+        on = KeyServices.root.securityMode == .hardened
+        biometryOn = KeyServices.root.isBiometryEnabled
+        if on, let current = KeyServices.root.hardenedFaceChange { faceChange = current }
+        if on { lockAccepted = false }
+        session.refreshHardenedHold()
+    }
+
+    /// "Quando o Face ID mudar", com o valor que vale.
+    private var faceChangeRow: some View {
+        HStack(spacing: Space.sm) {
+            requirementIcon(faceChange.icon, met: nil)
+            Text("Quando o \(KeyServices.biometryName) mudar").typeStyle(.row).foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: Space.xs)
+            Text(faceChange.title).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .multilineTextAlignment(.trailing)
+            Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+        }
+        .padding(.horizontal, Space.md).padding(.vertical, Space.sm)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+        .contentShape(Rectangle())
     }
 
     private var status: some View {
@@ -244,12 +270,21 @@ struct HardenedModeView: View {
 
     private func disable() async {
         message = nil
+        // Na espera de "Esperar 24 horas", desligar espera: recusa antes do teclado.
+        do {
+            try KeyServices.root.checkHardenedAllowed()
+        } catch {
+            message = AuthCoordinator.refusalMessage(error)
+            return
+        }
         guard case .hardened(let pin, _)? = await auth.credential(reason: String(localized: "Desligar o modo reforçado")) else { return }
         working = true
         defer { working = false }
-        defer { on = KeyServices.root.securityMode == .hardened }
+        defer { reload() }
         do {
             let restored = try await session.disableHardened(pin: pin)
+            // Ligar de novo comeca do padrao.
+            faceChange = .continue
             toasts.show(restored ? String(localized: "Modo reforçado desligado. O \(KeyServices.biometryName) continua ligado.")
                         : String(localized: "Modo reforçado desligado. O \(KeyServices.biometryName) ficou desligado; ligue de novo em Segurança."))
         } catch RootKeyVault.Failure.wrongPIN(let remaining) {
@@ -311,22 +346,34 @@ private struct HardenedEmblem: View {
         .sensoryFeedback(.impact(weight: .light), trigger: together) { _, new in new }
     }
 
-    private func disc(_ icon: String) -> some View {
+    private func disc(_ icon: String) -> some View { HardenedDisc(icon: icon) }
+}
+
+/// Um disco do emblema: o PIN ou o rosto. A animacao de "Bloquear as carteiras" usa os
+/// mesmos, com o contorno de aviso no rosto que nao e o do dono.
+struct HardenedDisc: View {
+    let icon: String
+    var size: CGFloat = 76
+    var tint: Color = Palette.ink
+    var ring: Color = Palette.void
+
+    var body: some View {
         Circle()
             .fill(Palette.control)
-            .frame(width: 76, height: 76)
-            .overlay(Circle().stroke(Palette.void, lineWidth: 3))
+            .frame(width: size, height: size)
+            .overlay(Circle().stroke(ring, lineWidth: 3))
             .overlay {
-                Image(systemName: icon).font(.system(size: 26, weight: .medium)).foregroundStyle(Palette.ink)
+                Image(systemName: icon).font(.system(size: size * 0.34, weight: .medium)).foregroundStyle(tint)
             }
     }
 }
 
 /// Ligar: a frase inteira de cada carteira (e a passphrase das que tem), digitada de onde
-/// o dono anotou, o aceite do preco, e o PIN e o rosto. A frase digitada vira so a entropia
-/// (`WalletSecret`), comparada dentro do cofre com a guardada, em tempo constante, antes
-/// do rk.and existir. Tres palavras provavam posse, nao uma copia certa, e no modo
-/// reforcado o papel e o unico caminho de volta (revisao do modo reforcado, M7).
+/// o dono anotou, a politica de quando o Face ID mudar (o aceite do preco so com o
+/// bloqueio), e o PIN e o rosto. A frase digitada vira so a entropia (`WalletSecret`),
+/// comparada dentro do cofre com a guardada, em tempo constante, antes do rk.and existir.
+/// Tres palavras provavam posse, nao uma copia certa, e no modo reforcado o papel e o unico
+/// caminho de volta (revisao do modo reforcado, M7).
 struct HardenedEnableFlow: View {
     @Environment(AppSession.self) private var session
     @Environment(AuthCoordinator.self) private var auth
@@ -335,11 +382,23 @@ struct HardenedEnableFlow: View {
 
     @State private var typed: [UUID: WalletSecret] = [:]
     @State private var index = 0
-    @State private var accepted = false
+    @State private var faceChange: RootKeyVault.HardenedFaceChange
+    /// O aceite do bloqueio: so existe com "Bloquear as carteiras".
+    @State private var accepted: Bool
+    @State private var locking = false
     @State private var working = false
     @State private var message: String?
     /// Muda a cada recomeco, para a tela da frase nascer limpa.
     @State private var round = 0
+
+    init(wallets: [WalletMeta], faceChange: RootKeyVault.HardenedFaceChange, lockAccepted: Bool, onClose: @escaping (Bool) -> Void) {
+        self.wallets = wallets
+        self.onClose = onClose
+        _faceChange = State(initialValue: faceChange)
+        _accepted = State(initialValue: faceChange == .lock && lockAccepted)
+    }
+
+    private var ready: Bool { faceChange != .lock || accepted }
 
     private var finishedTyping: Bool { index >= wallets.count }
 
@@ -358,16 +417,20 @@ struct HardenedEnableFlow: View {
                     })
                     .id("\(wallet.id)-\(round)")
                 } else {
-                    VStack(alignment: .leading, spacing: 0) {
-                        consent
-                        if let message { Banner(kind: .failure, title: message).padding(.top, Space.md) }
-                        Spacer()
-                        PrimaryButton(title: String(localized: "Ligar o modo reforçado"), enabled: accepted, loading: working) { Task { await enable() } }
-                            .accessibilityIdentifier("reforcado-confirmar")
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            consent
+                            if let message { Banner(kind: .failure, title: message).padding(.top, Space.md) }
+                        }
+                        .padding(.horizontal, Space.gutter)
+                        .padding(.vertical, Space.md)
                     }
-                    .padding(.horizontal, Space.gutter)
-                    .padding(.top, Space.md)
-                    .padding(.bottom, Space.xs)
+                    .safeAreaInset(edge: .bottom) {
+                        ActionFooter {
+                            PrimaryButton(title: String(localized: "Ligar o modo reforçado"), enabled: ready, loading: working) { Task { await enable() } }
+                                .accessibilityIdentifier("reforcado-confirmar")
+                        }
+                    }
                 }
             }
             .background(Palette.void.ignoresSafeArea())
@@ -382,6 +445,17 @@ struct HardenedEnableFlow: View {
         }
         .interactiveDismissDisabled()
         .guardedAgainstCapture()
+        // "Bloquear as carteiras" escolhido aqui: a tela dele, com a animacao e o aceite, que
+        // vale como o aceite de ligar.
+        .fullScreenCover(isPresented: $locking) {
+            HardenedLockFlow(on: false, wallets: wallets) { done in
+                locking = false
+                if done {
+                    faceChange = .lock
+                    accepted = true
+                }
+            }
+        }
     }
 
     static func wordCount(_ wallet: WalletMeta) -> Int {
@@ -389,15 +463,34 @@ struct HardenedEnableFlow: View {
         return 12
     }
 
+    /// O ultimo passo: a politica (a mesma escolha da tela "Quando o Face ID mudar") e, so
+    /// com o bloqueio, o aceite do preco.
     private var consent: some View {
         VStack(alignment: .leading, spacing: Space.md) {
             Text("Antes de ligar").typeStyle(.title).foregroundStyle(Palette.ink)
-            ConsentCheckbox(checked: $accepted, text: String(localized: "Entendo que, se o cadastro de rostos deste iPhone mudar, as carteiras daqui não abrem mais, e só as palavras de cada carteira trazem de volta. Os nomes, endereços salvos e ajustes daqui se perdem junto."))
-                .accessibilityIdentifier("reforcado-aceite")
+            Text("Quando o \(KeyServices.biometryName) mudar").typeStyle(.row).foregroundStyle(Palette.ink)
+                .padding(.top, Space.xs)
+            HardenedFaceChangeOptions(choice: faceChange) { choose($0) }
+            if faceChange == .wait { HardenedWaitNote() }
+            if faceChange == .lock {
+                ConsentCheckbox(checked: $accepted, text: HardenedLockFlow.consentText)
+                    .accessibilityIdentifier("reforcado-aceite")
+            }
             Text("Depois, o PIN e o \(KeyServices.biometryName) duas vezes: uma para abrir, outra para conferir o modo novo antes de valer.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private func choose(_ policy: RootKeyVault.HardenedFaceChange) {
+        guard policy != faceChange else { return }
+        message = nil
+        if policy == .lock {
+            locking = true
+            return
+        }
+        faceChange = policy
+        accepted = false
     }
 
     private func enable() async {
@@ -405,29 +498,11 @@ struct HardenedEnableFlow: View {
         guard case .pin(let pin)? = await auth.credential(reason: String(localized: "Ligar o modo reforçado"), forcePIN: true) else { return }
         working = true
         defer { working = false }
-        let checks = wallets.compactMap { wallet in typed[wallet.id].map { (id: wallet.id, name: wallet.name, secret: $0, passphrase: wallet.hasPassphrase) } }
+        let checks = HardenedPhraseCheck.collect(wallets, typed: typed)
         guard checks.count == wallets.count else { restart(); return }
+        let faceChange = self.faceChange
         do {
-            try await session.enableHardened(pin: pin) { rk in
-                for check in checks {
-                    let stored = try KeyServices.wallets.open(walletID: check.id, rk: rk)
-                    defer { stored.wipe() }
-                    // A entropia, nao as palavras: nenhuma frase vira String, e o idioma vem junto.
-                    guard stored.language == check.secret.language, Hash.constantTimeEqual(stored.entropy, check.secret.entropy) else {
-                        throw HardenedCheckError.mismatch(check.name)
-                    }
-                    if check.passphrase {
-                        // As duas em NFKD: a importada ja foi gravada assim, a criada aqui pode
-                        // ter os bytes do teclado (revisao do modo reforcado, M3).
-                        let saved = BIP39.nfkd(stored.passphrase)
-                        defer { saved.wipe() }
-                        guard Hash.constantTimeEqual(saved, check.secret.passphrase) else { throw HardenedCheckError.mismatch(check.name) }
-                        // Gravada fora de NFKD por uma versao anterior: restaurada pelas palavras,
-                        // a conta da Cardano dela muda. Nao vale como copia (segunda revisao, N1).
-                        guard Hash.constantTimeEqual(saved, stored.passphrase) else { throw HardenedCheckError.legacyPassphrase(check.name) }
-                    }
-                }
-            }
+            try await session.enableHardened(pin: pin, faceChange: faceChange) { rk in try HardenedPhraseCheck.run(checks, rk: rk) }
             close(true)
         } catch HardenedCheckError.mismatch(let name) {
             message = String(localized: "O que você digitou de \(name) não confere com esta carteira. Confira no papel e comece de novo.")
@@ -473,7 +548,6 @@ struct HardenedEnableFlow: View {
         typed.values.forEach { $0.wipe() }
         typed = [:]
         index = 0
-        accepted = false
         round += 1
     }
 
@@ -485,3 +559,38 @@ struct HardenedEnableFlow: View {
 }
 
 enum HardenedCheckError: Error { case mismatch(String), legacyPassphrase(String) }
+
+/// A frase digitada de uma carteira, para a conferencia dentro do cofre: ligar o modo e ir
+/// para "Bloquear as carteiras".
+struct HardenedPhraseCheck: Sendable {
+    let id: UUID
+    let name: String
+    let secret: WalletSecret
+    let passphrase: Bool
+
+    static func collect(_ wallets: [WalletMeta], typed: [UUID: WalletSecret]) -> [HardenedPhraseCheck] {
+        wallets.compactMap { wallet in typed[wallet.id].map { HardenedPhraseCheck(id: wallet.id, name: wallet.name, secret: $0, passphrase: wallet.hasPassphrase) } }
+    }
+
+    /// Roda sob a trava do cofre, com a RK aberta: so o `WalletVault`, nunca o `RootKeyVault`.
+    static func run(_ checks: [HardenedPhraseCheck], rk: SecureBytes) throws {
+        for check in checks {
+            let stored = try KeyServices.wallets.open(walletID: check.id, rk: rk)
+            defer { stored.wipe() }
+            // A entropia, nao as palavras: nenhuma frase vira String, e o idioma vem junto.
+            guard stored.language == check.secret.language, Hash.constantTimeEqual(stored.entropy, check.secret.entropy) else {
+                throw HardenedCheckError.mismatch(check.name)
+            }
+            if check.passphrase {
+                // As duas em NFKD: a importada ja foi gravada assim, a criada aqui pode ter os
+                // bytes do teclado (revisao do modo reforcado, M3).
+                let saved = BIP39.nfkd(stored.passphrase)
+                defer { saved.wipe() }
+                guard Hash.constantTimeEqual(saved, check.secret.passphrase) else { throw HardenedCheckError.mismatch(check.name) }
+                // Gravada fora de NFKD por uma versao anterior: restaurada pelas palavras, a
+                // conta da Cardano dela muda. Nao vale como copia (segunda revisao, N1).
+                guard Hash.constantTimeEqual(saved, stored.passphrase) else { throw HardenedCheckError.legacyPassphrase(check.name) }
+            }
+        }
+    }
+}

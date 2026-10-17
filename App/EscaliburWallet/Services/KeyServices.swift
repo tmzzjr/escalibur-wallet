@@ -60,6 +60,9 @@ enum KeyServices {
         }
     }()
 
+    /// Touch ID: os textos dizem "digital" onde o Face ID diz "rosto".
+    static var usesFingerprint: Bool { biometryName == "Touch ID" }
+
     /// O simbolo da biometria deste aparelho.
     static var biometryIcon: String {
         switch biometryName {
@@ -178,6 +181,16 @@ final class SimulatorWrapper: KeyWrapper, @unchecked Sendable {
         return ephemeral.publicKey.x963Representation + sealed.combined
     }
 
+    /// Um Face ID so, e a vigia na mesma sessao, sem pedir de novo. A chave da vigia que nao
+    /// existe e a troca vista; `-rosto-novo` a apaga para simular um rosto cadastrado. As
+    /// chaves que nao seguem o cadastro sobrevivem a ele, como no aparelho.
+    func unwrap(_ blob: Data, slot: WrapSlot, reason: String, watching watch: Data, with watchSlot: WrapSlot) throws -> (SecureBytes, WatchResult) {
+        let opened = try unwrap(blob, slot: slot, reason: reason)
+        guard let watchKey = key(watchSlot) else { return (opened, .gone) }
+        guard let seen = try? Self.open(watch, key: watchKey) else { return (opened, .unknown) }
+        return (opened, .opened(seen))
+    }
+
     func unwrap(_ blob: Data, slot: WrapSlot, reason: String?) throws -> SecureBytes {
         guard let key = key(slot) else { throw EnclaveError.keyMissing }
         if slot.usesBiometry {
@@ -192,6 +205,10 @@ final class SimulatorWrapper: KeyWrapper, @unchecked Sendable {
             semaphore.wait()
             guard allowed else { throw EnclaveError.cancelled }
         }
+        return try Self.open(blob, key: key)
+    }
+
+    private static func open(_ blob: Data, key: P256.KeyAgreement.PrivateKey) throws -> SecureBytes {
         let ephemeral = try P256.KeyAgreement.PublicKey(x963Representation: blob.prefix(65))
         let symmetric = try key.sharedSecretFromKeyAgreement(with: ephemeral)
             .hkdfDerivedSymmetricKey(using: SHA256.self, salt: Data(), sharedInfo: Data("wrap".utf8), outputByteCount: 32)

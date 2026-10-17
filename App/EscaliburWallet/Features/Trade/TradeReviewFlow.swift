@@ -368,7 +368,7 @@ struct TradeReviewFlow: View {
             }) else { return }
             signed = result
         } catch {
-            self.error = (error as? LocalizedError)?.errorDescription
+            self.error = AuthCoordinator.refusalMessage(error) ?? (error as? LocalizedError)?.errorDescription
                 ?? text(swap: String(localized: "A troca não saiu. Nada foi debitado."), limit: String(localized: "A ordem não saiu. Nada foi debitado."),
                         cancel: String(localized: "O cancelamento não saiu. A ordem continua aberta."))
             stage = .review

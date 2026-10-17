@@ -374,8 +374,23 @@ struct SecuritySettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                if session.hardenedHold > 0 {
+                    Banner(kind: .caution, title: AuthCoordinator.hardenedHoldMessage(session.hardenedHold))
+                        .padding(.horizontal, Space.gutter)
+                        .padding(.top, Space.md)
+                        .accessibilityIdentifier("reforcado-espera")
+                }
                 SettingsGroup {
-                    Button { changingPIN = true } label: { SettingsRow(icon: "circle.grid.3x3", title: String(localized: "Mudar o PIN")) }
+                    Button {
+                        // Na espera de "Esperar 24 horas", trocar o PIN espera: recusa antes do teclado.
+                        do {
+                            if session.hardenedModeOn { try KeyServices.root.checkHardenedAllowed() }
+                            biometryError = nil
+                            changingPIN = true
+                        } catch {
+                            biometryError = AuthCoordinator.refusalMessage(error)
+                        }
+                    } label: { SettingsRow(icon: "circle.grid.3x3", title: String(localized: "Mudar o PIN")) }
                     NavigationLink { HardenedModeView() } label: {
                         SettingsRow(icon: "lock.shield", title: String(localized: "Modo reforçado"),
                                     value: session.hardenedModeOn ? String(localized: "Ligado") : String(localized: "Desligado"))
@@ -447,7 +462,10 @@ struct SecuritySettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $biometryPIN, onDismiss: { biometryOn = KeyServices.root.isBiometryEnabled }) { EnableBiometrySheet { biometryPIN = false } }
         .fullScreenCover(isPresented: $changingPIN) { ChangePINFlow { changingPIN = false } }
-        .onAppear { biometryOn = KeyServices.root.isBiometryEnabled }
+        .onAppear {
+            biometryOn = KeyServices.root.isBiometryEnabled
+            session.refreshHardenedHold()
+        }
     }
 
     /// Desligar pede o PIN e o rosto (A1): com o Face ID desligado, o que pedia os dois
@@ -521,7 +539,12 @@ struct WipeSettingsView: View {
         }
         error = nil
         let reason = option.map { String(localized: "Apagar depois de \($0) PINs errados") } ?? String(localized: "Nunca apagar por PINs errados")
-        guard (try? await auth.perform(session, reason: reason, presence: .pin, { _ in true })) == true else { return }
+        do {
+            guard try await auth.perform(session, reason: reason, presence: .pin, { _ in true }) == true else { return }
+        } catch {
+            self.error = AuthCoordinator.refusalMessage(error)
+            return
+        }
         do {
             try KeyServices.root.setWipeAfterErrors(option)
             current = option
@@ -599,7 +622,7 @@ struct ChangePINFlow: View {
         case .throttled(let seconds): return String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
         case .malformedPIN: return String(localized: "O PIN precisa ter 4 ou 6 números.")
         case .biometryNotConfirmed: return String(localized: "O \(KeyServices.biometryName) não confirmou, e isso contou como tentativa. O PIN atual continua valendo.")
-        case .biometryLockedOut, .biometryUnavailable, .hardenedSlotLost:
+        case .biometryLockedOut, .biometryUnavailable, .hardenedSlotLost, .biometryHold, .biometryNotEnrolled, .hardenedFaceKeyFailed:
             return AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível trocar. O PIN atual continua valendo.")
         default: return String(localized: "Não foi possível trocar. O PIN atual continua valendo.")
         }
@@ -722,7 +745,12 @@ struct AutoLockView: View {
         let current = Self.clamped(session.metadata.settings.autoLockSeconds)
         guard seconds != current else { return }
         if seconds > current {
-            guard (try? await auth.perform(session, reason: Self.reason(seconds), presence: .pin, { _ in true })) == true else { return }
+            do {
+                guard try await auth.perform(session, reason: Self.reason(seconds), presence: .pin, { _ in true }) == true else { return }
+            } catch {
+                self.error = AuthCoordinator.refusalMessage(error)
+                return
+            }
         }
         let previous = session.metadata.settings.autoLockSeconds
         session.metadata.settings.autoLockSeconds = seconds

@@ -46,6 +46,12 @@ final class AppSession {
             MetadataStore.deleteFile()
             PriceAlertStore.erase()
         }
+        #if targetEnvironment(simulator)
+        // `-rosto-novo`: o simulador nao troca o cadastro de rostos de verdade. A vigia do modo
+        // reforcado some como no aparelho, quando um rosto e cadastrado (a chave que segue o
+        // cadastro morre; a que nao segue continua).
+        if ProcessInfo.processInfo.arguments.contains("-rosto-novo") { KeyServices.wrapper.deleteKey(.hardenedBiometry) }
+        #endif
         #endif
         // Os alertas de preco abrem o app em segundo plano, as vezes com o iPhone
         // bloqueado: ai o chaveiro nao responde. `isSetUp` le "nao sei" como configurado,
@@ -138,9 +144,10 @@ final class AppSession {
         let reason = String(localized: "Destravar a Escalibur")
         let (key, updates) = try await Offload.run {
             defer { pin.wipe() }
-            // No modo reforcado, abrir o app tambem pede o rosto depois do PIN.
+            // No modo reforcado, abrir o app tambem pede o rosto depois do PIN. E o unico uso que
+            // a espera de "Esperar 24 horas" deixa passar: o saldo aparece, o resto espera.
             let rk = KeyServices.root.securityMode == .hardened
-                ? try KeyServices.root.unlockHardened(pin: pin, reason: reason)
+                ? try KeyServices.root.unlockHardened(pin: pin, reason: reason, use: .openApp)
                 : try KeyServices.root.unlock(pin: pin)
             defer { rk.wipe() }
             return (IndexCipher.key(from: rk), Self.missingAccounts(rk: rk))
@@ -203,6 +210,7 @@ final class AppSession {
             }
             try? persist()
         }
+        refreshHardenedHold()
         withAnimation(Motion.fade) { phase = .unlocked }
     }
 
@@ -223,7 +231,10 @@ final class AppSession {
             // Argon2, segundos), o cofre fica trancado, e esperar por ele aqui congelava
             // a tela inteira (amostra de 15/10/2026: a espada da abertura parada no
             // mutex). O `unlock` refaz esta conta por conta propria, dentro do cofre.
-            Task { await Offload.compute { KeyServices.root.rebaseAttempts() } }
+            Task {
+                await Offload.compute { KeyServices.root.rebaseAttempts() }
+                if phase == .unlocked { refreshHardenedHold() }
+            }
             if phase == .unlocked, let since = backgroundedAt,
                PINPolicy.uptime - since >= Double(AutoLockView.clamped(metadata.settings.autoLockSeconds)) {
                 lock()
@@ -329,16 +340,29 @@ final class AppSession {
         return metadata.settings.ownKeyboard == true || hardenedModeOn
     }
 
+    /// O que o modo reforcado faz quando o Face ID muda. Nil fora dele.
+    var hardenedFaceChange: RootKeyVault.HardenedFaceChange? { KeyServices.root.hardenedFaceChange }
+
+    /// O que falta da espera de "Esperar 24 horas", para a faixa da Carteira e de Seguranca.
+    /// Relido ao abrir o app, ao voltar para ele e depois de cada mudanca do modo: o cofre nao
+    /// e observavel.
+    private(set) var hardenedHold: TimeInterval = 0
+
+    func refreshHardenedHold() {
+        hardenedHold = KeyServices.root.hardenedHoldRemaining
+    }
+
     /// Liga o modo reforcado. O cofre pede o PIN e o rosto pelo slot de hoje, roda a
-    /// conferencia das palavras com a RK aberta (`check`), grava o rk.and, abre de novo com
-    /// PIN e rosto, e so entao apaga o slot so-PIN.
-    func enableHardened(pin: SecureBytes, check: @escaping @Sendable (SecureBytes) throws -> Void) async throws {
+    /// conferencia das palavras com a RK aberta (`check`), grava o rk.and com as chaves de
+    /// `faceChange`, abre de novo com PIN e rosto, e so entao apaga o slot so-PIN.
+    func enableHardened(pin: SecureBytes, faceChange: RootKeyVault.HardenedFaceChange,
+                        check: @escaping @Sendable (SecureBytes) throws -> Void) async throws {
         let reason = String(localized: "Ligar o modo reforçado")
         let confirm = String(localized: "Confirme o \(KeyServices.biometryName) para conferir o modo reforçado")
         do {
             try await Offload.run {
                 defer { pin.wipe() }
-                try KeyServices.root.enableHardened(pin: pin, reason: reason, confirmReason: confirm, check: check)
+                try KeyServices.root.enableHardened(pin: pin, reason: reason, confirmReason: confirm, faceChange: faceChange, check: check)
             }
         } catch RootKeyVault.Failure.wiped {
             eraseEverything()
@@ -366,6 +390,24 @@ final class AppSession {
         metadata.settings.biometryEnabled = restored
         try? persist()
         return restored
+    }
+
+    /// Muda o que acontece quando o Face ID muda: PIN e rosto, as palavras de cada carteira
+    /// so na ida para "Bloquear as carteiras" (`check`, que o cofre so roda nela), e o rosto de
+    /// novo para conferir o registro novo antes de valer.
+    func setHardenedFaceChange(_ target: RootKeyVault.HardenedFaceChange, pin: SecureBytes,
+                               check: @escaping @Sendable (SecureBytes) throws -> Void) async throws {
+        let reason = String(localized: "Mudar o que acontece quando o \(KeyServices.biometryName) mudar")
+        let confirm = String(localized: "Confirme o \(KeyServices.biometryName) para conferir o modo reforçado")
+        do {
+            try await Offload.run {
+                defer { pin.wipe() }
+                try KeyServices.root.setHardenedFaceChange(target, pin: pin, reason: reason, confirmReason: confirm, check: check)
+            }
+        } catch RootKeyVault.Failure.wiped {
+            eraseEverything()
+            throw RootKeyVault.Failure.wiped
+        }
     }
 
     // MARK: Carteiras

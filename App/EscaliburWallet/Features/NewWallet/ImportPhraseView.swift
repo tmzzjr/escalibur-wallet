@@ -625,7 +625,7 @@ struct ImportPhraseView: View {
             message = walletError.errorDescription
         } catch {
             discardPending()
-            message = String(localized: "Não foi possível importar a carteira.") + Self.debugDetail(error)
+            message = AuthCoordinator.refusalMessage(error) ?? (String(localized: "Não foi possível importar a carteira.") + Self.debugDetail(error))
         }
     }
 

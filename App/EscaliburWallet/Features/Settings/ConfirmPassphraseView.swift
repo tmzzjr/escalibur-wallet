@@ -103,7 +103,7 @@ struct ConfirmPassphraseView: View {
                 }
                 matches = result == .match
             } catch {
-                message = String(localized: "Não foi possível abrir a carteira agora.")
+                message = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível abrir a carteira agora.")
                 return
             }
         }

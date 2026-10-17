@@ -245,7 +245,7 @@ struct BridgeReviewFlow: View {
             }) else { return }
             signed = result
         } catch {
-            self.error = (error as? LocalizedError)?.errorDescription ?? String(localized: "A ponte não saiu. Nada foi debitado.")
+            self.error = AuthCoordinator.refusalMessage(error) ?? (error as? LocalizedError)?.errorDescription ?? String(localized: "A ponte não saiu. Nada foi debitado.")
             stage = .review
             return
         }
