@@ -438,18 +438,19 @@ public enum TradeReroute: Sendable, Equatable {
 }
 
 extension TradePlanner {
-    /// A revisao diz que a rota mudou e por que, logo depois do provedor: o dono viu outro
-    /// provedor (ou a divisao) na cotacao, e o minimo da revisao e o deste plano.
+    /// A revisao diz por que a troca vai por este provedor, logo depois dele: o dono viu outro
+    /// provedor (ou a divisao) na cotacao. Em tom de escolha, nao de alarme (pedido do dono,
+    /// 17/10/2026), sem prometer o que nao e: a rota nova e a proxima da fila, nao uma melhor.
     public static func rerouted(_ plan: SigningPlan, _ reason: TradeReroute, to provider: TradeProvider) -> SigningPlan {
         let text: String
         switch reason {
         case .simulationFailed(let shown):
-            text = kitText("A rota da \(shown.displayName) não passou na simulação agora. A troca vai pela \(provider.displayName), com o mínimo desta revisão.")
+            text = kitText("A cotação da \(shown.displayName) falharia na rede agora. Escolhemos a próxima melhor, a da \(provider.displayName), que passou na simulação.")
         case .splitInterfered(let shown):
             let names = shown.map(\.displayName).joined(separator: " e ")
-            text = kitText("A divisão entre \(names) não se sustentou na simulação em sequência. A troca vai inteira pela \(provider.displayName), com o mínimo desta revisão.")
+            text = kitText("Dividir entre \(names) não funcionaria agora. Escolhemos a melhor cotação inteira, a da \(provider.displayName), que passou na simulação.")
         }
-        return plan.addingLine(.init(kitText("Mudança de rota"), text), after: kitText("Provedor"))
+        return plan.addingLine(.init(kitText("Rota escolhida"), text), after: kitText("Provedor"))
     }
 }
 

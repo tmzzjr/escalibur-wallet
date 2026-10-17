@@ -187391,32 +187391,32 @@
         }
       }
     },
-    "Mudança de rota" : {
+    "Rota escolhida" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Route change"
+            "value" : "Chosen route"
           }
         }
       }
     },
-    "A rota da %@ não passou na simulação agora. A troca vai pela %@, com o mínimo desta revisão." : {
+    "A cotação da %@ falharia na rede agora. Escolhemos a próxima melhor, a da %@, que passou na simulação." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The %@ route failed the simulation just now. The swap goes through %@, with the minimum in this review."
+            "value" : "The %@ quote would fail on the network right now. We picked the next best, from %@, which passed the simulation."
           }
         }
       }
     },
-    "A divisão entre %@ não se sustentou na simulação em sequência. A troca vai inteira pela %@, com o mínimo desta revisão." : {
+    "Dividir entre %@ não funcionaria agora. Escolhemos a melhor cotação inteira, a da %@, que passou na simulação." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The split between %@ did not hold up when simulated in sequence. The whole swap goes through %@, with the minimum in this review."
+            "value" : "Splitting between %@ would not work right now. We picked the best single quote, from %@, which passed the simulation."
           }
         }
       }

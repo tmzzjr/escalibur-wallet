@@ -287,10 +287,10 @@ struct EVMTradeEngineTests {
         let swap = try #require(plan.transactions.last as? EVMTransaction)
         #expect(swap.to == TradeAllowlist.router(for: fallback, on: .base)?.address)
         #expect(plan.review.lines.contains { $0.label == "Provedor" && $0.value == fallback.displayName })
-        let note = try #require(plan.review.lines.first { $0.label == "Mudança de rota" })
-        #expect(note.value.hasPrefix("A rota da \(best.provider.displayName) não passou na simulação agora."))
+        let note = try #require(plan.review.lines.first { $0.label == "Rota escolhida" })
+        #expect(note.value.hasPrefix("A cotação da \(best.provider.displayName) falharia na rede agora. Escolhemos a próxima melhor"))
         let labels = plan.review.lines.map(\.label)
-        #expect(labels.firstIndex(of: "Mudança de rota") == labels.firstIndex(of: "Provedor").map { $0 + 1 })
+        #expect(labels.firstIndex(of: "Rota escolhida") == labels.firstIndex(of: "Provedor").map { $0 + 1 })
 
         // Todas revertem: o plano nao sai, com a mensagem da simulacao.
         let none = H.engine(state: FakeTradeChain(failingSimulationProviders: Set(TradeProvider.allCases)), prices: prices,
@@ -370,7 +370,7 @@ struct EVMTradeEngineTests {
         #expect(plan.transactions.count == 2 && swap.to == TradeAllowlist.router(for: .pancakeswap, on: .base)?.address)
         #expect(plan.review.lines.contains { $0.label == "Provedor" && $0.value == "PancakeSwap" })
         #expect(plan.review.lines.contains {
-            $0.label == "Mudança de rota" && $0.value.hasPrefix("A divisão entre Velora e KyberSwap não se sustentou na simulação em sequência.")
+            $0.label == "Rota escolhida" && $0.value.hasPrefix("Dividir entre Velora e KyberSwap não funcionaria agora. Escolhemos a melhor cotação inteira")
         })
 
         // Sem alternativa que cubra o minimo: nada sai, com a mensagem da simulacao.
