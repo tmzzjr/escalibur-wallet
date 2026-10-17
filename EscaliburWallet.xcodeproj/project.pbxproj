@@ -97,6 +97,7 @@
 		764421050731E0E80A58ED00 /* RecoveryGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED23584B0B3158A272B4E171 /* RecoveryGuideView.swift */; };
 		764A13E8CD7AFD1D2F471CDF /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC223F64D98A451F9C2AFD2 /* ActivityView.swift */; };
 		76A2BB3A1E60F49DD5B818C6 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0C91AC7C8CD9C5B8D31703 /* Components.swift */; };
+		791BA8CE82C0BD3C1FE813EA /* AppStoreShotsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D714FB90DB9C124D640F7B2 /* AppStoreShotsTests.swift */; };
 		7AFE96AAC9B71887F32791C6 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99060F8C4FD3279504FC0185 /* SupportView.swift */; };
 		7B173231DE2779A868F26303 /* EscaliburEngines in Frameworks */ = {isa = PBXBuildFile; productRef = 3E79C0581616E2A098D4B56B /* EscaliburEngines */; };
 		7B637EE92498D3B55BF911DE /* SecurityScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D394E812500F52097076B13 /* SecurityScreens.swift */; };
@@ -270,6 +271,7 @@
 		28B8F987AD9FF8A40CF49305 /* SendChallengeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendChallengeTests.swift; sourceTree = "<group>"; };
 		290C3A2CEF411E071AA05800 /* WordInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordInputField.swift; sourceTree = "<group>"; };
 		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2D714FB90DB9C124D640F7B2 /* AppStoreShotsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreShotsTests.swift; sourceTree = "<group>"; };
 		2DF275A1E24517BDF332AADC /* SendAmountTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendAmountTests.swift; sourceTree = "<group>"; };
 		2EC9A98DB32F891A29BDD3AC /* OtherTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OtherTokens.swift; sourceTree = "<group>"; };
 		31B37C01BC744F32B7EE6352 /* SealEnvelopeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SealEnvelopeFlow.swift; sourceTree = "<group>"; };
@@ -589,6 +591,7 @@
 			children = (
 				CC3D353EB5D825C3E1AE9273 /* ActivityDetailTests.swift */,
 				1230FF61D7222514EB7DF821 /* ActivityExplorerTests.swift */,
+				2D714FB90DB9C124D640F7B2 /* AppStoreShotsTests.swift */,
 				9FE0277A6EBBAE2C28AD2107 /* AssetActivityTests.swift */,
 				4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */,
 				745CFBE75BE45B95EF64F171 /* CameraAccessTests.swift */,
@@ -1070,6 +1073,7 @@
 			files = (
 				7C50A38C1B47EECC201A7925 /* ActivityDetailTests.swift in Sources */,
 				88D2C04FCBCC1B39D08662B7 /* ActivityExplorerTests.swift in Sources */,
+				791BA8CE82C0BD3C1FE813EA /* AppStoreShotsTests.swift in Sources */,
 				BF2AE236B677F2B5801EBB37 /* AssetActivityTests.swift in Sources */,
 				A735272844639F9878C01046 /* BiometryNameTests.swift in Sources */,
 				2809DE2FADD5826ABB2508B5 /* CameraAccessTests.swift in Sources */,
@@ -1307,7 +1311,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1467,7 +1471,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
