@@ -25,6 +25,11 @@ import SwiftUI
 final class VoiceGate {
     static let shared = VoiceGate()
 
+    /// A confirmacao por voz saiu do app por enquanto (pedido do dono, 17/10/2026): volta mais
+    /// adiante. Desligada, nenhuma operacao pede a frase, nem para quem ja tinha ligado (sem os
+    /// ajustes na tela, a voz nao teria como ser desligada), e a linha some dos Ajustes.
+    static let featureEnabled = false
+
     /// `send(fiat:)` com nil quando nao ha cotacao: sem saber o valor, a voz e pedida.
     /// `settings`: mudar, regravar ou desligar a propria voz (auditoria 3, A2). Pede a
     /// frase sempre que ela estiver ligada, sem olhar as outras opcoes.
@@ -166,6 +171,7 @@ final class VoiceGate {
 
     /// Precisa de voz para esta acao? Se sim, pede; se nao, deixa passar.
     func confirm(_ action: Action, session: AppSession) async -> Bool {
+        guard Self.featureEnabled else { return true }
         let settings = session.metadata.settings.voice
         guard settings.enabled, let hash = session.metadata.voicePhraseHash, let salt = session.metadata.voicePhraseSalt else { return true }
         switch action {

@@ -24,8 +24,9 @@ struct PassphraseWalletView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // O cofre de pixels: outra carteira, trancada pelo que so voce sabe.
-                PixelVault()
+                // A parede de pixels com a porta escondida: as palavras abrem a de sempre, e a
+                // chave da passphrase revela a outra (pedido do dono, 17/10/2026).
+                PassphrasePixelScene(scene: .hiddenDoor, height: 190)
                 VStack(spacing: Space.xs) {
                     Text("Carteira com passphrase").typeStyle(.title).foregroundStyle(Palette.ink)
                     Text("Uma senha extra, escolhida por você. Junto com a senha de \(base.name), ela abre outra carteira, com outros endereços.")
@@ -45,7 +46,7 @@ struct PassphraseWalletView: View {
                 .accessibilityIdentifier("passphrase-como-funciona")
 
                 VStack(alignment: .leading, spacing: Space.md) {
-                    PassphrasePoint(icon: "eye.slash", text: String(localized: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não a da passphrase. Dentro deste app, quem tem o PIN vê as duas na lista de carteiras."))
+                    PassphrasePoint(icon: "eye.slash", text: String(localized: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não a da passphrase."))
                     PassphrasePoint(icon: "pencil.and.list.clipboard", text: String(localized: "Anote a passphrase longe das \(wordCount). Para abrir a carteira com passphrase em outro aparelho, você vai precisar das duas."))
                     // Na mesma cor dos outros pontos (pedido do dono, 16/10/2026).
                     PassphrasePoint(icon: "exclamationmark.triangle", text: String(localized: "Esquecer a passphrase é perder o acesso à carteira com passphrase. Ninguém recupera, nem a Escalibur."))

@@ -54,7 +54,7 @@ struct HardenedModeView: View {
                 section(String(localized: "O que muda"))
                 VStack(alignment: .leading, spacing: Space.md) {
                     point("person.badge.key", String(localized: "Quem viu só o seu PIN não abre o app nem envia nada sem o seu rosto."))
-                    point("keyboard", String(localized: "As palavras passam a ser digitadas no teclado da Escalibur: o teclado do iPhone não recebe as letras."))
+                    point("keyboard", String(localized: "As palavras passam a ser digitadas no Safe Keyboard: o teclado do iPhone não recebe as letras."))
                     point("hand.raised", String(localized: "Um \(KeyServices.biometryName) que não confirma conta como tentativa, como um PIN errado."))
                     point(KeyServices.biometryIcon, faceChange.consequence)
                 }

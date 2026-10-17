@@ -5,7 +5,7 @@ import SwiftUI
 /// um cilindro de 128 lados no SceneKit, com a foto da moeda na frente, no verso e na
 /// borda serrilhada, em material metalico que reflete a luz conforme gira. As texturas
 /// vem de "Bit Coin", de marcio3d (Sketchfab, CC BY 4.0), recortadas e travadas no
-/// modelos.lock; o credito esta em Ajustes, Sobre.
+/// modelos.lock; o credito esta no fim dos Termos de uso.
 ///
 /// `angle` e o giro em radianos em volta do eixo vertical: 0 e a frente.
 struct BitcoinCoin3D: UIViewRepresentable {

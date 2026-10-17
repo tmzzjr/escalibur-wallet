@@ -8,6 +8,11 @@ import XCTest
 /// aparelho ouve de verdade. `testRealMicrophone` usa o microfone do Mac, para
 /// conferir que abrir o microfone e permitir o reconhecimento nao derrubam o app.
 final class VoiceFlowTests: XCTestCase {
+    /// A confirmacao por voz saiu do app por enquanto (17/10/2026): os testes voltam com ela.
+    override func setUpWithError() throws {
+        throw XCTSkip("Confirmação por voz fora do app por enquanto")
+    }
+
     var shots: String? { ProcessInfo.processInfo.environment["ESCALIBUR_FOTOS"] }
 
     let phrase = "minha casa tem janela amarela"

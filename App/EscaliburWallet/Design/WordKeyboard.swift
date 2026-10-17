@@ -21,7 +21,7 @@ final class WordKeyboardModel {
 
     /// O globo aparece so onde a tela oferece o teclado do iPhone.
     var offersSystemKeyboard = false
-    /// "Teclado da Escalibur" vira um toque so onde a tela sabe abrir a explicacao.
+    /// "Safe Keyboard" vira um toque so onde a tela sabe abrir a explicacao.
     var offersInfo = false
 
     @ObservationIgnored var insert: (Character) -> Void = { _ in }
@@ -92,7 +92,7 @@ struct WordKeyboardView: View {
                     Button { if !demo { model.info() } } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "lock.fill").font(.system(size: 11, weight: .semibold))
-                            Text("Teclado da Escalibur").typeStyle(.note)
+                            Text("Safe Keyboard").typeStyle(.note)
                             if model.offersInfo {
                                 Image(systemName: "info.circle").font(.system(size: 12, weight: .semibold))
                             }
@@ -103,7 +103,7 @@ struct WordKeyboardView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(!model.offersInfo || demo)
-                    .accessibilityLabel(Text("Sobre o teclado da Escalibur"))
+                    .accessibilityLabel(Text("Sobre o Safe Keyboard"))
                     .accessibilityIdentifier("teclado-sobre")
                     key(width: unit * 2.5, enabled: model.canSubmit, label: String(localized: "Seguinte"), identifier: "teclado-seguinte", strong: true) {
                         model.submit()

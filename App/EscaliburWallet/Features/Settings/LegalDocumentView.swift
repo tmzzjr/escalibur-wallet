@@ -5,9 +5,6 @@ import SwiftUI
 enum LegalDocument: String, Identifiable {
     case terms = "termos"
     case privacy = "privacidade"
-    /// O credito que a licenca de terceiros pede (a CC BY da moeda 3D): autor, link da
-    /// licenca e o que foi alterado. Saiu da tela do Sobre (pedido do dono, 16/10/2026).
-    case licenses = "licencas"
 
     var id: String { rawValue }
 
@@ -15,7 +12,6 @@ enum LegalDocument: String, Identifiable {
         switch self {
         case .terms: return String(localized: "Termos de uso")
         case .privacy: return String(localized: "Política de privacidade")
-        case .licenses: return String(localized: "Licenças")
         }
     }
 

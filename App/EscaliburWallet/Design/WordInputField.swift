@@ -26,7 +26,7 @@ struct WordInputField: UIViewRepresentable {
     var ownKeyboard = false
     /// A tecla do globo do teclado proprio: a tela volta para o teclado do iPhone.
     var onSystemKeyboard: (() -> Void)?
-    /// O toque em "Teclado da Escalibur": a tela abre a explicacao do teclado.
+    /// O toque em "Safe Keyboard": a tela abre a explicacao do teclado.
     var onKeyboardInfo: (() -> Void)?
     /// Os idiomas das palavras ja fechadas, para o teclado proprio sugerir os deles primeiro.
     var languages: Set<BIP39Language>? = nil

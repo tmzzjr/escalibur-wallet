@@ -339,7 +339,7 @@ struct ImportPhraseView: View {
             Button("Usar o do iPhone") { systemKeyboard = true }
             Button("Cancelar", role: .cancel) {}
         } message: {
-            Text("Só para frases em japonês, chinês ou coreano, que o teclado da Escalibur não escreve. O teclado do iPhone recebe as letras que você digitar.")
+            Text("Só para frases em japonês, chinês ou coreano, que o Safe Keyboard não escreve. O teclado do iPhone recebe as letras que você digitar.")
         }
         .sheet(isPresented: $keyboardInfo) {
             KeyboardInfoSheet(onSystemKeyboard: { systemKeyboard = true }) { keyboardInfo = false }

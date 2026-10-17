@@ -455,7 +455,7 @@ struct SecuritySettingsView: View {
                     }
                     .accessibilityIdentifier("ajustes-reforcado")
                     NavigationLink { OwnKeyboardView() } label: {
-                        SettingsRow(icon: "keyboard", title: String(localized: "Teclado próprio"),
+                        SettingsRow(icon: "keyboard", title: String(localized: "Safe Keyboard"),
                                     value: session.ownKeyboardOn ? String(localized: "Ligado") : String(localized: "Desligado"))
                     }
                     .accessibilityIdentifier("ajustes-teclado")
@@ -472,8 +472,10 @@ struct SecuritySettingsView: View {
                     .disabled(!KeyServices.biometryAvailable)
                     .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
                     }
-                    NavigationLink { VoiceSettingsView() } label: {
-                        SettingsRow(icon: "waveform", title: String(localized: "Confirmação por voz"), value: session.metadata.settings.voice.enabled ? String(localized: "Ligada") : String(localized: "Desligada"))
+                    if VoiceGate.featureEnabled {
+                        NavigationLink { VoiceSettingsView() } label: {
+                            SettingsRow(icon: "waveform", title: String(localized: "Confirmação por voz"), value: session.metadata.settings.voice.enabled ? String(localized: "Ligada") : String(localized: "Desligada"))
+                        }
                     }
                     NavigationLink { AutoLockView() } label: {
                         SettingsRow(icon: "lock.rotation", title: String(localized: "Bloquear o app"), value: AutoLockView.label(session.metadata.settings.autoLockSeconds))
@@ -869,10 +871,11 @@ struct AboutView: View {
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 }
                 VStack(alignment: .leading, spacing: Space.xs) {
-                    // Publicado para auditoria, nao de codigo aberto: a licenca deixa ler e conferir,
-                    // nao reaproveitar (LICENSE, 16/10/2026).
+                    // Publicado para auditoria, nao de codigo aberto (LICENSE, 16/10/2026). A frase da
+                    // licenca saiu e o "travadas por digesto" virou linguagem de gente (pedido do
+                    // dono, 17/10/2026).
                     Text("Código auditável").typeStyle(.heading).foregroundStyle(Palette.ink)
-                    Text("Todo o código que guarda chaves, assina e fala com as redes é publicado para quem quiser auditar, linha por linha. A licença deixa ler e conferir, não reaproveitar. As bibliotecas de criptografia são compiladas do fonte e travadas por digesto.")
+                    Text("Todo o código que guarda chaves, assina e fala com as redes é publicado para quem quiser auditar, linha por linha. As bibliotecas de criptografia são compiladas a partir do código-fonte, e cada versão delas é conferida por uma impressão digital: se alguém trocar uma, a compilação para.")
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                     Text("Versão \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""))")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
@@ -885,8 +888,6 @@ struct AboutView: View {
                 SettingsGroup {
                     Button { legalDocument = .terms } label: { SettingsRow(icon: "doc.text", title: String(localized: "Termos de uso")) }
                     Button { legalDocument = .privacy } label: { SettingsRow(icon: "hand.raised", title: String(localized: "Política de privacidade")) }
-                    // O credito da licenca CC BY da moeda 3D mora aqui, fora da tela (16/10/2026).
-                    Button { legalDocument = .licenses } label: { SettingsRow(icon: "checkmark.seal", title: String(localized: "Licenças")) }
                 }
                 // O grupo ja traz a margem da tela; aqui ela vem do VStack, e somar as duas
                 // desalinhava os botoes do texto acima.

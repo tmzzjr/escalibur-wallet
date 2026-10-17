@@ -15,13 +15,13 @@ struct OwnKeyboardView: View {
             VStack(alignment: .leading, spacing: 0) {
                 // O titulo e o interruptor em cima, a animacao embaixo, e os idiomas logo abaixo
                 // dela (pedido do dono, 16/10/2026).
-                Text("Teclado próprio").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.sm)
+                Text("Safe Keyboard").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.sm)
                 Text("As palavras da carteira digitadas num teclado desenhado pela Escalibur, no lugar do teclado do iPhone.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Toggle(isOn: Binding(get: { on }, set: { set($0) })) {
-                    Text("Usar o teclado próprio").typeStyle(.body).foregroundStyle(Palette.ink)
+                    Text("Usar o Safe Keyboard").typeStyle(.body).foregroundStyle(Palette.ink)
                 }
                 .tint(Palette.success)
                 .disabled(session.hardenedModeOn)
@@ -30,7 +30,7 @@ struct OwnKeyboardView: View {
                     .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
                 .accessibilityIdentifier("teclado-proprio")
                 .padding(.top, Space.lg)
-                if let note = error ?? (session.hardenedModeOn ? String(localized: "No Super Security, o teclado próprio fica sempre ligado.") : nil) {
+                if let note = error ?? (session.hardenedModeOn ? String(localized: "No Super Security, o Safe Keyboard fica sempre ligado.") : nil) {
                     Text(note)
                         .typeStyle(.note).foregroundStyle(error == nil ? Palette.inkMuted : Palette.down)
                         .padding(.top, Space.xs)
@@ -148,7 +148,7 @@ struct KeyboardDemo: View {
         .padding(.vertical, Space.sm)
         .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(surface))
         .accessibilityElement()
-        .accessibilityLabel("Animação: o teclado próprio digitando uma palavra da lista")
+        .accessibilityLabel("Animação: o Safe Keyboard digitando uma palavra da lista")
         .task {
             guard !reduceMotion else {
                 model.typed = "aban"
@@ -190,7 +190,7 @@ struct KeyboardDemo: View {
     }
 }
 
-/// O toque em "Teclado da Escalibur", na tela de digitar as palavras: o que o teclado e,
+/// O toque em "Safe Keyboard", na tela de digitar as palavras: o que o teclado e,
 /// com a animacao, e o botao de desligar. No modo reforcado ele nao desliga; o botao
 /// troca para o teclado do iPhone so nesta tela.
 struct KeyboardInfoSheet: View {
@@ -203,7 +203,7 @@ struct KeyboardInfoSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 KeyboardDemo(surface: Palette.void).padding(.top, Space.md)
-                Text("Teclado da Escalibur").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
+                Text("Safe Keyboard").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
                 Text("Feito para a segurança das palavras: desenhado pelo próprio app, no lugar do teclado do iPhone.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
@@ -235,10 +235,10 @@ struct KeyboardInfoSheet: View {
                         onSystemKeyboard()
                         onClose()
                     }
-                    Text("No Super Security, o teclado da Escalibur volta na próxima vez.")
+                    Text("No Super Security, o Safe Keyboard volta na próxima vez.")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 } else {
-                    SecondaryButton(title: String(localized: "Desativar o teclado próprio")) { disable() }
+                    SecondaryButton(title: String(localized: "Desativar o Safe Keyboard")) { disable() }
                         .accessibilityIdentifier("teclado-desativar")
                 }
             }

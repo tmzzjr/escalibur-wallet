@@ -36634,12 +36634,12 @@
         }
       }
     },
-    "Animação: o teclado próprio digitando uma palavra da lista" : {
+    "Animação: o Safe Keyboard digitando uma palavra da lista" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Animation: the Escalibur keyboard typing a word from the list"
+            "value" : "Animation: the Safe Keyboard typing a word from the list"
           }
         }
       }
@@ -40151,23 +40151,23 @@
         }
       }
     },
-    "As palavras passam a ser digitadas no teclado da Escalibur: o teclado do iPhone não recebe as letras, fora frases em japonês, chinês ou coreano." : {
+    "As palavras passam a ser digitadas no Safe Keyboard: o teclado do iPhone não recebe as letras, fora frases em japonês, chinês ou coreano." : {
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The words are typed on the Escalibur keyboard: the iPhone keyboard doesn't receive the letters, except for phrases in Japanese, Chinese or Korean."
+            "value" : "The words are typed on the Safe Keyboard: the iPhone keyboard doesn't receive the letters, except for phrases in Japanese, Chinese or Korean."
           }
         }
       }
     },
-    "As palavras passam a ser digitadas no teclado da Escalibur: o teclado do iPhone não recebe as letras." : {
+    "As palavras passam a ser digitadas no Safe Keyboard: o teclado do iPhone não recebe as letras." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The words are typed on the Escalibur keyboard: the iPhone keyboard doesn't receive the letters."
+            "value" : "The words are typed on the Safe Keyboard: the iPhone keyboard doesn't receive the letters."
           }
         }
       }
@@ -62017,12 +62017,12 @@
         }
       }
     },
-    "Desativar o teclado próprio" : {
+    "Desativar o Safe Keyboard" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turn off the Escalibur keyboard"
+            "value" : "Turn off the Safe Keyboard"
           }
         }
       }
@@ -122287,22 +122287,22 @@
         }
       }
     },
-    "No Super Security, o teclado da Escalibur volta na próxima vez." : {
+    "No Super Security, o Safe Keyboard volta na próxima vez." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Super Security, the Escalibur keyboard comes back next time."
+            "value" : "In Super Security, the Safe Keyboard comes back next time."
           }
         }
       }
     },
-    "No Super Security, o teclado próprio fica sempre ligado." : {
+    "No Super Security, o Safe Keyboard fica sempre ligado." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Super Security, the Escalibur keyboard is always on."
+            "value" : "In Super Security, the Safe Keyboard is always on."
           }
         }
       }
@@ -152436,12 +152436,12 @@
         }
       }
     },
-    "Quem achar só as %lld palavras vê a carteira de sempre, não a da passphrase. Dentro deste app, quem tem o PIN vê as duas na lista de carteiras." : {
+    "Quem achar só as %lld palavras vê a carteira de sempre, não a da passphrase." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Someone who finds only the %lld words sees the usual wallet, not the passphrase one. Inside this app, whoever has the PIN sees both in the wallet list."
+            "value" : "Someone who finds only the %lld words sees the usual wallet, not the passphrase one."
           }
         }
       }
@@ -167175,12 +167175,12 @@
         }
       }
     },
-    "Só para frases em japonês, chinês ou coreano, que o teclado da Escalibur não escreve. O teclado do iPhone recebe as letras que você digitar." : {
+    "Só para frases em japonês, chinês ou coreano, que o Safe Keyboard não escreve. O teclado do iPhone recebe as letras que você digitar." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only for phrases in Japanese, Chinese or Korean, which the Escalibur keyboard doesn't type. The iPhone keyboard receives the letters you type."
+            "value" : "Only for phrases in Japanese, Chinese or Korean, which the Safe Keyboard doesn't type. The iPhone keyboard receives the letters you type."
           }
         }
       }
@@ -167961,12 +167961,12 @@
         }
       }
     },
-    "Sobre o teclado da Escalibur" : {
+    "Sobre o Safe Keyboard" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "About the Escalibur keyboard"
+            "value" : "About the Safe Keyboard"
           }
         }
       }
@@ -172063,22 +172063,12 @@
         }
       }
     },
-    "Teclado da Escalibur" : {
+    "Safe Keyboard" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escalibur keyboard"
-          }
-        }
-      }
-    },
-    "Teclado próprio" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Escalibur keyboard"
+            "value" : "Safe Keyboard"
           }
         }
       }
@@ -180779,12 +180769,12 @@
         }
       }
     },
-    "Usar o teclado próprio" : {
+    "Usar o Safe Keyboard" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Use the Escalibur keyboard"
+            "value" : "Use the Safe Keyboard"
           }
         }
       }
@@ -186757,6 +186747,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "将当前授权清零，然后授权新金额"
+          }
+        }
+      }
+    },
+    "Todo o código que guarda chaves, assina e fala com as redes é publicado para quem quiser auditar, linha por linha. As bibliotecas de criptografia são compiladas a partir do código-fonte, e cada versão delas é conferida por uma impressão digital: se alguém trocar uma, a compilação para." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All the code that keeps keys, signs and talks to the networks is published for anyone to audit, line by line. The cryptography libraries are built from source, and each version is checked against a fingerprint: if anyone swaps one, the build stops."
+          }
+        }
+      }
+    },
+    "Aviso de recebimento ligado" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incoming alert on"
+          }
+        }
+      }
+    },
+    "Quando receber moeda, o próprio iPhone confere o saldo e avisa, sem servidor da Escalibur no caminho." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When you receive coins, the iPhone itself checks the balance and alerts you, with no Escalibur server in between."
+          }
+        }
+      }
+    },
+    "Desligar o aviso" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn off the alert"
           }
         }
       }

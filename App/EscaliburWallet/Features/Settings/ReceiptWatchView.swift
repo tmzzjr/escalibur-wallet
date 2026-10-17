@@ -194,13 +194,16 @@ struct ReceiptWatchOffer: View {
             VStack(spacing: 0) {
                 // A moeda girando, que o dedo gira. O selo "Chegou X BTC" saiu a pedido do dono
                 // (16/10/2026).
+                // A moeda um pouco menor, e tudo mais para baixo (pedido do dono, 17/10/2026).
                 SpinningCoin()
-                    .frame(height: 200)
+                    .frame(height: 164)
                     .frame(maxWidth: .infinity)
 
-                Text("Avisar quando receber moeda?").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+                // O aviso vem ligado (pedido do dono, 17/10/2026): a folha diz que esta ligado e
+                // deixa desligar; continuar pede a permissao de notificacao.
+                Text("Aviso de recebimento ligado").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("O próprio iPhone confere o saldo e avisa, sem servidor da Escalibur no caminho.")
+                Text("Quando receber moeda, o próprio iPhone confere o saldo e avisa, sem servidor da Escalibur no caminho.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -212,14 +215,14 @@ struct ReceiptWatchOffer: View {
             }
             .multilineTextAlignment(.center)
             .padding(.horizontal, Space.gutter)
-            // Tudo um pouco mais para baixo, mais perto do centro da folha.
-            .padding(.top, Space.xl + Space.sm)
+            // Tudo mais para baixo, perto do centro da folha.
+            .padding(.top, 96)
             .padding(.bottom, Space.md)
         }
         .scrollBounceBehavior(.basedOnSize)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: Space.sm) {
-                PrimaryButton(title: String(localized: "Ligar o aviso"), loading: working) {
+                PrimaryButton(title: String(localized: "Continuar"), loading: working) {
                     working = true
                     Task {
                         await ReceiptAccounts.accept(session)
@@ -228,7 +231,7 @@ struct ReceiptWatchOffer: View {
                     }
                 }
                 .accessibilityIdentifier("recebimento-oferta-ligar")
-                SecondaryButton(title: String(localized: "Agora não")) {
+                SecondaryButton(title: String(localized: "Desligar o aviso")) {
                     Preferences.receiptWatchChosen = true
                     Preferences.receiptOfferSeen = true
                     // Ligado pelo padrao antigo, sem a folha: o "nao" desliga e apaga o arquivo.
