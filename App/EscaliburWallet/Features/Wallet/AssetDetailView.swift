@@ -232,6 +232,10 @@ struct MarketChartSection: View {
     @State private var range: ChartRange = .day
     @State private var points: [PricePoint] = []
     @State private var loading = false
+    /// A ultima resposta veio sem historico: trocando de periodo, a tela fica no "sem
+    /// historico" e so mostra o carregando se a resposta demorar. Antes o carregando
+    /// piscava meio segundo a cada toque (visto pelo dono, 16/10/2026).
+    @State private var emptyAnswer = false
     @State private var selection: PricePoint?
     @State private var failed = false
     /// Pelo contrato: de onde veio o grafico (CoinGecko, ou a pool de DEX), ou que nenhuma
@@ -373,8 +377,17 @@ struct MarketChartSection: View {
     private func load() async {
         guard coingeckoID != nil || contractAsset != nil else { return }
         if points.isEmpty { points = Self.seeded(seed, range: range) }
-        loading = true
-        defer { loading = false }
+        let quiet = emptyAnswer && points.count < 2
+        let slow: Task<Void, Never>? = quiet ? Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            if !Task.isCancelled { loading = true }
+        } : nil
+        if !quiet { loading = true }
+        defer {
+            slow?.cancel()
+            loading = false
+            emptyAnswer = points.count < 2
+        }
         let currency = session.metadata.settings.currency
         if let coingeckoID {
             do {
