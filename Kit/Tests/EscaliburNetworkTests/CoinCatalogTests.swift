@@ -22,6 +22,31 @@ struct CoinCatalogTests {
         #expect(results.count > 5)
     }
 
+    @Test("Reserva do CoinPaprika: id com prefixo, simbolo protegido fora, contratos por rede com a BNB em bnb-bnb")
+    func paprikaReserve() throws {
+        let search = Data("""
+        {"currencies":[
+          {"id":"purpe-purple-pepe","name":"Purple Pepe","symbol":"PURPE","rank":1074,"is_active":true},
+          {"id":"usdt-fake","name":"Tether","symbol":"USDT","rank":0,"is_active":true},
+          {"id":"dead-coin","name":"Dead","symbol":"DEAD","rank":0,"is_active":false}
+        ]}
+        """.utf8)
+        let results = try CoinCatalog.parsePaprikaSearch(search)
+        // O PEPE da lista verificada nao viria daqui: simbolo protegido so com o id da lista.
+        #expect(results.map(\.id) == ["paprika:purpe-purple-pepe"])
+        #expect(results.first?.rank == 1074)
+        let coin = Data("""
+        {"id":"purpe-purple-pepe","symbol":"PURPE","name":"Purple Pepe","contracts":[
+          {"contract":"0x25d887ce7a35172c62febfd67a1856f20faebb00","platform":"bnb-bnb"},
+          {"contract":"0x25d887ce7a35172c62febfd67a1856f20faebb00","platform":"arb-arbitrum"},
+          {"contract":"nao-e-contrato","platform":"eth-ethereum"}
+        ]}
+        """.utf8)
+        let parsed = try CoinCatalog.parsePaprikaCoin(coin, id: "paprika:purpe-purple-pepe")
+        #expect(parsed.networks.map(\.chainID).sorted() == ["arbitrum", "bnb"])
+        #expect(throws: (any Error).self) { try CoinCatalog.parsePaprikaCoin(coin, id: "paprika:outra") }
+    }
+
     @Test("Busca: isca, simbolo protegido de outro id, id que nao cabe na URL e repetido ficam de fora")
     func searchSafety() throws {
         let json = #"""

@@ -362,7 +362,11 @@ struct MarketChartSection: View {
         case .week: return String(localized: "em 7 dias")
         case .month: return String(localized: "em 30 dias")
         case .year: return String(localized: "em 1 ano")
-        case .all: return String(localized: "desde o início")
+        // A fonte gratis pode nao ter a historia inteira (o CoinGecko sem chave para em um
+        // ano): o rotulo diz desde quando o grafico comeca (17/10/2026).
+        case .all:
+            guard let first = points.first?.time else { return String(localized: "desde o início") }
+            return String(localized: "desde \(first.formatted(.dateTime.month(.abbreviated).year().locale(Fmt.locale)))")
         }
     }
 
@@ -400,6 +404,15 @@ struct MarketChartSection: View {
                 points = snapshot.points
                 staleSince = snapshot.isStale ? snapshot.fetchedAt : nil
                 failed = false
+                // "Tudo" de token: o CoinGecko sem chave so da 365 dias, e o "Tudo" saia igual
+                // a "1 ano" (visto no BNB Frog, 17/10/2026). A pool de DEX tem a historia mais
+                // longa; se ela comeca antes, vale ela.
+                if range == .all, let dexFallback, let first = points.first?.time,
+                   Date().timeIntervalSince(first) < 380 * 86_400,
+                   let chart = try? await MarketService.shared.dexChart(dexFallback, currency: currency, range: .all),
+                   let older = chart.snapshot.points.first?.time, older < first, chart.snapshot.points.count >= 2 {
+                    points = chart.snapshot.points
+                }
                 // A ultima moeda aberta vira a dos widgets, com a linha que acabou de chegar.
                 if range == .day, !snapshot.isStale, let fiat = Fmt.Currency(rawValue: currency.uppercased()) {
                     WidgetFeed.shared.viewed(coinID: coingeckoID, symbol: symbol, name: name, points: snapshot.points,

@@ -423,11 +423,25 @@ struct SkeletonBar: View {
 struct SheetHeader: View {
     let title: String
     var close: (() -> Void)? = nil
+    /// Um botao a mais, antes do fechar, no mesmo desenho (o "+" do Receber).
+    var extra: (icon: String, label: String, identifier: String, action: () -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .center) {
             Text(title).typeStyle(.title).foregroundStyle(Palette.ink)
             Spacer()
+            if let extra {
+                Button(action: extra.action) {
+                    Image(systemName: extra.icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Palette.ink)
+                        .frame(width: 30, height: 30)
+                        .background(Circle().fill(Palette.control))
+                        .frame(width: Height.touch, height: Height.touch)
+                }
+                .accessibilityLabel(extra.label)
+                .accessibilityIdentifier(extra.identifier)
+            }
             if let close {
                 Button(action: close) {
                     Image(systemName: "xmark")

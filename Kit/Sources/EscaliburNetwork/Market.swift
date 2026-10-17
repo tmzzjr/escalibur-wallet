@@ -817,12 +817,19 @@ public actor MarketService {
             case .all: return ("day", "1", 1000, .infinity)
             }
         }()
-        let url = Self.url(Self.geckoTerminal, "networks/\(network)/pools/\(pool.address)/ohlcv/\(timeframe)", [
-            ("aggregate", aggregate), ("limit", String(limit)), ("currency", "usd"), ("token", token),
-        ])
-        let json = try await get(JSONValue.self, url)
+        // "Tudo": as velas diarias em paginas de 1000, para tras ("before_timestamp"), ate
+        // tres paginas: a historia da pool, e nao so os ultimos 1000 dias.
+        var rows: [JSONValue] = []
+        for _ in 0..<(range == .all ? 3 : 1) {
+            var query = [("aggregate", aggregate), ("limit", String(limit)), ("currency", "usd"), ("token", token)]
+            if let oldest = rows.compactMap({ $0[0]?.doubleValue }).min() { query.append(("before_timestamp", String(Int(oldest)))) }
+            let json = try await get(JSONValue.self, Self.url(Self.geckoTerminal, "networks/\(network)/pools/\(pool.address)/ohlcv/\(timeframe)", query))
+            guard let page = json["data"]?["attributes"]?["ohlcv_list"]?.arrayValue else { throw HTTPClient.Failure.invalidResponse }
+            rows += page
+            if page.count < limit { break }
+        }
         let rate = currency == "usd" ? 1 : (try await quotes(ids: ["tether"], currency: currency)["tether"]?.price ?? 0)
-        guard rate > 0, let rows = json["data"]?["attributes"]?["ohlcv_list"]?.arrayValue else { throw HTTPClient.Failure.invalidResponse }
+        guard rate > 0 else { throw HTTPClient.Failure.invalidResponse }
         let start = now().addingTimeInterval(-window)
         // As velas so existem quando houve negocio: 96 velas de 15 min podem cobrir dias.
         let all = rows.compactMap { row -> PricePoint? in

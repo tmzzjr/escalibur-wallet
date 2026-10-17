@@ -62,16 +62,36 @@ public struct CatalogCoin: Codable, Sendable, Hashable, Identifiable {
 public enum CoinCatalog {
     static let base = URL(string: "https://api.coingecko.com/api/v3")!
 
+    /// A reserva: o CoinPaprika, quando o CoinGecko sem chave pede pausa ou nao responde
+    /// (pedido do dono, 17/10/2026). O id do resultado leva o prefixo `paprika:`, para a
+    /// leitura das redes ir ao mesmo lugar; nada do CoinPaprika vira id de preco.
+    static let paprika = URL(string: "https://api.coinpaprika.com/v1")!
+    public static let paprikaPrefix = "paprika:"
+
     public static func search(_ query: String, client: HTTPClient = .shared) async throws -> [CoinSearchResult] {
         let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard text.count >= 2, text.count <= 60 else { return [] }
         var components = URLComponents(url: base.appendingPathComponent("search"), resolvingAgainstBaseURL: false)!
         components.queryItems = [URLQueryItem(name: "query", value: text)]
         guard let url = components.url else { return [] }
-        return try parseSearch(try await client.get(url, timeout: 10))
+        do {
+            return try parseSearch(try await client.get(url, timeout: 10))
+        } catch {
+            try Task.checkCancellation()
+            // O caminho termina em barra: sem ela, o CoinPaprika responde com redirecionamento.
+            var reserve = URLComponents(url: paprika.appendingPathComponent("search/"), resolvingAgainstBaseURL: false)!
+            reserve.queryItems = [URLQueryItem(name: "q", value: text), URLQueryItem(name: "c", value: "currencies"), URLQueryItem(name: "limit", value: "30")]
+            guard let reserveURL = reserve.url else { throw error }
+            return try parsePaprikaSearch(try await client.get(reserveURL, timeout: 10))
+        }
     }
 
     public static func coin(id: String, client: HTTPClient = .shared) async throws -> CatalogCoin {
+        if id.hasPrefix(paprikaPrefix) {
+            let reserveID = String(id.dropFirst(paprikaPrefix.count))
+            guard isValidID(reserveID) else { throw HTTPClient.Failure.decoding("moeda") }
+            return try parsePaprikaCoin(try await client.get(paprika.appendingPathComponent("coins/\(reserveID)"), timeout: 10), id: id)
+        }
         guard isValidID(id) else { throw HTTPClient.Failure.decoding("moeda") }
         var components = URLComponents(url: base.appendingPathComponent("coins/\(id)"), resolvingAgainstBaseURL: false)!
         components.queryItems = [
@@ -139,6 +159,70 @@ public enum CoinCatalog {
             || response.preview_listing == true
         return CatalogCoin(id: id, symbol: symbol, name: name, networks: networks, hasNotice: notice)
     }
+
+    static func parsePaprikaSearch(_ data: Data) throws -> [CoinSearchResult] {
+        struct Response: Decodable {
+            struct Coin: Decodable {
+                let id: String
+                let name: String
+                let symbol: String
+                let rank: Int?
+                let is_active: Bool?
+            }
+            let currencies: [Coin]?
+        }
+        let response: Response
+        do { response = try JSONDecoder().decode(Response.self, from: data) } catch { throw HTTPClient.Failure.decoding("busca") }
+        var seen = Set<String>()
+        return (response.currencies ?? []).prefix(60).compactMap { coin -> CoinSearchResult? in
+            let id = paprikaPrefix + coin.id
+            guard coin.is_active != false, isValidID(coin.id), seen.insert(id).inserted,
+                  let (symbol, name) = acceptable(id: id, symbol: coin.symbol, name: coin.name)
+            else { return nil }
+            return CoinSearchResult(id: id, symbol: symbol, name: name, rank: coin.rank.flatMap { $0 > 0 ? $0 : nil }, image: nil)
+        }
+    }
+
+    static func parsePaprikaCoin(_ data: Data, id: String) throws -> CatalogCoin {
+        struct Response: Decodable {
+            struct Contract: Decodable {
+                let contract: String
+                let platform: String
+            }
+            let id: String
+            let symbol: String
+            let name: String
+            let contracts: [Contract]?
+        }
+        let response: Response
+        do { response = try JSONDecoder().decode(Response.self, from: data) } catch { throw HTTPClient.Failure.decoding("moeda") }
+        guard paprikaPrefix + response.id == id, let (symbol, name) = acceptable(id: id, symbol: response.symbol, name: response.name) else {
+            throw HTTPClient.Failure.decoding("moeda")
+        }
+        let order = Dictionary(Chain.all.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var networks: [CatalogCoin.Network] = []
+        for item in response.contracts ?? [] {
+            guard let chain = paprikaChains[item.platform], let shaped = shape(item.contract, chain: chain),
+                  !listedContracts.contains("\(chain.id):\(shaped)"), !networks.contains(where: { $0.chainID == chain.id })
+            else { continue }
+            networks.append(.init(chainID: chain.id, contract: shaped))
+        }
+        networks.sort { (order[$0.chainID] ?? .max) < (order[$1.chainID] ?? .max) }
+        return CatalogCoin(id: id, symbol: symbol, name: name, networks: networks, hasNotice: false)
+    }
+
+    /// A plataforma do CoinPaprika de cada rede, como os contratos da moeda dizem. A da BNB
+    /// aparece como "bnb-bnb" nos contratos e "bnb-binance-coin" na lista de contratos: as
+    /// duas valem.
+    static let paprikaChains: [String: Chain] = {
+        var out: [String: Chain] = [:]
+        for (chainID, platform) in MarketService.tokenPlatforms {
+            guard let reserve = platform.paprika, let chain = Chain.find(chainID), CustomToken.supports(chain), !CustomToken.usesIssuer(chain) else { continue }
+            out[reserve] = chain
+        }
+        if let bnb = Chain.find("bnb") { out["bnb-bnb"] = bnb }
+        return out
+    }()
 
     /// Simbolo e nome limpos, ou nil: texto com link, isca ou caractere escondido, ou
     /// simbolo protegido com id fora da lista.

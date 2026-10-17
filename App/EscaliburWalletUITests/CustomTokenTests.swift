@@ -133,7 +133,8 @@ final class CustomTokenTests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         shot("r5-receber-custom", app)
         row.tap()
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Quem envia tem de usar exatamente'")).firstMatch.waitForExistence(timeout: 10))
+        // O contrato num cartao a parte, que nao se confunde com o endereco (17/10/2026).
+        XCTAssertTrue(app.descendants(matching: .any)["receber-contrato"].firstMatch.waitForExistence(timeout: 10))
         app.terminate()
 
         // Enviar: aparece no seletor, com o selo, e abre o envio.

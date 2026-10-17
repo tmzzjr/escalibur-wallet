@@ -47,7 +47,7 @@ final class ReceiveCatalogTests: XCTestCase {
         XCTAssertTrue(found, "as redes da Bonk nao apareceram")
         shot("c2-redes-bonk", app)
         solana.tap()
-        XCTAssertTrue(app.staticTexts["Quem envia tem de usar exatamente este contrato:"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["receber-contrato"].firstMatch.waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["pela rede Solana"].exists)
         shot("c3-endereco-bonk", app)
         app.swipeUp()

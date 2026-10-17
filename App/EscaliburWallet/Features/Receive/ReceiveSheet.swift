@@ -68,7 +68,8 @@ struct ReceiveSheet: View {
 
     struct AddPick: Identifiable {
         let id = UUID()
-        let preset: AddCustomTokenView.Preset
+        /// Nil: o "+" do topo, a moeda pelo contrato colado, sem rede escolhida antes.
+        let preset: AddCustomTokenView.Preset?
     }
 
     /// Uma moeda da lista completa, e a rede quando ja escolhida.
@@ -197,7 +198,9 @@ struct ReceiveSheet: View {
         let others = filtered.filter { coin in !coin.assets.contains { held.contains($0.id) } }
         let listedIDs = Set(coins.compactMap(\.coingeckoID))
         return VStack(alignment: .leading, spacing: 0) {
-            SheetHeader(title: String(localized: "Receber")) { dismiss() }
+            // A moeda que nao esta na lista, pelo contrato colado (pedido do dono, 17/10/2026).
+            SheetHeader(title: String(localized: "Receber"), close: { dismiss() },
+                        extra: ("plus", String(localized: "Adicionar moeda pelo contrato"), "receber-adicionar", { adding = AddPick(preset: nil) }))
             SearchField(prompt: String(localized: "Buscar qualquer moeda"), text: $query, surface: Palette.rail)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.md)
             ScrollView {
@@ -369,8 +372,10 @@ struct ReceiveSheet: View {
         guard let chain = network.chain, case .token(let contract)? = try? CustomToken.kind(chain: chain, address: network.contract) else {
             return nil
         }
+        // Achada pelo CoinPaprika (reserva da busca): o id dele nao e id de preco do CoinGecko.
+        let priceID = coin.id.hasPrefix(CoinCatalog.paprikaPrefix) ? nil : coin.id
         return Asset(chainID: chain.id, kind: .token(contract: contract), symbol: coin.symbol, name: coin.name, decimals: 0,
-                     coingeckoID: coin.id, isStablecoin: false, origin: .discovered)
+                     coingeckoID: priceID, isStablecoin: false, origin: .discovered)
     }
 
     /// As redes da moeda em que esta carteira tem conta e que ainda nao estao nela (pela
@@ -669,15 +674,9 @@ struct ReceiveSheet: View {
                 if asset.isCustom, let reference = CustomToken.reference(asset.kind) {
                     // Moeda custom: quem envia tem de mandar este contrato, nao outro com o
                     // mesmo simbolo.
-                    VStack(alignment: .leading, spacing: Space.xs) {
-                        HStack(spacing: 6) {
-                            TokenBadge(.custom)
-                            Text(CustomToken.usesIssuer(chain) ? "Quem envia tem de usar exatamente este emissor:" : "Quem envia tem de usar exatamente este contrato:")
-                                .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-                        }
-                        AddressBlocks(address: reference)
-                    }
-                    .padding(.top, Space.sm)
+                    contractCard(reference, badge: .custom,
+                                 title: CustomToken.usesIssuer(chain) ? String(localized: "Emissor que quem envia tem de usar") : String(localized: "Contrato que quem envia tem de usar"))
+                        .padding(.top, Space.sm)
                 }
                 if case .issued = asset.kind, asset.isCustom, balance?.holdings.contains(where: { $0.asset.id == asset.id }) != true {
                     Text("Para receber \(asset.symbol), esta conta precisa antes de uma linha de confiança com o emissor. A Escalibur ainda não abre linha de confiança para moeda custom: sem ela, o envio de quem manda não passa e o valor fica com quem enviou.")
@@ -717,12 +716,8 @@ struct ReceiveSheet: View {
                 Text("O CoinGecko publicou um aviso sobre \(coin.symbol) (ataque, migração ou golpe). Confira as notícias da moeda antes de receber.")
                     .typeStyle(.note).foregroundStyle(Palette.caution).fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 6) {
-                TokenBadge(.unverified)
-                Text("Quem envia tem de usar exatamente este contrato:")
-                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-            }
-            AddressBlocks(address: CustomToken.reference(asset.kind) ?? network.contract)
+            contractCard(CustomToken.reference(asset.kind) ?? network.contract, badge: .unverified,
+                         title: String(localized: "Contrato que quem envia tem de usar"))
             Text("Contrato listado pelo CoinGecko, fora da lista verificada da Escalibur. Para o saldo aparecer na carteira, adicione a moeda: a carteira lê nome, símbolo e casas na própria rede antes de salvar.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
             SecondaryButton(title: String(localized: "Adicionar \(asset.symbol) à carteira")) {
@@ -730,6 +725,31 @@ struct ReceiveSheet: View {
             }
             .padding(.top, Space.xxs)
         }
+    }
+
+    /// O contrato do token, num desenho que nao se confunde com o endereco de deposito (pedido
+    /// do dono, 17/10/2026): cartao tracejado, letra menor, sem copiar, e o aviso de que nao
+    /// e para onde se envia.
+    private func contractCard(_ contract: String, badge: TokenBadge.Kind, title: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                TokenBadge(badge)
+                Text(title).typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+            }
+            Text(verbatim: contract)
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            Label("Não é o endereço de depósito: não envie moeda para o contrato.", systemImage: "exclamationmark.triangle")
+                .typeStyle(.note).foregroundStyle(Palette.caution)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Space.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+            .strokeBorder(Palette.edgeStrong, style: StrokeStyle(lineWidth: 1, dash: [5, 4])))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("receber-contrato")
     }
 
     /// No meio do QR, o logo da moeda e, no selo embaixo, a rede: o BTC com a Ethereum no
