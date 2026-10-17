@@ -295,16 +295,21 @@ struct DeviceCheckView: View {
             .padding(.horizontal, Space.gutter)
             .padding(.bottom, Space.lg)
         }
+        // O deslizar so aparece quando a conferencia termina: antes ele ficava apagado, com o
+        // texto fora do centro (pedido do dono, 16/10/2026).
         .safeAreaInset(edge: .bottom) {
-            ActionFooter {
-                if finished, screenBlocked {
-                    SecondaryButton(title: String(localized: "Checar de novo")) { Task { await run() } }
+            if finished {
+                ActionFooter {
+                    if screenBlocked {
+                        SecondaryButton(title: String(localized: "Checar de novo")) { Task { await run() } }
+                    }
+                    SlideToConfirm(title: slideTitle, enabled: canContinue) { onContinue() }
+                        .accessibilityIdentifier("deslizar-digitar")
                 }
-                SlideToConfirm(title: finished ? slideTitle : String(localized: "Conferindo"),
-                               enabled: canContinue) { onContinue() }
-                    .accessibilityIdentifier("deslizar-digitar")
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: finished)
         .background(Palette.void.ignoresSafeArea())
         .background(ContentSwipeBackDisabled().frame(width: 0, height: 0))
         // So na primeira vez desta tela: voltar da tela de digitar nao refaz.
@@ -314,13 +319,13 @@ struct DeviceCheckView: View {
         }
     }
 
+    /// O icone vai dentro do texto, no comeco da primeira linha: ao lado, ele ficava no meio
+    /// das duas linhas, solto (visto pelo dono, 16/10/2026).
     private func stamp(_ text: String, icon: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon).font(.system(size: 12, weight: .semibold))
-            Text(text).typeStyle(.note).monospacedDigit()
-        }
-        .foregroundStyle(Palette.inkSoft)
-        .padding(.top, Space.xs)
+        (Text(Image(systemName: icon)).font(.system(size: 12, weight: .semibold)) + Text(verbatim: " " + text))
+            .typeStyle(.note).monospacedDigit()
+            .foregroundStyle(Palette.inkSoft)
+            .padding(.top, Space.xs)
     }
 
     private func run() async {
@@ -387,8 +392,8 @@ private struct ScanRing: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Quando cada pixel de fora acendeu, para o brilho de chegada.
     @State private var litAt: [Int: Date] = [:]
-    /// Quando a conferencia terminou: o verde se espalha do centro e, assentado, o brilho
-    /// passa a dar a volta no anel (pedido do dono, 16/10/2026).
+    /// Quando a conferencia terminou: o verde se espalha do centro e assenta; o brilho que
+    /// dava a volta no anel saiu a pedido do dono (16/10/2026). Assentado, o relogio para.
     @State private var doneAt: Date?
     @State private var settled = false
 
@@ -396,11 +401,9 @@ private struct ScanRing: View {
     private static let inner = 40
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || (done && settled && litAt.values.allSatisfy { Date().timeIntervalSince($0) > 1 }))) { timeline in
             let now = timeline.date
             let clock = reduceMotion || done ? 0 : now.timeIntervalSinceReferenceDate
-            // Conferido: um brilho que da a volta no anel, devagar (pedido do dono, 16/10/2026).
-            let sweep = (now.timeIntervalSinceReferenceDate / 2.8).truncatingRemainder(dividingBy: 1) * 2 * .pi
             ZStack {
                 Canvas { context, size in
                     let center = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -418,8 +421,6 @@ private struct ScanRing: View {
                             context.fill(grown, with: .color(color))
                             // O recem-aceso, mais claro, e assenta (o iOS 17 nao tem `mix`).
                             if flash > 0.01 { context.fill(grown, with: .color(.white.opacity(0.55 * flash))) }
-                            let lit = shine(angle, sweep: sweep)
-                            if lit > 0.01 { context.fill(grown, with: .color(.white.opacity(0.5 * lit))) }
                         } else {
                             context.fill(Path(roundedRect: square, cornerRadius: 1.6), with: .color(PixelFill.gray(Self.tone(index, ring: 0, clock: clock))))
                         }
@@ -434,8 +435,7 @@ private struct ScanRing: View {
                         let tone = Self.tone(index, ring: 1, clock: clock) + 0.4 * glow
                         let point = CGPoint(x: center.x + 66 * CGFloat(cos(angle)), y: center.y + 66 * CGFloat(sin(angle)))
                         let square = CGRect(x: point.x - 2.4, y: point.y - 2.4, width: 4.8, height: 4.8)
-                        let echo = shine(angle, sweep: sweep, lag: 0.5)
-                        let fill = done ? color.opacity(0.35 + 0.25 * Self.tone(index, ring: 1, clock: 0) + 0.4 * echo) : PixelFill.gray(tone)
+                        let fill = done ? color.opacity(0.35 + 0.25 * Self.tone(index, ring: 1, clock: 0)) : PixelFill.gray(tone)
                         context.fill(Path(roundedRect: square, cornerRadius: 1.2), with: .color(fill))
                     }
                 }
@@ -472,15 +472,6 @@ private struct ScanRing: View {
             for index in from..<to { litAt[index] = start.addingTimeInterval(Double(index - from) * 0.018) }
         }
         .accessibilityHidden(true)
-    }
-
-    /// O brilho que da a volta no anel depois de conferido: 1 no pixel sob ele, caindo dos
-    /// lados. `lag` atrasa o anel de dentro, como um eco.
-    private func shine(_ angle: Double, sweep: Double, lag: Double = 0) -> Double {
-        guard done, !reduceMotion, settled else { return 0 }
-        var distance = abs((angle + .pi / 2) - (sweep - lag)).truncatingRemainder(dividingBy: 2 * .pi)
-        distance = min(distance, 2 * .pi - distance)
-        return exp(-(distance / 0.42) * (distance / 0.42))
     }
 
     /// Terminado: o fundo do circulo em pixels verdes, fracos, do centro para a borda de

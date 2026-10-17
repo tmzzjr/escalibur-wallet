@@ -6,8 +6,9 @@ extension XCUIApplication {
     /// A checagem do aparelho: espera terminar e segue. Com aviso (simulador: jailbreak so
     /// vale no iPhone), marca o "Estou ciente" quando ele aparece.
     func passDeviceCheck() {
+        // O deslizar so aparece quando a conferencia termina (16/10/2026).
         let slider = descendants(matching: .any)["deslizar-digitar"].firstMatch
-        XCTAssertTrue(slider.waitForExistence(timeout: 15), "a checagem do aparelho nao apareceu")
+        XCTAssertTrue(slider.waitForExistence(timeout: 45), "a checagem do aparelho nao terminou")
         let risk = buttons["checagem-ciente"]
         // A conferencia termina quando o slider passa a dizer o que faz.
         _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label BEGINSWITH 'Deslize para'"), object: slider)], timeout: 20)

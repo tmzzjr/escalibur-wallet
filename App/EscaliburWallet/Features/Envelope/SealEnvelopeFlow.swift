@@ -109,13 +109,19 @@ struct SealEnvelopeFlow: View {
         case .check:
             // Antes de criar a senha, a checagem do aparelho, como antes das palavras (pedido
             // do dono, 16/10/2026). Ela tem as proprias margens.
-            DeviceCheckView(slideTitle: String(localized: "Deslize para criar a senha"),
-                            consent: String(localized: "Estou ciente de que este iPhone falhou na verificação de integridade e de que criar a senha do envelope aqui pode expor a carteira. Quero seguir mesmo assim.")) {
-                Task {
-                    await unlockPhrase()
-                    if step == .check { step = .intro }
+            ZStack {
+                DeviceCheckView(slideTitle: String(localized: "Deslize para criar a senha"),
+                                consent: String(localized: "Estou ciente de que este iPhone falhou na verificação de integridade e de que criar a senha do envelope aqui pode expor a carteira. Quero seguir mesmo assim.")) {
+                    Task {
+                        await unlockPhrase()
+                        if step == .check { step = .intro }
+                    }
                 }
+                // Depois do PIN, enquanto o cofre abre as palavras, a checagem com o deslizar ja
+                // usado nao reaparece.
+                if working { CipherWorking(title: String(localized: "Abrindo as palavras")) }
             }
+            .animation(Motion.fade, value: working)
             .padding(.horizontal, -Space.gutter)
             .padding(.top, -Space.md)
             .padding(.bottom, -Space.xs)
@@ -130,9 +136,9 @@ struct SealEnvelopeFlow: View {
     private var intro: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-            // Um pouco mais para cima, com o texto junto, sem cortar o alto da cena (pedido do
-            // dono, 16/10/2026).
-            EnvelopePixelScene(height: 236, pixelOnClose: true).padding(.top, -Space.sm).padding(.bottom, Space.xs)
+            // Um pouco mais para cima, com o texto junto, sem cortar o alto da cena. A mesma
+            // cena do passo 1 do "Como funciona", toda em pixels (pedidos do dono, 16/10/2026).
+            EnvelopePixelScene(height: 236).padding(.top, -Space.sm).padding(.bottom, Space.xs)
             VStack(spacing: Space.sm) {
                 // Um nome mais limpo, que diz o que acontece (pedido do dono, 16/10/2026).
                 Text("Criptografar a senha da carteira").typeStyle(.title).foregroundStyle(Palette.ink)
@@ -359,7 +365,7 @@ struct SealEnvelopeFlow: View {
             Spacer(minLength: Space.md)
             // Lacrado, o envelope sobe ao centro da cena e o texto sobe junto: o conteudo fica no
             // meio da tela (pedido do dono, 16/10/2026).
-            EnvelopePixelScene(height: 236, pixelOnClose: true, stage: sceneStage)
+            EnvelopePixelScene(height: 236, stage: sceneStage)
                 .padding(.bottom, step == .done ? Space.xl - EnvelopePixelScene.liftHeight : Space.xl)
             if step == .done {
                 VStack(spacing: Space.sm) {
@@ -411,7 +417,11 @@ struct SealEnvelopeFlow: View {
                 }
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
+                // Dois espacos embaixo para um em cima: o conjunto sobe para o meio da tela (a
+                // cena tem as palavras no alto e o envelope embaixo, e parecia baixa; pedido do
+                // dono, 16/10/2026).
                 Spacer(minLength: Space.md)
+                Spacer(minLength: 0)
                 Text("A senha do envelope não sai deste iPhone.")
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted).multilineTextAlignment(.center)
                     .padding(.bottom, Space.sm)

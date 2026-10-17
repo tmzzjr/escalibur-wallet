@@ -176,16 +176,21 @@ struct PasswordBox: View {
                     TimelineView(.periodic(from: .now, by: 1.0 / 12)) { context in
                         let time = context.date.timeIntervalSinceReferenceDate
                         HStack(spacing: 1) {
+                            // Senha longa: os glifos cortam no comeco, e o fim e o cursor ficam
+                            // sempre a vista, dentro do campo (16/10/2026).
                             Text(verbatim: glyphs(UInt64(time * 12)))
                                 .font(.system(size: 17, weight: .medium, design: .monospaced))
                                 .foregroundStyle(Palette.inkSoft)
                                 .lineLimit(1)
+                                .truncationMode(.head)
+                                .layoutPriority(-1)
                             // O cursor logo depois do ultimo glifo, piscando como o do sistema.
                             RoundedRectangle(cornerRadius: 1)
                                 .fill(Palette.ink)
                                 .frame(width: 2, height: 22)
                                 .opacity(editing && Int(time * 2) % 2 == 0 ? 1 : 0)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .allowsHitTesting(false)
                 }

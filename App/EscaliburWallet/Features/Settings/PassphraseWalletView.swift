@@ -91,6 +91,9 @@ struct PassphraseEntryView: View {
     @State private var name = ""
     @State private var message: String?
     @State private var working = false
+    /// A cifra viva do que foi digitado, como na senha do envelope (pedido do dono,
+    /// 16/10/2026): glifos que trocam no lugar dos pontos.
+    @State private var cipher = LiveCipher()
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -102,12 +105,19 @@ struct PassphraseEntryView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.bottom, Space.md)
                 Text("Passphrase").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: String(localized: "Passphrase"), reveal: $revealPassphrase)
-                PasswordBox(buffer: again, length: $againLength, placeholder: String(localized: "Repita a passphrase"), reveal: $revealPassphrase) { Task { await create() } }
-                    .id("repita")
-                Text("Segure o dedo num campo para conferir as duas.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                    .fixedSize(horizontal: false, vertical: true)
+                PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: String(localized: "Passphrase"), reveal: $revealPassphrase,
+                            glyphs: glyphs(0, count: passphraseLength))
+                // A repeticao so aparece quando a primeira comeca a ser digitada (pedido do dono,
+                // 16/10/2026).
+                if passphraseLength > 0 || againLength > 0 {
+                    PasswordBox(buffer: again, length: $againLength, placeholder: String(localized: "Repita a passphrase"), reveal: $revealPassphrase,
+                                onSubmit: { Task { await create() } }, glyphs: glyphs(1, count: againLength))
+                        .id("repita")
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    Text("Segure o dedo num campo para conferir as duas.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Text("Nome").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                 TextField("", text: $name)
                     .typeStyle(.row).foregroundStyle(Palette.ink)
@@ -127,6 +137,7 @@ struct PassphraseEntryView: View {
         .onChange(of: passphraseLength) { old, new in
             if old == 0, new > 0 { withAnimation(Motion.fade) { proxy.scrollTo("repita", anchor: .center) } }
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: passphraseLength > 0 || againLength > 0)
         }
         .safeAreaInset(edge: .bottom) {
             ActionFooter {
@@ -140,10 +151,19 @@ struct PassphraseEntryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .guardedAgainstCapture()
         .onAppear { if name.isEmpty { name = String(localized: "\(base.name) com passphrase") } }
+        .onChange(of: passphraseLength) { _, _ in cipher.seal(0, buffer: passphrase) }
+        .onChange(of: againLength) { _, _ in cipher.seal(1, buffer: again) }
         .onDisappear {
             passphrase.wipe()
             again.wipe()
+            cipher.clearAll()
         }
+    }
+
+    private func glyphs(_ slot: Int, count: Int) -> ((UInt64) -> String)? {
+        guard count > 0 else { return nil }
+        let cipher = self.cipher
+        return { tick in cipher.glyphs(slot, count: count, tick: tick) }
     }
 
     private func create() async {

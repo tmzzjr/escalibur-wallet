@@ -35,8 +35,12 @@ final class EnvelopeFlowTests: XCTestCase {
 
     /// O campo da senha, escondido ou visivel. Uma consulta so, para esperar por ela: a
     /// escolha feita antes de a tela abrir ficava presa no tipo errado.
+    /// Com a camada contra captura, o campo da senha fica num hospedeiro proprio e deixou
+    /// de ser o primeiro da tela (o do nome vinha antes): o campo seguro primeiro.
     func passwordField(_ app: XCUIApplication) -> XCUIElement {
-        app.descendants(matching: .any).matching(NSPredicate(
+        let secure = app.secureTextFields.firstMatch
+        if secure.waitForExistence(timeout: 8) { return secure }
+        return app.descendants(matching: .any).matching(NSPredicate(
             format: "elementType == %d OR elementType == %d",
             XCUIElement.ElementType.secureTextField.rawValue, XCUIElement.ElementType.textField.rawValue
         )).firstMatch
@@ -66,6 +70,8 @@ final class EnvelopeFlowTests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         field.tap()
         field.typeText(password)
+        // Senha longa: a cifra fica dentro do campo, sem esticar ate as bordas (16/10/2026).
+        shot("e1b-senha-longa", app)
         app.buttons["Lacrar envelope"].tap()
         wait(app.staticTexts["Lacrando o envelope"], 10, app, "lacrando")
         usleep(400_000)

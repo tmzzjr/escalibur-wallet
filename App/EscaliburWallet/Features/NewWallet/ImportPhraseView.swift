@@ -161,7 +161,7 @@ struct ImportPhraseView: View {
                         Text(verify.map { String(localized: "Confira a cópia de \($0.walletName)") } ?? String(localized: "Importar com a senha da carteira"))
                             .typeStyle(.title).foregroundStyle(Palette.ink)
                         Text(verify == nil
-                             ? String(localized: "Toque numa posição e digite a palavra.")
+                             ? String(localized: "Digite as palavras na ordem em que você anotou, uma em cada campo.")
                              : String(localized: "Digite as palavras de onde você anotou, todas, em ordem. No modo reforçado, essa cópia é o único caminho de volta."))
                             .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                             .fixedSize(horizontal: false, vertical: true)

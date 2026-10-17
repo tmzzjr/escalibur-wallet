@@ -44,7 +44,9 @@ final class PassphraseWalletTests: XCTestCase {
         XCTAssertTrue(fields.element(boundBy: 0).waitForExistence(timeout: 5))
         fields.element(boundBy: 0).tap()
         fields.element(boundBy: 0).typeText("lanterna")
+        // A repeticao aparece quando a primeira comeca a ser digitada (16/10/2026).
         let second = fields.element(boundBy: 1)
+        XCTAssertTrue(second.waitForExistence(timeout: 5), "a repeticao deveria aparecer")
         let focused = NSPredicate(format: "hasKeyboardFocus == true")
         // O toque logo depois de digitar no primeiro campo as vezes chega durante a
         // animacao do teclado; um segundo toque resolve, como faria a pessoa.

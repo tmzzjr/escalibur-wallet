@@ -67,7 +67,11 @@ struct SecureCaptureContainer<Content: View>: UIViewRepresentable {
         // O hospedeiro mede o infinito como a proposta aberta: devolve o tamanho ideal
         // (conferido no SwiftUI do iOS 26). A proposta aberta de fora vira infinito.
         let fitted = view.host.sizeThatFits(in: CGSize(width: proposal.width ?? .infinity, height: proposal.height ?? .infinity))
-        return CGSize(width: fitted.width.isFinite ? fitted.width : 0, height: fitted.height.isFinite ? fitted.height : 0)
+        // Nunca mais largo nem mais alto que o oferecido: uma senha longa na cifra pedia mais
+        // largura e esticava o campo ate as bordas da tela (visto pelo dono, 16/10/2026).
+        let width = min(fitted.width.isFinite ? fitted.width : 0, proposal.width ?? .infinity)
+        let height = min(fitted.height.isFinite ? fitted.height : 0, proposal.height ?? .infinity)
+        return CGSize(width: width, height: height)
     }
 }
 

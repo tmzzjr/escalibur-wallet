@@ -87,7 +87,13 @@ struct NewWalletFlow: View {
                 case .pledge:
                     ResponsibilityView(continueTitle: String(localized: "Conferir o aparelho")) { step = .check }
                 case .check:
-                    DeviceCheckView(slideTitle: String(localized: "Deslize para ver as palavras"), creating: true) { Task { await start() } }
+                    ZStack {
+                        DeviceCheckView(slideTitle: String(localized: "Deslize para ver as palavras"), creating: true) { Task { await start() } }
+                        // Depois do PIN, enquanto o cofre guarda a carteira, a checagem com o
+                        // deslizar ja usado nao reaparece.
+                        if saving { CipherWorking(title: String(localized: "Criando a carteira")) }
+                    }
+                    .animation(Motion.fade, value: saving)
                 case .record:
                     if let draft {
                         RecordWordsView(draft: draft, walletName: nil) { step = .confirm }

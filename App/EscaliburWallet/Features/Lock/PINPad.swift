@@ -113,8 +113,9 @@ struct PINDots: View {
             ForEach(0..<length, id: \.self) { index in
                 ZStack {
                     Circle().stroke(failed ? Palette.down : Palette.inkMuted, lineWidth: 1.5)
+                    // O digito digitado em branco, nao no rosa (pedido do dono, 16/10/2026).
                     Circle()
-                        .fill(Palette.purple)
+                        .fill(Palette.ink)
                         .scaleEffect(index < filled ? 1 : 0.6)
                         .opacity(index < filled ? 1 : 0)
                         .animation(.easeOut(duration: 0.12), value: filled)

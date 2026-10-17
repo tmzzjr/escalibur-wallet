@@ -53,3 +53,23 @@ struct CipherEmblem: View {
         .accessibilityHidden(true)
     }
 }
+
+/// A tela de espera com o selo: o cofre abrindo depois do PIN. Cobre o que estava por
+/// baixo (a checagem do aparelho, com o deslizar ja usado) ate a tela seguinte chegar
+/// (pedido do dono, 16/10/2026), como em "Abrindo as palavras".
+struct CipherWorking: View {
+    let title: String
+
+    var body: some View {
+        VStack(spacing: Space.md) {
+            Spacer()
+            CipherEmblem()
+            Text(title).typeStyle(.heading).foregroundStyle(Palette.ink)
+            Spacer()
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.void.ignoresSafeArea())
+        .transition(.opacity)
+    }
+}
