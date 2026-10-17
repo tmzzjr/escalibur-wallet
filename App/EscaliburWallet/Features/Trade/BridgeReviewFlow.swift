@@ -241,7 +241,7 @@ struct BridgeReviewFlow: View {
         // Carteira com passphrase: a passphrase antes do Face ID ou do PIN, conferida dentro
         // do assinador (pedido do dono, 16/10/2026).
         var typedPassphrase: SecureBytes?
-        if PassphraseGate.asks(session.metadata.wallets.first { $0.id == plan.walletID }),
+        if PassphraseGate.needed(session.metadata.wallets.first { $0.id == plan.walletID }),
            let wallet = session.metadata.wallets.first(where: { $0.id == plan.walletID }) {
             guard let typed = await PassphraseGate.shared.ask(wallet) else { return }
             typedPassphrase = typed
@@ -263,7 +263,10 @@ struct BridgeReviewFlow: View {
             }
             signed = result
             // A passphrase confere (o assinador assinou): a conta zera, e o buffer sai ja.
-            if checkPassphrase != nil { PassphraseGate.shared.passed(session) }
+            if checkPassphrase != nil {
+                PassphraseGate.shared.passed(session)
+                PassphraseGate.shared.confirmGrace(plan.walletID)
+            }
             checkPassphrase?.wipe()
         } catch {
             checkPassphrase?.wipe()

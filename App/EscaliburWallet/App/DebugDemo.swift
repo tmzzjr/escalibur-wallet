@@ -160,6 +160,9 @@ enum DebugDemo {
             // `-tela voz-conferir` (com `-voz-frase`): a folha de voz, como antes de
             // ver a senha da carteira.
             case "voz-conferir": Task { _ = await VoiceGate.shared.confirm(.reveal, session: session) }
+            // `-tela passphrase-envio`: a folha da passphrase antes de mover saldo, com a folga.
+            case "passphrase-envio":
+                if let wallet = session.selectedWallet { Task { await PassphraseGate.shared.ask(wallet)?.wipe() } }
             case "mercado": router.tab = .market
             // `-tela moeda`: a pagina do bitcoin, pelo mesmo caminho do toque num alerta.
             case "moeda":

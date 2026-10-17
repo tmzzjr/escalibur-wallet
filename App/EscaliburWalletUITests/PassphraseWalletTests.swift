@@ -74,4 +74,21 @@ final class PassphraseWalletTests: XCTestCase {
         XCTAssertTrue(app.buttons["acao-receber"].exists, "deveria estar na tela Carteira")
         shot("q2-em-uso", app)
     }
+
+    /// A folha da passphrase antes de mover saldo: a folga desligada, e ao ligar comeca em 5 minutos.
+    func testPassphrasePromptGrace() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "passphrase-envio"]
+        app.launch()
+        let toggle = app.switches["passphrase-folga"].firstMatch
+        XCTAssertTrue(toggle.waitForExistence(timeout: 30))
+        XCTAssertEqual(toggle.value as? String, "0")
+        shot("p1-passphrase-folga-desligada", app)
+        toggle.switches.firstMatch.tap()
+        let five = app.buttons["5 min"]
+        XCTAssertTrue(five.waitForExistence(timeout: 5))
+        XCTAssertTrue(five.isSelected)
+        app.buttons["15 min"].tap()
+        shot("p2-passphrase-folga-15", app)
+    }
 }

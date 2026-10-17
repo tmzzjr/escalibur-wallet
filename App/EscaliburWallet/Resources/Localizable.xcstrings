@@ -186991,6 +186991,46 @@
         }
       }
     },
+    "Não pedir de novo por um tempo" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't ask again for a while"
+          }
+        }
+      }
+    },
+    "Nos próximos %lld minutos, %@ não pede a passphrase para mover saldo. O %@ ou o PIN continuam. Travar o app encerra." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For the next %lld minutes, %@ won't ask for the passphrase to move funds. %@ or the PIN still apply. Locking the app ends it."
+          }
+        }
+      }
+    },
+    "Depois de a passphrase conferir, os próximos envios, trocas e ordens pulam esta etapa por alguns minutos." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once the passphrase checks out, the next sends, swaps and orders skip this step for a few minutes."
+          }
+        }
+      }
+    },
+    "%lld min" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min"
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {

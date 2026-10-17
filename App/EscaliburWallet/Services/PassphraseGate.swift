@@ -16,18 +16,28 @@ final class PassphraseGate {
 
     struct Request: Identifiable {
         let id = UUID()
+        let walletID: UUID
         let walletName: String
         /// A frase de cima da folha: mover saldo, ou deixar de pedir a passphrase.
         let reason: String
+        /// Mover saldo oferece a folga de alguns minutos; ver as palavras, lacrar o envelope e
+        /// deixar de pedir, nao.
+        let offersGrace: Bool
         let continuation: CheckedContinuation<SecureBytes?, Never>
     }
 
     private var current: Request?
 
-    /// A carteira pede a passphrase para mover saldo?
+    /// A carteira pede a passphrase para mover saldo? E o ajuste, sem a folga.
     static func asks(_ wallet: WalletMeta?) -> Bool {
         guard let wallet, wallet.hasPassphrase, !wallet.isWatchOnly else { return false }
         return wallet.passphraseToSend ?? true
+    }
+
+    /// Para mover saldo agora: pede, a menos que a folga escolhida depois de acertar ainda valha.
+    static func needed(_ wallet: WalletMeta?) -> Bool {
+        guard let wallet, asks(wallet) else { return false }
+        return !shared.inGrace(wallet.id)
     }
 
     /// A passphrase digitada, ou nil se o dono fechou a folha. O buffer e do chamador: ele
@@ -36,19 +46,52 @@ final class PassphraseGate {
         let line = reason ?? String(localized: "\(wallet.name) pede a passphrase para mover saldo. Depois dela vem o \(KeyServices.biometryName) ou o PIN, como sempre.")
         // Um pedido em cima de outro: o de antes recebe "fechou", e nao fica pendurado.
         if let pending = current { finish(pending, with: nil) }
+        pendingGrace = nil
         return await withCheckedContinuation { continuation in
-            let request = Request(walletName: wallet.name, reason: line, continuation: continuation)
+            let request = Request(walletID: wallet.id, walletName: wallet.name, reason: line, offersGrace: reason == nil, continuation: continuation)
             current = request
             OverlayWindow.shared.show(PassphrasePromptSheet(request: request))
         }
     }
 
-    func finish(_ request: Request, with passphrase: SecureBytes?) {
+    /// `grace`: os minutos escolhidos na folha, que so passam a valer quando o assinador
+    /// conferir a passphrase (`confirmGrace`).
+    func finish(_ request: Request, with passphrase: SecureBytes?, grace minutes: Int? = nil) {
         // Uma resposta por pedido: fechar e confirmar quase juntos nao retoma duas vezes.
         guard current?.id == request.id else { passphrase?.wipe(); return }
         current = nil
+        if let minutes, passphrase != nil, request.offersGrace, Self.graceChoices.contains(minutes) {
+            pendingGrace = (request.walletID, minutes)
+        }
         OverlayWindow.shared.hide()
         request.continuation.resume(returning: passphrase)
+    }
+
+    // MARK: Folga depois de acertar
+
+    /// "Nao pedir nos proximos minutos" (pedido do dono, 17/10/2026): 5, 10, 15 ou 20
+    /// minutos, 5 ao ligar. Vale so para mover saldo, so na carteira em que a passphrase
+    /// conferiu, e so na memoria, no relogio monotono: fechar o app ou travar zera, e o PIN
+    /// ou o rosto continuam sendo pedidos a cada envio.
+    static let graceChoices = [5, 10, 15, 20]
+    private var pendingGrace: (wallet: UUID, minutes: Int)?
+    private var graceUntil: [UUID: TimeInterval] = [:]
+
+    func inGrace(_ walletID: UUID) -> Bool {
+        (graceUntil[walletID] ?? 0) > PINPolicy.uptime
+    }
+
+    /// O assinador conferiu a passphrase desta carteira: a folga pedida na folha comeca agora.
+    func confirmGrace(_ walletID: UUID) {
+        defer { pendingGrace = nil }
+        guard let pending = pendingGrace, pending.wallet == walletID else { return }
+        graceUntil[walletID] = PINPolicy.uptime + TimeInterval(pending.minutes * 60)
+    }
+
+    /// Travar o app encerra toda folga: quem destrava com o PIN depois nao pula a passphrase.
+    func clearGrace() {
+        graceUntil = [:]
+        pendingGrace = nil
     }
 
     // MARK: Espera depois de erros
@@ -77,6 +120,7 @@ final class PassphraseGate {
     /// O dono cancelou o PIN ou o rosto antes de o cofre abrir: nada foi conferido, e a
     /// tentativa contada em `begin` volta.
     func refund(_ session: AppSession) {
+        pendingGrace = nil
         guard var guardState = session.metadata.settings.passphraseGuard, guardState.failures > 0 else { return }
         guardState.failures -= 1
         session.metadata.settings.passphraseGuard = guardState
@@ -92,6 +136,7 @@ final class PassphraseGate {
 
     /// Errou (a tentativa ja foi contada em `begin`): passado o limite, comeca a espera.
     func failed(_ session: AppSession) {
+        pendingGrace = nil
         var guardState = session.metadata.settings.passphraseGuard ?? PassphraseGuard(failures: 1)
         guard guardState.failures >= Self.freeFailures else { return }
         let extra = Double(guardState.failures - Self.freeFailures)
@@ -145,6 +190,9 @@ struct PassphrasePromptSheet: View {
     @State private var reveal = false
     @State private var cipher = LiveCipher()
     @State private var answered = false
+    /// A folga: desligada a cada folha; ligar comeca em 5 minutos.
+    @State private var graceOn = false
+    @State private var graceMinutes = PassphraseGate.graceChoices[0]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -160,6 +208,10 @@ struct PassphrasePromptSheet: View {
             Text("Segure o dedo no campo para conferir o que digitou.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+            if request.offersGrace {
+                grace
+                    .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
+            }
             Spacer(minLength: Space.md)
             PrimaryButton(title: String(localized: "Continuar"), enabled: length > 0) { confirm() }
                 .padding(.horizontal, Space.gutter).padding(.bottom, Space.xs)
@@ -181,6 +233,30 @@ struct PassphrasePromptSheet: View {
         return { tick in cipher.glyphs(0, count: count, tick: tick) }
     }
 
+    /// "Nao pedir de novo por alguns minutos", com a escolha dos minutos ao ligar.
+    private var grace: some View {
+        VStack(alignment: .leading, spacing: Space.sm) {
+            Toggle(isOn: $graceOn.animation(Motion.fade)) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Não pedir de novo por um tempo").typeStyle(.body).foregroundStyle(Palette.ink)
+                    Text(graceOn
+                         ? String(localized: "Nos próximos \(graceMinutes) minutos, \(request.walletName) não pede a passphrase para mover saldo. O \(KeyServices.biometryName) ou o PIN continuam. Travar o app encerra.")
+                         : String(localized: "Depois de a passphrase conferir, os próximos envios, trocas e ordens pulam esta etapa por alguns minutos."))
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .tint(Palette.success)
+            .accessibilityIdentifier("passphrase-folga")
+            if graceOn {
+                Segmented(options: PassphraseGate.graceChoices.map { ($0, String(localized: "\($0) min")) }, selection: $graceMinutes)
+                    .accessibilityIdentifier("passphrase-folga-minutos")
+                    .transition(.opacity)
+            }
+        }
+        .padding(Space.md)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+    }
+
     private func confirm() {
         guard length > 0, !answered else { return }
         answered = true
@@ -188,7 +264,7 @@ struct PassphrasePromptSheet: View {
         let copy = SecureBytes(capacity: buffer.count)
         buffer.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
         buffer.wipe()
-        PassphraseGate.shared.finish(request, with: copy)
+        PassphraseGate.shared.finish(request, with: copy, grace: graceOn ? graceMinutes : nil)
     }
 
     private func close() {

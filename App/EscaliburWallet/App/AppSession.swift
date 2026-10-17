@@ -215,6 +215,7 @@ final class AppSession {
     }
 
     func lock() {
+        PassphraseGate.shared.clearGrace()
         indexKey = nil
         metadata = Metadata()
         withAnimation(Motion.fade) { phase = .locked }
