@@ -357,8 +357,8 @@ final class AppSession {
     /// `faceChange`, abre de novo com PIN e rosto, e so entao apaga o slot so-PIN.
     func enableHardened(pin: SecureBytes, faceChange: RootKeyVault.HardenedFaceChange,
                         check: @escaping @Sendable (SecureBytes) throws -> Void) async throws {
-        let reason = String(localized: "Ligar o modo reforçado")
-        let confirm = String(localized: "Confirme o \(KeyServices.biometryName) para conferir o modo reforçado")
+        let reason = String(localized: "Ligar o Super Security")
+        let confirm = String(localized: "Confirme o \(KeyServices.biometryName) para conferir o Super Security")
         do {
             try await Offload.run {
                 defer { pin.wipe() }
@@ -375,7 +375,7 @@ final class AppSession {
     /// Desliga o modo reforcado: o slot do PIN e o Face ID voltam, conferidos. Devolve se o
     /// Face ID voltou (o segundo rosto pode ser recusado; ai fica desligado).
     func disableHardened(pin: SecureBytes) async throws -> Bool {
-        let reason = String(localized: "Desligar o modo reforçado")
+        let reason = String(localized: "Desligar o Super Security")
         let biometry = String(localized: "Confirme o \(KeyServices.biometryName) para religar")
         let restored: Bool
         do {
@@ -398,7 +398,7 @@ final class AppSession {
     func setHardenedFaceChange(_ target: RootKeyVault.HardenedFaceChange, pin: SecureBytes,
                                check: @escaping @Sendable (SecureBytes) throws -> Void) async throws {
         let reason = String(localized: "Mudar o que acontece quando o \(KeyServices.biometryName) mudar")
-        let confirm = String(localized: "Confirme o \(KeyServices.biometryName) para conferir o modo reforçado")
+        let confirm = String(localized: "Confirme o \(KeyServices.biometryName) para conferir o Super Security")
         do {
             try await Offload.run {
                 defer { pin.wipe() }

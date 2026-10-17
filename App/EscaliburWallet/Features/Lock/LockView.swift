@@ -23,7 +23,7 @@ struct LockView: View {
     private var hardenedSubtitle: String {
         let hold = KeyServices.root.hardenedHoldRemaining
         if hold > 0 { return AuthCoordinator.hardenedHoldMessage(hold) }
-        return String(localized: "Modo reforçado: depois do PIN, o \(KeyServices.biometryName) confirma que é você.")
+        return String(localized: "Super Security: depois do PIN, o \(KeyServices.biometryName) confirma que é você.")
     }
 
     var body: some View {
@@ -152,9 +152,9 @@ struct LockView: View {
                         .padding(.top, Space.md)
                     Text(vaultLost
                          ? (KeyServices.root.hardenedFaceChange == .lock
-                            ? String(localized: "No modo reforçado, as carteiras deste iPhone só abrem com o PIN e o mesmo \(KeyServices.biometryName) de quando ele foi ligado. O cadastro mudou, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:")
+                            ? String(localized: "No Super Security, as carteiras deste iPhone só abrem com o PIN e o mesmo \(KeyServices.biometryName) de quando ele foi ligado. O cadastro mudou, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:")
                             // Fora da trava, so a chave que sumiu (uma redefinicao do Face ID, por exemplo).
-                            : String(localized: "No modo reforçado, as carteiras deste iPhone só abrem com o PIN e a chave do \(KeyServices.biometryName) que nasceu com ele. A chave não existe mais, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:"))
+                            : String(localized: "No Super Security, as carteiras deste iPhone só abrem com o PIN e a chave do \(KeyServices.biometryName) que nasceu com ele. A chave não existe mais, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:"))
                          : String(localized: "O PIN mora só neste iPhone, e ninguém tem cópia dele, nem a Escalibur. Para voltar a usar o app, comece de novo:"))
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                         .fixedSize(horizontal: false, vertical: true)

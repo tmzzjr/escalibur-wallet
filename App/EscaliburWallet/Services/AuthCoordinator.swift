@@ -114,7 +114,7 @@ final class AuthCoordinator {
 
     /// Modo reforcado: o aviso acima do teclado de toda operacao.
     private static var hardenedNotice: String {
-        String(localized: "Modo reforçado: depois do PIN, o \(KeyServices.biometryName) confirma que é você.")
+        String(localized: "Super Security: depois do PIN, o \(KeyServices.biometryName) confirma que é você.")
     }
 
     /// O rosto que nao confirmou no modo reforcado conta como tentativa, como um PIN errado.

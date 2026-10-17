@@ -497,7 +497,8 @@ public struct EVMTradeEngine: TradeEngine {
                 sellAssetID: assetID(status.sellToken, chain: chain), buyAssetID: assetID(status.buyToken, chain: chain),
                 remainingSell: remaining, minimumBuy: minimum,
                 expiresAt: Date(timeIntervalSince1970: TimeInterval(status.validTo)), sources: 1,
-                cancellations: [.offchain, .onchain], totalSell: status.sellAmount, receivedBuy: status.executedBuyAmount
+                cancellations: [.offchain, .onchain], totalSell: status.sellAmount, receivedBuy: status.executedBuyAmount,
+                createdAt: status.creationDate
             )
         }
     }

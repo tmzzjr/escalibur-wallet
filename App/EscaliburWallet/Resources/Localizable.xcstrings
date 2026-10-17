@@ -52866,7 +52866,7 @@
         }
       }
     },
-    "Confirme o %@ para conferir o modo reforçado" : {
+    "Confirme o %@ para conferir o Super Security" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -52883,7 +52883,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Confirm %@ to check hardened mode"
+            "value" : "Confirm %@ to check Super Security"
           }
         },
         "es" : {
@@ -54309,7 +54309,7 @@
         }
       }
     },
-    "Contra quem pega o iPhone e tenta adivinhar o PIN. No modo reforçado, conta como tentativa o PIN errado e o %@ que não confirmou. Depois do número escolhido de tentativas seguidas, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta." : {
+    "Contra quem pega o iPhone e tenta adivinhar o PIN. No Super Security, conta como tentativa o PIN errado e o %@ que não confirmou. Depois do número escolhido de tentativas seguidas, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -54326,7 +54326,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Protects against someone who takes your iPhone and tries to guess the PIN. In hardened mode, a wrong PIN and a %@ that didn't confirm both count as attempts. After the chosen number of failed attempts in a row, this iPhone erases the wallets; only each wallet's recovery phrase or an envelope brings them back."
+            "value" : "Protects against someone who takes your iPhone and tries to guess the PIN. In Super Security, a wrong PIN and a %@ that didn't confirm both count as attempts. After the chosen number of failed attempts in a row, this iPhone erases the wallets; only each wallet's recovery phrase or an envelope brings them back."
           }
         },
         "es" : {
@@ -59744,7 +59744,7 @@
         }
       }
     },
-    "Desligar o modo reforçado" : {
+    "Desligar o Super Security" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -59761,7 +59761,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turn off hardened mode"
+            "value" : "Turn off Super Security"
           }
         },
         "es" : {
@@ -61723,7 +61723,7 @@
         }
       }
     },
-    "Digite as palavras de onde você anotou, todas, em ordem. No modo reforçado, essa cópia é o único caminho de volta." : {
+    "Digite as palavras de onde você anotou, todas, em ordem. No Super Security, essa cópia é o único caminho de volta." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -61740,7 +61740,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Type all the words, in order, from where you wrote them down. In hardened mode, that copy is the only way back."
+            "value" : "Type all the words, in order, from where you wrote them down. In Super Security, that copy is the only way back."
           }
         },
         "es" : {
@@ -97881,7 +97881,7 @@
         }
       }
     },
-    "Ligar o modo reforçado" : {
+    "Ligar o Super Security" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -97898,7 +97898,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turn on hardened mode"
+            "value" : "Turn on Super Security"
           }
         },
         "es" : {
@@ -101283,7 +101283,7 @@
         }
       }
     },
-    "Modo reforçado" : {
+    "Super Security" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -101300,7 +101300,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hardened mode"
+            "value" : "Super Security"
           }
         },
         "es" : {
@@ -101359,7 +101359,7 @@
         }
       }
     },
-    "Modo reforçado desligado. O %@ continua ligado." : {
+    "Super Security desligado. O %@ continua ligado." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -101376,7 +101376,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hardened mode off. %@ is still on."
+            "value" : "Super Security off. %@ is still on."
           }
         },
         "es" : {
@@ -101435,7 +101435,7 @@
         }
       }
     },
-    "Modo reforçado desligado. O %@ ficou desligado; ligue de novo em Segurança." : {
+    "Super Security desligado. O %@ ficou desligado; ligue de novo em Segurança." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -101452,7 +101452,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hardened mode off. %@ was left off; turn it back on in Security."
+            "value" : "Super Security off. %@ was left off; turn it back on in Security."
           }
         },
         "es" : {
@@ -101511,7 +101511,7 @@
         }
       }
     },
-    "Modo reforçado ligado." : {
+    "Super Security ligado." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -101528,7 +101528,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hardened mode on."
+            "value" : "Super Security on."
           }
         },
         "es" : {
@@ -101587,7 +101587,7 @@
         }
       }
     },
-    "Modo reforçado: abrir o app e todo envio, troca e ordem pedem o PIN e o %@." : {
+    "Super Security: abrir o app e todo envio, troca e ordem pedem o PIN e o %@." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -101604,7 +101604,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hardened mode: opening the app and every transfer, swap and order require your PIN and %@."
+            "value" : "Super Security: opening the app and every transfer, swap and order require your PIN and %@."
           }
         },
         "es" : {
@@ -101663,7 +101663,7 @@
         }
       }
     },
-    "Modo reforçado: depois do PIN, o %@ confirma que é você." : {
+    "Super Security: depois do PIN, o %@ confirma que é você." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -101680,7 +101680,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hardened mode: after the PIN, %@ confirms it's you."
+            "value" : "Super Security: after the PIN, %@ confirms it's you."
           }
         },
         "es" : {
@@ -109692,17 +109692,17 @@
         }
       }
     },
-    "No modo reforçado, a cópia é o único caminho de volta." : {
+    "No Super Security, a cópia é o único caminho de volta." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Hardened mode, the backup is the only way back."
+            "value" : "In Super Security, the backup is the only way back."
           }
         }
       }
     },
-    "No modo reforçado, as carteiras deste iPhone só abrem com o PIN e o mesmo %@ de quando ele foi ligado. O cadastro mudou, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:" : {
+    "No Super Security, as carteiras deste iPhone só abrem com o PIN e o mesmo %@ de quando ele foi ligado. O cadastro mudou, e ninguém consegue abrir, nem a Escalibur. Para voltar a usar o app, comece de novo:" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -109719,7 +109719,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In hardened mode, the wallets on this iPhone only open with the PIN and the same %@ as when the mode was turned on. The enrollment changed, and no one can open them, not even Escalibur. To use the app again, start over:"
+            "value" : "In Super Security, the wallets on this iPhone only open with the PIN and the same %@ as when the mode was turned on. The enrollment changed, and no one can open them, not even Escalibur. To use the app again, start over:"
           }
         },
         "es" : {
@@ -109778,22 +109778,22 @@
         }
       }
     },
-    "No modo reforçado, o teclado da Escalibur volta na próxima vez." : {
+    "No Super Security, o teclado da Escalibur volta na próxima vez." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Hardened mode, the Escalibur keyboard comes back next time."
+            "value" : "In Super Security, the Escalibur keyboard comes back next time."
           }
         }
       }
     },
-    "No modo reforçado, o teclado próprio fica sempre ligado." : {
+    "No Super Security, o teclado próprio fica sempre ligado." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In Hardened mode, the Escalibur keyboard is always on."
+            "value" : "In Super Security, the Escalibur keyboard is always on."
           }
         }
       }
@@ -113600,7 +113600,7 @@
         }
       }
     },
-    "Não foi possível desligar agora. O modo reforçado continua ligado." : {
+    "Não foi possível desligar agora. O Super Security continua ligado." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -113617,7 +113617,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Couldn't turn it off right now. Hardened mode is still on."
+            "value" : "Couldn't turn it off right now. Super Security is still on."
           }
         },
         "es" : {
@@ -118668,7 +118668,7 @@
         }
       }
     },
-    "O %@ deste iPhone mudou desde que o modo reforçado foi ligado. As carteiras não abrem mais aqui: só as palavras de cada carteira trazem de volta." : {
+    "O %@ deste iPhone mudou desde que o Super Security foi ligado. As carteiras não abrem mais aqui: só as palavras de cada carteira trazem de volta." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -118685,7 +118685,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ on this iPhone has changed since hardened mode was turned on. The wallets won't open here anymore: only each wallet's words bring them back."
+            "value" : "%@ on this iPhone has changed since Super Security was turned on. The wallets won't open here anymore: only each wallet's words bring them back."
           }
         },
         "es" : {
@@ -118744,7 +118744,7 @@
         }
       }
     },
-    "O %@ deste iPhone mudou durante a conferência. O modo reforçado continua desligado." : {
+    "O %@ deste iPhone mudou durante a conferência. O Super Security continua desligado." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -118761,7 +118761,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ on this iPhone changed during the check. Hardened mode is still off."
+            "value" : "%@ on this iPhone changed during the check. Super Security is still off."
           }
         },
         "es" : {
@@ -119600,7 +119600,7 @@
         }
       }
     },
-    "O %@ não confirmou. O modo reforçado continua desligado." : {
+    "O %@ não confirmou. O Super Security continua desligado." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -119617,7 +119617,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ didn't confirm. Hardened mode is still off."
+            "value" : "%@ didn't confirm. Super Security is still off."
           }
         },
         "es" : {
@@ -127622,12 +127622,12 @@
         }
       }
     },
-    "O modo reforçado nasce dele." : {
+    "O Super Security nasce dele." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hardened mode is built on it."
+            "value" : "Super Security is built on it."
           }
         }
       }

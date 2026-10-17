@@ -7,6 +7,7 @@ import SwiftUI
 /// campos da passphrase.
 struct PassphraseWalletView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(Router.self) private var router
     let base: WalletMeta
 
     @State private var checking = false
@@ -79,6 +80,12 @@ struct PassphraseWalletView: View {
                     var quiet = Transaction()
                     quiet.disablesAnimations = true
                     withTransaction(quiet) { checking = false }
+                    // Aberta, a carteira nova ja e a selecionada: o app vai para a Carteira
+                    // (pedido do dono, 17/10/2026), com os Ajustes de volta ao comeco.
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(350))
+                        router.tab = .wallet
+                    }
                 }
             }
         }

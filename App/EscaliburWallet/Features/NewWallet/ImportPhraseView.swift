@@ -118,7 +118,12 @@ struct ImportPhraseView: View {
 
     /// O teclado proprio nas posicoes da frase: escolhido em Seguranca, do modo reforcado,
     /// e sempre na conferencia das palavras para ligar o modo reforcado (revisao, M1).
-    private var ownKeyboard: Bool { (session.ownKeyboardOn || verify != nil) && !systemKeyboard }
+    /// O teclado da Escalibur: ligado nos Ajustes, na conferencia do modo reforcado, e na
+    /// primeira carteira do app, quando ainda nao deu para escolher (pedido do dono,
+    /// 17/10/2026; o ajuste continua desligado de fabrica). O globo troca pelo do iPhone.
+    private var ownKeyboard: Bool { (session.ownKeyboardOn || verify != nil || isFirstImport) && !systemKeyboard }
+    /// Esta e a primeira carteira do app (ainda nao ha nenhuma).
+    private var isFirstImport: Bool { session.metadata.wallets.isEmpty }
 
     /// Todas as listas, sem acento nas latinas: com o teclado proprio, "abaco" acha "ábaco".
     private var suggestions: [String] { WordLexicon.completions(typed, preferring: languages, limit: 4) }
@@ -162,7 +167,7 @@ struct ImportPhraseView: View {
                             .typeStyle(.title).foregroundStyle(Palette.ink)
                         Text(verify == nil
                              ? String(localized: "Digite as palavras na ordem em que você anotou, uma em cada campo.")
-                             : String(localized: "Digite as palavras de onde você anotou, todas, em ordem. No modo reforçado, essa cópia é o único caminho de volta."))
+                             : String(localized: "Digite as palavras de onde você anotou, todas, em ordem. No Super Security, essa cópia é o único caminho de volta."))
                             .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -264,7 +269,10 @@ struct ImportPhraseView: View {
                 withAnimation(Motion.fade) { proxy.scrollTo(index, anchor: nil) }
             }
             .onChange(of: focused) { _, isOn in
-                guard isOn else { return }
+                guard isOn else {
+                    commitPendingWord()
+                    return
+                }
                 withAnimation(Motion.fade) { proxy.scrollTo(entry.active, anchor: nil) }
             }
         }
@@ -526,6 +534,17 @@ struct ImportPhraseView: View {
     /// antes das que so comecam assim); sem sugestao, o que foi digitado.
     private func submit() {
         if let first = suggestions.first { commit(first) } else { commit(typed) }
+    }
+
+    /// O foco saiu das posicoes (para a passphrase, ou para fora) com uma palavra digitada e
+    /// completa: ela entra na posicao. Com o teclado da Escalibur, a ultima so entrava no
+    /// "Seguinte", e o Conferir ficava cinza com 11 de 12 (visto no app de verdade,
+    /// 17/10/2026). Palavra pela metade continua so no campo.
+    private func commitPendingWord() {
+        let pending = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !pending.isEmpty, let match = WordLexicon.completions(pending, preferring: languages, limit: 1).first,
+              WordLexicon.fold(match) == WordLexicon.fold(pending) else { return }
+        commit(match)
     }
 
     /// Os idiomas das palavras ja fechadas, fora a posicao em digitacao, lidos direto dos

@@ -114,7 +114,7 @@ final class HardenedModeFlowTests: XCTestCase {
         app.terminate()
         app.launchArguments = []
         app.launch()
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Modo reforçado'")).firstMatch.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Super Security'")).firstMatch.waitForExistence(timeout: 20))
         shot("h4-bloqueio", app)
         type(pin: pin, in: app)
         XCTAssertTrue(app.staticTexts["Saldo total"].waitForExistence(timeout: 60))

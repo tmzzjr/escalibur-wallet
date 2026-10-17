@@ -71,6 +71,11 @@ struct OpenOrdersSection: View {
     static let pollInterval: Duration = .seconds(6)
     @State private var choosing: OpenOrder?
     @State private var reviewing: TradeReviewFlow.Item?
+    /// A folha com os detalhes da ordem tocada (pedido do dono, 17/10/2026).
+    @State private var detail: OpenOrder?
+    /// "Mudar o preco ou o valor": cancelada esta, a ordem limite abre com o mesmo par.
+    @State private var editing: OpenOrder?
+    @Environment(Router.self) private var router
     /// Redes que nao responderam na ultima leitura (as outras continuam na lista).
     @State private var unread: [Chain] = []
 
@@ -128,10 +133,22 @@ struct OpenOrdersSection: View {
                 if completed, case .cancel(let order, _) = item.kind {
                     OpenOrdersBook.shared.markCancelling(order.id)
                     Task { await LimitOrderWatch.shared.forget(order.id) }
+                    // Editar: a ordem nova nasce com o mesmo par, na ordem limite.
+                    if editing?.id == order.id, let sell = assets(order).sell {
+                        router.tradeMode = .limit
+                        router.tradePreset = (sell, true)
+                    }
                 }
+                editing = nil
                 reviewing = nil
                 if completed { Task { await reload() } }
             }
+        }
+        .sheet(item: $detail) { order in
+            detailSheet(order)
+                .presentationDetents([.medium, .large])
+                .presentationBackground(Palette.body)
+                .presentationCornerRadius(Radius.sheet)
         }
     }
 
@@ -166,7 +183,7 @@ struct OpenOrdersSection: View {
                 Text("Esta carteira só acompanha: para cancelar, abra a carteira que assina.")
                     .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
             } else {
-                Text("Toque numa ordem para cancelar.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                Text("Toque numa ordem para ver os detalhes, mudar ou cancelar.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
             }
         }
     }
@@ -205,7 +222,7 @@ struct OpenOrdersSection: View {
 
     private func openRow(_ order: OpenOrder) -> some View {
         let (sell, buy) = assets(order)
-        return Button { choosing = order } label: {
+        return Button { detail = order } label: {
             HStack(spacing: Space.sm) {
                 logo(sell, chain: order.chain)
                 VStack(alignment: .leading, spacing: 2) {
@@ -235,8 +252,94 @@ struct OpenOrdersSection: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(!canSign || order.cancellations.isEmpty)
-        .accessibilityHint(canSign ? "Cancelar a ordem" : "")
+        .accessibilityHint("Ver os detalhes da ordem")
+    }
+
+    // MARK: Detalhes
+
+    /// A folha da ordem: o que ela vende e recebe, o preco, o andamento, quando foi criada e
+    /// quando vence, onde esta, e os botoes de mudar e de cancelar.
+    private func detailSheet(_ order: OpenOrder) -> some View {
+        let (sell, buy) = assets(order)
+        let cancellable = canSign && Self.safest(order.cancellations) != nil
+        return VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(title: String(localized: "Ordem limite")) { detail = nil }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: Space.sm) {
+                        logo(sell, chain: order.chain)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Vende \(Self.amount(order.totalSell ?? order.remainingSell, sell))").typeStyle(.row).foregroundStyle(Palette.ink)
+                            Text("por no mínimo \(Self.amount(order.minimumBuy, buy))").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        }
+                        Spacer(minLength: Space.xs)
+                        if let fraction = order.filledFraction { FillRing(fraction: fraction, size: 44) }
+                    }
+                    VStack(spacing: 0) {
+                        if let price = Self.limitPrice(order, sell: sell, buy: buy) { detailRow(String(localized: "Preço"), price.replacingOccurrences(of: String(localized: "Preço: "), with: "")) }
+                        if let received = order.receivedBuy, !received.isZero {
+                            detailRow(String(localized: "Já recebido"), Self.amount(received, buy))
+                            detailRow(String(localized: "Falta vender"), Self.amount(order.remainingSell, sell))
+                        }
+                        if let created = order.createdAt {
+                            detailRow(String(localized: "Criada em"), created.formatted(.dateTime.day().month(.abbreviated).year().hour().minute().locale(Fmt.locale)))
+                        }
+                        detailRow(String(localized: "Vence"), Self.expiry(order.expiresAt))
+                        detailRow(String(localized: "Rede"), order.chain.name)
+                        detailRow(String(localized: "Onde"), Self.venue(order.chain))
+                    }
+                    .padding(.horizontal, Space.md)
+                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
+                    .padding(.top, Space.md)
+                    if !canSign {
+                        Text("Esta carteira só acompanha: para mudar ou cancelar, abra a carteira que assina.")
+                            .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else if cancellable {
+                        Text("Uma ordem assinada não muda: para mudar o preço ou o valor, esta é cancelada e a ordem limite abre com o mesmo par para você criar a nova.")
+                            .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.horizontal, Space.gutter)
+                .padding(.top, Space.sm)
+            }
+            if cancellable {
+                VStack(spacing: Space.sm) {
+                    SecondaryButton(title: String(localized: "Mudar o preço ou o valor")) {
+                        detail = nil
+                        editing = order
+                        choosing = order
+                    }
+                    .accessibilityIdentifier("ordem-editar")
+                    Button { detail = nil; editing = nil; choosing = order } label: {
+                        Text("Cancelar a ordem").typeStyle(.action).foregroundStyle(Palette.down)
+                            .frame(maxWidth: .infinity).frame(height: Height.secondary)
+                    }
+                    .accessibilityIdentifier("ordem-cancelar")
+                }
+                .padding(.horizontal, Space.gutter).padding(.bottom, Space.xs).padding(.top, Space.sm)
+            }
+        }
+    }
+
+    private func detailRow(_ title: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+            Text(title).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+            Spacer(minLength: Space.sm)
+            Text(value).typeStyle(.note).foregroundStyle(Palette.ink).multilineTextAlignment(.trailing)
+        }
+        .frame(minHeight: 40)
+    }
+
+    /// Onde a ordem esta: o livro da CoW nas redes EVM, o livro do proprio ledger nas outras.
+    static func venue(_ chain: Chain) -> String {
+        switch chain.family {
+        case .evm: return "CoW Protocol"
+        case .xrpl: return String(localized: "Livro de ofertas do XRP Ledger")
+        case .stellar: return String(localized: "Livro de ofertas da Stellar")
+        default: return chain.name
+        }
     }
 
     private func finishedRow(_ item: FinishedOrder) -> some View {

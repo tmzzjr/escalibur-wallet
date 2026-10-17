@@ -43,6 +43,8 @@ public struct CoWOrderStatus: Sendable, Equatable {
     public let validTo: UInt32
     public let executedSellAmount: BigUInt
     public let executedBuyAmount: BigUInt
+    /// Quando a CoW recebeu a ordem, se ela disse; so para mostrar.
+    public var creationDate: Date? = nil
 
     /// A API devolveu a mesma ordem que foi assinada?
     public func matches(_ order: CoWOrder) -> Bool {
@@ -214,6 +216,15 @@ public struct CoWClient: Sendable {
         let validTo: UInt32
         let executedSellAmount: String?
         let executedBuyAmount: String?
+        let creationDate: String?
+    }
+
+    /// "2026-10-17T12:34:56.789Z", com ou sem fracao de segundo.
+    static func date(_ text: String?) -> Date? {
+        guard let text else { return nil }
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: text) ?? ISO8601DateFormatter().date(from: text)
     }
 
     static func status(_ response: OrderResponse) throws -> CoWOrderStatus {
@@ -242,7 +253,8 @@ public struct CoWClient: Sendable {
             sellAmount: try amount(response.sellAmount, "sellAmount"), buyAmount: try amount(response.buyAmount, "buyAmount"),
             validTo: response.validTo,
             executedSellAmount: try amount(response.executedSellAmount, "executedSellAmount"),
-            executedBuyAmount: try amount(response.executedBuyAmount, "executedBuyAmount")
+            executedBuyAmount: try amount(response.executedBuyAmount, "executedBuyAmount"),
+            creationDate: date(response.creationDate)
         )
     }
 

@@ -108,10 +108,17 @@ final class ImportPhraseTests: XCTestCase {
         let first = app.otherElements["palavra-1"]
         XCTAssertTrue(first.waitForExistence(timeout: 10))
         first.tap()
-        for _ in 1...11 { app.typeText("abandon ") }
-        app.typeText("about")
-        app.typeText("\n")
-        app.buttons["Importar"].tap()
+        // Na primeira carteira do app, o teclado da Escalibur ja vem (17/10/2026); com
+        // carteira, o do iPhone.
+        if app.buttons["teclado-a"].waitForExistence(timeout: 4) {
+            for _ in 1...11 { app.typeOnOwnKeyboard("abandon") }
+            app.typeOnOwnKeyboard("about")
+        } else {
+            for _ in 1...11 { app.typeText("abandon ") }
+            app.typeText("about")
+            app.typeText("\n")
+        }
+        app.tapWhenEnabled(app.buttons["Importar"])
         let failure = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Não foi possível importar'")).firstMatch
         let review = app.staticTexts["Confira antes de guardar"]
         XCTAssertTrue(review.waitForExistence(timeout: 15), failure.exists ? failure.label : "a conferencia nao apareceu")

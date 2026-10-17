@@ -825,12 +825,21 @@ public actor MarketService {
         guard rate > 0, let rows = json["data"]?["attributes"]?["ohlcv_list"]?.arrayValue else { throw HTTPClient.Failure.invalidResponse }
         let start = now().addingTimeInterval(-window)
         // As velas so existem quando houve negocio: 96 velas de 15 min podem cobrir dias.
-        let points = rows.compactMap { row -> PricePoint? in
+        let all = rows.compactMap { row -> PricePoint? in
             guard let ts = row[0]?.doubleValue, let close = row[4]?.doubleValue, close.isFinite, close > 0 else { return nil }
-            let time = Date(timeIntervalSince1970: ts)
-            return time >= start ? PricePoint(time: time, price: close * rate) : nil
+            return PricePoint(time: Date(timeIntervalSince1970: ts), price: close * rate)
         }
         .sorted { $0.time < $1.time }
+        var points = all.filter { $0.time >= start }
+        // Periodo sem negocio: o preco ficou parado no da ultima vela de antes. A linha comeca
+        // nele e vai ate agora, reta, em vez de "sem historico" (visto no BNB Frog,
+        // 17/10/2026).
+        if window.isFinite, let before = all.last(where: { $0.time < start }) {
+            points.insert(PricePoint(time: start, price: before.price), at: 0)
+        }
+        if let last = points.last, now().timeIntervalSince(last.time) > 60 {
+            points.append(PricePoint(time: now(), price: last.price))
+        }
         let snapshot = ChartSnapshot(points: points, fetchedAt: now(), source: .geckoTerminal, isStale: false)
         charts[key] = snapshot
         return TokenChart(snapshot: snapshot, pool: pool.info)

@@ -53,7 +53,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>A câmera lê o QR de um endereço. Nenhuma imagem é guardada.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>O Face ID destrava o app e confirma envios. No modo reforçado, ele e o PIN são pedidos juntos.</string>
+	<string>O Face ID destrava o app e confirma envios. No Super Security, ele e o PIN são pedidos juntos.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>O microfone ouve a frase de confirmação por voz, só quando você liga essa camada.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

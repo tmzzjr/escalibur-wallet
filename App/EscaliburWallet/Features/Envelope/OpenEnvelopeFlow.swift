@@ -113,7 +113,9 @@ struct OpenEnvelopeFlow: View {
         } message: {
             Text("Abrir leva cerca de \(estimate) segundos com a tela parada. Um envelope lacrado pela Escalibur leva de 1 a 3. Se você não sabe de onde veio este arquivo, não abra.")
         }
-        .fileImporter(isPresented: $picking, allowedContentTypes: [.escaliburEnvelope, .data]) { result in
+        // So o envelope da Escalibur (.esclbr) fica escolhivel: com `.data`, qualquer arquivo
+        // aparecia ativo no seletor (pedido do dono, 17/10/2026).
+        .fileImporter(isPresented: $picking, allowedContentTypes: [.escaliburEnvelope]) { result in
             if case .success(let url) = result { load(url) }
         }
         .onAppear { if let initialURL { load(initialURL) } }

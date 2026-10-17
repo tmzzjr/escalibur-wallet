@@ -22,6 +22,9 @@ struct ConfirmPassphraseView: View {
     @State private var reveal = false
     @State private var message: String?
     @State private var working = false
+    /// A cifra viva do que foi digitado, como nos outros campos de segredo (pedido do dono,
+    /// 17/10/2026).
+    @State private var cipher = LiveCipher()
 
     var body: some View {
         NavigationStack {
@@ -31,9 +34,8 @@ struct ConfirmPassphraseView: View {
                 Text("Digite a passphrase de \(wallet.name) a partir de onde você anotou. Diferença de maiúscula, acento ou espaço já abre outra carteira, e o que chegar nesta se perde.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
-                PasswordBox(buffer: typed, length: $typedLength, placeholder: String(localized: "Passphrase"), focusOnAppear: true, reveal: $reveal) {
-                    Task { await check() }
-                }
+                PasswordBox(buffer: typed, length: $typedLength, placeholder: String(localized: "Passphrase"), focusOnAppear: true, reveal: $reveal,
+                            onSubmit: { Task { await check() } }, glyphs: glyphs)
                 .padding(.top, Space.lg)
                 .accessibilityIdentifier("conferir-passphrase")
                 Text("Segure o dedo no campo para ver o que digitou.")
@@ -59,7 +61,17 @@ struct ConfirmPassphraseView: View {
         }
         .interactiveDismissDisabled()
         .guardedAgainstCapture()
-        .onDisappear { typed.wipe() }
+        .onChange(of: typedLength) { _, _ in cipher.seal(0, buffer: typed) }
+        .onDisappear {
+            typed.wipe()
+            cipher.clearAll()
+        }
+    }
+
+    private var glyphs: ((UInt64) -> String)? {
+        guard typedLength > 0 else { return nil }
+        let cipher = self.cipher, count = typedLength
+        return { tick in cipher.glyphs(0, count: count, tick: tick) }
     }
 
     private func check() async {

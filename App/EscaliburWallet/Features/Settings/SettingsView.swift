@@ -450,7 +450,7 @@ struct SecuritySettingsView: View {
                         }
                     } label: { SettingsRow(icon: "circle.grid.3x3", title: String(localized: "Mudar o PIN")) }
                     NavigationLink { HardenedModeView() } label: {
-                        SettingsRow(icon: "lock.shield", title: String(localized: "Modo reforçado"),
+                        SettingsRow(icon: "lock.shield", title: String(localized: "Super Security"),
                                     value: session.hardenedModeOn ? String(localized: "Ligado") : String(localized: "Desligado"))
                     }
                     .accessibilityIdentifier("ajustes-reforcado")
@@ -509,7 +509,7 @@ struct SecuritySettingsView: View {
                 .padding(.top, Space.lg)
 
                 Text(session.hardenedModeOn
-                     ? String(localized: "Modo reforçado: abrir o app e todo envio, troca e ordem pedem o PIN e o \(KeyServices.biometryName).")
+                     ? String(localized: "Super Security: abrir o app e todo envio, troca e ordem pedem o PIN e o \(KeyServices.biometryName).")
                      : String(localized: "Todo envio, troca e ordem pede \(KeyServices.biometryName) ou PIN."))
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.lg)
@@ -575,7 +575,7 @@ struct WipeSettingsView: View {
                 }
                 .padding(.top, Space.md)
                 Text(error ?? (session.hardenedModeOn
-                     ? String(localized: "Contra quem pega o iPhone e tenta adivinhar o PIN. No modo reforçado, conta como tentativa o PIN errado e o \(KeyServices.biometryName) que não confirmou. Depois do número escolhido de tentativas seguidas, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta.")
+                     ? String(localized: "Contra quem pega o iPhone e tenta adivinhar o PIN. No Super Security, conta como tentativa o PIN errado e o \(KeyServices.biometryName) que não confirmou. Depois do número escolhido de tentativas seguidas, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta.")
                      : String(localized: "Contra quem pega o iPhone e tenta adivinhar o PIN. Depois do número escolhido de PINs errados seguidos, este iPhone apaga as carteiras; só a senha de cada carteira ou um envelope traz de volta. Mudar pede o PIN.")))
                     .typeStyle(.note).foregroundStyle(error == nil ? Palette.inkMuted : Palette.down)
                     .padding(.horizontal, Space.gutter).padding(.top, Space.xs)

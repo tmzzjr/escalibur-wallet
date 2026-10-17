@@ -37,7 +37,7 @@ struct HardenedModeView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, Space.xs)
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Modo reforçado").typeStyle(.title).foregroundStyle(Palette.ink)
+                    Text("Super Security").typeStyle(.title).foregroundStyle(Palette.ink)
                     Spacer(minLength: Space.sm)
                     status
                 }
@@ -99,10 +99,10 @@ struct HardenedModeView: View {
         .safeAreaInset(edge: .bottom) {
             ActionFooter {
                 if on {
-                    SecondaryButton(title: String(localized: "Desligar o modo reforçado")) { Task { await disable() } }
+                    SecondaryButton(title: String(localized: "Desligar o Super Security")) { Task { await disable() } }
                         .accessibilityIdentifier("reforcado-desligar")
                 } else {
-                    PrimaryButton(title: String(localized: "Ligar o modo reforçado"), enabled: ready, loading: working) {
+                    PrimaryButton(title: String(localized: "Ligar o Super Security"), enabled: ready, loading: working) {
                         // A espera do A1 recusa antes de o dono digitar as frases.
                         do {
                             try AuthCoordinator.checkPINAndBiometry()
@@ -124,7 +124,7 @@ struct HardenedModeView: View {
             HardenedEnableFlow(wallets: phraseWallets, faceChange: faceChange, lockAccepted: lockAccepted) { done in
                 enabling = false
                 reload()
-                if done { toasts.show(String(localized: "Modo reforçado ligado.")) }
+                if done { toasts.show(String(localized: "Super Security ligado.")) }
             }
         }
         .fullScreenCover(isPresented: $biometryPIN, onDismiss: { biometryOn = KeyServices.root.isBiometryEnabled }) {
@@ -181,7 +181,7 @@ struct HardenedModeView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(KeyServices.biometryName) neste app").typeStyle(.row).foregroundStyle(Palette.ink)
                 Text(biometryOn ? String(localized: "Ligado") : (KeyServices.biometryAvailable
-                     ? String(localized: "O modo reforçado nasce dele.")
+                     ? String(localized: "O Super Security nasce dele.")
                      : String(localized: "Cadastre um rosto nos Ajustes do iPhone antes.")))
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
@@ -206,7 +206,7 @@ struct HardenedModeView: View {
                 Text(missingBackup.map { String(localized: "Cópia de \($0.name) conferida") } ?? String(localized: "Cópia de todas as carteiras conferida"))
                     .typeStyle(.row).foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(missingBackup == nil ? String(localized: "Pronto") : String(localized: "No modo reforçado, a cópia é o único caminho de volta."))
+                Text(missingBackup == nil ? String(localized: "Pronto") : String(localized: "No Super Security, a cópia é o único caminho de volta."))
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -277,7 +277,7 @@ struct HardenedModeView: View {
             message = AuthCoordinator.refusalMessage(error)
             return
         }
-        guard case .hardened(let pin, _)? = await auth.credential(reason: String(localized: "Desligar o modo reforçado")) else { return }
+        guard case .hardened(let pin, _)? = await auth.credential(reason: String(localized: "Desligar o Super Security")) else { return }
         working = true
         defer { working = false }
         defer { reload() }
@@ -285,14 +285,14 @@ struct HardenedModeView: View {
             let restored = try await session.disableHardened(pin: pin)
             // Ligar de novo comeca do padrao.
             faceChange = .continue
-            toasts.show(restored ? String(localized: "Modo reforçado desligado. O \(KeyServices.biometryName) continua ligado.")
-                        : String(localized: "Modo reforçado desligado. O \(KeyServices.biometryName) ficou desligado; ligue de novo em Segurança."))
+            toasts.show(restored ? String(localized: "Super Security desligado. O \(KeyServices.biometryName) continua ligado.")
+                        : String(localized: "Super Security desligado. O \(KeyServices.biometryName) ficou desligado; ligue de novo em Segurança."))
         } catch RootKeyVault.Failure.wrongPIN(let remaining) {
             message = AuthCoordinator.wrongPINMessage(remaining)
         } catch RootKeyVault.Failure.biometryNotConfirmed(let remaining) {
             message = AuthCoordinator.faceNotConfirmedMessage(remaining)
         } catch {
-            message = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível desligar agora. O modo reforçado continua ligado.")
+            message = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível desligar agora. O Super Security continua ligado.")
         }
     }
 
@@ -427,7 +427,7 @@ struct HardenedEnableFlow: View {
                     }
                     .safeAreaInset(edge: .bottom) {
                         ActionFooter {
-                            PrimaryButton(title: String(localized: "Ligar o modo reforçado"), enabled: ready, loading: working) { Task { await enable() } }
+                            PrimaryButton(title: String(localized: "Ligar o Super Security"), enabled: ready, loading: working) { Task { await enable() } }
                                 .accessibilityIdentifier("reforcado-confirmar")
                         }
                     }
@@ -495,7 +495,7 @@ struct HardenedEnableFlow: View {
 
     private func enable() async {
         message = nil
-        guard case .pin(let pin)? = await auth.credential(reason: String(localized: "Ligar o modo reforçado"), forcePIN: true) else { return }
+        guard case .pin(let pin)? = await auth.credential(reason: String(localized: "Ligar o Super Security"), forcePIN: true) else { return }
         working = true
         defer { working = false }
         let checks = HardenedPhraseCheck.collect(wallets, typed: typed)
@@ -515,9 +515,9 @@ struct HardenedEnableFlow: View {
         } catch RootKeyVault.Failure.throttled(let seconds) {
             message = String(localized: "Tentativas demais. Tente de novo em \(LockView.duration(seconds)).")
         } catch RootKeyVault.Failure.cancelled {
-            message = String(localized: "O \(KeyServices.biometryName) não confirmou. O modo reforçado continua desligado.")
+            message = String(localized: "O \(KeyServices.biometryName) não confirmou. O Super Security continua desligado.")
         } catch RootKeyVault.Failure.biometryChanged {
-            message = String(localized: "O \(KeyServices.biometryName) deste iPhone mudou durante a conferência. O modo reforçado continua desligado.")
+            message = String(localized: "O \(KeyServices.biometryName) deste iPhone mudou durante a conferência. O Super Security continua desligado.")
         } catch RootKeyVault.Failure.hardenedBlocked(let blocker) {
             message = Self.blockedMessage(blocker)
         } catch RootKeyVault.Failure.wiped {

@@ -30,7 +30,7 @@ struct OwnKeyboardView: View {
                     .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
                 .accessibilityIdentifier("teclado-proprio")
                 .padding(.top, Space.lg)
-                if let note = error ?? (session.hardenedModeOn ? String(localized: "No modo reforçado, o teclado próprio fica sempre ligado.") : nil) {
+                if let note = error ?? (session.hardenedModeOn ? String(localized: "No Super Security, o teclado próprio fica sempre ligado.") : nil) {
                     Text(note)
                         .typeStyle(.note).foregroundStyle(error == nil ? Palette.inkMuted : Palette.down)
                         .padding(.top, Space.xs)
@@ -235,7 +235,7 @@ struct KeyboardInfoSheet: View {
                         onSystemKeyboard()
                         onClose()
                     }
-                    Text("No modo reforçado, o teclado da Escalibur volta na próxima vez.")
+                    Text("No Super Security, o teclado da Escalibur volta na próxima vez.")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 } else {
                     SecondaryButton(title: String(localized: "Desativar o teclado próprio")) { disable() }

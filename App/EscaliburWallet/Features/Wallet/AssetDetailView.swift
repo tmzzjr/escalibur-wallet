@@ -52,7 +52,8 @@ struct AssetDetailView: View {
                     MarketChartSection(
                         coingeckoID: row.coingeckoID, symbol: row.symbol, name: row.name,
                         livePrice: row.price, liveChange: row.change24h, isStable: row.isStablecoin, priceAsFigure: false,
-                        contractAsset: byContract
+                        contractAsset: byContract,
+                        dexFallback: row.coingeckoID != nil ? row.positions.first(where: { if case .token = $0.asset.kind { return true }; return false })?.asset : nil
                     )
                     .padding(.top, Space.lg)
                     if let byContract { ContractNoticeBanner(asset: byContract).padding(.horizontal, Space.gutter).padding(.top, Space.lg) }
@@ -226,6 +227,10 @@ struct MarketChartSection: View {
     var seed: [Double] = []
     /// Sem id: o grafico pelo contrato deste token (`MarketService.contractChartSnapshot`).
     var contractAsset: Asset? = nil
+    /// Token da lista com id: se o CoinGecko e a OKX nao responderem, o grafico vem da pool
+    /// de DEX do contrato. Sem isso, o BNB Frog ficava "sem historico" sempre que o
+    /// CoinGecko sem chave recusava (visto no app de verdade, 17/10/2026).
+    var dexFallback: Asset? = nil
     /// Tocar no preco mostra a outra moeda (real e dolar), com o grafico junto.
     @State private var alternate = false
 
@@ -401,7 +406,14 @@ struct MarketChartSection: View {
                                              price: livePrice, change: liveChange, currency: fiat)
                 }
             } catch {
-                failed = true
+                if let dexFallback, let chart = try? await MarketService.shared.dexChart(dexFallback, currency: currency, range: range),
+                   chart.snapshot.points.count >= 2 {
+                    points = chart.snapshot.points
+                    staleSince = nil
+                    failed = false
+                } else {
+                    failed = true
+                }
             }
             return
         }

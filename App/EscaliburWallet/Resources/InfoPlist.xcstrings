@@ -117,7 +117,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Face ID unlocks the app and confirms sends. In Hardened mode, Face ID and your PIN are required together."
+            "value" : "Face ID unlocks the app and confirms sends. In Super Security, Face ID and your PIN are required together."
           }
         },
         "es" : {
@@ -159,7 +159,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "O Face ID destrava o app e confirma envios. No modo reforçado, ele e o PIN são pedidos juntos."
+            "value" : "O Face ID destrava o app e confirma envios. No Super Security, ele e o PIN são pedidos juntos."
           }
         },
         "tr" : {

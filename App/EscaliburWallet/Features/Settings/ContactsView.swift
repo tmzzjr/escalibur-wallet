@@ -137,6 +137,27 @@ struct AddContactSheet: View {
     /// olhando a fonte.
     private var destination: Address.Destination? { try? validation.get() }
 
+    /// Os ultimos enderecos para onde esta carteira enviou, os mais recentes primeiro e fora
+    /// os ja salvos (pedido do dono, 17/10/2026): da Atividade, com a data, e dos enviados
+    /// guardados, sem data. Tocar preenche a rede e o endereco; a conferencia do meio continua.
+    private var recentSent: [(chain: Chain, address: String)] {
+        let saved = Set(session.metadata.contacts.map { "\($0.chainID)|\($0.address.lowercased())" })
+        var seen = Set<String>()
+        var out: [(chain: Chain, address: String)] = []
+        func add(_ chainID: String, _ address: String) {
+            let key = "\(chainID)|\(address.lowercased())"
+            guard !saved.contains(key), seen.insert(key).inserted, let chain = Chain.find(chainID) else { return }
+            out.append((chain, address))
+        }
+        for entry in ActivityFeed.shared.entries.sorted(by: { $0.date > $1.date }) where entry.direction == .sent && !entry.suspicious {
+            if let to = entry.counterparty { add(entry.chainID, to) }
+        }
+        for (chainID, list) in session.metadata.sentTo.sorted(by: { $0.key < $1.key }) {
+            for address in list.reversed() { add(chainID, address) }
+        }
+        return Array(out.prefix(6))
+    }
+
     private var known: [String] {
         let sent = session.metadata.sentTo[chain.id] ?? []
         let contacts = session.metadata.contacts.filter { $0.chainID == chain.id }.map(\.address)
@@ -201,6 +222,36 @@ struct AddContactSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.lg) {
+                    if address.isEmpty, !recentSent.isEmpty {
+                        labeled(String(localized: "Enviados recentemente")) {
+                            VStack(spacing: 0) {
+                                ForEach(Array(recentSent.enumerated()), id: \.offset) { _, item in
+                                    Button {
+                                        chain = item.chain
+                                        address = item.address
+                                    } label: {
+                                        HStack(spacing: Space.sm) {
+                                            NetworkBadge(chain: item.chain, size: 28, ring: Palette.rail)
+                                            VStack(alignment: .leading, spacing: 1) {
+                                                Text(verbatim: KnownExchanges.name(for: item.address) ?? item.chain.name)
+                                                    .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                                                Text(verbatim: Fmt.address(item.address, chain: item.chain))
+                                                    .font(TypeStyle.mono.font).foregroundStyle(Palette.ink).lineLimit(1)
+                                            }
+                                            Spacer(minLength: Space.xs)
+                                            Image(systemName: "plus.circle").font(.system(size: 18, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                                        }
+                                        .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(RowStyle())
+                                    .accessibilityIdentifier("contato-recente")
+                                }
+                            }
+                            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
+                            .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+                        }
+                    }
                     labeled(String(localized: "Nome")) {
                         TextField("", text: $name, prompt: Text("Ex.: Minha conta na corretora").foregroundColor(Palette.inkDead))
                             .typeStyle(.row).foregroundStyle(Palette.ink)

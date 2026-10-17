@@ -199,10 +199,13 @@ public struct OpenOrder: Sendable, Equatable, Identifiable {
     /// Sem eles, a tela nao mostra andamento.
     public let totalSell: BigUInt?
     public let receivedBuy: BigUInt?
+    /// Quando a ordem foi criada, onde o protocolo diz (CoW). nil: nao se sabe.
+    public let createdAt: Date?
 
     public init(
         id: String, chain: Chain, sellAssetID: String, buyAssetID: String, remainingSell: BigUInt, minimumBuy: BigUInt,
-        expiresAt: Date?, sources: Int, cancellations: [Cancellation], totalSell: BigUInt? = nil, receivedBuy: BigUInt? = nil
+        expiresAt: Date?, sources: Int, cancellations: [Cancellation], totalSell: BigUInt? = nil, receivedBuy: BigUInt? = nil,
+        createdAt: Date? = nil
     ) {
         self.id = id
         self.chain = chain
@@ -217,6 +220,7 @@ public struct OpenOrder: Sendable, Equatable, Identifiable {
         self.cancellations = cancellations
         self.totalSell = totalSell
         self.receivedBuy = receivedBuy
+        self.createdAt = createdAt
     }
 
     /// Quanto da ordem ja foi preenchido, de 0 a 1. nil onde o total nao e conhecido.
