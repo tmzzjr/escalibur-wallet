@@ -647,28 +647,20 @@ struct ReceiveSheet: View {
         let balance = portfolio.balance(chain)
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                if preselected != nil { HStack { Spacer(); closeButton } }
+                if preselected != nil {
+                    // Aberta direto, sem barra de navegacao: o contrato no topo, ao lado do fechar.
+                    HStack(spacing: Space.xs) {
+                        Spacer()
+                        contractButton(asset: asset, chain: chain, inBar: false)
+                        closeButton
+                    }
+                }
                 Text("Receber \(asset.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
                 Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
                 if asset.kind != .native {
                     // Qual token e, pelo nome da lista: "XRP" sozinho nao diz que e o da Binance.
                     Text(verbatim: "\(asset.name) · \(ReceiveCoin.standard(chain))").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                         .padding(.top, 2)
-                    // O contrato do token, para copiar com um toque (pedido do dono, 17/10/2026).
-                    if let contract = CustomToken.reference(asset.kind) {
-                        Button {
-                            Pasteboard.copyAddress(contract)
-                            toasts.show(CustomToken.usesIssuer(chain) ? String(localized: "Emissor do token copiado.") : String(localized: "Contrato do token copiado."))
-                        } label: {
-                            Label(CustomToken.usesIssuer(chain) ? String(localized: "Emissor do token") : String(localized: "Contrato do token"), systemImage: "doc.on.doc")
-                                .typeStyle(.label).foregroundStyle(Palette.ink)
-                                .padding(.horizontal, Space.sm).frame(height: 32)
-                                .background(Capsule(style: .continuous).fill(Palette.rail))
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, Space.sm)
-                        .accessibilityIdentifier("receber-copiar-contrato")
-                    }
                 }
 
                 if wallet?.isWatchOnly == true {
@@ -725,6 +717,38 @@ struct ReceiveSheet: View {
             .padding(.bottom, Space.lg)
         }
         .sensoryFeedback(.impact(weight: .light), trigger: toasts.current?.id)
+        .toolbar {
+            // Empilhada na navegacao: o contrato no topo direito da barra (pedido do dono, 17/10/2026).
+            if preselected == nil {
+                ToolbarItem(placement: .topBarTrailing) { contractButton(asset: asset, chain: chain, inBar: true) }
+            }
+        }
+    }
+
+    /// O contrato do token (ou o emissor, no XRP Ledger e na Stellar), para copiar com um
+    /// toque. Moeda nativa nao tem: o botao some. Na barra de navegacao o fundo e o vidro do
+    /// sistema, como o do voltar; fora dela, a capsula propria, na altura do fechar.
+    @ViewBuilder
+    private func contractButton(asset: Asset, chain: Chain, inBar: Bool) -> some View {
+        if asset.kind != .native, let contract = CustomToken.reference(asset.kind) {
+            let label = Label(CustomToken.usesIssuer(chain) ? String(localized: "Emissor do token") : String(localized: "Contrato do token"),
+                              systemImage: "doc.on.doc")
+                .labelStyle(.titleAndIcon)
+                .typeStyle(.label).foregroundStyle(Palette.ink)
+            Button {
+                Pasteboard.copyAddress(contract)
+                toasts.show(CustomToken.usesIssuer(chain) ? String(localized: "Emissor do token copiado.") : String(localized: "Contrato do token copiado."))
+            } label: {
+                if inBar {
+                    label.padding(.horizontal, Space.xs)
+                } else {
+                    label.padding(.horizontal, Space.sm).frame(height: 36)
+                        .background(Capsule(style: .continuous).fill(Palette.rail))
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("receber-copiar-contrato")
+        }
     }
 
     /// O contrato da lista completa e o caminho para a moeda aparecer no saldo.

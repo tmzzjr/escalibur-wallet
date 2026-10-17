@@ -836,7 +836,8 @@ struct CopyAddressSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(target.title).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
                     if target.chains.count > 1 {
-                        Text(Self.names(target.chains)).typeStyle(.note).foregroundStyle(Palette.inkMuted).lineLimit(1)
+                        Text(Self.names(target.chains)).typeStyle(.note).foregroundStyle(Palette.inkMuted).lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Text(verbatim: Fmt.address(target.address, chain: target.chains.first)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
                         .lineLimit(1)
@@ -861,7 +862,9 @@ struct CopyAddressSheet: View {
     private func icon(_ target: Target) -> some View {
         if target.chains.count > 1 {
             ZStack(alignment: .leading) {
-                ForEach(Array(target.chains.prefix(3).enumerated()), id: \.offset) { index, chain in
+                // Lidas da direita para a esquerda: a BNB Chain na ponta, por cima, depois
+                // Ethereum e Base.
+                ForEach(Array(Self.featured(target.chains).prefix(3).reversed().enumerated()), id: \.offset) { index, chain in
                     NetworkBadge(chain: chain, size: 24, ring: Palette.body).offset(x: CGFloat(index) * 12)
                 }
             }
@@ -871,8 +874,17 @@ struct CopyAddressSheet: View {
         }
     }
 
+    /// As redes EVM em destaque na linha das EVM, nesta ordem: BNB Chain, Ethereum e Base
+    /// (pedido do dono, 17/10/2026). As outras seguem na ordem de sempre.
+    static let featuredEVM = ["bnb", "ethereum", "base"]
+
+    static func featured(_ chains: [Chain]) -> [Chain] {
+        let first = featuredEVM.compactMap { id in chains.first { $0.id == id } }
+        return first + chains.filter { !featuredEVM.contains($0.id) }
+    }
+
     static func names(_ chains: [Chain]) -> String {
-        let shown = chains.prefix(3).map(\.name)
+        let shown = featured(chains).prefix(3).map(\.name)
         let rest = chains.count - shown.count
         return rest > 0 ? String(localized: "\(shown.joined(separator: ", ")) e mais \(rest)") : shown.joined(separator: ", ")
     }

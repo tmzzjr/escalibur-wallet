@@ -27,11 +27,18 @@ final class ReceiveFlowTests: XCTestCase {
         XCTAssertTrue(tron.waitForExistence(timeout: 10))
         shot("r2-redes", app)
         tron.tap()
-        XCTAssertTrue(app.staticTexts["Receber USDT"].waitForExistence(timeout: 10))
+        let title = app.staticTexts["Receber USDT"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        // O contrato do token no topo direito, acima do titulo (pedido do dono, 17/10/2026).
+        let contract = app.buttons["receber-copiar-contrato"]
+        XCTAssertTrue(contract.waitForExistence(timeout: 5), "sem o botao do contrato")
+        XCTAssertGreaterThan(contract.frame.midX, app.frame.width * 0.6, "o contrato deveria ficar a direita")
+        XCTAssertLessThan(contract.frame.maxY, title.frame.minY, "o contrato deveria ficar acima do titulo")
         shot("r3-endereco", app)
 
         // Copiar mostra que copiou: no botao e no aviso, por cima da folha de Receber.
-        app.buttons["Copiar endereço"].tap()
+        // O da folha, nao o "Copiar endereço" do topo da Carteira, que fica por baixo.
+        app.buttons.matching(NSPredicate(format: "label == 'Copiar endereço' AND identifier != 'copiar-endereco-carteira'")).firstMatch.tap()
         XCTAssertTrue(app.buttons["Endereço copiado"].waitForExistence(timeout: 3), "o botao deveria dizer que copiou")
         let toast = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Endereço copiado.'")).firstMatch
         XCTAssertTrue(toast.waitForExistence(timeout: 3), "o aviso de copiado deveria aparecer por cima da folha")
