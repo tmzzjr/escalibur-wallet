@@ -187371,6 +187371,26 @@
         }
       }
     },
+    "Escolha a rede. Depois de colar, confira o endereço inteiro, inclusive o meio." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the network. After pasting, check the whole address, including the middle."
+          }
+        }
+      }
+    },
+    "%@ e mais %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ and %lld more"
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {

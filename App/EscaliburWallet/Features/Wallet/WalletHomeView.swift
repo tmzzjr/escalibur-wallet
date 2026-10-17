@@ -10,6 +10,7 @@ struct WalletHomeView: View {
     @Environment(Portfolio.self) private var portfolio
     @Environment(Router.self) private var router
     @Environment(ToastCenter.self) private var toasts
+    @State private var copyingAddress = false
     @State private var switching = false
     @State private var addingWallet = false
     @State private var receiving = false
@@ -183,49 +184,10 @@ struct WalletHomeView: View {
 
     // MARK: Cabecalho
 
-    /// Um endereco para copiar: as redes EVM dividem o mesmo, as outras tem o seu.
-    private struct CopyTarget: Identifiable {
-        let title: String
-        let address: String
-        let chain: Chain?
-        var id: String { address }
-    }
-
-    /// Os enderecos da carteira, sem repetir: o das redes EVM numa linha so, primeiro; depois
-    /// cada rede com endereco proprio, na ordem das redes.
-    private func copyTargets(_ wallet: WalletMeta) -> [CopyTarget] {
-        var out = [CopyTarget]()
-        var seen = Set<String>()
-        let evm = wallet.accounts.filter { Chain.find($0.chainID)?.family == .evm }
-        if let first = evm.first {
-            out.append(CopyTarget(title: String(localized: "Ethereum e redes EVM"), address: first.address, chain: .ethereum))
-            evm.forEach { seen.insert($0.address) }
-        }
-        for chain in Chain.all where chain.family != .evm {
-            guard let account = wallet.account(chain), seen.insert(account.address).inserted else { continue }
-            out.append(CopyTarget(title: chain.name, address: account.address, chain: chain))
-        }
-        return out
-    }
-
-    /// Ao lado do olho: copiar o endereco da carteira, escolhendo a rede (pedido do dono,
-    /// 17/10/2026). Copia pela mesma area de transferencia do Receber (local, 2 minutos).
+    /// Ao lado do olho: copiar o endereco da carteira, numa tela com cada rede e o icone dela
+    /// (pedido do dono, 17/10/2026).
     private func copyMenu(_ wallet: WalletMeta) -> some View {
-        Menu {
-            ForEach(copyTargets(wallet)) { target in
-                Button {
-                    Pasteboard.copyAddress(target.address)
-                    // O aviso espera o menu fechar: mostrado durante o fechamento, ele sumia.
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(350))
-                        toasts.show(String(localized: "Endereço \(target.title) copiado. Depois de colar, confira o endereço inteiro, inclusive o meio."))
-                    }
-                } label: {
-                    Text(target.title)
-                    Text(verbatim: Fmt.address(target.address, chain: target.chain))
-                }
-            }
-        } label: {
+        Button { copyingAddress = true } label: {
             Image(systemName: "doc.on.doc")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(Palette.inkSoft)
@@ -233,6 +195,7 @@ struct WalletHomeView: View {
         }
         .accessibilityLabel("Copiar endereço")
         .accessibilityIdentifier("copiar-endereco-carteira")
+        .sheet(isPresented: $copyingAddress) { CopyAddressSheet(wallet: wallet) }
     }
 
     private static let top = "carteira-topo"
@@ -806,3 +769,112 @@ extension View {
             .accessibilityHint("Segure e arraste para mudar a ordem")
     }
 }
+
+/// Copiar o endereco da carteira: as redes EVM numa linha so (o mesmo endereco), e cada
+/// rede com endereco proprio, com o icone, o nome e o comeco e o fim do endereco. Copia
+/// pela area de transferencia do Receber (local, 2 minutos) e fecha com o aviso.
+struct CopyAddressSheet: View {
+    @Environment(ToastCenter.self) private var toasts
+    @Environment(\.dismiss) private var dismiss
+    let wallet: WalletMeta
+    @State private var copied: String?
+
+    struct Target: Identifiable {
+        let title: String
+        let address: String
+        let chains: [Chain]
+        var id: String { address }
+    }
+
+    private var targets: [Target] {
+        var out = [Target]()
+        var seen = Set<String>()
+        let evm = Chain.all.filter { $0.family == .evm && wallet.account($0) != nil }
+        if let first = evm.first, let account = wallet.account(first) {
+            out.append(Target(title: String(localized: "Ethereum e redes EVM"), address: account.address, chains: evm))
+            evm.compactMap { wallet.account($0)?.address }.forEach { seen.insert($0) }
+        }
+        for chain in Chain.all where chain.family != .evm {
+            guard let account = wallet.account(chain), seen.insert(account.address).inserted else { continue }
+            out.append(Target(title: chain.name, address: account.address, chains: [chain]))
+        }
+        return out
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(title: String(localized: "Copiar endereço")) { dismiss() }
+            Text("Escolha a rede. Depois de colar, confira o endereço inteiro, inclusive o meio.")
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+            ScrollView {
+                VStack(spacing: Space.xs) {
+                    ForEach(targets) { target in row(target) }
+                }
+                .padding(.horizontal, Space.gutter).padding(.vertical, Space.md)
+            }
+        }
+        .background(Palette.void.ignoresSafeArea())
+        .presentationDetents([.medium, .large])
+        .presentationBackground(Palette.void)
+        .presentationCornerRadius(Radius.sheet)
+    }
+
+    private func row(_ target: Target) -> some View {
+        Button {
+            Pasteboard.copyAddress(target.address)
+            withAnimation(Motion.fade) { copied = target.id }
+            Task {
+                try? await Task.sleep(for: .milliseconds(450))
+                dismiss()
+                try? await Task.sleep(for: .milliseconds(250))
+                toasts.show(String(localized: "Endereço \(target.title) copiado. Depois de colar, confira o endereço inteiro, inclusive o meio."))
+            }
+        } label: {
+            HStack(spacing: Space.sm) {
+                icon(target)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(target.title).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                    if target.chains.count > 1 {
+                        Text(Self.names(target.chains)).typeStyle(.note).foregroundStyle(Palette.inkMuted).lineLimit(1)
+                    }
+                    Text(verbatim: Fmt.address(target.address, chain: target.chains.first)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: Space.xs)
+                Image(systemName: copied == target.id ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(copied == target.id ? Palette.up : Palette.inkSoft)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .padding(.horizontal, Space.md).frame(minHeight: 64)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(target.title), \(Fmt.address(target.address, chain: target.chains.first))")
+        .accessibilityIdentifier("copiar-\(target.chains.first?.id ?? "")")
+    }
+
+    /// O icone da rede; nas EVM, tres redes sobrepostas.
+    @ViewBuilder
+    private func icon(_ target: Target) -> some View {
+        if target.chains.count > 1 {
+            ZStack(alignment: .leading) {
+                ForEach(Array(target.chains.prefix(3).enumerated()), id: \.offset) { index, chain in
+                    NetworkBadge(chain: chain, size: 24, ring: Palette.body).offset(x: CGFloat(index) * 12)
+                }
+            }
+            .frame(width: 48, height: 36, alignment: .leading)
+        } else if let chain = target.chains.first {
+            NetworkBadge(chain: chain, size: 36, ring: Palette.body).frame(width: 48, height: 36, alignment: .leading)
+        }
+    }
+
+    static func names(_ chains: [Chain]) -> String {
+        let shown = chains.prefix(3).map(\.name)
+        let rest = chains.count - shown.count
+        return rest > 0 ? String(localized: "\(shown.joined(separator: ", ")) e mais \(rest)") : shown.joined(separator: ", ")
+    }
+}
+

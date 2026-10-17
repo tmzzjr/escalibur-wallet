@@ -60,7 +60,7 @@ final class ReceiveFlowTests: XCTestCase {
         shot("r4-rlusd-linha", app)
     }
 
-    /// Ao lado do olho, na Carteira: copiar o endereco, escolhendo a rede no menu.
+    /// Ao lado do olho, na Carteira: copiar o endereco numa tela com cada rede e o icone dela.
     func testCopyAddressFromWalletHeader() {
         let app = XCUIApplication()
         app.launchArguments = ["-reset", "-demo"]
@@ -68,22 +68,18 @@ final class ReceiveFlowTests: XCTestCase {
         let copy = app.buttons["copiar-endereco-carteira"]
         XCTAssertTrue(copy.waitForExistence(timeout: 30))
         copy.tap()
-        let evm = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Ethereum e redes EVM'")).firstMatch
-        XCTAssertTrue(evm.waitForExistence(timeout: 5), "o menu nao abriu com as redes EVM")
-        let bitcoin = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Bitcoin'")).firstMatch
+        XCTAssertTrue(app.staticTexts["Copiar endereço"].waitForExistence(timeout: 5), "a tela de copiar nao abriu")
+        let evm = app.buttons["copiar-ethereum"]
+        XCTAssertTrue(evm.waitForExistence(timeout: 5), "sem a linha das redes EVM")
+        let bitcoin = app.buttons["copiar-bitcoin"]
         XCTAssertTrue(bitcoin.exists)
         let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "w1-copiar-menu"
+        attachment.name = "w1-copiar-tela"
         attachment.lifetime = .keepAlways
         add(attachment)
         bitcoin.tap()
         let toast = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Endereço Bitcoin copiado'")).firstMatch
-        if !toast.waitForExistence(timeout: 5) {
-            let after = XCTAttachment(screenshot: app.screenshot())
-            after.name = "w2-depois"
-            after.lifetime = .keepAlways
-            add(after)
-        }
-        XCTAssertTrue(toast.exists, "sem o aviso de copiado")
+        XCTAssertTrue(toast.waitForExistence(timeout: 5), "sem o aviso de copiado")
+        XCTAssertFalse(app.staticTexts["Copiar endereço"].exists, "a tela nao fechou depois de copiar")
     }
 }
