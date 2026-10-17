@@ -186931,6 +186931,16 @@
         }
       }
     },
+    "Só a taxa da rede: nenhum valor saiu da conta" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the network fee: no value left the account"
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {

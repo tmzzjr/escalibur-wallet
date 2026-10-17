@@ -455,7 +455,13 @@ struct ActivityRow: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .strikethrough(isFailed)
-            } else if let asset = entry.asset {
+            } else if let fee = entry.onlyFee, let chain = entry.chain {
+                Text(hidden ? Redaction.short : (Fmt.minus + Fmt.crypto(fee, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol, style: .list)))
+                    .typeStyle(.row)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            } else if let asset = entry.asset, !entry.amount.isZero {
                 Text(hidden ? Redaction.short : (sign + Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .list)))
                     .typeStyle(.row)
                     .foregroundStyle(isFailed ? Palette.inkMuted : (entry.direction == .received ? Palette.up : Palette.ink))
@@ -474,6 +480,59 @@ struct ActivityRow: View {
     private var sign: String {
         guard !entry.amount.isZero, !isFailed else { return "" }
         return entry.direction == .received ? "+" : (entry.direction == .sent ? Fmt.minus : "")
+    }
+}
+
+extension ActivityEntry {
+    /// Chamada sem valor (autorizacao, revogacao, interacao com contrato): da conta so saiu
+    /// a taxa da rede, e e ela que a lista e o detalhe mostram no lugar de "0 BNB" (pedido
+    /// do dono, 17/10/2026). Nil quando algo se moveu ou quando a taxa nao veio.
+    var onlyFee: BigUInt? {
+        guard amount.isZero, direction != .swap, direction != .received, let fee, !fee.isZero else { return nil }
+        return fee
+    }
+}
+
+/// A moeda do topo do detalhe gira no eixo vertical como uma moeda jogada, como o selo de
+/// ordem criada (pedido do dono, 17/10/2026): duas voltas rapidas ao abrir e, depois, uma
+/// volta devagar de tempos em tempos. O verso mostra a mesma moeda, sem o espelho do giro.
+/// Com "reduzir movimento", fica parada.
+struct CoinSpin: ViewModifier {
+    var delay: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var angle: Double = 0
+
+    func body(content: Content) -> some View {
+        content
+            .modifier(CoinSpinFace(angle: angle))
+            .task {
+                guard !reduceMotion else { return }
+                try? await Task.sleep(for: .seconds(0.15 + delay))
+                withAnimation(.timingCurve(0.2, 0.8, 0.25, 1, duration: 1.5)) { angle += 720 }
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(4.5))
+                    guard !Task.isCancelled else { return }
+                    withAnimation(.easeInOut(duration: 1.1)) { angle += 360 }
+                }
+            }
+    }
+}
+
+/// O giro quadro a quadro: o verso desfaz o espelho pelo angulo de cada quadro, nao pelo
+/// angulo final da animacao.
+private struct CoinSpinFace: ViewModifier, @preconcurrency Animatable {
+    var angle: Double
+
+    var animatableData: Double {
+        get { angle }
+        set { angle = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        let facing = cos(angle * .pi / 180) >= 0
+        content
+            .scaleEffect(x: facing ? 1 : -1, y: 1)
+            .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), anchor: .center, perspective: 0.45)
     }
 }
 
@@ -524,13 +583,14 @@ struct ActivityDetailView: View {
         VStack(spacing: Space.xs) {
             if entry.direction == .swap, let asset = entry.asset, let received = entry.receivedAsset {
                 HStack(spacing: Space.sm) {
-                    logo(asset, size: 56)
+                    logo(asset, size: 56).modifier(CoinSpin())
                     Image(systemName: "arrow.forward").font(.system(size: 15, weight: .bold)).foregroundStyle(Palette.inkMuted)
-                    logo(received, size: 56)
+                    logo(received, size: 56).modifier(CoinSpin(delay: 0.25))
                 }
                 .padding(.bottom, Space.xs)
             } else {
                 logo(entry.asset, size: 72)
+                    .modifier(CoinSpin())
                     .padding(Space.sm)
                     .background(Circle().fill(Palette.body))
                     .padding(.bottom, Space.xxs)
@@ -545,6 +605,10 @@ struct ActivityDetailView: View {
                     .strikethrough(isFailed)
                 Text("por \(Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .full))")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+            } else if let fee = entry.onlyFee, let chain = entry.chain {
+                Text(Fmt.minus + Fmt.crypto(fee, decimals: chain.nativeDecimals, symbol: chain.nativeSymbol, style: .full))
+                    .typeStyle(.figure).foregroundStyle(Palette.ink)
+                Text("Só a taxa da rede: nenhum valor saiu da conta").typeStyle(.body).foregroundStyle(Palette.inkSoft)
             } else if let asset = entry.asset {
                 Text(sign + Fmt.crypto(entry.amount, decimals: asset.decimals, symbol: asset.symbol, style: .full))
                     .typeStyle(.figure)

@@ -22,4 +22,20 @@ final class ActivityExplorerTests: XCTestCase {
         guard link.exists else { throw XCTSkip("a carteira de teste nao tem saldo agora nas redes sem historico") }
         shot("a5-explorador", app)
     }
+
+    /// O detalhe abre com a moeda do topo girando; chamada sem valor mostra a taxa, nao "0".
+    func testDetailShowsSpinningCoin() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "atividade"]
+        app.launch()
+        let row = app.buttons.matching(NSPredicate(format: "label CONTAINS ':'")).firstMatch
+        guard row.waitForExistence(timeout: 60) else { throw XCTSkip("a carteira de teste sem atividade agora") }
+        sleep(2)
+        shot("h1-lista", app)
+        row.tap()
+        usleep(500_000)
+        shot("h2-detalhe-girando", app)
+        sleep(2)
+        shot("h2-detalhe-parado", app)
+    }
 }
