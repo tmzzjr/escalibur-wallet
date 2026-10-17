@@ -12,7 +12,7 @@ import UserNotifications
 // enderecos publicos das contas ficam num arquivo proprio, com a protecao ate o primeiro
 // desbloqueio (classe C), fora dos metadados cifrados. Nada de chave, frase ou nome de
 // carteira. Oferecido a todos desde 14/10/2026, a pedido do dono, numa folha que diz o
-// preco antes do "sim" (`ReceiptWatchOffer`); desligar apaga o arquivo e vale para sempre.
+// preco em Ajustes (`ReceiptWatchOffer.price`); desligar apaga o arquivo e vale para sempre.
 //
 // Este arquivo nao toca no cofre, no chaveiro nem nos metadados cifrados, e verificar.sh
 // confere: os enderecos chegam de fora, pelo app destravado (`sync`).

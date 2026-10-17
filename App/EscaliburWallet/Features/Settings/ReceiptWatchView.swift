@@ -32,7 +32,7 @@ enum ReceiptAccounts {
     /// Oferecido na primeira vez que a carteira abre (pedido do dono, 14/10/2026: o aviso
     /// vem para todo mundo). A permissao de notificacao nao vale como aceite do arquivo
     /// legivel com o iPhone bloqueado (auditoria 4, C7-03): antes dela, uma folha diz o
-    /// preco, e o dono escolhe (`ReceiptWatchOffer`). Quem ja tinha o aviso ligado pelo
+    /// preco (hoje liga sozinho, sem a folha). Quem ja tinha o aviso ligado pelo
     /// padrao antigo, sem folha, ve a folha uma vez; "Agora nao" desliga.
     @MainActor
     static func shouldOffer(_ session: AppSession) -> Bool {
@@ -176,77 +176,12 @@ struct ReceiptWatchView: View {
     }
 }
 
-/// A folha que oferece o aviso de recebimento, com o preco dito antes do "sim".
-struct ReceiptWatchOffer: View {
-    @Environment(AppSession.self) private var session
-    let onDone: () -> Void
-    @State private var working = false
-    /// O fundo da folha: quase preto, um cinza bem escuro (pedido do dono, 16/10/2026).
-    static let sheetColor = Color(hex: 0x0E0E10)
-
-    /// O preco do aviso, dito em Ajustes, Aviso de recebimento.
+/// O preco do aviso de recebimento, dito em Ajustes, Aviso de recebimento. A folha que
+/// oferecia o aviso saiu (pedido do dono, 17/10/2026): ele liga sozinho, como os alertas de
+/// preco, e este texto fica nos Ajustes.
+enum ReceiptWatchOffer {
     static var price: String {
         String(localized: "Para conferir com o iPhone bloqueado, os endereços públicos das suas carteiras e o último saldo visto de cada moeda ficam num arquivo à parte, que abre depois do primeiro desbloqueio do iPhone, fora dos dados cifrados da carteira. Quem extrair os dados de um iPhone nesse estado lê esses endereços. Nenhuma chave, frase ou nome de carteira entra nele.")
     }
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                // A moeda girando, que o dedo gira. O selo "Chegou X BTC" saiu a pedido do dono
-                // (16/10/2026).
-                // A moeda um pouco menor, e tudo mais para baixo (pedido do dono, 17/10/2026).
-                SpinningCoin()
-                    .frame(height: 164)
-                    .frame(maxWidth: .infinity)
-
-                // O aviso vem ligado (pedido do dono, 17/10/2026): a folha diz que esta ligado e
-                // deixa desligar; continuar pede a permissao de notificacao.
-                Text("Aviso de recebimento ligado").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.lg)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Quando receber moeda, o próprio iPhone confere o saldo e avisa, sem servidor da Escalibur no caminho.")
-                    .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                // Os dois itens do arquivo a parte sairam a pedido do dono (16/10/2026): o preco
-                // inteiro continua em Ajustes, Aviso de recebimento (`price`).
-                Text("Carteiras com passphrase ficam de fora. Dá para mudar em Ajustes, Aviso de recebimento.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.lg)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, Space.gutter)
-            // Tudo mais para baixo, perto do centro da folha.
-            .padding(.top, 96)
-            .padding(.bottom, Space.md)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: Space.sm) {
-                PrimaryButton(title: String(localized: "Continuar"), loading: working) {
-                    working = true
-                    Task {
-                        await ReceiptAccounts.accept(session)
-                        working = false
-                        onDone()
-                    }
-                }
-                .accessibilityIdentifier("recebimento-oferta-ligar")
-                SecondaryButton(title: String(localized: "Desligar o aviso")) {
-                    Preferences.receiptWatchChosen = true
-                    Preferences.receiptOfferSeen = true
-                    // Ligado pelo padrao antigo, sem a folha: o "nao" desliga e apaga o arquivo.
-                    Task { await ReceiptWatchCenter.shared.disable() }
-                    onDone()
-                }
-            }
-            .padding(.horizontal, Space.gutter)
-            .padding(.top, Space.sm)
-            .padding(.bottom, Space.xs)
-            .background(Self.sheetColor)
-        }
-        .presentationDetents([.large])
-        .presentationBackground(Self.sheetColor)
-        .presentationCornerRadius(Radius.sheet)
-        .interactiveDismissDisabled()
-    }
 }
+

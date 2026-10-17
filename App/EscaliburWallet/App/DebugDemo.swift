@@ -309,8 +309,8 @@ struct DemoEnvelopes: ViewModifier {
                         WalletCreatedView(wallet: wallet, isFirst: false) { newWallet = nil }
                     }
                 case .checagem: NavigationStack { DeviceCheckView {} }
-                // `-tela aviso`: a folha que oferece o aviso de recebimento.
-                case .aviso: ReceiptWatchOffer { newWallet = nil }
+                // `-tela aviso`: a folha do aviso de recebimento saiu (17/10/2026); abre os ajustes dele.
+                case .aviso: NavigationStack { ReceiptWatchView() }
                 // `-tela transacao` com `-transacao recebida|enviada|troca`: o detalhe de
                 // uma transacao inventada, sem rede.
                 case .transacao: NavigationStack { ActivityDetailView(entry: DemoNewWallet.sampleEntry) }

@@ -166,12 +166,9 @@ final class OnboardingFlowTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Saldo total"].waitForExistence(timeout: 10))
         shot("08-carteira", app)
 
-        // O aviso de recebimento vem oferecido numa folha que diz o preco antes do sim
-        // (auditoria 4, C7-03), depois da primeira leitura do saldo.
-        XCTAssertTrue(app.buttons["recebimento-oferta-ligar"].waitForExistence(timeout: 60))
-        shot("08a-aviso-recebimento", app)
-        app.buttons["Desligar o aviso"].tap()
-        XCTAssertTrue(app.buttons["recebimento-oferta-ligar"].waitForNonExistence(timeout: 10))
+        // O aviso de recebimento liga sozinho, sem folha (17/10/2026): nenhuma folha aparece.
+        sleep(3)
+        XCTAssertFalse(app.buttons["recebimento-oferta-ligar"].exists)
 
         // Reabrir: o PIN errado e recusado, o certo destrava. No simulador o chaveiro
         // nao aplica a senha de aplicativo, entao isto exercita a camada interna.

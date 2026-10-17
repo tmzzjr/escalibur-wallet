@@ -13,7 +13,6 @@ struct WalletHomeView: View {
     @State private var addingWallet = false
     @State private var receiving = false
     @State private var backingUp = false
-    @State private var offeringReceipts = false
 
     private var wallet: WalletMeta? { session.selectedWallet }
     private var hide: Bool { session.metadata.settings.hideBalances }
@@ -109,13 +108,14 @@ struct WalletHomeView: View {
             let disabled = session.metadata.settings.disabledChainIDs
             let balances = portfolio.balances
             Task { await ActivityFeed.shared.load(wallet, disabled: disabled, session: session, balances: balances) }
-            // A folha do aviso de recebimento vem antes, e os alertas de preco esperam a
-            // resposta dela: dois pedidos de permissao juntos se atropelavam.
+            // O aviso de recebimento liga sozinho, sem folha, como os alertas de preco (pedido
+            // do dono, 17/10/2026: a folha aparecia e nao se entendia). So o pedido de permissao
+            // do iOS aparece; o preco do aviso fica em Ajustes, Aviso de recebimento. Um depois
+            // do outro: dois pedidos de permissao juntos se atropelavam.
             if ReceiptAccounts.shouldOffer(session) {
-                offeringReceipts = true
-            } else {
-                await PriceAlertDefaults.enableByDefault(session)
+                await ReceiptAccounts.accept(session)
             }
+            await PriceAlertDefaults.enableByDefault(session)
             #if DEBUG
             // As telas que dependem do saldo esperam a leitura acima.
             if DebugDemo.screen == "detalhe", let first = portfolio.rows.first { router.walletPath.append(first) }
@@ -127,9 +127,6 @@ struct WalletHomeView: View {
             WalletSwitcherSheet(onAdd: { switching = false; addingWallet = true })
         }
         .sheet(isPresented: $receiving) { ReceiveSheet(preselected: Self.demoReceiving) }
-        .sheet(isPresented: $offeringReceipts, onDismiss: { Task { await PriceAlertDefaults.enableByDefault(session) } }) {
-            ReceiptWatchOffer { offeringReceipts = false }
-        }
         #if DEBUG
         .modifier(DemoEnvelopes())
         #endif
