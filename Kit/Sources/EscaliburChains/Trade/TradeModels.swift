@@ -10,7 +10,8 @@ import Foundation
 // recebe o `SigningPlan` que sai daqui.
 
 /// Os provedores, todos sem API key (docs/blockchain.md 3.1): quatro agregadores e a
-/// Uniswap direta, cotada nos contratos dela e com a calldata montada pelo app. Provedor
+/// Uniswap e a PancakeSwap diretas, cotadas nos contratos delas e com a calldata montada
+/// pelo app. Provedor
 /// com key (1inch, 0x, OKX) entra depois, pelo relay.
 public enum TradeProvider: String, Sendable, Hashable, CaseIterable, Codable {
     case velora
@@ -18,6 +19,7 @@ public enum TradeProvider: String, Sendable, Hashable, CaseIterable, Codable {
     case lifi
     case de1
     case uniswap
+    case pancakeswap
 
     public var displayName: String {
         switch self {
@@ -26,6 +28,7 @@ public enum TradeProvider: String, Sendable, Hashable, CaseIterable, Codable {
         case .lifi: return "LI.FI"
         case .de1: return "De¹"
         case .uniswap: return "Uniswap"
+        case .pancakeswap: return "PancakeSwap"
         }
     }
 }

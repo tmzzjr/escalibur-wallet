@@ -48,11 +48,11 @@ struct TradeAllowlistTests {
     /// Quem atende cada rede, conferido ao vivo em 25/09/2026 (as 7 da v1) e 26/09/2026
     /// (a segunda leva). X Layer e Celo nao tem troca.
     static let coverageTable: [String: Set<TradeProvider>] = [
-        "ethereum": [.velora, .kyberSwap, .lifi, .de1, .uniswap], "arbitrum": [.velora, .kyberSwap, .lifi, .de1, .uniswap],
-        "base": [.velora, .kyberSwap, .lifi, .de1, .uniswap], "optimism": [.velora, .kyberSwap, .lifi, .de1, .uniswap],
-        "polygon": [.velora, .kyberSwap, .lifi, .de1, .uniswap], "bnb": [.velora, .kyberSwap, .lifi, .de1, .uniswap],
+        "ethereum": [.velora, .kyberSwap, .lifi, .de1, .uniswap, .pancakeswap], "arbitrum": [.velora, .kyberSwap, .lifi, .de1, .uniswap, .pancakeswap],
+        "base": [.velora, .kyberSwap, .lifi, .de1, .uniswap, .pancakeswap], "optimism": [.velora, .kyberSwap, .lifi, .de1, .uniswap],
+        "polygon": [.velora, .kyberSwap, .lifi, .de1, .uniswap], "bnb": [.velora, .kyberSwap, .lifi, .de1, .uniswap, .pancakeswap],
         "avalanche": [.velora, .kyberSwap, .lifi, .uniswap],
-        "plasma": [.kyberSwap], "linea": [.kyberSwap, .de1, .uniswap], "unichain": [.velora, .kyberSwap, .de1, .uniswap],
+        "plasma": [.kyberSwap], "linea": [.kyberSwap, .de1, .uniswap, .pancakeswap], "unichain": [.velora, .kyberSwap, .de1, .uniswap],
         "sonic": [.kyberSwap, .lifi], "xlayer": [], "celo": [],
     ]
 

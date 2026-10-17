@@ -26,7 +26,20 @@ enum EVMTradeFixtures {
             try LiFiClient.parse(EVMFixtures.trade("lifi-base-usdc-eth")),
             try De1Client.parse(EVMFixtures.trade("de1-base-usdc-eth")),
             try uniswap(),
+            try pancake(),
         ]
+    }
+
+    /// A PancakeSwap pela v3 USDC/WETH 0,05%, 2% abaixo da menor dos agregadores (por ultimo).
+    static func pancake() throws -> TradeProposal {
+        let intent = try intent()
+        let reference = try uniswap().expectedOut * BigUInt(98) / BigUInt(99)
+        let deployment = PancakeDeployment.on(.base)!
+        let built = try PancakeCalldata.encode(route: .v3(tokens: [usdcToken.contract, deployment.wrappedNative], fees: [500]), intent: intent,
+                                               minimumOut: intent.minimumOut(forExpected: reference),
+                                               deadline: UInt64(Date().addingTimeInterval(600).timeIntervalSince1970), deployment: deployment)
+        return TradeProposal(provider: .pancakeswap, chainID: 8453, from: intent.owner, to: deployment.router, value: built.value, data: built.data,
+                             expectedOut: reference, spender: deployment.router, gasEstimate: 170_000, routeSources: nil, reportedPriceImpactBps: nil)
     }
 
     /// A Uniswap nao tem resposta gravada: a calldata e montada pela rota direta USDC/ETH da

@@ -49,7 +49,7 @@ struct EVMCoWSwapTests {
         #expect(quote.legs.count == 1 && quote.legs[0].provider == "CoW" && quote.legs[0].amountIn == F.amount)
         #expect(quote.expectedOut == bought)
         #expect(quote.minimumOut == bought * BigUInt(9_950) / BigUInt(10_000))
-        #expect(quote.alternatives.count == 5 && quote.providersCompared == 6)
+        #expect(quote.alternatives.count == 6 && quote.providersCompared == 7)
         #expect(quote.needsApproval)
         #expect(quote.parts == nil)
         #expect(quote.providerFeeNote?.contains("já saíram da cotação") == true)
@@ -65,7 +65,7 @@ struct EVMCoWSwapTests {
         #expect(quote.minimumOut == best.quote.guaranteedOut)
         let cow = try #require(quote.alternatives.first { $0.provider == "CoW" })
         #expect(cow.out == bought * BigUInt(9_950) / BigUInt(10_000))
-        #expect(quote.providersCompared == 6)
+        #expect(quote.providersCompared == 7)
     }
 
     @Test("Sem referencia, cotacao da CoW mais de 5% acima dos agregadores e inflada: fica de fora")

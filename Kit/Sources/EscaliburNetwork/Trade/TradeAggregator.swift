@@ -42,7 +42,7 @@ public actor TradeAggregator {
 
     public static func defaultSources(client: HTTPClient = .shared) -> [any TradeQuoteSource] {
         [VeloraClient(client: client), KyberSwapClient(client: client), LiFiClient(client: client), De1Client(client: client),
-         UniswapClient(reader: TradeStateReader(client: client))]
+         UniswapClient(reader: TradeStateReader(client: client)), PancakeClient(reader: TradeStateReader(client: client))]
     }
 
     public init(sources: [any TradeQuoteSource] = TradeAggregator.defaultSources()) {
@@ -168,7 +168,7 @@ public actor TradeAggregator {
     /// Todo provedor tem entrada; o teste "cada provedor tem endereco" confere. A Uniswap
     /// cota na cadeia, pelos RPCs da rede: o endereco dela e so o nome, sem host.
     static func poolEntry(_ provider: TradeProvider) -> ProviderPool.Provider {
-        if provider == .uniswap { return .init(name: provider.rawValue, baseURL: URL(string: "rpc:uniswap")!) }
+        if provider == .uniswap || provider == .pancakeswap { return .init(name: provider.rawValue, baseURL: URL(string: "rpc:" + provider.rawValue)!) }
         guard let entry = Endpoints.trade[provider.rawValue] else {
             preconditionFailure("provedor de troca sem entrada em Endpoints.trade: \(provider.rawValue)")
         }

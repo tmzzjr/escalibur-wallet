@@ -421,7 +421,7 @@ public enum TradePlanner {
             return kitText("Nenhuma")
         case .de1:
             return kitText("Embutida na rota; o mínimo já considera")
-        case .uniswap:
+        case .uniswap, .pancakeswap:
             return kitText("Só a taxa do pool, já no preço; o mínimo já considera")
         }
     }

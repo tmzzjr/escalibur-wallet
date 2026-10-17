@@ -175,6 +175,77 @@ struct TradeLiveTests {
         }
     }
 
+    @Test("PancakeSwap direta: vende a moeda nativa por stablecoin nas 5 redes, valida, simula em duas fontes e vira plano",
+          arguments: [Chain.bnb, .ethereum, .base, .arbitrum, .linea])
+    func pancakeNative(chain: Chain) async throws {
+        let account = try Self.account()
+        let asset = try #require(TokenRegistry.assets(on: chain).first { $0.symbol == "USDT" } ?? TokenRegistry.assets(on: chain).first { $0.isStablecoin })
+        guard case .token(let contract) = asset.kind else { return }
+        let token = EVMToken(chain: chain, contract: try EVMAddress(contract), symbol: asset.symbol, decimals: UInt8(asset.decimals))
+        let amount: BigUInt = chain.id == "bnb" ? BigUInt(decimal: "30000000000000000")! : BigUInt(decimal: "6000000000000000")!
+        let intent = try TradeIntent(owner: account.address, sell: .native(chain), buy: .token(token), amountIn: amount, slippageBps: 100)
+        let reader = TradeStateReader()
+        let network = try await reader.network(chain: chain, owner: account.address)
+        let proposal = try await PancakeClient(reader: reader).propose(TradeQuoteRequest(intent: intent, gasPriceWei: network.baseFeePerGas))
+        let quote = try TradeValidator.validate(proposal, intent: intent)
+        Live.note("\(chain.id): PancakeSwap garante \(quote.guaranteedOut) \(asset.symbol)")
+        let rich = BigUInt(decimal: "100000000000000000000000")!
+        let request = TradePlanner.simulationRequest(for: quote, currentAllowance: nil)
+        let simulations = try await reader.simulate(chain: chain, calls: request.calls, stateOverrides: .object([
+            "0x" + Hex.encode(account.address.bytes): .object(["balance": .string(rich.hexString)]),
+        ]))
+        let funded = EVMNetworkState(chain: chain, pendingNonces: network.pendingNonces, baseFeePerGas: network.baseFeePerGas,
+                                     priorityFees: network.priorityFees, gasEstimate: 21_000, nativeBalance: rich, destinationHasCode: true)
+        let state = TradeChainState(
+            network: funded, sellToken: nil, routerHasCode: try await reader.hasCode(chain: chain, quote.to), routerPin: nil,
+            simulations: simulations, swapL1DataFee: try await reader.l1DataFee(chain: chain, calldataSize: quote.data.count),
+            swapL1Gas: try await reader.arbitrumL1Gas(chain: chain, to: quote.to, data: quote.data)
+        )
+        do {
+            let plan = try TradePlanner.planSwap(walletID: UUID(), account: account, quote: quote, state: state, riskConfirmed: true)
+            #expect(plan.transactions.count == 1)
+        } catch {
+            Issue.record("\(chain.id): plano da PancakeSwap recusado: \(error) \(simulations.flatMap { $0.calls.compactMap(\.error) })")
+        }
+    }
+
+    @Test("PancakeSwap direta na BNB: vende USDT por BNB com o approve exato ao SmartRouter, simulado em duas fontes")
+    func pancakeTokenSell() async throws {
+        let chain = Chain.bnb
+        let account = try Self.account()
+        let usdt = EVMToken(chain: chain, contract: try EVMAddress("0x55d398326f99059fF775485246999027B3197955"), symbol: "USDT", decimals: 18)
+        let amount = BigUInt(decimal: "20000000000000000000")!  // 20 USDT
+        let intent = try TradeIntent(owner: account.address, sell: .token(usdt), buy: .native(chain), amountIn: amount, slippageBps: 100)
+        let reader = TradeStateReader()
+        let network = try await reader.network(chain: chain, owner: account.address)
+        let proposal = try await PancakeClient(reader: reader).propose(TradeQuoteRequest(intent: intent, gasPriceWei: network.baseFeePerGas))
+        let quote = try TradeValidator.validate(proposal, intent: intent)
+        Live.note("bnb: PancakeSwap garante \(quote.guaranteedOut) wei de BNB por 20 USDT (\(quote.decoded.function))")
+        let slot = try #require(try await BridgeLiveTests.balanceSlot(usdt.contract, owner: account.address, chain: chain, reader: reader))
+        let key = Hash.keccak256([UInt8](repeating: 0, count: 12) + account.address.bytes + (BigUInt(slot).bigEndianBytes(padTo: 32) ?? []))
+        let rich = BigUInt(decimal: "100000000000000000000")!
+        let real = try await reader.token(chain: chain, token: usdt.contract, owner: account.address, spender: quote.spender)
+        let request = TradePlanner.simulationRequest(for: quote, currentAllowance: real.allowance)
+        let simulations = try await reader.simulate(chain: chain, calls: request.calls, stateOverrides: .object([
+            "0x" + Hex.encode(account.address.bytes): .object(["balance": .string(rich.hexString)]),
+            "0x" + Hex.encode(usdt.contract.bytes): .object(["stateDiff": .object([
+                Hex.encode(key, prefix: true): .string(Hex.encode(amount.bigEndianBytes(padTo: 32)!, prefix: true)),
+            ])]),
+        ]))
+        let funded = EVMNetworkState(chain: chain, pendingNonces: network.pendingNonces, baseFeePerGas: network.baseFeePerGas,
+                                     priorityFees: network.priorityFees, gasEstimate: 21_000, nativeBalance: rich, destinationHasCode: true)
+        let state = TradeChainState(
+            network: funded, sellToken: EVMTokenState(contractHasCode: true, balance: amount, allowance: real.allowance),
+            routerHasCode: try await reader.hasCode(chain: chain, quote.to), routerPin: nil, simulations: simulations
+        )
+        do {
+            let plan = try TradePlanner.planSwap(walletID: UUID(), account: account, quote: quote, state: state, riskConfirmed: true)
+            #expect(plan.transactions.count == 2, "approve exato e troca")
+        } catch {
+            Issue.record("bnb: plano da PancakeSwap recusado: \(error) \(simulations.flatMap { $0.calls.compactMap(\.error) })")
+        }
+    }
+
     @Test("Redes novas: cada provedor da allowlist cota a moeda nativa por stablecoin e a calldata passa na validacao",
           arguments: [Chain.plasma, .linea, .unichain, .sonic])
     func secondWaveProviders(chain: Chain) async throws {

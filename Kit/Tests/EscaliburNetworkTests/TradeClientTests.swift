@@ -38,6 +38,18 @@ enum TradeNetworkSupport {
                              reportedPriceImpactBps: nil)
     }
 
+    /// A PancakeSwap pela v3 USDC/WETH 0,05% na Base, com a estimativa da KyberSwap.
+    static func pancake() throws -> TradeProposal {
+        let intent = try baseIntent()
+        let expected = try KyberSwapClient.parse(routes: fixture("kyber-base-usdc-eth-routes"), build: fixture("kyber-base-usdc-eth-build")).expectedOut
+        let deployment = PancakeDeployment.on(.base)!
+        let built = try PancakeCalldata.encode(route: .v3(tokens: [baseUSDC.contract, deployment.wrappedNative], fees: [500]), intent: intent,
+                                               minimumOut: intent.minimumOut(forExpected: expected),
+                                               deadline: UInt64(Date().addingTimeInterval(600).timeIntervalSince1970), deployment: deployment)
+        return TradeProposal(provider: .pancakeswap, chainID: 8453, from: intent.owner, to: deployment.router, value: built.value, data: built.data,
+                             expectedOut: expected, spender: deployment.router, gasEstimate: 170_000, routeSources: nil, reportedPriceImpactBps: nil)
+    }
+
     static func arbIntent() throws -> TradeIntent {
         try TradeIntent(owner: owner, sell: .native(.arbitrum), buy: .token(arbUSDC), amountIn: BigUInt(decimal: "40000000000000000")!, slippageBps: 50)
     }
@@ -161,6 +173,7 @@ struct TradeAggregatorTests {
             .lifi: try LiFiClient.parse(S.fixture("lifi-base-usdc-eth")),
             .de1: try De1Client.parse(S.fixture("de1-base-usdc-eth")),
             .uniswap: try S.uniswap(),
+            .pancakeswap: try S.pancake(),
         ]
     }
 
@@ -169,7 +182,7 @@ struct TradeAggregatorTests {
         let p = try Self.proposals()
         let aggregator = TradeAggregator(sources: TradeProvider.allCases.map { StubSource(provider: $0, delay: .milliseconds(10), proposal: p[$0]) })
         let set = await aggregator.quote(try S.baseIntent(), costs: .free)
-        #expect(set.ranked.count == 5)
+        #expect(set.ranked.count == 6)
         #expect(set.failures.isEmpty && set.pending.isEmpty)
         let guaranteed = set.ranked.map(\.quote.guaranteedOut)
         #expect(guaranteed == guaranteed.sorted(by: >))
@@ -212,7 +225,7 @@ struct TradeAggregatorTests {
     @Test("Cada provedor de troca tem endereco em Endpoints.trade")
     func everyProviderHasEndpoint() {
         // A Uniswap cota na cadeia, pelos RPCs da rede: no circuit breaker ela e so o nome.
-        for provider in TradeProvider.allCases where provider != .uniswap {
+        for provider in TradeProvider.allCases where provider != .uniswap && provider != .pancakeswap {
             #expect(Endpoints.trade[provider.rawValue] != nil, "\(provider)")
         }
         #expect(Endpoints.trade["uniswap"] == nil)

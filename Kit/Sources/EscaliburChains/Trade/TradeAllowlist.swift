@@ -189,6 +189,12 @@ public enum TradeAllowlist {
             guard let deployment = UniswapDeployment.all[chainID] else { return nil }
             return TradeRouter(provider: .uniswap, chainID: chainID, address: deployment.router, spender: EIP712ValidatedMessage.permit2,
                                pin: .immutable, functions: UniswapCalldata.functions, feeForwarder: nil)
+        case .pancakeswap:
+            // SmartRouter sem proxy, com o approve exato a ele mesmo. O `Ownable` dele so
+            // mexe na rota de stable swap, que a carteira nao monta.
+            guard let deployment = PancakeDeployment.all[chainID] else { return nil }
+            return TradeRouter(provider: .pancakeswap, chainID: chainID, address: deployment.router, spender: deployment.router,
+                               pin: .immutable, functions: PancakeCalldata.functions, feeForwarder: nil)
         }
     }
 

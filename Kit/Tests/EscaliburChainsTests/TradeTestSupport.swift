@@ -70,6 +70,7 @@ enum TradeTestSupport {
     /// com a estimativa da KyberSwap na mesma gravacao.
     static func proposal(_ provider: TradeProvider, _ name: String) throws -> TradeProposal {
         if provider == .uniswap { return try uniswapProposal(name) }
+        if provider == .pancakeswap { return try pancakeProposal(name) }
         let root = try json(name)
         switch provider {
         case .velora:
@@ -108,6 +109,8 @@ enum TradeTestSupport {
             )
         case .uniswap:
             return try uniswapProposal(name)
+        case .pancakeswap:
+            return try pancakeProposal(name)
         }
     }
 
@@ -134,6 +137,18 @@ enum TradeTestSupport {
         return TradeProposal(provider: .uniswap, chainID: intent.chain.evmChainID, from: intent.owner, to: deployment.router,
                              value: built.value, data: built.data, expectedOut: expected, spender: EIP712ValidatedMessage.permit2,
                              gasEstimate: 180_000, routeSources: nil, reportedPriceImpactBps: nil)
+    }
+
+    /// A PancakeSwap montada pela v3 USDC/WETH 0,05% na Base, com a estimativa da KyberSwap.
+    static func pancakeProposal(_ name: String, minimumOut: BigUInt? = nil) throws -> TradeProposal {
+        guard name == "pancake-base-usdc-eth", let deployment = PancakeDeployment.on(.base) else { throw CocoaError(.fileNoSuchFile) }
+        let intent = try baseIntent()
+        let expected = try proposal(.kyberSwap, "kyber-base-usdc-eth-build").expectedOut
+        let built = try PancakeCalldata.encode(route: .v3(tokens: [baseUSDC.contract, deployment.wrappedNative], fees: [500]), intent: intent,
+                                               minimumOut: minimumOut ?? intent.minimumOut(forExpected: expected),
+                                               deadline: UInt64(recordedAt.timeIntervalSince1970) + 600, deployment: deployment)
+        return TradeProposal(provider: .pancakeswap, chainID: 8453, from: intent.owner, to: deployment.router, value: built.value, data: built.data,
+                             expectedOut: expected, spender: deployment.router, gasEstimate: 170_000, routeSources: nil, reportedPriceImpactBps: nil)
     }
 
     /// Troca a calldata mantendo o resto da proposta.
