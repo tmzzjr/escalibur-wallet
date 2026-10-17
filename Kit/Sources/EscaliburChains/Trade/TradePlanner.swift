@@ -4,7 +4,8 @@ import Foundation
 // O plano de troca: de uma cotacao validada a um `SigningPlan`.
 //
 // Etapas: approve exato (EVMPlanner.planApprove, com `approve(0)` antes no USDT da
-// Ethereum) e a troca, ou so a troca quando vende nativo ou a allowance ja cobre. Antes
+// Ethereum), na Uniswap a permissao exata do Permit2 ao router, e a troca; ou so a
+// troca quando vende nativo ou as permissoes ja cobrem. Antes
 // de montar, o plano confere o que depende da cadeia: codigo no router, implementacao
 // ou faceta fixada, saldo, e a simulacao de duas fontes. O gas vem da simulacao; o que
 // o provedor sugere e ignorado (docs/blockchain.md 3.5 item 6).
@@ -33,12 +34,20 @@ public struct TradeChainState: Sendable {
     /// que a simulacao nao conta.
     public let approveL1Gas: UInt64
     public let swapL1Gas: UInt64
+    /// Uniswap: o que o Permit2 ja permite ao router, e a taxa L1 da permissao nova.
+    public let permit2: TradePermit2Allowance?
+    public let permit2L1DataFee: BigUInt?
+    public let permit2L1Gas: UInt64
 
     public init(
         network: EVMNetworkState, sellToken: EVMTokenState?, routerHasCode: Bool, routerPin: EVMAddress?,
         simulations: [TradeSimulation], approveL1DataFee: BigUInt? = nil, swapL1DataFee: BigUInt? = nil,
-        approveL1Gas: UInt64 = 0, swapL1Gas: UInt64 = 0
+        approveL1Gas: UInt64 = 0, swapL1Gas: UInt64 = 0,
+        permit2: TradePermit2Allowance? = nil, permit2L1DataFee: BigUInt? = nil, permit2L1Gas: UInt64 = 0
     ) {
+        self.permit2 = permit2
+        self.permit2L1DataFee = permit2L1DataFee
+        self.permit2L1Gas = permit2L1Gas
         self.network = network
         self.sellToken = sellToken
         self.routerHasCode = routerHasCode
@@ -48,6 +57,18 @@ public struct TradeChainState: Sendable {
         self.swapL1DataFee = swapL1DataFee
         self.approveL1Gas = approveL1Gas
         self.swapL1Gas = swapL1Gas
+    }
+}
+
+/// O que o Permit2 ja permite a um router: `allowance(dono, token, router)`, valor e prazo
+/// (segundos Unix), o menor de duas fontes.
+public struct TradePermit2Allowance: Sendable, Equatable {
+    public let amount: BigUInt
+    public let expiration: UInt64
+
+    public init(amount: BigUInt, expiration: UInt64) {
+        self.amount = amount
+        self.expiration = expiration
     }
 }
 
@@ -100,8 +121,26 @@ public enum TradePlanner {
         return [quote.intent.amountIn]
     }
 
-    /// As chamadas que a simulacao tem de rodar, na ordem: approves e a troca.
-    public static func simulationRequest(for quote: ValidatedTradeQuote, currentAllowance: BigUInt?) -> TradeSimulationRequest {
+    /// Folga do prazo da permissao do Permit2 que ja existe: abaixo de 5 minutos, o plano
+    /// pede uma nova, para a troca nao chegar depois do prazo.
+    static let permit2Margin: UInt64 = 5 * 60
+
+    /// A permissao do Permit2 ao router que o plano precisa (Uniswap), dada a que ja
+    /// existe: valor exato, prazo de 30 minutos. O prazo conta da cotacao validada, para a
+    /// simulacao e o plano montarem exatamente a mesma chamada.
+    public static func permit2Approval(for quote: ValidatedTradeQuote, current: TradePermit2Allowance?) -> EVMPermit2Approval? {
+        guard quote.router.viaPermit2, let token = quote.intent.sell.contract else { return nil }
+        let start = UInt64(max(0, quote.validatedAt.timeIntervalSince1970))
+        if let current, current.amount >= quote.intent.amountIn, current.expiration >= start + permit2Margin { return nil }
+        return EVMPermit2Approval(token: token, spender: quote.router.address, amount: quote.intent.amountIn,
+                                  expiration: start + EVMPermit2Approval.maxLifetime)
+    }
+
+    /// As chamadas que a simulacao tem de rodar, na ordem: approves, a permissao do Permit2
+    /// (Uniswap) e a troca.
+    public static func simulationRequest(
+        for quote: ValidatedTradeQuote, currentAllowance: BigUInt?, permit2: TradePermit2Allowance? = nil
+    ) -> TradeSimulationRequest {
         let owner = quote.intent.owner
         let values = approvals(for: quote, currentAllowance: currentAllowance)
         var calls = [TradeSimulationRequest.Call]()
@@ -110,8 +149,12 @@ public enum TradePlanner {
                 calls.append(.init(from: owner, to: token, value: 0, data: ERC20.approve(spender: quote.spender, amount: value)))
             }
         }
+        let grant = permit2Approval(for: quote, current: permit2)
+        if let grant, let data = try? grant.calldata() {
+            calls.append(.init(from: owner, to: EIP712ValidatedMessage.permit2, value: 0, data: data))
+        }
         calls.append(.init(from: owner, to: quote.to, value: quote.value, data: quote.data))
-        return TradeSimulationRequest(calls: calls, approvals: values)
+        return TradeSimulationRequest(calls: calls, approvals: values, permit2: grant)
     }
 
     /// Monta o plano de troca. `riskConfirmed` e o "sim" explicito do dono quando a
@@ -148,8 +191,9 @@ public enum TradePlanner {
         }
 
         // A simulacao, de duas fontes, com exatamente estas chamadas.
-        let request = simulationRequest(for: quote, currentAllowance: state.sellToken?.allowance)
-        guard request.approvals == approvalValues else { throw TradeRefusal.simulationShape }
+        let grant = permit2Approval(for: quote, current: state.permit2)
+        let request = simulationRequest(for: quote, currentAllowance: state.sellToken?.allowance, permit2: state.permit2)
+        guard request.approvals == approvalValues, request.permit2 == grant else { throw TradeRefusal.simulationShape }
         let gas = try TradeSimulationCheck.verify(state.simulations, request: request, quote: quote)
 
         var transactions = [EVMTransaction]()
@@ -173,7 +217,40 @@ public enum TradePlanner {
             transactions += approves
         }
 
-        // A troca, com o nonce depois dos approves.
+        // Uniswap: a permissao exata do Permit2 ao router, depois dos approves. A guarda so
+        // aceita esta chamada com exatamente este token, router, valor e prazo.
+        var permit2Quote: EVMFeeQuote?
+        if let grant {
+            guard let permit2Gas = gas.permit2, grant.spender == quote.router.address, grant.token == intent.sell.contract,
+                  grant.amount == intent.amountIn
+            else { throw TradeRefusal.simulationShape }
+            let grantState = derivedState(state.network, gas: permit2Gas + state.permit2L1Gas, l1: state.permit2L1DataFee, hasCode: true)
+            let transaction: EVMTransaction
+            do {
+                let fee = try EVMFeeCalculator.quote(chain: chain, state: grantState, speed: speed, format: format, plainTransfer: false)
+                let nonce = try EVMFeeCalculator.nonce(state.network) + UInt64(transactions.count)
+                transaction = try EVMTransaction(
+                    chain: chain, account: account, nonce: nonce, fee: fee.fee, gasLimit: fee.gasLimit,
+                    to: EIP712ValidatedMessage.permit2, value: 0, data: try grant.calldata()
+                )
+                try EVMPlanner.confirm(
+                    transaction,
+                    decodesTo: .contractCall(contract: EIP712ValidatedMessage.permit2, function: EVMPermit2Approval.function.signature,
+                                             arguments: grant.arguments, value: 0),
+                    policy: EVMCallPolicy(permit2Approval: grant)
+                )
+                permit2Quote = fee
+            } catch let error as EVMPlanError {
+                throw TradeRefusal.plan(error)
+            } catch let refusal as TradeRefusal {
+                throw refusal
+            } catch {
+                throw TradeRefusal.plan(.gasLimitAboveCap)
+            }
+            transactions.append(transaction)
+        }
+
+        // A troca, com o nonce depois dos approves e da permissao.
         let swapState = derivedState(state.network, gas: gas.swap + state.swapL1Gas, l1: state.swapL1DataFee, hasCode: state.routerHasCode)
         let swapQuote: EVMFeeQuote
         let nonce: UInt64
@@ -206,14 +283,14 @@ public enum TradePlanner {
 
         // Saldo nativo para tudo: taxa maxima de cada transacao e o valor vendido.
         let approveCost = (approveQuote?.maxCost ?? 0) * BigUInt(approvalValues.count)
-        let needed = approveCost + swapQuote.maxCost + quote.value
+        let needed = approveCost + (permit2Quote?.maxCost ?? 0) + swapQuote.maxCost + quote.value
         guard state.network.nativeBalance >= needed else {
             throw TradeRefusal.plan(.insufficientNativeBalance(needed: needed, available: state.network.nativeBalance))
         }
 
         let review = swapReview(
             quote: quote, approvalValues: approvalValues, approveQuote: approveQuote, swapQuote: swapQuote,
-            firstNonce: transactions.first?.nonce ?? nonce, split: split
+            firstNonce: transactions.first?.nonce ?? nonce, split: split, permit2: grant.map { ($0, permit2Quote) }
         )
         return SigningPlan(walletID: walletID, chain: chain, review: review, transactions: transactions, createdAt: now)
     }
@@ -230,12 +307,12 @@ public enum TradePlanner {
 
     static func swapReview(
         quote: ValidatedTradeQuote, approvalValues: [BigUInt], approveQuote: EVMFeeQuote?, swapQuote: EVMFeeQuote,
-        firstNonce: UInt64, split: TradeSplitStep?
+        firstNonce: UInt64, split: TradeSplitStep?, permit2: (grant: EVMPermit2Approval, fee: EVMFeeQuote?)? = nil
     ) -> PlanReview {
         let intent = quote.intent
         let chain = intent.chain
         let native = TradeAsset.native(chain)
-        let count = approvalValues.count + 1
+        let count = approvalValues.count + (permit2 == nil ? 0 : 1) + 1
         var lines: [PlanReview.Line] = [
             .init(kitText("Rede"), chain.name),
             .init(kitText("Sai"), TradeText.amount(intent.amountIn, intent.sell), role: .sold),
@@ -259,14 +336,18 @@ public enum TradePlanner {
                 lines.append(.init(kitText("Antes"), kitText("Zerar a autorização atual (exigência do \(intent.sell.symbol))")))
             }
         }
+        if let permit2 {
+            lines.append(.init(kitText("Permissão no Permit2"), kitText("\(TradeText.amount(permit2.grant.amount, intent.sell)) para o contrato da Uniswap, por 30 minutos")))
+            lines.append(.init(kitText("Contrato autorizado no Permit2"), permit2.grant.spender.checksummed, verbatim: true))
+        }
 
         // Taxas.
         let approveCount = BigUInt(approvalValues.count)
-        let expectedFee = swapQuote.expectedCost + (approveQuote?.expectedCost ?? 0) * approveCount
-        let maxFee = swapQuote.maxCost + (approveQuote?.maxCost ?? 0) * approveCount
+        let expectedFee = swapQuote.expectedCost + (approveQuote?.expectedCost ?? 0) * approveCount + (permit2?.fee?.expectedCost ?? 0)
+        let maxFee = swapQuote.maxCost + (approveQuote?.maxCost ?? 0) * approveCount + (permit2?.fee?.maxCost ?? 0)
         lines.append(.init(kitText("Taxa da rede (estimada)"), TradeText.amount(expectedFee, native)))
         lines.append(.init(kitText("Taxa da rede (máxima)"), TradeText.amount(maxFee, native)))
-        let l1 = swapQuote.l1DataFee + (approveQuote?.l1DataFee ?? 0) * approveCount
+        let l1 = swapQuote.l1DataFee + (approveQuote?.l1DataFee ?? 0) * approveCount + (permit2?.fee?.l1DataFee ?? 0)
         if !l1.isZero { lines.append(.init(kitText("Parte da taxa paga à L1"), TradeText.amount(l1, native))) }
         lines.append(.init(kitText("Taxa do provedor"), providerFeeText(quote)))
         let fee = quote.decoded.integratorFee
@@ -286,8 +367,10 @@ public enum TradePlanner {
         }
 
         // Etapas.
-        if approvalValues.isEmpty {
+        if count == 1 {
             lines.append(.init(kitText("Etapas"), kitText("1 transação: a troca")))
+        } else if permit2 != nil {
+            lines.append(.init(kitText("Etapas"), kitText("\(count) transações: autorizar, liberar no Permit2 e trocar, nesta ordem")))
         } else {
             lines.append(.init(kitText("Etapas"), kitText("\(count) transações: autorizar e trocar, nesta ordem")))
         }
@@ -338,6 +421,8 @@ public enum TradePlanner {
             return kitText("Nenhuma")
         case .de1:
             return kitText("Embutida na rota; o mínimo já considera")
+        case .uniswap:
+            return kitText("Só a taxa do pool, já no preço; o mínimo já considera")
         }
     }
 }

@@ -318,6 +318,37 @@ public actor TradeStateReader {
 
     // MARK: Troca
 
+    /// `allowance(dono, token, spender)` do Permit2: (uint160 valor, uint48 prazo, uint48 nonce).
+    static let permit2AllowanceFunction = try! ABIFunction("allowance(address,address,address)")  // 927da105
+
+    /// O que o Permit2 ja permite ao router (Uniswap): o menor valor e o menor prazo de duas
+    /// fontes. Ler a mais so faria o plano pular a permissao e a troca falhar na cadeia.
+    public func permit2Allowance(chain: Chain, owner: EVMAddress, token: EVMAddress, spender: EVMAddress) async throws -> TradePermit2Allowance {
+        let data = try Self.permit2AllowanceFunction.encodeCall([.address(owner), .address(token), .address(spender)])
+        let answers = try await collect(readProviders(chain), count: 2, what: "permit2") { provider in
+            let text = try await self.rpc(provider, chain: chain, "eth_call",
+                                          [.object(["to": Self.address(EIP712ValidatedMessage.permit2), "data": Self.data(data)]), .string("latest")],
+                                          as: String.self)
+            guard let bytes = Hex.decode(text.hasPrefix("0x") ? String(text.dropFirst(2)) : text), bytes.count == 96 else {
+                throw TradeStateError.badResponse("permit2")
+            }
+            return (BigUInt(bigEndian: Array(bytes[0..<32])), BigUInt(bigEndian: Array(bytes[32..<64])).uint64 ?? 0)
+        }
+        return TradePermit2Allowance(amount: answers.map(\.1.0).min() ?? 0, expiration: answers.map(\.1.1).min() ?? 0)
+    }
+
+    /// Uma leitura `eth_call` do primeiro RPC da rede que responder. So para cotar (a
+    /// Uniswap): o que decide o plano continua vindo de duas fontes e da simulacao.
+    public func call(chain: Chain, to: EVMAddress, data: [UInt8]) async throws -> [UInt8] {
+        let answers = try await collect(readProviders(chain), count: 1, what: "eth_call") { provider in
+            let text = try await self.rpc(provider, chain: chain, "eth_call",
+                                          [.object(["to": Self.address(to), "data": Self.data(data)]), .string("latest")], as: String.self)
+            guard let bytes = Hex.decode(text.hasPrefix("0x") ? String(text.dropFirst(2)) : text) else { throw TradeStateError.badResponse("eth_call") }
+            return bytes
+        }
+        return answers[0].1
+    }
+
     /// Tudo o que `TradePlanner.planSwap` precisa para esta cotacao.
     public func read(for quote: ValidatedTradeQuote, localNextNonce: UInt64? = nil) async throws -> TradeChainState {
         let intent = quote.intent
@@ -329,8 +360,20 @@ public actor TradeStateReader {
         if let token = intent.sell.contract {
             tokenState = try await self.token(chain: chain, token: token, owner: intent.owner, spender: quote.spender)
         }
-        let request = TradePlanner.simulationRequest(for: quote, currentAllowance: tokenState?.allowance)
+        var permit2: TradePermit2Allowance?
+        if quote.router.viaPermit2, let token = intent.sell.contract {
+            permit2 = try await permit2Allowance(chain: chain, owner: intent.owner, token: token, spender: quote.to)
+        }
+        let request = TradePlanner.simulationRequest(for: quote, currentAllowance: tokenState?.allowance, permit2: permit2)
         async let simulations = simulate(chain: chain, calls: request.calls)
+        var permit2L1: BigUInt?
+        var permit2L1Gas: UInt64 = 0
+        if let grant = TradePlanner.permit2Approval(for: quote, current: permit2), let grantData = try? grant.calldata() {
+            permit2L1 = try await l1DataFee(chain: chain, calldataSize: grantData.count)
+            if chain.evmChainID == 42161 {
+                permit2L1Gas = try await arbitrumL1Gas(chain: chain, to: EIP712ValidatedMessage.permit2, data: grantData)
+            }
+        }
         let approveData = ERC20.approve(spender: quote.spender, amount: intent.amountIn)
         async let approveL1 = l1DataFee(chain: chain, calldataSize: approveData.count)
         async let swapL1 = l1DataFee(chain: chain, calldataSize: quote.data.count)
@@ -342,7 +385,8 @@ public actor TradeStateReader {
         return TradeChainState(
             network: try await network, sellToken: tokenState, routerHasCode: try await routerCode, routerPin: try await pinned,
             simulations: try await simulations, approveL1DataFee: try await approveL1, swapL1DataFee: try await swapL1,
-            approveL1Gas: approveL1Gas, swapL1Gas: swapL1Gas
+            approveL1Gas: approveL1Gas, swapL1Gas: swapL1Gas,
+            permit2: permit2, permit2L1DataFee: permit2L1, permit2L1Gas: permit2L1Gas
         )
     }
 

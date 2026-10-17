@@ -330,7 +330,8 @@ public struct EVMTradeEngine: TradeEngine {
         return TradeChainState(
             network: adjusted, sellToken: token, routerHasCode: state.routerHasCode, routerPin: state.routerPin,
             simulations: state.simulations, approveL1DataFee: state.approveL1DataFee, swapL1DataFee: state.swapL1DataFee,
-            approveL1Gas: state.approveL1Gas, swapL1Gas: state.swapL1Gas
+            approveL1Gas: state.approveL1Gas, swapL1Gas: state.swapL1Gas,
+            permit2: state.permit2, permit2L1DataFee: state.permit2L1DataFee, permit2L1Gas: state.permit2L1Gas
         )
     }
 
@@ -339,7 +340,8 @@ public struct EVMTradeEngine: TradeEngine {
     static func maximumNativeCost(_ transactions: [EVMTransaction], state: TradeChainState) -> BigUInt {
         var total = BigUInt()
         for (index, transaction) in transactions.enumerated() {
-            let l1 = index == transactions.count - 1 ? state.swapL1DataFee : state.approveL1DataFee
+            let l1 = index == transactions.count - 1 ? state.swapL1DataFee
+                : (transaction.to == EIP712ValidatedMessage.permit2 ? state.permit2L1DataFee : state.approveL1DataFee)
             total = total + transaction.maxExecutionCost + transaction.value + (l1 ?? 0)
         }
         return total
@@ -604,7 +606,8 @@ extension TradeChainState {
     func replacingNetwork(_ network: EVMNetworkState) -> TradeChainState {
         TradeChainState(
             network: network, sellToken: sellToken, routerHasCode: routerHasCode, routerPin: routerPin, simulations: simulations,
-            approveL1DataFee: approveL1DataFee, swapL1DataFee: swapL1DataFee, approveL1Gas: approveL1Gas, swapL1Gas: swapL1Gas
+            approveL1DataFee: approveL1DataFee, swapL1DataFee: swapL1DataFee, approveL1Gas: approveL1Gas, swapL1Gas: swapL1Gas,
+            permit2: permit2, permit2L1DataFee: permit2L1DataFee, permit2L1Gas: permit2L1Gas
         )
     }
 }

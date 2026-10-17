@@ -30,7 +30,7 @@ struct EVMTradeEngineTests {
         let quote = try await engine.quote(F.request())
         let best = try #require(try Self.expectedRanking().first)
 
-        #expect(quote.providersCompared == 4)
+        #expect(quote.providersCompared == 5)
         #expect(quote.legs.count == 1)
         #expect(quote.legs[0].provider == best.quote.provider.displayName)
         #expect(quote.legs[0].fraction == 1 && quote.legs[0].amountIn == F.amount)
@@ -38,7 +38,7 @@ struct EVMTradeEngineTests {
         #expect(quote.minimumOut == best.quote.guaranteedOut)
         #expect(quote.minimumOut < quote.expectedOut)
         #expect(quote.expectedOut == best.quote.expectedOut)
-        #expect(quote.alternatives.count == 3)
+        #expect(quote.alternatives.count == 4)
         #expect(!quote.alternatives.contains { $0.provider == best.quote.provider.displayName })
         #expect(quote.needsApproval)
         #expect(quote.networkFeeFiat == nil)

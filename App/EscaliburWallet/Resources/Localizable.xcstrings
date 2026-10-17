@@ -186941,6 +186941,56 @@
         }
       }
     },
+    "Permissão no Permit2" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permit2 permission"
+          }
+        }
+      }
+    },
+    "%@ para o contrato da Uniswap, por 30 minutos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ for the Uniswap contract, for 30 minutes"
+          }
+        }
+      }
+    },
+    "Contrato autorizado no Permit2" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contract allowed in Permit2"
+          }
+        }
+      }
+    },
+    "%lld transações: autorizar, liberar no Permit2 e trocar, nesta ordem" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld transactions: approve, allow in Permit2 and swap, in that order"
+          }
+        }
+      }
+    },
+    "Só a taxa do pool, já no preço; o mínimo já considera" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the pool fee, already in the price; the minimum accounts for it"
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {

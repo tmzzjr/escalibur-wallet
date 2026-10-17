@@ -4,7 +4,7 @@ import Foundation
 // O que uma calldata de troca faz, depois de decodificada.
 //
 // Cada provedor tem o seu decodificador (VeloraCalldata, KyberCalldata, LiFiCalldata,
-// De1Calldata), escrito a partir do fonte verificado do router. Todos devolvem o mesmo
+// De1Calldata, UniswapCalldata), escrito a partir do fonte verificado do router. Todos devolvem o mesmo
 // resumo, e e o resumo que a validacao confere contra a intencao e que a tela mostra.
 // A regra e a de docs/seguranca.md 4.3: **sem decodificador, sem assinatura.**
 
@@ -101,11 +101,12 @@ extension TradeRouter {
         case .kyberSwap: return try KyberCalldata.decode(function: function, arguments: arguments, context: context)
         case .lifi: return try LiFiCalldata.decode(function: function, arguments: arguments, context: context)
         case .de1: return try De1Calldata.decode(function: function, arguments: arguments, context: context)
+        case .uniswap: return try UniswapCalldata.decode(function: function, arguments: arguments, context: context)
         }
     }
 
     /// Como este provedor escreve a moeda nativa.
     var nativeSentinel: EVMAddress {
-        provider == .lifi ? .zero : TradeConstants.eeeeSentinel
+        provider == .lifi || provider == .uniswap ? .zero : TradeConstants.eeeeSentinel
     }
 }

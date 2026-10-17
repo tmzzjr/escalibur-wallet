@@ -5,7 +5,7 @@ import Foundation
 
 // A rodada de cotacao da troca EVM e a traducao do resultado para o `TradeQuote` da tela.
 //
-// O agregador pergunta a Velora, KyberSwap, LI.FI e De¹ em paralelo, valida cada calldata
+// O agregador pergunta a Velora, KyberSwap, LI.FI, De¹ e Uniswap em paralelo, valida cada calldata
 // (EscaliburChains/Trade/TradeValidator) e ranqueia pelo liquido do garantido. O que a
 // tela chama de "voce recebe no minimo" e a soma dos garantidos decodificados das
 // calldatas escolhidas, nunca o que o provedor anuncia.
@@ -166,7 +166,7 @@ enum EVMTradeQuoteMapping {
                 TradeQuote.Alternative(provider: $0.quote.provider.displayName, out: $0.quote.guaranteedOut)
             },
             providersCompared: ranked.count,
-            needsApproval: sellsToken && legs.contains { (allowances[$0.quote.spender] ?? 0) < $0.quote.intent.amountIn },
+            needsApproval: sellsToken && legs.contains { (allowances[$0.quote.spender] ?? 0) < $0.quote.intent.amountIn || $0.quote.router.viaPermit2 },
             expiresAt: (legs.map(\.quote.validatedAt).min() ?? .now).addingTimeInterval(ValidatedTradeQuote.lifetime)
         )
     }
@@ -184,7 +184,7 @@ enum EVMTradeQuoteMapping {
             return kitText("A Velora fica com o que vier acima da estimativa. O mínimo garantido não muda.")
         case .de1:
             return kitText("A De¹ embute a própria taxa na rota. O mínimo garantido já considera essa taxa.")
-        case .kyberSwap:
+        case .kyberSwap, .uniswap:
             return nil
         }
     }

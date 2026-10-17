@@ -604,7 +604,7 @@ Os agregadores já dividem entre DEXes internamente.
 | THORChain (EVM) | lido em runtime de `inbound_addresses` em 2 fontes e comparado com a allowlist. Hoje: ETH `0xD37BbE5744D730a1d98d8DC97c42F0Ca46aD7146`, BSC `0xb30ec53f…f56b`, BASE/AVAX `0x00dc6100…f1d4` [W ao vivo] | router |
 
 - A allowlist vive **no binário**. A config remota só pode **desligar** provedor, nunca acrescentar endereço.
-- **Na v1 (código):** só Velora, KyberSwap, LI.FI e De¹ (`TradeAllowlist`) e a CoW. 1inch, 0x, UniswapX e OKX exigem key e ficam de fora.
+- **Na v1 (código):** Velora, KyberSwap, LI.FI e De¹ (`TradeAllowlist`), a CoW e a Uniswap direta (17/10/2026): v3 e v4 sem hook, cotadas nos contratos de cotação da Uniswap (QuoterV2 e V4Quoter) pelos RPCs da rede, com a calldata do Universal Router 2.0 montada pelo app (`UniswapDeployment`, `UniswapCalldata`, `UniswapClient`), em Ethereum, Arbitrum, Base, OP, Polygon, BNB, Avalanche, Unichain e Linea. 1inch, 0x, UniswapX, a API da Uniswap e OKX exigem key e ficam de fora.
 
 **Solana**
 1. Preferir `/build` (o app monta a tx).

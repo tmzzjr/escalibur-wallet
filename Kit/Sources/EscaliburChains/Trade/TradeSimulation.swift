@@ -12,7 +12,9 @@ import Foundation
 //   aparece como Transfer do endereco 0xEeee...EEeE, que e como o geth reporta valor);
 // - entra no dono pelo menos o garantido do token comprado;
 // - nenhum `Approval` do dono alem do approve exato do plano (e do consumo dessa mesma
-//   allowance pelo router, que alguns tokens emitem), nenhum `ApprovalForAll`.
+//   allowance pelo router, que alguns tokens emitem), nenhum `ApprovalForAll`;
+// - na Uniswap, a permissao do Permit2 ao router roda entre os approves e a troca, sem
+//   tirar nada do dono.
 //
 // Drainers detectam simulacao, entao isto e a segunda camada, nao a unica: a primeira e a
 // calldata decodificada e o minimo garantido pelo router.
@@ -75,6 +77,8 @@ public struct TradeSimulationRequest: Sendable, Equatable {
     public let calls: [Call]
     /// Valores dos approves, na ordem (vazio se nao ha approve).
     let approvals: [BigUInt]
+    /// A permissao do Permit2 ao router, entre os approves e a troca (Uniswap).
+    var permit2: EVMPermit2Approval? = nil
 }
 
 enum TradeSimulationCheck {
@@ -89,25 +93,28 @@ enum TradeSimulationCheck {
     /// duas passando.
     static func verify(
         _ simulations: [TradeSimulation], request: TradeSimulationRequest, quote: ValidatedTradeQuote
-    ) throws -> (approvals: [UInt64], swap: UInt64) {
+    ) throws -> (approvals: [UInt64], permit2: UInt64?, swap: UInt64) {
         let sources = Set(simulations.map(\.source))
         guard sources.count >= 2 else { throw TradeRefusal.simulationUnavailable }
         var approvalGas = [UInt64](repeating: .max, count: request.approvals.count)
+        var permit2Gas: UInt64?
         var swapGas = UInt64.max
         for simulation in simulations {
-            let (approvals, swap) = try verify(simulation, request: request, quote: quote)
+            let (approvals, permit2, swap) = try verify(simulation, request: request, quote: quote)
             for index in approvals.indices { approvalGas[index] = min(approvalGas[index], approvals[index]) }
+            if let permit2 { permit2Gas = min(permit2Gas ?? .max, permit2) }
             swapGas = min(swapGas, swap)
         }
-        return (approvalGas, swapGas)
+        return (approvalGas, permit2Gas, swapGas)
     }
 
     static func verify(
         _ simulation: TradeSimulation, request: TradeSimulationRequest, quote: ValidatedTradeQuote
-    ) throws -> (approvals: [UInt64], swap: UInt64) {
+    ) throws -> (approvals: [UInt64], permit2: UInt64?, swap: UInt64) {
         let intent = quote.intent
         let owner = intent.owner
-        guard simulation.calls.count == request.approvals.count + 1 else { throw TradeRefusal.simulationShape }
+        let permit2Calls = request.permit2 == nil ? 0 : 1
+        guard simulation.calls.count == request.approvals.count + permit2Calls + 1 else { throw TradeRefusal.simulationShape }
         for (index, call) in simulation.calls.enumerated() where !call.success {
             throw TradeRefusal.simulationFailed(call: index)
         }
@@ -125,6 +132,23 @@ enum TradeSimulationCheck {
                 }
                 try refuseApprovalForAll(log, owner: owner)
             }
+        }
+
+        // A permissao do Permit2: nada sai do dono, nenhuma aprovacao de token. O evento do
+        // proprio Permit2 tem outra assinatura e nao e um `Approval` de ERC-20.
+        var permit2Gas: UInt64?
+        if request.permit2 != nil {
+            let call = simulation.calls[request.approvals.count]
+            for log in call.logs {
+                if let transfer = parseTransfer(log), transfer.from == owner, !transfer.value.isZero {
+                    throw TradeRefusal.simulationUnexpectedTransfer(token: log.address)
+                }
+                if let approval = parseApproval(log), approval.owner == owner {
+                    throw TradeRefusal.simulationUnexpectedApproval(token: log.address, spender: approval.spender)
+                }
+                try refuseApprovalForAll(log, owner: owner)
+            }
+            permit2Gas = call.gasUsed
         }
 
         // A troca.
@@ -157,7 +181,7 @@ enum TradeSimulationCheck {
             throw TradeRefusal.simulationReceivedTooLittle(found: received, required: quote.guaranteedOut)
         }
         let approvals = simulation.calls.prefix(request.approvals.count).map(\.gasUsed)
-        return (Array(approvals), swap.gasUsed)
+        return (Array(approvals), permit2Gas, swap.gasUsed)
     }
 
     struct Transfer { let from: EVMAddress; let to: EVMAddress; let value: BigUInt }

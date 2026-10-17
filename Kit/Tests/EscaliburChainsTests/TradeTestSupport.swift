@@ -65,8 +65,11 @@ enum TradeTestSupport {
         return text.hasPrefix("0x") ? BigUInt(hex: text) ?? 0 : BigUInt(decimal: text) ?? 0
     }
 
-    /// A proposta como o cliente de rede a monta, lida da resposta gravada.
+    /// A proposta como o cliente de rede a monta, lida da resposta gravada. A Uniswap nao
+    /// tem resposta de API: a calldata e montada aqui, pela rota fixa de `uniswapRoutes`,
+    /// com a estimativa da KyberSwap na mesma gravacao.
     static func proposal(_ provider: TradeProvider, _ name: String) throws -> TradeProposal {
+        if provider == .uniswap { return try uniswapProposal(name) }
         let root = try json(name)
         switch provider {
         case .velora:
@@ -103,7 +106,34 @@ enum TradeTestSupport {
                 expectedOut: amount(string(data, "outAmount")), spender: nil, gasEstimate: UInt64(string(data, "estimatedGas") ?? ""),
                 routeSources: nil, reportedPriceImpactBps: nil
             )
+        case .uniswap:
+            return try uniswapProposal(name)
         }
+    }
+
+    /// As rotas da Uniswap por nome de "gravacao": a intencao, a rota e de onde vem a estimativa.
+    static func uniswapRoutes(_ name: String) throws -> (intent: TradeIntent, route: UniswapRoute, expectedFrom: String) {
+        switch name {
+        case "uniswap-base-usdc-eth":
+            return (try baseIntent(), .v4(currencies: [baseUSDC.contract, .zero], tiers: [UniswapV4Tier(fee: 500, tickSpacing: 10)]),
+                    "kyber-base-usdc-eth-build")
+        case "uniswap-base-usdc-eth-v3":
+            return (try baseIntent(), .v3(tokens: [baseUSDC.contract, T.address("0x4200000000000000000000000000000000000006")], fees: [500]),
+                    "kyber-base-usdc-eth-build")
+        default:
+            throw CocoaError(.fileNoSuchFile)
+        }
+    }
+
+    static func uniswapProposal(_ name: String, minimumOut: BigUInt? = nil) throws -> TradeProposal {
+        let (intent, route, source) = try uniswapRoutes(name)
+        let expected = try proposal(.kyberSwap, source).expectedOut
+        guard let deployment = UniswapDeployment.on(intent.chain) else { throw CocoaError(.featureUnsupported) }
+        let built = try UniswapCalldata.encode(route: route, intent: intent, minimumOut: minimumOut ?? intent.minimumOut(forExpected: expected),
+                                               deadline: UInt64(recordedAt.timeIntervalSince1970) + 600, deployment: deployment)
+        return TradeProposal(provider: .uniswap, chainID: intent.chain.evmChainID, from: intent.owner, to: deployment.router,
+                             value: built.value, data: built.data, expectedOut: expected, spender: EIP712ValidatedMessage.permit2,
+                             gasEstimate: 180_000, routeSources: nil, reportedPriceImpactBps: nil)
     }
 
     /// Troca a calldata mantendo o resto da proposta.
@@ -185,14 +215,18 @@ enum TradeTestSupport {
     /// Uma simulacao honesta do plano: approve(s) com o Approval exato, e a troca com o
     /// token saindo do dono e `received` do comprado entrando.
     static func simulation(_ quote: ValidatedTradeQuote, source: String, allowance: BigUInt?, received: BigUInt? = nil,
-                           extraSwapLogs: [TradeSimulatedLog] = []) -> TradeSimulation {
+                           extraSwapLogs: [TradeSimulatedLog] = [], permit2: TradePermit2Allowance? = nil) -> TradeSimulation {
         let intent = quote.intent
-        let request = TradePlanner.simulationRequest(for: quote, currentAllowance: allowance)
+        let request = TradePlanner.simulationRequest(for: quote, currentAllowance: allowance, permit2: permit2)
         var calls = [TradeSimulatedCall]()
         for value in request.approvals {
             calls.append(TradeSimulatedCall(success: true, gasUsed: 46_000, logs: [
                 approvalLog(intent.sell.contract!, owner: intent.owner, spender: quote.spender, value),
             ]))
+        }
+        // A permissao do Permit2 so emite o evento do proprio Permit2.
+        if request.permit2 != nil {
+            calls.append(TradeSimulatedCall(success: true, gasUsed: 48_000, logs: []))
         }
         let sellToken = intent.sell.contract ?? TradeConstants.eeeeSentinel
         let buyToken = intent.buy.contract ?? TradeConstants.eeeeSentinel
@@ -221,7 +255,7 @@ enum TradeTestSupport {
         return TradeChainState(
             network: network(chain, nonce: nonce, balance: nativeBalance ?? BigUInt(decimal: "1000000000000000000")!),
             sellToken: tokenState, routerHasCode: true, routerPin: pin ?? quote.router.pin.expected, simulations: sims,
-            approveL1DataFee: l1Fee, swapL1DataFee: l1Fee
+            approveL1DataFee: l1Fee, swapL1DataFee: l1Fee, permit2L1DataFee: l1Fee
         )
     }
 }

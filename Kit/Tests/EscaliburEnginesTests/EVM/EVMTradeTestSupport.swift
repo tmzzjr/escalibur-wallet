@@ -25,7 +25,31 @@ enum EVMTradeFixtures {
             try KyberSwapClient.parse(routes: EVMFixtures.trade("kyber-base-usdc-eth-routes"), build: EVMFixtures.trade("kyber-base-usdc-eth-build")),
             try LiFiClient.parse(EVMFixtures.trade("lifi-base-usdc-eth")),
             try De1Client.parse(EVMFixtures.trade("de1-base-usdc-eth")),
+            try uniswap(),
         ]
+    }
+
+    /// A Uniswap nao tem resposta gravada: a calldata e montada pela rota direta USDC/ETH da
+    /// v4, com a estimativa 1% abaixo da menor dos agregadores (fica por ultimo no ranking,
+    /// e os testes do vencedor continuam valendo).
+    static func uniswap() throws -> TradeProposal {
+        let intent = try intent()
+        let lowest = try [
+            VeloraClient.parse(EVMFixtures.trade("velora-base-usdc-eth")).expectedOut,
+            KyberSwapClient.parse(routes: EVMFixtures.trade("kyber-base-usdc-eth-routes"), build: EVMFixtures.trade("kyber-base-usdc-eth-build")).expectedOut,
+            LiFiClient.parse(EVMFixtures.trade("lifi-base-usdc-eth")).expectedOut,
+            De1Client.parse(EVMFixtures.trade("de1-base-usdc-eth")).expectedOut,
+        ].min()!
+        let expected = lowest * BigUInt(99) / BigUInt(100)
+        let deployment = UniswapDeployment.on(.base)!
+        let built = try UniswapCalldata.encode(
+            route: .v4(currencies: [usdcToken.contract, .zero], tiers: [UniswapV4Tier(fee: 500, tickSpacing: 10)]),
+            intent: intent, minimumOut: intent.minimumOut(forExpected: expected),
+            deadline: UInt64(Date().addingTimeInterval(600).timeIntervalSince1970), deployment: deployment
+        )
+        return TradeProposal(provider: .uniswap, chainID: 8453, from: intent.owner, to: deployment.router, value: built.value, data: built.data,
+                             expectedOut: expected, spender: EIP712ValidatedMessage.permit2, gasEstimate: 180_000, routeSources: nil,
+                             reportedPriceImpactBps: nil)
     }
 
     static func intent(amount: BigUInt = amount) throws -> TradeIntent {

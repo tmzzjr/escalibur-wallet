@@ -4,6 +4,7 @@ import Foundation
 // A comparacao liquida entre provedores (docs/blockchain.md 3.2).
 //
 //   liquido = garantido - gas x preco - taxa L1 - approval (se faltar)
+//             - permissao do Permit2 (Uniswap, vendendo token)
 //
 // - O garantido e o `minOut` decodificado da calldata, nunca o `expectedOut` anunciado.
 // - O gas de todos e convertido pelo **mesmo** preco de gas e pela **mesma** taxa
@@ -120,6 +121,12 @@ public enum TradeRanking {
                 needsApproval = true
                 let count: UInt64 = EVMPlanner.requiresZeroFirstApproval(token) && !current.isZero ? 2 : 1
                 wei = wei + BigUInt(costs.approveGas * count) * costs.gasPriceWei + costs.l1FeePerTransactionWei * BigUInt(count)
+            }
+            // Uniswap: a permissao do Permit2 ao router conta sempre. Ela e exata e vence em
+            // 30 minutos, entao quase toda troca precisa de uma nova.
+            if quote.router.viaPermit2 {
+                needsApproval = true
+                wei = wei + BigUInt(costs.approveGas) * costs.gasPriceWei + costs.l1FeePerTransactionWei
             }
         }
         return (costs.nativeToBuy.apply(wei), needsApproval)

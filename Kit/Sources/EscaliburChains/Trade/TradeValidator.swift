@@ -265,6 +265,8 @@ public enum TradeValidator {
         // - LI.FI, GenericSwapFacetV3: nenhum argumento de prazo; `block.timestamp` so
         //   entra nos eventos. Prazos de DEX dentro das `callData` sao opacos;
         // - De¹, OpenOceanExchange `swap`/`simpleSwap`: sem prazo, so no permit.
+        // A Uniswap confere: `execute(commands, inputs, deadline)` do Universal Router
+        // recusa depois do prazo (`checkDeadline`), e o decodificador preenche `deadline`.
         // O minimo protege o preco; a execucao tardia so e dita na revisao
         // (`TradePlanner.deadlineLine`). Um router que confira prazo tem o decodificador
         // preenchendo `deadline`, e aqui ele tem de estar entre agora e 20 minutos.

@@ -66,6 +66,10 @@ public struct TradeRouter: Sendable, Equatable {
 
     public var selectors: Set<[UInt8]> { Set(functions.map(\.selector)) }
 
+    /// O router puxa o token pelo Permit2 (Uniswap): o approve exato vai ao Permit2, e o
+    /// plano soma a permissao do Permit2 a este router (`EVMPermit2Approval`).
+    public var viaPermit2: Bool { spender == EIP712ValidatedMessage.permit2 }
+
     /// A calldata de `facetAddress(seletor)` para cada seletor aceito (so diamond).
     public var facetQueries: [[UInt8]] {
         guard case .diamondFacet = pin else { return [] }
@@ -179,6 +183,12 @@ public enum TradeAllowlist {
             guard let implementation = de1Implementations[chainID] else { return nil }
             return TradeRouter(provider: .de1, chainID: chainID, address: de1Proxy, spender: de1Proxy,
                                pin: .eip1967(implementation: implementation), functions: De1Calldata.functions, feeForwarder: nil)
+        case .uniswap:
+            // O token vendido e aprovado ao Permit2, e o Permit2 da ao router a permissao
+            // exata de 30 minutos (`TradeRouter.viaPermit2`). Router sem proxy.
+            guard let deployment = UniswapDeployment.all[chainID] else { return nil }
+            return TradeRouter(provider: .uniswap, chainID: chainID, address: deployment.router, spender: EIP712ValidatedMessage.permit2,
+                               pin: .immutable, functions: UniswapCalldata.functions, feeForwarder: nil)
         }
     }
 

@@ -23,6 +23,21 @@ enum TradeNetworkSupport {
         try TradeIntent(owner: owner, sell: .token(baseUSDC), buy: .native(.base), amountIn: 100_000_000, slippageBps: 50)
     }
 
+    /// A Uniswap montada pela rota direta USDC/ETH da v4, com a estimativa da KyberSwap.
+    static func uniswap() throws -> TradeProposal {
+        let intent = try baseIntent()
+        let expected = try KyberSwapClient.parse(routes: fixture("kyber-base-usdc-eth-routes"), build: fixture("kyber-base-usdc-eth-build")).expectedOut
+        let deployment = UniswapDeployment.on(.base)!
+        let built = try UniswapCalldata.encode(
+            route: .v4(currencies: [baseUSDC.contract, .zero], tiers: [UniswapV4Tier(fee: 500, tickSpacing: 10)]),
+            intent: intent, minimumOut: intent.minimumOut(forExpected: expected),
+            deadline: UInt64(Date().addingTimeInterval(600).timeIntervalSince1970), deployment: deployment
+        )
+        return TradeProposal(provider: .uniswap, chainID: 8453, from: intent.owner, to: deployment.router, value: built.value, data: built.data,
+                             expectedOut: expected, spender: EIP712ValidatedMessage.permit2, gasEstimate: 180_000, routeSources: nil,
+                             reportedPriceImpactBps: nil)
+    }
+
     static func arbIntent() throws -> TradeIntent {
         try TradeIntent(owner: owner, sell: .native(.arbitrum), buy: .token(arbUSDC), amountIn: BigUInt(decimal: "40000000000000000")!, slippageBps: 50)
     }
@@ -145,6 +160,7 @@ struct TradeAggregatorTests {
             .kyberSwap: try KyberSwapClient.parse(routes: S.fixture("kyber-base-usdc-eth-routes"), build: S.fixture("kyber-base-usdc-eth-build")),
             .lifi: try LiFiClient.parse(S.fixture("lifi-base-usdc-eth")),
             .de1: try De1Client.parse(S.fixture("de1-base-usdc-eth")),
+            .uniswap: try S.uniswap(),
         ]
     }
 
@@ -153,7 +169,7 @@ struct TradeAggregatorTests {
         let p = try Self.proposals()
         let aggregator = TradeAggregator(sources: TradeProvider.allCases.map { StubSource(provider: $0, delay: .milliseconds(10), proposal: p[$0]) })
         let set = await aggregator.quote(try S.baseIntent(), costs: .free)
-        #expect(set.ranked.count == 4)
+        #expect(set.ranked.count == 5)
         #expect(set.failures.isEmpty && set.pending.isEmpty)
         let guaranteed = set.ranked.map(\.quote.guaranteedOut)
         #expect(guaranteed == guaranteed.sorted(by: >))
@@ -195,9 +211,12 @@ struct TradeAggregatorTests {
 
     @Test("Cada provedor de troca tem endereco em Endpoints.trade")
     func everyProviderHasEndpoint() {
-        for provider in TradeProvider.allCases {
+        // A Uniswap cota na cadeia, pelos RPCs da rede: no circuit breaker ela e so o nome.
+        for provider in TradeProvider.allCases where provider != .uniswap {
             #expect(Endpoints.trade[provider.rawValue] != nil, "\(provider)")
         }
+        #expect(Endpoints.trade["uniswap"] == nil)
+        #expect(TradeAggregator.poolEntry(.uniswap).name == "uniswap")
     }
 
     @Test("Prazo duro: quem nao respondeu ate o duro fica de fora, marcado como prazo")

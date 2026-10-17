@@ -9,13 +9,15 @@ import Foundation
 // assina nada. A rede (EscaliburNetwork/Trade) cota e le o estado; o assinador so
 // recebe o `SigningPlan` que sai daqui.
 
-/// Os agregadores da v1: todos sem API key (docs/blockchain.md 3.1). Provedor com key
-/// (1inch, 0x, OKX, Uniswap) entra depois, pelo relay.
+/// Os provedores, todos sem API key (docs/blockchain.md 3.1): quatro agregadores e a
+/// Uniswap direta, cotada nos contratos dela e com a calldata montada pelo app. Provedor
+/// com key (1inch, 0x, OKX) entra depois, pelo relay.
 public enum TradeProvider: String, Sendable, Hashable, CaseIterable, Codable {
     case velora
     case kyberSwap
     case lifi
     case de1
+    case uniswap
 
     public var displayName: String {
         switch self {
@@ -23,6 +25,7 @@ public enum TradeProvider: String, Sendable, Hashable, CaseIterable, Codable {
         case .kyberSwap: return "KyberSwap"
         case .lifi: return "LI.FI"
         case .de1: return "De¹"
+        case .uniswap: return "Uniswap"
         }
     }
 }
@@ -63,7 +66,7 @@ public enum TradeAsset: Sendable, Hashable {
     public var isNative: Bool { contract == nil }
 
     /// Como cada router escreve a moeda nativa. Velora, KyberSwap, De¹ e CoW usam
-    /// 0xEeee...EEeE; a LI.FI usa o endereco zero. Um token de verdade nunca mora em
+    /// 0xEeee...EEeE; a LI.FI e a Uniswap, o endereco zero. Um token de verdade nunca mora em
     /// nenhum dos dois.
     func routerAddress(nativeSentinel: EVMAddress) -> EVMAddress {
         contract ?? nativeSentinel

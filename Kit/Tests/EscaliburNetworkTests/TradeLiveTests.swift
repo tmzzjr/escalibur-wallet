@@ -93,7 +93,11 @@ struct TradeLiveTests {
                 continue
             }
             let real = try await reader.token(chain: chain, token: token.contract, owner: account.address, spender: quote.spender)
-            let request = TradePlanner.simulationRequest(for: quote, currentAllowance: real.allowance)
+            var permit2: TradePermit2Allowance?
+            if quote.router.viaPermit2 {
+                permit2 = try await reader.permit2Allowance(chain: chain, owner: account.address, token: token.contract, spender: quote.to)
+            }
+            let request = TradePlanner.simulationRequest(for: quote, currentAllowance: real.allowance, permit2: permit2)
             let simulations = try await reader.simulate(chain: chain, calls: request.calls,
                                                         stateOverrides: Self.overrides(owner: account.address, token: token, amount: amount))
             let state = TradeChainState(
@@ -104,11 +108,13 @@ struct TradeLiveTests {
                 approveL1DataFee: approveL1,
                 swapL1DataFee: try await reader.l1DataFee(chain: chain, calldataSize: quote.data.count),
                 approveL1Gas: try await reader.arbitrumL1Gas(chain: chain, to: token.contract, data: ERC20.approve(spender: quote.spender, amount: amount)),
-                swapL1Gas: try await reader.arbitrumL1Gas(chain: chain, to: quote.to, data: quote.data)
+                swapL1Gas: try await reader.arbitrumL1Gas(chain: chain, to: quote.to, data: quote.data),
+                permit2: permit2, permit2L1DataFee: approveL1
             )
             do {
                 let plan = try TradePlanner.planSwap(walletID: UUID(), account: account, quote: quote, state: state, riskConfirmed: true)
-                #expect(plan.transactions.count == 2, "\(quote.provider)")
+                // Approve exato e troca; na Uniswap, a permissao do Permit2 no meio.
+                #expect(plan.transactions.count == (quote.router.viaPermit2 ? 3 : 2), "\(quote.provider)")
                 #expect(plan.review.lines.contains { $0.label == "Taxa da Escalibur" && $0.value == "Sem taxa da Escalibur" })
                 let swap = plan.transactions.last as! EVMTransaction
                 #expect(swap.data == quote.data && swap.to == quote.to)
@@ -122,6 +128,50 @@ struct TradeLiveTests {
         let usd5 = BigUInt(decimal: "2000000000000000")!
         if let split = await aggregator.proposeSplit(set, market: market, costs: costs, minimumGainAbsolute: usd5, force: true) {
             #expect(split.decision.legs.reduce(BigUInt()) { $0 + $1.amountIn } == amount)
+        }
+    }
+
+    @Test("Uniswap direta: vende a moeda nativa por stablecoin nas 9 redes, valida, simula em duas fontes e vira plano de uma transacao",
+          arguments: [Chain.ethereum, .arbitrum, .base, .optimism, .polygon, .bnb, .avalanche, .unichain, .linea])
+    func uniswapNative(chain: Chain) async throws {
+        let account = try Self.account()
+        let asset = try #require(TokenRegistry.assets(on: chain).first { $0.symbol == "USDC" } ?? TokenRegistry.assets(on: chain).first { $0.isStablecoin })
+        guard case .token(let contract) = asset.kind else { return }
+        let token = EVMToken(chain: chain, contract: try EVMAddress(contract), symbol: asset.symbol, decimals: UInt8(asset.decimals))
+        // Uns US$ 20 da moeda nativa.
+        let amount: BigUInt = switch chain.id {
+        case "bnb": BigUInt(decimal: "30000000000000000")!
+        case "polygon": BigUInt(decimal: "80000000000000000000")!
+        case "avalanche": BigUInt(decimal: "1000000000000000000")!
+        default: BigUInt(decimal: "6000000000000000")!
+        }
+        let intent = try TradeIntent(owner: account.address, sell: .native(chain), buy: .token(token), amountIn: amount, slippageBps: 100)
+        let reader = TradeStateReader()
+        let network = try await reader.network(chain: chain, owner: account.address)
+        let proposal = try await UniswapClient(reader: reader).propose(TradeQuoteRequest(intent: intent, gasPriceWei: network.baseFeePerGas))
+        let quote = try TradeValidator.validate(proposal, intent: intent)
+        Live.note("\(chain.id): Uniswap garante \(quote.guaranteedOut) \(asset.symbol), prazo \(quote.decoded.deadline ?? 0)")
+        // Avalanche: nenhum RPC publico simula (Endpoints.tradeSimulation); a troca la fica
+        // bloqueada ate o relay, para todo provedor. A cotacao e a validacao valem.
+        guard chain.id != "avalanche" else { return }
+        let request = TradePlanner.simulationRequest(for: quote, currentAllowance: nil)
+        let rich = BigUInt(decimal: "100000000000000000000000")!
+        let simulations = try await reader.simulate(chain: chain, calls: request.calls, stateOverrides: .object([
+            "0x" + Hex.encode(account.address.bytes): .object(["balance": .string(rich.hexString)]),
+        ]))
+        let funded = EVMNetworkState(chain: chain, pendingNonces: network.pendingNonces, baseFeePerGas: network.baseFeePerGas,
+                                     priorityFees: network.priorityFees, gasEstimate: 21_000, nativeBalance: rich, destinationHasCode: true)
+        let state = TradeChainState(
+            network: funded, sellToken: nil, routerHasCode: try await reader.hasCode(chain: chain, quote.to), routerPin: nil,
+            simulations: simulations, swapL1DataFee: try await reader.l1DataFee(chain: chain, calldataSize: quote.data.count),
+            swapL1Gas: try await reader.arbitrumL1Gas(chain: chain, to: quote.to, data: quote.data)
+        )
+        do {
+            let plan = try TradePlanner.planSwap(walletID: UUID(), account: account, quote: quote, state: state, riskConfirmed: true)
+            #expect(plan.transactions.count == 1)
+            #expect(plan.review.lines.contains { $0.label == "Prazo na cadeia" && $0.value.hasPrefix("Até") })
+        } catch {
+            Issue.record("\(chain.id): plano da Uniswap recusado: \(error) \(simulations.flatMap { $0.calls.compactMap(\.error) })")
         }
     }
 

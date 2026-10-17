@@ -509,7 +509,13 @@ Intenção do usuário: I = {chain, sellToken, buyToken, amountIn, slippage, des
 - Tokens do tipo USDT exigem `approve(0)` antes de um novo valor. São duas transações, e as duas aparecem na tela.
 - Aprovação infinita nunca é padrão. É uma opção por token, com PIN e aviso.
 - Uma tela lista as aprovações vigentes (`allowance(owner, spender)` para cada spender da lista) e permite revogar.
-- **A v1 não assina Permit2 (`0x000000000022D473030F116dDEE9F6B43aC78BA3`) nem EIP-2612.** Assinatura off-chain de permit é o principal vetor de dreno. Os fluxos AllowanceHolder e approve exato cobrem os três agregadores.
+- **A v1 não assina Permit2 (`0x000000000022D473030F116dDEE9F6B43aC78BA3`) nem EIP-2612.** Assinatura off-chain de permit é o principal vetor de dreno. Os fluxos AllowanceHolder e approve exato cobrem os agregadores.
+- **Exceção estreita, na cadeia, para a Uniswap direta** (decisão do dono, 17/10/2026). O Universal Router só puxa o token pelo Permit2, então a troca pela Uniswap vendendo token tem três transações: `approve(Permit2, valor exato)` no token, `Permit2.approve(token, Universal Router, valor exato, agora + 30 min)` e a troca. Continua sem assinatura fora da cadeia:
+  - a guarda (`EVMCallGuard`) só aceita o `approve(address,address,uint160,uint48)` ao Permit2 quando o plano declara exatamente aquele token, router, valor e prazo (`EVMCallPolicy.permit2Approval`); qualquer outro, e todo permit assinado, segue recusado;
+  - o router é o Universal Router 2.0 da allowlist compilada, sem proxy, conferido rede a rede;
+  - o prazo conta da cotação validada, para a simulação e o plano montarem a mesma chamada; a permissão que já existe é lida em duas fontes (o menor valor e o menor prazo) e só é reaproveitada se cobre o valor e vale mais 5 minutos;
+  - a simulação roda as três chamadas em duas fontes, e a do Permit2 não pode tirar nada do dono nem aprovar token;
+  - a calldata da troca é montada pelo app (`UniswapCalldata`) e volta pelo decodificador: só pools sem hook, ponte só pelo embrulhado, pela moeda nativa ou por stablecoin da lista, `TAKE_ALL` para quem assina, prazo de até 20 minutos conferido pelo router.
 - Se um dia for habilitar:
   - Domínio montado localmente.
   - Spender da lista, token igual ao vendido, valor exato (nunca 2^160−1).
@@ -979,7 +985,7 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
 3. Contador de tentativas com `SecItemUpdate`, falhando fechado, com o conserto de boot (A2, A3). A lista de bloqueio de PIN foi retirada por decisão do dono em 26/09/2026: qualquer PIN de 4 ou 6 dígitos vale (ver §2.7).
 4. Autenticação nova por lote de assinatura; nada de RK ou seed em memória fora da assinatura; caminho síncrono; `verify` depois de assinar; HMAC e PBKDF2 em `SecureBytes`.
 5. Intenções tipadas, sem assinatura às cegas. As recusas da 4.1, EIP-7702 incluída. Sem WalletConnect nem navegador de dapps.
-6. Validação de swap (4.3) com allowlist compilada, ranking por `minOut`, approve exato, sem Permit2 nem EIP-2612 na v1.
+6. Validação de swap (4.3) com allowlist compilada, ranking por `minOut`, approve exato, sem permit assinado nem EIP-2612 na v1 (a Uniswap usa a permissão exata do Permit2 na cadeia, 4.4).
 7. `chainId` e passphrase de rede compilados, e checagem de `eth_chainId`. Tetos de taxa em todas as redes.
 8. BTC confere a transação anterior. XRPL mostra `delivered_amount`, respeita `RequireDest` e reserva lida do servidor. Stellar respeita a SEP-29.
 9. Detecção de envenenamento de endereço, filtro de valor zero e pó, e cópia de endereço só a partir de fontes confiáveis.

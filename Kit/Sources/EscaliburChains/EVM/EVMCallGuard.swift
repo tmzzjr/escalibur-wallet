@@ -86,11 +86,47 @@ public struct EVMCallPolicy: Sendable {
     /// Destinos que nunca recebem valor nem token: routers, contratos de token.
     public var blockedRecipients: Set<EVMAddress>
     public var contractRules: [EVMContractCallRule]
+    /// A unica permissao do Permit2 que passa: a que o plano de troca pela Uniswap monta,
+    /// com token, router, valor e prazo exatos (docs/seguranca.md 4.4). Qualquer outra
+    /// chamada `approve` ao Permit2, e todo permit assinado, continua recusado.
+    public var permit2Approval: EVMPermit2Approval?
 
-    public init(approvedSpenders: Set<EVMAddress> = [], blockedRecipients: Set<EVMAddress> = [], contractRules: [EVMContractCallRule] = []) {
+    public init(approvedSpenders: Set<EVMAddress> = [], blockedRecipients: Set<EVMAddress> = [], contractRules: [EVMContractCallRule] = [],
+                permit2Approval: EVMPermit2Approval? = nil) {
         self.approvedSpenders = approvedSpenders
         self.blockedRecipients = blockedRecipients
         self.contractRules = contractRules
+        self.permit2Approval = permit2Approval
+    }
+}
+
+/// `Permit2.approve(token, spender, amount, expiration)`, na cadeia: a permissao interna do
+/// Permit2 para um router puxar o token que ja foi aprovado ao Permit2. Transacao visivel,
+/// nao assinatura fora da cadeia; valor exato e prazo curto.
+public struct EVMPermit2Approval: Sendable, Equatable {
+    public static let function = try! ABIFunction("approve(address,address,uint160,uint48)")  // 87517c45
+    /// Prazo maximo: 30 minutos (docs/seguranca.md 4.4).
+    public static let maxLifetime: UInt64 = 30 * 60
+
+    public let token: EVMAddress
+    public let spender: EVMAddress
+    public let amount: BigUInt
+    /// Segundos Unix.
+    public let expiration: UInt64
+
+    public init(token: EVMAddress, spender: EVMAddress, amount: BigUInt, expiration: UInt64) {
+        self.token = token
+        self.spender = spender
+        self.amount = amount
+        self.expiration = expiration
+    }
+
+    public var arguments: [ABIValue] {
+        [.address(token), .address(spender), .uint(amount), .uint(BigUInt(expiration))]
+    }
+
+    public func calldata() throws -> [UInt8] {
+        try Self.function.encodeCall(arguments)
     }
 }
 
@@ -140,7 +176,14 @@ public enum EVMCallGuard {
         }
         guard proposal.data.count >= 4 else { throw EVMCallRefusal.malformedCalldata }
         let selector = Array(proposal.data.prefix(4))
-        if let refusal = deniedSelectors[selector] { throw refusal }
+        if let refusal = deniedSelectors[selector] {
+            // So a permissao do Permit2 que o plano declarou, ao proprio Permit2, sem valor.
+            guard let allowed = policy.permit2Approval, selector == EVMPermit2Approval.function.selector,
+                  to == EIP712ValidatedMessage.permit2, proposal.value.isZero,
+                  let arguments = try? EVMPermit2Approval.function.decodeCall(proposal.data), arguments == allowed.arguments
+            else { throw refusal }
+            return .contractCall(contract: to, function: EVMPermit2Approval.function.signature, arguments: arguments, value: 0)
+        }
 
         if selector == ERC20.transferFunction.selector {
             let (recipient, amount) = try addressAndAmount(ERC20.transferFunction, proposal.data)

@@ -48,11 +48,11 @@ struct TradeAllowlistTests {
     /// Quem atende cada rede, conferido ao vivo em 25/09/2026 (as 7 da v1) e 26/09/2026
     /// (a segunda leva). X Layer e Celo nao tem troca.
     static let coverageTable: [String: Set<TradeProvider>] = [
-        "ethereum": [.velora, .kyberSwap, .lifi, .de1], "arbitrum": [.velora, .kyberSwap, .lifi, .de1],
-        "base": [.velora, .kyberSwap, .lifi, .de1], "optimism": [.velora, .kyberSwap, .lifi, .de1],
-        "polygon": [.velora, .kyberSwap, .lifi, .de1], "bnb": [.velora, .kyberSwap, .lifi, .de1],
-        "avalanche": [.velora, .kyberSwap, .lifi],
-        "plasma": [.kyberSwap], "linea": [.kyberSwap, .de1], "unichain": [.velora, .kyberSwap, .de1],
+        "ethereum": [.velora, .kyberSwap, .lifi, .de1, .uniswap], "arbitrum": [.velora, .kyberSwap, .lifi, .de1, .uniswap],
+        "base": [.velora, .kyberSwap, .lifi, .de1, .uniswap], "optimism": [.velora, .kyberSwap, .lifi, .de1, .uniswap],
+        "polygon": [.velora, .kyberSwap, .lifi, .de1, .uniswap], "bnb": [.velora, .kyberSwap, .lifi, .de1, .uniswap],
+        "avalanche": [.velora, .kyberSwap, .lifi, .uniswap],
+        "plasma": [.kyberSwap], "linea": [.kyberSwap, .de1, .uniswap], "unichain": [.velora, .kyberSwap, .de1, .uniswap],
         "sonic": [.kyberSwap, .lifi], "xlayer": [], "celo": [],
     ]
 
@@ -66,8 +66,13 @@ struct TradeAllowlistTests {
             }
         }
         #expect(TradeAllowlist.routers(on: .solana).isEmpty)
-        // Spender = router nos quatro; a lista de revogacao inclui o VaultRelayer da CoW.
-        for router in TradeAllowlist.routers(on: .base) { #expect(router.spender == router.address) }
+        // Spender = router nos agregadores; na Uniswap, o Permit2. A lista de revogacao
+        // inclui o Permit2 e o VaultRelayer da CoW.
+        for router in TradeAllowlist.routers(on: .base) {
+            #expect(router.spender == (router.provider == .uniswap ? EIP712ValidatedMessage.permit2 : router.address))
+            #expect(router.viaPermit2 == (router.provider == .uniswap))
+        }
+        #expect(TradeAllowlist.spenders(on: .base).contains(EIP712ValidatedMessage.permit2))
         #expect(TradeAllowlist.spenders(on: .base).contains(CoWProtocol.vaultRelayer))
         #expect(!TradeAllowlist.spenders(on: .optimism).contains(CoWProtocol.vaultRelayer))
         // Pins: imutavel, faceta, implementacao.
