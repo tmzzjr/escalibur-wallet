@@ -10,6 +10,7 @@
 		018964FF48D0175DEDF8AB78 /* WatchAddressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 371DC381FB8EB8018354EEC1 /* WatchAddressView.swift */; };
 		046D4A66EDC4E578C0246247 /* TradeQuoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1020538B4146BC659BF384E8 /* TradeQuoteTests.swift */; };
 		04B18402EA73A60AC95466C5 /* NewWalletFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B192EE33D90EEA58E27E195C /* NewWalletFlowTests.swift */; };
+		05BDDE49082FBB137E2E2449 /* PassphraseGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A94C886D9AEDE00E2F9D99D5 /* PassphraseGate.swift */; };
 		08C6F4E705BC86D7B782EB39 /* ConfirmPassphraseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D922E0AB84F33657681EBBB /* ConfirmPassphraseView.swift */; };
 		0B7E83EED78DFCB68FCE521B /* MarketView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1BADB432EFAFD601991FB0A /* MarketView.swift */; };
 		0C69486F69E82B02C7F393AE /* NonceQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */; };
@@ -111,6 +112,7 @@
 		8AD9BAAFA95723925CCB3A6D /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10914896D99BB58942178E3 /* Router.swift */; };
 		8C41E86F595FADDBED53F5FB /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8A6F64264BCB67BF77E407A /* OnboardingFlow.swift */; };
 		8F32662D8ED021AC24DF8FBA /* SafeImageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15BD461E4847F65BD1B64982 /* SafeImageTests.swift */; };
+		902875D85DDE04AC952F96F7 /* PassphraseHowItWorks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 287BC5BD6D9300D42C5F8603 /* PassphraseHowItWorks.swift */; };
 		90598C8C8DF76C86015A5AF8 /* PlatformGuards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A0E9C686393C93E1E34895B /* PlatformGuards.swift */; };
 		9199129964B9661C2FF62FDF /* MetadataCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */; };
 		91F8E34E141C393E6B6C5CE6 /* AddWalletView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634FB486C1AC19A1DC738122 /* AddWalletView.swift */; };
@@ -264,6 +266,7 @@
 		261F3EEB46DB0F22480FE3BC /* TourFramesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourFramesTests.swift; sourceTree = "<group>"; };
 		268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		27A65F533EF779F32726DDF8 /* SecureCaptureContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureCaptureContainer.swift; sourceTree = "<group>"; };
+		287BC5BD6D9300D42C5F8603 /* PassphraseHowItWorks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassphraseHowItWorks.swift; sourceTree = "<group>"; };
 		28B8F987AD9FF8A40CF49305 /* SendChallengeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendChallengeTests.swift; sourceTree = "<group>"; };
 		290C3A2CEF411E071AA05800 /* WordInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordInputField.swift; sourceTree = "<group>"; };
 		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -361,6 +364,7 @@
 		A7A7441A95891CC1A307A355 /* CustomTokenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTokenTests.swift; sourceTree = "<group>"; };
 		A7D908F19AB59E10BE3323CD /* EscaliburWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = EscaliburWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A8AB9AE080EE4B56DB58D932 /* EnvelopePixelScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopePixelScene.swift; sourceTree = "<group>"; };
+		A94C886D9AEDE00E2F9D99D5 /* PassphraseGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassphraseGate.swift; sourceTree = "<group>"; };
 		A98E0FCFFA466C4A03F3490A /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		AAEF81421478F9FA6F85FE56 /* Palette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Palette.swift; sourceTree = "<group>"; };
 		AD4DB38ABFB63662F684831D /* LegalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalTests.swift; sourceTree = "<group>"; };
@@ -530,6 +534,7 @@
 				93C77E773E63B6664F4262AD /* Metadata.swift */,
 				8BE4C73EEA1A1DFB3BA49859 /* NonceQueue.swift */,
 				93F82527B4657BCDFC2DA884 /* Offload.swift */,
+				A94C886D9AEDE00E2F9D99D5 /* PassphraseGate.swift */,
 				09712057581F9378B87996C5 /* PasswordCost.swift */,
 				4027F05D922AF46864DCED58 /* Portfolio.swift */,
 				44AE65BCC609869DC729178D /* PriceAlerts.swift */,
@@ -650,6 +655,7 @@
 				70EDC973CC393015723C0488 /* HardenedModeView.swift */,
 				6945FCBC3A685B0E6536BD02 /* LegalDocumentView.swift */,
 				9DDBB5924E1B23491D8B56CA /* OwnKeyboardView.swift */,
+				287BC5BD6D9300D42C5F8603 /* PassphraseHowItWorks.swift */,
 				B7E330A6D249E3EA26CE9BA4 /* PassphraseWalletView.swift */,
 				D13BB44FB767203C255AC794 /* PriceAlertsView.swift */,
 				676F5C1C45D103AD6705CD95 /* ReceiptWatchView.swift */,
@@ -1194,6 +1200,8 @@
 				7D2DB36B42D12E24ACBC4DFB /* OwnKeyboardView.swift in Sources */,
 				39A4945DC4DAEFEDE0DBEB1F /* PINPad.swift in Sources */,
 				9D854536327CD96F2ADF6FAB /* Palette.swift in Sources */,
+				05BDDE49082FBB137E2E2449 /* PassphraseGate.swift in Sources */,
+				902875D85DDE04AC952F96F7 /* PassphraseHowItWorks.swift in Sources */,
 				5ECB862AD137C04F475B0CD2 /* PassphraseWalletView.swift in Sources */,
 				3967E001B19F4B47911C2FC2 /* PasswordCost.swift in Sources */,
 				96D8BCA3777CD33B5A035B1B /* PixelVault.swift in Sources */,

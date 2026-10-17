@@ -192,6 +192,11 @@ struct WalletHomeView: View {
             HStack {
                 Button { switching = true } label: {
                     HStack(spacing: Space.xs) {
+                        // A carteira com passphrase leva o cadeado tambem no nome, no alto.
+                        if wallet?.hasPassphrase == true {
+                            Image(systemName: "lock.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkSoft)
+                                .accessibilityLabel("Carteira com passphrase")
+                        }
                         Text(wallet?.name ?? String(localized: "Carteira")).typeStyle(.action).foregroundStyle(Palette.ink).lineLimit(1)
                         if wallet?.isWatchOnly == true {
                             Text("Só observar").typeStyle(.label).foregroundStyle(Palette.inkSoft)
@@ -595,7 +600,7 @@ struct WalletSwitcherSheet: View {
                             dismiss()
                         } label: {
                             HStack(spacing: Space.sm) {
-                                WalletGlyph(id: wallet.id, size: 36, selected: wallet.id == session.selectedWallet?.id, watchOnly: wallet.isWatchOnly)
+                                WalletGlyph(id: wallet.id, size: 36, selected: wallet.id == session.selectedWallet?.id, watchOnly: wallet.isWatchOnly, passphrase: wallet.hasPassphrase)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
                                     Text(subtitle(wallet)).typeStyle(.note)

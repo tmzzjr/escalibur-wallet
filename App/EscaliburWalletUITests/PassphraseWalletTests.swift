@@ -33,6 +33,15 @@ final class PassphraseWalletTests: XCTestCase {
         row.tap()
         XCTAssertTrue(app.staticTexts["Carteira com passphrase"].waitForExistence(timeout: 5))
         shot("q1-25a", app)
+        // O passo a passo da passphrase, as quatro telas (16/10/2026).
+        app.buttons["passphrase-como-funciona"].tap()
+        XCTAssertTrue(app.staticTexts["Um cofre escondido nas mesmas palavras"].waitForExistence(timeout: 5))
+        for index in 0..<4 {
+            sleep(3)
+            shot("q0-como-\(index + 1)", app)
+            app.buttons[index < 3 ? "Próximo" : "Entendi"].tap()
+        }
+        XCTAssertTrue(app.staticTexts["Carteira com passphrase"].waitForExistence(timeout: 5))
         // Antes dos campos, a checagem do aparelho (pedido do dono, 16/10/2026).
         app.buttons["Continuar"].tap()
         app.passDeviceCheck()

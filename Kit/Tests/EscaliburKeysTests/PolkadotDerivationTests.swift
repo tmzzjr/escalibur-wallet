@@ -63,7 +63,7 @@ struct PolkadotDerivationTests {
         )
         let restored = SecureBytes(capacity: 32)
         restored.replaceAll(with: keep)
-        let signed = try #require(try Signer.sign(plan, rootKey: restored, vault: vault).first)
+        let signed = try #require(try Signer.sign(plan, rootKey: restored, vault: vault, passphrase: nil).first)
         let parsed = try PolkadotSignedExtrinsic.parse(signed)
         let transfer = try #require(plan.transactions.first as? PolkadotTransfer)
         #expect(parsed.sender.ss58 == account.address && parsed.destination.ss58 == destination && parsed.nonce == 2)
@@ -77,6 +77,6 @@ struct PolkadotDerivationTests {
         )
         let again = SecureBytes(capacity: 32)
         again.replaceAll(with: keep)
-        #expect(throws: Signer.Failure.unexpectedKey) { try Signer.sign(wrong, rootKey: again, vault: vault) }
+        #expect(throws: Signer.Failure.unexpectedKey) { try Signer.sign(wrong, rootKey: again, vault: vault, passphrase: nil) }
     }
 }

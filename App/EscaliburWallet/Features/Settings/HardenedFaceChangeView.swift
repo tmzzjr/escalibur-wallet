@@ -18,8 +18,8 @@ extension RootKeyVault.HardenedFaceChange {
         let finger = KeyServices.usesFingerprint
         switch self {
         case .continue:
-            return finger ? String(localized: "Uma digital nova abre as carteiras com o PIN, na hora. Quem sabe o seu PIN e o código do iPhone leva tudo na hora.")
-                : String(localized: "Um rosto novo ou a aparência alternativa abre as carteiras com o PIN, na hora. Quem sabe o seu PIN e o código do iPhone leva tudo na hora.")
+            return finger ? String(localized: "Uma digital nova abre as carteiras com o PIN, na hora. Quem sabe o seu PIN e o código do iPhone tem acesso aos seus fundos.")
+                : String(localized: "Um rosto novo ou a aparência alternativa abre as carteiras com o PIN, na hora. Quem sabe o seu PIN e o código do iPhone tem acesso aos seus fundos.")
         case .wait:
             return finger ? String(localized: "Uma digital nova abre o app e mostra o saldo. O resto espera 24 horas.")
                 : String(localized: "Um rosto novo ou a aparência alternativa abre o app e mostra o saldo. O resto espera 24 horas.")
@@ -85,11 +85,12 @@ struct HardenedFaceChangeOptions: View {
         let selected = choice == policy
         return Button { onSelect(policy) } label: {
             HStack(alignment: .top, spacing: Space.sm) {
+                // O bloqueio no vermelho forte: e a opcao sem volta (pedido do dono, 16/10/2026).
                 Image(systemName: policy.icon)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
+                    .foregroundStyle(policy == .lock ? Color.white : Palette.ink)
                     .frame(width: 36, height: 36)
-                    .background(Circle().fill(Palette.control))
+                    .background(Circle().fill(policy == .lock ? Palette.down : Palette.control))
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: Space.xs) {
                         Text(policy.title).typeStyle(.row).foregroundStyle(Palette.ink)
@@ -120,8 +121,10 @@ struct HardenedFaceChangeOptions: View {
             .background(
                 RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .fill(Palette.body)
+                    // Sem contorno diferente no selecionado: o visto ja diz qual e (pedido do
+                    // dono, 16/10/2026).
                     .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                        .stroke(selected ? Palette.inkSoft : Palette.edge, lineWidth: 1))
+                        .stroke(Palette.edge, lineWidth: 1))
             )
             .contentShape(Rectangle())
             .animation(Motion.select, value: selected)

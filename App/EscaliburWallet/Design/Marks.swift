@@ -60,6 +60,9 @@ struct WalletGlyph: View {
     /// So o icone, sem o fundo, um pouco maior e um pouco acima do centro (a lista de
     /// Carteiras nos Ajustes, pedido do dono, 16/10/2026).
     var plain: Bool = false
+    /// Carteira com passphrase: um cadeado no canto, em toda lista de carteiras (pedido do
+    /// dono, 16/10/2026).
+    var passphrase: Bool = false
 
     var body: some View {
         RoundedRectangle(cornerRadius: size <= 24 ? 6 : Radius.card, style: .continuous)
@@ -70,6 +73,16 @@ struct WalletGlyph: View {
                     .font(.system(size: size * (plain ? 0.52 : 0.42), weight: .semibold))
                     .foregroundStyle(selected ? Palette.ink : Palette.inkMuted)
                     .offset(y: plain ? -1 : 0)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if passphrase {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: size * 0.22, weight: .bold))
+                        .foregroundStyle(Palette.ink)
+                        .frame(width: size * 0.44, height: size * 0.44)
+                        .background(Circle().fill(Palette.control).overlay(Circle().stroke(Palette.void, lineWidth: 2)))
+                        .offset(x: size * 0.12, y: size * 0.12)
+                }
             }
             .accessibilityHidden(true)
     }

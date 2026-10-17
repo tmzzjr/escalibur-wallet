@@ -585,7 +585,7 @@ struct WalletVaultTests {
         let plan = SigningPlan(walletID: id, chain: .ethereum, review: PlanReview(kind: .send, title: "teste", lines: []), transactions: [tx])
         let restored = SecureBytes(capacity: 32)
         restored.replaceAll(with: keep)
-        let result = try Signer.sign(plan, rootKey: restored, vault: vault)
+        let result = try Signer.sign(plan, rootKey: restored, vault: vault, passphrase: nil)
         #expect(result.count == 1)
         #expect(result[0].raw.count == 64 + 64)
         #expect(restored.count == 0)  // a RK foi zerada
@@ -597,13 +597,67 @@ struct WalletVaultTests {
         let wrongPlan = SigningPlan(walletID: id, chain: .ethereum, review: PlanReview(kind: .send, title: "x", lines: []), transactions: [wrong])
         let again = SecureBytes(capacity: 32)
         again.replaceAll(with: keep)
-        #expect(throws: Signer.Failure.unexpectedKey) { try Signer.sign(wrongPlan, rootKey: again, vault: vault) }
+        #expect(throws: Signer.Failure.unexpectedKey) { try Signer.sign(wrongPlan, rootKey: again, vault: vault, passphrase: nil) }
 
         // Plano vencido: nada e assinado.
         let old = SigningPlan(walletID: id, chain: .ethereum, review: PlanReview(kind: .send, title: "x", lines: []), transactions: [tx], createdAt: .now.addingTimeInterval(-120))
         let third = SecureBytes(capacity: 32)
         third.replaceAll(with: keep)
-        #expect(throws: Signer.Failure.expired) { try Signer.sign(old, rootKey: third, vault: vault) }
+        #expect(throws: Signer.Failure.expired) { try Signer.sign(old, rootKey: third, vault: vault, passphrase: nil) }
+    }
+
+    @Test("Com a passphrase pedida para enviar, so a certa assina, em NFC ou NFKD")
+    func signerPassphrase() throws {
+        let store = MemoryStore()
+        let vault = WalletVault(store: store)
+        let rk = try SecureBytes.random(count: 32)
+        let keep = rk.withUnsafeBytes { Array($0) }
+        let id = UUID()
+        // A passphrase gravada em NFKD, como a criacao grava ("ação" com o til separado).
+        let raw = SecureBytes(capacity: 64)
+        raw.replaceAll(with: Array("ação secreta".utf8))
+        let stored = BIP39.nfkd(raw)
+        let base = try WalletSecret.from(phrase: BIP39.canonical(Self.phrase), language: .english)
+        let entropy = SecureBytes(capacity: base.entropy.count)
+        base.entropy.withUnsafeBytes { entropy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
+        let secret = WalletSecret(entropy: entropy, language: base.language, passphrase: stored)
+        try vault.save(secret, walletID: id, rk: rk)
+        let (accounts, _) = try AccountDeriver.derive(secret)
+        let eth = try #require(accounts.first { $0.chainID == "ethereum" })
+        let digest = Hash.keccak256(Array("mensagem".utf8))
+        let tx = FakeTransaction(chain: .ethereum, signingRequests: [
+            SigningRequest(path: eth.path, curve: .secp256k1, scheme: .ecdsaRecoverable, payload: digest, expectedPublicKey: eth.publicKey),
+        ])
+        let plan = SigningPlan(walletID: id, chain: .ethereum, review: PlanReview(kind: .send, title: "teste", lines: []), transactions: [tx])
+        func key() -> SecureBytes { let k = SecureBytes(capacity: 32); k.replaceAll(with: keep); return k }
+        func typed(_ text: String) -> SecureBytes { let b = SecureBytes(capacity: 64); b.replaceAll(with: Array(text.utf8)); return b }
+
+        // A digitada em NFC (como vem do teclado) assina.
+        let given = typed("ação secreta")
+        #expect(try Signer.sign(plan, rootKey: key(), vault: vault, passphrase: given).count == 1)
+        #expect(given.count > 0)  // o buffer continua do chamador
+        // Carteira antiga, com a passphrase gravada em NFC: a digitada (NFC) tambem confere,
+        // porque as duas passam por NFKD antes de comparar.
+        let legacyID = UUID()
+        let legacyRaw = typed("ação secreta")
+        let legacyEntropy = SecureBytes(capacity: base.entropy.count)
+        base.entropy.withUnsafeBytes { legacyEntropy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
+        let legacy = WalletSecret(entropy: legacyEntropy, language: base.language, passphrase: legacyRaw)
+        try vault.save(legacy, walletID: legacyID, rk: key())
+        let (legacyAccounts, _) = try AccountDeriver.derive(legacy)
+        let legacyEth = try #require(legacyAccounts.first { $0.chainID == "ethereum" })
+        let legacyPlan = SigningPlan(walletID: legacyID, chain: .ethereum, review: PlanReview(kind: .send, title: "teste", lines: []), transactions: [
+            FakeTransaction(chain: .ethereum, signingRequests: [
+                SigningRequest(path: legacyEth.path, curve: .secp256k1, scheme: .ecdsaRecoverable, payload: digest, expectedPublicKey: legacyEth.publicKey),
+            ]),
+        ])
+        #expect(try Signer.sign(legacyPlan, rootKey: key(), vault: vault, passphrase: typed("ação secreta")).count == 1)
+        // Uma letra a menos, maiuscula diferente ou vazia: nada e assinado.
+        for wrong in ["ação secret", "Ação secreta", ""] {
+            #expect(throws: Signer.Failure.passphraseMismatch) {
+                try Signer.sign(plan, rootKey: key(), vault: vault, passphrase: typed(wrong))
+            }
+        }
     }
 
     @Test("Metadados cifrados com a chave de indice")

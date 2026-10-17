@@ -144,7 +144,7 @@ struct WalletsListView: View {
                     ForEach(Array(wallets.enumerated()), id: \.element.id) { index, wallet in
                         NavigationLink { WalletSettingsView(walletID: wallet.id) } label: {
                             HStack(spacing: Space.sm) {
-                                WalletGlyph(id: wallet.id, size: 32, selected: true, watchOnly: wallet.isWatchOnly, plain: true)
+                                WalletGlyph(id: wallet.id, size: 32, selected: true, watchOnly: wallet.isWatchOnly, plain: true, passphrase: wallet.hasPassphrase)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(verbatim: wallet.name).typeStyle(.row).foregroundStyle(Palette.ink)
                                     Text(wallet.hasBackup || wallet.isWatchOnly ? originText(wallet)
@@ -236,6 +236,28 @@ struct WalletSettingsView: View {
                                             value: wallet.envelopeSealedAt.map { String(localized: "lacrado em \(Self.day($0))") } ?? String(localized: "nenhum"))
                             }
                             .accessibilityIdentifier("copia-envelope")
+                        }
+                        // Carteira com passphrase: pedir a passphrase para mover saldo, ligado de
+                        // fabrica (pedido do dono, 16/10/2026). Desligar pede a passphrase e o PIN.
+                        if wallet.hasPassphrase {
+                            SettingsSection(title: String(localized: "Segurança")) {
+                                Toggle(isOn: Binding(get: { PassphraseGate.asks(wallet) }, set: { on in
+                                    Task { await setPassphraseToSend(on, wallet: wallet) }
+                                })) {
+                                    HStack(alignment: .top, spacing: Space.sm) {
+                                        Image(systemName: "lock.shield").font(.system(size: 16, weight: .medium)).foregroundStyle(Palette.inkSoft).frame(width: 24)
+                                            .padding(.top, 2)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Pedir a passphrase para enviar").typeStyle(.body).foregroundStyle(Palette.ink)
+                                            Text("Envios, trocas e pontes desta carteira pedem a passphrase antes do \(KeyServices.biometryName) ou do PIN.")
+                                                .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                                        }
+                                    }
+                                }
+                                .tint(Palette.success)
+                                .padding(.horizontal, Space.md).padding(.vertical, Space.sm)
+                                .accessibilityIdentifier("pedir-passphrase")
+                            }
                         }
                         if let last = wallet.lastRevealedAt {
                             Text("Última vez que a senha da carteira foi exibida: \(Fmt.relative(last, inSentence: true)).")
@@ -329,6 +351,42 @@ struct WalletSettingsView: View {
 
     static func day(_ date: Date) -> String {
         date.formatted(.dateTime.day(.twoDigits).month(.twoDigits).locale(Fmt.locale))
+    }
+
+    /// Ligar e na hora. Desligar pede a passphrase e o PIN (nunca so o rosto), e a passphrase
+    /// e conferida com a do cofre: quem viu o PIN nao tira a protecao.
+    private func setPassphraseToSend(_ on: Bool, wallet: WalletMeta) async {
+        if !on {
+            guard let typed = await PassphraseGate.shared.ask(wallet, reason: String(localized: "Para deixar de pedir a passphrase nos envios de \(wallet.name), digite a passphrase. Depois vem o PIN.")) else { return }
+            defer { typed.wipe() }
+            let id = wallet.id
+            if let wait = PassphraseGate.shared.begin(session) {
+                toasts.show(wait)
+                return
+            }
+            do {
+                guard let matches = try await auth.perform(session, reason: String(localized: "Deixar de pedir a passphrase em \(wallet.name)"), presence: .pin, { rk in
+                    let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
+                    defer { secret.wipe() }
+                    return PassphraseGate.matches(secret.passphrase, typed)
+                }) else {
+                    PassphraseGate.shared.refund(session)
+                    return
+                }
+                guard matches else {
+                    PassphraseGate.shared.failed(session)
+                    toasts.show(PassphraseGate.mismatchMessage)
+                    return
+                }
+                PassphraseGate.shared.passed(session)
+            } catch {
+                toasts.show(AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível mudar agora."))
+                return
+            }
+        }
+        guard var updated = session.metadata.wallets.first(where: { $0.id == wallet.id }) else { return }
+        updated.passphraseToSend = on
+        session.update(updated)
     }
 
     private func rename(_ wallet: WalletMeta) {

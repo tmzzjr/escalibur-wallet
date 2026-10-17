@@ -11,9 +11,28 @@ import SwiftUI
 struct BitcoinCoin3D: UIViewRepresentable {
     let angle: Double
 
+    /// As tres fotos da moeda, decodificadas uma vez so: decodificar na hora em que a
+    /// tela do "So voce assina" aparecia travava a passagem do tour (visto no app de
+    /// verdade, 16/10/2026).
+    nonisolated private static let textures: [String: UIImage] = {
+        var out: [String: UIImage] = [:]
+        for name in ["bitcoin-borda", "bitcoin-frente", "bitcoin-verso"] {
+            guard let url = Bundle.main.url(forResource: name, withExtension: "jpg"), let image = UIImage(contentsOfFile: url.path) else { continue }
+            out[name] = image.preparingForDisplay() ?? image
+        }
+        return out
+    }()
+
+    /// Adianta o trabalho da moeda, fora da tela principal: chamado pela tela de antes.
+    static func preload() {
+        Task.detached(priority: .userInitiated) { _ = textures }
+    }
+
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView(frame: .zero)
         view.scene = Self.scene()
+        // Sobe as texturas e os shaders para a GPU antes do primeiro quadro.
+        if let scene = view.scene { view.prepare([scene], completionHandler: nil) }
         view.pointOfView = view.scene?.rootNode.childNode(withName: "camera", recursively: false)
         view.backgroundColor = .clear
         view.isOpaque = false
@@ -63,7 +82,7 @@ struct BitcoinCoin3D: UIViewRepresentable {
     private static func material(_ name: String, repeats: Int = 1) -> SCNMaterial {
         let material = SCNMaterial()
         material.lightingModel = .physicallyBased
-        material.diffuse.contents = Bundle.main.url(forResource: name, withExtension: "jpg").flatMap { UIImage(contentsOfFile: $0.path) }
+        material.diffuse.contents = textures[name]
         if repeats > 1 {
             material.diffuse.wrapS = .repeat
             material.diffuse.contentsTransform = SCNMatrix4MakeScale(Float(repeats), 1, 1)

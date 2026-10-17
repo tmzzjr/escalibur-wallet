@@ -136,7 +136,7 @@ struct CardanoDerivationTests {
         )
         let restored = SecureBytes(capacity: 32)
         restored.replaceAll(with: keep)
-        let signed = try Signer.sign(plan, rootKey: restored, vault: vault)
+        let signed = try Signer.sign(plan, rootKey: restored, vault: vault, passphrase: nil)
         let transaction = try #require(signed.first)
         let parsed = try CardanoSignedTransaction.parse(transaction.raw)
         #expect(parsed.signaturesVerify)
@@ -152,6 +152,6 @@ struct CardanoDerivationTests {
         )
         let again = SecureBytes(capacity: 32)
         again.replaceAll(with: keep)
-        #expect(throws: Signer.Failure.unexpectedKey) { try Signer.sign(wrong, rootKey: again, vault: vault) }
+        #expect(throws: Signer.Failure.unexpectedKey) { try Signer.sign(wrong, rootKey: again, vault: vault, passphrase: nil) }
     }
 }

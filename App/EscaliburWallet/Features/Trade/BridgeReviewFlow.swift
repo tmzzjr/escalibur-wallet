@@ -238,14 +238,38 @@ struct BridgeReviewFlow: View {
         }
         guard planMatches(plan, quote: quote) else { return }
         guard await VoiceGate.shared.confirm(.send(fiat: fiat), session: session) else { return }
+        // Carteira com passphrase: a passphrase antes do Face ID ou do PIN, conferida dentro
+        // do assinador (pedido do dono, 16/10/2026).
+        var typedPassphrase: SecureBytes?
+        if PassphraseGate.asks(session.metadata.wallets.first { $0.id == plan.walletID }),
+           let wallet = session.metadata.wallets.first(where: { $0.id == plan.walletID }) {
+            guard let typed = await PassphraseGate.shared.ask(wallet) else { return }
+            typedPassphrase = typed
+        }
+        defer { typedPassphrase?.wipe() }
+        let checkPassphrase = typedPassphrase
+        // A tentativa conta antes de o cofre conferir; com muitas erradas, espera.
+        if checkPassphrase != nil, let wait = PassphraseGate.shared.begin(session) {
+            self.error = wait
+            return
+        }
         let signed: [SignedTransaction]
         do {
             guard let result = try await auth.perform(session, reason: plan.review.title, { rk in
-                try Signer.sign(plan, rootKey: rk, vault: KeyServices.wallets)
-            }) else { return }
+                try Signer.sign(plan, rootKey: rk, vault: KeyServices.wallets, passphrase: checkPassphrase)
+            }) else {
+                if checkPassphrase != nil { PassphraseGate.shared.refund(session) }
+                return
+            }
             signed = result
+            // A passphrase confere (o assinador assinou): a conta zera, e o buffer sai ja.
+            if checkPassphrase != nil { PassphraseGate.shared.passed(session) }
+            checkPassphrase?.wipe()
         } catch {
-            self.error = AuthCoordinator.refusalMessage(error) ?? (error as? LocalizedError)?.errorDescription ?? String(localized: "A ponte não saiu. Nada foi debitado.")
+            checkPassphrase?.wipe()
+            if (error as? Signer.Failure) == .passphraseMismatch { PassphraseGate.shared.failed(session) }
+            self.error = (error as? Signer.Failure) == .passphraseMismatch ? PassphraseGate.mismatchMessage
+                : AuthCoordinator.refusalMessage(error) ?? (error as? LocalizedError)?.errorDescription ?? String(localized: "A ponte não saiu. Nada foi debitado.")
             stage = .review
             return
         }

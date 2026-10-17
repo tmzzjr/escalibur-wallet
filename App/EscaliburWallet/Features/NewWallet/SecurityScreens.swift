@@ -1,6 +1,7 @@
 import CryptoKit
 import LocalAuthentication
 import MachO
+import EscaliburCore
 import SwiftUI
 import UIKit
 
@@ -43,7 +44,7 @@ struct DeviceCheck: Identifiable, Equatable {
             Step(id: "injecao", title: String(localized: "Nenhum código injetado encontrado"), run: injection),
             Step(id: "depurador", title: String(localized: "Nenhum depurador conectado"), run: debugger),
             Step(id: "origem", title: String(localized: "Instalado pela App Store ou TestFlight"), run: origin),
-            Step(id: "tela", title: String(localized: "Tela sem gravação nem AirPlay"), run: screen),
+            Step(id: "tela", title: String(localized: "Tela sem gravação"), run: screen),
             Step(id: "teclado", title: String(localized: "Teclados de terceiros bloqueados"), run: keyboards),
             Step(id: "sistema", title: "iOS \(version.majorVersion).\(version.minorVersion)", run: system),
             Step(id: "copia", title: String(localized: "Nada copiado na área de transferência"), run: clipboard),
@@ -166,13 +167,13 @@ struct DeviceCheck: Identifiable, Equatable {
         // Tela externa sem espelhar (cabo ou AirPlay estendido) abre uma sessao propria.
         let external = UIApplication.shared.openSessions.contains { $0.role == .windowExternalDisplayNonInteractive }
         let captured = scenes.contains { $0.screen.isCaptured || $0.traitCollection.sceneCaptureState == .active } || external
-        // O Espelhamento do iPhone no Mac nao aparece para os apps (nao ha API, segundo o
-        // suporte da Apple): a linha diz o que confere, e o aviso, o que nao da para ver
-        // (auditoria 4, C7-06).
-        return .init(id: "tela", title: String(localized: "Tela sem gravação nem AirPlay"),
+        // Sem gravacao, a linha fica verde (pedido do dono, 16/10/2026). O Espelhamento do
+        // iPhone no Mac nao aparece para os apps (nao ha API, segundo o suporte da Apple): o
+        // aviso dele saiu da linha e virou a nota embaixo da lista (auditoria 4, C7-06).
+        return .init(id: "tela", title: String(localized: "Tela sem gravação"),
                      outcome: captured
-                        ? .fail(String(localized: "A tela está sendo gravada ou espelhada. Pare a gravação ou o AirPlay para seguir."))
-                        : .caution(String(localized: "O Espelhamento do iPhone no Mac não aparece para os apps. Não use o espelhamento para digitar as palavras.")))
+                        ? .fail(String(localized: "A tela está sendo gravada ou espelhada. Pare a gravação ou o espelhamento para seguir."))
+                        : .pass)
     }
 
     static func keyboards() -> DeviceCheck {
@@ -282,6 +283,13 @@ struct DeviceCheckView: View {
                     }
                 }
                 .padding(.top, Space.md)
+                // O que a checagem nao ve (auditoria 4, C7-06).
+                if finished {
+                    Text("O Espelhamento do iPhone no Mac não aparece para os apps. Não use o espelhamento para digitar as palavras.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, Space.sm)
+                }
                 // Uma checagem falhou e da para seguir: o dono declara, marcando, que sabe o que
                 // falhou e o que isso arrisca (pedido do dono, 16/10/2026).
                 if finished, !blocking.isEmpty, !screenBlocked {
@@ -330,6 +338,8 @@ struct DeviceCheckView: View {
 
     private func run() async {
         started = true
+        // Enquanto confere, as listas de palavras ficam prontas para a tela seguinte.
+        Task.detached(priority: .userInitiated) { WordLexicon.warmUp() }
         previous = Self.lastChecked
         checkedAt = nil
         acceptedRisk = false

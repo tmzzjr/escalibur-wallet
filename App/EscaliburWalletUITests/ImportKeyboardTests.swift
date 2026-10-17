@@ -63,6 +63,30 @@ final class ImportKeyboardTests: XCTestCase {
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), "o globo nao trouxe o teclado do iPhone")
     }
 
+    /// Tocar numa posicao ja preenchida abre a palavra para corrigir (visto no app de verdade,
+    /// 16/10/2026). Aberta, a posicao diz "editando".
+    func testTapPreviousSlotToEdit() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "frase", "-frase-topo", "-teclado-proprio"]
+        app.launch()
+        let first = app.otherElements["palavra-1"]
+        XCTAssertTrue(first.waitForExistence(timeout: 30))
+        first.tap()
+        XCTAssertTrue(app.buttons["teclado-a"].waitForExistence(timeout: 10))
+        for letter in "aban" { app.buttons["teclado-\(letter)"].tap() }
+        app.buttons["teclado-seguinte"].tap()
+        for letter in "abil" { app.buttons["teclado-\(letter)"].tap() }
+        app.buttons["teclado-seguinte"].tap()
+        let second = app.otherElements["palavra-2"]
+        let filled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Palavra 2, preenchida'"), object: second)
+        XCTAssertEqual(XCTWaiter.wait(for: [filled], timeout: 5), .completed)
+        first.tap()
+        let editing = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == 'editando'"), object: first)
+        let opened = XCTWaiter.wait(for: [editing], timeout: 5)
+        shot("k4-corrigir", app)
+        XCTAssertEqual(opened, .completed, "tocar na posicao anterior nao abriu a palavra para corrigir")
+    }
+
     func testWordCountPickerAndKeyboardInfo() {
         let app = XCUIApplication()
         app.launchArguments = ["-reset", "-demo", "-tela", "frase", "-frase-topo", "-teclado-proprio"]

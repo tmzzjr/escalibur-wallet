@@ -86,6 +86,12 @@ struct ConfirmPassphraseView: View {
             typed.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
             defer { copy.wipe() }
             let id = wallet.id
+            // A conferencia pelo cofre e uma porta de chute: conta na mesma espera das outras
+            // (revisao de seguranca de 16/10/2026).
+            if let wait = PassphraseGate.shared.begin(session) {
+                message = wait
+                return
+            }
             do {
                 // O PIN, nunca so o rosto: com o rosto do dono apresentado a forca, a conferencia
                 // viraria um chute de passphrase por Face ID.
@@ -96,7 +102,11 @@ struct ConfirmPassphraseView: View {
                     defer { a.wipe(); b.wipe() }
                     guard Hash.constantTimeEqual(a, b) else { return PassphraseCheck.mismatch }
                     return Hash.constantTimeEqual(a, secret.passphrase) ? PassphraseCheck.match : PassphraseCheck.legacy
-                }) else { return }
+                }) else {
+                    PassphraseGate.shared.refund(session)
+                    return
+                }
+                if result == .mismatch { PassphraseGate.shared.failed(session) } else { PassphraseGate.shared.passed(session) }
                 if result == .legacy {
                     message = HardenedEnableFlow.legacyPassphraseMessage(wallet.name)
                     return

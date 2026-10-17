@@ -92,6 +92,9 @@ struct WalletMeta: Codable, Equatable, Identifiable, Hashable {
     /// A passphrase digitada de novo pelo dono, de onde a anotou (auditoria 4, C7-02). So
     /// vale para a carteira com passphrase. Opcional para os metadados antigos abrirem.
     var passphraseConfirmedAt: Date?
+    /// Carteira com passphrase: pedir a passphrase antes de mover saldo (envio, troca,
+    /// ponte). Nil vale ligado, o padrao (pedido do dono, 16/10/2026). Ver `PassphraseGate`.
+    var passphraseToSend: Bool?
     /// Na importacao, a rede mostrou outra chave no controle da conta da Tron (o golpe da
     /// "frase com saldo"): o Receber da Tron nesta carteira fica fechado. O envio ja recusa
     /// pela leitura das permissoes (`TronSendEngine`). Opcional para os metadados antigos.
@@ -172,6 +175,10 @@ struct Settings: Codable, Equatable {
     var biometryEnabled = false
     var autoLockSeconds: Int = 60
     var voice = VoiceSettings()
+    /// Passphrases erradas, somadas entre todas as portas que conferem uma (enviar, ver,
+    /// criptografar, desligar o pedido, conferir a copia, criar a carteira), e a espera
+    /// depois delas (revisao de seguranca de 16/10/2026). Opcional para os metadados antigos.
+    var passphraseGuard: PassphraseGuard?
     var disabledChainIDs: Set<String> = []
     var mevProtection = true
     /// O teclado proprio para as palavras (`WordKeyboardView`). Nil: desligado, o padrao;
@@ -257,6 +264,30 @@ struct VoiceSettings: Codable, Equatable {
 
 /// Um envio sem a frase de voz: quando (relogio de parede e monotono, com o boot) e
 /// quanto, na moeda do limite.
+/// A conta de passphrases erradas e a espera, no relogio monotono como a da voz: adiantar a
+/// hora do iPhone nao encurta.
+struct PassphraseGuard: Codable, Equatable {
+    /// Tentativas sem acerto, contadas antes de cada conferencia: fechar o app no meio nao
+    /// apaga a tentativa.
+    var failures = 0
+    /// So para mostrar a hora; quem decide e o prazo monotono.
+    var lockedUntil: Date?
+    var lockUptimeDeadline: TimeInterval?
+    var lockBoot: String?
+
+    mutating func startLock(seconds: TimeInterval) {
+        lockedUntil = Date.now.addingTimeInterval(seconds)
+        lockUptimeDeadline = PINPolicy.uptime + seconds
+        lockBoot = Hex.encode(PINPolicy.bootSession)
+    }
+
+    mutating func clearLock() {
+        lockedUntil = nil
+        lockUptimeDeadline = nil
+        lockBoot = nil
+    }
+}
+
 struct VoiceSend: Codable, Equatable {
     let at: Date
     let uptime: TimeInterval

@@ -664,6 +664,7 @@ private struct PhraseSlot: View {
     var systemKeyboardType: UIKeyboardType = .asciiCapable
     let onSubmit: () -> Void
     @State private var holding = false
+    @State private var pressingSince: Date?
 
     /// Os glifos trocam num relogio de 12 Hz, o mesmo com ou sem tecla.
     private func glyphRow(_ glyphs: @escaping (UInt64) -> String, color: Color) -> some View {
@@ -676,46 +677,65 @@ private struct PhraseSlot: View {
         .allowsHitTesting(false)
     }
 
+    /// A palavra como aparece: a cifra da confirmada, a palavra enquanto o dedo segura, o
+    /// texto de exemplo, ou a cifra do que esta sendo digitado.
+    @ViewBuilder
+    private var visual: some View {
+        if text.isEmpty {
+            if holding {
+                Text(verbatim: word())
+                    .font(.system(size: 15, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Palette.ink).lineLimit(1).allowsHitTesting(false)
+            } else if let sealed {
+                glyphRow(sealed, color: Palette.inkSoft)
+            } else {
+                Text(verbatim: display ?? String(localized: "palavra"))
+                    .font(.system(size: 15, weight: .medium, design: .monospaced))
+                    .foregroundStyle(display == nil || isActive ? Palette.inkDead : Palette.ink)
+                    .lineLimit(1)
+                    .allowsHitTesting(false)
+            }
+        } else if let typing {
+            // O que esta sendo digitado, cifrado: o campo de verdade fica por baixo,
+            // invisivel, so com o cursor.
+            glyphRow(typing, color: Palette.inkSoft)
+        }
+    }
+
     var body: some View {
         HStack(spacing: Space.xs) {
             Text(String(format: "%02d", index + 1))
                 .font(.system(size: 13, weight: .semibold).monospacedDigit())
                 .foregroundStyle(isActive ? Palette.inkSoft : Palette.inkMuted)
             ZStack(alignment: .leading) {
-                if text.isEmpty {
-                    if holding {
-                        Text(verbatim: word())
-                            .font(.system(size: 15, weight: .medium, design: .monospaced))
-                            .foregroundStyle(Palette.ink).lineLimit(1).allowsHitTesting(false)
-                    } else if let sealed {
-                        glyphRow(sealed, color: Palette.inkSoft)
-                    } else {
-                        Text(verbatim: display ?? String(localized: "palavra"))
-                            .font(.system(size: 15, weight: .medium, design: .monospaced))
-                            .foregroundStyle(display == nil || isActive ? Palette.inkDead : Palette.ink)
-                            .lineLimit(1)
-                            .allowsHitTesting(false)
-                    }
-                } else if let typing {
-                    // O que esta sendo digitado, cifrado: o campo de verdade fica por baixo,
-                    // invisivel, so com o cursor.
-                    glyphRow(typing, color: Palette.inkSoft)
-                }
+                // So o desenho da palavra fica na camada contra captura, sem toque: o campo e
+                // os gestos de tocar e segurar ficam aqui fora. Com a posicao inteira la
+                // dentro, tocar numa palavra anterior nao abria para corrigir (visto no app de
+                // verdade, 16/10/2026).
+                visual
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .protectedFromCapture(interactive: false)
                 WordInputField(text: $text, isFocused: $isFocused, fontSize: 15, returnKey: .next, masked: typing != nil,
                                ownKeyboard: ownKeyboard, onSystemKeyboard: onSystemKeyboard, onKeyboardInfo: onKeyboardInfo,
                                languages: languages, systemKeyboardType: systemKeyboardType, onSubmit: onSubmit)
                 // Posicao preenchida e fora de edicao: segurar mostra a palavra enquanto
                 // o dedo esta em cima; tocar e soltar abre a posicao para corrigir.
                 if !isActive, display != nil {
+                    // Dois gestos simples: o combinado (segurar, com o toque como alternativa)
+                    // deixava o toque sem efeito, e a palavra nao abria para corrigir (visto no
+                    // app de verdade, 16/10/2026). Segurar mostra a palavra depois de um quarto
+                    // de segundo, so enquanto o dedo esta em cima.
                     Color.clear
                         .contentShape(Rectangle())
-                        .gesture(
-                            LongPressGesture(minimumDuration: 0.25)
-                                .sequenced(before: DragGesture(minimumDistance: 0))
-                                .onChanged { value in if case .second(true, _) = value { holding = true } }
-                                .onEnded { _ in holding = false }
-                                .exclusively(before: TapGesture().onEnded { isFocused = true })
-                        )
+                        .onTapGesture { isFocused = true }
+                        .onLongPressGesture(minimumDuration: 0.25, maximumDistance: 30, perform: {}, onPressingChanged: { pressing in
+                            pressingSince = pressing ? Date() : nil
+                            if !pressing { holding = false; return }
+                            Task {
+                                try? await Task.sleep(for: .milliseconds(250))
+                                if pressingSince != nil { holding = true }
+                            }
+                        })
                 }
             }
         }
@@ -731,11 +751,8 @@ private struct PhraseSlot: View {
         .onTapGesture { isFocused = true }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(display == nil ? "Palavra \(index + 1), vazia" : "Palavra \(index + 1), preenchida")
+        .accessibilityValue(isActive ? String(localized: "editando") : "")
         .accessibilityIdentifier("palavra-\(index + 1)")
-        // A posicao inteira fora da captura: a palavra, a cifra viva e o que esta sendo
-        // digitado. Inteira, para o toque e o segurar continuarem num SwiftUI so; o `.id`
-        // fica na grade, aqui fora, para a rolagem achar a posicao.
-        .protectedFromCapture()
     }
 }
 

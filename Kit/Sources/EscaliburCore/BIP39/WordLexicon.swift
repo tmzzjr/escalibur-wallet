@@ -20,6 +20,18 @@ public enum WordLexicon {
         public let language: BIP39Language
     }
 
+    /// Monta as listas e os indices de uma vez, fora da tela principal: a primeira tela de
+    /// digitar as palavras travava montando tudo na hora (visto no app de verdade,
+    /// 16/10/2026). A checagem do aparelho chama enquanto confere.
+    public static func warmUp() {
+        _ = entries
+        _ = byLanguage
+        _ = wordSets
+        _ = foldedIndex
+        _ = foldedPositions
+        _ = nfkdWords
+    }
+
     public static let latin: [BIP39Language] = [.english, .portuguese, .spanish, .french, .italian, .czech]
     public static let others: [BIP39Language] = [.japanese, .korean, .chineseSimplified, .chineseTraditional]
 

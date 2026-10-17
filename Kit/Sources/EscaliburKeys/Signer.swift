@@ -23,16 +23,34 @@ public enum Signer {
         /// assinatura defeituosa pode entregar a chave; ela nunca sai daqui.
         case verificationFailed
         case unsupportedScheme(SignatureScheme)
+        /// A passphrase digitada nao e a da carteira (carteira com passphrase e "pedir a
+        /// passphrase para enviar"). Nada foi assinado.
+        case passphraseMismatch
     }
 
     /// Assina todas as transacoes do plano, na ordem. Consome e zera a RK.
-    public static func sign(_ plan: SigningPlan, rootKey rk: SecureBytes, vault: WalletVault) throws -> [SignedTransaction] {
+    ///
+    /// `passphrase`: a passphrase que o dono acabou de digitar, numa carteira com
+    /// passphrase que pede a passphrase para enviar (pedido do dono, 16/10/2026). Ela e
+    /// conferida com a do cofre, as duas em NFKD e em tempo constante, antes de nascer
+    /// qualquer chave; nao confere, nada e assinado. O chamador continua dono do buffer.
+    /// Sem valor padrao: cada chamador diz se pede a passphrase (nil so quando a carteira nao
+    /// pede), e um chamador novo nao fura a regra esquecendo o parametro (revisao de 16/10/2026).
+    public static func sign(_ plan: SigningPlan, rootKey rk: SecureBytes, vault: WalletVault,
+                            passphrase typed: SecureBytes?) throws -> [SignedTransaction] {
         defer { rk.wipe() }
         guard !plan.isExpired() else { throw Failure.expired }
 
         let secret = try vault.open(walletID: plan.walletID, rk: rk)
         rk.wipe()
         defer { secret.wipe() }
+        if let typed {
+            // As duas em NFKD, como a conferencia da passphrase (ConfirmPassphraseView): a do
+            // cofre ja e NFKD desde a criacao, a digitada vem do teclado em NFC.
+            let stored = BIP39.nfkd(secret.passphrase), given = BIP39.nfkd(typed)
+            defer { stored.wipe(); given.wipe() }
+            guard stored.count > 0, Hash.constantTimeEqual(stored, given) else { throw Failure.passphraseMismatch }
+        }
         // Cardano: a mestra Icarus sai da entropia (CIP-3), antes de o segredo ser zerado.
         let cardano = try CardanoSigning.master(for: plan, secret: secret)
         defer { cardano?.wipe() }

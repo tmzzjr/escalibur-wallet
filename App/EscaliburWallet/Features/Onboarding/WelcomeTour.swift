@@ -43,6 +43,15 @@ struct WelcomeTour: View {
                 .tag(1)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
+            // Na primeira tela, uma moeda invisivel de um ponto: o iOS monta o desenho 3D e os
+            // shaders enquanto o dono le, e a passagem para o "So voce assina" nao trava.
+            .background {
+                if page == 0 {
+                    BitcoinCoin3D(angle: 0).frame(width: 1, height: 1).opacity(0.01)
+                        .allowsHitTesting(false).accessibilityHidden(true)
+                }
+            }
+            .task { BitcoinCoin3D.preload() }
 
             PageMarks(count: Self.pages, current: page)
                 .padding(.vertical, Space.md)

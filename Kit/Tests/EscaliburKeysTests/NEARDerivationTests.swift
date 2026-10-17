@@ -84,7 +84,7 @@ struct NEARDerivationTests {
         )
         let restored = SecureBytes(capacity: 32)
         restored.replaceAll(with: keep)
-        let signed = try #require(try Signer.sign(plan, rootKey: restored, vault: vault).first)
+        let signed = try #require(try Signer.sign(plan, rootKey: restored, vault: vault, passphrase: nil).first)
         let parsed = try NEARSignedTransaction.parse(signed)
         #expect(parsed.fields.signer.text == account.address && parsed.fields.receiver.text == "madturk.near")
         #expect(parsed.fields.nonce == 217_000_000_000_005 && parsed.fields.deposit == NEARRules.oneNEAR)
@@ -98,6 +98,6 @@ struct NEARDerivationTests {
         )
         let again = SecureBytes(capacity: 32)
         again.replaceAll(with: keep)
-        #expect(throws: Signer.Failure.unexpectedKey) { try Signer.sign(wrong, rootKey: again, vault: vault) }
+        #expect(throws: Signer.Failure.unexpectedKey) { try Signer.sign(wrong, rootKey: again, vault: vault, passphrase: nil) }
     }
 }

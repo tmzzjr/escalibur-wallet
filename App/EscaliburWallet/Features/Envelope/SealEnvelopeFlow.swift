@@ -466,20 +466,46 @@ struct SealEnvelopeFlow: View {
         do {
             try AuthCoordinator.checkPINAndBiometry()
             guard await VoiceGate.shared.confirm(.envelope, session: session) else { return }
-            let result: (SecureBytes, SecureBytes)? = try await auth.perform(session, reason: String(localized: "Lacrar a senha de \(wallet.name) num envelope"), presence: .pinAndBiometry) { rk in
+            // O envelope leva a passphrase junto: na carteira que pede a passphrase, ela so sai
+            // depois de digitada e conferida no cofre. Sem isso, quem tem o PIN e o rosto
+            // exportava as duas (revisao de seguranca de 16/10/2026).
+            let current = session.metadata.wallets.first { $0.id == id } ?? wallet
+            var typed: SecureBytes?
+            if PassphraseGate.asks(current) {
+                guard let given = await PassphraseGate.shared.ask(current, reason: String(localized: "O envelope de \(current.name) leva a passphrase junto. Digite a passphrase para seguir; depois vem a confirmação de sempre.")) else { return }
+                typed = given
+                if let wait = PassphraseGate.shared.begin(session) {
+                    self.error = wait
+                    given.wipe()
+                    return
+                }
+            }
+            defer { typed?.wipe() }
+            let check = typed
+            let opened: (SecureBytes, SecureBytes)? = try await auth.perform(session, reason: String(localized: "Lacrar a senha de \(wallet.name) num envelope"), presence: .pinAndBiometry) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }
+                if let check, !PassphraseGate.matches(secret.passphrase, check) { throw Signer.Failure.passphraseMismatch }
                 let phrase = try secret.phrase()
                 let passphrase = SecureBytes(capacity: max(secret.passphrase.count, 1))
                 secret.passphrase.withUnsafeBytes { passphrase.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
                 return (phrase, passphrase)
             }
-            guard let result else { return }
+            guard let result = opened else {
+                if check != nil { PassphraseGate.shared.refund(session) }
+                return
+            }
+            if check != nil { PassphraseGate.shared.passed(session) }
             phrase = result.0
             passphrase = result.1
             label = wallet.name
             step = .create
         } catch {
+            if (error as? Signer.Failure) == .passphraseMismatch {
+                PassphraseGate.shared.failed(session)
+                self.error = PassphraseGate.mismatchMessage
+                return
+            }
             self.error = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível abrir a carteira agora.")
         }
     }

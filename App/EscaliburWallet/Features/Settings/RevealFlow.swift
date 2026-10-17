@@ -141,9 +141,26 @@ struct RevealFlow: View {
             // A espera do A1 antes da frase de voz: nada de pedir a voz para ouvir "espere".
             try AuthCoordinator.checkPINAndBiometry()
             guard await VoiceGate.shared.confirm(.reveal, session: session) else { return }
+            // Na carteira que pede a passphrase, ela so aparece depois de digitada e conferida
+            // no cofre: sem isso, quem tem o PIN e o rosto lia a passphrase aqui (revisao de
+            // seguranca de 16/10/2026).
+            let current = session.metadata.wallets.first { $0.id == id } ?? wallet
+            var typed: SecureBytes?
+            if PassphraseGate.asks(current) {
+                guard let given = await PassphraseGate.shared.ask(current, reason: String(localized: "\(current.name) mostra as palavras e a passphrase. Digite a passphrase para seguir; depois vem a confirmação de sempre.")) else { return }
+                typed = given
+                if let wait = PassphraseGate.shared.begin(session) {
+                    self.error = wait
+                    given.wipe()
+                    return
+                }
+            }
+            defer { typed?.wipe() }
+            let check = typed
             let result: (SecureBytes, SecureBytes?)? = try await auth.perform(session, reason: String(localized: "Ver a senha de \(wallet.name)"), presence: .pinAndBiometry) { rk in
                 let secret = try KeyServices.wallets.open(walletID: id, rk: rk)
                 defer { secret.wipe() }
+                if let check, !PassphraseGate.matches(secret.passphrase, check) { throw Signer.Failure.passphraseMismatch }
                 var pass: SecureBytes?
                 if secret.passphrase.count > 0 {
                     let copy = SecureBytes(capacity: secret.passphrase.count)
@@ -152,11 +169,20 @@ struct RevealFlow: View {
                 }
                 return (try secret.phrase(), pass)
             }
-            guard let (phrase, pass) = result else { return }
+            guard let (phrase, pass) = result else {
+                if check != nil { PassphraseGate.shared.refund(session) }
+                return
+            }
+            if check != nil { PassphraseGate.shared.passed(session) }
             let words = phrase.withUnsafeBytes { raw in raw.filter { $0 == 0x20 }.count + 1 }
             passphrase = pass
             draft = PhraseDraft(phrase: phrase, wordCount: words)
         } catch {
+            if (error as? Signer.Failure) == .passphraseMismatch {
+                PassphraseGate.shared.failed(session)
+                self.error = PassphraseGate.mismatchMessage
+                return
+            }
             self.error = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível abrir a carteira agora.")
         }
     }

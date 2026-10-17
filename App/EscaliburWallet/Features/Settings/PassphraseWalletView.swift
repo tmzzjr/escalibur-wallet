@@ -11,6 +11,7 @@ struct PassphraseWalletView: View {
 
     @State private var checking = false
     @State private var entering = false
+    @State private var howItWorks = false
     /// A carteira abriu: as duas telas de cima saem sem animacao e esta sai ao reaparecer.
     @State private var opened = false
 
@@ -32,12 +33,21 @@ struct PassphraseWalletView: View {
                 }
                 .multilineTextAlignment(.center)
                 .padding(.top, Space.md)
+                // O passo a passo com animacao (pedido do dono, 16/10/2026).
+                Button { howItWorks = true } label: {
+                    Label("Como funciona", systemImage: "play.circle").typeStyle(.label).foregroundStyle(Palette.ink)
+                        .padding(.horizontal, Space.sm).frame(height: 34)
+                        .background(Capsule(style: .continuous).fill(Palette.rail))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, Space.md)
+                .accessibilityIdentifier("passphrase-como-funciona")
 
                 VStack(alignment: .leading, spacing: Space.md) {
-                    PassphrasePoint(icon: "eye.slash", text: String(localized: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não esta. Dentro deste app, quem tem o PIN vê as duas na lista de carteiras."))
-                    PassphrasePoint(icon: "pencil.and.list.clipboard", text: String(localized: "Anote a passphrase longe das \(wordCount). Para abrir esta carteira em outro aparelho, você vai precisar das duas."))
+                    PassphrasePoint(icon: "eye.slash", text: String(localized: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não a da passphrase. Dentro deste app, quem tem o PIN vê as duas na lista de carteiras."))
+                    PassphrasePoint(icon: "pencil.and.list.clipboard", text: String(localized: "Anote a passphrase longe das \(wordCount). Para abrir a carteira com passphrase em outro aparelho, você vai precisar das duas."))
                     // Na mesma cor dos outros pontos (pedido do dono, 16/10/2026).
-                    PassphrasePoint(icon: "exclamationmark.triangle", text: String(localized: "Esquecer a passphrase é perder o acesso a esta carteira. Ninguém recupera, nem a Escalibur."))
+                    PassphrasePoint(icon: "exclamationmark.triangle", text: String(localized: "Esquecer a passphrase é perder o acesso à carteira com passphrase. Ninguém recupera, nem a Escalibur."))
                 }
                 .padding(Space.base)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -56,6 +66,7 @@ struct PassphraseWalletView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { if opened { dismiss() } }
+        .sheet(isPresented: $howItWorks) { PassphraseHowItWorks() }
         .navigationDestination(isPresented: $checking) {
             DeviceCheckView(slideTitle: String(localized: "Deslize para digitar a passphrase"),
                             consent: String(localized: "Estou ciente de que este iPhone falhou na verificação de integridade e de que digitar a passphrase aqui pode expor a carteira. Quero seguir mesmo assim.")) {
@@ -177,6 +188,13 @@ struct PassphraseEntryView: View {
             message = String(localized: "A passphrase tem um caractere invisível ou um espaço diferente do espaço comum. Escreva de novo, só com letras, números, símbolos e espaço comum: é o que dá para anotar no papel.")
             return
         }
+        // Criar e uma porta de chute: a passphrase certa reabre a carteira que ja existe, e o
+        // app diz isso. Toda criacao conta na mesma espera das outras portas e nunca zera a
+        // conta (revisao de seguranca de 16/10/2026).
+        if let wait = PassphraseGate.shared.begin(session) {
+            message = wait
+            return
+        }
         working = true
         defer { working = false }
         // O cofre fica com uma copia: os campos continuam donos dos seus buffers.
@@ -189,7 +207,11 @@ struct PassphraseEntryView: View {
         do {
             guard let opened = try await auth.retrying(reason: String(localized: "Abrir a carteira com passphrase"), { credential in
                 try await session.addPassphraseWallet(base: base, passphrase: copy, name: walletName, credential: credential)
-            }) else { return }
+            }) else {
+                PassphraseGate.shared.refund(session)
+                return
+            }
+            PassphraseGate.shared.failed(session)
             passphrase.wipe()
             again.wipe()
             // A mesma frase com a mesma passphrase e a mesma carteira: ela ja estava aqui.

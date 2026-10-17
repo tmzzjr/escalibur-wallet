@@ -406,6 +406,16 @@ Regras:
 
 ---
 
+### 2.11 Carteira com passphrase: pedir a passphrase (16/10/2026)
+
+"Pedir a passphrase para enviar" vem ligado em toda carteira com passphrase (`WalletMeta.passphraseToSend`, nil vale ligado). Contra quem tem o PIN, ou o PIN e o rosto do dono, a passphrase é o fator que falta.
+
+- **Mover saldo.** Envio, troca e ponte pedem a passphrase antes do Face ID ou do PIN (`PassphraseGate`). Cancelar uma ordem não move saldo e não pede. A digitada vai para `Signer.sign(passphrase:)`, que a compara com a do cofre, as duas em NFKD e em tempo constante, antes de nascer qualquer chave: errada, nada é assinado. O parâmetro não tem valor padrão: cada chamador diz se pede.
+- **Ver a senha e criptografar.** Mostram a passphrase só depois de ela ser digitada e conferida dentro do mesmo fechamento do cofre. Sem isso, quem tem o PIN e o rosto lia ou exportava a passphrase.
+- **Desligar.** Pede a passphrase e o PIN (nunca só o rosto), conferidos no cofre. Ligar é livre.
+- **Chute.** Uma conta única de passphrases erradas para todas as portas que conferem uma (mover saldo, ver, criptografar, desligar, conferir a cópia, criar a carteira com passphrase, que reconhece a carteira que já existe). A tentativa é gravada antes da conferência; acertar zera; cancelar o PIN antes de o cofre abrir devolve a tentativa. Depois de 5 erros, espera de 1 minuto que dobra a cada erro, até 24 horas, no relógio monótono, como a da voz. Criar nunca zera a conta.
+- **Limite.** Quem tem o PIN e o rosto ainda vê as palavras da carteira de sempre, e com elas pode tentar a passphrase fora do aparelho, em PBKDF2-SHA512 de 2048 rodadas: uma passphrase curta cai, uma de 5 palavras sorteadas não. A tela de criar diz para anotar longe das palavras; um medidor de força da passphrase é o próximo passo.
+
 ## 3. Voz
 
 **Avaliação**
