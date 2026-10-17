@@ -396,4 +396,26 @@ struct TradeValidationTests {
         #expect(anchoredLow.map(\.expectedOut).contains(velora.expectedOut))
         #expect(anchoredLow.allSatisfy { $0.guaranteedOut + 2 >= intent.minimumOut(forExpected: max(velora.expectedOut, low.expectedOut)) })
     }
+
+    @Test("Velora com o sufixo ERC-8021 (builder code da Base): o sufixo sai, a calldata decodificada e a assinada")
+    func veloraAttributionSuffix() throws {
+        let intent = try S.baseIntent()
+        let base = try S.proposal(.velora, "velora-base-usdc-eth")
+        // O sufixo como veio ao vivo em 17/10/2026: "bc_hm64q4jm", 11 bytes, esquema 0, 0x8021 x 8.
+        let marker: [UInt8] = (0..<16).map { $0 % 2 == 0 ? 0x80 : 0x21 }
+        let suffix: [UInt8] = Array("bc_hm64q4jm".utf8) + [0x0b, 0x00] + marker
+        let quote = try TradeValidator.validate(S.with(base, data: base.data + suffix), intent: intent, now: S.recordedAt)
+        #expect(quote.data == base.data, "a calldata validada tem de ser a sem o sufixo")
+        // Outro esquema, codigo com maiuscula ou sobra fora do formato: recusa, como antes.
+        var otherSchema = suffix
+        otherSchema[12] = 0x01
+        #expect(throws: TradeRefusal.self) { try TradeValidator.validate(S.with(base, data: base.data + otherSchema), intent: intent, now: S.recordedAt) }
+        let upper = Array("BC_HM64Q4JM".utf8) + Array(suffix.dropFirst(11))
+        #expect(throws: TradeRefusal.self) { try TradeValidator.validate(S.with(base, data: base.data + upper), intent: intent, now: S.recordedAt) }
+        #expect(throws: TradeRefusal.self) { try TradeValidator.validate(S.with(base, data: base.data + [0x01, 0x02, 0x03]), intent: intent, now: S.recordedAt) }
+        // So na Velora: o mesmo sufixo noutro provedor continua sobra.
+        let kyber = try S.proposal(.kyberSwap, "kyber-base-usdc-eth-build")
+        #expect(throws: TradeRefusal.self) { try TradeValidator.validate(S.with(kyber, data: kyber.data + suffix), intent: intent, now: S.recordedAt) }
+    }
 }
+

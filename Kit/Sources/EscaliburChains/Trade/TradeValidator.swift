@@ -212,8 +212,21 @@ public enum TradeValidator {
     static let roundingSlack = BigUInt(2)
 
     public static func validate(
-        _ proposal: TradeProposal, intent: TradeIntent, market: TradeMarketReference = .none, now: Date = .now
+        _ received: TradeProposal, intent: TradeIntent, market: TradeMarketReference = .none, now: Date = .now
     ) throws -> ValidatedTradeQuote {
+        // A Velora passou a pôr no fim da calldata o sufixo de atribuicao ERC-8021 (o
+        // "builder code" da Base, visto ao vivo em 17/10/2026), e a decodificacao estrita
+        // recusava a cotacao inteira. O sufixo sai aqui, so no formato exato; o que a
+        // carteira assina e o resto, que ela decodificou inteiro. Lixo em outro formato
+        // continua recusado como sobra.
+        var proposal = received
+        if received.provider == .velora, let stripped = ERC8021.stripped(received.data) {
+            proposal = TradeProposal(
+                provider: received.provider, chainID: received.chainID, from: received.from, to: received.to, value: received.value,
+                data: stripped, expectedOut: received.expectedOut, spender: received.spender, gasEstimate: received.gasEstimate,
+                routeSources: received.routeSources, reportedPriceImpactBps: received.reportedPriceImpactBps
+            )
+        }
         let chain = intent.chain
         guard let chainID = chain.evmChainID else { throw TradeRefusal.notEVMChain }
         if let declared = proposal.chainID, declared != chainID { throw TradeRefusal.chainIDMismatch }
@@ -363,3 +376,26 @@ enum TradeMath {
         return -Int(min(bps.uint64 ?? 1_000_000, 1_000_000))
     }
 }
+
+/// O sufixo de atribuicao da ERC-8021 no fim de uma calldata:
+/// `codigos || tamanho (1 byte) || esquema (1 byte, 0) || 0x8021 x 8 (16 bytes)`. O contrato
+/// nao le esses bytes; eles so dizem quem montou a transacao.
+enum ERC8021 {
+    static let marker: [UInt8] = (0..<16).map { $0 % 2 == 0 ? 0x80 : 0x21 }
+
+    /// A calldata sem o sufixo, se ele esta la no formato exato: esquema 0, codigos curtos em
+    /// ASCII (letras minusculas, numeros, `_` e `,`), e o que sobra alinhado como ABI
+    /// (seletor e palavras de 32 bytes). Senao, nil.
+    static func stripped(_ data: [UInt8]) -> [UInt8]? {
+        guard data.count > 4 + 18, Array(data.suffix(16)) == marker else { return nil }
+        let schema = data[data.count - 17]
+        let length = Int(data[data.count - 18])
+        guard schema == 0, (1...64).contains(length), data.count >= 4 + 18 + length else { return nil }
+        let codes = data[(data.count - 18 - length)..<(data.count - 18)]
+        guard codes.allSatisfy({ ($0 >= 0x61 && $0 <= 0x7a) || ($0 >= 0x30 && $0 <= 0x39) || $0 == 0x5f || $0 == 0x2c }) else { return nil }
+        let rest = Array(data.prefix(data.count - 18 - length))
+        guard (rest.count - 4) % 32 == 0 else { return nil }
+        return rest
+    }
+}
+
