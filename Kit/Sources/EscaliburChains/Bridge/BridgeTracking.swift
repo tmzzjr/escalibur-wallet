@@ -32,6 +32,9 @@ public struct BridgeRecord: Codable, Sendable, Equatable, Identifiable {
     public let outputAmount: String?
     public let quoteTimestamp: UInt32?
     public let fillDeadline: UInt32?
+    /// Legacy Mesh: a conta Tron que recebe (base58) e a taxa de mensagem assinada.
+    public let tronRecipient: String?
+    public let messageFee: String?
     public let depositTxHash: String
     public let createdAt: Date
     public var state: State
@@ -49,6 +52,7 @@ public struct BridgeRecord: Codable, Sendable, Equatable, Identifiable {
         owner = quote.intent.owner.checksummed
         amount = quote.intent.amount.decimalString
         minimumReceived = quote.minimumReceived.decimalString
+        tronRecipient = quote.intent.tronRecipient?.base58
         switch quote.call {
         case .cctp(let transfer):
             maxFee = transfer.maxFee.decimalString
@@ -56,12 +60,21 @@ public struct BridgeRecord: Codable, Sendable, Equatable, Identifiable {
             outputAmount = nil
             quoteTimestamp = nil
             fillDeadline = nil
+            messageFee = nil
         case .across(let transfer):
             maxFee = nil
             finality = nil
             outputAmount = transfer.outputAmount.decimalString
             quoteTimestamp = transfer.quoteTimestamp
             fillDeadline = transfer.fillDeadline
+            messageFee = nil
+        case .mesh(let transfer):
+            maxFee = nil
+            finality = nil
+            outputAmount = nil
+            quoteTimestamp = nil
+            fillDeadline = nil
+            messageFee = transfer.nativeFee.decimalString
         }
         self.depositTxHash = depositTxHash.lowercased()
         createdAt = now
@@ -81,6 +94,17 @@ public struct BridgeRecord: Codable, Sendable, Equatable, Identifiable {
                             recipient: owner, amount: amount, maxFee: maxFee, finality: finality)
     }
 
+    /// O envio para a Tron como foi assinado.
+    public var meshTransfer: MeshTransfer? {
+        guard route == .usdt0, let from, let source = from.mesh, let owner = ownerAddress,
+              let recipient = tronRecipient.flatMap(TronAddress.init(base58:)),
+              let amount = BigUInt(decimal: amount), let minimum = BigUInt(decimal: minimumReceived),
+              let fee = messageFee.flatMap(BigUInt.init(decimal:))
+        else { return nil }
+        return MeshTransfer(sourceChainID: source.chainID, oft: source.oft, owner: owner, recipient: recipient, amount: amount,
+                            minimumReceived: minimum, nativeFee: fee)
+    }
+
     /// O deposito como foi assinado.
     public var acrossTransfer: AcrossTransfer? {
         guard route == .across, let from, let to, let fromAcross = from.across, let toAcross = to.across, let owner = ownerAddress,
@@ -97,6 +121,51 @@ public struct BridgeRecord: Codable, Sendable, Equatable, Identifiable {
 }
 
 public enum BridgeArrival {
+    // MARK: Legacy Mesh (Tron)
+
+    /// `OFTReceived(bytes32 indexed guid, uint32 srcEid, address indexed toAddress, uint256 amountReceivedLD)`.
+    public static let oftReceivedTopic = Hash.keccak256(Array("OFTReceived(bytes32,uint32,address,uint256)".utf8))
+
+    /// O `guid` da mensagem do envio para a Tron, lido do OFTSent do proprio recibo do envio na
+    /// origem (`logs` de dois RPCs concordando), com os campos que o dono assinou. nil: o recibo
+    /// nao tem este envio.
+    public static func meshGUID(_ logs: [TradeSimulatedLog], transfer: MeshTransfer) -> [UInt8]? {
+        for log in logs {
+            guard log.address == transfer.oft, log.topics.count == 3, log.topics[0] == USDT0Mesh.oftSentTopic,
+                  log.topics[2] == CCTPMessage.word(transfer.owner), log.data.count == 96,
+                  BigUInt(bigEndian: Array(log.data[0..<32])) == BigUInt(USDT0Mesh.tronEID),
+                  BigUInt(bigEndian: Array(log.data[32..<64])) == transfer.amount,
+                  BigUInt(bigEndian: Array(log.data[64..<96])) >= transfer.minimumReceived
+            else { continue }
+            return log.topics[1]
+        }
+        return nil
+    }
+
+    /// A entrega na Tron: o OFTReceived do UsdtOFT da Tron com este `guid`, para a conta Tron
+    /// do dono, vindo da rede de origem, e o Transfer do USDT da Tron do UsdtOFT para a mesma
+    /// conta, com o mesmo valor, pelo menos o minimo assinado. Devolve o valor entregue.
+    public static func meshDelivered(_ logs: [TradeSimulatedLog], transfer: MeshTransfer, guid: [UInt8], sourceEID: UInt32) -> BigUInt? {
+        let oft = EVMAddress(uncheckedBytes: USDT0Mesh.tronOFT.account20)
+        let usdt = EVMAddress(uncheckedBytes: USDT0Mesh.tronUSDT.account20)
+        let recipient = USDT0Mesh.recipientWord(transfer.recipient)
+        var received: BigUInt?
+        for log in logs where log.address == oft {
+            guard log.topics.count == 3, log.topics[0] == oftReceivedTopic, log.topics[1] == guid else { continue }
+            guard log.topics[2] == recipient, log.data.count == 64,
+                  BigUInt(bigEndian: Array(log.data[0..<32])) == BigUInt(sourceEID)
+            else { return nil }
+            received = BigUInt(bigEndian: Array(log.data[32..<64]))
+        }
+        guard let received, received >= transfer.minimumReceived, received <= transfer.amount else { return nil }
+        let paid = logs.contains { log in
+            guard log.address == usdt, let paid = TradeSimulationCheck.parseTransfer(log) else { return false }
+            return paid.from == oft && USDT0Mesh.recipientWord(TronAddress(account20: paid.to.bytes) ?? USDT0Mesh.tronOFT) == recipient
+                && paid.value == received
+        }
+        return paid ? received : nil
+    }
+
     public static let filledRelayTopic = Hash.keccak256(Array(
         "FilledRelay(bytes32,bytes32,uint256,uint256,uint256,uint256,uint256,uint32,uint32,bytes32,bytes32,bytes32,bytes32,bytes32,(bytes32,bytes32,uint256,uint8))".utf8))
     static let filledRelayData = try! ABIFunction(

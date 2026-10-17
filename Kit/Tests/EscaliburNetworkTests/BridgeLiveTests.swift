@@ -40,7 +40,7 @@ struct BridgeLiveTests {
             destinationLocalToken: state.destinationLocalToken, destinationBlacklisted: state.destinationBlacklisted,
             ownerHasCodeAtDestination: state.ownerHasCodeAtDestination, simulations: state.simulations,
             approveL1DataFee: state.approveL1DataFee, depositL1DataFee: state.depositL1DataFee,
-            approveL1Gas: state.approveL1Gas, depositL1Gas: state.depositL1Gas
+            approveL1Gas: state.approveL1Gas, depositL1Gas: state.depositL1Gas, mesh: state.mesh
         )
     }
 

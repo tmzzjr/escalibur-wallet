@@ -3,8 +3,8 @@ import EscaliburCore
 import EscaliburNetwork
 import Foundation
 
-/// Ponte entre redes EVM: USDC pelo CCTP V2 da Circle, ETH e USDT pelo Across
-/// (docs/seguranca.md 4.12).
+/// Ponte entre redes EVM: USDC pelo CCTP V2 da Circle, ETH e USDT pelo Across; e USDT da
+/// Ethereum e da Arbitrum para a Tron pela Legacy Mesh da Tether (docs/seguranca.md 4.12).
 ///
 /// - **Cotacao**: a taxa vem da Iris ou da API do Across, sem endereco do dono; o
 ///   `BridgeValidator` monta a calldata e aplica os tetos compilados.
@@ -22,23 +22,29 @@ public struct BridgeEngine: Sendable {
     let state: TradeStateReader
     let reader: EVMReader
     let market: MarketService
+    let tron: TronReader
 
     public static let shared = BridgeEngine()
 
     public init() {
-        self.init(iris: CircleIrisClient(), across: AcrossClient(), state: TradeStateReader(), reader: .shared, market: .shared)
+        self.init(iris: CircleIrisClient(), across: AcrossClient(), state: TradeStateReader(), reader: .shared, market: .shared, tron: .shared)
     }
 
-    init(iris: CircleIrisClient, across: AcrossClient, state: TradeStateReader, reader: EVMReader, market: MarketService) {
+    init(iris: CircleIrisClient, across: AcrossClient, state: TradeStateReader, reader: EVMReader, market: MarketService,
+         tron: TronReader = .shared) {
         self.iris = iris
         self.across = across
         self.state = state
         self.reader = reader
         self.market = market
+        self.tron = tron
     }
 
     /// As redes da ponte na v1.
     public static var chains: [Chain] { BridgeAllowlist.chains.map(\.chain) }
+
+    /// Os destinos: as redes de origem e a Tron (so USDT, pela Legacy Mesh da Tether).
+    public static var destinations: [Chain] { BridgeAllowlist.destinations.map(\.chain) }
 
     /// O que a ponte move de `from` para `to`.
     public static func assets(from: Chain, to: Chain) -> [BridgeAsset] {
@@ -53,6 +59,13 @@ public struct BridgeEngine: Sendable {
     /// e a recomendada.
     public func quotes(_ intent: BridgeIntent, now: Date = .now) async throws -> [ValidatedBridgeQuote] {
         do {
+            if BridgeAsset.usesMesh(intent.asset, from: intent.from, to: intent.to) {
+                // Tudo do proprio contrato da Tether, em duas fontes; o preco do ETH so diz
+                // quanto a taxa de mensagem pesa no valor.
+                async let read = state.readMesh(intent: intent)
+                async let price = intent.from.nativeETH ? usdPrice(.eth) : nil
+                return [try BridgeValidator.mesh(intent, quote: try await read, nativeUSDPrice: await price, now: now)]
+            }
             if BridgeAsset.usesCCTP(intent.asset, from: intent.from, to: intent.to), let source = intent.from.cctp, let destination = intent.to.cctp {
                 async let fees = iris.fees(sourceDomain: source.domain, destinationDomain: destination.domain)
                 async let allowance = try? iris.fastAllowance()
@@ -101,8 +114,21 @@ public struct BridgeEngine: Sendable {
         do {
             let chain = quote.intent.from.chain
             let owner = try EVMEngineSupport.account(account, chain: chain)
-            let receiver = try EVMEngineSupport.account(destination, chain: quote.intent.to.chain)
-            guard owner.address == quote.intent.owner, receiver.address == quote.intent.owner else { throw BridgeRefusal.ownerMismatch }
+            guard owner.address == quote.intent.owner else { throw BridgeRefusal.ownerMismatch }
+            if let recipient = quote.intent.tronRecipient {
+                // Na Tron, quem recebe e a conta Tron desta carteira, e so com a chave dela no
+                // controle: com outra chave nas permissoes, o USDT chegaria e nao sairia.
+                guard destination.chainID == Chain.tron.id, TronAddress(base58: destination.address) == recipient else {
+                    throw BridgeRefusal.ownerMismatch
+                }
+                switch try await tron.ownerControl(owner: recipient).verdict {
+                case .soleOwner, .notActivated: break
+                case .compromised: throw BridgeRefusal.tronAccountNotControlled
+                }
+            } else {
+                let receiver = try EVMEngineSupport.account(destination, chain: quote.intent.to.chain)
+                guard receiver.address == quote.intent.owner else { throw BridgeRefusal.ownerMismatch }
+            }
             let read = try await state.readBridge(for: quote, localNextNonce: nonceQueue?.nextNonce)
             let applied = read.replacingNetwork(read.network.applying(nonceQueue))
             return try BridgePlanner.planDeposit(walletID: walletID, account: owner, quote: quote, state: applied)
@@ -156,6 +182,20 @@ public struct BridgeEngine: Sendable {
         case .confirmed: break
         }
 
+        if record.route == .usdt0 {
+            // O `guid` da mensagem sai do recibo do envio na origem (dois RPCs), e a entrega na
+            // Tron tem de ter o OFTReceived dele, para a conta Tron, e o Transfer do USDT.
+            guard let transfer = record.meshTransfer, let source = from.mesh else { return .mismatch }
+            guard let deposit = try await reader.receiptLogs(chain: from.chain, hash: record.depositTxHash) else { return .inFlight }
+            guard deposit.success, let guid = BridgeArrival.meshGUID(deposit.logs, transfer: transfer) else { return .mismatch }
+            guard let delivery = try await tron.meshDelivery(oft: USDT0Mesh.tronOFT, guid: guid, since: record.createdAt.addingTimeInterval(-600)) else {
+                return .inFlight
+            }
+            guard let amount = BridgeArrival.meshDelivered(delivery.logs, transfer: transfer, guid: guid, sourceEID: source.eid) else {
+                return .mismatch
+            }
+            return .arrived(txHash: delivery.txID, amount: amount)
+        }
         if record.route.isCCTP {
             guard let transfer = record.cctpTransfer, let source = from.cctp else { return .mismatch }
             let attested: CCTPAttested
@@ -273,6 +313,13 @@ enum BridgeEngineMessages {
         case .simulationShape, .simulationFailed, .simulationUnexpectedTransfer, .simulationUnexpectedApproval, .simulationSpentWrong,
              .simulationEventMissing:
             return kitText("A simulação mostrou um movimento diferente do que a ponte prometia. Ponte bloqueada. \(blocked)")
+        case .recipientMissing: return kitText("A ponte para a Tron leva só para a conta Tron desta carteira, e ela não foi encontrada. \(blocked)")
+        case .meshPeerChanged:
+            return kitText("O contrato da Tether mudou o caminho para a Tron. Por segurança, a ponte para a Tron fica desligada até a próxima atualização da Escalibur. \(blocked)")
+        case .meshNoLiquidity(let available):
+            return kitText("A Tether tem só \(EVMEngineText.amount(available, decimals: 6, symbol: "USDT")) disponíveis para a Tron agora. Tente um valor menor ou mais tarde.")
+        case .tronAccountNotControlled:
+            return kitText("A sua conta na Tron está sob o controle de outra chave: o USDT chegaria lá e não sairia por esta carteira. Ponte bloqueada. \(blocked)")
         case .plan(let error): return EVMEngineMessages.plan(error, chain: chain)
         }
     }

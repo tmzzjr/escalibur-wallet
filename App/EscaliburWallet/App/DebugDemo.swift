@@ -216,6 +216,11 @@ enum DebugDemo {
                     record.settledTxHash = "0x" + String(repeating: "cd", count: 32)
                     session.metadata.bridges = [record]
                 }
+            // `-tela ponte-tron`: a ponte em Trocar, 1.000 USDT da Ethereum para a Tron, cotados ao
+            // vivo no contrato da Tether.
+            case "ponte-tron":
+                router.tab = .trade
+                router.tradeMode = .bridge
             // `-tela token-grafico`: a pagina do BNB Frog Inu (fora da lista, com aviso do
             // CoinGecko), com o preco e o grafico pelo contrato, ao vivo.
             case "token-grafico":

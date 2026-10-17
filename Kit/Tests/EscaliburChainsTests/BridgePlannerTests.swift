@@ -80,6 +80,7 @@ struct BridgePlannerTests {
         switch quote.call {
         case .cctp(let transfer): defaultEvent = depositForBurnLog(transfer)
         case .across(let transfer): defaultEvent = fundsDepositedLog(transfer, spoke: intent.from.across!.spokePool)
+        case .mesh(let transfer): defaultEvent = USDT0MeshTests.oftSentLog(transfer)
         }
         calls.append(TradeSimulatedCall(success: true, gasUsed: 120_000, logs: [
             S.transferLog(moved, from: owner, to: quote.to, spent ?? intent.amount), event ?? defaultEvent,

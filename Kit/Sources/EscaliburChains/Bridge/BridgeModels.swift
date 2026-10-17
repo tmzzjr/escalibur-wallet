@@ -6,9 +6,11 @@ import Foundation
 // Regras da v1, todas conferidas aqui antes de qualquer plano:
 // - a mesma moeda dos dois lados, na versao do emissor: USDC so pelo CCTP V2 da Circle;
 //   ETH, USDT e WBTC pelo Across; USDT so onde o Across entrega o USDT do emissor; WBTC so
-//   onde o Across entrega o WBTC da lista curada;
-// - quem recebe e quem deposita sao a propria conta do dono; nenhuma mensagem nem
-//   chamada no destino (no CCTP, so o pedido de encaminhamento da Circle);
+//   onde o Across entrega o WBTC da lista curada; USDT para a Tron so pela Legacy Mesh da
+//   propria Tether, da Ethereum e da Arbitrum (`USDT0Mesh`);
+// - quem recebe e quem deposita sao a propria conta do dono (na Tron, a conta Tron da mesma
+//   carteira); nenhuma mensagem nem chamada no destino (no CCTP, so o pedido de
+//   encaminhamento da Circle);
 // - a calldata e montada pelo app; das APIs vem so a taxa, sempre com teto compilado.
 
 /// O que a ponte move na v1.
@@ -60,6 +62,13 @@ public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
         asset == .usdc && from.cctp != nil && to.cctp != nil
     }
 
+    /// O USDT vai para a Tron pela Legacy Mesh da Tether, so de onde ela tem o UsdtOFT e o
+    /// USDT da lista e o que ele puxa.
+    public static func usesMesh(_ asset: BridgeAsset, from: BridgeChain, to: BridgeChain) -> Bool {
+        guard asset == .usdt, to.chain.family == .tron, let source = from.mesh else { return false }
+        return from.usdt == source.usdt
+    }
+
     /// O contrato nesta rede; `nil` para o ETH nativo ou onde a ponte nao move esta moeda.
     public func contract(on chain: BridgeChain) -> EVMAddress? {
         switch self {
@@ -79,7 +88,9 @@ public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
                 || (from.across != nil && to.across != nil && from.acrossUSDC && to.acrossUSDC)
         case .eth:
             return (from.nativeETH || from.ethToken != nil) && (to.nativeETH || to.ethToken != nil) && from.across != nil && to.across != nil
-        case .usdt: return from.usdt != nil && to.usdt != nil && from.across != nil && to.across != nil
+        case .usdt:
+            return BridgeAsset.usesMesh(self, from: from, to: to)
+                || (from.usdt != nil && to.usdt != nil && from.across != nil && to.across != nil)
         case .wbtc: return from.wbtc != nil && to.wbtc != nil && from.across != nil && to.across != nil
         }
     }
@@ -87,6 +98,14 @@ public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
     /// O ativo da lista do app nesta rede (a moeda nativa, ou o token com este contrato).
     public func asset(on chain: BridgeChain) -> Asset? {
         guard let contract = contract(on: chain) else { return Asset.native(chain.chain) }
+        if chain.chain.family == .tron {
+            // Na Tron a lista guarda o contrato em base58.
+            let base58 = TronAddress(account20: contract.bytes)?.base58
+            return TokenRegistry.assets(on: chain.chain).first { asset in
+                if case .token(let listed) = asset.kind { return listed == base58 }
+                return false
+            }
+        }
         return TokenRegistry.assets(on: chain.chain).first { asset in
             if case .token(let listed) = asset.kind { return listed.lowercased() == contract.checksummed.lowercased() }
             return false
@@ -107,8 +126,10 @@ public enum BridgeRoute: String, Codable, Sendable, Equatable {
     /// CCTP V2 padrao: espera a finalidade da origem, sem taxa do protocolo.
     case cctpStandard
     case across
+    /// USDT para a Tron pela Legacy Mesh do USDT0, a ponte da Tether (LayerZero).
+    case usdt0
 
-    public var isCCTP: Bool { self != .across }
+    public var isCCTP: Bool { self == .cctpFast || self == .cctpStandard }
 }
 
 /// Por que a ponte recusou.
@@ -144,6 +165,14 @@ public enum BridgeRefusal: Error, Equatable, Sendable {
     case simulationUnexpectedApproval(token: EVMAddress, spender: EVMAddress)
     case simulationSpentWrong(found: BigUInt, expected: BigUInt)
     case simulationEventMissing
+    /// A ponte para a Tron precisa da conta Tron da carteira, e so dela.
+    case recipientMissing
+    /// O contrato da Tether nao aponta mais para o UsdtOFT da Tron, ou mudou o USDT que puxa.
+    case meshPeerChanged
+    /// A Tron nao tem liquidez da Tether para este valor agora.
+    case meshNoLiquidity(available: BigUInt)
+    /// A conta Tron da carteira esta sob o controle de outra chave: o que chegasse la nao sairia.
+    case tronAccountNotControlled
     case plan(EVMPlanError)
 }
 
@@ -154,22 +183,31 @@ public struct BridgeIntent: Sendable, Equatable {
     public let from: BridgeChain
     public let to: BridgeChain
     public let amount: BigUInt
+    /// Na Tron: a conta Tron da mesma carteira, que recebe. Nas redes EVM, `nil` (recebe o
+    /// proprio `owner`).
+    public let tronRecipient: TronAddress?
 
-    public init(owner: EVMAddress, asset: BridgeAsset, from: Chain, to: Chain, amount: BigUInt) throws {
+    public init(owner: EVMAddress, asset: BridgeAsset, from: Chain, to: Chain, amount: BigUInt, tronRecipient: TronAddress? = nil) throws {
         guard from.id != to.id else { throw BridgeRefusal.sameChain }
         guard let source = BridgeAllowlist.chain(from), let destination = BridgeAllowlist.chain(to),
-              asset.available(from: source, to: destination)
+              source.chain.family == .evm, asset.available(from: source, to: destination)
         else { throw BridgeRefusal.unsupportedRoute }
         guard !amount.isZero else { throw BridgeRefusal.zeroAmount }
         if BridgeAsset.usesCCTP(asset, from: source, to: destination), amount > BridgeAllowlist.burnLimitPerMessage {
             throw BridgeRefusal.aboveBurnLimit(limit: BridgeAllowlist.burnLimitPerMessage)
         }
+        // A conta que recebe na Tron vem junto, e so quando o destino e a Tron.
+        guard (destination.chain.family == .tron) == (tronRecipient != nil) else { throw BridgeRefusal.recipientMissing }
         self.owner = owner
         self.asset = asset
         self.from = source
         self.to = destination
         self.amount = amount
+        self.tronRecipient = tronRecipient
     }
+
+    /// Quem recebe, como a rede de destino escreve: o endereco EVM do dono, ou a conta Tron.
+    public var recipientText: String { tronRecipient?.base58 ?? owner.checksummed }
 
     public var sell: TradeAsset { asset.tradeAsset(on: from) }
     public var receive: TradeAsset { asset.tradeAsset(on: to) }
@@ -181,6 +219,7 @@ public struct ValidatedBridgeQuote: Sendable, Equatable {
     public enum Call: Sendable, Equatable {
         case cctp(CCTPTransfer)
         case across(AcrossTransfer)
+        case mesh(MeshTransfer)
     }
 
     public let intent: BridgeIntent
@@ -196,10 +235,14 @@ public struct ValidatedBridgeQuote: Sendable, Equatable {
     /// valor exato que o relayer tem de entregar.
     public let minimumReceived: BigUInt
     public let expectedReceived: BigUInt
-    /// A taxa maxima da ponte (CCTP) ou a exata (Across), na moeda movida.
+    /// A taxa maxima da ponte (CCTP) ou a exata (Across, Tether), na moeda movida.
     public let bridgeFee: BigUInt
     public let estimatedSeconds: Int
     public let createdAt: Date
+    /// Na Legacy Mesh: a taxa de mensagem da LayerZero, que sai na moeda nativa da origem
+    /// (`value`), e quanto ela pesa no valor, pelo preco de mercado (zero sem preco).
+    public var messageFee: BigUInt = 0
+    public var messageFeePercent: Double = 0
 
     /// A cotacao vale 60 segundos, como o plano.
     public static let lifetime: TimeInterval = 60
@@ -212,17 +255,22 @@ public struct ValidatedBridgeQuote: Sendable, Equatable {
     /// com CCTP; Across so com deposito. O plano e o leitor de estado conferem antes de
     /// tudo (revisao da ponte BNB, I2: o reencode era a unica barreira).
     public var callMatchesRoute: Bool {
-        let burns: Bool
-        if case .cctp = call { burns = true } else { burns = false }
-        return route.isCCTP == burns && burns == BridgeAsset.usesCCTP(intent.asset, from: intent.from, to: intent.to)
+        let cctp = BridgeAsset.usesCCTP(intent.asset, from: intent.from, to: intent.to)
+        let mesh = BridgeAsset.usesMesh(intent.asset, from: intent.from, to: intent.to)
+        switch call {
+        case .cctp: return route.isCCTP && cctp && !mesh
+        case .across: return route == .across && !cctp && !mesh
+        case .mesh: return route == .usdt0 && mesh && !cctp
+        }
     }
 
     /// A rota toca a BNB, onde as moedas da ponte sao as da Binance.
     public var touchesBinancePeg: Bool { intent.from.chain.id == "bnb" || intent.to.chain.id == "bnb" }
 
+    /// A taxa da ponte sobre o valor e, na Legacy Mesh, a taxa de mensagem tambem.
     public var feePercent: Double {
         let amount = Double(intent.amount.decimalString) ?? 0
-        return amount > 0 ? (Double(bridgeFee.decimalString) ?? 0) / amount * 100 : 0
+        return (amount > 0 ? (Double(bridgeFee.decimalString) ?? 0) / amount * 100 : 0) + messageFeePercent
     }
 }
 
@@ -267,7 +315,7 @@ public enum BridgeValidator {
             guard let standard = fees.standard else { throw BridgeRefusal.quoteMismatch("taxa padrão") }
             guard standard.protocolBps.isZero else { throw BridgeRefusal.feeAboveCap }
             level = standard
-        case .across:
+        case .across, .usdt0:
             throw BridgeRefusal.unsupportedRoute
         }
         guard level.forwardFee <= forwardFeeCap else { throw BridgeRefusal.feeAboveCap }
@@ -349,6 +397,60 @@ public enum BridgeValidator {
         )
         guard validated.feePercent <= blockFeePercent else { throw BridgeRefusal.feeTooHigh(percent: validated.feePercent) }
         return validated
+    }
+
+    // MARK: Legacy Mesh (Tron)
+
+    /// Monta o envio para a Tron pela Legacy Mesh da Tether, a partir do que a rede leu do
+    /// UsdtOFT de origem. Nada vem de API: a taxa da Tether, o que chega, a liquidez e a taxa
+    /// de mensagem sao do proprio contrato. `nativeUSDPrice`: o preco da moeda nativa da
+    /// origem, so para dizer quanto a taxa de mensagem pesa no valor.
+    public static func mesh(_ intent: BridgeIntent, quote: MeshQuote, nativeUSDPrice: TradeDecimal?, now: Date = .now) throws
+        -> ValidatedBridgeQuote {
+        guard BridgeAsset.usesMesh(intent.asset, from: intent.from, to: intent.to), let source = intent.from.mesh,
+              let recipient = intent.tronRecipient
+        else { throw BridgeRefusal.unsupportedRoute }
+        // O contrato de origem ainda e o que foi lido: puxa o USDT da lista e entrega pelo
+        // UsdtOFT da Tron.
+        guard quote.token == source.usdt, quote.tronPeer == USDT0Mesh.tronPeerWord else { throw BridgeRefusal.meshPeerChanged }
+        guard quote.feeBps <= BigUInt(USDT0Mesh.feeCapBps) else { throw BridgeRefusal.feeAboveCap }
+        // O que chega e o valor menos a taxa de agora, como o contrato conta (`_debitView`).
+        let fee = intent.amount * quote.feeBps / BigUInt(10_000)
+        let received = intent.amount - fee
+        guard quote.sent == intent.amount, quote.received == received, !received.isZero else { throw BridgeRefusal.quoteMismatch("valor") }
+        guard quote.maxAmount >= received else { throw BridgeRefusal.meshNoLiquidity(available: quote.maxAmount) }
+        guard quote.lzTokenFee.isZero, !quote.nativeFee.isZero else { throw BridgeRefusal.quoteMismatch("taxa de mensagem") }
+        // A folga sobre a taxa de mensagem volta ao dono pelo EndpointV2, na mesma transacao.
+        let nativeFee = quote.nativeFee + quote.nativeFee * BigUInt(USDT0Mesh.nativeFeeMarginBps) / BigUInt(10_000)
+        guard nativeFee <= USDT0Mesh.nativeFeeCap else { throw BridgeRefusal.feeAboveCap }
+
+        let transfer = MeshTransfer(
+            sourceChainID: intent.from.chain.evmChainID ?? 0, oft: source.oft, owner: intent.owner, recipient: recipient,
+            amount: intent.amount, minimumReceived: received, nativeFee: nativeFee
+        )
+        var validated = ValidatedBridgeQuote(
+            intent: intent, route: .usdt0, call: .mesh(transfer), to: source.oft, value: nativeFee,
+            data: try MeshCalldata.encode(transfer), spender: source.oft, minimumReceived: received, expectedReceived: received,
+            bridgeFee: fee, estimatedSeconds: meshEstimatedSeconds, createdAt: now
+        )
+        validated.messageFee = nativeFee
+        validated.messageFeePercent = messagePercent(nativeFee, nativeDecimals: intent.from.chain.nativeDecimals, price: nativeUSDPrice,
+                                                     amount: intent.amount, decimals: intent.asset.decimals(on: intent.from))
+        guard validated.feePercent <= blockFeePercent else { throw BridgeRefusal.feeTooHigh(percent: validated.feePercent) }
+        return validated
+    }
+
+    /// A LayerZero espera a confirmacao na origem antes de entregar: uns minutos.
+    public static let meshEstimatedSeconds = 5 * 60
+
+    /// Quanto a taxa de mensagem, em moeda nativa, pesa num valor em USDT (um dolar cada).
+    static func messagePercent(_ fee: BigUInt, nativeDecimals: Int, price: TradeDecimal?, amount: BigUInt, decimals: Int) -> Double {
+        guard let price, !price.mantissa.isZero, !amount.isZero else { return 0 }
+        // taxa [wei] x preco [US$ por moeda] / valor [US$] x 100, contado inteiro em milionesimos
+        // de ponto percentual e so no fim em Double.
+        let numerator = fee * price.mantissa * BigUInt.power(of: 10, decimals) * BigUInt(100_000_000)
+        let denominator = BigUInt.power(of: 10, price.scale + nativeDecimals) * amount
+        return (Double((numerator / denominator).decimalString) ?? 0) / 1_000_000
     }
 
     /// O maior entre 0,5% do valor e US$ 3 na moeda movida (no ETH, no maximo 0,002 ETH; no

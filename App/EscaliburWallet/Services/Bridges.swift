@@ -113,6 +113,9 @@ enum BridgeText {
             case .mismatch?:
                 return (String(localized: "A entrega não confere"), String(localized: "O destino mostrou algo diferente do que você assinou. Confira a Atividade das duas redes."), false)
             default:
+                if record.route == .usdt0 {
+                    return (String(localized: "A caminho da Tron"), String(localized: "A LayerZero espera a confirmação na \(from) e o contrato da Tether entrega o USDT na sua conta Tron, em uns minutos."), false)
+                }
                 if record.route.isCCTP {
                     return (String(localized: "A caminho da \(to)"), record.route == .cctpFast
                         ? String(localized: "A Circle atesta e entrega em menos de 1 minuto.")

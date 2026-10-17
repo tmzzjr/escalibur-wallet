@@ -35,7 +35,10 @@ extension TradeStateReader {
         let slot = TradeRouterPin.eip1967ImplementationSlot
 
         async let network = network(chain: from, owner: intent.owner, localNextNonce: localNextNonce)
-        async let ownerCode = hasCode(chain: to, intent.owner)
+        // Codigo na conta do dono no destino so existe na EVM; na Tron quem recebe e a conta
+        // Tron da carteira, conferida pelo motor (`TronReader.ownerControl`).
+        let destinationIsEVM = to.family == .evm
+        async let ownerCode = destinationIsEVM ? hasCode(chain: to, intent.owner) : false
         var implementations = [EVMAddress]()
         for pin in BridgePlanner.pins(for: quote) {
             guard let found = try await self.pin(chain: pin.chain, router: pin.proxy, query: .storage(slot: slot)) else {
@@ -73,11 +76,16 @@ extension TradeStateReader {
             if let token = intent.sell.contract { approveL1Gas = try await arbitrumL1Gas(chain: from, to: token, data: approveData) }
             depositL1Gas = try await arbitrumL1Gas(chain: from, to: quote.to, data: quote.data)
         }
+        // Legacy Mesh: o UsdtOFT lido de novo agora, com o minimo assinado.
+        var mesh: MeshQuote?
+        if case .mesh(let transfer) = quote.call {
+            mesh = try await readMesh(intent: intent, minimum: transfer.minimumReceived)
+        }
         return BridgeChainState(
             network: try await network, token: tokenState, implementations: implementations, destinationDomain: domain,
             destinationLocalToken: localToken, destinationBlacklisted: blacklisted, ownerHasCodeAtDestination: try await ownerCode,
             simulations: try await simulations, approveL1DataFee: try await approveL1, depositL1DataFee: try await depositL1,
-            approveL1Gas: approveL1Gas, depositL1Gas: depositL1Gas
+            approveL1Gas: approveL1Gas, depositL1Gas: depositL1Gas, mesh: mesh
         )
     }
 }

@@ -36,13 +36,17 @@ public struct BridgeChainState: Sendable {
     public let depositL1DataFee: BigUInt?
     public let approveL1Gas: UInt64
     public let depositL1Gas: UInt64
+    /// Legacy Mesh: o UsdtOFT de origem lido de novo na hora do plano (par na Tron, token,
+    /// taxa da Tether, liquidez e o que chega).
+    public let mesh: MeshQuote?
 
     public init(
         network: EVMNetworkState, token: EVMTokenState?, implementations: [EVMAddress], destinationDomain: UInt32?,
         destinationLocalToken: EVMAddress?, destinationBlacklisted: Bool?, ownerHasCodeAtDestination: Bool,
         simulations: [TradeSimulation], approveL1DataFee: BigUInt? = nil, depositL1DataFee: BigUInt? = nil,
-        approveL1Gas: UInt64 = 0, depositL1Gas: UInt64 = 0
+        approveL1Gas: UInt64 = 0, depositL1Gas: UInt64 = 0, mesh: MeshQuote? = nil
     ) {
+        self.mesh = mesh
         self.network = network
         self.token = token
         self.implementations = implementations
@@ -74,6 +78,9 @@ public enum BridgePlanner {
         let from = quote.intent.from
         let to = quote.intent.to
         guard quote.callMatchesRoute else { return [] }
+        // O UsdtOFT nao e proxy: o que se confere nele e o par na Tron e o token, a cada plano
+        // (`BridgeChainState.mesh`).
+        if case .mesh = quote.call { return [] }
         if case .cctp = quote.call {
             // Rede sem CCTP nao tem o que fixar: lista vazia, e o plano recusa.
             guard let source = from.cctp, let destination = to.cctp else { return [] }
@@ -157,8 +164,13 @@ public enum BridgePlanner {
 
         // O codigo atras de cada proxy, nas duas pontas.
         let pins = pins(for: quote)
-        // Rota sem contrato fixado nao vira plano (uma lista vazia passaria em branco).
-        guard !pins.isEmpty else { throw BridgeRefusal.unsupportedRoute }
+        // Rota sem contrato fixado nao vira plano (uma lista vazia passaria em branco). A
+        // Legacy Mesh nao tem proxy: no lugar, o UsdtOFT lido de novo agora.
+        if case .mesh(let transfer) = quote.call {
+            try checkMesh(state.mesh, transfer: transfer, intent: intent)
+        } else {
+            guard !pins.isEmpty else { throw BridgeRefusal.unsupportedRoute }
+        }
         guard state.implementations.count == pins.count else { throw BridgeRefusal.implementationChanged("leitura incompleta") }
         for (pin, found) in zip(pins, state.implementations) where found != pin.implementation {
             throw BridgeRefusal.implementationChanged("\(pin.name) na \(pin.chain.name)")
@@ -274,7 +286,34 @@ public enum BridgePlanner {
                   quote.spender == (intent.asset.isNativeInput(on: intent.from) ? nil : fromAcross.spokePool),
                   try AcrossCalldata.encode(transfer) == quote.data
             else { throw BridgeRefusal.quoteMismatch("depósito") }
+        case .mesh(let transfer):
+            guard let source = intent.from.mesh, let recipient = intent.tronRecipient, quote.route == .usdt0,
+                  quote.to == source.oft, quote.spender == source.oft, quote.value == transfer.nativeFee,
+                  transfer.sourceChainID == intent.from.chain.evmChainID, transfer.oft == source.oft,
+                  transfer.owner == intent.owner, transfer.recipient == recipient, transfer.amount == intent.amount,
+                  !transfer.minimumReceived.isZero, transfer.minimumReceived <= transfer.amount,
+                  quote.minimumReceived == transfer.minimumReceived,
+                  !transfer.nativeFee.isZero, transfer.nativeFee <= USDT0Mesh.nativeFeeCap,
+                  try MeshCalldata.encode(transfer) == quote.data
+            else { throw BridgeRefusal.quoteMismatch("envio") }
+            // E lida de volta pelo decodificador estrito: a Tron, a conta da carteira, o valor,
+            // o minimo, a taxa de mensagem e o troco para o dono, sem opcao nem chamada.
+            let read = try MeshCalldata.decode(quote.data, owner: intent.owner)
+            guard read.recipient == recipient, read.amount == intent.amount, read.minimum == transfer.minimumReceived,
+                  read.nativeFee == transfer.nativeFee
+            else { throw BridgeRefusal.quoteMismatch("envio") }
         }
+    }
+
+    /// A Legacy Mesh na hora do plano: o contrato ainda entrega pelo UsdtOFT da Tron e puxa o
+    /// USDT da lista, a taxa da Tether e a da cotacao (ou menor), e a Tron tem liquidez.
+    static func checkMesh(_ mesh: MeshQuote?, transfer: MeshTransfer, intent: BridgeIntent) throws {
+        guard let mesh, let source = intent.from.mesh else { throw BridgeRefusal.meshPeerChanged }
+        guard mesh.token == source.usdt, mesh.tronPeer == USDT0Mesh.tronPeerWord else { throw BridgeRefusal.meshPeerChanged }
+        guard mesh.feeBps <= BigUInt(USDT0Mesh.feeCapBps) else { throw BridgeRefusal.feeAboveCap }
+        guard mesh.sent == transfer.amount, mesh.received >= transfer.minimumReceived else { throw BridgeRefusal.quoteMismatch("valor") }
+        guard mesh.maxAmount >= transfer.minimumReceived else { throw BridgeRefusal.meshNoLiquidity(available: mesh.maxAmount) }
+        guard mesh.lzTokenFee.isZero, mesh.nativeFee <= transfer.nativeFee else { throw BridgeRefusal.quoteMismatch("taxa de mensagem") }
     }
 }
 
@@ -328,9 +367,18 @@ enum BridgeSimulationCheck {
         let deposit = simulation.calls[simulation.calls.count - 1]
         let moved = intent.sell.contract ?? TradeSimulationCheck.nativePseudoToken
         var spent = BigUInt()
+        var nativeSent = BigUInt()
         var sawEvent = false
         for log in deposit.logs {
             try refuseApprovalForAll(log, owner: owner)
+            // Legacy Mesh: a taxa de mensagem sai como `msg.value` do dono para o UsdtOFT, e so
+            // ate o valor assinado (a sobra volta pelo EndpointV2).
+            if case .mesh = quote.call, log.address == TradeSimulationCheck.nativePseudoToken,
+               let transfer = TradeSimulationCheck.parseTransfer(log), transfer.from == owner, transfer.to != owner {
+                guard transfer.to == quote.to else { throw BridgeRefusal.simulationUnexpectedTransfer(token: log.address) }
+                nativeSent = nativeSent + transfer.value
+                continue
+            }
             if let approval = TradeSimulationCheck.parseApproval(log), approval.owner == owner {
                 // O consumo da allowance pelo contrato da ponte.
                 guard log.address == intent.sell.contract, approval.spender == quote.spender, approval.value <= intent.amount else {
@@ -344,6 +392,7 @@ enum BridgeSimulationCheck {
             if try matchesDepositEvent(log, quote: quote) { sawEvent = true }
         }
         guard spent == intent.amount else { throw BridgeRefusal.simulationSpentWrong(found: spent, expected: intent.amount) }
+        guard nativeSent <= quote.value else { throw BridgeRefusal.simulationSpentWrong(found: nativeSent, expected: quote.value) }
         guard sawEvent else { throw BridgeRefusal.simulationEventMissing }
         return (simulation.calls.prefix(request.approvals.count).map(\.gasUsed), deposit.gasUsed)
     }
@@ -391,6 +440,17 @@ enum BridgeSimulationCheck {
                   fields[7] == .fixedBytes(CCTPMessage.word(owner)),
                   fields[8] == .fixedBytes([UInt8](repeating: 0, count: 32)),
                   fields[9] == .bytes([])
+            else { throw BridgeRefusal.simulationEventMissing }
+            return true
+        case .mesh(let transfer):
+            // OFTSent(guid, dstEid, fromAddress, amountSentLD, amountReceivedLD) do UsdtOFT de
+            // origem: para a Tron, do dono, o valor inteiro, chegando pelo menos o minimo.
+            guard log.address == transfer.oft, log.topics.first == USDT0Mesh.oftSentTopic else { return false }
+            guard log.topics.count == 3, log.topics[2] == CCTPMessage.word(owner), log.data.count == 96,
+                  BigUInt(bigEndian: Array(log.data[0..<32])) == BigUInt(USDT0Mesh.tronEID),
+                  BigUInt(bigEndian: Array(log.data[32..<64])) == transfer.amount,
+                  BigUInt(bigEndian: Array(log.data[64..<96])) >= transfer.minimumReceived,
+                  BigUInt(bigEndian: Array(log.data[64..<96])) <= transfer.amount
             else { throw BridgeRefusal.simulationEventMissing }
             return true
         }

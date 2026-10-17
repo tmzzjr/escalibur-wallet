@@ -663,6 +663,14 @@ Revisado em 12/10/2026 com o agente de segurança, antes do código. Pontes são
   - Chegar mais do que saiu é recusado na unidade mais fina (`BridgeAsset.fits`), e rota, chamada e pedido têm de concordar antes do plano e da leitura de estado (`callMatchesRoute`).
   - Risco aceito: a custódia da Binance e as chaves únicas dos tokens. Deixa de ser aceitável se a Binance suspender saque ou resgate, se o USDC da BNB ficar mais de 1% abaixo do USDC da Circle por mais de um dia, ou se o admin ou a implementação do proxy do USDC mudarem (a ponte já para sozinha no último caso).
 - Quarta leva, 17/10/2026 (pedido do dono de liberar toda moeda que der): WBTC pelo Across entre Ethereum, Arbitrum, Optimism e Polygon, as redes em que o Across entrega o mesmo contrato da lista curada (`available-routes` ao vivo). Em dois RPCs de cada uma: código igual e `decimals()` 8. Na Arbitrum é o token padrão da ponte da Arbitrum (proxy de beacon da própria Arbitrum), na Polygon o da ponte PoS: valem enquanto a ponte oficial da rede valer, como o ETH e o USDC de ponte. A Linea fica de fora (o WBTC de lá não está na lista). Teto da taxa: 0,5% ou US$ 3, com teto absoluto de 5.000 satoshis, pela mesma razão do ETH.
+- Quinta leva, 17/10/2026 (pedido do dono): **USDT para a Tron pela Legacy Mesh do USDT0, a ponte da própria Tether** (LayerZero), da Ethereum e da Arbitrum, só nesse sentido (a volta exige assinar chamada de contrato na Tron e fica para depois).
+  - Contratos: o `UsdtOFT` da Ethereum (`0x1F74…dFB0`) e o da Arbitrum (`0x7765…9B92`), verificados no Sourcify com match exato, sem proxy, código igual em dois RPCs; o da Tron (`TFG4w…zevLPt`). Na cadeia, em duas fontes de cada lado: `token()` o USDT do emissor (Ethereum) e o USDT0 (Arbitrum), `feeBps()` 3, `peers(30420)` o `UsdtOFT` da Tron, e na Tron `token()` o USDT TR7NH…Lj6t e os pares de volta.
+  - Nada vem de API: a taxa da Tether, o que chega, a liquidez da Tron (`credits`) e a taxa de mensagem saem do próprio contrato (`quoteOFT`, `quoteSend`), por `eth_call` em duas fontes concordando (a taxa de mensagem, a maior das duas, com 10% de folga; a sobra volta ao dono pelo EndpointV2 na mesma transação).
+  - O app monta o `send` e lê de volta pelo decodificador estrito: destino Tron (30420) e nenhum outro, `to` = os 20 bytes da conta Tron **da mesma carteira** (nunca digitada), `extraOptions`, `composeMsg` e `oftCmd` vazios, lzToken zero, troco para o dono, `minAmountLD` = o que o contrato cotou. Taxa maior que a cotada depois disso reverte a transação, não tira do dono.
+  - Tetos: taxa da Tether até 0,1% (`USDT0Mesh.feeCapBps`), taxa de mensagem até 0,02 ETH (vista 0,0047), e o bloqueio de 5% do valor somando as duas (com o preço do ETH). Abaixo de uns 250 USDT a taxa de mensagem, fixa em ~US$ 11, já passa disso.
+  - No plano: o contrato lido de novo (par, token, taxa, liquidez), approve exato ao `UsdtOFT` (zerado antes no USDT da Ethereum), simulação em duas fontes com o USDT saindo do dono, a taxa de mensagem só como `value` para o próprio `UsdtOFT` e o `OFTSent` para a Tron com o valor e o mínimo. A conta Tron da carteira tem de estar sob a chave dela (`TronReader.ownerControl`): com outra chave nas permissões, recusa.
+  - Chegada: o `guid` da mensagem sai do `OFTSent` do recibo do envio (dois RPCs); a entrega na Tron é achada pelo `guid` na API de eventos da TronGrid e lida inteira no nó solidificado de dois provedores, com o `OFTReceived` desse `guid`, para a conta Tron, vindo da rede de origem, e o `Transfer` do USDT da Tron do `UsdtOFT` para a mesma conta com o mesmo valor.
+  - Risco aceito: a Tether controla os `UsdtOFT` (dono pode mudar a taxa, os pares e anular mensagens) e a entrega depende da LayerZero. É a mesma confiança de quem segura USDT. A carteira para sozinha se o par ou o token mudarem, ou se a taxa passar do teto.
 - A mesma moeda dos dois lados, na versão do emissor:
   - USDC só pelo CCTP V2 da Circle, que queima numa rede e cunha na outra. Não há cofre de ponte nem token embrulhado, e a única confiança nova é na Circle, que quem segura USDC já tem.
   - ETH pelo Across, entre as quatro redes.
@@ -671,7 +679,7 @@ Revisado em 12/10/2026 com o agente de segurança, antes do código. Pontes são
   - CCTP para a BNB: queima, mas não cunha. O TokenMessengerV2 da Ethereum aceita o domínio 17, e na BNB `getLocalToken` é zero para todas as origens. Uma queima para lá se perderia. A BNB entra só pelo Across.
   - Celo, Sonic e X Layer: falta CCTP ou SpokePool.
   - WBTC: nas L2 é de ponte.
-  - Redes fora da EVM.
+  - Redes fora da EVM, salvo o USDT para a Tron pela Tether (quinta leva).
   - Ponte nativa de rollup: saque de 7 dias, prova e finalização na L1, e USDC.e em vez de USDC.
 
 **Regras**

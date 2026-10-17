@@ -217,7 +217,7 @@ struct BridgeReviewFlow: View {
               let sell = sellAsset, let receive = receiveAsset, quote.intent == intent else { return false }
         do {
             try PlanIntentCheck.bridge(plan.review, sell: sell, amount: intent.amount, from: intent.from.chain, receive: receive,
-                                       minimumOut: quote.minimumReceived, to: intent.to.chain, owner: intent.owner.checksummed)
+                                       minimumOut: quote.minimumReceived, to: intent.to.chain, owner: intent.recipientText)
             return true
         } catch {
             return false

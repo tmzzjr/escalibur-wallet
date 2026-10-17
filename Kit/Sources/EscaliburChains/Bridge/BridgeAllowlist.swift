@@ -51,6 +51,9 @@ public struct BridgeChain: Sendable, Equatable {
     /// O WBTC que o Across entrega nesta rede, so onde e o mesmo contrato da lista curada.
     public let wbtc: EVMAddress?
 
+    /// A Legacy Mesh da Tether nesta rede (o UsdtOFT), so na Ethereum e na Arbitrum.
+    public var mesh: USDT0Mesh.Source? { USDT0Mesh.source(chain) }
+
     public struct CCTP: Sendable, Equatable {
         /// O dominio do CCTP. Nao e o chainId: a Base e 6.
         public let domain: UInt32
@@ -245,8 +248,20 @@ public enum BridgeAllowlist {
 
     public static let chains: [BridgeChain] = [ethereum, arbitrum, base, optimism, polygon, linea, unichain, sonic, plasma, bnb]
 
+    /// A Tron, so como destino do USDT pela Legacy Mesh da Tether (`USDT0Mesh`). Nao e EVM e
+    /// nao entra em `chains` (as redes de origem): sem CCTP nem Across; o `usdc` fica no
+    /// endereco zero e nunca e usado (`BridgeAsset.available` so libera o USDT pela Mesh), e o
+    /// `usdt` sao os 20 bytes do USDT da Tron, TR7NH...Lj6t.
+    public static let tron = BridgeChain(
+        chain: .tron, cctp: nil, usdc: .zero, across: nil, usdt: EVMAddress(uncheckedBytes: USDT0Mesh.tronUSDT.account20),
+        nativeETH: false, ethToken: nil, stableDecimals: 6, acrossUSDC: false
+    )
+
+    /// Os destinos: as redes de origem e a Tron.
+    public static let destinations: [BridgeChain] = chains + [tron]
+
     public static func chain(_ chain: Chain) -> BridgeChain? {
-        chains.first { $0.chain.id == chain.id }
+        destinations.first { $0.chain.id == chain.id }
     }
 
     public static func chain(domain: UInt32) -> BridgeChain? {

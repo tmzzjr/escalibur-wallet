@@ -36,16 +36,28 @@ final class BridgeFormModel {
     func setFrom(_ chain: Chain) {
         if chain.id == to.id { to = from }
         from = chain
+        // A Tron so recebe USDT, e so da Ethereum e da Arbitrum: de outra origem, o destino
+        // volta a uma rede EVM.
+        if to == .tron, !BridgeEngine.assets(from: chain, to: .tron).contains(.usdt) { to = chain == .arbitrum ? .base : .arbitrum }
         changed()
     }
 
     func setTo(_ chain: Chain) {
         if chain.id == from.id { from = to }
         to = chain
+        // Para a Tron (pedido do dono, 17/10/2026): USDT, saindo da Ethereum ou da Arbitrum.
+        if chain == .tron {
+            if !BridgeEngine.assets(from: from, to: .tron).contains(.usdt) { from = .ethereum }
+            asset = .usdt
+        }
         changed()
     }
 
+    /// A Tron nunca e origem: com ela num dos lados, inverter nao faz sentido.
+    var canSwap: Bool { from != .tron && to != .tron }
+
     func swapNetworks() {
+        guard canSwap else { return }
         (from, to) = (to, from)
         changed()
     }
@@ -95,12 +107,21 @@ struct BridgeForm: View {
         .task(id: quoteKey) { await refresh() }
         .task { await BridgeCenter.shared.refresh(session: session) }
         #if DEBUG
-        .onAppear { if DebugDemo.screen == "ponte", model.amountText.isEmpty { model.amountText = "250" } }
+        .onAppear {
+            if DebugDemo.screen == "ponte", model.amountText.isEmpty { model.amountText = "250" }
+            if DebugDemo.screen == "ponte-tron", model.amountText.isEmpty {
+                model.setFrom(.ethereum)
+                model.setTo(.tron)
+                model.amountText = "1000"
+            }
+        }
         #endif
     }
 
     /// As redes na mesma ordem da troca (pedido do dono, 15/10/2026).
     private var bridgeChains: [Chain] { Chain.all.filter { BridgeEngine.chains.contains($0) } }
+    /// No destino, tambem a Tron (so USDT, pela Tether).
+    private var destinationChains: [Chain] { Chain.all.filter { BridgeEngine.destinations.contains($0) } }
 
     /// De e Para em colunas de largura igual: o botao de inverter fica parado no meio,
     /// qualquer que seja o nome da rede (pedido do dono, 15/10/2026). Alinhado por baixo: o
@@ -114,13 +135,15 @@ struct BridgeForm: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Button { withAnimation(Motion.flip) { model.swapNetworks() } } label: {
-                Image(systemName: "arrow.left.arrow.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
+                Image(systemName: "arrow.left.arrow.right").font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(model.canSwap ? Palette.ink : Palette.inkDead)
                     .frame(width: 36, height: 36).background(Circle().fill(Palette.rail))
             }
+            .disabled(!model.canSwap)
             .accessibilityLabel("Inverter redes")
             VStack(alignment: .trailing, spacing: 4) {
                 Text("Para").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                NetworkMenu(chains: bridgeChains, selected: model.to) { model.setTo($0) }
+                NetworkMenu(chains: destinationChains, selected: model.to) { model.setTo($0) }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
@@ -130,12 +153,20 @@ struct BridgeForm: View {
     private var details: some View {
         if let quote = model.selected {
             VStack(alignment: .leading, spacing: Space.xs) {
-                line(quote.route.isCCTP ? String(localized: "Pelo CCTP da Circle: queima aqui e a própria Circle cunha o mesmo USDC na \(model.to.name)")
-                                        : String(localized: "Pelo Across: um relayer entrega na \(model.to.name) em segundos"))
                 let bridgeFee = Fmt.crypto(quote.bridgeFee, decimals: model.sellDecimals, symbol: model.asset.symbol, style: .full)
-                line(quote.route.isCCTP ? String(localized: "Taxa da ponte, no máximo: \(bridgeFee)") : String(localized: "Taxa da ponte: \(bridgeFee)"))
+                if quote.route == .usdt0 {
+                    line(String(localized: "Pela USDT0 da própria Tether: o contrato dela entrega o mesmo valor em USDT na Tron (TRC-20)"))
+                    line(String(localized: "Taxa da Tether: \(bridgeFee)"))
+                    let delivery = Fmt.crypto(quote.messageFee, decimals: model.from.nativeDecimals, symbol: model.from.nativeSymbol, style: .full)
+                    line(String(localized: "Taxa de entrega na Tron: \(delivery), paga aqui. Você não precisa de TRX"))
+                } else {
+                    line(quote.route.isCCTP ? String(localized: "Pelo CCTP da Circle: queima aqui e a própria Circle cunha o mesmo USDC na \(model.to.name)")
+                                            : String(localized: "Pelo Across: um relayer entrega na \(model.to.name) em segundos"))
+                    line(quote.route.isCCTP ? String(localized: "Taxa da ponte, no máximo: \(bridgeFee)") : String(localized: "Taxa da ponte: \(bridgeFee)"))
+                }
                 line(String(localized: "Tempo: \(timeText(quote))"))
-                line(String(localized: "Vai para a sua própria conta na \(model.to.name), o mesmo endereço"))
+                line(model.to == .tron ? String(localized: "Vai para a sua própria conta na Tron, desta mesma carteira")
+                                       : String(localized: "Vai para a sua própria conta na \(model.to.name), o mesmo endereço"))
                 if model.from == .bnb || model.to == .bnb {
                     line(String(localized: "Na BNB, o \(model.asset.symbol) é o da Binance (Binance-Peg): vale enquanto a Binance mantiver o lastro"))
                 }
@@ -147,7 +178,7 @@ struct BridgeForm: View {
         } else {
             Text(model.from == .bnb || model.to == .bnb
                  ? "Leva a moeda para a sua conta em outra rede, pelo Across. Na BNB, o USDC, o USDT e o ETH são os da Binance (Binance-Peg): valem enquanto a Binance mantiver o lastro, e não são os da Circle nem os da Tether. Sem taxa da Escalibur."
-                 : "Leva a mesma moeda para a sua conta em outra rede. USDC pelo CCTP da própria Circle; ETH e USDT pelo Across. Sem taxa da Escalibur.")
+                 : "Leva a mesma moeda para a sua conta em outra rede. USDC pelo CCTP da própria Circle; ETH e USDT pelo Across; USDT para a Tron pela USDT0 da própria Tether. Sem taxa da Escalibur.")
                 .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -161,6 +192,7 @@ struct BridgeForm: View {
         case .cctpFast: return String(localized: "menos de 1 minuto")
         case .cctpStandard: return String(localized: "uns 20 minutos (sem taxa do protocolo)")
         case .across: return quote.estimatedSeconds < 120 ? String(localized: "segundos") : String(localized: "uns \(quote.estimatedSeconds / 60) minutos")
+        case .usdt0: return String(localized: "uns minutos")
         }
     }
 
@@ -212,12 +244,21 @@ struct BridgeForm: View {
         model.error = nil
         guard let wallet = session.selectedWallet, !wallet.isWatchOnly, let amount = model.amount, !amount.isZero,
               let account = wallet.account(model.from), let owner = try? EVMAddress(account.address) else { return }
+        // Na Tron, quem recebe e a conta Tron desta carteira.
+        var tronRecipient: TronAddress?
+        if model.to == .tron {
+            guard let tron = wallet.account(.tron).flatMap({ TronAddress(base58: $0.address) }) else {
+                model.error = String(localized: "Esta carteira não tem conta na Tron para receber.")
+                return
+            }
+            tronRecipient = tron
+        }
         try? await Task.sleep(for: .milliseconds(400))
         guard !Task.isCancelled else { return }
         model.quoting = true
         defer { model.quoting = false }
         do {
-            let intent = try BridgeIntent(owner: owner, asset: model.asset, from: model.from, to: model.to, amount: amount)
+            let intent = try BridgeIntent(owner: owner, asset: model.asset, from: model.from, to: model.to, amount: amount, tronRecipient: tronRecipient)
             let options = try await BridgeEngine.shared.quotes(intent)
             guard !Task.isCancelled else { return }
             model.options = options
