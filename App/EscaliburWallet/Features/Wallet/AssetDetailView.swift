@@ -340,7 +340,9 @@ struct MarketChartSection: View {
                 Text("Não foi possível carregar o gráfico agora.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     .padding(.horizontal, Space.gutter)
             } else if let staleSince {
-                Text("Gráfico de \(Fmt.stamp(staleSince)). Sem conexão com as fontes agora.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                // O motivo comum e o limite por IP do CoinGecko sem chave, nao a conexao do
+                // aparelho: o texto diz que as fontes nao responderam e que tenta de novo.
+                Text("Gráfico de \(Fmt.stamp(staleSince)). As fontes de preço não responderam agora; o app tenta de novo sozinho.").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                     .padding(.horizontal, Space.gutter)
             }
             PeriodPicker(range: $range)
@@ -399,34 +401,17 @@ struct MarketChartSection: View {
         }
         let currency = session.metadata.settings.currency
         if let coingeckoID {
-            do {
-                let snapshot = try await MarketService.shared.chartSnapshot(id: coingeckoID, currency: currency, range: range)
-                points = snapshot.points
-                staleSince = snapshot.isStale ? snapshot.fetchedAt : nil
-                failed = false
-                // "Tudo" de token: o CoinGecko sem chave so da 365 dias, e o "Tudo" saia igual
-                // a "1 ano" (visto no BNB Frog, 17/10/2026). A pool de DEX tem a historia mais
-                // longa; se ela comeca antes, vale ela.
-                if range == .all, let dexFallback, let first = points.first?.time,
-                   Date().timeIntervalSince(first) < 380 * 86_400,
-                   let chart = try? await MarketService.shared.dexChart(dexFallback, currency: currency, range: .all),
-                   let older = chart.snapshot.points.first?.time, older < first, chart.snapshot.points.count >= 2 {
-                    points = chart.snapshot.points
+            // O CoinGecko sem chave limita por IP; sem ele e sem a OKX, volta o ultimo grafico
+            // marcado como antigo. Antes de mostrar o antigo, a pool de DEX; e, com a tela
+            // aberta, nova tentativa sozinha (BNB Frog com "sem conexao", relato do dono,
+            // 17/10/2026).
+            for delay in Self.staleRetryDelays {
+                if delay > 0 {
+                    try? await Task.sleep(for: .seconds(delay))
+                    guard !Task.isCancelled else { return }
                 }
-                // A ultima moeda aberta vira a dos widgets, com a linha que acabou de chegar.
-                if range == .day, !snapshot.isStale, let fiat = Fmt.Currency(rawValue: currency.uppercased()) {
-                    WidgetFeed.shared.viewed(coinID: coingeckoID, symbol: symbol, name: name, points: snapshot.points,
-                                             price: livePrice, change: liveChange, currency: fiat)
-                }
-            } catch {
-                if let dexFallback, let chart = try? await MarketService.shared.dexChart(dexFallback, currency: currency, range: range),
-                   chart.snapshot.points.count >= 2 {
-                    points = chart.snapshot.points
-                    staleSince = nil
-                    failed = false
-                } else {
-                    failed = true
-                }
+                await loadListed(coingeckoID, currency: currency)
+                if staleSince == nil, !failed { return }
             }
             return
         }
@@ -448,6 +433,49 @@ struct MarketChartSection: View {
                 points = []
                 return
             } catch {
+                failed = true
+            }
+        }
+    }
+
+    /// Grafico antigo (as fontes nao responderam): de novo em 20 s, 45 s e 90 s.
+    static let staleRetryDelays: [Double] = [0, 20, 45, 90]
+
+    /// Uma leitura da moeda com id: CoinGecko (ou OKX), e a pool de DEX quando o que voltou e
+    /// o grafico antigo ou nada.
+    private func loadListed(_ coingeckoID: String, currency: String) async {
+        do {
+            let snapshot = try await MarketService.shared.chartSnapshot(id: coingeckoID, currency: currency, range: range)
+            points = snapshot.points
+            staleSince = snapshot.isStale ? snapshot.fetchedAt : nil
+            failed = false
+            if snapshot.isStale, let dexFallback,
+               let chart = try? await MarketService.shared.dexChart(dexFallback, currency: currency, range: range),
+               chart.snapshot.points.count >= 2 {
+                points = chart.snapshot.points
+                staleSince = nil
+            }
+            // "Tudo" de token: o CoinGecko sem chave so da 365 dias, e o "Tudo" saia igual
+            // a "1 ano" (visto no BNB Frog, 17/10/2026). A pool de DEX tem a historia mais
+            // longa; se ela comeca antes, vale ela.
+            if range == .all, let dexFallback, let first = points.first?.time,
+               Date().timeIntervalSince(first) < 380 * 86_400,
+               let chart = try? await MarketService.shared.dexChart(dexFallback, currency: currency, range: .all),
+               let older = chart.snapshot.points.first?.time, older < first, chart.snapshot.points.count >= 2 {
+                points = chart.snapshot.points
+            }
+            // A ultima moeda aberta vira a dos widgets, com a linha que acabou de chegar.
+            if range == .day, !snapshot.isStale, let fiat = Fmt.Currency(rawValue: currency.uppercased()) {
+                WidgetFeed.shared.viewed(coinID: coingeckoID, symbol: symbol, name: name, points: snapshot.points,
+                                         price: livePrice, change: liveChange, currency: fiat)
+            }
+        } catch {
+            if let dexFallback, let chart = try? await MarketService.shared.dexChart(dexFallback, currency: currency, range: range),
+               chart.snapshot.points.count >= 2 {
+                points = chart.snapshot.points
+                staleSince = nil
+                failed = false
+            } else {
                 failed = true
             }
         }

@@ -187271,6 +187271,16 @@
         }
       }
     },
+    "Gráfico de %@. As fontes de preço não responderam agora; o app tenta de novo sozinho." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ chart. The price sources didn't respond right now; the app will retry on its own."
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {
