@@ -411,7 +411,9 @@ private struct ScanRing: View {
     private static let inner = 40
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || (done && settled && litAt.values.allSatisfy { Date().timeIntervalSince($0) > 1 }))) { timeline in
+        // Terminado sem alerta, o fundo continua respirando (pedido do dono, 17/10/2026); com
+        // "Reduzir movimento", tudo para.
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
             let now = timeline.date
             let clock = reduceMotion || done ? 0 : now.timeIntervalSinceReferenceDate
             ZStack {
@@ -424,15 +426,16 @@ private struct ScanRing: View {
                         let angle = Double(index) / Double(Self.outer) * 2 * .pi - .pi / 2
                         let point = CGPoint(x: center.x + 84 * CGFloat(cos(angle)), y: center.y + 84 * CGFloat(sin(angle)))
                         let square = CGRect(x: point.x - 3.25, y: point.y - 3.25, width: 6.5, height: 6.5)
-                        if index < lit {
-                            let age = litAt[index].map { now.timeIntervalSince($0) } ?? 10
-                            let flash = reduceMotion ? 0 : exp(-max(age, 0) * 5)
-                            let grown = Path(roundedRect: square.insetBy(dx: -1.2 * flash, dy: -1.2 * flash), cornerRadius: 1.6)
-                            context.fill(grown, with: .color(color))
-                            // O recem-aceso, mais claro, e assenta (o iOS 17 nao tem `mix`).
-                            if flash > 0.01 { context.fill(grown, with: .color(.white.opacity(0.55 * flash))) }
-                        } else {
-                            context.fill(Path(roundedRect: square, cornerRadius: 1.6), with: .color(PixelFill.gray(Self.tone(index, ring: 0, clock: clock))))
+                        // Cada pixel acende devagar, um depois do outro (pedido do dono, 17/10/2026):
+                        // o cinza fica por baixo e o verde cresce e chega por cima, sem flash.
+                        let gray = Path(roundedRect: square, cornerRadius: 1.6)
+                        let age = index < lit ? (litAt[index].map { now.timeIntervalSince($0) } ?? 10) : -1
+                        let reveal = reduceMotion ? (index < lit ? 1 : 0) : Self.smooth(age / Self.pixelFade)
+                        if reveal < 1 { context.fill(gray, with: .color(PixelFill.gray(Self.tone(index, ring: 0, clock: clock)))) }
+                        if reveal > 0 {
+                            let scale = 0.55 + 0.45 * reveal
+                            let grown = CGRect(x: point.x - 3.25 * scale, y: point.y - 3.25 * scale, width: 6.5 * scale, height: 6.5 * scale)
+                            context.fill(Path(roundedRect: grown, cornerRadius: 1.6 * scale), with: .color(color.opacity(reveal)))
                         }
                     }
                     // Por dentro: a cifra, com a passada girando.
@@ -478,34 +481,55 @@ private struct ScanRing: View {
                 if to < from { litAt = [:] }
                 return
             }
-            let start = Date()
-            for index in from..<to { litAt[index] = start.addingTimeInterval(Double(index - from) * 0.018) }
+            // Na fila: um passo novo comeca onde o anterior parou, num ritmo constante, em vez
+            // de acender o bloco inteiro de uma vez.
+            let queued = litAt.values.max().map { $0.addingTimeInterval(Self.pixelStep) } ?? .distantPast
+            let start = max(Date(), queued)
+            for index in from..<to { litAt[index] = start.addingTimeInterval(Double(index - from) * Self.pixelStep) }
         }
         .accessibilityHidden(true)
     }
 
+    /// Quanto cada pixel de fora leva para acender, e o intervalo entre um e o proximo.
+    static let pixelFade = 0.32
+    static let pixelStep = 0.035
+
+    static func smooth(_ x: Double) -> Double { let t = min(max(x, 0), 1); return t * t * (3 - 2 * t) }
+
     /// Terminado: o fundo do circulo em pixels verdes, fracos, do centro para a borda de
-    /// dentro. `since`: segundos desde o fim.
+    /// dentro, em aneis concentricos como os de fora (pedido do dono, 17/10/2026: na grade
+    /// quadrada o contorno saia em octogono). Assentado, os pixels respiram, cada um no seu
+    /// tempo, e uma onda sai do centro de tempos em tempos. `since`: segundos desde o fim.
     private func drawGlow(_ context: inout GraphicsContext, center: CGPoint, since: Double) {
         let color = alert ? Palette.caution : Palette.success
-        func ease(_ x: Double) -> Double { let t = min(max(x, 0), 1); return t * t * (3 - 2 * t) }
-        let pitch: CGFloat = 6
+        let radius = 52.0
+        let spacing = 6.5
+        let wavePeriod = 2.8
         var index = 0
-        var y = center.y - 54
-        while y <= center.y + 54 {
-            var x = center.x - 54
-            while x <= center.x + 54 {
-                let distance = hypot(x - center.x, y - center.y)
-                if distance < 54 {
-                    let reach = ease((since - Double(distance / 54) * 0.5) / 0.3)
-                    let noise = PixelFill.noise(index, 7, 0x5D1)
-                    let square = CGRect(x: x - 1.6, y: y - 1.6, width: 3.2, height: 3.2)
-                    context.fill(Path(roundedRect: square, cornerRadius: 0.8), with: .color(color.opacity((0.10 + 0.14 * noise) * reach)))
+        for ring in 0...Int(radius / spacing) {
+            let r = Double(ring) * spacing
+            let count = ring == 0 ? 1 : max(6, Int((2 * .pi * r / spacing).rounded()))
+            // Aneis alternados meio passo girados: o desenho fica tramado, nao em raios.
+            let offset = ring.isMultiple(of: 2) ? 0 : .pi / Double(count)
+            for slot in 0..<count {
+                let angle = Double(slot) / Double(count) * 2 * .pi + offset
+                let x = center.x + CGFloat(r * cos(angle)), y = center.y + CGFloat(r * sin(angle))
+                let reach = Self.smooth((since - r / radius * 0.5) / 0.3)
+                let noise = PixelFill.noise(index, 7, 0x5D1)
+                var level = 0.10 + 0.14 * noise
+                if !reduceMotion, since > 0.8 {
+                    // Respira: cada pixel no seu ritmo; e a onda passa do centro para a borda.
+                    let breathe = 0.5 + 0.5 * sin(since * (1.1 + 0.9 * noise) + noise * 6.28)
+                    let front = (since / wavePeriod).truncatingRemainder(dividingBy: 1) * 1.3
+                    let wave = exp(-pow((r / radius - front) / 0.12, 2))
+                    level = level * (0.65 + 0.55 * breathe) + 0.22 * wave
                 }
+                // A borda some devagar: o contorno fica redondo.
+                let edge = Self.smooth((radius - r) / 8)
+                let square = CGRect(x: x - 1.6, y: y - 1.6, width: 3.2, height: 3.2)
+                context.fill(Path(roundedRect: square, cornerRadius: 0.8), with: .color(color.opacity(min(level, 0.6) * reach * (0.35 + 0.65 * edge))))
                 index += 1
-                x += pitch
             }
-            y += pitch
         }
     }
 

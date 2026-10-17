@@ -78,6 +78,10 @@ final class ReceiveFlowTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Copiar endereço"].waitForExistence(timeout: 5), "a tela de copiar nao abriu")
         let evm = app.buttons["copiar-ethereum"]
         XCTAssertTrue(evm.waitForExistence(timeout: 5), "sem a linha das redes EVM")
+        // Tocar na linha das EVM (fora do copiar) abre as redes, sem copiar nem fechar.
+        app.buttons["redes-evm"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["rede-evm-polygon"].waitForExistence(timeout: 3), "as redes EVM nao abriram")
+        XCTAssertTrue(app.staticTexts["Copiar endereço"].exists, "a tela fechou ao abrir as redes")
         let bitcoin = app.buttons["copiar-bitcoin"]
         XCTAssertTrue(bitcoin.exists)
         let attachment = XCTAttachment(screenshot: app.screenshot())

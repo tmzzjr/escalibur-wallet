@@ -453,7 +453,7 @@ struct ImportPhraseView: View {
                         .rotationEffect(.degrees(cautionOpen ? 180 : 0))
                 }
                 if cautionOpen {
-                    Text("Gente escolhe palavras de que gosta, de um tema, perto umas das outras, e robôs testam essas frases o tempo todo. Sorteie cada palavra com moeda ou dado, ou deixe o app sortear todas. Por cima, uma carteira com passphrase forte protege o saldo.")
+                    Text("Pessoas tendem a escolher palavras favoritas, do mesmo tema ou próximas na lista, e robôs testam essas combinações sem parar. O seguro é sortear cada palavra com dado ou moeda, ou deixar o app sortear. Uma passphrase forte por cima dá mais uma camada de proteção.")
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                         .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
                         .padding(.leading, 21)
@@ -902,23 +902,56 @@ private struct DrawnSlot: View {
     let number: Int
 
     var body: some View {
+        // Posicao reservada, nao campo vazio (pedido do dono, 17/10/2026): o mesmo tamanho e o
+        // mesmo numero das outras, fundo rebaixado sem contorno, e os pixels do sorteio a direita.
         HStack(spacing: Space.xs) {
             Text(String(format: "%02d", number))
                 .font(.system(size: 13, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Palette.inkMuted)
-            Image(systemName: "dice").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
-            Text("o app sorteia").font(.system(size: 15, weight: .medium)).foregroundStyle(Palette.inkDead).lineLimit(1)
+            Text("o app sorteia").font(.system(size: 15, weight: .medium)).foregroundStyle(Palette.inkSoft).lineLimit(1)
+                .minimumScaleFactor(0.85)
             Spacer(minLength: 0)
+            DrawPixels().frame(width: 20, height: 20).padding(.trailing, 3)
         }
-        .padding(.horizontal, Space.sm)
+        .padding(.leading, Space.sm).padding(.trailing, 9)
         .frame(height: 44)
-        .background(
-            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .stroke(Palette.edge, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-        )
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(String(localized: "Palavra \(number), sorteada pelo app"))
         .accessibilityIdentifier("palavra-sorteada")
+    }
+}
+
+/// O sorteio da ultima palavra, em pixels (pedido do dono, 17/10/2026: no lugar do dado): uma
+/// matriz 4x4 cintilando no estilo cifrado do app, cada pixel no seu ritmo. Com "Reduzir
+/// movimento", parada.
+private struct DrawPixels: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 15, paused: reduceMotion)) { timeline in
+            let clock = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
+            Canvas { context, size in
+                let cells = 4
+                let pitch = size.width / CGFloat(cells)
+                let side = pitch * 0.74
+                for row in 0..<cells {
+                    for column in 0..<cells {
+                        let phase = PixelFill.noise(column, row, 0x51A)
+                        let beat = clock * (1.4 + 1.8 * phase) + phase * 8
+                        let step = beat.rounded(.down)
+                        let t = beat - step
+                        let blend = t * t * (3 - 2 * t)
+                        let a = PixelFill.noise(column, row, Int(step)), b = PixelFill.noise(column, row, Int(step) + 1)
+                        let tone = 0.22 + 0.62 * (a + (b - a) * blend)
+                        let rect = CGRect(x: CGFloat(column) * pitch + (pitch - side) / 2, y: CGFloat(row) * pitch + (pitch - side) / 2,
+                                          width: side, height: side)
+                        context.fill(Path(roundedRect: rect, cornerRadius: side * 0.22), with: .color(PixelFill.gray(tone)))
+                    }
+                }
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -929,6 +962,10 @@ private struct WordListPicker: View {
     let entry: PhraseEntry
     let onPick: (String) -> Void
     @Environment(\.dismiss) private var dismiss
+    /// A palavra que acabou de ser tocada: acende em verde e apaga sozinha (pedido do dono,
+    /// 17/10/2026). Nao fica marcada: a lista e publica, mas quais palavras estao na frase nao.
+    @State private var flashed: String?
+    @State private var flashTick = 0
 
     static let words: [String] = (try? WordlistStore.shared.wordlist(for: .english).words) ?? []
     static let letters: [String] = Array(Set(words.compactMap { $0.first.map(String.init) })).sorted()
@@ -944,6 +981,18 @@ private struct WordListPicker: View {
                 .typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
                 .accessibilityIdentifier("lista-progresso")
+            // A barra enche a cada palavra.
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Palette.rail)
+                    Capsule().fill(Palette.success)
+                        .frame(width: entry.count > 0 ? proxy.size.width * CGFloat(filled) / CGFloat(entry.count) : 0)
+                }
+            }
+            .frame(height: 4)
+            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: filled)
+            .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+            .accessibilityHidden(true)
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Space.xs) {
@@ -963,14 +1012,19 @@ private struct WordListPicker: View {
                                 Text(letter.uppercased()).typeStyle(.heading).foregroundStyle(Palette.inkMuted)
                                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: Space.xs)], spacing: Space.xs) {
                                     ForEach(Self.byLetter[letter] ?? [], id: \.self) { word in
-                                        Button { onPick(word) } label: {
+                                        let lit = flashed == word
+                                        Button { pick(word) } label: {
+                                            // O verde da verificacao (o do anel do aparelho), cheio.
                                             Text(verbatim: word)
-                                                .font(.system(size: 15, weight: .medium))
-                                                .foregroundStyle(Palette.ink)
+                                                .font(.system(size: 15, weight: lit ? .semibold : .medium))
+                                                .foregroundStyle(lit ? Palette.void : Palette.ink)
                                                 .frame(maxWidth: .infinity, minHeight: 40)
-                                                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+                                                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                                                    .fill(lit ? Palette.success : Palette.body))
+                                                .scaleEffect(lit ? 1.04 : 1)
                                         }
                                         .buttonStyle(.plain)
+                                        .disabled(filled >= entry.count)
                                         .sensoryFeedback(.selection, trigger: filled)
                                     }
                                 }
@@ -987,6 +1041,19 @@ private struct WordListPicker: View {
         .presentationDetents([.large])
         .presentationBackground(Palette.void)
         .guardedAgainstCapture()
+    }
+
+    /// Preenche a proxima posicao e acende a palavra por um instante.
+    private func pick(_ word: String) {
+        onPick(word)
+        flashTick += 1
+        let tick = flashTick
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.55)) { flashed = word }
+        Task {
+            try? await Task.sleep(for: .milliseconds(650))
+            guard flashTick == tick else { return }
+            withAnimation(.easeOut(duration: 0.35)) { flashed = nil }
+        }
     }
 }
 

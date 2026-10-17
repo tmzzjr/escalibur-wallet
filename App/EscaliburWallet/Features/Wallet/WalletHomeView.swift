@@ -778,6 +778,8 @@ struct CopyAddressSheet: View {
     @Environment(\.dismiss) private var dismiss
     let wallet: WalletMeta
     @State private var copied: String?
+    /// A lista das redes EVM aberta.
+    @State private var expanded = false
 
     struct Target: Identifiable {
         let title: String
@@ -820,41 +822,99 @@ struct CopyAddressSheet: View {
         .presentationCornerRadius(Radius.sheet)
     }
 
-    private func row(_ target: Target) -> some View {
-        Button {
-            Pasteboard.copyAddress(target.address)
-            withAnimation(Motion.fade) { copied = target.id }
-            Task {
-                try? await Task.sleep(for: .milliseconds(450))
-                dismiss()
-                try? await Task.sleep(for: .milliseconds(250))
-                toasts.show(String(localized: "Endereço \(target.title) copiado. Depois de colar, confira o endereço inteiro, inclusive o meio."))
-            }
-        } label: {
-            HStack(spacing: Space.sm) {
-                icon(target)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(target.title).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
-                    if target.chains.count > 1 {
-                        Text(Self.names(target.chains)).typeStyle(.note).foregroundStyle(Palette.inkMuted).lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Text(verbatim: Fmt.address(target.address, chain: target.chains.first)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: Space.xs)
-                Image(systemName: copied == target.id ? "checkmark" : "doc.on.doc")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(copied == target.id ? Palette.up : Palette.inkSoft)
-                    .contentTransition(.symbolEffect(.replace))
-            }
-            .padding(.horizontal, Space.md).frame(minHeight: 64)
-            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
-            .contentShape(Rectangle())
+    private func copy(_ target: Target) {
+        Pasteboard.copyAddress(target.address)
+        withAnimation(Motion.fade) { copied = target.id }
+        Task {
+            try? await Task.sleep(for: .milliseconds(450))
+            dismiss()
+            try? await Task.sleep(for: .milliseconds(250))
+            toasts.show(String(localized: "Endereço \(target.title) copiado. Depois de colar, confira o endereço inteiro, inclusive o meio."))
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(target.title), \(Fmt.address(target.address, chain: target.chains.first))")
-        .accessibilityIdentifier("copiar-\(target.chains.first?.id ?? "")")
+    }
+
+    private func copyMark(_ target: Target) -> some View {
+        Image(systemName: copied == target.id ? "checkmark" : "doc.on.doc")
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(copied == target.id ? Palette.up : Palette.inkSoft)
+            .contentTransition(.symbolEffect(.replace))
+    }
+
+    /// Uma rede so: a linha inteira copia. As EVM (pedido do dono, 17/10/2026): tocar na
+    /// linha abre as redes que usam este endereco; copiar fica no botao da direita.
+    @ViewBuilder
+    private func row(_ target: Target) -> some View {
+        if target.chains.count > 1 {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: Space.xs) {
+                    Button { withAnimation(Motion.fade) { expanded.toggle() } } label: {
+                        HStack(spacing: Space.sm) {
+                            icon(target)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(target.title).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                                HStack(spacing: 4) {
+                                    Text(Self.names(target.chains)).typeStyle(.note).foregroundStyle(Palette.inkMuted).lineLimit(1)
+                                    Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold)).foregroundStyle(Palette.inkMuted)
+                                        .rotationEffect(.degrees(expanded ? 180 : 0))
+                                }
+                                Text(verbatim: Fmt.address(target.address, chain: target.chains.first)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                                    .lineLimit(1)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .frame(minHeight: 64)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(target.title), \(Fmt.address(target.address, chain: target.chains.first))")
+                    .accessibilityHint(expanded ? String(localized: "Esconde as redes") : String(localized: "Mostra as redes"))
+                    .accessibilityIdentifier("redes-evm")
+                    Button { copy(target) } label: {
+                        copyMark(target).frame(width: 44, height: 44).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "Copiar endereço \(target.title)"))
+                    .accessibilityIdentifier("copiar-\(target.chains.first?.id ?? "")")
+                }
+                if expanded {
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: Space.xs), GridItem(.flexible(), spacing: Space.xs)],
+                              alignment: .leading, spacing: Space.xs) {
+                        ForEach(Self.featured(target.chains), id: \.id) { chain in
+                            HStack(spacing: 6) {
+                                NetworkBadge(chain: chain, size: 18, ring: Palette.body)
+                                Text(chain.name).typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
+                            }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier("rede-evm-\(chain.id)")
+                        }
+                    }
+                    .padding(.top, Space.xs).padding(.bottom, Space.md)
+                    .transition(.opacity)
+                }
+            }
+            .padding(.leading, Space.md).padding(.trailing, Space.xs)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+        } else {
+            Button { copy(target) } label: {
+                HStack(spacing: Space.sm) {
+                    icon(target)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(target.title).typeStyle(.row).foregroundStyle(Palette.ink).lineLimit(1)
+                        Text(verbatim: Fmt.address(target.address, chain: target.chains.first)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: Space.xs)
+                    copyMark(target)
+                }
+                .padding(.horizontal, Space.md).frame(minHeight: 64)
+                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(target.title), \(Fmt.address(target.address, chain: target.chains.first))")
+            .accessibilityIdentifier("copiar-\(target.chains.first?.id ?? "")")
+        }
     }
 
     /// O icone da rede; nas EVM, tres redes sobrepostas.
@@ -884,7 +944,8 @@ struct CopyAddressSheet: View {
     }
 
     static func names(_ chains: [Chain]) -> String {
-        let shown = featured(chains).prefix(3).map(\.name)
+        // Duas no texto (pedido do dono, 17/10/2026): com a terceira, a linha quebrava.
+        let shown = featured(chains).prefix(2).map(\.name)
         let rest = chains.count - shown.count
         return rest > 0 ? String(localized: "\(shown.joined(separator: ", ")) e mais \(rest)") : shown.joined(separator: ", ")
     }

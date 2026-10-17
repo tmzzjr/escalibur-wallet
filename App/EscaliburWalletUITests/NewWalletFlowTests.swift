@@ -159,6 +159,11 @@ final class NewWalletFlowTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Só você tem a chave"].waitForExistence(timeout: 5))
         app.buttons["aceite-responsabilidade"].tap()
         app.buttons["Conferir o aparelho"].tap()
+        // O anel conferido, com o fundo de pixels em aneis respirando.
+        if app.staticTexts["Aparelho conferido"].waitForExistence(timeout: 30) {
+            sleep(2)
+            shot("e0b-conferido", app)
+        }
         app.passDeviceCheck()
 
         if !app.staticTexts["Escolha as suas palavras"].waitForExistence(timeout: 10) { shot("e0-sem-escolher", app) }
@@ -169,10 +174,10 @@ final class NewWalletFlowTests: XCTestCase {
         XCTAssertFalse(app.otherElements["palavra-12"].exists, "a 12a e do app, nao do dono")
         XCTAssertTrue(app.descendants(matching: .any)["palavra-sorteada"].exists, "a 12a nao aparece travada")
         // O porque do aviso fica recolhido, e abre num toque.
-        XCTAssertFalse(text("Gente escolhe palavras", in: app, timeout: 1))
+        XCTAssertFalse(text("Pessoas tendem a escolher palavras", in: app, timeout: 1))
         let caution = app.buttons["aviso-escolhidas"]
         caution.tap()
-        XCTAssertTrue(text("Gente escolhe palavras", in: app))
+        XCTAssertTrue(text("Pessoas tendem a escolher palavras", in: app))
         shot("e1-aviso-aberto", app)
         caution.tap()
         shot("e1-escolher", app)
@@ -200,6 +205,8 @@ final class NewWalletFlowTests: XCTestCase {
             XCTAssertTrue(button.exists, "sem \(word) na lista")
             usleep(400_000)
             button.tap()
+            // A palavra tocada acende em verde por um instante.
+            if word == "dad" { shot("e1f-verde", app) }
         }
         // Com as 11 preenchidas, a lista fecha sozinha.
         XCTAssertTrue(app.staticTexts["lista-progresso"].waitForNonExistence(timeout: 5), "a lista nao fechou")
