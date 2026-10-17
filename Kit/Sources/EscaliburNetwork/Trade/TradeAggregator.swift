@@ -164,6 +164,12 @@ public actor TradeAggregator {
         return try result.get()
     }
 
+    /// O motor viu a troca deste provedor falhar na simulacao: conta como falha no circuit
+    /// breaker (tres seguidas tiram o provedor por 60 segundos).
+    public func reportFailure(_ provider: TradeProvider) async {
+        await pool.reportFailure(Self.poolEntry(provider))
+    }
+
     /// A entrada do circuit breaker: o nome e o do provedor, a URL e a de Endpoints.trade.
     /// Todo provedor tem entrada; o teste "cada provedor tem endereco" confere. A Uniswap
     /// cota na cadeia, pelos RPCs da rede: o endereco dela e so o nome, sem host.

@@ -264,6 +264,39 @@ struct EVMTradeEngineTests {
         }
     }
 
+    @Test("A rota escolhida reverte na simulacao: o plano sai pela proxima cotacao, que tambem passa pela simulacao")
+    func simulationFallsBackToAlternative() async throws {
+        // Com preco de referencia (o da propria melhor cotacao): a alternativa pode vir abaixo
+        // do minimo mostrado ate a tolerancia do dono, nunca mais que isso.
+        let ranked = try Self.expectedRanking()
+        let best = try #require(ranked.first).quote
+        let ethMicros = BigUInt(100) * BigUInt.power(of: 10, 24) / best.expectedOut
+        let text = ethMicros.decimalString
+        let prices = ["usd-coin": "1", "ethereum": String(text.dropLast(6)) + "." + String(text.suffix(6))]
+        let request = try F.request()
+
+        let state = FakeTradeChain(failingSimulationProviders: [best.provider])
+        let engine = H.engine(state: state, prices: prices, sources: try H.sources(EVMCallCounter()), transport: try H.baseTransport())
+        let quote = try await engine.quote(request)
+        #expect(quote.legs.count == 1 && quote.legs[0].provider == best.provider.displayName && !quote.alternatives.isEmpty)
+        let plan = try await engine.plan(request, quote: quote)
+        let reads = await state.reads.map(\.provider)
+        let fallback = try #require(reads.last)
+        #expect(reads.first == best.provider && fallback != best.provider)
+        #expect(quote.alternatives.contains { EVMTradeQuoteMapping.provider(named: $0.provider) == fallback })
+        let swap = try #require(plan.transactions.last as? EVMTransaction)
+        #expect(swap.to == TradeAllowlist.router(for: fallback, on: .base)?.address)
+        #expect(plan.review.lines.contains { $0.label == "Provedor" && $0.value == fallback.displayName })
+
+        // Todas revertem: o plano nao sai, com a mensagem da simulacao.
+        let none = H.engine(state: FakeTradeChain(failingSimulationProviders: Set(TradeProvider.allCases)), prices: prices,
+                            sources: try H.sources(EVMCallCounter()), transport: try H.baseTransport())
+        let again = try await none.quote(request)
+        await #expect(throws: SendEngineError.message("A simulação mostra que esta troca falharia agora. Nada foi assinado.")) {
+            _ = try await none.plan(request, quote: again)
+        }
+    }
+
     /// Uma cotacao dividida em duas pernas de 100 USDC (Velora e KyberSwap), montada com os
     /// garantidos que a recotacao vai dar.
     static func splitQuote() throws -> TradeQuote {

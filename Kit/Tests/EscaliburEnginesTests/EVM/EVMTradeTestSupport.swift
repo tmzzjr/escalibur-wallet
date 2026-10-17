@@ -145,12 +145,16 @@ actor FakeTradeChain: EVMTradeChainReading {
     var tokenBalance: BigUInt
     var allowance: BigUInt
     var failingSimulationSource: String?
+    /// Os provedores cuja rota reverte na simulacao, nas duas fontes.
+    var failingSimulationProviders: Set<TradeProvider> = []
     private(set) var reads: [(provider: TradeProvider, localNextNonce: UInt64?)] = []
 
-    init(tokenBalance: BigUInt = BigUInt(1_000_000_000), allowance: BigUInt = 0, failingSimulationSource: String? = nil) {
+    init(tokenBalance: BigUInt = BigUInt(1_000_000_000), allowance: BigUInt = 0, failingSimulationSource: String? = nil,
+         failingSimulationProviders: Set<TradeProvider> = []) {
         self.tokenBalance = tokenBalance
         self.allowance = allowance
         self.failingSimulationSource = failingSimulationSource
+        self.failingSimulationProviders = failingSimulationProviders
     }
 
     func network(chain: Chain, owner: EVMAddress, localNextNonce: UInt64?, gasEstimate: UInt64, l1DataFee: BigUInt?,
@@ -167,7 +171,8 @@ actor FakeTradeChain: EVMTradeChainReading {
     func read(for quote: ValidatedTradeQuote, localNextNonce: UInt64?) async throws -> TradeChainState {
         reads.append((quote.provider, localNextNonce))
         let simulations = ["publicnode", "drpc"].map {
-            EVMTradeFixtures.simulation(quote, allowance: allowance, source: $0, success: $0 != failingSimulationSource)
+            EVMTradeFixtures.simulation(quote, allowance: allowance, source: $0,
+                                        success: $0 != failingSimulationSource && !failingSimulationProviders.contains(quote.provider))
         }
         return TradeChainState(
             network: EVMTradeFixtures.network(localNextNonce: localNextNonce),

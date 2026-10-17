@@ -218,6 +218,43 @@ public struct EVMTradeEngine: TradeEngine {
 
         // Recotacao de cada perna no provedor escolhido, validada de novo pelo agregador.
         let market = try await EVMTradeMarket.read(context, services: services)
+        do {
+            return try await planLegs(legs, request: request, quote: quote, context: context, market: market, riskConfirmed: riskConfirmed)
+        } catch let refusal as TradeRefusal where legs.count == 1 && Self.failedInSimulation(refusal) {
+            // O provedor escolhido montou uma troca que a simulacao recusou (a De¹ na Base, que
+            // promete e nao entrega, visto ao vivo em 17/10/2026). Em vez de parar no erro, as
+            // alternativas da mesma rodada, na ordem: cada uma recotada, validada, simulada em
+            // duas fontes e presa ao minimo que a tela mostrou. A revisao diz qual executa.
+            await services.aggregator.reportFailure(legs[0].provider)
+            for alternative in quote.alternatives {
+                guard let provider = EVMTradeQuoteMapping.provider(named: alternative.provider), provider != legs[0].provider else { continue }
+                if let plan = try? await planLegs([(provider, legs[0].amountIn, 10_000)], request: request, quote: quote, context: context,
+                                                  market: market, riskConfirmed: riskConfirmed) {
+                    return plan
+                }
+            }
+            throw refusal
+        }
+    }
+
+    /// A recusa e da simulacao (a troca montada nao faria o que diz), nao da falta dela.
+    static func failedInSimulation(_ refusal: TradeRefusal) -> Bool {
+        switch refusal {
+        case .simulationFailed, .simulationShape, .simulationSpentTooMuch, .simulationReceivedTooLittle,
+             .simulationUnexpectedTransfer, .simulationUnexpectedApproval:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Recota e planeja as pernas: o garantido novo preso ao que a tela mostrou, e uma perna
+    /// depois da outra.
+    func planLegs(
+        _ legs: [(provider: TradeProvider, amountIn: BigUInt, shareBps: Int)], request: TradeRequest, quote: TradeQuote,
+        context: EVMTradeContext, market: EVMTradeMarket, riskConfirmed: Bool
+    ) async throws -> SigningPlan {
+        let intent = context.intent
         let requoted = try await requote(legs, intent: intent, market: market)
 
         // O garantido novo nao pode ter caido abaixo do que a tela mostrou por mais que a
