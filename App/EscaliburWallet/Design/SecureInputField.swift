@@ -190,6 +190,8 @@ struct PasswordBox: View {
                     .allowsHitTesting(false)
                 }
             }
+            // Os glifos e o texto revelado ficam fora da captura (os pontos ja ficavam).
+            .protectedFromCapture()
             .padding(.horizontal, Space.md)
             .frame(height: 56)
             .background(

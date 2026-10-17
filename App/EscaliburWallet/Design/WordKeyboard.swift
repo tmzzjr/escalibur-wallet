@@ -168,12 +168,17 @@ private struct KeyStyle: ButtonStyle {
 /// teclado do sistema chega a ver o campo. Os cliques soam como os do teclado do iPhone.
 final class WordKeyboardInputView: UIInputView, UIInputViewAudioFeedback {
     private let host: UIHostingController<WordKeyboardView>
+    /// As teclas acesas e a tecla apertada dizem a palavra: o teclado fica na camada que sai
+    /// em branco na captura e na gravacao, como as palavras (`SecureCanvas`). Ele e desenhado
+    /// pelo app, numa janela do app, e por isso a camada vale nele; o do iPhone, nao.
+    private let secure: SecureCanvas?
 
     var enableInputClicksWhenVisible: Bool { true }
 
     @MainActor
     init(model: WordKeyboardModel) {
         host = UIHostingController(rootView: WordKeyboardView(model: model))
+        secure = SecureCanvas()
         // Ja nasce com a altura de verdade, contando a faixa de baixo do iPhone: nascendo com
         // so a das teclas, a tela posicionava as sugestoes por essa altura e o teclado, ao
         // crescer, cortava a parte de baixo delas (pedido do dono, 16/10/2026).
@@ -183,7 +188,17 @@ final class WordKeyboardInputView: UIInputView, UIInputViewAudioFeedback {
         backgroundColor = UIColor(Palette.body)
         host.view.backgroundColor = .clear
         host.view.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(host.view)
+        if let canvas = secure?.view {
+            canvas.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(canvas)
+            NSLayoutConstraint.activate([
+                canvas.leadingAnchor.constraint(equalTo: leadingAnchor),
+                canvas.trailingAnchor.constraint(equalTo: trailingAnchor),
+                canvas.topAnchor.constraint(equalTo: topAnchor),
+                canvas.bottomAnchor.constraint(equalTo: bottomAnchor),
+            ])
+        }
+        (secure?.view ?? self).addSubview(host.view)
         NSLayoutConstraint.activate([
             host.view.leadingAnchor.constraint(equalTo: leadingAnchor),
             host.view.trailingAnchor.constraint(equalTo: trailingAnchor),

@@ -62,6 +62,7 @@
 		478026866DF85E9EF5D50A76 /* ImportPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839F9C92169FD1A8C5C69A3B /* ImportPreview.swift */; };
 		47F68D13E6EA84A3D27FA7DC /* SavedAddressesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00956B57FDDD41C22852289 /* SavedAddressesTests.swift */; };
 		4969D8FAA1778B206D93B390 /* BackupFirstArt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49EE4EBF2B576AD8F92E2DA9 /* BackupFirstArt.swift */; };
+		496F006260BC617DA6E7B0FF /* SecureCaptureContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A65F533EF779F32726DDF8 /* SecureCaptureContainer.swift */; };
 		4C14ECA3049CAF0F8D5F3ED4 /* SendLookalikeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98D671E1EA2D07318686F61E /* SendLookalikeTests.swift */; };
 		4C320C6CC2284B69F3C1EBE1 /* WordKeyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94D1ADAB0DBA0A6C76F203FA /* WordKeyboard.swift */; };
 		4DA261DD7012A533E034CF1C /* termos.md in Resources */ = {isa = PBXBuildFile; fileRef = 7C28ED1879662A04236281C1 /* termos.md */; };
@@ -84,6 +85,7 @@
 		6555C4EDEBE0DF08F72AE01A /* ResponsibilityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D19676DE10AD70D111052D72 /* ResponsibilityView.swift */; };
 		67C3581CF252367C1BEC66F8 /* SlippageScaleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B27717125F1CAF51E389386B /* SlippageScaleTests.swift */; };
 		6832C52B400E2CFFD88D7305 /* Metrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B2519CA657D4A05E4C4A06 /* Metrics.swift */; };
+		6A08C88414AE3D1D410DFBB6 /* CaptureShieldTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8C33EEF84FAA301EA7A706 /* CaptureShieldTests.swift */; };
 		6ACD198F536824F93FE348BB /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 78634956566339609C141332 /* InfoPlist.xcstrings */; };
 		6DE36F9779659ECEE5EEC272 /* ReceiptWatchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4F387C06F2F84E8F145E72E /* ReceiptWatchTests.swift */; };
 		6E8FF2A753324946AF775721 /* BridgeForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA24AF34F52FE0713F3129C1 /* BridgeForm.swift */; };
@@ -257,6 +259,7 @@
 		257E1C63C5F4FC66E542B13F /* ImportPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPipelineTests.swift; sourceTree = "<group>"; };
 		261F3EEB46DB0F22480FE3BC /* TourFramesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TourFramesTests.swift; sourceTree = "<group>"; };
 		268BDA3FA6BA2AF2CC65DF4A /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
+		27A65F533EF779F32726DDF8 /* SecureCaptureContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureCaptureContainer.swift; sourceTree = "<group>"; };
 		28B8F987AD9FF8A40CF49305 /* SendChallengeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendChallengeTests.swift; sourceTree = "<group>"; };
 		290C3A2CEF411E071AA05800 /* WordInputField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordInputField.swift; sourceTree = "<group>"; };
 		2D484651018FF5D48FD37087 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -286,6 +289,7 @@
 		4C0CE717F87F6B5BD86CD6D6 /* MetadataCompatibilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataCompatibilityTests.swift; sourceTree = "<group>"; };
 		4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometryNameTests.swift; sourceTree = "<group>"; };
 		4E8104D596BB55DD5566A8B0 /* WalletOrbit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletOrbit.swift; sourceTree = "<group>"; };
+		4F8C33EEF84FAA301EA7A706 /* CaptureShieldTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureShieldTests.swift; sourceTree = "<group>"; };
 		51574B877B1EE0EC055AEBA8 /* MarketCoinFactsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketCoinFactsTests.swift; sourceTree = "<group>"; };
 		529FF2FD620686A71B265A06 /* RevealFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealFlow.swift; sourceTree = "<group>"; };
 		53CECA7890449A2051DB3B96 /* EmptySendArt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptySendArt.swift; sourceTree = "<group>"; };
@@ -577,6 +581,7 @@
 				9FE0277A6EBBAE2C28AD2107 /* AssetActivityTests.swift */,
 				4D8516E057B563D9A42DF2E6 /* BiometryNameTests.swift */,
 				745CFBE75BE45B95EF64F171 /* CameraAccessTests.swift */,
+				4F8C33EEF84FAA301EA7A706 /* CaptureShieldTests.swift */,
 				3D40F7F537F7FF07C6720903 /* CoinDetailTests.swift */,
 				A7A7441A95891CC1A307A355 /* CustomTokenTests.swift */,
 				4409BFB320568047D719B61C /* DesignPassLookTests.swift */,
@@ -760,6 +765,7 @@
 				AAEF81421478F9FA6F85FE56 /* Palette.swift */,
 				A4E76B5A496F393035235CB4 /* PixelVault.swift */,
 				178D0EBBB2AA6CB89DC6772B /* PlanReviewViews.swift */,
+				27A65F533EF779F32726DDF8 /* SecureCaptureContainer.swift */,
 				77C53992781573FB54743C00 /* SecureInputField.swift */,
 				C89672710E00E2856C3A1EB7 /* TokenMarks.swift */,
 				38287337A415C5A48CB564C8 /* Typography.swift */,
@@ -1050,6 +1056,7 @@
 				BF2AE236B677F2B5801EBB37 /* AssetActivityTests.swift in Sources */,
 				A735272844639F9878C01046 /* BiometryNameTests.swift in Sources */,
 				2809DE2FADD5826ABB2508B5 /* CameraAccessTests.swift in Sources */,
+				6A08C88414AE3D1D410DFBB6 /* CaptureShieldTests.swift in Sources */,
 				F442789E52824CD5BF6184A6 /* CoinDetailTests.swift in Sources */,
 				CE372781780EEF980A965AD3 /* CustomTokenTests.swift in Sources */,
 				24256C0001B53F5C64680B09 /* DesignPassLookTests.swift in Sources */,
@@ -1197,6 +1204,7 @@
 				3436AC2D44A808B71561FBA0 /* RootView.swift in Sources */,
 				8AD9BAAFA95723925CCB3A6D /* Router.swift in Sources */,
 				E345A5856750B23E38B8A35E /* SealEnvelopeFlow.swift in Sources */,
+				496F006260BC617DA6E7B0FF /* SecureCaptureContainer.swift in Sources */,
 				57B948F45FB2B7684F3E0E2C /* SecureInputField.swift in Sources */,
 				7B637EE92498D3B55BF911DE /* SecurityScreens.swift in Sources */,
 				7E1A69CBC8BDCE4F37921E6E /* SendFlow.swift in Sources */,
