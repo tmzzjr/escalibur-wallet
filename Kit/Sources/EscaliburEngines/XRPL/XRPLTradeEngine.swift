@@ -9,7 +9,10 @@ import Foundation
 /// Troca: um `OfferCreate` com tfSell e tfFillOrKill. O dono entrega exatamente o valor
 /// de entrada (TakerGets) e recebe pelo menos o minimo (TakerPays), ou nada acontece:
 /// quem garante o minimo e a rede, pelas marcas e valores gravados na oferta, nao a
-/// cotacao. A cotacao sai do livro de ofertas lido em dois servidores no mesmo ledger.
+/// cotacao. A cotacao sai do livro de ofertas lido em dois servidores no mesmo ledger, e
+/// e conferida contra o preco de referencia do mercado, como nas outras redes: mais de 5%
+/// pior recusa (revisao de 17/10/2026; antes, um livro ralo e longe do preco de mercado
+/// passava, porque o impacto so comparava com a melhor oferta do proprio livro).
 ///
 /// Ordem limite: o mesmo `OfferCreate`, so com tfSell, que fica no livro ate executar,
 /// vencer (`Expiration`) ou ser cancelado.
@@ -20,13 +23,17 @@ struct XRPLTradeEngine: TradeEngine {
     let reader: XRPLReader
     /// Os tokens do XRP Ledger que a troca aceita.
     let tokens: [Asset]
+    /// O preco de referencia (CoinGecko), por outro caminho que nao o livro.
+    let prices: any TradePriceOracle
 
     /// Sem token curado nao ha par para trocar, e a rede fica fora da aba Trocar.
-    init?(reader: XRPLReader = .shared, tokens: [Asset] = XRPLEngineSupport.registryAssets) {
+    init?(reader: XRPLReader = .shared, tokens: [Asset] = XRPLEngineSupport.registryAssets,
+          prices: any TradePriceOracle = MarketPriceOracle.shared) {
         let usable = tokens.filter { XRPLEngineSupport.curated($0) != nil }
         guard !usable.isEmpty else { return nil }
         self.reader = reader
         self.tokens = usable
+        self.prices = prices
     }
 
     var curated: [XRPLCuratedAsset] { tokens.compactMap(XRPLEngineSupport.curated) }
@@ -52,12 +59,14 @@ struct XRPLTradeEngine: TradeEngine {
         try TradeMath.requireSlippage(request.slippageBasisPoints)
         guard !request.amountIn.isZero else { throw SendEngineError.message(kitText("Digite um valor maior que zero.")) }
         do {
+            async let market = MarketReference.reference(amountIn: request.amountIn, sell: request.sell, buy: request.buy, oracle: prices)
             let offers = try await reader.bookOffers(gets: buy.book, pays: sell.book, limit: XRPLReader.maxBookOffers)
             guard let fill = XRPLBookFill.fill(offers, amountIn: request.amountIn, sell: sell, buy: buy) else {
                 throw SendEngineError.message(
                     kitText("O livro de ofertas de \(request.sell.symbol) por \(request.buy.symbol) não cobre este valor agora. Tente um valor menor.")
                 )
             }
+            try MarketReference.requireSane(await market, expected: fill.out)
             let minimum = TradeMath.minimumOut(fill.out, slippageBasisPoints: request.slippageBasisPoints)
             guard !minimum.isZero else { throw SendEngineError.message(kitText("Com esta tolerância o mínimo a receber seria zero.")) }
             return TradeQuote(
@@ -86,6 +95,12 @@ struct XRPLTradeEngine: TradeEngine {
         try TradeMath.requireSlippage(request.slippageBasisPoints)
         try TradeMath.requireCurrent(quote, for: request)
         try XRPLEngineSupport.owner(request.account)
+        // O mercado de agora, de novo: a cotacao pode ter passado pela sanidade e o preco
+        // andado ate o dono tocar em revisar.
+        try MarketReference.requireSane(
+            await MarketReference.reference(amountIn: request.amountIn, sell: request.sell, buy: request.buy, oracle: prices),
+            expected: quote.expectedOut
+        )
         return try await offerPlan(
             walletID: request.walletID, account: request.account, sell: sell, buy: buy, give: request.amountIn, receive: quote.minimumOut,
             expiration: Date().addingTimeInterval(Self.swapExpiration), timeInForce: .fillOrKill

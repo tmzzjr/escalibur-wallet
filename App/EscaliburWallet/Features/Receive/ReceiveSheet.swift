@@ -655,12 +655,18 @@ struct ReceiveSheet: View {
                         closeButton
                     }
                 }
-                Text("Receber \(asset.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
-                Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
-                if asset.kind != .native {
-                    // Qual token e, pelo nome da lista: "XRP" sozinho nao diz que e o da Binance.
-                    Text(verbatim: "\(asset.name) · \(ReceiveCoin.standard(chain))").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                        .padding(.top, 2)
+                // A rede e o token ao lado do titulo (pedido do dono, 17/10/2026); sem espaco
+                // (nome longo, texto grande), embaixo, como antes.
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center, spacing: Space.md) {
+                        receiveTitle(asset)
+                        Spacer(minLength: 0)
+                        receiveSubtitle(asset: asset, chain: chain, alignment: .trailing)
+                    }
+                    VStack(alignment: .leading, spacing: Space.xs) {
+                        receiveTitle(asset)
+                        receiveSubtitle(asset: asset, chain: chain, alignment: .leading)
+                    }
                 }
 
                 if wallet?.isWatchOnly == true {
@@ -723,6 +729,23 @@ struct ReceiveSheet: View {
                 ToolbarItem(placement: .topBarTrailing) { contractButton(asset: asset, chain: chain, inBar: true) }
             }
         }
+    }
+
+    private func receiveTitle(_ asset: Asset) -> some View {
+        Text("Receber \(asset.symbol)").typeStyle(.title).foregroundStyle(Palette.ink).lineLimit(1).fixedSize()
+    }
+
+    /// "pela rede X" e, no token, qual e pelo nome da lista: "XRP" sozinho nao diz que e o
+    /// da Binance.
+    private func receiveSubtitle(asset: Asset, chain: Chain, alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: 2) {
+            Text("pela rede \(chain.name)").typeStyle(.body).foregroundStyle(Palette.inkSoft).lineLimit(1)
+            if asset.kind != .native {
+                Text(verbatim: "\(asset.name) · \(ReceiveCoin.standard(chain))").typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
+            }
+        }
+        .multilineTextAlignment(alignment == .trailing ? .trailing : .leading)
+        .fixedSize()
     }
 
     /// O contrato do token (ou o emissor, no XRP Ledger e na Stellar), para copiar com um

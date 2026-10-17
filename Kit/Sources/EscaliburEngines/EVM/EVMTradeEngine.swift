@@ -231,7 +231,7 @@ public struct EVMTradeEngine: TradeEngine {
                 guard let provider = EVMTradeQuoteMapping.provider(named: alternative.provider), provider != legs[0].provider else { continue }
                 if let plan = try? await planLegs([(provider, legs[0].amountIn, 10_000)], request: request, quote: quote, context: context,
                                                   market: market, riskConfirmed: riskConfirmed) {
-                    return plan
+                    return TradePlanner.rerouted(plan, .simulationFailed(legs[0].provider), to: provider)
                 }
             }
             throw refusal
@@ -244,7 +244,7 @@ public struct EVMTradeEngine: TradeEngine {
                 guard let provider = EVMTradeQuoteMapping.provider(named: alternative.provider) else { continue }
                 if let plan = try? await planLegs([(provider, intent.amountIn, 10_000)], request: request, quote: quote, context: context,
                                                   market: market, riskConfirmed: riskConfirmed) {
-                    return plan
+                    return TradePlanner.rerouted(plan, .splitInterfered(legs.map(\.provider)), to: provider)
                 }
             }
             throw failure.refusal

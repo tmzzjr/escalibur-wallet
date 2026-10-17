@@ -427,6 +427,32 @@ public enum TradePlanner {
     }
 }
 
+// MARK: Mudanca de rota
+
+/// Por que a troca saiu por outro provedor que nao o da cotacao mostrada.
+public enum TradeReroute: Sendable, Equatable {
+    /// A rota cotada nao passou na simulacao agora (a De¹ na Base, que promete e nao entrega).
+    case simulationFailed(TradeProvider)
+    /// A divisao entre estes provedores nao se sustentou na simulacao em sequencia.
+    case splitInterfered([TradeProvider])
+}
+
+extension TradePlanner {
+    /// A revisao diz que a rota mudou e por que, logo depois do provedor: o dono viu outro
+    /// provedor (ou a divisao) na cotacao, e o minimo da revisao e o deste plano.
+    public static func rerouted(_ plan: SigningPlan, _ reason: TradeReroute, to provider: TradeProvider) -> SigningPlan {
+        let text: String
+        switch reason {
+        case .simulationFailed(let shown):
+            text = kitText("A rota da \(shown.displayName) não passou na simulação agora. A troca vai pela \(provider.displayName), com o mínimo desta revisão.")
+        case .splitInterfered(let shown):
+            let names = shown.map(\.displayName).joined(separator: " e ")
+            text = kitText("A divisão entre \(names) não se sustentou na simulação em sequência. A troca vai inteira pela \(provider.displayName), com o mínimo desta revisão.")
+        }
+        return plan.addingLine(.init(kitText("Mudança de rota"), text), after: kitText("Provedor"))
+    }
+}
+
 // MARK: Troca dividida
 
 extension TradePlanner {

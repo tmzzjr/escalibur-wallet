@@ -165,6 +165,21 @@ public struct SigningPlan: Sendable {
         return SigningPlan(id: id, walletID: walletID, chain: chain, review: updated, transactions: transactions, createdAt: createdAt)
     }
 
+    /// O mesmo plano com uma linha a mais na revisao, logo depois da linha `after` (ou no
+    /// comeco, se ela nao existe). So os compositores de EscaliburChains chamam: o motor
+    /// nao escreve linha. Transacoes, titulo, movimentos e prazo nao mudam.
+    func addingLine(_ line: PlanReview.Line, after label: String) -> SigningPlan {
+        var lines = review.lines
+        let index = lines.firstIndex { $0.label == label }.map { $0 + 1 } ?? 0
+        lines.insert(line, at: index)
+        let updated = PlanReview(
+            kind: review.kind, title: review.title, lines: lines, warnings: review.warnings,
+            transactionCount: review.transactionCount, recipient: review.recipient, recipientTag: review.recipientTag,
+            outgoing: review.outgoing, incomingMinimum: review.incomingMinimum, beneficiary: review.beneficiary
+        )
+        return SigningPlan(id: id, walletID: walletID, chain: chain, review: updated, transactions: transactions, createdAt: createdAt)
+    }
+
     /// Planos ja validados, assinados de uma vez e transmitidos na ordem dada (a
     /// autorizacao antes da troca, as pernas de uma divisao, a linha de confianca antes
     /// da oferta).

@@ -187391,6 +187391,36 @@
         }
       }
     },
+    "Mudança de rota" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route change"
+          }
+        }
+      }
+    },
+    "A rota da %@ não passou na simulação agora. A troca vai pela %@, com o mínimo desta revisão." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The %@ route failed the simulation just now. The swap goes through %@, with the minimum in this review."
+          }
+        }
+      }
+    },
+    "A divisão entre %@ não se sustentou na simulação em sequência. A troca vai inteira pela %@, com o mínimo desta revisão." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The split between %@ did not hold up when simulated in sequence. The whole swap goes through %@, with the minimum in this review."
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {

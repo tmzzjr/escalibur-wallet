@@ -91,11 +91,7 @@ struct StellarTradeEngine: TradeEngine {
 
     /// Mais de 5% pior que o mercado: recusa ja na cotacao, com a frase da tela.
     static func sanity(_ reference: TradeMarketReference, expected: BigUInt) throws {
-        do {
-            try reference.check(expected: expected)
-        } catch TradeRefusal.priceFarFromOracle(let deviation) {
-            throw SendEngineError.message(MarketReference.farText(deviationBps: deviation))
-        }
+        try MarketReference.requireSane(reference, expected: expected)
     }
 
     // MARK: Plano

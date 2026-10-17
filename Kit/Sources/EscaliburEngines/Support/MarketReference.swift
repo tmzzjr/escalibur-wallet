@@ -69,6 +69,16 @@ enum MarketReference {
         return TradeMarketReference(amountIn: amountIn, sellDecimals: sell.decimals, buyDecimals: buy.decimals, sellPriceUSD: sellPrice, buyPriceUSD: buyPrice)
     }
 
+    /// Mais de 5% pior que o mercado: recusa, com a frase da tela. Sem referencia, segue;
+    /// a garantia continua sendo o minimo gravado na transacao.
+    static func requireSane(_ reference: TradeMarketReference, expected: BigUInt) throws {
+        do {
+            try reference.check(expected: expected)
+        } catch TradeRefusal.priceFarFromOracle(let deviation) {
+            throw SendEngineError.message(farText(deviationBps: deviation))
+        }
+    }
+
     /// A frase da recusa por preco longe da referencia.
     static func farText(deviationBps: Int) -> String {
         let percent = EngineFormat.decimal(BigUInt(UInt64(max(0, deviationBps))), decimals: 2)

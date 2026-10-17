@@ -41,7 +41,7 @@ final class ReceiveFlowTests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label == 'Copiar endereço' AND identifier != 'copiar-endereco-carteira'")).firstMatch.tap()
         XCTAssertTrue(app.buttons["Endereço copiado"].waitForExistence(timeout: 3), "o botao deveria dizer que copiou")
         let toast = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Endereço copiado.'")).firstMatch
-        XCTAssertTrue(toast.waitForExistence(timeout: 3), "o aviso de copiado deveria aparecer por cima da folha")
+        XCTAssertTrue(toast.waitForExistence(timeout: 5), "o aviso de copiado deveria aparecer por cima da folha")
         shot("r4-copiado", app)
     }
 

@@ -51,6 +51,31 @@ struct XRPLTradeTests {
         #expect(!quote.needsApproval && quote.legs.first?.provider == XRPLTradeEngine.provider)
     }
 
+    /// Precos fixos de referencia, sem rede.
+    struct FixedPrices: TradePriceOracle {
+        let prices: [String: String]
+        func usdPrices(_ ids: [String]) async throws -> [String: String] { prices }
+    }
+
+    @Test("Revisao de 17/10/2026: livro longe do preco de mercado recusa na cotacao e no plano; perto, passa")
+    func farFromMarket() async throws {
+        // O mesmo RLUSD, agora com id de preco, para a referencia existir.
+        let rlusd = Asset(chainID: "xrpl", kind: Self.rlusd.kind, symbol: "RLUSD", name: "Ripple USD", decimals: 6,
+                          coingeckoID: "ripple-usd", isStablecoin: true)
+        func engine(xrpUSD: String) throws -> XRPLTradeEngine {
+            try #require(XRPLTradeEngine(reader: N.reader(try N.fake()), tokens: [rlusd],
+                                         prices: FixedPrices(prices: ["ripple": xrpUSD, "ripple-usd": "1"])))
+        }
+        let request = Self.request(buy: rlusd)
+        // O livro da uns 1,55 RLUSD por XRP. Com o XRP a US$ 1,55, passa.
+        let quote = try await engine(xrpUSD: "1.55").quote(request)
+        #expect((15_400_000...15_600_000).contains(quote.expectedOut))
+        // Com o XRP a US$ 2, o livro pagaria uns 22% abaixo do mercado: recusa.
+        await #expect(throws: SendEngineError.self) { _ = try await engine(xrpUSD: "2").quote(request) }
+        // E o plano confere de novo: o mercado andou depois da cotacao.
+        await #expect(throws: SendEngineError.self) { _ = try await engine(xrpUSD: "2").plan(request, quote: quote) }
+    }
+
     @Test("Livro que nao cobre o valor: recusa em vez de cotar pela metade")
     func thinBook() async throws {
         await #expect(throws: SendEngineError.self) {
