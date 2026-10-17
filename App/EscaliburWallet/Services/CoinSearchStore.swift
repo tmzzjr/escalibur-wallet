@@ -70,7 +70,9 @@ final class CoinSearchStore {
     func retry(_ query: String) { searches[Self.key(query)] = nil }
 
     /// As redes de uma moeda, lidas uma vez por abertura do app.
-    func coin(_ id: String) async {
+    /// `symbol` e `name` acham a mesma moeda no CoinPaprika, para juntar as redes das duas
+    /// fontes (`CoinCatalog.coinAllNetworks`).
+    func coin(_ id: String, symbol: String? = nil, name: String? = nil) async {
         guard coins[id] == nil else { return }
         coinFailures.remove(id)
         defer { coinRetrying.remove(id) }
@@ -80,7 +82,7 @@ final class CoinSearchStore {
                 try? await Task.sleep(for: .seconds(delay))
                 guard !Task.isCancelled else { return }
             }
-            if let coin = try? await CoinCatalog.coin(id: id) {
+            if let coin = try? await CoinCatalog.coinAllNetworks(id: id, symbol: symbol, name: name) {
                 coins[id] = coin
                 return
             }

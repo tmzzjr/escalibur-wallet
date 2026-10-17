@@ -96,7 +96,11 @@ struct ReceiveSheet: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: ReceiveCoin.self) { coin in
                 Group {
-                    if coin.assets.count == 1, extraNetworks(coin).isEmpty, otherForms(coin).isEmpty, let only = coin.assets.first, let chain = only.chain {
+                    // Direto para o QR so a moeda custom (ou sem id de preco) de uma rede: a moeda
+                    // conhecida passa pela escolha de rede, que busca as redes das duas fontes (o
+                    // SHIB da BNB so aparece no CoinPaprika; pedido do dono, 17/10/2026).
+                    if coin.assets.count == 1, coin.coingeckoID == nil || coin.isCustom, extraNetworks(coin).isEmpty, otherForms(coin).isEmpty,
+                       let only = coin.assets.first, let chain = only.chain {
                         addressView(asset: only, chain: chain)
                     } else {
                         networkPicker(coin)
@@ -322,7 +326,7 @@ struct ReceiveSheet: View {
                     Text("Receber \(result.symbol)").typeStyle(.title).foregroundStyle(Palette.ink)
                     Text("O CoinGecko não respondeu agora, e sem ele a carteira não sabe em que rede esta moeda existe.")
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-                    SecondaryButton(title: String(localized: "Tentar de novo")) { Task { await search.coin(result.id) } }
+                    SecondaryButton(title: String(localized: "Tentar de novo")) { Task { await search.coin(result.id, symbol: result.symbol, name: result.name) } }
                     Spacer()
                 }
                 .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
@@ -340,7 +344,7 @@ struct ReceiveSheet: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .task(id: result.id) { await search.coin(result.id) }
+        .task(id: result.id) { await search.coin(result.id, symbol: result.symbol, name: result.name) }
     }
 
     /// Moeda que so existe em rede que a carteira nao tem (ou desligada): sem endereco.
@@ -543,7 +547,7 @@ struct ReceiveSheet: View {
                 let extras = extraNetworks(coin)
                 if !extras.isEmpty, let id = coin.coingeckoID, let entry = search.coins[id] {
                     Text("Fora da lista verificada").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.lg)
-                    Text("O CoinGecko lista \(coin.symbol) também nestas redes, com o contrato de cada uma. A Escalibur ainda não conferiu esses contratos.")
+                    Text("O CoinGecko e o CoinPaprika listam \(coin.symbol) também nestas redes, com o contrato de cada uma. A Escalibur ainda não conferiu esses contratos.")
                         .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true).padding(.top, 2)
                     VStack(spacing: 0) {
                         ForEach(extras, id: \.self) { network in catalogNetworkRow(entry, network) }
@@ -554,7 +558,7 @@ struct ReceiveSheet: View {
             .padding(.horizontal, Space.gutter)
             .padding(.top, Space.xs)
         }
-        .task(id: coin.id) { if let id = coin.coingeckoID, !coin.isCustom { await search.coin(id) } }
+        .task(id: coin.id) { if let id = coin.coingeckoID, !coin.isCustom { await search.coin(id, symbol: coin.symbol, name: coin.name) } }
     }
 
     /// Tudo o que a carteira recebe: nativas e tokens da lista nas redes com conta, e as
@@ -650,6 +654,21 @@ struct ReceiveSheet: View {
                     // Qual token e, pelo nome da lista: "XRP" sozinho nao diz que e o da Binance.
                     Text(verbatim: "\(asset.name) · \(ReceiveCoin.standard(chain))").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                         .padding(.top, 2)
+                    // O contrato do token, para copiar com um toque (pedido do dono, 17/10/2026).
+                    if let contract = CustomToken.reference(asset.kind) {
+                        Button {
+                            Pasteboard.copyAddress(contract)
+                            toasts.show(CustomToken.usesIssuer(chain) ? String(localized: "Emissor do token copiado.") : String(localized: "Contrato do token copiado."))
+                        } label: {
+                            Label(CustomToken.usesIssuer(chain) ? String(localized: "Emissor do token") : String(localized: "Contrato do token"), systemImage: "doc.on.doc")
+                                .typeStyle(.label).foregroundStyle(Palette.ink)
+                                .padding(.horizontal, Space.sm).frame(height: 32)
+                                .background(Capsule(style: .continuous).fill(Palette.rail))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, Space.sm)
+                        .accessibilityIdentifier("receber-copiar-contrato")
+                    }
                 }
 
                 if wallet?.isWatchOnly == true {
@@ -718,18 +737,30 @@ struct ReceiveSheet: View {
             }
             contractCard(CustomToken.reference(asset.kind) ?? network.contract, badge: .unverified,
                          title: String(localized: "Contrato que quem envia tem de usar"))
-            Text("Contrato listado pelo CoinGecko, fora da lista verificada da Escalibur. Para o saldo aparecer na carteira, adicione a moeda: a carteira lê nome, símbolo e casas na própria rede antes de salvar.")
+            Text("Contrato listado pelo CoinGecko ou pelo CoinPaprika, fora da lista verificada da Escalibur. Para o saldo aparecer na carteira, adicione a moeda: a carteira lê nome, símbolo e casas na própria rede antes de salvar.")
                 .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
-            SecondaryButton(title: String(localized: "Adicionar \(asset.symbol) à carteira")) {
-                adding = AddPick(preset: AddCustomTokenView.Preset(chain: chain, kind: asset.kind))
+            // Ja adicionada, o botao sai (pedido do dono, 17/10/2026).
+            if !alreadyAdded(asset, chain: chain) {
+                SecondaryButton(title: String(localized: "Adicionar \(asset.symbol) à carteira")) {
+                    adding = AddPick(preset: AddCustomTokenView.Preset(chain: chain, kind: asset.kind))
+                }
+                .padding(.top, Space.xxs)
             }
-            .padding(.top, Space.xxs)
+        }
+    }
+
+    /// A moeda ja esta entre as custom desta carteira: o mesmo contrato na mesma rede (na EVM,
+    /// sem olhar a caixa).
+    private func alreadyAdded(_ asset: Asset, chain: Chain) -> Bool {
+        guard let reference = CustomToken.reference(asset.kind) else { return false }
+        return session.metadata.customTokens.contains { token in
+            guard token.chainID == chain.id, let saved = CustomToken.reference(token.kind) else { return false }
+            return chain.family == .evm ? saved.lowercased() == reference.lowercased() : saved == reference
         }
     }
 
     /// O contrato do token, num desenho que nao se confunde com o endereco de deposito (pedido
-    /// do dono, 17/10/2026): cartao tracejado, letra menor, sem copiar, e o aviso de que nao
-    /// e para onde se envia.
+    /// do dono, 17/10/2026): cartao tracejado e letra menor; copiar e pelo botao do topo.
     private func contractCard(_ contract: String, badge: TokenBadge.Kind, title: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
@@ -739,9 +770,6 @@ struct ReceiveSheet: View {
             Text(verbatim: contract)
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(Palette.inkSoft)
-                .fixedSize(horizontal: false, vertical: true)
-            Label("Não é o endereço de depósito: não envie moeda para o contrato.", systemImage: "exclamationmark.triangle")
-                .typeStyle(.note).foregroundStyle(Palette.caution)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(Space.md)

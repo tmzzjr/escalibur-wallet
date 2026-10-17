@@ -101,6 +101,45 @@ public enum CoinCatalog {
         return try parseCoin(try await client.get(url, timeout: 10), id: id)
     }
 
+    /// As redes da moeda pelas duas fontes juntas (pedido do dono, 17/10/2026): o CoinGecko e o
+    /// CoinPaprika, achado pelo mesmo simbolo e nome. O CoinGecko lista o SHIB so na Ethereum;
+    /// o CoinPaprika tambem na BNB Chain. Uma fonte basta: com o CoinGecko em pausa, vale o
+    /// CoinPaprika sozinho. O id continua o do CoinGecko, e a moeda e aceita por ele.
+    public static func coinAllNetworks(id: String, symbol: String?, name: String?, client: HTTPClient = .shared) async throws -> CatalogCoin {
+        guard !id.hasPrefix(paprikaPrefix), let symbol, let name else { return try await coin(id: id, client: client) }
+        async let geckoCoin = try? coin(id: id, client: client)
+        var reserve: CatalogCoin?
+        if let match = try? await paprikaMatch(symbol: symbol, name: name, client: client) {
+            reserve = try? parsePaprikaCoin(try await client.get(paprika.appendingPathComponent("coins/\(match)"), timeout: 10),
+                                            id: paprikaPrefix + match, acceptAs: id)
+        }
+        let base = await geckoCoin
+        guard let first = base ?? reserve else { throw HTTPClient.Failure.offline }
+        var networks = base?.networks ?? []
+        for network in reserve?.networks ?? [] where !networks.contains(where: { $0.chainID == network.chainID }) {
+            networks.append(network)
+        }
+        let order = Dictionary(Chain.all.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+        networks.sort { (order[$0.chainID] ?? .max) < (order[$1.chainID] ?? .max) }
+        return CatalogCoin(id: id, symbol: first.symbol, name: first.name, networks: networks, hasNotice: base?.hasNotice ?? false)
+    }
+
+    /// O id do CoinPaprika da moeda de mesmo simbolo e mesmo nome (sem acento e sem caixa).
+    static func paprikaMatch(symbol: String, name: String, client: HTTPClient) async throws -> String? {
+        var reserve = URLComponents(url: paprika.appendingPathComponent("search/"), resolvingAgainstBaseURL: false)!
+        reserve.queryItems = [URLQueryItem(name: "q", value: symbol), URLQueryItem(name: "c", value: "currencies"), URLQueryItem(name: "limit", value: "20")]
+        guard let url = reserve.url else { return nil }
+        struct Response: Decodable {
+            struct Coin: Decodable { let id: String; let name: String; let symbol: String; let is_active: Bool? }
+            let currencies: [Coin]?
+        }
+        let response = try JSONDecoder().decode(Response.self, from: try await client.get(url, timeout: 10))
+        func fold(_ text: String) -> String { text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil) }
+        return response.currencies?.first { coin in
+            coin.is_active != false && isValidID(coin.id) && fold(coin.symbol) == fold(symbol) && fold(coin.name) == fold(name)
+        }?.id
+    }
+
     /// O id vai no caminho da URL: so letras minusculas, digitos e hifen.
     static func isValidID(_ id: String) -> Bool {
         !id.isEmpty && id.count <= 120
@@ -183,7 +222,9 @@ public enum CoinCatalog {
         }
     }
 
-    static func parsePaprikaCoin(_ data: Data, id: String) throws -> CatalogCoin {
+    /// `acceptAs`: o id do CoinGecko da moeda, quando ela ja e conhecida por ele (o simbolo
+    /// protegido vale com o id da lista).
+    static func parsePaprikaCoin(_ data: Data, id: String, acceptAs: String? = nil) throws -> CatalogCoin {
         struct Response: Decodable {
             struct Contract: Decodable {
                 let contract: String
@@ -196,7 +237,7 @@ public enum CoinCatalog {
         }
         let response: Response
         do { response = try JSONDecoder().decode(Response.self, from: data) } catch { throw HTTPClient.Failure.decoding("moeda") }
-        guard paprikaPrefix + response.id == id, let (symbol, name) = acceptable(id: id, symbol: response.symbol, name: response.name) else {
+        guard paprikaPrefix + response.id == id, let (symbol, name) = acceptable(id: acceptAs ?? id, symbol: response.symbol, name: response.name) else {
             throw HTTPClient.Failure.decoding("moeda")
         }
         let order = Dictionary(Chain.all.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })

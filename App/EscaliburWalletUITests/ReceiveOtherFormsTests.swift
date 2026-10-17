@@ -81,4 +81,26 @@ final class ReceiveOtherFormsTests: XCTestCase {
         XCTAssertTrue(app.buttons["outra-forma-SOL-arbitrum"].exists)
         shot("receber-sol-redes", app)
     }
+
+    /// A SHIB na BNB Chain: o CoinGecko so lista a da Ethereum, o CoinPaprika tambem a da BNB.
+    /// As redes das duas fontes aparecem juntas, fora da lista verificada (17/10/2026).
+    func testNetworksFromBothSources() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo"]
+        app.launch()
+        let receive = app.buttons["acao-receber"]
+        XCTAssertTrue(receive.waitForExistence(timeout: 30))
+        sleep(6)
+        receive.tap()
+        let search = app.textFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        search.tap()
+        search.typeText("SHIB")
+        let shib = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'SHIB,'")).firstMatch
+        XCTAssertTrue(shib.waitForExistence(timeout: 10))
+        shib.tap()
+        XCTAssertTrue(app.staticTexts["Fora da lista verificada"].waitForExistence(timeout: 30), "as redes da outra fonte nao apareceram")
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'BNB Chain'")).firstMatch.exists, "a SHIB da BNB deveria aparecer")
+        shot("receber-shib-redes", app)
+    }
 }

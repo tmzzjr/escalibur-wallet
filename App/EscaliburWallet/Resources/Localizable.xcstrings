@@ -186790,6 +186790,166 @@
           }
         }
       }
+    },
+    "O CoinGecko e o CoinPaprika listam %@ também nestas redes, com o contrato de cada uma. A Escalibur ainda não conferiu esses contratos." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CoinGecko and CoinPaprika also list %@ on these networks, with each one's contract. Escalibur hasn't checked these contracts yet."
+          }
+        }
+      }
+    },
+    "Contrato listado pelo CoinGecko ou pelo CoinPaprika, fora da lista verificada da Escalibur. Para o saldo aparecer na carteira, adicione a moeda: a carteira lê nome, símbolo e casas na própria rede antes de salvar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contract listed by CoinGecko or CoinPaprika, outside Escalibur's verified list. To see the balance in the wallet, add the coin: the wallet reads the name, symbol and decimals on the network itself before saving."
+          }
+        }
+      }
+    },
+    "Emissor do token" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token issuer"
+          }
+        }
+      }
+    },
+    "Moeda emitida" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Issued coin"
+          }
+        }
+      }
+    },
+    "No XRP Ledger e na Stellar, a moeda é o código mais o emissor. A rede sai do emissor: r... é XRP Ledger, G... é Stellar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the XRP Ledger and Stellar, a coin is its code plus its issuer. The network comes from the issuer: r... is XRP Ledger, G... is Stellar."
+          }
+        }
+      }
+    },
+    "Endereço r... ou G..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "r... or G... address"
+          }
+        }
+      }
+    },
+    "Voltar para o contrato" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to the contract"
+          }
+        }
+      }
+    },
+    "Cole o endereço do contrato. A Escalibur acha a rede da moeda sozinha." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste the contract address. Escalibur finds the coin's network on its own."
+          }
+        }
+      }
+    },
+    "É uma moeda do XRP Ledger ou da Stellar?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Is it an XRP Ledger or Stellar coin?"
+          }
+        }
+      }
+    },
+    "Este contrato existe em mais de uma rede. Escolha a da moeda:" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This contract exists on more than one network. Pick the coin's network:"
+          }
+        }
+      }
+    },
+    "Encontrar a moeda" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find the coin"
+          }
+        }
+      }
+    },
+    "Este endereço não parece o contrato de uma moeda em nenhuma rede da carteira. Confira se copiou inteiro." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This address doesn't look like a coin contract on any of the wallet's networks. Check that you copied all of it."
+          }
+        }
+      }
+    },
+    "Não achamos este contrato nas redes da carteira. Confira se copiou inteiro e se a rede é uma das que a carteira usa." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We couldn't find this contract on the wallet's networks. Check that you copied all of it and that the network is one the wallet uses."
+          }
+        }
+      }
+    },
+    "O emissor começa com r (XRP Ledger) ou G (Stellar)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The issuer starts with r (XRP Ledger) or G (Stellar)."
+          }
+        }
+      }
+    },
+    "Contrato do token copiado." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token contract copied."
+          }
+        }
+      }
+    },
+    "Emissor do token copiado." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Token issuer copied."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -82,11 +82,9 @@ final class CustomTokenTests: XCTestCase {
         scroll(to: add, in: app)
         XCTAssertTrue(add.waitForExistence(timeout: 10))
         add.tap()
-        let base = app.buttons["Base"].firstMatch
-        XCTAssertTrue(base.waitForExistence(timeout: 10))
-        base.tap()
+        // So o contrato: a rede (Base) sai da leitura nas redes da carteira.
         let field = app.descendants(matching: .any)["campo-endereco"].firstMatch
-        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
         shot("m1-adicionar-moeda", app)
         field.tap()
         field.typeText(Self.openAI)
@@ -94,6 +92,7 @@ final class CustomTokenTests: XCTestCase {
         let confirm = app.buttons["adicionar-a-carteira"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 60))
         XCTAssertTrue(app.staticTexts["Não verificado pela Escalibur"].exists)
+        XCTAssertTrue(app.staticTexts["Base"].exists, "a rede achada pelo contrato nao e a Base")
         shot("m2-previa", app)
         scroll(to: confirm, in: app)
         confirm.tap()

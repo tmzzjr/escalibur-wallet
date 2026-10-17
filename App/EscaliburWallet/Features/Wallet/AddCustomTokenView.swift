@@ -3,8 +3,8 @@ import EscaliburCore
 import EscaliburNetwork
 import SwiftUI
 
-/// Adicionar moeda: escolher a rede, colar o contrato (ou mint, mestre, codigo e
-/// emissor), ler nome, simbolo e casas na propria rede com dois provedores concordando,
+/// Adicionar moeda: colar o contrato (ou mint, mestre, codigo e emissor) e a rede vem
+/// dele, ler nome, simbolo e casas na propria rede com dois provedores concordando,
 /// ver a previa com o contrato inteiro e o aviso de nao verificado, e so entao salvar.
 struct AddCustomTokenView: View {
     @Environment(AppSession.self) private var session
@@ -28,6 +28,16 @@ struct AddCustomTokenView: View {
     @State private var facts: TokenFacts?
     @State private var error: String?
     @State private var started = false
+    /// Moeda emitida (XRP Ledger ou Stellar): codigo e emissor no lugar do contrato.
+    @State private var issuedMode = false
+    /// O mesmo contrato achado em mais de uma rede: o dono escolhe a da moeda.
+    @State private var found: [Found] = []
+
+    struct Found: Identifiable {
+        let chain: Chain
+        let facts: TokenFacts
+        var id: String { chain.id }
+    }
 
     /// As redes com moeda custom em que esta carteira tem conta.
     private var chains: [Chain] {
@@ -65,44 +75,72 @@ struct AddCustomTokenView: View {
 
     // MARK: Formulario
 
+    /// So o contrato: a rede vem do formato e da leitura nas redes da carteira (pedido do dono,
+    /// 17/10/2026). Com a rede ja escolhida (vindo do Receber ou da troca), o campo dela.
     private var form: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Rede").typeStyle(.heading).foregroundStyle(Palette.ink)
-            Text("A rede onde o token existe. O mesmo contrato em outra rede é outro token.")
-                .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-                .padding(.top, Space.xxs)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: Space.xs)], alignment: .leading, spacing: Space.xs) {
-                ForEach(chains, id: \.id) { item in
-                    NetworkChoice(chain: item, selected: chain?.id == item.id) {
-                        chain = item
-                        error = nil
-                    }
-                }
-            }
-            .padding(.top, Space.sm)
-
             if let chain {
+                Text(chain.name).typeStyle(.heading).foregroundStyle(Palette.ink)
                 if CustomToken.usesIssuer(chain) {
-                    field(title: String(localized: "Código da moeda"), id: "campo-codigo", text: $code, prompt: chain.family == .xrpl ? String(localized: "USD, SOLO ou 40 caracteres hex") : "AQUA, USDC...")
-                        .padding(.top, Space.lg)
-                    field(title: String(localized: "Emissor"), id: "campo-emissor", text: $issuer, prompt: chain.family == .xrpl ? String(localized: "Endereço r...") : String(localized: "Endereço G..."))
-                        .padding(.top, Space.md)
+                    issuedFields(chain)
                 } else {
                     field(title: CustomToken.addressLabel(chain), id: "campo-endereco", text: $address, prompt: prompt(chain))
-                        .padding(.top, Space.lg)
+                        .padding(.top, Space.md)
                 }
-                Text("Copie o endereço da fonte oficial do token, não de um site que apareceu num anúncio ou no nome de outro token.")
-                    .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+            } else if issuedMode {
+                Text("Moeda emitida").typeStyle(.heading).foregroundStyle(Palette.ink)
+                Text("No XRP Ledger e na Stellar, a moeda é o código mais o emissor. A rede sai do emissor: r... é XRP Ledger, G... é Stellar.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, Space.xxs)
+                field(title: String(localized: "Código da moeda"), id: "campo-codigo", text: $code, prompt: "USD, SOLO, AQUA...")
+                    .padding(.top, Space.md)
+                field(title: String(localized: "Emissor"), id: "campo-emissor", text: $issuer, prompt: String(localized: "Endereço r... ou G..."))
+                    .padding(.top, Space.md)
+                TertiaryButton(title: String(localized: "Voltar para o contrato")) { issuedMode = false; error = nil }
+                    .padding(.top, Space.xs)
+            } else {
+                Text("Contrato do token").typeStyle(.heading).foregroundStyle(Palette.ink)
+                Text("Cole o endereço do contrato. A Escalibur acha a rede da moeda sozinha.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, Space.xxs)
+                field(title: String(localized: "Contrato"), id: "campo-endereco", text: $address, prompt: "0x..., T..., EQ...")
+                    .padding(.top, Space.md)
+                TertiaryButton(title: String(localized: "É uma moeda do XRP Ledger ou da Stellar?")) { issuedMode = true; error = nil; found = [] }
+                    .padding(.top, Space.xs)
+                    .accessibilityIdentifier("moeda-emitida")
+                if found.count > 1 {
+                    Text("Este contrato existe em mais de uma rede. Escolha a da moeda:")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, Space.md)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: Space.xs)], alignment: .leading, spacing: Space.xs) {
+                        ForEach(found) { item in
+                            NetworkChoice(chain: item.chain, selected: false) { facts = item.facts }
+                        }
+                    }
                     .padding(.top, Space.sm)
+                }
             }
+            Text("Copie o endereço da fonte oficial do token, não de um site que apareceu num anúncio ou no nome de outro token.")
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).fixedSize(horizontal: false, vertical: true)
+                .padding(.top, Space.sm)
 
             if let error {
                 Banner(kind: .failure, title: error).padding(.top, Space.md)
             }
 
-            PrimaryButton(title: String(localized: "Ler na rede"), enabled: canRead, loading: reading) { Task { await read() } }
+            PrimaryButton(title: chain == nil && !issuedMode ? String(localized: "Encontrar a moeda") : String(localized: "Ler na rede"),
+                          enabled: canRead, loading: reading) { Task { await chain == nil && !issuedMode ? find() : read() } }
                 .padding(.top, Space.lg)
                 .accessibilityIdentifier("ler-na-rede")
+        }
+    }
+
+    private func issuedFields(_ chain: Chain) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            field(title: String(localized: "Código da moeda"), id: "campo-codigo", text: $code, prompt: chain.family == .xrpl ? String(localized: "USD, SOLO ou 40 caracteres hex") : "AQUA, USDC...")
+                .padding(.top, Space.md)
+            field(title: String(localized: "Emissor"), id: "campo-emissor", text: $issuer, prompt: chain.family == .xrpl ? String(localized: "Endereço r...") : String(localized: "Endereço G..."))
+                .padding(.top, Space.md)
         }
     }
 
@@ -132,18 +170,15 @@ struct AddCustomTokenView: View {
     }
 
     private var canRead: Bool {
-        guard let chain else { return false }
-        if CustomToken.usesIssuer(chain) { return !code.isEmpty && !issuer.isEmpty }
+        if let chain, CustomToken.usesIssuer(chain) { return !code.isEmpty && !issuer.isEmpty }
+        if chain == nil, issuedMode { return !code.isEmpty && !issuer.isEmpty }
         return !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func applyPreset() {
         guard !started else { return }
         started = true
-        guard let preset, let presetChain = preset.chain else {
-            if chains.count == 1 { chain = chains.first }
-            return
-        }
+        guard let preset, let presetChain = preset.chain else { return }
         chain = presetChain
         switch preset.kind {
         case .token(let contract): address = contract
@@ -158,8 +193,83 @@ struct AddCustomTokenView: View {
 
     // MARK: Leitura
 
+    /// A rede pelo contrato: as redes da carteira em que o formato vale, lidas ao mesmo tempo;
+    /// fica a que tem o token. Mais de uma (o mesmo endereco em varias EVM), o dono escolhe.
+    private func find() async {
+        error = nil
+        found = []
+        let text = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        var listed: String?
+        var candidates: [(Chain, Asset.Kind)] = []
+        for item in chains where !CustomToken.usesIssuer(item) {
+            do {
+                candidates.append((item, try CustomToken.kind(chain: item, address: text)))
+            } catch let problem as CustomToken.Problem {
+                if case .alreadyListed = problem { listed = Self.message(problem, chain: item) }
+            } catch {}
+        }
+        guard !candidates.isEmpty else {
+            error = listed ?? String(localized: "Este endereço não parece o contrato de uma moeda em nenhuma rede da carteira. Confira se copiou inteiro.")
+            return
+        }
+        let mine = candidates.filter { candidate in
+            !session.metadata.customTokens.contains { $0.chainID == candidate.0.id && $0.kind == candidate.1 }
+        }
+        guard !mine.isEmpty else {
+            error = String(localized: "Esta moeda já está na carteira.")
+            return
+        }
+        reading = true
+        defer { reading = false }
+        var hits: [Found] = []
+        // Uma rede que nao respondeu nao e uma rede sem o token: sem nenhum achado, o aviso diz
+        // para tentar de novo em vez de dizer que o contrato nao existe.
+        var unreachable = false
+        await withTaskGroup(of: Result<Found, TokenInspectionError>.self) { group in
+            for (item, kind) in mine {
+                group.addTask {
+                    do {
+                        return .success(Found(chain: item, facts: try await TokenInspector.shared.inspect(chain: item, kind: kind)))
+                    } catch {
+                        return .failure(error as? TokenInspectionError ?? .notEnoughSources)
+                    }
+                }
+            }
+            for await result in group {
+                switch result {
+                case .success(let hit): hits.append(hit)
+                case .failure(.notAToken), .failure(.unsupported): break
+                case .failure: unreachable = true
+                }
+            }
+        }
+        let order = Dictionary(Chain.all.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+        hits.sort { (order[$0.chain.id] ?? .max) < (order[$1.chain.id] ?? .max) }
+        if hits.count == 1, let only = hits.first {
+            facts = only.facts
+        } else if hits.count > 1 {
+            found = hits
+        } else if let listed {
+            error = listed
+        } else if unreachable {
+            error = TokenInspectionError.notEnoughSources.errorDescription
+        } else {
+            error = String(localized: "Não achamos este contrato nas redes da carteira. Confira se copiou inteiro e se a rede é uma das que a carteira usa.")
+        }
+    }
+
     private func read() async {
-        guard let chain else { return }
+        // Moeda emitida sem rede escolhida: a rede sai do emissor.
+        var target = chain
+        if target == nil, issuedMode {
+            let trimmed = issuer.trimmingCharacters(in: .whitespacesAndNewlines)
+            target = trimmed.hasPrefix("r") ? Chain.find("xrpl") : (trimmed.hasPrefix("G") ? Chain.find("stellar") : nil)
+            guard target != nil else {
+                error = String(localized: "O emissor começa com r (XRP Ledger) ou G (Stellar).")
+                return
+            }
+        }
+        guard let chain = target else { return }
         error = nil
         let kind: Asset.Kind
         do {
