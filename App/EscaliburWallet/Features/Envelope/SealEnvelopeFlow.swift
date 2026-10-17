@@ -390,7 +390,10 @@ struct SealEnvelopeFlow: View {
                     Banner(kind: .caution, title: String(localized: "Senha muito fraca: guarde o arquivo num pendrive ou no seu computador, nunca na nuvem nem por e-mail."))
                         .padding(.top, Space.md)
                 }
+                // Como no lacrando, mais espaco embaixo: o lacrado ainda parecia baixo (pedido do
+                // dono, 16/10/2026).
                 Spacer(minLength: Space.md)
+                Spacer(minLength: 0)
                 if let sealed {
                     ShareLink(item: sealed.url) {
                         Text("Salvar ou enviar o arquivo").typeStyle(.action)
