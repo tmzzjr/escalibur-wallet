@@ -187031,6 +187031,16 @@
         }
       }
     },
+    "WBTC só entre Ethereum, Arbitrum, Optimism e Polygon." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WBTC only between Ethereum, Arbitrum, Optimism and Polygon."
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {

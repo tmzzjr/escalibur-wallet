@@ -48,6 +48,8 @@ public struct BridgeChain: Sendable, Equatable {
     /// O Across move o USDC desta rede. Na Plasma nao: la ele so leva USDT0, e o USDC
     /// chega pelo CCTP (`available-routes`, 14/10/2026).
     public let acrossUSDC: Bool
+    /// O WBTC que o Across entrega nesta rede, so onde e o mesmo contrato da lista curada.
+    public let wbtc: EVMAddress?
 
     public struct CCTP: Sendable, Equatable {
         /// O dominio do CCTP. Nao e o chainId: a Base e 6.
@@ -66,17 +68,19 @@ public struct BridgeChain: Sendable, Equatable {
     /// Rede com CCTP: USDC e USDT de 6 casas, ETH nativo ou nenhum.
     public init(
         chain: Chain, cctpDomain: UInt32, usdc: EVMAddress, messengerImplementation: EVMAddress, transmitterImplementation: EVMAddress,
-        across: Across?, usdt: EVMAddress?, nativeETH: Bool, acrossUSDC: Bool = true
+        across: Across?, usdt: EVMAddress?, nativeETH: Bool, acrossUSDC: Bool = true, wbtc: EVMAddress? = nil
     ) {
         self.init(chain: chain, cctp: CCTP(domain: cctpDomain, messengerImplementation: messengerImplementation,
                                            transmitterImplementation: transmitterImplementation),
-                  usdc: usdc, across: across, usdt: usdt, nativeETH: nativeETH, ethToken: nil, stableDecimals: 6, acrossUSDC: acrossUSDC)
+                  usdc: usdc, across: across, usdt: usdt, nativeETH: nativeETH, ethToken: nil, stableDecimals: 6, acrossUSDC: acrossUSDC,
+                  wbtc: wbtc)
     }
 
     public init(
         chain: Chain, cctp: CCTP?, usdc: EVMAddress, across: Across?, usdt: EVMAddress?, nativeETH: Bool, ethToken: EVMAddress?,
-        stableDecimals: Int, usdcImplementation: EVMAddress? = nil, acrossUSDC: Bool = true
+        stableDecimals: Int, usdcImplementation: EVMAddress? = nil, acrossUSDC: Bool = true, wbtc: EVMAddress? = nil
     ) {
+        self.wbtc = wbtc
         self.usdcImplementation = usdcImplementation
         self.acrossUSDC = acrossUSDC
         self.chain = chain
@@ -112,7 +116,8 @@ public enum BridgeAllowlist {
         transmitterImplementation: address("a30c41865729c248067704d4db9f38385cbe1186"),
         across: .init(spokePool: address("5c7BCd6E7De5423a257D81B442095A1a6ced35C5"), implementation: address("456ac26e5ec083ee9889eba0d1a0a582502b8e84"),
                       wrappedNative: address("C02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")),
-        usdt: address("dAC17F958D2ee523a2206206994597C13D831ec7"), nativeETH: true
+        usdt: address("dAC17F958D2ee523a2206206994597C13D831ec7"), nativeETH: true,
+        wbtc: address("2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599")
     )
 
     public static let arbitrum = BridgeChain(
@@ -123,7 +128,8 @@ public enum BridgeAllowlist {
         across: .init(spokePool: address("e35e9842fceaCA96570B734083f4a58e8F7C5f2A"), implementation: address("cfcda84333431bcc9155f2368b8362f0d1dff8c9"),
                       wrappedNative: address("82aF49447D8a07e3bd95BD0d56f35241523fBab1")),
         // USDT0, o USDT da Tether na Arbitrum, e o que o Across entrega aqui.
-        usdt: address("Fd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"), nativeETH: true
+        usdt: address("Fd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"), nativeETH: true,
+        wbtc: address("2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f")
     )
 
     public static let base = BridgeChain(
@@ -145,7 +151,8 @@ public enum BridgeAllowlist {
         across: .init(spokePool: address("6f26Bf09B1C792e3228e5467807a900A503c0281"), implementation: address("60674c53a4cc4ed350659c95fb8020b5ac61ca1d"),
                       wrappedNative: address("4200000000000000000000000000000000000006")),
         // O Across entrega o USDT de ponte (0x94b0...), nao o USDT0 da lista do app.
-        usdt: nil, nativeETH: true
+        usdt: nil, nativeETH: true,
+        wbtc: address("68f180fcCe6836688e9084f035309E29Bf0A2095")
     )
 
     // Segunda leva, 14/10/2026: lida do mesmo jeito (implementacao no slot EIP-1967,
@@ -159,6 +166,13 @@ public enum BridgeAllowlist {
     // - Sonic: so USDC; o Across nao tem SpokePool la.
     // - Plasma: USDC e USDT0; a moeda nativa e o XPL. O USDC so pelo CCTP: o Across de la
     //   nao leva USDC, e por isso nao ha USDC entre a Plasma e a BNB.
+    //
+    // WBTC (17/10/2026, pedido do dono de liberar toda moeda que der): pelo Across, entre
+    // Ethereum, Arbitrum, OP e Polygon, as redes em que o Across entrega o mesmo contrato da
+    // lista curada (`available-routes` ao vivo). Em dois RPCs de cada uma: codigo igual e
+    // `decimals()` 8. Na Arbitrum e o token padrao da ponte da Arbitrum (proxy de beacon
+    // da propria Arbitrum); na Polygon, o da ponte PoS. A Linea fica de fora: o WBTC que o
+    // Across entrega la nao esta na lista.
     public static let polygon = BridgeChain(
         chain: .polygon, cctpDomain: 7,
         usdc: address("3c499c542cEF5E3811e1192ce70d8cC03d5c3359"),
@@ -166,7 +180,8 @@ public enum BridgeAllowlist {
         transmitterImplementation: address("d40518c1a3139e8f1f73f83e5de74e05c88f5ad3"),
         across: .init(spokePool: address("9295ee1d8C5b022Be115A2AD3c30C72E34e7F096"), implementation: address("304bed95daecd3e680073eab385193da711d59d4"),
                       wrappedNative: address("0d500b1d8e8ef31e21c99d1db9a6444d3adf1270")),
-        usdt: nil, nativeETH: false
+        usdt: nil, nativeETH: false,
+        wbtc: address("1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6")
     )
 
     public static let linea = BridgeChain(

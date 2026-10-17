@@ -137,6 +137,62 @@ struct BridgeLiveTests {
         }
     }
 
+    /// O slot do mapa de saldos de um token: o primeiro em que `balanceOf` devolve o valor
+    /// gravado por cima, dentro do `eth_call`.
+    static func balanceSlot(_ token: EVMAddress, owner: EVMAddress, chain: Chain, reader: TradeStateReader) async throws -> Int? {
+        let provider = await reader.readProviders(chain)[0]
+        let probe = BigUInt(123_456_789)
+        // Ate 64: os tokens atualizaveis da OpenZeppelin guardam o mapa depois das lacunas (51).
+        for slot in 0..<64 {
+            let key = Hash.keccak256([UInt8](repeating: 0, count: 12) + owner.bytes + (BigUInt(slot).bigEndianBytes(padTo: 32) ?? []))
+            let override: JSONValue = .object(["0x" + Hex.encode(token.bytes): .object(["stateDiff": .object([
+                Hex.encode(key, prefix: true): .string(Hex.encode(probe.bigEndianBytes(padTo: 32)!, prefix: true)),
+            ])])])
+            let text = try await reader.rpc(provider, chain: chain, "eth_call", [
+                .object(["to": .string("0x" + Hex.encode(token.bytes)), "data": .string(Hex.encode(ERC20.balanceOf(owner: owner), prefix: true))]),
+                .string("latest"), override,
+            ], as: String.self)
+            if BigUInt(hex: text) == probe { return slot }
+        }
+        return nil
+    }
+
+    @Test("WBTC pelo Across: cotacao real, validador, simulacao em dois RPCs e plano",
+          arguments: [("ethereum", "arbitrum"), ("polygon", "optimism"), ("arbitrum", "ethereum")])
+    func acrossWBTC(from: String, to: String) async throws {
+        let account = try TradeLiveTests.account()
+        let origin = try #require(BridgeAllowlist.chain(Chain.find(from)!))
+        let destination = try #require(BridgeAllowlist.chain(Chain.find(to)!))
+        let value = BigUInt(200_000)  // 0,002 WBTC
+        let intent = try BridgeIntent(owner: account.address, asset: .wbtc, from: origin.chain, to: destination.chain, amount: value)
+        let input = try #require(BridgeAsset.wbtc.contract(on: origin))
+        let across = try await AcrossClient().quote(
+            inputToken: input, outputToken: try #require(BridgeAsset.wbtc.contract(on: destination)),
+            originChainID: origin.chain.evmChainID!, destinationChainID: destination.chain.evmChainID!, amount: value
+        )
+        let price = try? await MarketService().quotes(ids: ["wrapped-bitcoin"], currency: "usd")["wrapped-bitcoin"]?.price
+        let quote = try BridgeValidator.across(intent, quote: across, usdPrice: price.flatMap { TradeDecimal(String(format: "%.2f", $0)) })
+        #expect(quote.minimumReceived < value && quote.minimumReceived > value * BigUInt(95) / BigUInt(100))
+        let reader = TradeStateReader()
+        let slot = try #require(try await Self.balanceSlot(input, owner: account.address, chain: origin.chain, reader: reader), "slot do saldo do WBTC")
+        let key = Hash.keccak256([UInt8](repeating: 0, count: 12) + account.address.bytes + (BigUInt(slot).bigEndianBytes(padTo: 32) ?? []))
+        let overrides: JSONValue = .object([
+            "0x" + Hex.encode(account.address.bytes): .object(["balance": .string(Self.ten.hexString)]),
+            "0x" + Hex.encode(input.bytes): .object(["stateDiff": .object([
+                Hex.encode(key, prefix: true): .string(Hex.encode(value.bigEndianBytes(padTo: 32)!, prefix: true)),
+            ])]),
+        ])
+        let state = try await reader.readBridge(for: quote, localNextNonce: nil, stateOverrides: overrides)
+        do {
+            let plan = try BridgePlanner.planDeposit(walletID: UUID(), account: account, quote: quote, state: Self.funded(state, amount: value))
+            try Self.check(plan, quote)
+            #expect(plan.transactions.count == 2)
+        } catch {
+            let reverts = state.simulations.flatMap { simulation in simulation.calls.compactMap { $0.error } }
+            Issue.record("\(from) -> \(to) WBTC: \(error) \(reverts)")
+        }
+    }
+
     @Test("Da BNB de volta: o validador aceita a cotacao real de USDC, USDT e ETH da BNB para a Base",
           arguments: [("usdc", "100000000000000000000"), ("usdt", "100000000000000000000"), ("eth", "50000000000000000")])
     func acrossFromBNB(asset: String, amount: String) async throws {

@@ -5,26 +5,34 @@ import Foundation
 //
 // Regras da v1, todas conferidas aqui antes de qualquer plano:
 // - a mesma moeda dos dois lados, na versao do emissor: USDC so pelo CCTP V2 da Circle;
-//   ETH e USDT pelo Across; USDT so onde o Across entrega o USDT do emissor;
+//   ETH, USDT e WBTC pelo Across; USDT so onde o Across entrega o USDT do emissor; WBTC so
+//   onde o Across entrega o WBTC da lista curada;
 // - quem recebe e quem deposita sao a propria conta do dono; nenhuma mensagem nem
 //   chamada no destino (no CCTP, so o pedido de encaminhamento da Circle);
 // - a calldata e montada pelo app; das APIs vem so a taxa, sempre com teto compilado.
 
 /// O que a ponte move na v1.
 public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
-    case usdc, eth, usdt
+    case usdc, eth, usdt, wbtc
 
     public var symbol: String {
         switch self {
         case .usdc: return "USDC"
         case .eth: return "ETH"
         case .usdt: return "USDT"
+        case .wbtc: return "WBTC"
         }
     }
 
-    /// As casas desta moeda nesta rede: o ETH tem 18 em toda parte; o USDC e o USDT, 6
-    /// nos da Circle e da Tether e 18 nos da Binance (BNB).
-    public func decimals(on chain: BridgeChain) -> Int { self == .eth ? 18 : chain.stableDecimals }
+    /// As casas desta moeda nesta rede: o ETH tem 18 em toda parte; o WBTC, 8; o USDC e o
+    /// USDT, 6 nos da Circle e da Tether e 18 nos da Binance (BNB).
+    public func decimals(on chain: BridgeChain) -> Int {
+        switch self {
+        case .eth: return 18
+        case .wbtc: return 8
+        case .usdc, .usdt: return chain.stableDecimals
+        }
+    }
 
     /// Um valor de `from` casas em `to` casas, arredondado para baixo.
     public static func rescale(_ amount: BigUInt, from: Int, to: Int) -> BigUInt {
@@ -58,6 +66,7 @@ public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
         case .usdc: return chain.usdc
         case .eth: return chain.ethToken
         case .usdt: return chain.usdt
+        case .wbtc: return chain.wbtc
         }
     }
 
@@ -71,6 +80,7 @@ public enum BridgeAsset: String, Codable, Sendable, CaseIterable, Equatable {
         case .eth:
             return (from.nativeETH || from.ethToken != nil) && (to.nativeETH || to.ethToken != nil) && from.across != nil && to.across != nil
         case .usdt: return from.usdt != nil && to.usdt != nil && from.across != nil && to.across != nil
+        case .wbtc: return from.wbtc != nil && to.wbtc != nil && from.across != nil && to.across != nil
         }
     }
 
@@ -229,6 +239,8 @@ public enum BridgeValidator {
     /// fonte so, e um preco errado para baixo subia o teto ate o bloqueio de 5% (pentest
     /// de 14/10/2026, B5). Preco errado para cima so baixa o teto: a ponte recusa.
     public static let acrossFeeCapETHWei = BigUInt(2_000_000_000_000_000)
+    /// O mesmo teto absoluto no WBTC: 0,00005 WBTC (5.000 satoshis), pela mesma razao.
+    public static let acrossFeeCapWBTCSats = BigUInt(5_000)
     /// Acima disso a ponte nao monta: a taxa come demais do valor.
     public static let blockFeePercent = 5.0
     /// Prazo para o relayer do Across entregar: 2 h depois da cotacao. Sem entrega, o
@@ -339,7 +351,8 @@ public enum BridgeValidator {
         return validated
     }
 
-    /// O maior entre 0,5% do valor e US$ 3 na moeda movida (no ETH, no maximo 0,002 ETH).
+    /// O maior entre 0,5% do valor e US$ 3 na moeda movida (no ETH, no maximo 0,002 ETH; no
+    /// WBTC, no maximo 5.000 satoshis).
     static func acrossFeeCap(_ amount: BigUInt, asset: BridgeAsset, decimals: Int, usdPrice: TradeDecimal?) -> BigUInt {
         let percentCap = amount * BigUInt(acrossFeeCapBps) / BigUInt(10_000)
         let unit = BigUInt.power(of: 10, decimals)
@@ -347,10 +360,11 @@ public enum BridgeValidator {
         switch asset {
         case .usdt, .usdc:
             usdCap = BigUInt(acrossFeeCapUSD) * unit
-        case .eth:
-            // US$ 3 / preco, em wei: 3 * 10^18 * 10^escala / mantissa.
+        case .eth, .wbtc:
+            // US$ 3 / preco, na menor unidade: 3 * 10^casas * 10^escala / mantissa.
             if let price = usdPrice, !price.mantissa.isZero {
-                usdCap = min(BigUInt(acrossFeeCapUSD) * unit * BigUInt.power(of: 10, price.scale) / price.mantissa, acrossFeeCapETHWei)
+                let ceiling = asset == .eth ? acrossFeeCapETHWei : acrossFeeCapWBTCSats
+                usdCap = min(BigUInt(acrossFeeCapUSD) * unit * BigUInt.power(of: 10, price.scale) / price.mantissa, ceiling)
             }
         }
         return max(percentCap, usdCap)

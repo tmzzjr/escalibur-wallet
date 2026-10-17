@@ -84,6 +84,7 @@ public struct BridgeEngine: Sendable {
         case .eth: id = "ethereum"
         case .usdt: id = "tether"
         case .usdc: id = "usd-coin"
+        case .wbtc: id = "wrapped-bitcoin"
         }
         guard let price = try? await market.quotes(ids: [id], currency: "usd")[id]?.price, price > 0 else { return nil }
         return TradeDecimal(String(format: "%.6f", price))

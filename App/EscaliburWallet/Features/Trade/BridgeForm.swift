@@ -364,6 +364,9 @@ struct BridgeAssetSheet: View {
         case .usdt:
             if from.across == nil || to.across == nil { return String(localized: "O Across não atende \(from.across == nil ? from.chain.name : to.chain.name).") }
             return String(localized: "USDT só onde o Across entrega o USDT da Tether (Ethereum, Arbitrum, Unichain e Plasma) ou o da Binance, na BNB.")
+        case .wbtc:
+            if from.across == nil || to.across == nil { return String(localized: "O Across não atende \(from.across == nil ? from.chain.name : to.chain.name).") }
+            return String(localized: "WBTC só entre Ethereum, Arbitrum, Optimism e Polygon.")
         }
     }
 
