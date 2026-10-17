@@ -27,9 +27,9 @@ struct ResponsibilityView: View {
                     header
                     VStack(alignment: .leading, spacing: Space.md) {
                         point("lock.iphone", String(localized: "Cifrada, só neste iPhone"),
-                              String(localized: "Tudo da carteira é cifrado e fica guardado aqui, em nenhum outro lugar."))
+                              String(localized: "Tudo da carteira é cifrado e fica guardado somente aqui."))
                         point("eye.slash", String(localized: "A Escalibur não vê nada"),
-                              String(localized: "Não temos servidor com as suas chaves. Não temos como ver, mover nem recuperar nada."))
+                              String(localized: "As chaves nunca saem deste iPhone. A Escalibur não tem acesso a elas, e por isso não vê, não move nem recupera o seu saldo."))
                         point("key.horizontal", String(localized: "As palavras recuperam"),
                               String(localized: "A senha da carteira, as 12 ou 24 palavras, é a única forma de trazer a carteira de volta."))
                         point("hand.raised", String(localized: "Ninguém da Escalibur pede"),

@@ -41680,7 +41680,7 @@
         }
       }
     },
-    "Avisar quando chegar moeda" : {
+    "Avisar quando receber moeda" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -41756,7 +41756,7 @@
         }
       }
     },
-    "Avisar quando chegar moeda?" : {
+    "Avisar quando receber moeda?" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {

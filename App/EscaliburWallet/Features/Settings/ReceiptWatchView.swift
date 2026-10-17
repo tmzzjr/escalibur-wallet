@@ -66,7 +66,7 @@ enum ReceiptAccounts {
     }
 }
 
-/// Ajustes: avisar quando chegar moeda, sem servidor.
+/// Ajustes: avisar quando receber moeda, sem servidor.
 struct ReceiptWatchView: View {
     @Environment(AppSession.self) private var session
     @State private var file = ReceiptWatchFile()
@@ -90,7 +90,7 @@ struct ReceiptWatchView: View {
 
                 SettingsGroup {
                     Toggle(isOn: Binding(get: { file.enabled }, set: { setEnabled($0) })) {
-                        label("bell", String(localized: "Avisar quando chegar moeda"))
+                        label("bell", String(localized: "Avisar quando receber moeda"))
                     }
                     .tint(Palette.accent)
                     .padding(.horizontal, Space.md).frame(minHeight: Height.rowCompact)
@@ -181,32 +181,8 @@ struct ReceiptWatchOffer: View {
     @Environment(AppSession.self) private var session
     let onDone: () -> Void
     @State private var working = false
-    @State private var shownArrival = false
-    /// Quantas vezes o dono girou a moeda: cada giro troca o valor que chegou.
-    @State private var arrivals = 0
-
     /// O fundo da folha: quase preto, um cinza bem escuro (pedido do dono, 16/10/2026).
     static let sheetColor = Color(hex: 0x0E0E10)
-
-    /// Valores de exemplo, nunca um saldo de verdade.
-    private static let samples: [Double] = [0.0042, 0.015, 0.0008, 0.12]
-
-    /// O aviso de exemplo, como o iPhone mostraria.
-    private var arrival: some View {
-        let amount = Self.samples[arrivals % Self.samples.count]
-        return HStack(spacing: Space.xs) {
-            Image(systemName: "arrow.down.circle.fill")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Palette.success)
-            Text("Chegou \(amount.formatted(.number.precision(.fractionLength(2...4)).locale(Fmt.locale))) BTC")
-                .typeStyle(.row).foregroundStyle(Palette.ink)
-                .monospacedDigit()
-        }
-        .padding(.horizontal, Space.md).frame(height: 40)
-        .background(Capsule().fill(Palette.control))
-        .overlay(Capsule().stroke(Palette.edge, lineWidth: 1))
-        .accessibilityHidden(true)
-    }
 
     /// O preco do aviso, dito em Ajustes, Aviso de recebimento.
     static var price: String {
@@ -216,24 +192,13 @@ struct ReceiptWatchOffer: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // A moeda girando, que o dedo gira, e o aviso de que ela chegou (pedido do
-                // dono, 16/10/2026). Cada giro do dono faz chegar mais uma.
-                ZStack(alignment: .top) {
-                    SpinningCoin { withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) { arrivals += 1 } }
-                        .frame(height: 200)
-                        // Um respiro entre a notificacao e a moeda (pedido do dono, 16/10/2026).
-                        .padding(.top, 60)
-                    if shownArrival {
-                        arrival
-                            .id(arrivals)
-                            .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity),
-                                                    removal: .opacity))
-                    }
-                }
-                .frame(height: 268)
-                .frame(maxWidth: .infinity)
+                // A moeda girando, que o dedo gira. O selo "Chegou X BTC" saiu a pedido do dono
+                // (16/10/2026).
+                SpinningCoin()
+                    .frame(height: 200)
+                    .frame(maxWidth: .infinity)
 
-                Text("Avisar quando chegar moeda?").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
+                Text("Avisar quando receber moeda?").typeStyle(.title).foregroundStyle(Palette.ink).padding(.top, Space.md)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("O próprio iPhone confere o saldo e avisa, sem servidor da Escalibur no caminho.")
                     .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
@@ -276,12 +241,6 @@ struct ReceiptWatchOffer: View {
             .padding(.bottom, Space.xs)
             .background(Self.sheetColor)
         }
-        .task {
-            guard !shownArrival else { return }
-            try? await Task.sleep(for: .milliseconds(900))
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) { shownArrival = true }
-        }
-        .sensoryFeedback(.success, trigger: arrivals)
         .presentationDetents([.large])
         .presentationBackground(Self.sheetColor)
         .presentationCornerRadius(Radius.sheet)

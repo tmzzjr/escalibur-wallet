@@ -51,6 +51,8 @@ final class EnvelopeFlowTests: XCTestCase {
         sleep(1)
         shot("e1-lacrar", app)
         start.tap()
+        // A checagem do aparelho antes da senha (pedido do dono, 16/10/2026).
+        app.passDeviceCheck()
         // PIN errado dentro da operacao: o teclado volta com o aviso, e o certo segue.
         type(pin: "135790", in: app)
         wait(app.staticTexts["PIN incorreto."], 10, app, "pin-incorreto")

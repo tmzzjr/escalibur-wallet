@@ -684,8 +684,15 @@ public actor MarketService {
         if let cached = charts[key], !cached.isStale, now().timeIntervalSince(cached.fetchedAt) < Self.chartLifetime(range) { return cached }
         let fresh: ChartSnapshot
         do {
-            let points = try await fromGecko { try await self.geckoChart(id: id, currency: currency, range: range) }
-            fresh = ChartSnapshot(points: points, fetchedAt: now(), source: .coingecko, isStale: false)
+            // "Tudo": o CoinGecko sem chave so entrega os ultimos 365 dias, e o grafico de
+            // "Tudo" saia igual ao de 1 ano (visto pelo dono, 16/10/2026). Para a moeda que a
+            // OKX negocia, a historia inteira vem dela, semana a semana; o CoinGecko fica de reserva.
+            if range == .all, Self.okxSymbols[id] != nil, let points = try? await okxChart(id: id, currency: currency, range: range) {
+                fresh = ChartSnapshot(points: points, fetchedAt: now(), source: .okx, isStale: false)
+            } else {
+                let points = try await fromGecko { try await self.geckoChart(id: id, currency: currency, range: range) }
+                fresh = ChartSnapshot(points: points, fetchedAt: now(), source: .coingecko, isStale: false)
+            }
         } catch {
             do {
                 let points = try await okxChart(id: id, currency: currency, range: range)
@@ -904,10 +911,20 @@ public actor MarketService {
             case .all: return ("1W", 300)
             }
         }()
-        let url = Self.url(Self.okx, "market/history-candles", [("instId", "\(symbol)-USDT"), ("bar", bar), ("limit", String(limit))])
-        let json = try await get(JSONValue.self, url)
+        // "Tudo" pede a historia inteira: a OKX entrega uma pagina por vez, da mais nova para
+        // a mais velha; a seguinte comeca antes da vela mais antiga ("after"). Quatro paginas
+        // de 300 semanas passam de 20 anos, mais do que qualquer par existe.
+        var rows: [JSONValue] = []
+        for _ in 0..<(range == .all ? 4 : 1) {
+            var query = [("instId", "\(symbol)-USDT"), ("bar", bar), ("limit", String(limit))]
+            if let oldest = rows.last?[0]?.stringValue { query.append(("after", oldest)) }
+            let json = try await get(JSONValue.self, Self.url(Self.okx, "market/history-candles", query))
+            guard let page = json["data"]?.arrayValue else { throw HTTPClient.Failure.invalidResponse }
+            rows += page
+            if page.count < limit { break }
+        }
         let rate = currency == "usd" ? 1 : (try await quotes(ids: ["tether"], currency: currency)["tether"]?.price ?? 0)
-        guard rate > 0, let rows = json["data"]?.arrayValue else { throw HTTPClient.Failure.invalidResponse }
+        guard rate > 0 else { throw HTTPClient.Failure.invalidResponse }
         let points = rows.compactMap { row -> PricePoint? in
             guard let ts = row[0]?.stringValue.flatMap(Double.init), let close = row[4]?.stringValue.flatMap(Double.init),
                   close.isFinite, close > 0 else { return nil }

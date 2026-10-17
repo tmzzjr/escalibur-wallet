@@ -178,6 +178,10 @@ struct Settings: Codable, Equatable {
     /// opcional para os metadados gravados antes deste campo continuarem abrindo. No modo
     /// reforcado ele vale ligado, qualquer que seja este valor.
     var ownKeyboard: Bool?
+    /// Envios que a rede aceitou, e se o pedido de nota do app ja apareceu: depois do
+    /// segundo envio, a Apple pergunta a nota uma vez (pedido do dono, 16/10/2026).
+    var completedSends: Int?
+    var reviewAsked: Bool?
     var voicePhraseHash: String?
     var voicePhraseSalt: String?
 }

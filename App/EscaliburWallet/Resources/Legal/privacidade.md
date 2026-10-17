@@ -1,6 +1,6 @@
 # Política de privacidade
 
-A Escalibur Wallet é uma carteira que roda inteira no seu iPhone. Não existe conta, cadastro nem servidor da Escalibur, e o app não pede o seu e-mail. Este texto diz o que o app guarda, onde guarda, e com quem ele fala.
+A Escalibur Wallet é uma carteira que roda inteira no seu iPhone. Não existe conta, cadastro nem servidor da Escalibur, e o app só pede o seu e-mail se você abrir um chamado no Suporte, para a resposta. Este texto diz o que o app guarda, onde guarda, e com quem ele fala.
 
 A Escalibur Wallet é oferecida por X TECH A.I FUND HOLDING E PARTICIPACOES LTDA, CNPJ 64.019.520/0001-29, chamada aqui de Escalibur. Contato: thomaz@xtech.international.
 
@@ -70,7 +70,7 @@ Pelo app, a Escalibur não recebe nem guarda dado nenhum seu. A exceção é o r
 
 ## Contato
 
-Dúvidas sobre esta política ou sobre os seus dados: thomaz@xtech.international. Um e-mail para o suporte chega fora do app, com o seu endereço e o que você escrever, e serve só para responder. Nunca mande as palavras da carteira, o PIN nem a senha de um envelope.
+Dúvidas sobre esta política ou sobre os seus dados: thomaz@xtech.international. Um chamado de suporte sai do app como e-mail, com o endereço que você digitar para a resposta, o assunto, o que você escrever, a versão do app e a do iOS, e serve só para responder. O app não guarda o chamado nem o seu e-mail. Nunca mande as palavras da carteira, o PIN nem a senha de um envelope.
 
 ## Mudanças
 

@@ -94,28 +94,33 @@ struct NetworkMenu: View {
     }
 }
 
-/// Uma barra que brilha enquanto a cotacao chega: o lugar do numero, sem numero falso.
+/// Uma barra que brilha enquanto a cotacao chega: o lugar do numero, sem numero falso. O
+/// brilho segue o relogio, e nao o momento em que a barra apareceu: todas as barras da tela
+/// passam juntas (pedido do dono, 16/10/2026).
 struct ShimmerBar: View {
     var width: CGFloat = 150
     var height: CGFloat = 26
-    @State private var phase: CGFloat = -1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let period = 1.1
 
     var body: some View {
-        Capsule(style: .continuous)
-            .fill(Palette.rail)
-            .overlay {
-                GeometryReader { geometry in
-                    LinearGradient(colors: [.clear, Palette.edgeStrong.opacity(0.9), .clear], startPoint: .leading, endPoint: .trailing)
-                        .frame(width: geometry.size.width * 0.6)
-                        .offset(x: phase * geometry.size.width)
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: Self.period) / Self.period
+            let phase = reduceMotion ? -1 : -1 + 2.4 * t
+            Capsule(style: .continuous)
+                .fill(Palette.rail)
+                .overlay {
+                    GeometryReader { geometry in
+                        LinearGradient(colors: [.clear, Palette.edgeStrong.opacity(0.9), .clear], startPoint: .leading, endPoint: .trailing)
+                            .frame(width: geometry.size.width * 0.6)
+                            .offset(x: phase * geometry.size.width)
+                    }
+                    .clipShape(Capsule(style: .continuous))
                 }
-                .clipShape(Capsule(style: .continuous))
-            }
-            .frame(width: width, height: height)
-            .onAppear {
-                withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) { phase = 1.4 }
-            }
-            .accessibilityLabel("Buscando cotação")
+        }
+        .frame(width: width, height: height)
+        .accessibilityLabel("Buscando cotação")
     }
 }
 

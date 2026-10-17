@@ -47,6 +47,7 @@ final class EnvelopeScreensTests: XCTestCase {
         shot("v3-guardar", app)
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'decifrador'")).firstMatch.exists)
         start.tap()
+        app.passDeviceCheck()
         for digit in "111111" {
             let key = app.buttons.matching(identifier: "tecla-\(digit)").firstMatch
             XCTAssertTrue(key.waitForExistence(timeout: 10))

@@ -144,11 +144,18 @@ struct AssetDetailView: View {
 
     private var position: some View {
         let hidden = session.metadata.settings.hideBalances
+        // A linha de quando a tela abriu nao muda: o valor vem da carteira de agora, para a
+        // cotacao que chega depois aparecer aqui tambem.
+        let row = portfolio.allRows.first { $0.id == self.row.id } ?? self.row
         return VStack(alignment: .leading, spacing: Space.xxs) {
             Text("Sua posição").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-            Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.fiat($0, session.currency) } ?? String(localized: "sem preço")))
-                .typeStyle(.figure).foregroundStyle(Palette.ink)
-                .contentTransition(.numericText())
+            if !hidden, row.fiatValue == nil, portfolio.awaitingPrice(row) {
+                ShimmerBar(width: 150, height: 26).padding(.vertical, 4)
+            } else {
+                Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.fiat($0, session.currency) } ?? String(localized: "sem preço")))
+                    .typeStyle(.figure).foregroundStyle(Palette.ink)
+                    .contentTransition(.numericText())
+            }
             Text(hidden ? Redaction.short : Fmt.crypto(row.totalAmount, decimals: row.decimals, symbol: row.symbol, style: .full))
                 .typeStyle(.note).foregroundStyle(Palette.inkSoft)
         }

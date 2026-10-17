@@ -257,13 +257,15 @@ struct ImportPhraseView: View {
                 .padding(.top, Space.md)
                 .padding(.bottom, Space.md)
             }
+            // So rola o minimo para a posicao nao ficar atras do teclado: tocar numa posicao
+            // que ja esta a vista nao mexe na tela (pedido do dono, 16/10/2026).
             .onChange(of: entry.active) { _, index in
                 guard focused else { return }
-                withAnimation(Motion.fade) { proxy.scrollTo(index, anchor: .center) }
+                withAnimation(Motion.fade) { proxy.scrollTo(index, anchor: nil) }
             }
             .onChange(of: focused) { _, isOn in
                 guard isOn else { return }
-                withAnimation(Motion.fade) { proxy.scrollTo(entry.active, anchor: .center) }
+                withAnimation(Motion.fade) { proxy.scrollTo(entry.active, anchor: nil) }
             }
         }
         .scrollDismissesKeyboard(.interactively)
@@ -386,12 +388,33 @@ struct ImportPhraseView: View {
         return reveal ? entry.word(at: index) : "•••••"
     }
 
-    /// A palavra confirmada, cifrada: sempre 4 glifos, que nao contam o tamanho dela.
+    /// A palavra confirmada, cifrada: um glifo por letra, como na digitacao (pedido do dono,
+    /// 16/10/2026; antes eram sempre 4, mas o tamanho ja aparecia enquanto ela era digitada).
     private func sealedGlyphs(_ index: Int) -> ((UInt64) -> String)? {
         _ = entry.revision
         guard entry.isFilled(index), !reveal, !(focused && entry.active == index) else { return nil }
         let cipher = self.cipher
-        return { tick in cipher.glyphs(index, count: 4, tick: tick) }
+        let count = Self.letterCount(entry.slots[index])
+        return { tick in cipher.glyphs(index, count: count, tick: tick) }
+    }
+
+    /// Quantas letras a palavra tem, pelos bytes NFKD: nem os bytes de continuacao do UTF-8,
+    /// nem os acentos (U+0300 a U+036F, CC 80 a CD AF) contam como letra.
+    static func letterCount(_ word: SecureBytes) -> Int {
+        word.withUnsafeBytes { raw in
+            var count = 0
+            var index = 0
+            while index < raw.count {
+                let byte = raw[index]
+                if index + 1 < raw.count, (byte == 0xCC || (byte == 0xCD && raw[index + 1] <= 0xAF)), (0x80...0xBF).contains(raw[index + 1]) {
+                    index += 2
+                    continue
+                }
+                if byte & 0xC0 != 0x80 { count += 1 }
+                index += 1
+            }
+            return max(count, 1)
+        }
     }
 
     /// A palavra em digitacao, cifrada: um glifo por letra.
@@ -725,9 +748,9 @@ private struct ClearGlassPaste: ViewModifier {
     }
 }
 
-/// Quantas palavras: 12 e 24 grandes, que sao quase todas as frases, e o "+" abre 15, 18 e
-/// 21. Escolhida uma das outras, voltam duas: a escolhida e a de 24 (pedido do dono,
-/// 16/10/2026).
+/// Quantas palavras: o mesmo seletor de antes (`Segmented`), so que mais largo, com 12 e 24,
+/// que sao quase todas as frases, e o "+" ao lado abre 15, 18 e 21. Escolhida uma das outras,
+/// voltam duas: a escolhida e a de 24 (pedido do dono, 16/10/2026).
 private struct WordCountPicker: View {
     @Binding var count: Int
     @State private var expanded = false
@@ -739,42 +762,22 @@ private struct WordCountPicker: View {
 
     var body: some View {
         HStack(spacing: Space.xs) {
-            ForEach(options, id: \.self) { option in
-                Button {
-                    withAnimation(Motion.select) {
-                        count = option
-                        expanded = false
-                    }
-                } label: {
-                    VStack(spacing: 0) {
-                        Text("\(option)").font(.system(size: expanded ? 17 : 20, weight: .semibold)).monospacedDigit()
-                        if !expanded {
-                            Text("palavras").typeStyle(.note)
-                        }
-                    }
-                    .foregroundStyle(option == count ? Palette.ink : Palette.inkMuted)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background {
-                        if option != count {
-                            Capsule(style: .continuous).stroke(Palette.edge, lineWidth: 1)
-                        }
-                    }
-                    .modifier(SelectionGlass(active: option == count))
-                    .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("\(option) palavras"))
-                .accessibilityAddTraits(option == count ? .isSelected : [])
-                .accessibilityIdentifier("palavras-\(option)")
-            }
+            Segmented(options: options.map { ($0, expanded ? "\($0)" : String(localized: "\($0) palavras")) },
+                      selection: Binding(get: { count }, set: { value in
+                          withAnimation(Motion.select) {
+                              count = value
+                              expanded = false
+                          }
+                      }))
+                .frame(maxWidth: .infinity)
+                .accessibilityIdentifier("palavras-tamanho")
             if !expanded {
                 Button { withAnimation(Motion.select) { expanded = true } } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Palette.inkSoft)
-                        .frame(width: 52, height: 52)
-                        .background(Circle().stroke(Palette.edge, lineWidth: 1))
+                        .frame(width: 40, height: 40)
+                        .background(Circle().fill(Palette.body))
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -782,6 +785,5 @@ private struct WordCountPicker: View {
                 .accessibilityIdentifier("palavras-mais")
             }
         }
-        .sensoryFeedback(.selection, trigger: count)
     }
 }

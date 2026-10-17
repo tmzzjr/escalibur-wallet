@@ -1442,8 +1442,9 @@ struct SendStages: View {
             var sent = session.metadata.sentTo[chain.id] ?? []
             if !sent.contains(address) { sent.append(address) }
             session.metadata.sentTo[chain.id] = sent
-            try? session.persist()
         }
+        session.metadata.settings.completedSends = (session.metadata.settings.completedSends ?? 0) + 1
+        try? session.persist()
         model.stage = .done
         await track(engine: engine, id: id, chain: chain)
     }

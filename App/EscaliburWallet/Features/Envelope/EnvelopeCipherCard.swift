@@ -194,6 +194,15 @@ struct EnvelopeCipherCard: View {
         .padding(Space.sm)
         .background(
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                // O fundo do cartao em pixels cinza que cifram, como no deslizar e no cofre
+                // (pedido do dono, 16/10/2026): aparece em volta das palavras e segue trocando
+                // tambem aberto, so mais apagado.
+                .overlay {
+                    PixelCipherStrip(index: 0, tick: tick / 3, glow: 0)
+                        .opacity(f.unlocked ? 0.25 : 0.5)
+                        .padding(3)
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+                }
                 .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1))
         )
     }
@@ -314,5 +323,32 @@ struct EnvelopeCipherCard: View {
     private static func smooth(_ x: Double) -> Double {
         let t = min(max(x, 0), 1)
         return t * t * (3 - 2 * t)
+    }
+}
+
+/// O fundo cifrado do cartao: quadradinhos cinza enchendo a area, cada um no seu compasso,
+/// sorteados de um contador (so desenho).
+private struct PixelCipherStrip: View {
+    let index: Int
+    let tick: UInt64
+    var glow: Double = 0
+
+    var body: some View {
+        Canvas { context, size in
+            let pitch: CGFloat = 4.4
+            let cell: CGFloat = 3.4
+            let columns = max(Int((size.width + pitch - cell) / pitch), 1)
+            let rows = max(Int((size.height + pitch - cell) / pitch), 1)
+            for row in 0..<rows {
+                for column in 0..<columns {
+                    let id = row * 1000 + column
+                    // Cada pixel troca no proprio ritmo: um a cada 1 a 4 quadros.
+                    let pace = UInt64(1 + Int(PixelFill.noise(index, id, 0x51) * 4))
+                    let tone = 0.12 + 0.3 * PixelFill.noise(index, id, Int(truncatingIfNeeded: tick / pace)) + 0.3 * glow
+                    let rect = CGRect(x: CGFloat(column) * pitch, y: CGFloat(row) * pitch, width: cell, height: cell)
+                    context.fill(Path(roundedRect: rect, cornerRadius: 0.8), with: .color(PixelFill.gray(min(tone, 1))))
+                }
+            }
+        }
     }
 }

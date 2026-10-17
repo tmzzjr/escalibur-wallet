@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 struct RootView: View {
@@ -140,6 +141,8 @@ struct RootView: View {
 
 struct MainTabs: View {
     @Environment(Router.self) private var router
+    @Environment(AppSession.self) private var session
+    @Environment(\.requestReview) private var requestReview
 
     /// `wallet.bifold` existe a partir do iOS 18; antes, a prancheta do `wallet.pass`.
     static var walletSymbol: String {
@@ -167,10 +170,23 @@ struct MainTabs: View {
         }
         .tint(Palette.accent)
         .modifier(LimitRenewalPrompts())
-        .fullScreenCover(item: Bindable(router).flow) { flow in
+        .fullScreenCover(item: Bindable(router).flow, onDismiss: askForReview) { flow in
             switch flow {
             case .send(let asset): SendFlow(initialAsset: asset)
             }
+        }
+    }
+
+    /// Fechado o segundo envio que a rede aceitou, a Apple pede a nota do app, uma vez so:
+    /// e a pausa natural depois de a carteira ter servido (pedido do dono, 16/10/2026).
+    private func askForReview() {
+        let settings = session.metadata.settings
+        guard (settings.completedSends ?? 0) >= 2, settings.reviewAsked != true else { return }
+        session.metadata.settings.reviewAsked = true
+        try? session.persist()
+        Task {
+            try? await Task.sleep(for: .seconds(0.6))
+            requestReview()
         }
     }
 }

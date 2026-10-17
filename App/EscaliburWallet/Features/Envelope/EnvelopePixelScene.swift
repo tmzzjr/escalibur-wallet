@@ -15,6 +15,16 @@ struct EnvelopePixelScene: View {
     /// como papel; ao fechar, sem fresta nas bordas, ele vira pixels. No "Como funciona", todo
     /// em pixels desde o comeco.
     var pixelOnClose = false
+    /// Lacrando um envelope de verdade (`SealEnvelopeFlow`): sem laco, a historia anda com o
+    /// lacre. Enquanto o app faz a conta da senha, as palavras cifram no alto; gravando, elas
+    /// caem no envelope; lacrado, a aba fecha, o envelope vira pixels, o cadeado se monta e o
+    /// anel acende, e a cena para assim. Nil: o laco das telas de explicar.
+    var stage: Stage? = nil
+
+    enum Stage: Equatable { case working, writing, sealed }
+
+    /// Onde a historia estava quando a etapa mudou, e quando: a cena segue dali.
+    @State private var anchor: (t: Double, at: Date) = (0, Date())
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var start = Date()
 
@@ -50,21 +60,24 @@ struct EnvelopePixelScene: View {
         static let breakFrom = 0.7
         static let breakStep = 0.32
         static let flight = 0.75
-        static let flapFrom = 2.75
+        static let flapFrom = 2.45
         static let flapTime = 0.45
-        static let sealFrom = 3.25
-        static let ringFrom = 3.45
+        static let sealFrom = 2.95
+        static let ringFrom = 3.15
         /// Com `pixelOnClose`: o envelope fechado vira pixels, e o cadeado vem depois.
-        static let pixelFrom = 3.2
+        static let pixelFrom = 2.9
         static let pixelTime = 0.45
         static let pixelDelay = 0.3
         static let ringTime = 0.45
         static let fadeFrom = 6.0
     }
 
+    /// Quanto o envelope fechado sobe: do pe da cena ate o centro dela.
+    static let liftHeight: CGFloat = 54
+
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60, paused: reduceMotion)) { timeline in
-            let t = reduceMotion ? T.fadeFrom - 0.3 : timeline.date.timeIntervalSince(start).truncatingRemainder(dividingBy: T.period)
+            let t = reduceMotion ? T.fadeFrom - 0.3 : storyTime(at: timeline.date)
             let clock = reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate
             Canvas { context, size in
                 let scale = min(size.width / G.width, size.height / G.height)
@@ -75,13 +88,40 @@ struct EnvelopePixelScene: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
-        .onAppear { start = Date() }
+        .onAppear {
+            start = Date()
+            anchor = (0, Date())
+        }
+        .onChange(of: stage) { _, _ in
+            let now = Date()
+            anchor = (storyTime(at: now), now)
+        }
         .accessibilityHidden(true)
+    }
+
+    /// O tempo da historia: em laco nas telas de explicar; no lacre, andando de onde parou
+    /// ate o teto da etapa (no lacrado, o fim, sem esmaecer).
+    private func storyTime(at now: Date) -> Double {
+        guard let stage else { return now.timeIntervalSince(start).truncatingRemainder(dividingBy: T.period) }
+        let cap: Double
+        switch stage {
+        case .working: cap = T.breakFrom - 0.1
+        case .writing: cap = T.flapFrom - 0.05
+        case .sealed: cap = T.fadeFrom - 0.05
+        }
+        return min(cap, anchor.t + now.timeIntervalSince(anchor.at))
     }
 
     private func draw(_ context: inout GraphicsContext, t: Double, clock: Double) {
         // Tudo some junto no fim do laco e nasce de novo no comeco.
         context.opacity = min(Self.smooth(t / 0.35), 1 - Self.smooth((t - T.fadeFrom) / (T.period - T.fadeFrom)))
+        // No lacre, fechado, o envelope sobe ate o centro da cena: sem as palavras e sem a aba
+        // aberta, o alto ficava vazio (pedido do dono, 16/10/2026). Nas telas de explicar ele
+        // fica parado depois de fechar (pedido do dono, no mesmo dia).
+        if stage != nil {
+            let lift = CGFloat(Self.easeInOut((t - T.flapFrom - T.flapTime - 0.05) / 0.55)) * Self.liftHeight
+            context.translateBy(x: 0, y: -lift)
+        }
         if pixelOnClose {
             // Fechado, uma linha varre o envelope da esquerda para a direita, e por onde ela
             // passa o papel vira pixel: antes os dois desenhos se sobrepunham, esmaecendo
@@ -132,13 +172,25 @@ struct EnvelopePixelScene: View {
         let rect = CGRect(x: G.envelope.minX, y: 0, width: G.envelope.width, height: G.flapHeight)
         let r: CGFloat = 14
         var path = Path()
-        path.move(to: CGPoint(x: rect.minX + r, y: 0))
-        path.addLine(to: CGPoint(x: rect.maxX - r, y: 0))
-        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: r), control: CGPoint(x: rect.maxX, y: 0))
-        path.addQuadCurve(to: CGPoint(x: rect.midX + 14, y: rect.maxY - 6), control: CGPoint(x: rect.midX + 40, y: rect.maxY * 0.72))
-        path.addQuadCurve(to: CGPoint(x: rect.midX - 14, y: rect.maxY - 6), control: CGPoint(x: rect.midX, y: rect.maxY + 4))
-        path.addQuadCurve(to: CGPoint(x: rect.minX, y: r), control: CGPoint(x: rect.midX - 40, y: rect.maxY * 0.72))
-        path.addQuadCurve(to: CGPoint(x: rect.minX + r, y: 0), control: CGPoint(x: rect.minX, y: 0))
+        if scale >= 0 {
+            // Fechada: os cantos de cima sao os do envelope, e ela encaixa sem fresta.
+            path.move(to: CGPoint(x: rect.minX + r, y: 0))
+            path.addLine(to: CGPoint(x: rect.maxX - r, y: 0))
+            path.addQuadCurve(to: CGPoint(x: rect.maxX, y: r), control: CGPoint(x: rect.maxX, y: 0))
+            path.addQuadCurve(to: CGPoint(x: rect.midX + 14, y: rect.maxY - 6), control: CGPoint(x: rect.midX + 40, y: rect.maxY * 0.72))
+            path.addQuadCurve(to: CGPoint(x: rect.midX - 14, y: rect.maxY - 6), control: CGPoint(x: rect.midX, y: rect.maxY + 4))
+            path.addQuadCurve(to: CGPoint(x: rect.minX, y: r), control: CGPoint(x: rect.midX - 40, y: rect.maxY * 0.72))
+            path.addQuadCurve(to: CGPoint(x: rect.minX + r, y: 0), control: CGPoint(x: rect.minX, y: 0))
+        } else {
+            // Aberta: a dobra e reta e vai so pelo trecho reto da borda de cima, sem quina
+            // para fora nem dente entre a aba e o envelope. A troca de forma acontece com a aba
+            // de lado, quando ela e uma linha.
+            path.move(to: CGPoint(x: rect.minX + r, y: 0))
+            path.addLine(to: CGPoint(x: rect.maxX - r, y: 0))
+            path.addQuadCurve(to: CGPoint(x: rect.midX + 14, y: rect.maxY - 6), control: CGPoint(x: rect.midX + 36, y: rect.maxY * 0.72))
+            path.addQuadCurve(to: CGPoint(x: rect.midX - 14, y: rect.maxY - 6), control: CGPoint(x: rect.midX, y: rect.maxY + 4))
+            path.addQuadCurve(to: CGPoint(x: rect.minX + r, y: 0), control: CGPoint(x: rect.midX - 36, y: rect.maxY * 0.72))
+        }
         path.closeSubpath()
         layer.fill(path, with: .linearGradient(Gradient(colors: [Palette.edgeStrong, Palette.control]),
                                                startPoint: CGPoint(x: rect.midX, y: 0), endPoint: CGPoint(x: rect.midX, y: rect.maxY)))
@@ -161,15 +213,12 @@ struct EnvelopePixelScene: View {
     }
 
     /// O envelope de pixels, cifrando ao vivo: o corpo, a borda e as dobras mais claras, e
-    /// uma passada de luz que corre devagar. A aba aberta fica acima e some de cima para
-    /// baixo enquanto a fechada desce, linha por linha, ate a ponta (`closing`, de 0 a 1).
+    /// uma passada de luz que corre devagar. A aba dobra na borda de cima como papel: aberta
+    /// para cima, achata na dobra e desce sobre o envelope (`closing`, de 0 a 1). Antes a aba
+    /// aberta sumia linha por linha e a fechada nascia no lugar (visto pelo dono, 16/10/2026).
     private func drawEnvelope(_ context: inout GraphicsContext, closing: Double, clock: Double, wipe: CGFloat? = nil) {
         let columns = G.columns, rows = G.rows, flapRows = G.flapRows
-        let left = CGPoint(x: G.envelope.minX + G.grid / 2, y: G.envelope.minY + G.grid / 2)
-        let right = CGPoint(x: G.envelope.maxX - G.grid / 2, y: G.envelope.minY + G.grid / 2)
         let fold = CGPoint(x: G.envelope.midX, y: G.envelope.minY + G.envelope.height * 0.5)
-        let tip = CGPoint(x: G.envelope.midX, y: G.envelope.minY + CGFloat(flapRows) * G.grid)
-        let shown = Int((closing * Double(flapRows)).rounded(.up))
         let sweep = CGFloat((clock / 2.2).truncatingRemainder(dividingBy: 1)) * (G.envelope.width + 80) + G.envelope.minX - 40
         func light(_ center: CGPoint) -> Double {
             let d = Double((center.x - sweep + (center.y - G.envelope.minY) * 0.5) / 18)
@@ -181,15 +230,11 @@ struct EnvelopePixelScene: View {
                 let center = CGPoint(x: rect.midX, y: rect.midY)
                 let id = 5000 + column * rows + row
                 let edge = column == 0 || column == columns - 1 || row == 0 || row == rows - 1
-                // 1 na borda de cima, 0 na ponta: a aba cobre a largura inteira em cima, sem fresta.
-                let depth = (tip.y - center.y) / (tip.y - G.envelope.minY)
-                let inFlap = row < shown && depth >= -0.05 && abs(center.x - G.envelope.midX) <= depth * G.envelope.width / 2 + G.grid * 0.5
-                let flapEdge = inFlap && (Self.distance(center, left, tip) < G.grid * 0.7 || Self.distance(center, right, tip) < G.grid * 0.7)
-                let pocketFold = !inFlap && (Self.distance(center, CGPoint(x: G.envelope.minX, y: G.envelope.minY), fold) < G.grid * 0.6
-                    || Self.distance(center, CGPoint(x: G.envelope.maxX, y: G.envelope.minY), fold) < G.grid * 0.6)
+                let pocketFold = Self.distance(center, CGPoint(x: G.envelope.minX, y: G.envelope.minY), fold) < G.grid * 0.6
+                    || Self.distance(center, CGPoint(x: G.envelope.maxX, y: G.envelope.minY), fold) < G.grid * 0.6
                 let bit = Self.tone(id, clock: clock)
-                var tone = (inFlap ? 0.2 : 0.13) + 0.16 * bit
-                if edge || flapEdge { tone = 0.4 + 0.14 * bit } else if pocketFold { tone = 0.3 + 0.1 * bit }
+                var tone = 0.13 + 0.16 * bit
+                if edge { tone = 0.4 + 0.14 * bit } else if pocketFold { tone = 0.3 + 0.1 * bit }
                 tone += light(center)
                 // Na varredura, so ate a linha; os pixels logo atras dela acendem mais.
                 if let wipe {
@@ -200,19 +245,27 @@ struct EnvelopePixelScene: View {
                 context.fill(Path(roundedRect: rect, cornerRadius: 1.1), with: .color(PixelFill.gray(tone)))
             }
         }
-        // A aba aberta, acima da borda: some de cima para baixo enquanto a fechada desce.
-        let hidden = Int((closing * Double(flapRows)).rounded(.down))
-        let openTip = CGPoint(x: G.envelope.midX, y: G.envelope.minY - CGFloat(flapRows) * G.grid)
-        for row in 1...flapRows where row > hidden {
-            let y = G.envelope.minY - CGFloat(row) * G.grid + G.grid / 2
-            let half = (y - openTip.y) / (G.envelope.minY - openTip.y) * (G.envelope.width / 2)
+        // A aba: cada pixel na sua distancia da dobra, multiplicada pela abertura (-1 aberta
+        // para cima, 0 achatada na dobra, 1 fechada), e achatado junto, como papel virando.
+        let turn = CGFloat(-1 + 2 * closing)
+        let squash = max(abs(turn), 0.08)
+        for row in 0..<flapRows {
+            let half = (1 - (CGFloat(row) + 0.5) / CGFloat(flapRows)) * G.envelope.width / 2 + G.grid * 0.5
             for column in 0..<columns {
-                let rect = cell(column, -row)
-                guard abs(rect.midX - G.envelope.midX) <= half else { continue }
-                let rim = abs(rect.midX - G.envelope.midX) > half - G.grid
+                let home = cell(column, row)
+                let offCenter = abs(home.midX - G.envelope.midX)
+                guard offCenter <= half else { continue }
+                let rect = CGRect(x: home.minX, y: G.envelope.minY + (home.midY - G.envelope.minY) * turn - home.height * squash / 2,
+                                  width: home.width, height: home.height * squash)
+                let center = CGPoint(x: rect.midX, y: rect.midY)
+                let rim = offCenter > half - G.grid * 1.2
                 let bit = Self.tone(7000 + column * 40 + row, clock: clock)
-                let tone = (rim ? 0.4 + 0.14 * bit : 0.18 + 0.14 * bit) + light(CGPoint(x: rect.midX, y: rect.midY))
-                context.fill(Path(roundedRect: rect, cornerRadius: 1.1), with: .color(PixelFill.gray(tone)))
+                var tone = (rim ? 0.4 + 0.14 * bit : 0.2 + 0.16 * bit) + light(center)
+                if let wipe {
+                    guard center.x < wipe else { continue }
+                    tone += 0.35 * Double(max(0, 1 - (wipe - center.x) / 18))
+                }
+                context.fill(Path(roundedRect: rect, cornerRadius: min(1.1, rect.height / 2)), with: .color(PixelFill.gray(tone)))
             }
         }
     }
@@ -329,5 +382,21 @@ struct EnvelopePixelScene: View {
     private static func easeInOut(_ x: Double) -> Double {
         let t = min(max(x, 0), 1)
         return t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2
+    }
+}
+
+struct PocketShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let r: CGFloat = 14
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.minY + r))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.minY + rect.height * 0.5))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + r))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
+        path.addQuadCurve(to: CGPoint(x: rect.maxX - r, y: rect.maxY), control: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
+        path.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.maxY - r), control: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
     }
 }

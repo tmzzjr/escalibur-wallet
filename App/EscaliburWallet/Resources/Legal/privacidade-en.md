@@ -2,7 +2,7 @@
 
 This is a translation of the Portuguese policy. If the two differ, the Portuguese version prevails.
 
-Escalibur Wallet is a wallet that runs entirely on your iPhone. There is no Escalibur account, sign-up or server, and the app does not ask for your email. This text says what the app keeps, where it keeps it, and who it talks to.
+Escalibur Wallet is a wallet that runs entirely on your iPhone. There is no Escalibur account, sign-up or server, and the app only asks for your email if you open a ticket in Support, for the reply. This text says what the app keeps, where it keeps it, and who it talks to.
 
 Escalibur Wallet is offered by X TECH A.I FUND HOLDING E PARTICIPACOES LTDA, CNPJ 64.019.520/0001-29, called Escalibur here. Contact: thomaz@xtech.international.
 
@@ -72,7 +72,7 @@ Through the app, Escalibur receives and keeps no data of yours. The exception is
 
 ## Contact
 
-Questions about this policy or about your data: thomaz@xtech.international. An email to support arrives outside the app, with your address and what you write, and is used only to reply. Never send the wallet words, the PIN or an envelope password.
+Questions about this policy or about your data: thomaz@xtech.international. A support ticket leaves the app as an email, with the address you type for the reply, the topic, what you write, the app version and the iOS version, and is used only to reply. The app does not keep the ticket or your email. Never send the wallet words, the PIN or an envelope password.
 
 ## Changes
 

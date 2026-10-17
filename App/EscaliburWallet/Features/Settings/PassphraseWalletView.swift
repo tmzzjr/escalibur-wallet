@@ -2,23 +2,17 @@ import EscaliburCore
 import SwiftUI
 
 /// S3: criar a carteira da 25ª palavra a partir da carteira selecionada. A frase nao
-/// aparece: o cofre abre, deriva a carteira nova e grava, com uma confirmacao so.
+/// aparece: o cofre abre, deriva a carteira nova e grava, com uma confirmacao so. Em tres
+/// passos (pedido do dono, 16/10/2026): o que e, a checagem do aparelho e so entao os
+/// campos da passphrase.
 struct PassphraseWalletView: View {
-    @Environment(AppSession.self) private var session
-    @Environment(ToastCenter.self) private var toasts
-    @Environment(AuthCoordinator.self) private var auth
     @Environment(\.dismiss) private var dismiss
     let base: WalletMeta
 
-    @State private var passphrase = SecureBytes(capacity: 256)
-    @State private var passphraseLength = 0
-    /// Segurar o dedo numa das duas mostra as duas.
-    @State private var revealPassphrase = false
-    @State private var again = SecureBytes(capacity: 256)
-    @State private var againLength = 0
-    @State private var name = ""
-    @State private var message: String?
-    @State private var working = false
+    @State private var checking = false
+    @State private var entering = false
+    /// A carteira abriu: as duas telas de cima saem sem animacao e esta sai ao reaparecer.
+    @State private var opened = false
 
     private var wordCount: Int {
         if case .phrase(let count) = base.kind { return count }
@@ -26,7 +20,6 @@ struct PassphraseWalletView: View {
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 0) {
                 // O cofre de pixels: outra carteira, trancada pelo que so voce sabe.
@@ -43,32 +36,87 @@ struct PassphraseWalletView: View {
                 VStack(alignment: .leading, spacing: Space.md) {
                     PassphrasePoint(icon: "eye.slash", text: String(localized: "Quem achar só as \(wordCount) palavras vê a carteira de sempre, não esta. Dentro deste app, quem tem o PIN vê as duas na lista de carteiras."))
                     PassphrasePoint(icon: "pencil.and.list.clipboard", text: String(localized: "Anote a passphrase longe das \(wordCount). Para abrir esta carteira em outro aparelho, você vai precisar das duas."))
-                    PassphrasePoint(icon: "exclamationmark.triangle", text: String(localized: "Esquecer a passphrase é perder o acesso a esta carteira. Ninguém recupera, nem a Escalibur."), caution: true)
+                    // Na mesma cor dos outros pontos (pedido do dono, 16/10/2026).
+                    PassphrasePoint(icon: "exclamationmark.triangle", text: String(localized: "Esquecer a passphrase é perder o acesso a esta carteira. Ninguém recupera, nem a Escalibur."))
                 }
                 .padding(Space.base)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
                 .padding(.top, Space.lg)
-
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    Text("Passphrase").typeStyle(.note).foregroundStyle(Palette.inkSoft)
-                    PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: String(localized: "Passphrase"), reveal: $revealPassphrase)
-                    PasswordBox(buffer: again, length: $againLength, placeholder: String(localized: "Repita a passphrase"), reveal: $revealPassphrase) { Task { await create() } }
-                        .id("repita")
-                    Text("Diferença de maiúscula, acento ou espaço já abre outra carteira. Segure o dedo num campo para conferir as duas.")
-                        .typeStyle(.note).foregroundStyle(Palette.inkMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Nome").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
-                    TextField("", text: $name)
-                        .typeStyle(.row).foregroundStyle(Palette.ink)
-                        .padding(.horizontal, Space.md).frame(height: Height.field)
-                        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
-                            .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
-                    if let message {
-                        Banner(kind: .failure, title: message).padding(.top, Space.sm)
-                    }
+            }
+            .padding(.horizontal, Space.gutter)
+            .padding(.vertical, Space.md)
+        }
+        .safeAreaInset(edge: .bottom) {
+            ActionFooter {
+                PrimaryButton(title: String(localized: "Continuar")) { checking = true }
+            }
+        }
+        .background(Palette.void.ignoresSafeArea())
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { if opened { dismiss() } }
+        .navigationDestination(isPresented: $checking) {
+            DeviceCheckView(slideTitle: String(localized: "Deslize para digitar a passphrase"),
+                            consent: String(localized: "Estou ciente de que este iPhone falhou na verificação de integridade e de que digitar a passphrase aqui pode expor a carteira. Quero seguir mesmo assim.")) {
+                entering = true
+            }
+            .navigationDestination(isPresented: $entering) {
+                // Aberta a carteira, volta de uma vez para onde o caminho comecou.
+                PassphraseEntryView(base: base) {
+                    opened = true
+                    var quiet = Transaction()
+                    quiet.disablesAnimations = true
+                    withTransaction(quiet) { checking = false }
                 }
-                .padding(.top, Space.lg)
+            }
+        }
+    }
+}
+
+/// O ultimo passo: os dois campos da passphrase e o nome da carteira nova.
+struct PassphraseEntryView: View {
+    @Environment(AppSession.self) private var session
+    @Environment(ToastCenter.self) private var toasts
+    @Environment(AuthCoordinator.self) private var auth
+    let base: WalletMeta
+    let onDone: () -> Void
+
+    @State private var passphrase = SecureBytes(capacity: 256)
+    @State private var passphraseLength = 0
+    /// Segurar o dedo numa das duas mostra as duas.
+    @State private var revealPassphrase = false
+    @State private var again = SecureBytes(capacity: 256)
+    @State private var againLength = 0
+    @State private var name = ""
+    @State private var message: String?
+    @State private var working = false
+
+    var body: some View {
+        ScrollViewReader { proxy in
+        ScrollView {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                Text("Digite a passphrase").typeStyle(.title).foregroundStyle(Palette.ink)
+                Text("Escreva igual ao que você anotou. Diferença de maiúscula, acento ou espaço já abre outra carteira.")
+                    .typeStyle(.body).foregroundStyle(Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, Space.md)
+                Text("Passphrase").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                PasswordBox(buffer: passphrase, length: $passphraseLength, placeholder: String(localized: "Passphrase"), reveal: $revealPassphrase)
+                PasswordBox(buffer: again, length: $againLength, placeholder: String(localized: "Repita a passphrase"), reveal: $revealPassphrase) { Task { await create() } }
+                    .id("repita")
+                Text("Segure o dedo num campo para conferir as duas.")
+                    .typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Nome").typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
+                TextField("", text: $name)
+                    .typeStyle(.row).foregroundStyle(Palette.ink)
+                    .padding(.horizontal, Space.md).frame(height: Height.field)
+                    .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
+                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).stroke(Palette.edge, lineWidth: 1)))
+                if let message {
+                    Banner(kind: .failure, title: message).padding(.top, Space.sm)
+                }
             }
             .padding(.horizontal, Space.gutter)
             .padding(.vertical, Space.md)
@@ -105,7 +153,7 @@ struct PassphraseWalletView: View {
             message = String(localized: "As duas versões da passphrase não conferem.")
             return
         }
-        guard Self.isWritable(passphrase) else {
+        guard PassphraseWalletView.isWritable(passphrase) else {
             message = String(localized: "A passphrase tem um caractere invisível ou um espaço diferente do espaço comum. Escreva de novo, só com letras, números, símbolos e espaço comum: é o que dá para anotar no papel.")
             return
         }
@@ -128,7 +176,7 @@ struct PassphraseWalletView: View {
             if before.contains(opened.id) {
                 toasts.show(String(localized: "Esta carteira já está aberta, como \(opened.name). Ela passa a ser a carteira em uso."))
             }
-            dismiss()
+            onDone()
         } catch let error as WalletError {
             message = error.errorDescription
         } catch {
@@ -165,19 +213,18 @@ extension PassphraseWalletView {
     }
 }
 
-/// Um ponto da explicacao: icone do assunto e uma frase; o alerta em cor de cuidado.
+/// Um ponto da explicacao: icone do assunto e uma frase.
 private struct PassphrasePoint: View {
     let icon: String
     let text: String
-    var caution = false
 
     var body: some View {
         HStack(alignment: .top, spacing: Space.sm) {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(caution ? Palette.caution : Palette.ink)
+                .foregroundStyle(Palette.ink)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(caution ? Palette.caution.opacity(0.16) : Palette.control))
+                .background(Circle().fill(Palette.control))
             Text(text).typeStyle(.body).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 5)

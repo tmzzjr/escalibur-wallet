@@ -33,6 +33,15 @@ enum Pasteboard {
         ])
     }
 
+    /// O chamado de suporte, para mandar pelo e-mail que a pessoa usa quando nenhum app de
+    /// e-mail abre (SupportView). Dez minutos: o tempo de abrir o e-mail e colar.
+    static func copyTicket(_ text: String) {
+        UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: text]], options: [
+            .localOnly: true,
+            .expirationDate: Date().addingTimeInterval(600),
+        ])
+    }
+
     static func copyPhrase(_ words: [String]) {
         UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: words.joined(separator: " ")]], options: [
             .localOnly: true,
@@ -383,8 +392,8 @@ struct ReceiveSheet: View {
     }
 
     /// As formas embrulhadas da moeda que a carteira recebe (WBTC e cbBTC no BTC; WETH e o
-    /// ETH da Binance no ETH). Cada uma e a sua propria moeda: tocar abre o endereco dela, e
-    /// o seletor embaixo do QR so troca de rede dentro dela, nunca de volta para a nativa.
+    /// ETH da Binance no ETH). Cada uma e a sua propria moeda no saldo: tocar abre o endereco
+    /// dela, e o seletor embaixo do QR passa por todas as formas (`forms(of:)`).
     private func otherForms(_ coin: ReceiveCoin) -> [Asset] {
         guard let id = coin.coingeckoID, coin.assets.contains(where: { $0.kind == .native }) else { return [] }
         return receivable.filter { asset in asset.coingeckoID.flatMap { ReceiveCoin.wrappedForms[$0] } == id }
@@ -471,8 +480,11 @@ struct ReceiveSheet: View {
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft).lineLimit(1)
                 }
                 Spacer()
-                if coin.assets.count > 1 {
-                    Text("\(coin.assets.count) redes").typeStyle(.note).foregroundStyle(Palette.inkMuted)
+                // As versoes em token contam como rede: o BTC recebe na Bitcoin e, como WBTC,
+                // cbBTC ou BTCB, nas redes delas (pedido do dono, 16/10/2026).
+                let networks = coin.assets.count + otherForms(coin).count
+                if networks > 1 {
+                    Text("\(networks) redes").typeStyle(.note).foregroundStyle(Palette.inkMuted)
                 }
                 Image(systemName: "chevron.forward").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
             }
@@ -553,8 +565,10 @@ struct ReceiveSheet: View {
     /// A tela do endereco, com a rede que o seletor escolheu (a da lista, de inicio).
     @ViewBuilder
     private func addressView(asset: Asset, chain: Chain) -> some View {
-        let siblings = ReceiveCoin.group(receivable).first { coin in coin.assets.contains { $0.id == asset.id } }?.assets ?? [asset]
-        let key = siblings.first?.id ?? asset.id
+        let siblings = forms(of: asset)
+        // A escolha vale para a moeda por onde se entrou: voltar e tocar noutra rede abre
+        // a rede tocada, e nao a escolhida antes no seletor.
+        let key = asset.id
         let shown = chosenNetwork[key].flatMap { choice in siblings.first { $0.id == choice.id } } ?? asset
         let network = shown.chain ?? chain
         if network.family == .tron, wallet?.tronForeignControl == true {
@@ -580,13 +594,35 @@ struct ReceiveSheet: View {
         .accessibilityIdentifier("receber-tron-outra-chave")
     }
 
-    /// Com mais de uma rede, a rede embaixo do QR, no mesmo seletor da troca: o logo de cada rede na lista,
-    /// porque escolher rede e reconhecer o logo (pedido do dono, 14/10/2026).
+    /// Todas as formas da moeda que a carteira recebe: a nativa e o token nas outras redes
+    /// (USDT na Tron e na Ethereum), e as versoes embrulhadas (WBTC e cbBTC no BTC). Do
+    /// WBTC tambem se chega ao BTC e as outras formas: e a mesma moeda para quem recebe
+    /// (pedido do dono, 16/10/2026). Cada endereco ainda so recebe o que a rede dele aceita.
+    private func forms(of asset: Asset) -> [Asset] {
+        let coins = ReceiveCoin.group(receivable)
+        guard let own = coins.first(where: { coin in coin.assets.contains { $0.id == asset.id } }) else { return [asset] }
+        let base = asset.coingeckoID.flatMap { ReceiveCoin.wrappedForms[$0] }.flatMap { id in coins.first { $0.coingeckoID == id } } ?? own
+        let all = base.assets + otherForms(base)
+        return all.contains { $0.id == asset.id } ? all : own.assets
+    }
+
+    /// A moeda que a forma representa, para o logo no meio do QR: o BTC no WBTC da Ethereum,
+    /// com a rede no selo embaixo.
+    private func baseCoin(_ asset: Asset) -> (id: String?, symbol: String) {
+        guard let wrapped = asset.coingeckoID, let id = ReceiveCoin.wrappedForms[wrapped],
+              let coin = ReceiveCoin.group(receivable).first(where: { $0.coingeckoID == id }) else {
+            return (asset.coingeckoID, asset.symbol)
+        }
+        return (id, coin.symbol)
+    }
+
+    /// Com mais de uma rede, a rede embaixo do QR, com o logo de cada rede na lista, porque
+    /// escolher rede e reconhecer o logo (pedido do dono, 14/10/2026). A linha de um token
+    /// diz qual e: na Ethereum, o BTC chega como WBTC ou como cbBTC.
     @ViewBuilder
     private func addressNetworkMenu(asset: Asset, chain: Chain, siblings: [Asset], key: String) -> some View {
         if siblings.count > 1 {
-            NetworkMenu(chains: siblings.compactMap(\.chain), selected: chain) { picked in
-                guard let item = siblings.first(where: { $0.chain == picked }) else { return }
+            ReceiveFormMenu(forms: siblings, selected: asset) { item in
                 withAnimation(Motion.fade) { chosenNetwork[key] = item }
             }
             .accessibilityIdentifier("receber-rede")
@@ -620,7 +656,7 @@ struct ReceiveSheet: View {
                         .accessibilityIdentifier("receber-observacao")
                 }
 
-                qrPlate(address: address, chain: chain).padding(.top, Space.lg)
+                qrPlate(address: address, chain: chain, asset: asset).padding(.top, Space.lg)
                 addressNetworkMenu(asset: asset, chain: chain, siblings: siblings, key: key).padding(.top, Space.md)
 
                 AddressBlocks(address: address).padding(.top, Space.base)
@@ -696,13 +732,18 @@ struct ReceiveSheet: View {
         }
     }
 
-    private func qrPlate(address: String, chain: Chain) -> some View {
-        ZStack {
+    /// No meio do QR, o logo da moeda e, no selo embaixo, a rede: o BTC com a Ethereum no
+    /// WBTC, o USDT com a Tron (pedido do dono, 16/10/2026). Na rede da propria moeda, so o logo.
+    private func qrPlate(address: String, chain: Chain, asset: Asset) -> some View {
+        let coin = baseCoin(asset)
+        return ZStack {
             if let image = QRCode.image(address, size: 232, scale: displayScale) {
                 Image(uiImage: image).interpolation(.none).resizable().frame(width: 232, height: 232)
             }
-            NetworkBadge(chain: chain, size: 48, ring: Palette.live)
-                .padding(4)
+            CoinLogo(coingeckoID: coin.id, symbol: coin.symbol, size: 48, network: chain, ringColor: Palette.live,
+                     unverified: asset.origin != nil && coin.id == asset.coingeckoID,
+                     logoAsset: asset.origin != nil ? asset : nil)
+                .padding(5)
                 .background(Circle().fill(Palette.live))
         }
         .frame(width: 280, height: 280)
@@ -825,6 +866,75 @@ struct FlowText: View {
     }
 }
 
+/// O seletor de rede embaixo do QR, por forma da moeda: a rede, e o token quando nao e
+/// a moeda nativa da rede ("Ethereum · WBTC").
+struct ReceiveFormMenu: View {
+    let forms: [Asset]
+    let selected: Asset
+    let onSelect: (Asset) -> Void
+    @State private var open = false
+
+    private func title(_ asset: Asset) -> String {
+        let network = asset.chain?.name ?? ""
+        return asset.kind == .native ? network : "\(network) · \(asset.symbol)"
+    }
+
+    var body: some View {
+        Button { open = true } label: {
+            HStack(spacing: 6) {
+                if let chain = selected.chain { NetworkBadge(chain: chain, size: 20, ring: .clear) }
+                Text(verbatim: title(selected)).typeStyle(.label).foregroundStyle(Palette.ink).lineLimit(1)
+                Image(systemName: "chevron.down").font(.system(size: 11, weight: .bold)).foregroundStyle(Palette.inkSoft)
+            }
+            .padding(.leading, 6).padding(.trailing, 12)
+            .frame(minHeight: 36)
+            .background(Capsule(style: .continuous).fill(Palette.body)
+                .overlay(Capsule(style: .continuous).strokeBorder(Palette.edge, lineWidth: 1)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Rede: \(title(selected))")
+        .popover(isPresented: $open, arrowEdge: .top) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(forms) { asset in
+                        Button {
+                            open = false
+                            onSelect(asset)
+                        } label: {
+                            HStack(spacing: Space.sm) {
+                                if let chain = asset.chain { NetworkBadge(chain: chain, size: 28, ring: .clear) }
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(verbatim: asset.chain?.name ?? "").typeStyle(.row).foregroundStyle(Palette.ink)
+                                    if asset.kind != .native, let chain = asset.chain {
+                                        Text(verbatim: [asset.symbol, ReceiveCoin.standard(chain)].filter { !$0.isEmpty }.joined(separator: " · "))
+                                            .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                                    }
+                                }
+                                Spacer(minLength: Space.sm)
+                                if asset.id == selected.id {
+                                    Image(systemName: "checkmark").font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
+                                }
+                            }
+                            .padding(.horizontal, Space.md)
+                            .frame(minHeight: 52)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(RowStyle())
+                        .accessibilityLabel(title(asset))
+                        .accessibilityIdentifier("forma-\(asset.symbol)-\(asset.chainID)")
+                        .accessibilityAddTraits(asset.id == selected.id ? .isSelected : [])
+                    }
+                }
+                .padding(.vertical, Space.xs)
+            }
+            .frame(width: 260)
+            .frame(maxHeight: 460)
+            .presentationCompactAdaptation(.popover)
+            .presentationBackground(Palette.body)
+        }
+    }
+}
+
 /// Uma moeda na lista de receber, com as redes em que a carteira recebe essa moeda.
 struct ReceiveCoin: Identifiable, Hashable {
     let id: String
@@ -870,7 +980,7 @@ struct ReceiveCoin: Identifiable, Hashable {
         "weth": "ethereum",
         "binance-peg-xrp": "ripple", "binance-peg-dogecoin": "dogecoin", "binance-peg-cardano": "cardano",
         "binance-peg-polkadot": "polkadot", "binance-peg-litecoin": "litecoin", "binance-peg-avalanche": "avalanche-2",
-        "binance-peg-near-protocol": "near", "binance-peg-sol": "solana",
+        "binance-peg-near-protocol": "near", "binance-peg-sol": "solana", "sol-wormhole": "solana",
     ]
 
     /// O padrao do token na rede, para quem envia de uma corretora achar a opcao certa.

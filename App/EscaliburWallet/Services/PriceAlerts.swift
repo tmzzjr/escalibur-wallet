@@ -39,7 +39,7 @@ struct PriceAlertFile: Codable, Equatable {
 /// E a unica excecao ao `NSFileProtectionComplete` do app alem do marcador de
 /// instalacao. Com a Complete, a checagem com o iPhone bloqueado nao le o arquivo e o
 /// alerta so chegaria com a tela aberta. A excecao vale porque nada aqui diz o que a
-/// carteira tem: a lista comeca com BTC, ETH e XRP (fixos, nao vem do saldo) e o dono
+/// carteira tem: a lista comeca com BTC, ETH, XRP e SOL (fixos, nao vem do saldo) e o dono
 /// marca cada outra moeda.
 enum PriceAlertStore {
     static var directory: URL {
@@ -126,6 +126,7 @@ actor PriceAlertCenter {
         WatchedCoin(id: "bitcoin", symbol: "BTC", name: "Bitcoin"),
         WatchedCoin(id: "ethereum", symbol: "ETH", name: "Ethereum"),
         WatchedCoin(id: "ripple", symbol: "XRP", name: "XRP"),
+        WatchedCoin(id: "solana", symbol: "SOL", name: "Solana"),
     ]
 
     func reschedule() {

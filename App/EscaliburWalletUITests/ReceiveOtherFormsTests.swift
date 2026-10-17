@@ -37,6 +37,16 @@ final class ReceiveOtherFormsTests: XCTestCase {
         wbtc.tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'WBTC'")).firstMatch.waitForExistence(timeout: 5))
         shot("receber-wbtc", app)
+        // Embaixo do QR, todas as formas do BTC, a nativa inclusive (pedido do dono, 16/10/2026).
+        let selector = app.buttons["receber-rede"]
+        XCTAssertTrue(selector.waitForExistence(timeout: 5))
+        selector.tap()
+        let native = app.buttons["forma-BTC-bitcoin"]
+        XCTAssertTrue(native.waitForExistence(timeout: 5), "o seletor deveria ter a rede Bitcoin")
+        XCTAssertTrue(app.buttons["forma-cbBTC-base"].exists)
+        shot("receber-wbtc-seletor", app)
+        native.tap()
+        XCTAssertTrue(app.staticTexts["pela rede Bitcoin"].waitForExistence(timeout: 5))
 
         app.navigationBars.buttons.firstMatch.tap()
         app.navigationBars.buttons.firstMatch.tap()
@@ -49,7 +59,7 @@ final class ReceiveOtherFormsTests: XCTestCase {
 
         // XRP: a rede XRP Ledger como rede, e o XRP da Binance so em "Outras formas".
         app.navigationBars.buttons.firstMatch.tap()
-        let xrp = app.buttons["XRP, XRP"]
+        let xrp = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'XRP, XRP'")).firstMatch
         XCTAssertTrue(xrp.waitForExistence(timeout: 10))
         xrp.tap()
         // Na mesma lista de redes, a BNB Chain diz que e o XRP da Binance.
@@ -62,10 +72,13 @@ final class ReceiveOtherFormsTests: XCTestCase {
         // SOL: a Solana e a BNB Chain (BEP-20) na mesma lista.
         app.navigationBars.buttons.firstMatch.tap()
         app.navigationBars.buttons.firstMatch.tap()
-        let sol = app.buttons["SOL, Solana"]
+        let sol = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'SOL, Solana'")).firstMatch
         XCTAssertTrue(sol.waitForExistence(timeout: 10))
         sol.tap()
         XCTAssertTrue(app.buttons["outra-forma-SOL-bnb"].waitForExistence(timeout: 5))
+        // E o SOL da Wormhole nas redes EVM.
+        XCTAssertTrue(app.buttons["outra-forma-SOL-ethereum"].exists)
+        XCTAssertTrue(app.buttons["outra-forma-SOL-arbitrum"].exists)
         shot("receber-sol-redes", app)
     }
 }

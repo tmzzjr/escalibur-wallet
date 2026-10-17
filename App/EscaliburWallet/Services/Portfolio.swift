@@ -94,6 +94,13 @@ final class Portfolio {
     #endif
     private(set) var lastUpdated: Date?
     private(set) var offline = false
+
+    /// A linha ainda espera a cotacao: no lugar do valor, a barra que brilha, em vez de
+    /// "sem preco" (pedido do dono, 16/10/2026). Moeda da lista sempre tem preco, entao
+    /// espera enquanto houver rede; token custom espera so a leitura em curso.
+    func awaitingPrice(_ row: PortfolioRow) -> Bool {
+        row.price == nil && (loading || (row.coingeckoID != nil && !offline))
+    }
     private(set) var balances: [String: ChainBalance] = [:]
     private(set) var quotes: [String: Quote] = [:]
     /// Preco do bitcoin em cada moeda ("brl", "usd", "eur"): converte o total para as

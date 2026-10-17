@@ -221,6 +221,8 @@ struct DeviceCheckView: View {
     /// Carteira nova (as palavras nascem aqui) ou importacao (as palavras sao digitadas):
     /// muda o que o dono declara ciente quando uma checagem falha.
     var creating = false
+    /// O "estou ciente" quando o que se digita nao sao as palavras (a passphrase).
+    var consent: String? = nil
     let onContinue: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var steps: [DeviceCheck.Step] = []
@@ -283,9 +285,9 @@ struct DeviceCheckView: View {
                 // Uma checagem falhou e da para seguir: o dono declara, marcando, que sabe o que
                 // falhou e o que isso arrisca (pedido do dono, 16/10/2026).
                 if finished, !blocking.isEmpty, !screenBlocked {
-                    ConsentCheckbox(checked: $acceptedRisk, text: creating
+                    ConsentCheckbox(checked: $acceptedRisk, text: consent ?? (creating
                         ? String(localized: "Estou ciente de que este iPhone falhou na verificação de integridade e de que gerar as palavras aqui pode expor a carteira. Quero seguir mesmo assim.")
-                        : String(localized: "Estou ciente de que este iPhone falhou na verificação de integridade e de que digitar as palavras aqui pode expor a carteira. Quero seguir mesmo assim."))
+                        : String(localized: "Estou ciente de que este iPhone falhou na verificação de integridade e de que digitar as palavras aqui pode expor a carteira. Quero seguir mesmo assim.")))
                         .padding(.top, Space.md)
                         .accessibilityIdentifier("checagem-ciente")
                 }
@@ -385,14 +387,20 @@ private struct ScanRing: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Quando cada pixel de fora acendeu, para o brilho de chegada.
     @State private var litAt: [Int: Date] = [:]
+    /// Quando a conferencia terminou: o verde se espalha do centro e, assentado, o brilho
+    /// passa a dar a volta no anel (pedido do dono, 16/10/2026).
+    @State private var doneAt: Date?
+    @State private var settled = false
 
     private static let outer = 56
     private static let inner = 40
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || (done && litAt.values.allSatisfy { Date().timeIntervalSince($0) > 1 }))) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
             let now = timeline.date
             let clock = reduceMotion || done ? 0 : now.timeIntervalSinceReferenceDate
+            // Conferido: um brilho que da a volta no anel, devagar (pedido do dono, 16/10/2026).
+            let sweep = (now.timeIntervalSinceReferenceDate / 2.8).truncatingRemainder(dividingBy: 1) * 2 * .pi
             ZStack {
                 Canvas { context, size in
                     let center = CGPoint(x: size.width / 2, y: size.height / 2)
@@ -410,6 +418,8 @@ private struct ScanRing: View {
                             context.fill(grown, with: .color(color))
                             // O recem-aceso, mais claro, e assenta (o iOS 17 nao tem `mix`).
                             if flash > 0.01 { context.fill(grown, with: .color(.white.opacity(0.55 * flash))) }
+                            let lit = shine(angle, sweep: sweep)
+                            if lit > 0.01 { context.fill(grown, with: .color(.white.opacity(0.5 * lit))) }
                         } else {
                             context.fill(Path(roundedRect: square, cornerRadius: 1.6), with: .color(PixelFill.gray(Self.tone(index, ring: 0, clock: clock))))
                         }
@@ -424,9 +434,17 @@ private struct ScanRing: View {
                         let tone = Self.tone(index, ring: 1, clock: clock) + 0.4 * glow
                         let point = CGPoint(x: center.x + 66 * CGFloat(cos(angle)), y: center.y + 66 * CGFloat(sin(angle)))
                         let square = CGRect(x: point.x - 2.4, y: point.y - 2.4, width: 4.8, height: 4.8)
-                        let fill = done ? color.opacity(0.35 + 0.25 * Self.tone(index, ring: 1, clock: 0)) : PixelFill.gray(tone)
+                        let echo = shine(angle, sweep: sweep, lag: 0.5)
+                        let fill = done ? color.opacity(0.35 + 0.25 * Self.tone(index, ring: 1, clock: 0) + 0.4 * echo) : PixelFill.gray(tone)
                         context.fill(Path(roundedRect: square, cornerRadius: 1.2), with: .color(fill))
                     }
+                }
+                // No fim, o fundo do circulo em pixels verdes que se espalham do centro (pedido do
+                // dono, 16/10/2026); o escudo continua o simbolo (o de pixels saiu no mesmo dia).
+                Canvas { context, size in
+                    let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                    let since = reduceMotion ? 10 : doneAt.map { now.timeIntervalSince($0) } ?? 0
+                    if done { drawGlow(&context, center: center, since: since) }
                 }
                 Image(systemName: done ? (alert ? "exclamationmark.shield.fill" : "checkmark.shield.fill") : "shield.lefthalf.filled")
                     .font(.system(size: 54, weight: .semibold))
@@ -434,6 +452,14 @@ private struct ScanRing: View {
                     .contentTransition(.symbolEffect(.replace))
                     .scaleEffect(done ? 1.08 : 1)
                     .animation(.spring(response: 0.45, dampingFraction: 0.55), value: done)
+            }
+        }
+        .onChange(of: done) { _, finished in
+            guard finished else { doneAt = nil; settled = false; return }
+            doneAt = Date()
+            Task {
+                try? await Task.sleep(for: .seconds(1.4))
+                settled = true
             }
         }
         .onChange(of: progress) { old, new in
@@ -446,6 +472,40 @@ private struct ScanRing: View {
             for index in from..<to { litAt[index] = start.addingTimeInterval(Double(index - from) * 0.018) }
         }
         .accessibilityHidden(true)
+    }
+
+    /// O brilho que da a volta no anel depois de conferido: 1 no pixel sob ele, caindo dos
+    /// lados. `lag` atrasa o anel de dentro, como um eco.
+    private func shine(_ angle: Double, sweep: Double, lag: Double = 0) -> Double {
+        guard done, !reduceMotion, settled else { return 0 }
+        var distance = abs((angle + .pi / 2) - (sweep - lag)).truncatingRemainder(dividingBy: 2 * .pi)
+        distance = min(distance, 2 * .pi - distance)
+        return exp(-(distance / 0.42) * (distance / 0.42))
+    }
+
+    /// Terminado: o fundo do circulo em pixels verdes, fracos, do centro para a borda de
+    /// dentro. `since`: segundos desde o fim.
+    private func drawGlow(_ context: inout GraphicsContext, center: CGPoint, since: Double) {
+        let color = alert ? Palette.caution : Palette.success
+        func ease(_ x: Double) -> Double { let t = min(max(x, 0), 1); return t * t * (3 - 2 * t) }
+        let pitch: CGFloat = 6
+        var index = 0
+        var y = center.y - 54
+        while y <= center.y + 54 {
+            var x = center.x - 54
+            while x <= center.x + 54 {
+                let distance = hypot(x - center.x, y - center.y)
+                if distance < 54 {
+                    let reach = ease((since - Double(distance / 54) * 0.5) / 0.3)
+                    let noise = PixelFill.noise(index, 7, 0x5D1)
+                    let square = CGRect(x: x - 1.6, y: y - 1.6, width: 3.2, height: 3.2)
+                    context.fill(Path(roundedRect: square, cornerRadius: 0.8), with: .color(color.opacity((0.10 + 0.14 * noise) * reach)))
+                }
+                index += 1
+                x += pitch
+            }
+            y += pitch
+        }
     }
 
     /// O tom cifrado de um pixel agora, como no `PixelFill`.

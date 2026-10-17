@@ -553,6 +553,18 @@ public enum TokenRegistry {
         //   a mesma implementacao (codigo identico), e o mesmo owner, masterMinter e pauser
         //   da Ethereum. A Coinbase pode pausar e congelar, como la.
         erc20("arbitrum", "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", "cbBTC", "Coinbase Wrapped BTC", 8, "coinbase-wrapped-btc"),
+        // - SOL da ponte Wormhole (pedido do dono, 16/10/2026: mais redes para receber SOL).
+        //   A prova e a propria ponte: `wrappedAsset(1, So111...112)` no Token Bridge da
+        //   Wormhole de cada rede (Ethereum 0x3ee1...a585, Polygon 0x5a58...3fdE, Avalanche
+        //   0x0e08...8052, Arbitrum 0x0b24...D39c) devolve estes enderecos, iguais aos do
+        //   CoinGecko (sol-wormhole), com symbol() SOL e decimals() 9, em 16/10/2026. Quem
+        //   cunha e queima e a ponte. Na BNB fica so o SOL da Binance, para nao haver dois SOL
+        //   na mesma rede; Optimism e Base tem o token na ponte, mas o CoinGecko nao o
+        //   conhece, e sem preco proprio ficam de fora, como o SUI e o XLM da Binance.
+        erc20("ethereum", "0xD31a59c85aE9D8edEFeC411D448f90841571b89c", "SOL", "Solana (Wormhole)", 9, "sol-wormhole"),
+        erc20("polygon", "0xd93f7E271cB87c23AaA73edC008A79646d1F9912", "SOL", "Solana (Wormhole)", 9, "sol-wormhole"),
+        erc20("avalanche", "0xFE6B19286885a4F7F55AdAD09C3Cd1f906D2478F", "SOL", "Solana (Wormhole)", 9, "sol-wormhole"),
+        erc20("arbitrum", "0x2bcC6D6CdBbDC0a4071e48bb3B969b06B3330c07", "SOL", "Solana (Wormhole)", 9, "sol-wormhole"),
     ]
 
     /// Todos os ativos de uma rede: a moeda nativa e os tokens da lista.

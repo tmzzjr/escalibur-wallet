@@ -250,6 +250,9 @@ struct PriceAlertsView: View {
             denied = false
             apply { file in
                 file.enabled = true
+                // Ligar sem moeda nenhuma ja vem com Bitcoin, Ethereum, XRP e Solana (pedido do
+                // dono, 16/10/2026).
+                if file.coins.isEmpty { file.coins = PriceAlertCenter.defaultCoins }
                 if file.currency != currency {
                     file.currency = currency
                     file.memory = [:]

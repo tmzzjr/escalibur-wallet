@@ -796,15 +796,11 @@ struct AboutView: View {
                     Text("Preços e dados de mercado: CoinGecko, com CoinPaprika e OKX de reserva. Os saldos e as transações vêm direto das redes.")
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                 }
-                // A licenca CC BY pede o autor, o link da licenca e o que foi alterado.
-                VStack(alignment: .leading, spacing: Space.xs) {
-                    Text("Créditos").typeStyle(.heading).foregroundStyle(Palette.ink)
-                    Text("A moeda 3D do tour usa a textura de “Bit Coin”, de marcio3d (sketchfab.com/3d-models/bit-coin-9488d7d5aa2f4c1c97774d56e1fb4aec), com licença CC BY 4.0 (creativecommons.org/licenses/by/4.0). A textura foi recortada para a frente, o verso e a borda da moeda.")
-                        .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-                }
                 SettingsGroup {
                     Button { legalDocument = .terms } label: { SettingsRow(icon: "doc.text", title: String(localized: "Termos de uso")) }
                     Button { legalDocument = .privacy } label: { SettingsRow(icon: "hand.raised", title: String(localized: "Política de privacidade")) }
+                    // O credito da licenca CC BY da moeda 3D mora aqui, fora da tela (16/10/2026).
+                    Button { legalDocument = .licenses } label: { SettingsRow(icon: "checkmark.seal", title: String(localized: "Licenças")) }
                 }
                 // O grupo ja traz a margem da tela; aqui ela vem do VStack, e somar as duas
                 // desalinhava os botoes do texto acima.

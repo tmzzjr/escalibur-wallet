@@ -45,7 +45,13 @@ final class CustomTokenTests: XCTestCase {
         while !suspicious.exists && Date() < deadline { app.swipeUp(); sleep(1) }
         scroll(to: suspicious, in: app)
         XCTAssertTrue(suspicious.waitForExistence(timeout: 10))
-        if section.exists { shot("c1-outros-tokens", app) }
+        // "Outros tokens" comeca fechado e abre no toque (16/10/2026).
+        let others = app.buttons["mostrar-outros"]
+        if others.exists {
+            others.tap()
+            XCTAssertTrue(app.buttons["Esconder outros tokens"].waitForExistence(timeout: 5))
+        }
+        if section.exists || others.exists { shot("c1-outros-tokens", app) }
         // Suspeitos ficam escondidos ate o toque.
         XCTAssertFalse(app.staticTexts["Suspeito"].exists)
         suspicious.tap()

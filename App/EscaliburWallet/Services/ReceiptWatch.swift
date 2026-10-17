@@ -133,7 +133,10 @@ actor ReceiptWatchCenter {
             file.accounts = accounts
             file.seen = [:]
         }
-        await check(force: true)
+        // A primeira leitura, a que marca o saldo de partida, segue por baixo: esperando por
+        // ela, o "Ligar o aviso" ficava carregando o tempo de ler todas as redes (visto pelo
+        // dono, 16/10/2026).
+        Task { await check(force: true) }
     }
 
     /// Desliga e apaga: os enderecos nao ficam no aparelho sem uso.

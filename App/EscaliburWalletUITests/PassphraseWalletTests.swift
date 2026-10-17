@@ -33,6 +33,12 @@ final class PassphraseWalletTests: XCTestCase {
         row.tap()
         XCTAssertTrue(app.staticTexts["Carteira com passphrase"].waitForExistence(timeout: 5))
         shot("q1-25a", app)
+        // Antes dos campos, a checagem do aparelho (pedido do dono, 16/10/2026).
+        app.buttons["Continuar"].tap()
+        app.passDeviceCheck()
+        let entry = app.staticTexts["Digite a passphrase"].waitForExistence(timeout: 10)
+        shot("q1b-digitar", app)
+        XCTAssertTrue(entry)
 
         let fields = app.secureTextFields
         XCTAssertTrue(fields.element(boundBy: 0).waitForExistence(timeout: 5))

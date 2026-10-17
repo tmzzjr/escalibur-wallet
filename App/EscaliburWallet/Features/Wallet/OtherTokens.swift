@@ -10,27 +10,50 @@ struct OtherTokensSection: View {
     @Environment(AppSession.self) private var session
     @Environment(Portfolio.self) private var portfolio
     @State private var showSuspicious = false
+    /// "Outros tokens" abre e fecha como os suspeitos; fechado de inicio, com a contagem
+    /// (pedido do dono, 16/10/2026).
+    @State private var showOthers = false
 
     private var hide: Bool { session.metadata.settings.hideBalances }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if !portfolio.others.isEmpty {
-                VStack(alignment: .leading, spacing: Space.xxs) {
-                    Text("Outros tokens").typeStyle(.heading).foregroundStyle(Palette.ink)
+                Button {
+                    withAnimation(Motion.select) { showOthers.toggle() }
+                } label: {
+                    HStack(spacing: Space.xs) {
+                        Text("Outros tokens").typeStyle(.heading).foregroundStyle(Palette.ink)
+                        Text(verbatim: "\(portfolio.others.count)").typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                            .padding(.horizontal, 8).frame(minHeight: 22)
+                            .background(Capsule().fill(Palette.control))
+                        Spacer()
+                        Image(systemName: showOthers ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+                    }
+                    .padding(.horizontal, Space.gutter)
+                    .frame(minHeight: Height.touch)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(showOthers ? "Esconder outros tokens" : "Mostrar outros tokens, \(portfolio.others.count)")
+                .accessibilityIdentifier("mostrar-outros")
+                if showOthers {
                     Text("Fora da lista verificada. Sem preço confiável, ficam fora do saldo total.")
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.horizontal, Space.gutter)
-                LazyVStack(spacing: 0) {
-                    ForEach(portfolio.others) { token in
-                        NavigationLink(value: token.holding) {
-                            OtherTokenRow(token: token, currency: session.currency, hidden: hide)
+                        .padding(.horizontal, Space.gutter)
+                    // Pilha comum, nao preguicosa: a preguicosa levava a Carteira para baixo quando
+                    // as linhas chegavam (16/10/2026).
+                    VStack(spacing: 0) {
+                        ForEach(portfolio.others) { token in
+                            NavigationLink(value: token.holding) {
+                                OtherTokenRow(token: token, currency: session.currency, hidden: hide)
+                            }
+                            .buttonStyle(RowStyle())
                         }
-                        .buttonStyle(RowStyle())
                     }
+                    .padding(.top, Space.xs)
                 }
-                .padding(.top, Space.xs)
             }
             if !portfolio.suspicious.isEmpty {
                 Button {
@@ -58,7 +81,7 @@ struct OtherTokensSection: View {
                     Text("Chegaram sem você pedir e têm cara de golpe. Não abra os sites dos nomes.")
                         .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, Space.gutter).padding(.bottom, Space.xxs)
-                    LazyVStack(spacing: 0) {
+                    VStack(spacing: 0) {
                         ForEach(portfolio.suspicious) { token in
                             NavigationLink(value: token.holding) {
                                 OtherTokenRow(token: token, currency: session.currency, hidden: hide)

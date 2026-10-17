@@ -68,16 +68,16 @@ final class ImportKeyboardTests: XCTestCase {
         app.launchArguments = ["-reset", "-demo", "-tela", "frase", "-frase-topo", "-teclado-proprio"]
         app.launch()
         // 12 e 24 a vista; o "+" abre os outros, e escolhido um, voltam dois.
-        XCTAssertTrue(app.buttons["palavras-12"].waitForExistence(timeout: 30))
-        XCTAssertTrue(app.buttons["palavras-24"].exists)
-        XCTAssertFalse(app.buttons["palavras-18"].exists)
+        XCTAssertTrue(app.buttons["12 palavras"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.buttons["24 palavras"].exists)
+        XCTAssertFalse(app.buttons["18"].exists)
         shot("k2-tamanhos", app)
         app.buttons["palavras-mais"].tap()
-        XCTAssertTrue(app.buttons["palavras-18"].waitForExistence(timeout: 3))
-        app.buttons["palavras-18"].tap()
-        XCTAssertTrue(app.buttons["palavras-18"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["palavras-24"].exists)
-        XCTAssertFalse(app.buttons["palavras-12"].exists)
+        XCTAssertTrue(app.buttons["18"].waitForExistence(timeout: 3))
+        app.buttons["18"].tap()
+        XCTAssertTrue(app.buttons["18 palavras"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["24 palavras"].exists)
+        XCTAssertFalse(app.buttons["12 palavras"].exists)
         XCTAssertTrue(app.otherElements["palavra-18"].exists)
 
         // O nome do teclado abre a explicacao, e dela se desliga o teclado proprio.

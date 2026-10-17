@@ -103,9 +103,11 @@ struct BridgeForm: View {
     private var bridgeChains: [Chain] { Chain.all.filter { BridgeEngine.chains.contains($0) } }
 
     /// De e Para em colunas de largura igual: o botao de inverter fica parado no meio,
-    /// qualquer que seja o nome da rede (pedido do dono, 15/10/2026).
+    /// qualquer que seja o nome da rede (pedido do dono, 15/10/2026). Alinhado por baixo: o
+    /// botao, da altura do seletor, fica no meio dos seletores, e nao no meio de rotulo e
+    /// seletor (pedido do dono, 16/10/2026).
     private var networks: some View {
-        HStack(spacing: Space.xs) {
+        HStack(alignment: .bottom, spacing: Space.xs) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("De").typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 NetworkMenu(chains: bridgeChains, selected: model.from) { model.setFrom($0) }

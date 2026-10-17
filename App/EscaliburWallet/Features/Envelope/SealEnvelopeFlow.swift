@@ -51,7 +51,7 @@ struct SealEnvelopeFlow: View {
     /// deste aparelho, feita fora da thread principal.
     @State private var kdf = KDFParameters(memoryKiB: KDFCalibration.sealFloorKiB, passes: 3, lanes: KDFCalibration.lanes)
 
-    enum Step { case intro, create, repeatIt, sealing, done }
+    enum Step { case intro, check, create, repeatIt, sealing, done }
 
     struct SealedFile: Identifiable {
         let id = UUID()
@@ -106,6 +106,19 @@ struct SealEnvelopeFlow: View {
     private var content: some View {
         switch step {
         case .intro: intro
+        case .check:
+            // Antes de criar a senha, a checagem do aparelho, como antes das palavras (pedido
+            // do dono, 16/10/2026). Ela tem as proprias margens.
+            DeviceCheckView(slideTitle: String(localized: "Deslize para criar a senha"),
+                            consent: String(localized: "Estou ciente de que este iPhone falhou na verificação de integridade e de que criar a senha do envelope aqui pode expor a carteira. Quero seguir mesmo assim.")) {
+                Task {
+                    await unlockPhrase()
+                    if step == .check { step = .intro }
+                }
+            }
+            .padding(.horizontal, -Space.gutter)
+            .padding(.top, -Space.md)
+            .padding(.bottom, -Space.xs)
         case .create: create
         case .repeatIt: repeatStep
         case .sealing, .done: sealStage
@@ -117,7 +130,9 @@ struct SealEnvelopeFlow: View {
     private var intro: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-            EnvelopePixelScene(height: 236, pixelOnClose: true).padding(.top, -Space.sm).padding(.bottom, Space.md)
+            // Um pouco mais para cima, com o texto junto, sem cortar o alto da cena (pedido do
+            // dono, 16/10/2026).
+            EnvelopePixelScene(height: 236, pixelOnClose: true).padding(.top, -Space.sm).padding(.bottom, Space.xs)
             VStack(spacing: Space.sm) {
                 // Um nome mais limpo, que diz o que acontece (pedido do dono, 16/10/2026).
                 Text("Criptografar a senha da carteira").typeStyle(.title).foregroundStyle(Palette.ink)
@@ -146,7 +161,7 @@ struct SealEnvelopeFlow: View {
         .scrollIndicators(.hidden)
         // O botao fica preso embaixo; o texto rola por tras dele no iPhone pequeno.
         .safeAreaInset(edge: .bottom) {
-            PrimaryButton(title: String(localized: "Continuar"), loading: working) { Task { await unlockPhrase() } }
+            PrimaryButton(title: String(localized: "Continuar"), loading: working) { error = nil; step = .check }
                 .padding(.top, Space.xs)
                 .background(Palette.void)
         }
@@ -331,13 +346,17 @@ struct SealEnvelopeFlow: View {
         }
     }
 
-    /// Lacrando e lacrado dividem a cena (`EnvelopeSealScene`): o cartao entra, a aba
+    /// Lacrando e lacrado dividem a cena (`EnvelopePixelScene`, no mesmo estilo de pixels das
+    /// outras telas do envelope, pedido do dono, 16/10/2026): o cartao entra, a aba
     /// fecha e o selo carimba na mesma ilustracao. Tudo no meio da tela, na largura e na
     /// altura (pedido do dono, 15/10/2026).
     private var sealStage: some View {
         VStack(spacing: 0) {
             Spacer(minLength: Space.md)
-            EnvelopeSealScene(stage: sceneStage).padding(.bottom, Space.xl)
+            // Lacrado, o envelope sobe ao centro da cena e o texto sobe junto: o conteudo fica no
+            // meio da tela (pedido do dono, 16/10/2026).
+            EnvelopePixelScene(height: 236, pixelOnClose: true, stage: sceneStage)
+                .padding(.bottom, step == .done ? Space.xl - EnvelopePixelScene.liftHeight : Space.xl)
             if step == .done {
                 VStack(spacing: Space.sm) {
                     Text("Envelope lacrado").typeStyle(.title).foregroundStyle(Palette.ink)
@@ -350,7 +369,7 @@ struct SealEnvelopeFlow: View {
                         .frame(height: 36)
                         .background(Capsule(style: .continuous).fill(Palette.rail))
                     }
-                    Text("O arquivo não diz de quem é nem o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira.")
+                    Text("O arquivo não mostra o que guarda. Guarde o arquivo e a senha em lugares diferentes: quem tiver os dois tem a carteira.")
                         .typeStyle(.body).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
                         .padding(.top, Space.xxs)
                 }
@@ -400,13 +419,9 @@ struct SealEnvelopeFlow: View {
     }
 
     /// A etapa da cena: a conta da senha, a cifra, a gravacao e o lacre.
-    private var sceneStage: EnvelopeSealScene.Stage {
+    private var sceneStage: EnvelopePixelScene.Stage {
         if step == .done { return .sealed }
-        switch sealPart {
-        case 0: return .hardening
-        case 1: return .encrypting
-        default: return .writing
-        }
+        return sealPart >= 2 ? .writing : .working
     }
 
     /// A cifra viva da senha digitada (posicao 0, a senha; 1, a repeticao).
@@ -616,18 +631,26 @@ private struct SealProgress: View {
     let estimate: Double
     let finished: Bool
 
+    /// Em pixels, como o resto do envelope (pedido do dono, 16/10/2026): cada pixel aceso
+    /// cifra de leve; os apagados ficam escuros.
+    private static let count = 30
+
     var body: some View {
         TimelineView(.animation(minimumInterval: 1 / 30, paused: finished)) { timeline in
             let elapsed = timeline.date.timeIntervalSince(started)
             let raw = min(max(elapsed / max(estimate, 0.5), 0), 1)
             // Desacelera perto do fim: 1 - (1 - t)^2, ate 92%.
             let fraction = finished ? 1 : 0.92 * (1 - (1 - raw) * (1 - raw))
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Palette.edge)
-                    Capsule().fill(Palette.accent)
-                        .frame(width: max(6, geo.size.width * fraction))
-                        .animation(.easeOut(duration: 0.3), value: finished)
+            let clock = timeline.date.timeIntervalSinceReferenceDate
+            Canvas { context, size in
+                let pitch = size.width / CGFloat(Self.count)
+                let side = min(pitch - 1.6, size.height)
+                let lit = Int((fraction * Double(Self.count)).rounded(.down))
+                for index in 0..<Self.count {
+                    let rect = CGRect(x: CGFloat(index) * pitch + (pitch - side) / 2, y: (size.height - side) / 2, width: side, height: side)
+                    let bit = PixelFill.noise(index, Int(clock * 6) % 997, 0x4E)
+                    let tone = index < lit ? 0.62 + 0.3 * bit : 0.16
+                    context.fill(Path(roundedRect: rect, cornerRadius: 1.2), with: .color(PixelFill.gray(tone)))
                 }
             }
             .frame(height: 6)

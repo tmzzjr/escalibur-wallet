@@ -18,8 +18,9 @@ import Security
 /// ao foco e nao a digitacao: cada quadro deriva glifos novos da tag (HKDF com o tique),
 /// entao a tela cintila do mesmo jeito com ou sem tecla, e uma camera nao le o ritmo da
 /// digitacao. A fileira cresce com a palavra em digitacao (sem isso nao ha como saber
-/// que a tecla entrou); a palavra confirmada vira sempre 4 glifos, que nao contam o
-/// tamanho dela.
+/// que a tecla entrou). Na importacao, a palavra confirmada fica com um glifo por letra
+/// (pedido do dono, 16/10/2026): o tamanho ja aparecia enquanto ela era digitada, e as
+/// quatro de antes pareciam palavra cortada.
 ///
 /// **O que isto nao e.** Nao protege a frase mais do que o cofre ja protege: a protecao
 /// de verdade e o Secure Enclave e o cofre cifrado. Isto mostra, de forma verificavel,

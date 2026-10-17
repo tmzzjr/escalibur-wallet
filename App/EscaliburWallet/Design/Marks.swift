@@ -67,9 +67,9 @@ struct WalletGlyph: View {
             .frame(width: size, height: size)
             .overlay {
                 Image(systemName: watchOnly ? "eye" : "wallet.bifold.fill")
-                    .font(.system(size: size * (plain ? 0.62 : 0.42), weight: .semibold))
+                    .font(.system(size: size * (plain ? 0.52 : 0.42), weight: .semibold))
                     .foregroundStyle(selected ? Palette.ink : Palette.inkMuted)
-                    .offset(y: plain ? -2 : 0)
+                    .offset(y: plain ? -1 : 0)
             }
             .accessibilityHidden(true)
     }

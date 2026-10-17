@@ -174,10 +174,9 @@ private struct NetworksScene: View {
                         coin(id, size: side * 0.105, visible: shown > Self.inner.count + index)
                             .position(x: center.x + outerRadius * cos(angle), y: center.y + outerRadius * sin(angle))
                     }
-                    // Fundo preto, com a borda fina para nao sumir no fundo (pedido do dono,
+                    // O icone do app, no rosa da marca (de volta do preto, pedido do dono,
                     // 16/10/2026).
-                    WalletBadge(size: side * 0.2, background: Color(hex: 0x050506))
-                        .overlay(RoundedRectangle(cornerRadius: side * 0.2 * 0.2237, style: .continuous).stroke(Palette.edgeStrong, lineWidth: 1))
+                    WalletBadge(size: side * 0.2)
                         .position(center)
                         .scaleEffect(shown > 0 ? 1 : 0.8)
                 }

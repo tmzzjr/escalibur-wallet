@@ -20,8 +20,10 @@ struct WalletHomeView: View {
 
     var body: some View {
         NavigationStack(path: Bindable(router).walletPath) {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    Color.clear.frame(height: 0).id(Self.top)
                     header
                     actions.padding(.top, Space.lg)
                     if let wallet, !wallet.hasBackup, !wallet.isWatchOnly {
@@ -59,6 +61,12 @@ struct WalletHomeView: View {
                 }
                 .padding(.bottom, Space.xl)
             }
+            // A Carteira abre sempre no topo, no nome e no saldo: com muitos "Outros tokens", as
+            // listas preguicosas seguravam uma linha no lugar quando as linhas chegavam e
+            // trocavam de ordem com os precos, e a tela descia (visto pelo dono, 16/10/2026).
+            // As listas sao pilhas comuns; trocar de carteira volta ao topo.
+            .defaultScrollAnchor(.top)
+            .onChange(of: wallet?.id) { proxy.scrollTo(Self.top, anchor: .top) }
             .refreshable { await portfolio.refresh(wallet, session: session) }
             .background(Palette.void.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
@@ -70,6 +78,7 @@ struct WalletHomeView: View {
                 OtherTokenDetailView(holding: holding)
             }
             .navigationDestination(for: ManageAssetsRoute.self) { _ in ManageAssetsView() }
+            }
         }
         #if DEBUG
         // As telas que nao dependem do saldo abrem logo, depois de a Carteira assentar: a
@@ -167,6 +176,8 @@ struct WalletHomeView: View {
     }
 
     // MARK: Cabecalho
+
+    private static let top = "carteira-topo"
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -290,11 +301,14 @@ struct WalletHomeView: View {
                 emptyState.padding(.top, Space.md)
             }
         } else {
-            LazyVStack(spacing: 0) {
+            // Pilha comum, nao preguicosa: a lista e curta, e a preguicosa segurava uma linha
+            // no lugar quando a ordem mudava com os precos, e a tela descia.
+            VStack(spacing: 0) {
                 ForEach(portfolio.rows) { row in
                     NavigationLink(value: row) {
                         AssetRowView(row: row, currency: session.currency, hidden: hide,
-                                     unit: unit, rate: portfolio.convert(1, to: unit, base: session.currency))
+                                     unit: unit, rate: portfolio.convert(1, to: unit, base: session.currency),
+                                     awaitingPrice: portfolio.awaitingPrice(row))
                     }
                     .buttonStyle(RowStyle())
                 }
@@ -459,6 +473,8 @@ struct AssetRowView: View {
     /// nela. Sem a cotacao de referencia, a linha fica na moeda do app.
     var unit: Fmt.DisplayUnit? = nil
     var rate: Double? = nil
+    /// A cotacao ainda vem: a barra que brilha no lugar do valor.
+    var awaitingPrice = false
 
     private var shownUnit: Fmt.DisplayUnit { rate != nil ? (unit ?? Fmt.DisplayUnit(currency)) : Fmt.DisplayUnit(currency) }
     private func shown(_ value: Double) -> Double { value * (rate ?? 1) }
@@ -521,6 +537,8 @@ struct AssetRowView: View {
         if let price = row.price {
             Text(Fmt.price(shown(price), unit: shownUnit)).typeStyle(.note).foregroundStyle(Palette.inkSoft)
                 .lineLimit(1).minimumScaleFactor(0.7)
+        } else if awaitingPrice {
+            ShimmerBar(width: 58, height: 10)
         }
         if let change = row.change24h {
             Text(Fmt.percent(change)).typeStyle(.note)
@@ -529,10 +547,15 @@ struct AssetRowView: View {
         }
     }
 
+    @ViewBuilder
     private var fiatValue: some View {
-        Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.value(shown($0), unit: shownUnit) } ?? String(localized: "sem preço")))
-            .typeStyle(.row).foregroundStyle(Palette.ink)
-            .lineLimit(1).minimumScaleFactor(0.6)
+        if !hidden, row.fiatValue == nil, awaitingPrice {
+            ShimmerBar(width: 72, height: 14).padding(.vertical, 3)
+        } else {
+            Text(hidden ? Redaction.fiat : (row.fiatValue.map { Fmt.value(shown($0), unit: shownUnit) } ?? String(localized: "sem preço")))
+                .typeStyle(.row).foregroundStyle(Palette.ink)
+                .lineLimit(1).minimumScaleFactor(0.6)
+        }
     }
 
     private var amount: some View {
