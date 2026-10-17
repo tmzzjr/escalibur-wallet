@@ -160,6 +160,18 @@ enum DebugDemo {
             // `-tela voz-conferir` (com `-voz-frase`): a folha de voz, como antes de
             // ver a senha da carteira.
             case "voz-conferir": Task { _ = await VoiceGate.shared.confirm(.reveal, session: session) }
+            // `-tela editar-ordem`: a edicao de uma ordem limite de exemplo (0,5 ETH por 1.500 USDC
+            // na Base, vencendo em 3 dias), sem a CoW: so o formulario preenchido.
+            case "editar-ordem":
+                if let usdc = TokenRegistry.tokens.first(where: { $0.chainID == "base" && $0.symbol == "USDC" }) {
+                    let order = OpenOrder(id: "0x" + String(repeating: "ab", count: 56), chain: .base, sellAssetID: Asset.native(.base).id,
+                                          buyAssetID: usdc.id, remainingSell: BigUInt(decimal: "500000000000000000")!,
+                                          minimumBuy: BigUInt(1_500_000_000), expiresAt: Date().addingTimeInterval(3 * 86_400), sources: 2,
+                                          cancellations: [.onchain])
+                    router.limitEdit = LimitEdit(order: order, via: .onchain, sell: .native(.base), buy: usdc)
+                    router.tradeMode = .limit
+                    router.tab = .trade
+                }
             // `-tela passphrase-envio`: a folha da passphrase antes de mover saldo, com a folga.
             case "passphrase-envio":
                 if let wallet = session.selectedWallet { Task { await PassphraseGate.shared.ask(wallet)?.wipe() } }

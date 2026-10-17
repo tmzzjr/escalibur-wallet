@@ -187301,6 +187301,76 @@
         }
       }
     },
+    "Editar a ordem" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit the order"
+          }
+        }
+      }
+    },
+    "Editando a ordem de %@ por %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Editing the order of %@ for %@"
+          }
+        }
+      }
+    },
+    "Mude o que quiser. Na revisão, a ordem atual é cancelada primeiro e a nova é criada em seguida." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change whatever you want. In the review, the current order is cancelled first and the new one is created right after."
+          }
+        }
+      }
+    },
+    "Desistir de editar" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop editing"
+          }
+        }
+      }
+    },
+    "Etapa 1 de 2: cancelar a ordem atual" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step 1 of 2: cancel the current order"
+          }
+        }
+      }
+    },
+    "Etapa 2 de 2: a ordem nova" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step 2 of 2: the new order"
+          }
+        }
+      }
+    },
+    "Uma ordem assinada não muda. Editar abre a ordem limite com os valores desta; na revisão, ela é cancelada e a nova é criada, nesta ordem." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A signed order can't change. Editing opens the limit order with this one's values; in the review, it is cancelled and the new one is created, in that order."
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {

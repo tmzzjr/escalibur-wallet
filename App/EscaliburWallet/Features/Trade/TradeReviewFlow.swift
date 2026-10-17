@@ -27,6 +27,15 @@ struct TradeReviewFlow: View {
         var renewLimit = false
         /// Refazendo uma ordem vencida: o id dela, que sai da lista quando a nova sai.
         var replacesRenewal: String? = nil
+        /// Editando uma ordem aberta (pedido do dono, 17/10/2026): etapa 1, cancelar esta;
+        /// etapa 2, a ordem nova de `kind`.
+        var cancelFirst: Replacement? = nil
+    }
+
+    /// A ordem que a edicao substitui, e o jeito de cancelar.
+    struct Replacement: Sendable {
+        let order: OpenOrder
+        let via: OpenOrder.Cancellation
     }
 
     @Environment(AppSession.self) private var session
@@ -48,14 +57,28 @@ struct TradeReviewFlow: View {
     /// O que foi assinado e enviado sem resposta certa: so isto pode ir de novo.
     @State private var unsureSigned: [SignedTransaction]?
     @State private var unsureDetail: String?
+    /// Edicao: a etapa 1 (cancelar a atual) ja saiu, e a etapa da vez e a ordem nova.
+    @State private var cancelled = false
+
+    /// O que esta tela assina agora: na edicao, primeiro o cancelamento, depois a ordem nova.
+    private var kind: Kind {
+        if let replacing = item.cancelFirst, !cancelled { return .cancel(replacing.order, replacing.via) }
+        return item.kind
+    }
+
+    /// "Etapa 1 de 2" e "Etapa 2 de 2" na edicao; nil fora dela.
+    private var stepLine: String? {
+        guard item.cancelFirst != nil else { return nil }
+        return cancelled ? String(localized: "Etapa 2 de 2: a ordem nova") : String(localized: "Etapa 1 de 2: cancelar a ordem atual")
+    }
 
     private var engine: (any TradeEngine)? { TradeEngines.engine(for: item.chain) }
-    private var isLimit: Bool { if case .limit = item.kind { return true }; return false }
-    private var isCancel: Bool { if case .cancel = item.kind { return true }; return false }
+    private var isLimit: Bool { if case .limit = kind { return true }; return false }
+    private var isCancel: Bool { if case .cancel = kind { return true }; return false }
 
     /// Os textos de cada etapa, por tipo: troca, ordem limite ou cancelamento.
     private func text(swap: String, limit: String, cancel: String) -> String {
-        switch item.kind {
+        switch kind {
         case .swap: return swap
         case .limit: return limit
         case .cancel: return cancel
@@ -63,7 +86,7 @@ struct TradeReviewFlow: View {
     }
 
     private var assets: (sell: Asset?, buy: Asset?) {
-        switch item.kind {
+        switch kind {
         case .swap(let request, _): return (request.sell, request.buy)
         case .limit(let request): return (request.sell, request.buy)
         case .cancel(let order, _):
@@ -94,7 +117,7 @@ struct TradeReviewFlow: View {
             .toolbar {
                 if stage != .sending {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button { onClose(stage == .done) } label: {
+                        Button { onClose(stage == .done || cancelled) } label: {
                             Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.inkSoft)
                         }
                         .accessibilityLabel("Fechar")
@@ -145,6 +168,11 @@ struct TradeReviewFlow: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 if let plan {
+                    if let stepLine {
+                        Text(stepLine).typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.inkSoft)
+                            .padding(.bottom, Space.sm)
+                            .accessibilityIdentifier("etapa-edicao")
+                    }
                     if !isCancel {
                         TradeDirectionHeader(sell: assets.sell, buy: assets.buy, sellAmount: plan.review.outgoing?.amount,
                                              buyMinimum: plan.review.incomingMinimum?.amount)
@@ -201,7 +229,7 @@ struct TradeReviewFlow: View {
     private var followedOrder: (id: String, kind: OrderProgressPanel.Kind, account: DerivedAccount)? {
         guard let plan, plan.transactions.last is EIP712ValidatedMessage, let id = ids.first,
               let account = session.selectedWallet?.account(item.chain) else { return nil }
-        if case .swap = item.kind { return (id, .swap, account) }
+        if case .swap = kind { return (id, .swap, account) }
         return nil
     }
 
@@ -257,12 +285,12 @@ struct TradeReviewFlow: View {
     // MARK: Acoes
 
     private var isOffchainCancel: Bool {
-        if case .cancel(_, .offchain) = item.kind { return true }
+        if case .cancel(_, .offchain) = kind { return true }
         return false
     }
 
     private var doneMessage: String {
-        switch item.kind {
+        switch kind {
         case .swap: return String(localized: "O saldo novo aparece quando a rede confirmar.")
         case .limit: return String(localized: "A ordem fica aberta até executar, vencer ou você cancelar.")
         case .cancel(_, .offchain): return String(localized: "A CoW recebeu o pedido. Se um solver já estava executando a ordem, ela ainda pode sair.")
@@ -287,7 +315,7 @@ struct TradeReviewFlow: View {
         let queue = NonceQueue.queue(session, wallet: wallet.id, chain: item.chain, address: account.address)
         do {
             let built: SigningPlan
-            switch item.kind {
+            switch kind {
             case .swap(let r, let quote):
                 let request = TradeRequest(walletID: r.walletID, chain: r.chain, account: r.account, sell: r.sell, buy: r.buy,
                                            amountIn: r.amountIn, slippageBasisPoints: r.slippageBasisPoints, nonceQueue: queue,
@@ -321,7 +349,7 @@ struct TradeReviewFlow: View {
     private func planMatches(_ plan: SigningPlan) -> Bool {
         guard let wallet = session.selectedWallet, plan.walletID == wallet.id, plan.chain.id == item.chain.id else { return false }
         do {
-            switch item.kind {
+            switch kind {
             case .swap(let request, let quote):
                 guard plan.review.kind == .swap else { return false }
                 try PlanIntentCheck.trade(plan.review, sell: request.sell, amountIn: request.amountIn, buy: request.buy,
@@ -416,12 +444,12 @@ struct TradeReviewFlow: View {
             if !isCancel { VoiceGate.shared.noteSendTransmitted(session: session) }
             ids = try await engine.submit(signed, plan: plan)
             unsureSigned = nil
-            switch item.kind {
+            switch kind {
             case .swap(let request, _): TradedAssets.remember([request.sell, request.buy], session: session)
             case .limit(let request): TradedAssets.remember([request.sell, request.buy], session: session)
             case .cancel: break
             }
-            if case .limit(let request) = item.kind, let orderID = ids.first {
+            if case .limit(let request) = kind, let orderID = ids.first {
                 if let old = item.replacesRenewal { LimitRenewalCenter.shared.forget(old, session: session) }
                 if item.renewLimit { LimitRenewalCenter.shared.register(orderID: orderID, request: request, session: session) }
                 // Avisos de 24 horas antes de vencer e de executada: pede a permissao de
@@ -436,6 +464,17 @@ struct TradeReviewFlow: View {
                         await LimitOrderWatch.shared.track(id: orderID, chainID: chainID, expiresAt: Date(timeIntervalSince1970: TimeInterval(validTo)))
                     }
                 }
+            }
+            // Edicao: o cancelamento saiu; a etapa 2 monta a ordem nova na mesma tela.
+            if item.cancelFirst != nil, !cancelled, case .cancel(let order, _) = kind {
+                OpenOrdersBook.shared.markCancelling(order.id)
+                Task { await LimitOrderWatch.shared.forget(order.id) }
+                cancelled = true
+                self.plan = nil
+                ids = []
+                portfolio.show(session.selectedWallet, session: session, force: true)
+                await makePlan()
+                return
             }
             stage = .done
             portfolio.show(session.selectedWallet, session: session, force: true)

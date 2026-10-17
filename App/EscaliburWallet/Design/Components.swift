@@ -160,6 +160,7 @@ struct Chip: View {
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: selected)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

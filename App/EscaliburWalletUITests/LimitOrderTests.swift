@@ -68,4 +68,24 @@ final class LimitOrderTests: XCTestCase {
         solana.tap()
         XCTAssertTrue(app.buttons["Rede: Solana"].waitForExistence(timeout: 5))
     }
+
+    /// Editar uma ordem aberta: a ordem limite abre com os valores dela e a faixa da edicao.
+    func testEditOpenOrderPrefillsTheForm() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "editar-ordem"]
+        app.launch()
+        let banner = app.descendants(matching: .any)["editando-ordem"]
+        XCTAssertTrue(banner.waitForExistence(timeout: 30), "a faixa da edicao nao apareceu")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Editando a ordem de 0,5'")).firstMatch.exists)
+        XCTAssertTrue(app.textFields.matching(NSPredicate(format: "value == '0,5' OR value == '0.5'")).firstMatch.exists, "o valor nao veio da ordem")
+        XCTAssertTrue(app.textFields.matching(NSPredicate(format: "value == '3000'")).firstMatch.exists, "o preco nao veio da ordem")
+        XCTAssertTrue(app.buttons["7 dias"].isSelected, "o prazo nao e o mais perto do que restava")
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "l9-editar"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        app.buttons["desistir-edicao"].tap()
+        XCTAssertTrue(banner.waitForNonExistence(timeout: 3), "desistir nao tirou a faixa")
+    }
 }
+

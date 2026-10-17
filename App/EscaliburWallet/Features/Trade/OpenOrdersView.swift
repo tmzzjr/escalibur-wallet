@@ -73,8 +73,6 @@ struct OpenOrdersSection: View {
     @State private var reviewing: TradeReviewFlow.Item?
     /// A folha com os detalhes da ordem tocada (pedido do dono, 17/10/2026).
     @State private var detail: OpenOrder?
-    /// "Mudar o preco ou o valor": cancelada esta, a ordem limite abre com o mesmo par.
-    @State private var editing: OpenOrder?
     @Environment(Router.self) private var router
     /// Redes que nao responderam na ultima leitura (as outras continuam na lista).
     @State private var unread: [Chain] = []
@@ -133,13 +131,7 @@ struct OpenOrdersSection: View {
                 if completed, case .cancel(let order, _) = item.kind {
                     OpenOrdersBook.shared.markCancelling(order.id)
                     Task { await LimitOrderWatch.shared.forget(order.id) }
-                    // Editar: a ordem nova nasce com o mesmo par, na ordem limite.
-                    if editing?.id == order.id, let sell = assets(order).sell {
-                        router.tradeMode = .limit
-                        router.tradePreset = (sell, true)
-                    }
                 }
-                editing = nil
                 reviewing = nil
                 if completed { Task { await reload() } }
             }
@@ -296,7 +288,7 @@ struct OpenOrdersSection: View {
                             .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
                             .fixedSize(horizontal: false, vertical: true)
                     } else if cancellable {
-                        Text("Uma ordem assinada não muda: para mudar o preço ou o valor, esta é cancelada e a ordem limite abre com o mesmo par para você criar a nova.")
+                        Text("Uma ordem assinada não muda. Editar abre a ordem limite com os valores desta; na revisão, ela é cancelada e a nova é criada, nesta ordem.")
                             .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.sm)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -306,13 +298,16 @@ struct OpenOrdersSection: View {
             }
             if cancellable {
                 VStack(spacing: Space.sm) {
-                    SecondaryButton(title: String(localized: "Mudar o preço ou o valor")) {
+                    SecondaryButton(title: String(localized: "Editar a ordem")) {
                         detail = nil
-                        editing = order
-                        choosing = order
+                        let (sell, buy) = assets(order)
+                        guard let via = Self.safest(order.cancellations), let sell, let buy else { return }
+                        router.limitEdit = LimitEdit(order: order, via: via, sell: sell, buy: buy)
+                        router.tradeMode = .limit
+                        router.tab = .trade
                     }
                     .accessibilityIdentifier("ordem-editar")
-                    Button { detail = nil; editing = nil; choosing = order } label: {
+                    Button { detail = nil; choosing = order } label: {
                         Text("Cancelar a ordem").typeStyle(.action).foregroundStyle(Palette.down)
                             .frame(maxWidth: .infinity).frame(height: Height.secondary)
                     }

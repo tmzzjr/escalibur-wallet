@@ -43,6 +43,8 @@ final class TradeModel {
     var autoTarget: String?
     /// Refazer a ordem quando vencer: o app avisa e pergunta (`LimitRenewalCenter`).
     var renewOnExpiry = false
+    /// Editando uma ordem aberta: a revisao cancela esta antes de criar a nova.
+    var editing: LimitEdit?
 
     // Quanto receber (pedido do dono, 14/10/2026)
     /// O dono digitou em "Voce recebe". Na troca imediata o app acha quanto pagar
@@ -185,6 +187,7 @@ struct TradeView: View {
         .onAppear {
             if model.sell == nil, let first = tradeChains.first { model.reset(to: first) }
             applyPreset()
+            applyEdit()
             #if DEBUG
             // `-tela trocar-grande`: uma venda grande de ETH por USDC na Ethereum, com
             // cotacao ao vivo, para conferir a troca pela CoW e a opcao em partes.
@@ -217,6 +220,7 @@ struct TradeView: View {
             #endif
         }
         .onChange(of: router.tradePreset?.asset.id) { _, _ in applyPreset() }
+        .onChange(of: router.limitEdit?.order.id) { _, _ in applyEdit() }
         // Outro modo: o recebido digitado era do anterior (o valor a pagar fica).
         .onChange(of: router.tradeMode) { _, _ in model.clearExactOut() }
         .sheet(item: $picking) { side in
@@ -241,6 +245,7 @@ struct TradeView: View {
                     model.amountText = ""
                     model.targetPriceText = ""
                     model.quote = nil
+                    model.editing = nil
                 }
             }
         }
@@ -263,6 +268,33 @@ struct TradeView: View {
     }
 
     /// Chegando do detalhe de uma moeda: a rede dela e ela como venda ou compra.
+    /// A ordem em edicao: o par, o que falta vender, o preco dela, o prazo mais perto do
+    /// que restava e o "refazer quando vencer" (pedido do dono, 17/10/2026).
+    private func applyEdit() {
+        guard let edit = router.limitEdit, let chain = edit.sell.chain, tradeChains.contains(chain) else { return }
+        router.limitEdit = nil
+        router.tradeMode = .limit
+        model.reset(to: chain)
+        model.sell = edit.sell
+        model.buy = edit.buy
+        let order = edit.order
+        model.typePay(Fmt.plainDecimal(order.remainingSell, decimals: edit.sell.decimals))
+        let sold = Fmt.double(order.remainingSell, decimals: edit.sell.decimals)
+        if sold > 0 {
+            model.targetPriceText = Self.priceText(Fmt.double(order.minimumBuy, decimals: edit.buy.decimals) / sold)
+            model.autoTarget = nil
+        }
+        let options = Self.validities(chain)
+        if let expires = order.expiresAt {
+            let left = expires.timeIntervalSinceNow
+            model.validFor = options.compactMap(\.seconds).first { $0 >= left } ?? options.compactMap(\.seconds).last ?? model.validFor
+        } else if options.contains(where: { $0.seconds == nil }) {
+            model.validFor = nil
+        }
+        model.renewOnExpiry = LimitRenewalCenter.shared.isRenewing(order.id, session: session)
+        model.editing = edit
+    }
+
     private func applyPreset() {
         guard let preset = router.tradePreset, let chain = preset.asset.chain, tradeChains.contains(chain) else { return }
         router.tradePreset = nil
@@ -491,8 +523,34 @@ struct TradeView: View {
 
     // MARK: Ordem limite
 
+    /// A faixa da edicao: qual ordem, o que acontece na revisao, e desistir.
+    private func editingBanner(_ edit: LimitEdit) -> some View {
+        VStack(alignment: .leading, spacing: Space.xxs) {
+            HStack(spacing: Space.xs) {
+                Image(systemName: "pencil").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.ink)
+                Text("Editando a ordem de \(Fmt.crypto(edit.order.remainingSell, decimals: edit.sell.decimals, symbol: edit.sell.symbol)) por \(edit.buy.symbol)")
+                    .typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.ink).lineLimit(2)
+                Spacer(minLength: 0)
+                Button { withAnimation(Motion.fade) { model.editing = nil } } label: {
+                    Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundStyle(Palette.inkSoft)
+                        .frame(width: 28, height: 28)
+                }
+                .accessibilityLabel("Desistir de editar")
+                .accessibilityIdentifier("desistir-edicao")
+            }
+            Text("Mude o que quiser. Na revisão, a ordem atual é cancelada primeiro e a nova é criada em seguida.")
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Space.sm)
+        .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
+        .padding(.bottom, Space.xs)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("editando-ordem")
+    }
+
     private var limitForm: some View {
         VStack(alignment: .leading, spacing: 4) {
+            if let edit = model.editing, edit.order.chain.id == model.chain.id { editingBanner(edit) }
             AmountBox(title: String(localized: "Você vende"), asset: model.sell, amount: Binding(get: { model.amountText }, set: { model.typePay($0) }),
                       balance: balance(model.sell), fiat: fiat(model.amountIn, model.sell), editable: true, over: over,
                       computed: model.exactOut && model.limitDerives == .amount,
@@ -716,8 +774,14 @@ struct TradeView: View {
             guard let minimum = limitMinimumOut else { return }
             let request = LimitOrderRequest(walletID: wallet.id, chain: model.chain, account: account, sell: sell, buy: buy,
                                             amountIn: amount, minimumOut: minimum, validFor: model.validFor)
-            reviewing = TradeReviewFlow.Item(kind: .limit(request), chain: model.chain, fiat: fiat,
-                                             renewLimit: model.renewOnExpiry && model.validFor != nil && LimitRenewalCenter.supports(model.chain))
+            var item = TradeReviewFlow.Item(kind: .limit(request), chain: model.chain, fiat: fiat,
+                                            renewLimit: model.renewOnExpiry && model.validFor != nil && LimitRenewalCenter.supports(model.chain))
+            // Editando: a revisao cancela a ordem atual antes de criar esta.
+            if let edit = model.editing, edit.order.chain.id == model.chain.id {
+                item.cancelFirst = TradeReviewFlow.Replacement(order: edit.order, via: edit.via)
+                item.replacesRenewal = edit.order.id
+            }
+            reviewing = item
         case .bridge:
             return
         }
@@ -785,7 +849,10 @@ struct TradeView: View {
         guard let asset, let held = holding(asset) else { return 0 }
         let available = portfolio.available(held)
         guard router.tradeMode == .limit else { return available }
-        return available.subtractingReportingUnderflow(OpenOrdersBook.shared.lockedSell(asset)) ?? BigUInt()
+        var locked = OpenOrdersBook.shared.lockedSell(asset)
+        // Editando: o que falta vender na ordem editada volta a ser livre, ela sai antes.
+        if let edit = model.editing, edit.sell.id == asset.id { locked = locked.subtractingReportingUnderflow(edit.order.remainingSell) ?? BigUInt() }
+        return available.subtractingReportingUnderflow(locked) ?? BigUInt()
     }
 
     private var footer: some View {
