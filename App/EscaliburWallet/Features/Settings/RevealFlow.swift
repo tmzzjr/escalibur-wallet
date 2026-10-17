@@ -122,11 +122,12 @@ struct RevealFlow: View {
         .padding(.bottom, Space.xs)
     }
 
-    /// Cada item continua a frase "Estou ciente que:".
+    /// Cada item continua a frase "Estou ciente que:", com maiuscula no comeco, como item
+    /// de lista (pedido do dono, 16/10/2026).
     static let statements = [
-        String(localized: "quem tem as palavras tem o saldo"),
-        String(localized: "a Escalibur nunca pede as palavras"),
-        String(localized: "devo ver as palavras sozinho, longe de câmeras"),
+        String(localized: "Quem tem as palavras tem o saldo"),
+        String(localized: "A Escalibur nunca pede as palavras"),
+        String(localized: "Devo ver as palavras sozinho, longe de câmeras"),
         // O "estou ciente" do Espelhamento do iPhone no Mac saiu a pedido do dono (16/10/2026):
         // o aviso continua na checagem do aparelho, antes das palavras (auditoria 4, C7-06).
     ]

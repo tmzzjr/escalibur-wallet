@@ -178602,7 +178602,7 @@
         }
       }
     },
-    "a Escalibur nunca pede as palavras" : {
+    "A Escalibur nunca pede as palavras" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -179825,7 +179825,7 @@
         }
       }
     },
-    "colar as palavras num site, chat ou nota pode custar o saldo" : {
+    "Colar as palavras num site, chat ou nota pode custar o saldo" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -179836,25 +179836,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "das Einfügen der Wörter auf einer Website, in einem Chat oder einer Notiz kann mein Guthaben kosten"
+            "value" : "Das Einfügen der Wörter auf einer Website, in einem Chat oder einer Notiz kann mein Guthaben kosten"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "pasting the words into a site, chat or note can cost me my balance"
+            "value" : "Pasting the words into a site, chat or note can cost me my balance"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "pegar las palabras en un sitio, chat o nota puede costarme el saldo"
+            "value" : "Pegar las palabras en un sitio, chat o nota puede costarme el saldo"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "coller les mots sur un site, un chat ou une note peut me coûter mon solde"
+            "value" : "Coller les mots sur un site, un chat ou une note peut me coûter mon solde"
           }
         },
         "hi" : {
@@ -179866,7 +179866,7 @@
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "menempelkan kata-kata di situs, chat, atau catatan bisa membuat saya kehilangan saldo"
+            "value" : "Menempelkan kata-kata di situs, chat, atau catatan bisa membuat saya kehilangan saldo"
           }
         },
         "ja" : {
@@ -179884,13 +179884,13 @@
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "kelimeleri bir siteye, sohbete veya nota yapıştırmak bakiyeme mal olabilir"
+            "value" : "Kelimeleri bir siteye, sohbete veya nota yapıştırmak bakiyeme mal olabilir"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "dán các từ vào trang web, đoạn chat hay ghi chú có thể khiến tôi mất số dư"
+            "value" : "Dán các từ vào trang web, đoạn chat hay ghi chú có thể khiến tôi mất số dư"
           }
         },
         "zh-Hans" : {
@@ -180433,7 +180433,7 @@
         }
       }
     },
-    "devo ver as palavras sozinho, longe de câmeras" : {
+    "Devo ver as palavras sozinho, longe de câmeras" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -180444,7 +180444,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ich sollte die Wörter allein ansehen, fern von Kameras"
+            "value" : "Ich sollte die Wörter allein ansehen, fern von Kameras"
           }
         },
         "en" : {
@@ -180456,13 +180456,13 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "debo ver las palabras a solas, lejos de cámaras"
+            "value" : "Debo ver las palabras a solas, lejos de cámaras"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "je dois voir les mots à l’abri des regards, loin des caméras"
+            "value" : "Je dois voir les mots à l’abri des regards, loin des caméras"
           }
         },
         "hi" : {
@@ -180474,7 +180474,7 @@
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "saya harus melihat kata-kata sendirian, jauh dari kamera"
+            "value" : "Saya harus melihat kata-kata sendirian, jauh dari kamera"
           }
         },
         "ja" : {
@@ -180492,13 +180492,13 @@
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "kelimeleri kameralardan uzakta, yalnızken görmeliyim"
+            "value" : "Kelimeleri kameralardan uzakta, yalnızken görmeliyim"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "tôi nên xem các từ một mình, tránh xa camera"
+            "value" : "Tôi nên xem các từ một mình, tránh xa camera"
           }
         },
         "zh-Hans" : {
@@ -183035,7 +183035,7 @@
         }
       }
     },
-    "qualquer app que eu abrir pode ler o que está copiado" : {
+    "Qualquer app que eu abrir pode ler o que está copiado" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -183046,25 +183046,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "jede App, die ich öffne, kann lesen, was kopiert ist"
+            "value" : "Jede App, die ich öffne, kann lesen, was kopiert ist"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "any app I open can read what is copied"
+            "value" : "Any app I open can read what is copied"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "cualquier app que abra puede leer lo que está copiado"
+            "value" : "Cualquier app que abra puede leer lo que está copiado"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "toute app que j’ouvre peut lire ce qui est copié"
+            "value" : "Toute app que j’ouvre peut lire ce qui est copié"
           }
         },
         "hi" : {
@@ -183076,7 +183076,7 @@
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "aplikasi apa pun yang saya buka bisa membaca yang disalin"
+            "value" : "Aplikasi apa pun yang saya buka bisa membaca yang disalin"
           }
         },
         "ja" : {
@@ -183094,13 +183094,13 @@
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "açtığım her uygulama kopyalananı okuyabilir"
+            "value" : "Açtığım her uygulama kopyalananı okuyabilir"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "bất kỳ ứng dụng nào tôi mở cũng có thể đọc nội dung đã sao chép"
+            "value" : "Bất kỳ ứng dụng nào tôi mở cũng có thể đọc nội dung đã sao chép"
           }
         },
         "zh-Hans" : {
@@ -183133,7 +183133,7 @@
         }
       }
     },
-    "quem tem as palavras tem o saldo" : {
+    "Quem tem as palavras tem o saldo" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -183144,25 +183144,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "wer die Wörter hat, hat das Guthaben"
+            "value" : "Wer die Wörter hat, hat das Guthaben"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "whoever has the words has the funds"
+            "value" : "Whoever has the words has the funds"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "quien tiene las palabras tiene el saldo"
+            "value" : "Quien tiene las palabras tiene el saldo"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "qui a les mots a les fonds"
+            "value" : "Qui a les mots a les fonds"
           }
         },
         "hi" : {
@@ -183174,7 +183174,7 @@
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "siapa pun yang memiliki kata-kata ini memiliki saldonya"
+            "value" : "Siapa pun yang memiliki kata-kata ini memiliki saldonya"
           }
         },
         "ja" : {
@@ -183192,13 +183192,13 @@
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "kelimelere sahip olan bakiyeye de sahip olur"
+            "value" : "Kelimelere sahip olan bakiyeye de sahip olur"
           }
         },
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ai có các từ sẽ có số dư"
+            "value" : "Ai có các từ sẽ có số dư"
           }
         },
         "zh-Hans" : {

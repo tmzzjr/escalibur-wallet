@@ -199,7 +199,7 @@ struct EnvelopeCipherCard: View {
                 // tambem aberto, so mais apagado.
                 .overlay {
                     PixelCipherStrip(index: 0, tick: tick / 3, glow: 0)
-                        .opacity(f.unlocked ? 0.25 : 0.5)
+                        .opacity(f.unlocked ? 0.14 : 0.28)
                         .padding(3)
                         .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 }

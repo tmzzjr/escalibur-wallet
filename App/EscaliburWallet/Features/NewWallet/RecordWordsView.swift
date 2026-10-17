@@ -826,9 +826,9 @@ private struct CopyPhraseSheet: View {
     @State private var acknowledged: Set<Int> = []
 
     static let statements = [
-        String(localized: "qualquer app que eu abrir pode ler o que está copiado"),
-        String(localized: "colar as palavras num site, chat ou nota pode custar o saldo"),
-        String(localized: "a Escalibur nunca pede as palavras"),
+        String(localized: "Qualquer app que eu abrir pode ler o que está copiado"),
+        String(localized: "Colar as palavras num site, chat ou nota pode custar o saldo"),
+        String(localized: "A Escalibur nunca pede as palavras"),
     ]
 
     var body: some View {

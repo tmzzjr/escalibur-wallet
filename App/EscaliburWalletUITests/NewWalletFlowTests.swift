@@ -189,7 +189,7 @@ final class NewWalletFlowTests: XCTestCase {
         let app = launch("revelar")
         XCTAssertTrue(app.staticTexts["Ninguém da Escalibur vai pedir suas palavras"].waitForExistence(timeout: 20))
         XCTAssertTrue(app.staticTexts["Estou ciente que:"].exists)
-        XCTAssertTrue(app.buttons["quem tem as palavras tem o saldo"].exists || app.staticTexts["quem tem as palavras tem o saldo"].exists)
+        XCTAssertTrue(app.buttons["Quem tem as palavras tem o saldo"].exists || app.staticTexts["Quem tem as palavras tem o saldo"].exists)
         shot("revelar-ciente", app)
     }
 

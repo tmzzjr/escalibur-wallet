@@ -84,7 +84,7 @@ final class TodayLookTests: XCTestCase {
     func testRevealDoesNotUntickAfterPIN() {
         let app = launch("revelar")
         XCTAssertTrue(app.staticTexts["Ninguém da Escalibur vai pedir suas palavras"].waitForExistence(timeout: 20))
-        let rows = app.buttons.matching(NSPredicate(format: "label IN %@", ["quem tem as palavras tem o saldo", "a Escalibur nunca pede as palavras", "devo ver as palavras sozinho, longe de câmeras"]))
+        let rows = app.buttons.matching(NSPredicate(format: "label IN %@", ["Quem tem as palavras tem o saldo", "A Escalibur nunca pede as palavras", "Devo ver as palavras sozinho, longe de câmeras"]))
         for index in 0..<rows.count { rows.element(boundBy: index).tap() }
         app.tapWhenEnabled(app.buttons["Ver as palavras"])
         for digit in "111111" {

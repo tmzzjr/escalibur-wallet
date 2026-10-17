@@ -15,6 +15,10 @@ struct RootView: View {
     /// marca, a raiz trocava para a tela principal no instante do guardar e derrubava
     /// o fluxo em tela cheia: o dono caia na carteira sem ver as palavras.
     @State private var firstRun = false
+    /// A abertura: o cadeado de pixels da tela de abertura do iOS (`LaunchEmblem`), agora
+    /// animado, ate o app assentar. Antes a abertura era uma tela preta (pedido do dono,
+    /// 16/10/2026).
+    @State private var launching = true
     private let inbox = NotificationInbox.shared
 
     /// O modo demo (so em DEBUG) importa a carteira de teste sozinho: nao ha primeira
@@ -31,6 +35,13 @@ struct RootView: View {
         ZStack(alignment: .bottom) {
             Palette.void.ignoresSafeArea()
             content
+            if launching {
+                LaunchCover().transition(.opacity).allowsHitTesting(false)
+            }
+        }
+        .task {
+            try? await Task.sleep(for: .milliseconds(650))
+            withAnimation(.easeOut(duration: 0.3)) { launching = false }
         }
         .onChange(of: scenePhase) { _, phase in
             session.scenePhaseChanged(phase)
@@ -188,5 +199,18 @@ struct MainTabs: View {
             try? await Task.sleep(for: .seconds(0.6))
             requestReview()
         }
+    }
+}
+
+/// A continuacao da tela de abertura do iOS: o mesmo cadeado, no mesmo lugar (centro da
+/// tela inteira), com os pixels cifrando, como em "Abrindo as palavras".
+private struct LaunchCover: View {
+    var body: some View {
+        ZStack {
+            Palette.void
+            CipherEmblem(size: 88)
+        }
+        .ignoresSafeArea()
+        .accessibilityHidden(true)
     }
 }
