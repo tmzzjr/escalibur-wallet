@@ -471,6 +471,8 @@ struct ImportPhraseView: View {
                     }
                 }
             }
+            // As sugestoes mostram a palavra: fora da captura.
+            .protectedFromCapture()
             TertiaryButton(title: String(localized: "Pronto")) { focused = false }
         }
         .padding(.horizontal, Space.gutter)
@@ -730,6 +732,10 @@ private struct PhraseSlot: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(display == nil ? "Palavra \(index + 1), vazia" : "Palavra \(index + 1), preenchida")
         .accessibilityIdentifier("palavra-\(index + 1)")
+        // A posicao inteira fora da captura: a palavra, a cifra viva e o que esta sendo
+        // digitado. Inteira, para o toque e o segurar continuarem num SwiftUI so; o `.id`
+        // fica na grade, aqui fora, para a rolagem achar a posicao.
+        .protectedFromCapture()
     }
 }
 

@@ -264,6 +264,9 @@ struct RecordWordsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        // So as palavras: na captura, a chapa sai vazia. O metal, o giro e o inclinar ficam
+        // de fora, na tela de sempre.
+        .protectedFromCapture(interactive: false)
         .padding(.horizontal, Space.lg)
         .padding(.vertical, Space.lg)
         .frame(maxWidth: .infinity)
@@ -343,6 +346,8 @@ struct RecordWordsView: View {
                 }
                 Spacer(minLength: 0)
             }
+            // As palavras do cartao fora da captura; o cartao e o arrastar, na tela de sempre.
+            .protectedFromCapture(interactive: false)
             .padding(.vertical, Space.xs)
             .opacity(hidden || !front ? 0 : 1)
             .animation(.easeOut(duration: 0.18), value: front)
@@ -507,6 +512,8 @@ struct ConfirmWordsView: View {
 
                 WordInputField(text: $typed, isFocused: $focused, placeholder: "palavra \(positions[current] + 1)",
                                ownKeyboard: session.ownKeyboardOn, onSubmit: check)
+                    // A palavra digitada e as sugestoes fora da captura.
+                    .protectedFromCapture()
                     .padding(.horizontal, Space.md)
                     .frame(height: 56)
                     .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body)
@@ -520,6 +527,7 @@ struct ConfirmWordsView: View {
                         }
                     }
                 }
+                .protectedFromCapture()
                 .frame(height: Height.chip)
                 .padding(.top, Space.sm)
 

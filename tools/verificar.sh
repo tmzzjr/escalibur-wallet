@@ -292,6 +292,16 @@ grep -q 'willResignActiveNotification' "$APP/App/PlatformGuards.swift" && ok "co
 grep -q 'NSFileProtectionComplete' "$APP/Resources/EscaliburWallet.entitlements" && ok "NSFileProtectionComplete em todo o conteiner" || aviso "protecao de arquivo sumiu"
 grep -q 'sceneCaptureState' "$APP/App/PlatformGuards.swift" && grep -q 'isCaptured' "$APP/App/PlatformGuards.swift" \
     && ok "tela sensivel some com gravacao, espelhamento ou captura da cena" || aviso "defesa contra captura de tela incompleta"
+# A camada segura contra captura acha a vista de desenho do campo seguro so pela
+# hierarquia publica: nome de classe privada, seletor ou KVC ali e API privada por nome
+# (docs/seguranca.md §7).
+camada="$APP/Design/SecureCaptureContainer.swift"
+if [ -f "$camada" ] && grep -q 'isSecureTextEntry = true' "$camada"; then
+    achados=$(grep -nE 'NSClassFromString|NSSelectorFromString|Selector\(|#selector|forKey|perform\(|dlsym|objc_|"_[A-Za-z]' "$camada" | grep -vE '^[0-9]+:[[:space:]]*//')
+    [ -n "$achados" ] && { aviso "camada segura contra captura com API privada por nome"; echo "$achados"; } || ok "camada segura contra captura so com API publica"
+else
+    aviso "camada segura contra captura sumiu"
+fi
 grep -q 'isExcludedFromBackup = true' "$APP/Services/Metadata.swift" && ok "metadados fora do backup do iCloud" || aviso "metadados podem ir para o backup"
 # Protecao mais fraca que a Complete: so o marcador de instalacao, o arquivo dos
 # alertas de preco (nao diz o que a carteira tem), o do aviso de recebimento (so os

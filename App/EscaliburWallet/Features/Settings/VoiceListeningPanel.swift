@@ -30,6 +30,8 @@ struct VoiceListeningPanel: View {
             }
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
+            // O que foi ouvido e a frase de voz: fora da captura.
+            .protectedFromCapture()
             .frame(maxWidth: .infinity, minHeight: 30)
         }
         .padding(Space.md)

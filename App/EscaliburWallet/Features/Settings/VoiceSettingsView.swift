@@ -302,6 +302,8 @@ struct VoiceSettingsView: View {
             Text(draft)
                 .typeStyle(.heading).foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
+                // A frase de voz, fora da captura.
+                .protectedFromCapture()
                 .padding(.horizontal, Space.md).padding(.vertical, Space.sm)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))

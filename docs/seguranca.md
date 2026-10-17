@@ -783,7 +783,10 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
 - **Captura de tela e gravação**:
   - Gravação e espelhamento: `sceneCaptureState` com `registerForTraitChanges` esconde o conteúdo.
   - Captura de tela só é notificada depois do fato, então a defesa é a janela curta.
-  - COULD: renderizar as palavras dentro da camada de um `UITextField` com `isSecureTextEntry`, que sai em branco na captura. Depende da hierarquia interna do UIKit; se não encontrar a camada, cai para o comportamento atual.
+  - Camada segura (pedido do dono, 16/10/2026): o que mostra segredo é desenhado dentro da vista em que um `UITextField` com `isSecureTextEntry` desenha o texto. O iOS deixa essa camada fora da captura de tela, da gravação, do espelhamento por AirPlay e da captura por outro app (ReplayKit), como faz com o campo de senha: na captura, o lugar sai vazio, com o que está por trás (a chapa sem as palavras). As duas defesas se somam: a guarda acima continua escondendo a tela inteira durante a gravação. Código em `Design/SecureCaptureContainer.swift` (`SecureCaptureContainer` e o modificador `.protectedFromCapture()`).
+    - Onde vale: as palavras nos cartões e na chapa (`RecordWordsView`, também na revelação e no "Só ver as palavras" de um envelope) e a passphrase mostrada ali; a conferência das palavras, com o campo e as sugestões; as posições, a cifra viva e a barra de sugestões da importação e da conferência do modo reforçado; os campos de passphrase e de senha do envelope (`PasswordBox`: a cifra viva e o texto revelado ao segurar o dedo; os pontos o iOS já tirava), em importar, conferir a passphrase, carteira com passphrase, criptografar e abrir um envelope; as 6 palavras sorteadas do envelope; a frase de voz ouvida e a mostrada na conferência; e o teclado da Escalibur (`WordKeyboardInputView`), cujas teclas acesas e tecla apertada dizem a palavra.
+    - Como a camada é achada, sem API privada por nome: um campo seguro novo, sem borda, sem texto de exemplo e sem botão de limpar, tem uma subview só, a que desenha o texto, do tamanho do campo, e é ela (`SecureCanvas`). Conferido no código do UIKit do iOS 17.5 e do 26.5 (os simuladores do Xcode 26.6): ao virar seguro, o campo marca a camada dessa vista; ela nasce sem toque e devolve o toque ao que está dentro dela. O 18 não foi conferido aqui. Sem a subview, a tela mostra o conteúdo como antes, só com a guarda. O `tools/verificar.sh` confere que o arquivo não usa nome de classe privada, seletor nem KVC.
+    - Limite: não vale contra jailbreak (quem lê a memória do processo não precisa da tela), contra câmera apontada para a tela nem contra o teclado do iPhone, que é desenhado por outro processo, numa janela que a camada não alcança. O teclado da Escalibur é desenhado pelo app, e por isso entrou. Fica de fora o campo de corrigir a frase de voz (um `TextField` do SwiftUI com `@FocusState`, que não atravessa para o hospedeiro de dentro) e o teclado do PIN. Depende da hierarquia interna do UIKit, que a Apple pode mudar: o `CaptureShieldTests` confere a cada versão do iOS que a captura da chapa sai sem as letras, e que a mesma medida vê as letras com a camada desligada (`-sem-camada-segura`, só em depuração). O Espelhamento do iPhone no Mac segue sem garantia (abaixo), e o resultado em cada caminho de captura (tela, gravação, AirPlay, ReplayKit) se confere no aparelho.
 - **Teclados**:
   - `application(_:shouldAllowExtensionPointIdentifier:)` devolve falso para `.keyboard`.
   - Campos de frase e senha com `autocorrectionType = .no`, `spellCheckingType = .no`, `smartInsertDeleteType = .no`, `inlinePredictionType = .no` (iOS 17), `writingToolsBehavior = .none` (iOS 18), `isSecureTextEntry = true`, `textContentType = nil`.
@@ -874,7 +877,7 @@ Palavras, entropia, chaves privadas, xpub, PIN, senhas, AP, RK, DEK, endereços,
 | 14 | Booleano não autoriza | `evaluatePolicy` fora do arquivo de disponibilidade da interface falha |
 | 15 | Comparação de segredo | `(digest\|tag\|mac\|hmac\|secret\|key)\w* *[!=]=` em Chaves/ falha; o caminho é `TempoConstante.igual` |
 | 16 | Área de transferência | `UIPasteboard` fora de `Receive/ReceiveSheet.swift`, `ImportPhraseView.swift` e `SecurityScreens.swift` falha; toda cópia é `setItems` com `.localOnly` e `.expirationDate`; a frase vale até 60 s e só é copiada uma vez, pela `CopyPhraseSheet` de `RecordWordsView.swift` |
-| 17 | Defesas de plataforma presentes | `shouldAllowExtensionPointIdentifier` com `.keyboard`, cobertura em `willResignActiveNotification`, `sceneCaptureState` e `NSFileProtectionComplete` no entitlement |
+| 17 | Defesas de plataforma presentes | `shouldAllowExtensionPointIdentifier` com `.keyboard`, cobertura em `willResignActiveNotification`, `sceneCaptureState` e `NSFileProtectionComplete` no entitlement; a camada segura contra captura (`Design/SecureCaptureContainer.swift`, com `isSecureTextEntry = true`) sem `NSClassFromString\|NSSelectorFromString\|Selector(\|#selector\|forKey\|perform(\|dlsym\|objc_` nem nome entre aspas começando com `_` |
 | 18 | Entitlements | conjunto exato de chaves; `aps-environment`, `icloud-*`, `ubiquity-*` e access groups de outros falham; no build arquivado, `codesign -d --entitlements :-` sem `get-task-allow` |
 | 19 | Permissões no Info.plist | lista fechada (FaceID, Câmera; Microfone e Fala só se o recurso de voz existir); `NSUserTracking\|NSLocation\|NSContacts\|NSLocalNetwork\|NSBluetooth` falha |
 | 20 | Sem SDK de terceiros | `Firebase\|Crashlytics\|Sentry\|Bugsnag\|Amplitude\|Mixpanel\|Segment\|AppsFlyer\|Adjust\|Branch\|OneSignal\|Datadog\|NewRelic\|Instabug\|FBSDK\|GoogleMobileAds\|PostHog` falha |
@@ -948,6 +951,7 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
 - Descritores ERC-7730.
 - Enhanced Security.
 - Aviso de jailbreak.
+- Camada segura contra captura nas telas de segredo (§7).
 - Build duplo no CI com atestação.
 - `ndata` do CSPRNG na assinatura.
 - Registro de ordens com cancelamento real na cadeia.
@@ -959,7 +963,6 @@ A regra 12 e a 15 são grep com falso positivo possível. Qualquer exceção pre
 **COULD**
 - OHTTP (RFC 9458, com o HPKE do CryptoKit) e Private Access Tokens no relay.
 - Perfil isca e modo viagem.
-- Truque da camada segura contra captura.
 - `mlock` no `SecureBytes`, conferindo o retorno.
 - Teclado de PIN embaralhado.
 - Comandos de voz sem autoridade (seção 3).

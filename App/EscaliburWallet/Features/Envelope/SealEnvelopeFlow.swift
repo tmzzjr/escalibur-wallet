@@ -199,6 +199,10 @@ struct SealEnvelopeFlow: View {
                     .padding(.top, Space.lg)
                     .textSelection(.disabled)
                     .accessibilityIdentifier("palavras-envelope")
+                    // As 6 palavras fora da captura. Sortear outras troca o bloco inteiro, com
+                    // o mesmo esmaecer de antes.
+                    .protectedFromCapture()
+                    .id(suggestion)
                 Text("Seis palavras sorteadas neste iPhone. Anote em outro lugar, longe do papel da senha da carteira.")
                     .typeStyle(.note).foregroundStyle(Palette.inkSoft).padding(.top, Space.sm)
                     .fixedSize(horizontal: false, vertical: true)
