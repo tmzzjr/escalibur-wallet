@@ -187251,6 +187251,26 @@
         }
       }
     },
+    "Endereço %@ copiado. Depois de colar, confira o endereço inteiro, inclusive o meio." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ address copied. After pasting, check the whole address, including the middle."
+          }
+        }
+      }
+    },
+    "Ethereum e redes EVM" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ethereum and EVM networks"
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {

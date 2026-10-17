@@ -9,6 +9,7 @@ struct WalletHomeView: View {
     @Environment(AppSession.self) private var session
     @Environment(Portfolio.self) private var portfolio
     @Environment(Router.self) private var router
+    @Environment(ToastCenter.self) private var toasts
     @State private var switching = false
     @State private var addingWallet = false
     @State private var receiving = false
@@ -182,6 +183,58 @@ struct WalletHomeView: View {
 
     // MARK: Cabecalho
 
+    /// Um endereco para copiar: as redes EVM dividem o mesmo, as outras tem o seu.
+    private struct CopyTarget: Identifiable {
+        let title: String
+        let address: String
+        let chain: Chain?
+        var id: String { address }
+    }
+
+    /// Os enderecos da carteira, sem repetir: o das redes EVM numa linha so, primeiro; depois
+    /// cada rede com endereco proprio, na ordem das redes.
+    private func copyTargets(_ wallet: WalletMeta) -> [CopyTarget] {
+        var out = [CopyTarget]()
+        var seen = Set<String>()
+        let evm = wallet.accounts.filter { Chain.find($0.chainID)?.family == .evm }
+        if let first = evm.first {
+            out.append(CopyTarget(title: String(localized: "Ethereum e redes EVM"), address: first.address, chain: .ethereum))
+            evm.forEach { seen.insert($0.address) }
+        }
+        for chain in Chain.all where chain.family != .evm {
+            guard let account = wallet.account(chain), seen.insert(account.address).inserted else { continue }
+            out.append(CopyTarget(title: chain.name, address: account.address, chain: chain))
+        }
+        return out
+    }
+
+    /// Ao lado do olho: copiar o endereco da carteira, escolhendo a rede (pedido do dono,
+    /// 17/10/2026). Copia pela mesma area de transferencia do Receber (local, 2 minutos).
+    private func copyMenu(_ wallet: WalletMeta) -> some View {
+        Menu {
+            ForEach(copyTargets(wallet)) { target in
+                Button {
+                    Pasteboard.copyAddress(target.address)
+                    // O aviso espera o menu fechar: mostrado durante o fechamento, ele sumia.
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(350))
+                        toasts.show(String(localized: "Endereço \(target.title) copiado. Depois de colar, confira o endereço inteiro, inclusive o meio."))
+                    }
+                } label: {
+                    Text(target.title)
+                    Text(verbatim: Fmt.address(target.address, chain: target.chain))
+                }
+            }
+        } label: {
+            Image(systemName: "doc.on.doc")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Palette.inkSoft)
+                .frame(width: Height.touch, height: Height.touch)
+        }
+        .accessibilityLabel("Copiar endereço")
+        .accessibilityIdentifier("copiar-endereco-carteira")
+    }
+
     private static let top = "carteira-topo"
 
     private var header: some View {
@@ -206,6 +259,7 @@ struct WalletHomeView: View {
                 }
                 .buttonStyle(.plain)
                 Spacer()
+                if let wallet, !wallet.accounts.isEmpty { copyMenu(wallet) }
                 Button {
                     session.metadata.settings.hideBalances.toggle()
                     try? session.persist()
