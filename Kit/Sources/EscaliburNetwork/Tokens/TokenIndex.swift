@@ -25,11 +25,12 @@ struct IndexedToken: Sendable, Equatable {
 /// - Routescan (`/v2/network/mainnet/evm/{chainId}/address/{a}/erc20-holdings`):
 ///   Avalanche e Plasma.
 /// - Alchemy (`alchemy_getTokenBalances` e `alchemy_getTokenMetadata`, com chave da
-///   Escalibur): Base, Arbitrum e Polygon, onde o Blockscout responde 403.
+///   Escalibur): Base, Arbitrum e Polygon, onde o Blockscout responde 403, e BNB Chain,
+///   que nao tem indexador sem chave.
 ///
-/// BNB Chain, X Layer e Sonic nao tem indexador sem chave (conferido em 04/10/2026:
-/// nem Blockscout nem Routescan atendem, e BscScan, OKLink, Etherscan v2 e Ankr pedem
-/// chave). Nelas aparecem so os tokens da lista e as moedas custom.
+/// X Layer e Sonic nao tem indexador sem chave (conferido em 04/10/2026: nem Blockscout
+/// nem Routescan atendem, e OKLink, Etherscan v2 e Ankr pedem chave). Nelas o que esta
+/// fora da lista conferida e das moedas custom vem da lista do CoinGecko (`TokenListScan`).
 enum TokenIndex {
     static let maxTokens = 150
     static let maxPages = 3

@@ -317,8 +317,8 @@ public enum Endpoints {
     /// cliente nao segue redirecionamento). Avalanche: Routescan, API no formato
     /// Etherscan, sem chave (`api.routescan.io/v2/network/mainnet/evm/43114/etherscan`).
     /// BNB Chain: nenhum indexador publico sem chave (BscScan e Etherscan v2 exigem
-    /// plano pago para a rede 56, conferido em 25/09/2026). Vai pela NodeReal
-    /// (`nodeRealBNB`), a unica chave do app. Os demais conferidos ao vivo em 25/09/2026.
+    /// plano pago para a rede 56, conferido em 25/09/2026). Vai pela Alchemy
+    /// (`alchemy`), sem reserva. Os demais conferidos ao vivo em 25/09/2026.
     ///
     /// Segunda leva, conferida em 26/09/2026 (`/addresses/{a}/transactions` e
     /// `/token-transfers` sem chave; os hosts vem do registro chains.blockscout.com):
@@ -326,7 +326,7 @@ public enum Endpoints {
     /// so serve a pagina); Unichain e Celo pela equipe Blockscout; Plasma pelo Routescan
     /// (`txlist` e `tokentx` da rede 9745). X Layer e Sonic nao tem indexador sem chave
     /// (OKLink e Etherscan v2 pedem chave; nem Blockscout nem Routescan atendem) e ficam
-    /// sem historico, como a BNB Chain.
+    /// sem historico.
     ///
     /// Base, Arbitrum e Polygon: o Blockscout passou a responder 403 com o desafio do
     /// Cloudflare (conferido em 15/10/2026) e nao ha indexador sem chave que atenda as
@@ -351,44 +351,42 @@ public enum Endpoints {
         "linea": [.init(name: "blockscout", baseURL: url("https://api-explorer.linea.build/api/v2"))],
         "unichain": [.init(name: "blockscout", baseURL: url("https://unichain.blockscout.com/api/v2"))],
         "celo": [.init(name: "blockscout", baseURL: url("https://celo.blockscout.com/api/v2"))],
-        "bnb": [.init(name: "nodereal", baseURL: nodeRealBNB)],
+        "bnb": [.init(name: "alchemy", baseURL: alchemy["bnb"]!)],
     ]
 
-    /// Historico da BNB Chain pela API "Enhanced" da NodeReal (`nr_getTransactionByAddress`,
-    /// JSON-RPC por POST, o endereco vai no corpo). E a unica chave do app, gratuita, em
-    /// nome da Escalibur, e por isso publica neste codigo: ela identifica o app, nao o
-    /// dono, e nao abre nada alem de leitura da rede. Quem esgotar a cota tira do ar so o
-    /// historico da BNB; saldo, envio e troca nao passam por aqui. Conferido ao vivo em
-    /// 15/10/2026 com a conta publica de teste do BIP-39.
-    public static let nodeRealBNB = url("https://bsc-mainnet.nodereal.io/v1/f0c15aadeef94b9ba1ea7d52310cedaf")
-
-    /// Historico e tokens de Base, Arbitrum e Polygon pela Alchemy (transferencias:
-    /// `alchemy_getAssetTransfers`; tokens: `alchemy_getTokenBalances` e
-    /// `alchemy_getTokenMetadata`; JSON-RPC por POST, o endereco vai no corpo). Chave
-    /// gratuita em nome da Escalibur, publica neste codigo como a da NodeReal: identifica
-    /// o app, nao o dono, e so le a rede. Quem esgotar a cota tira do ar so o historico e
-    /// os tokens fora da lista dessas tres; saldo, envio e troca nao passam por aqui.
-    /// Conferido ao vivo em
-    /// 15/10/2026 com a conta publica de teste do BIP-39.
+    /// Historico e tokens de Base, Arbitrum, Polygon e BNB Chain pela Alchemy
+    /// (transferencias: `alchemy_getAssetTransfers`; tokens: `alchemy_getTokenBalances` e
+    /// `alchemy_getTokenMetadata`; JSON-RPC por POST, o endereco vai no corpo). E a unica
+    /// chave do app, gratuita, em nome da Escalibur, e por isso publica neste codigo:
+    /// identifica o app, nao o dono, e so le a rede. Quem esgotar a cota tira do ar so o
+    /// historico e os tokens fora da lista dessas quatro (na BNB, os tokens voltam pela
+    /// lista do CoinGecko, `TokenListScan`); saldo, envio e troca nao passam por aqui.
+    /// Conferido ao vivo em 15/10/2026 (Base, Arbitrum e Polygon) e 16/10/2026 (BNB Chain,
+    /// `eth_chainId` 0x38) com a conta publica de teste do BIP-39. Na BNB, o historico
+    /// tambem le nonce, codigo, bloco, recibo e saldo do dono em bloco antigo pela mesma
+    /// URL, para achar as falhas e o BNB mandado por contrato (`EVMHistoryRecovery.swift`).
     public static let alchemy: [String: URL] = [
         "base": url("https://base-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
         "arbitrum": url("https://arb-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
         "polygon": url("https://polygon-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
+        "bnb": url("https://bnb-mainnet.g.alchemy.com/v2/alch_JAF82S_Y81DG5Rbi-zW5X"),
     ]
 
     /// Quais ERC-20 uma conta tem (`TokenIndex`). As mesmas instancias do Blockscout do
     /// historico; na Avalanche e na Plasma, a API propria do Routescan; na Base, Arbitrum
-    /// e Polygon, onde o Blockscout responde 403 desde outubro de 2026, a Alchemy.
+    /// e Polygon, onde o Blockscout responde 403 desde outubro de 2026, a Alchemy; na BNB
+    /// Chain, tambem a Alchemy (16/10/2026, 145 tokens com saldo em tres paginas).
     /// Conferido ao vivo em 04/10/2026 com a conta publica de teste do BIP-39: `200` e a
-    /// lista de tokens em todas (de 0 a 50 itens, a maioria isca de golpe). BNB Chain, X
-    /// Layer e Sonic ficam de fora: nenhum indexador sem chave atende (Blockscout e
-    /// Routescan respondem 404 e "chain not supported"; Ankr pede chave).
+    /// lista de tokens em todas (de 0 a 50 itens, a maioria isca de golpe). X Layer e
+    /// Sonic ficam de fora: nenhum indexador sem chave atende (Blockscout e Routescan
+    /// respondem 404 e "chain not supported"; Ankr pede chave).
     public static let evmTokenIndex: [String: ProviderPool.Provider] = [
         "ethereum": .init(name: "blockscout", baseURL: url("https://eth.blockscout.com/api/v2")),
         "base": .init(name: "alchemy", baseURL: alchemy["base"]!),
         "optimism": .init(name: "blockscout", baseURL: url("https://explorer.optimism.io/api/v2")),
         "arbitrum": .init(name: "alchemy", baseURL: alchemy["arbitrum"]!),
         "polygon": .init(name: "alchemy", baseURL: alchemy["polygon"]!),
+        "bnb": .init(name: "alchemy", baseURL: alchemy["bnb"]!),
         "linea": .init(name: "blockscout", baseURL: url("https://api-explorer.linea.build/api/v2")),
         "unichain": .init(name: "blockscout", baseURL: url("https://unichain.blockscout.com/api/v2")),
         "celo": .init(name: "blockscout", baseURL: url("https://celo.blockscout.com/api/v2")),

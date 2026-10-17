@@ -480,47 +480,35 @@ struct EVMReaderTests {
         #expect(page.items.count + page.suspiciousCount > 0)
     }
 
-    @Test("NodeReal (BNB Chain): uma consulta por categoria e lado, endereco so no corpo, golpes separados")
-    func nodeRealHistory() async throws {
-        let owner = try EVMAddress("0x9858EfFD232B4033E47d90003D41EC34EcaEda94")
-        let transport = FixtureTransport([{ request, body in
-            guard FixtureTransport.method(body) == "nr_getTransactionByAddress",
-                  case .object(let query)? = FixtureTransport.params(body).first,
-                  case .array(let categories)? = query["category"], categories.count == 1,
-                  case .string(let category) = categories[0], case .string(let side)? = query["addressType"]
-            else { return nil }
-            return try ReaderFixtures.data("evm", "nodereal-\(category)-\(side)-bnb")
-        }])
-        let provider = ProviderPool.Provider(name: "nodereal", baseURL: URL(string: "https://nodereal.test/v1/chave")!)
-        let reader = EVMReader(transport: transport, rpc: [:], history: ["bnb": [provider]], privateRelays: [])
-        let page = try await reader.history(chain: .bnb, address: owner)
-
-        let asked = transport.requests.compactMap { $0.body.flatMap { try? StrictJSON.parse($0) } }
-        #expect(asked.count == 5)
-        #expect(transport.requests.allSatisfy { !$0.url.absoluteString.lowercased().contains(owner.checksummed.lowercased()) })
-        #expect(page.isComplete)
-        #expect(page.items.allSatisfy { $0.chainID == "bnb" })
-        #expect(page.items.allSatisfy { $0.asset.kind == .native || TokenRegistry.tokens.contains($0.asset) })
-        // Transacoes do dono que falharam aparecem como falha, nao somem.
-        #expect(page.items.contains { $0.status == .failed })
-        // As "saidas" de token que o dono nao assinou (eventos falsos de envenenamento)
-        // e os recebimentos de token desconhecido ficam fora da lista.
-        #expect(page.suspicious.unknownAsset > 0)
-        #expect(!page.items.contains { $0.direction == .sent && $0.asset.kind != .native && $0.fee == nil })
-    }
-
-    /// Responde a Alchemy pelas gravacoes de 15/10/2026: uma por categoria e lado, e o
-    /// lote de recibos (um corpo que e lista).
-    private func alchemyTransport(_ chain: String, receipts: Bool = true) -> FixtureTransport {
+    /// Responde a Alchemy pelas gravacoes de 15/10/2026 (Ethereum e Base) e 16/10/2026
+    /// (BNB Chain): uma por categoria e lado, o lote de recibos (um corpo que e lista) e,
+    /// na BNB, o lote do nonce e do codigo da recuperacao. `tokens: false` faz as
+    /// consultas de token falharem.
+    private func alchemyTransport(_ chain: String, receipts: Bool = true, tokens: Bool = true) -> FixtureTransport {
         FixtureTransport([{ request, body in
+            if case .array(let calls)? = body, calls.contains(where: { FixtureTransport.method($0) == "eth_getCode" }) {
+                return try ReaderFixtures.data("evm", "alchemy-deteccao-\(chain)")
+            }
             if case .array? = body { return receipts ? try ReaderFixtures.data("evm", "alchemy-recibos-\(chain)") : nil }
             guard FixtureTransport.method(body) == "alchemy_getAssetTransfers",
                   case .object(let query)? = FixtureTransport.params(body).first,
                   case .array(let categories)? = query["category"], categories.count == 1, case .string(let category) = categories[0]
             else { return nil }
+            if category == "erc20", !tokens { throw HTTPClient.Failure.status(503) }
             let side = query["fromAddress"] != nil ? "from" : "to"
             return try ReaderFixtures.data("evm", "alchemy-\(category)-\(side)-\(chain)")
         }])
+    }
+
+    /// As categorias pedidas a `alchemy_getAssetTransfers`, na ordem em que sairam.
+    private func askedCategories(_ transport: FixtureTransport) -> [String] {
+        transport.requests.compactMap { request -> String? in
+            let body = request.body.flatMap { try? StrictJSON.parse($0) }
+            guard case .object(let query)? = FixtureTransport.params(body).first, case .array(let categories)? = query["category"],
+                  case .string(let category)? = categories.first
+            else { return nil }
+            return category
+        }
     }
 
     @Test("Alchemy (Ethereum): uma consulta por categoria e lado, endereco so no corpo, taxa pelos recibos")
@@ -600,18 +588,58 @@ struct EVMReaderTests {
         #expect(withoutFees.items.allSatisfy { $0.fee == nil })
     }
 
-    @Test("NodeReal: sem os tokens, a pagina sai marcada como parcial")
-    func nodeRealPartial() throws {
+    @Test("Alchemy (BNB Chain): sem a categoria interna, endereco so no corpo, taxa pelos recibos sem L1")
+    func alchemyHistoryBNB() async throws {
+        #expect(Endpoints.evmHistory["bnb"]?.map(\.name) == ["alchemy"])
+        #expect(Endpoints.evmHistory["bnb"]?.first?.baseURL.host == "bnb-mainnet.g.alchemy.com")
+        #expect(Endpoints.evmHistory["bnb"]?.first?.baseURL.path == Endpoints.alchemy["base"]?.path)
+
         let owner = try EVMAddress("0x9858EfFD232B4033E47d90003D41EC34EcaEda94")
-        let page = try EVMReader.parseNodeRealHistory(
-            chain: .bnb, owner: owner,
-            transactions: [
-                try ReaderFixtures.json("evm", "nodereal-external-from-bnb").field("result", "result"),
-                try ReaderFixtures.json("evm", "nodereal-external-to-bnb").field("result", "result"),
-            ],
-            tokenTransfers: [], complete: false
-        )
+        let transport = alchemyTransport("bnb")
+        let provider = ProviderPool.Provider(name: "alchemy", baseURL: URL(string: "https://alchemy.test/v2/chave")!)
+        let reader = EVMReader(transport: transport, rpc: [:], history: ["bnb": [provider]], privateRelays: [])
+        let page = try await reader.history(chain: .bnb, address: owner)
+
+        // Envio e recebimento nativos, token de e para, o lote de recibos e o lote do nonce
+        // e do codigo. A categoria interna nem e pedida: na BNB a Alchemy recusa o pedido
+        // inteiro (-32602). A conta de teste do BIP-39 tem delegacao EIP-7702 na BNB (o
+        // codigo `0xef0100...`): a recuperacao das falhas e do BNB mandado por contrato
+        // para ali, sem busca e sem saldo.
+        #expect(transport.requests.count == 6)
+        #expect(!transport.requests.contains { request in
+            let body = request.body.flatMap { try? StrictJSON.parse($0) }
+            return ["eth_blockNumber", "eth_getBlockByNumber"].contains(FixtureTransport.method(body) ?? "")
+        })
+        #expect(askedCategories(transport).sorted() == ["erc20", "erc20", "external", "external"])
+        #expect(transport.requests.allSatisfy { !$0.url.absoluteString.lowercased().contains(owner.checksummed.lowercased()) })
+        #expect(page.isComplete)
+        #expect(!page.items.isEmpty)
+        #expect(page.items.allSatisfy { $0.chainID == "bnb" })
+        #expect(page.items.allSatisfy { $0.asset.kind == .native || TokenRegistry.tokens.contains($0.asset) })
+        // A Alchemy so lista o que se moveu: nada sai como falha.
+        #expect(page.items.allSatisfy { $0.status == .confirmed })
+        // As "saidas" falsas de token e os recebimentos de token desconhecido ficam fora.
+        #expect(page.suspicious.unknownAsset > 0)
+
+        // Na BNB a taxa e `gasUsed` vezes `effectiveGasPrice`, sem taxa de L1.
+        let receipts = try ReaderFixtures.json("evm", "alchemy-recibos-bnb")
+        #expect(try receipts.array("r").allSatisfy { try $0.field("result", "r").optionalField("l1Fee") == nil })
+        let fees = EVMReader.parseReceiptFees(receipts)
+        let paid = page.items.filter { $0.fee != nil }
+        #expect(!paid.isEmpty)
+        #expect(paid.allSatisfy { $0.fee == fees[$0.hash.lowercased()] })
+        #expect(!page.items.contains { $0.direction == .received && $0.fee != nil })
+    }
+
+    @Test("Alchemy (BNB Chain): sem os tokens, a pagina sai marcada como parcial, com as transacoes do dono")
+    func alchemyPartialBNB() async throws {
+        let owner = try EVMAddress("0x9858EfFD232B4033E47d90003D41EC34EcaEda94")
+        let transport = alchemyTransport("bnb", tokens: false)
+        let provider = ProviderPool.Provider(name: "alchemy", baseURL: URL(string: "https://alchemy.test/v2/chave")!)
+        let reader = EVMReader(transport: transport, rpc: [:], history: ["bnb": [provider]], privateRelays: [])
+        let page = try await reader.history(chain: .bnb, address: owner)
         #expect(!page.isComplete)
         #expect(!page.items.isEmpty)
+        #expect(page.items.allSatisfy { $0.asset.kind == .native })
     }
 }

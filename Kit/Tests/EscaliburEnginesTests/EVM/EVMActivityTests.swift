@@ -112,7 +112,7 @@ struct EVMActivityTests {
         #expect(first.direction == .sent && first.asset == Self.usdc && first.amount == 50_000_000 && first.status == .confirmed)
     }
 
-    @Test("BNB Chain: historico pela NodeReal, com o mesmo leitor das outras redes EVM")
+    @Test("BNB Chain: historico pela Alchemy, com o mesmo leitor das outras redes EVM")
     func bnbHistory() throws {
         let source = try #require(ActivitySources.source(for: .bnb))
         #expect(source is EVMActivitySource)

@@ -130,8 +130,9 @@ public actor BalanceService {
     /// Nome, simbolo e casas de TRC-20 fora da lista, lidos uma vez por sessao: tres
     /// chamadas por token, e a TronGrid sem chave corta acima de ~2 por segundo.
     private var tronMetadata: [String: (name: String, symbol: String, decimals: Int)] = [:]
-    /// Redes EVM sem indexador: a lista de tokens do CoinGecko (`TokenListScan`), por
-    /// rede, e a ultima varredura, por rede e dono. Desligado nos testes gravados.
+    /// Redes EVM sem indexador (e a BNB Chain, quando a Alchemy nao responde): a lista de
+    /// tokens do CoinGecko (`TokenListScan`), por rede, e a ultima varredura, por rede e
+    /// dono. Desligado nos testes gravados.
     private let listScanEnabled: Bool
     private var tokenLists: [String: (tokens: [IndexedToken], fetchedAt: Date)] = [:]
     private var listScans: [String: (held: [IndexedToken], scannedAt: Date)] = [:]
@@ -257,14 +258,21 @@ public actor BalanceService {
     }
 
     /// Os contratos ERC-20 que o indexador diz que a conta tem, menos os ja conhecidos.
-    /// Sem indexador (BNB Chain, X Layer, Sonic), os da lista de tokens do CoinGecko com
-    /// saldo (`TokenListScan`). Indexador ou lista fora do ar nao derruba o saldo: a lista
-    /// conferida e as moedas custom continuam.
+    /// Sem indexador (X Layer, Sonic), os da lista de tokens do CoinGecko com saldo
+    /// (`TokenListScan`); na BNB Chain a lista e a reserva da Alchemy, quando ela falha.
+    /// Indexador ou lista fora do ar nao derruba o saldo: a lista conferida e as moedas
+    /// custom continuam.
     private func discoverEVM(_ chain: Chain, owner: EVMAddress, excluding known: Set<String>, pool: ProviderPool) async -> [IndexedToken] {
         guard let provider = tokenIndex[chain.id] else {
             return await scanTokenList(chain, owner: owner, excluding: known, pool: pool)
         }
-        let found = (try? await TokenIndex.fetch(provider, owner: owner, transport: transport)) ?? []
+        let found: [IndexedToken]
+        do {
+            found = try await TokenIndex.fetch(provider, owner: owner, transport: transport)
+        } catch {
+            // So as redes com lista do CoinGecko (`TokenListScan.platforms`) tem reserva.
+            return await scanTokenList(chain, owner: owner, excluding: known, pool: pool)
+        }
         var seen = known
         return Array(found.filter { seen.insert($0.contract.checksummed.lowercased()).inserted }.prefix(TokenIndex.maxTokens))
     }

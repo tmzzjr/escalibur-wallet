@@ -21,7 +21,7 @@ Wallet), nunca uma tradução literal que ninguém usa.
   iCloud, App Store, Secure Enclave, GitHub, nomes de rede (Bitcoin, Ethereum, BNB Chain,
   Solana, XRP Ledger, Stellar, Tron, TON, Sui, Cardano, Polkadot, NEAR, Aptos...),
   símbolos (BTC, ETH, USDT, USDC...), provedores (CoW, Across, CCTP, Circle, Velora,
-  KyberSwap, LI.FI, De¹, Jupiter, NodeReal, CoinGecko), padrões (BIP-39, EIP-712,
+  KyberSwap, LI.FI, De¹, Jupiter, Alchemy, CoinGecko), padrões (BIP-39, EIP-712,
   ERC-20, TRC-20, Token-2022, SEP-0005), formatos (`.esclbr`).
 - Palavras da frase de recuperação (BIP-39) nunca aparecem no catálogo: a lista é sempre
   a do padrão, em inglês, e não se traduz.

@@ -74,3 +74,30 @@ Tokens fora da lista e moeda custom, gravadas em 04/10/2026 (sem chave), em toke
   zero dos 763 da resposta) e sidecar-asset-info-{1984,30,31337,42069,1337}, sem alteracao.
 - fastnear-ft-aurora (api.fastnear.com/v1/account/aurora/ft, 6 dos tokens) e
   near-ft_metadata-metapool (ft_metadata de meta-pool.near pela FastNEAR RPC), sem alteracao.
+
+BNB Chain pela Alchemy, gravadas em 16/10/2026 em bnb-mainnet.g.alchemy.com com a chave do
+app, conta publica de teste do BIP-39 (0x9858...aEda94), os mesmos pedidos que o leitor faz:
+- evm/alchemy-{external,erc20}-{from,to}-bnb: alchemy_getAssetTransfers, uma categoria e um
+  lado por arquivo, sem alteracao. A categoria `internal` nao tem arquivo: na BNB a Alchemy
+  responde -32602 ("not supported for this network").
+- evm/alchemy-recibos-bnb: o lote de eth_getTransactionReceipt dos envios do dono, so os
+  campos que o leitor le (transactionHash, gasUsed, effectiveGasPrice, status).
+- tokens/alchemy-saldos-bnb-{1,2,3}: alchemy_getTokenBalances, as tres paginas pela
+  `pageKey`, sem alteracao. tokens/alchemy-metadados-bnb: o lote de alchemy_getTokenMetadata
+  dos 145 contratos com saldo, sem alteracao.
+- evm/alchemy-deteccao-bnb: o lote do nonce (agora e antes da janela) e do codigo da mesma
+  conta, sem alteracao. O codigo e uma delegacao EIP-7702 (0xef0100...), e a recuperacao
+  para ali.
+
+Recuperacao do historico da BNB (falhas do dono e BNB mandado por contrato), gravadas em
+16/10/2026 pelo proprio leitor, ao vivo, com um transporte que guardou cada pedido e cada
+resposta (pares `request` e `response`, na ordem em que sairam), em duas contas comuns:
+- evm/alchemy-recuperacao-falhas-bnb: 0x3506...5572, que vende USDT por BNB o dia inteiro e
+  tem transacoes que falham (quatro na janela, achadas pelo nonce). Alterado: os blocos so
+  com `number`, `timestamp` e, de cada transacao, `hash`, `from`, `to` e `value`; os recibos
+  so com `transactionHash`, `blockNumber`, `gasUsed`, `effectiveGasPrice`, `status` e os
+  eventos reduzidos ao `address` (o leitor so conta quantos ha).
+- evm/alchemy-recuperacao-saldo-bnb: 0x7fa3...1db3, que troca token por BNB pelo roteador v2
+  da PancakeSwap (tres trocas). Alterado: blocos e recibos como acima, mas os eventos com
+  `address`, `topics` e `data`, para o teste conferir o BNB recuperado contra o `Withdrawal`
+  do WBNB.

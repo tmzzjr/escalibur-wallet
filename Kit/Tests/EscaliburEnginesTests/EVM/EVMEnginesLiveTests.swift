@@ -150,14 +150,18 @@ struct EVMEnginesLiveTests {
         Self.note("base: ordem limite com \(plan.review.transactionCount) etapas: \(plan.review.title)")
     }
 
-    @Test("Historico real da Base; BNB Chain, X Layer e Sonic dizem que ainda nao tem")
+    @Test("Historico real da Base e da BNB Chain; X Layer e Sonic dizem que ainda nao tem")
     func activity() async throws {
         let base = try #require(ActivitySources.source(for: .base))
         let entries = try await base.history(chain: .base, account: A.binance8(on: .base), usage: nil)
         #expect(!entries.isEmpty)
         #expect(entries.allSatisfy { $0.chainID == "base" })
         Self.note("base: \(entries.count) itens, \(entries.filter(\.suspicious).count) suspeitos")
-        for chain in [Chain.bnb, .xlayer, .sonic] {
+        let bnb = try #require(ActivitySources.source(for: .bnb))
+        let bnbEntries = try await bnb.history(chain: .bnb, account: A.binance8(on: .bnb), usage: nil)
+        #expect(bnbEntries.allSatisfy { $0.chainID == "bnb" })
+        Self.note("bnb: \(bnbEntries.count) itens pela Alchemy")
+        for chain in [Chain.xlayer, .sonic] {
             let source = try #require(ActivitySources.source(for: chain))
             await #expect(throws: SendEngineError.self) { _ = try await source.history(chain: chain, account: A.binance8(on: chain), usage: nil) }
         }
