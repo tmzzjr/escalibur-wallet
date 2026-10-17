@@ -417,6 +417,15 @@ Regras:
 - **Chute.** Uma conta única de passphrases erradas para todas as portas que conferem uma (mover saldo, ver, criptografar, desligar, conferir a cópia, criar a carteira com passphrase, que reconhece a carteira que já existe). A tentativa é gravada antes da conferência; acertar zera; cancelar o PIN antes de o cofre abrir devolve a tentativa. Depois de 5 erros, espera de 1 minuto que dobra a cada erro, até 24 horas, no relógio monótono, como a da voz. Criar nunca zera a conta.
 - **Limite.** Quem tem o PIN e o rosto ainda vê as palavras da carteira de sempre, e com elas pode tentar a passphrase fora do aparelho, em PBKDF2-SHA512 de 2048 rodadas: uma passphrase curta cai, uma de 5 palavras sorteadas não. A tela de criar diz para anotar longe das palavras; um medidor de força da passphrase é o próximo passo.
 
+### 2.12 Carteira com as palavras escolhidas pelo dono (17/10/2026)
+
+Pedido do dono. Na criação, "Prefiro escolher as minhas palavras": o dono digita as 11 primeiras (ou 23) em inglês, pelo teclado ou tocando na lista das 2048, e o app sorteia a última (`BIP39.completing`). A última palavra carrega bits livres da entropia (7 na frase de 12, 3 na de 24) e o checksum (4 ou 8): os livres saem do `SecRandomCopyBytes`, o mesmo gerador da criação comum, e o checksum sai da conta. Testado contra os vetores oficiais do BIP-39.
+
+- **A força é a das palavras escolhidas mais os bits sorteados.** Escolha humana rende bem menos que sorteio, e a tela diz isso num aviso, com a sugestão de sortear com moeda ou dado e de pôr uma passphrase forte por cima.
+- **Só na criação, nunca na importação.** Quem restaura e erra uma palavra não pode receber um "conserto" da última, que abriria outra carteira, vazia, sem aviso.
+- A tela é a mesma da importação, no modo escolher: sem colar, sem rede (`HTTPClient.beginQuiet`), cifra viva nos campos, guarda contra captura, a última posição visível e travada. A lista de palavras fica atrás da mesma guarda: ela é pública, a sequência tocada não.
+- Depois, o fluxo de sempre: a carteira é guardada antes de mostrar a palavra sorteada, a placa mostra as 12 e a conferência é a mesma.
+
 ## 3. Voz
 
 **Avaliação**

@@ -187041,6 +187041,216 @@
         }
       }
     },
+    "Prefiro escolher as minhas palavras" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I'd rather choose my own words"
+          }
+        }
+      }
+    },
+    "Deslize para escolher as palavras" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slide to choose the words"
+          }
+        }
+      }
+    },
+    "Escolha as suas palavras" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose your words"
+          }
+        }
+      }
+    },
+    "Digite %lld palavras da lista em inglês, na ordem em que você anotou. A %lldª o app sorteia, para a conta da frase fechar." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type %lld words from the English list, in the order you wrote them down. The app draws word %lld, so the phrase checksum works out."
+          }
+        }
+      }
+    },
+    "Escolhidas a dedo, as palavras ficam mais fáceis de adivinhar" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hand-picked words are easier to guess"
+          }
+        }
+      }
+    },
+    "Gente escolhe palavras de que gosta, de um tema, perto umas das outras, e robôs testam essas frases o tempo todo. Sorteie cada palavra com moeda ou dado, ou deixe o app sortear todas. Por cima, uma carteira com passphrase forte protege o saldo." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "People pick words they like, from one theme, close to each other, and bots try those phrases all the time. Draw each word with a coin or dice, or let the app draw them all. On top of that, a wallet with a strong passphrase protects the balance."
+          }
+        }
+      }
+    },
+    "Escolher na lista de palavras" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick from the word list"
+          }
+        }
+      }
+    },
+    "Sortear a %lldª palavra" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draw word %lld"
+          }
+        }
+      }
+    },
+    "A palavra %lld não está na lista em inglês. Toque nela para corrigir." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word %lld isn't on the English list. Tap it to fix it."
+          }
+        }
+      }
+    },
+    "Use só palavras da lista em inglês, uma em cada campo." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use only words from the English list, one per field."
+          }
+        }
+      }
+    },
+    "o app sorteia" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "drawn by the app"
+          }
+        }
+      }
+    },
+    "Palavra %lld, sorteada pelo app" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word %lld, drawn by the app"
+          }
+        }
+      }
+    },
+    "Lista de palavras" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word list"
+          }
+        }
+      }
+    },
+    "Toque numa palavra para preencher a %lldª de %lld." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap a word to fill in word %lld of %lld."
+          }
+        }
+      }
+    },
+    "As %lld estão preenchidas." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All %lld are filled in."
+          }
+        }
+      }
+    },
+    "A %lldª palavra" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word %lld"
+          }
+        }
+      }
+    },
+    "O app sorteou esta entre as %lld que fecham a conta com as suas %lld. Anote no papel, como a %lldª." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app drew this one among the %lld that complete the checksum with your %lld. Write it on paper as word %lld."
+          }
+        }
+      }
+    },
+    "Em seguida vêm as %lld palavras, para conferir o que você anotou, e a conferência de sempre." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next come the %lld words, to check what you wrote down, and the usual confirmation."
+          }
+        }
+      }
+    },
+    "Anotei" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I wrote it down"
+          }
+        }
+      }
+    },
+    "aberto" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "open"
+          }
+        }
+      }
+    },
+    "fechado" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "closed"
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {

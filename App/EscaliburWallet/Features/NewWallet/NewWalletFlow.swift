@@ -73,11 +73,17 @@ struct NewWalletFlow: View {
     @State private var saving = false
     @State private var error: String?
     @State private var askingLater = false
+    /// O dono escolhe as palavras (pedido do dono, 17/10/2026): digita todas menos a ultima,
+    /// e o app sorteia a ultima, que fecha a conta.
+    @State private var ownWords = false
+    /// A palavra sorteada, so enquanto a tela dela esta aberta.
+    @State private var drawnWord: String?
 
     /// `pledge` e o aceite de responsabilidade; `check`, a conferencia do aparelho, igual a
     /// de antes de digitar as palavras ao importar (pedido do dono, 15/10/2026). So depois
-    /// dela a frase nasce e aparece.
-    enum Step { case before, pledge, check, record, confirm, created }
+    /// dela a frase nasce e aparece. `own` e `drawn`: as palavras escolhidas e a ultima,
+    /// sorteada.
+    enum Step { case before, pledge, check, own, drawn, record, confirm, created }
 
     var body: some View {
         NavigationStack {
@@ -88,12 +94,21 @@ struct NewWalletFlow: View {
                     ResponsibilityView(continueTitle: String(localized: "Conferir o aparelho")) { step = .check }
                 case .check:
                     ZStack {
-                        DeviceCheckView(slideTitle: String(localized: "Deslize para ver as palavras"), creating: true) { Task { await start() } }
+                        DeviceCheckView(slideTitle: ownWords ? String(localized: "Deslize para escolher as palavras") : String(localized: "Deslize para ver as palavras"),
+                                        creating: true) {
+                            if ownWords { step = .own } else { Task { await start() } }
+                        }
                         // Depois do PIN, enquanto o cofre guarda a carteira, a checagem com o
                         // deslizar ja usado nao reaparece.
                         if saving { CipherWorking(title: String(localized: "Criando a carteira")) }
                     }
                     .animation(Motion.fade, value: saving)
+                case .own:
+                    ImportPhraseView(onFinished: { step = .before }, choose: .init(wordCount: wordCount) { firstWords in
+                        await startOwn(firstWords)
+                    })
+                case .drawn:
+                    drawn
                 case .record:
                     if let draft {
                         RecordWordsView(draft: draft, walletName: nil) { step = .confirm }
@@ -108,13 +123,14 @@ struct NewWalletFlow: View {
             }
             .background(Palette.void.ignoresSafeArea())
             .toolbar {
-                if step == .pledge || step == .check || step == .confirm {
+                if step == .pledge || step == .check || step == .confirm || step == .own {
                     // Voltar um passo: a carteira em criacao e as palavras continuam.
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
                             switch step {
                             case .pledge: step = .before
                             case .check: step = .pledge
+                            case .own: step = .before
                             default: step = .record
                             }
                         } label: {
@@ -182,7 +198,12 @@ struct NewWalletFlow: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .safeAreaInset(edge: .bottom) {
-            ActionFooter { PrimaryButton(title: String(localized: "Continuar")) { error = nil; step = .pledge } }
+            ActionFooter {
+                PrimaryButton(title: String(localized: "Continuar")) { error = nil; ownWords = false; step = .pledge }
+                TertiaryButton(title: String(localized: "Prefiro escolher as minhas palavras")) { error = nil; ownWords = true; step = .pledge }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("escolher-palavras")
+            }
         }
     }
 
@@ -204,14 +225,75 @@ struct NewWalletFlow: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// A ultima palavra, sorteada: grande, com o numero, para o dono anotar no papel junto
+    /// das que escolheu. Depois, as palavras e a conferencia de sempre.
+    private var drawn: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("A \(wordCount)ª palavra").typeStyle(.title).foregroundStyle(Palette.ink)
+            Text("O app sorteou esta entre as \(wordCount == 12 ? 128 : 8) que fecham a conta com as suas \(wordCount - 1). Anote no papel, como a \(wordCount)ª.")
+                .typeStyle(.body).foregroundStyle(Palette.inkSoft).padding(.top, Space.xs)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
+                Text(verbatim: "\(wordCount)").font(.system(size: 22, weight: .semibold).monospacedDigit()).foregroundStyle(Palette.plateMuted)
+                Text(verbatim: drawnWord ?? "").font(.system(size: 40, weight: .bold)).foregroundStyle(Palette.plateInk)
+                    .accessibilityIdentifier("ultima-palavra")
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Space.lg).padding(.vertical, Space.lg)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.live))
+            .padding(.top, Space.lg)
+            Text("Em seguida vêm as \(wordCount) palavras, para conferir o que você anotou, e a conferência de sempre.")
+                .typeStyle(.note).foregroundStyle(Palette.inkMuted).padding(.top, Space.md)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+        }
+        .padding(.horizontal, Space.gutter)
+        .padding(.top, Space.md)
+        .safeAreaInset(edge: .bottom) {
+            ActionFooter {
+                PrimaryButton(title: String(localized: "Anotei")) { drawnWord = nil; step = .record }
+                    .accessibilityIdentifier("anotei-ultima")
+            }
+        }
+        .onAppear { drawnWord = draft?.words((wordCount - 1)..<wordCount).first }
+        .onDisappear { drawnWord = nil }
+    }
+
+    /// As palavras que o dono escolheu viram a frase com a ultima sorteada, e a carteira e
+    /// guardada como a sorteada inteira: antes de mostrar a palavra nova.
+    private func startOwn(_ firstWords: SecureBytes) async -> String? {
+        let full: SecureBytes
+        do {
+            full = try BIP39.completing(firstWords)
+        } catch {
+            return String(localized: "Use só palavras da lista em inglês, uma em cada campo.")
+        }
+        guard await save(PhraseDraft(phrase: full, wordCount: wordCount)) else { return error }
+        step = .drawn
+        return nil
+    }
+
     /// A carteira e guardada **antes** de mostrar as palavras: se o dono sair no
     /// meio, ela existe marcada "Sem copia", e receber fica bloqueado ate conferir.
     private func start() async {
+        let created: PhraseDraft
+        do {
+            created = try PhraseDraft(wordCount: wordCount)
+        } catch {
+            self.error = String(localized: "Não foi possível guardar a carteira. Tente de novo.")
+            step = .before
+            return
+        }
+        if await save(created) { step = .record }
+    }
+
+    /// Guarda a carteira desta frase; o rascunho fica para anotar e conferir. Falhou ou o dono
+    /// cancelou o PIN: o rascunho e zerado e a tela volta ao comeco com o motivo.
+    private func save(_ newDraft: PhraseDraft) async -> Bool {
         saving = true
         defer { saving = false }
         error = nil
         do {
-            let newDraft = try PhraseDraft(wordCount: wordCount)
             let copy = SecureBytes(capacity: newDraft.phrase.capacity)
             newDraft.phrase.withUnsafeBytes { copy.append(contentsOf: $0.bindMemory(to: UInt8.self)) }
             let secret = try WalletSecret.from(phrase: copy, language: .english)
@@ -223,14 +305,16 @@ struct NewWalletFlow: View {
             }) else {
                 secret.wipe()
                 newDraft.wipe()
-                return
+                return false
             }
             wallet = saved
             draft = newDraft
-            step = .record
+            return true
         } catch {
+            newDraft.wipe()
             self.error = AuthCoordinator.refusalMessage(error) ?? String(localized: "Não foi possível guardar a carteira. Tente de novo.")
             step = .before
+            return false
         }
     }
 

@@ -149,6 +149,86 @@ final class NewWalletFlowTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Falta confirmar que você anotou as palavras"].waitForExistence(timeout: 10))
     }
 
+    /// Escolher as palavras (pedido do dono, 17/10/2026): as 11 primeiras digitadas, a 12a
+    /// sorteada pelo app, mostrada grande, e a mesma na placa das palavras.
+    func testChooseOwnWords() {
+        let app = launch("criar")
+        let own = app.buttons["escolher-palavras"]
+        XCTAssertTrue(own.waitForExistence(timeout: 20))
+        own.tap()
+        XCTAssertTrue(app.staticTexts["Só você tem a chave"].waitForExistence(timeout: 5))
+        app.buttons["aceite-responsabilidade"].tap()
+        app.buttons["Conferir o aparelho"].tap()
+        app.passDeviceCheck()
+
+        if !app.staticTexts["Escolha as suas palavras"].waitForExistence(timeout: 10) { shot("e0-sem-escolher", app) }
+        XCTAssertTrue(app.staticTexts["Escolha as suas palavras"].exists)
+        XCTAssertFalse(app.buttons["Importar"].exists)
+        let first = app.otherElements["palavra-1"]
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.otherElements["palavra-12"].exists, "a 12a e do app, nao do dono")
+        XCTAssertTrue(app.descendants(matching: .any)["palavra-sorteada"].exists, "a 12a nao aparece travada")
+        // O porque do aviso fica recolhido, e abre num toque.
+        XCTAssertFalse(text("Gente escolhe palavras", in: app, timeout: 1))
+        let caution = app.buttons["aviso-escolhidas"]
+        caution.tap()
+        XCTAssertTrue(text("Gente escolhe palavras", in: app))
+        shot("e1-aviso-aberto", app)
+        caution.tap()
+        shot("e1-escolher", app)
+        first.tap()
+        // Palavra inteira e o toque na sugestao, como uma pessoa: o typeText rapido do
+        // simulador as vezes pula uma letra no meio da palavra.
+        for word in ["zoo", "vocal", "tiger", "ocean", "march", "liquid", "hotel", "frog"] {
+            for letter in word {
+                app.typeText(String(letter))
+                usleep(120_000)
+            }
+            let suggestion = app.buttons[word]
+            XCTAssertTrue(suggestion.waitForExistence(timeout: 5), "sem a sugestao \(word)")
+            suggestion.tap()
+        }
+        // As tres ultimas pela lista de palavras, pela letra.
+        app.tapWhenEnabled(app.buttons["escolher-na-lista"])
+        XCTAssertTrue(app.staticTexts["lista-progresso"].waitForExistence(timeout: 5))
+        XCTAssertTrue(text("Toque numa palavra para preencher a 9ª de 11", in: app))
+        shot("e1d-lista", app)
+        for (letter, word) in [("d", "dad"), ("b", "bacon"), ("a", "acid")] {
+            app.buttons["letra-\(letter)"].tap()
+            let button = app.buttons[word].firstMatch
+            if !button.waitForExistence(timeout: 5) { shot("e1e-sem-\(word)", app) }
+            XCTAssertTrue(button.exists, "sem \(word) na lista")
+            usleep(400_000)
+            button.tap()
+        }
+        // Com as 11 preenchidas, a lista fecha sozinha.
+        XCTAssertTrue(app.staticTexts["lista-progresso"].waitForNonExistence(timeout: 5), "a lista nao fechou")
+        let draw = app.buttons["sortear-ultima"]
+        if !draw.waitForExistence(timeout: 5) { shot("e1a-sem-sortear", app) }
+        XCTAssertTrue(draw.exists)
+        app.buttons["Mostrar palavras"].tap()
+        shot("e1b-digitadas", app)
+        app.tapWhenEnabled(draw)
+        if !app.staticTexts["Confirme com o PIN"].waitForExistence(timeout: 10) { shot("e1c-sem-pin", app) }
+        XCTAssertTrue(app.staticTexts["Confirme com o PIN"].exists)
+        type(pin: pin, in: app)
+
+        let last = app.staticTexts["ultima-palavra"]
+        XCTAssertTrue(last.waitForExistence(timeout: 15), "a 12a nao apareceu")
+        let drawn = last.label
+        XCTAssertFalse(drawn.isEmpty)
+        XCTAssertTrue(text("A 12ª palavra", in: app))
+        shot("e2-sorteada", app)
+        app.buttons["anotei-ultima"].tap()
+
+        XCTAssertTrue(text("Palavras 1 a 3 de 12", in: app, timeout: 15))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'zoo'")).firstMatch.exists, "a 1a nao e a escolhida")
+        for _ in 0..<3 { app.buttons["Próximas"].tap() }
+        XCTAssertTrue(text("Palavras 10 a 12 de 12", in: app))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", drawn)).firstMatch.exists, "a placa nao mostra a sorteada")
+        shot("e3-placa", app)
+    }
+
     /// Arrasta o elemento na horizontal, como um dedo.
     private func drag(_ element: XCUIElement, by dx: CGFloat) {
         let start = element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))

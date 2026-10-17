@@ -54,7 +54,68 @@ public enum BIP39 {
         return out
     }
 
-    /// O caminho inverso: a entropia de uma frase valida, em buffer seguro.
+    /// A frase completa a partir das palavras que o dono escolheu (pedido do dono,
+    /// 17/10/2026): as 11 primeiras de 12, ou as 23 de 24, em ingles. A ultima palavra
+    /// carrega bits livres da entropia (7 na de 12, 3 na de 24) e o checksum; os livres
+    /// sao sorteados aqui, pelo mesmo gerador da geracao, e o checksum sai da conta. As
+    /// primeiras palavras ficam exatamente como vieram.
+    ///
+    /// So ingles, como `generate`. A forca da frase e a das palavras escolhidas mais os
+    /// bits sorteados: escolha humana rende bem menos que sorteio, e a tela diz isso.
+    public static func completing(_ firstWords: SecureBytes, store: WordlistStore = .shared) throws -> SecureBytes {
+        try completing(firstWords, store: store, freeBits: nil)
+    }
+
+    /// `freeBits`: so para os testes fixarem o sorteio.
+    static func completing(_ firstWords: SecureBytes, store: WordlistStore, freeBits: UInt8?) throws -> SecureBytes {
+        let list = try store.wordlist(for: .english)
+        var indices = try firstWords.withUnsafeBytes { raw -> [UInt16] in
+            let ranges = tokens(raw)
+            guard ranges.count == 11 || ranges.count == 23 else {
+                throw CryptoError.malformedVault("tamanho de frase fora do padrão")
+            }
+            var out: [UInt16] = []
+            for range in ranges {
+                guard let index = lookup(raw, range, in: list) else {
+                    out.resetIndices()
+                    throw CryptoError.malformedVault("palavra fora da lista")
+                }
+                out.append(index)
+            }
+            return out
+        }
+        defer { indices.resetIndices() }
+
+        // 12 palavras: 128 bits de entropia, 121 escolhidos e 7 livres; 24: 256, 253 e 3.
+        let entropyBits = (indices.count + 1) * 32 / 3
+        let free = entropyBits - indices.count * 11
+        var bits = [UInt8]()
+        bits.reserveCapacity(entropyBits)
+        defer { bits.resetBytes() }
+        for index in indices {
+            for b in (0..<11).reversed() { bits.append(UInt8((Int(index) >> b) & 1)) }
+        }
+        let drawn: UInt8
+        if let freeBits {
+            drawn = freeBits
+        } else {
+            let random = try SecureBytes.random(count: 1)
+            defer { random.wipe() }
+            drawn = random.withUnsafeBytes { $0[0] }
+        }
+        for b in (0..<free).reversed() { bits.append((drawn >> b) & 1) }
+
+        let entropy = SecureBytes(capacity: entropyBits / 8)
+        defer { entropy.wipe() }
+        for byteIndex in 0..<(entropyBits / 8) {
+            var byte: UInt8 = 0
+            for b in 0..<8 { byte = byte << 1 | bits[byteIndex * 8 + b] }
+            entropy.append(byte)
+        }
+        return try phrase(fromEntropy: entropy, store: store)
+    }
+
+    /// O caminho inverso: a entropia de uma frase valida, em buffer seguro.    /// O caminho inverso: a entropia de uma frase valida, em buffer seguro.
     ///
     /// A carteira guarda a entropia (16 a 32 bytes) e nao as palavras. A frase e a
     /// seed sao reconstruidas quando preciso, e a entropia e o menor segredo que

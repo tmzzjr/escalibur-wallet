@@ -82,10 +82,19 @@ struct ImportPhraseView: View {
         let onVerified: (WalletSecret) -> Void
     }
 
+    /// Escolher as palavras de uma carteira nova (pedido do dono, 17/10/2026): o dono digita
+    /// as primeiras (11 de 12, ou 23 de 24), em ingles, e o app sorteia a ultima, que fecha a
+    /// conta. `onChosen` recebe as primeiras e devolve o erro para mostrar, ou nil.
+    struct Choosing {
+        let wordCount: Int
+        let onChosen: (SecureBytes) async -> String?
+    }
+
     @Environment(AppSession.self) private var session
     @Environment(AuthCoordinator.self) private var auth
     let onFinished: () -> Void
     var verify: Verification? = nil
+    var choose: Choosing? = nil
 
     @State private var entry = PhraseEntry()
     @State private var typed = ""
@@ -115,6 +124,9 @@ struct ImportPhraseView: View {
     @State private var languages: Set<BIP39Language>?
     /// O silencio da rede desta tela, aberto uma vez so e fechado uma vez so.
     @State private var quiet = false
+    /// Escolhendo: o porque do aviso aberto, e a lista de palavras para escolher tocando.
+    @State private var cautionOpen = false
+    @State private var listOpen = false
 
     /// O teclado proprio nas posicoes da frase: escolhido em Seguranca, do modo reforcado,
     /// e sempre na conferencia das palavras para ligar o modo reforcado (revisao, M1).
@@ -126,7 +138,10 @@ struct ImportPhraseView: View {
     private var isFirstImport: Bool { session.metadata.wallets.isEmpty }
 
     /// Todas as listas, sem acento nas latinas: com o teclado proprio, "abaco" acha "ábaco".
-    private var suggestions: [String] { WordLexicon.completions(typed, preferring: languages, limit: 4) }
+    private var suggestions: [String] { WordLexicon.completions(typed, preferring: wordLanguages, limit: 4) }
+
+    /// Escolhendo as palavras, so ingles: e a lista de toda frase gerada.
+    private var wordLanguages: Set<BIP39Language>? { choose == nil ? languages : [.english] }
 
     var body: some View {
         // O ZStack fica de pe na troca entre o formulario e a conferencia: so sair da
@@ -148,6 +163,8 @@ struct ImportPhraseView: View {
                 entry.count = verify.wordCount
                 usesPassphrase = verify.hasPassphrase
             }
+            // Escolhendo: todas menos a ultima, que o app sorteia.
+            if let choose, entry.filledCount == 0 { entry.count = choose.wordCount - 1 }
         }
         .onDisappear {
             pending?.secret.wipe()
@@ -163,19 +180,27 @@ struct ImportPhraseView: View {
                 VStack(spacing: 0) {
                     VStack(spacing: Space.xs) {
                         CipherEmblem().padding(.bottom, Space.xs)
-                        Text(verify.map { String(localized: "Confira a cópia de \($0.walletName)") } ?? String(localized: "Importar com a senha da carteira"))
+                        Text(choose != nil ? String(localized: "Escolha as suas palavras")
+                             : verify.map { String(localized: "Confira a cópia de \($0.walletName)") } ?? String(localized: "Importar com a senha da carteira"))
                             .typeStyle(.title).foregroundStyle(Palette.ink)
-                        Text(verify == nil
+                        Text(choose.map { String(localized: "Digite \($0.wordCount - 1) palavras da lista em inglês, na ordem em que você anotou. A \($0.wordCount)ª o app sorteia, para a conta da frase fechar.") }
+                             ?? (verify == nil
                              ? String(localized: "Digite as palavras na ordem em que você anotou, uma em cada campo.")
-                             : String(localized: "Digite as palavras de onde você anotou, todas, em ordem. No Super Security, essa cópia é o único caminho de volta."))
+                             : String(localized: "Digite as palavras de onde você anotou, todas, em ordem. No Super Security, essa cópia é o único caminho de volta.")))
                             .typeStyle(.body).foregroundStyle(Palette.inkSoft)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
 
+                    if choose != nil {
+                        // Compacto, com a setinha para abrir o porque (pedido do dono, 17/10/2026).
+                        chosenCaution
+                            .padding(.top, Space.lg)
+                    }
+
                     HStack(alignment: .center, spacing: Space.sm) {
-                        if verify == nil {
+                        if verify == nil, choose == nil {
                             WordCountPicker(count: Binding(get: { entry.count }, set: { entry.count = $0; typed = "" }))
                         } else {
                             Spacer()
@@ -183,7 +208,7 @@ struct ImportPhraseView: View {
                         // O PasteButton do sistema le a area de transferencia sem o pedido de
                         // permissao do iOS. Conferindo uma copia, nada de colar: a conferencia e
                         // do papel (segunda revisao do modo reforcado, N6).
-                        if verify == nil {
+                        if verify == nil, choose == nil {
                             PasteButton(payloadType: String.self) { strings in
                                 guard let text = strings.first else { return }
                                 Task { @MainActor in fill(with: text) }
@@ -205,6 +230,16 @@ struct ImportPhraseView: View {
 
                     grid.padding(.top, Space.md)
 
+                    if choose != nil {
+                        SecondaryButton(title: String(localized: "Escolher na lista de palavras"), systemImage: "list.bullet") {
+                            typed = ""
+                            focused = false
+                            listOpen = true
+                        }
+                        .padding(.top, Space.sm)
+                        .accessibilityIdentifier("escolher-na-lista")
+                    }
+
                     HStack {
                         if entry.filledCount > 0 {
                             TertiaryButton(title: String(localized: "Limpar")) { confirmClear = true }
@@ -215,7 +250,7 @@ struct ImportPhraseView: View {
                     }
 
                     VStack(alignment: .leading, spacing: 0) {
-                        if verify == nil {
+                        if verify == nil, choose == nil {
                             Toggle(isOn: $usesPassphrase) {
                                 Text("Esta carteira usa passphrase").typeStyle(.body).foregroundStyle(Palette.ink)
                             }
@@ -282,10 +317,17 @@ struct ImportPhraseView: View {
                 suggestionBar
             } else {
                 ActionFooter {
-                    PrimaryButton(title: verify == nil ? String(localized: "Importar") : String(localized: "Conferir"), enabled: entry.filledCount == entry.count, loading: working) {
-                        Task { await importWallet() }
+                    if let choose {
+                        PrimaryButton(title: String(localized: "Sortear a \(choose.wordCount)ª palavra"), enabled: entry.filledCount == entry.count, loading: working) {
+                            Task { await chosen(choose) }
+                        }
+                        .accessibilityIdentifier("sortear-ultima")
+                    } else {
+                        PrimaryButton(title: verify == nil ? String(localized: "Importar") : String(localized: "Conferir"), enabled: entry.filledCount == entry.count, loading: working) {
+                            Task { await importWallet() }
+                        }
+                        .accessibilityIdentifier(verify == nil ? "importar" : "conferir-copia")
                     }
-                    .accessibilityIdentifier(verify == nil ? "importar" : "conferir-copia")
                 }
             }
         }
@@ -344,6 +386,9 @@ struct ImportPhraseView: View {
         .sheet(isPresented: $keyboardInfo) {
             KeyboardInfoSheet(onSystemKeyboard: { systemKeyboard = true }) { keyboardInfo = false }
         }
+        .sheet(isPresented: $listOpen) {
+            WordListPicker(entry: entry) { word in pick(word) }
+        }
     }
 
     private func assurance(_ icon: String, _ title: String, _ detail: String) -> some View {
@@ -374,16 +419,70 @@ struct ImportPhraseView: View {
     private var grid: some View {
         let columns = [GridItem(.flexible(), spacing: Space.xs), GridItem(.flexible(), spacing: Space.xs)]
         return LazyVGrid(columns: columns, spacing: Space.xs) {
-            ForEach(0..<entry.count, id: \.self) { index in
+            gridSlots
+            // Escolhendo: a ultima aparece, mas e do app, sem campo (pedido do dono, 17/10/2026).
+            if let choose { DrawnSlot(number: choose.wordCount) }
+        }
+    }
+
+    @ViewBuilder
+    private var gridSlots: some View {
+        ForEach(0..<entry.count, id: \.self) { index in
                 PhraseSlot(index: index, display: slotText(index), isActive: focused && entry.active == index,
                            text: textBinding(index), isFocused: focusBinding(index),
                            word: { [entry] in entry.word(at: index) },
                            sealed: sealedGlyphs(index), typing: typingGlyphs(index),
                            ownKeyboard: ownKeyboard, onSystemKeyboard: { confirmSystemKeyboard = true },
-                           onKeyboardInfo: { focused = false; keyboardInfo = true }, languages: languages,
+                           onKeyboardInfo: { focused = false; keyboardInfo = true }, languages: wordLanguages,
                            systemKeyboardType: systemKeyboard ? .default : .asciiCapable) { submit() }
                     .id(index)
+        }
+    }
+
+    /// O aviso das palavras escolhidas: uma linha com a setinha; aberto, o porque.
+    private var chosenCaution: some View {
+        Button { withAnimation(Motion.fade) { cautionOpen.toggle() } } label: {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.caution)
+                    Text("Escolhidas a dedo, as palavras ficam mais fáceis de adivinhar")
+                        .typeStyle(.note).fontWeight(.semibold).foregroundStyle(Palette.ink)
+                        .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: Space.xs)
+                    Image(systemName: "chevron.down").font(.system(size: 12, weight: .bold)).foregroundStyle(Palette.inkSoft)
+                        .rotationEffect(.degrees(cautionOpen ? 180 : 0))
+                }
+                if cautionOpen {
+                    Text("Gente escolhe palavras de que gosta, de um tema, perto umas das outras, e robôs testam essas frases o tempo todo. Sorteie cada palavra com moeda ou dado, ou deixe o app sortear todas. Por cima, uma carteira com passphrase forte protege o saldo.")
+                        .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                        .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 21)
+                        .transition(.opacity)
+                }
             }
+            .padding(.horizontal, Space.sm).padding(.vertical, Space.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.caution.opacity(0.12)))
+            // Fechando, o texto nao vaza do card durante a animacao.
+            .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(cautionOpen ? String(localized: "aberto") : String(localized: "fechado"))
+        .accessibilityIdentifier("aviso-escolhidas")
+    }
+
+    /// Da lista: a palavra entra na posicao em edicao, se vazia, ou na primeira vazia, e a
+    /// seguinte vazia fica ativa. Com todas preenchidas, a lista fecha.
+    private func pick(_ word: String) {
+        let target = entry.isFilled(entry.active) ? (0..<entry.count).first { !entry.isFilled($0) } : entry.active
+        guard let target else { listOpen = false; return }
+        entry.set(word, at: target)
+        message = nil
+        if let next = (0..<entry.count).first(where: { !entry.isFilled($0) }) {
+            entry.active = next
+        } else {
+            listOpen = false
         }
     }
 
@@ -542,7 +641,7 @@ struct ImportPhraseView: View {
     /// 17/10/2026). Palavra pela metade continua so no campo.
     private func commitPendingWord() {
         let pending = typed.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !pending.isEmpty, let match = WordLexicon.completions(pending, preferring: languages, limit: 1).first,
+        guard !pending.isEmpty, let match = WordLexicon.completions(pending, preferring: wordLanguages, limit: 1).first,
               WordLexicon.fold(match) == WordLexicon.fold(pending) else { return }
         commit(match)
     }
@@ -563,6 +662,28 @@ struct ImportPhraseView: View {
         typed = ""
         message = nil
         if entry.active < entry.count - 1 { entry.active += 1 } else { focused = false }
+    }
+
+    /// Escolhendo: as primeiras palavras vao para o fluxo de criar, que sorteia a ultima e
+    /// guarda a carteira. A frase montada e zerada aqui, aconteca o que acontecer.
+    private func chosen(_ choose: Choosing) async {
+        message = nil
+        // Cada palavra na lista em ingles, dita pela posicao: a frase gerada e so em ingles.
+        if let list = try? WordlistStore.shared.wordlist(for: .english) {
+            for index in 0..<entry.count {
+                var bytes = entry.slots[index].withUnsafeBytes { Array($0) }
+                defer { bytes.resetBytes() }
+                if list.position(nfkd: bytes) == nil {
+                    message = String(localized: "A palavra \(index + 1) não está na lista em inglês. Toque nela para corrigir.")
+                    return
+                }
+            }
+        }
+        working = true
+        defer { working = false }
+        let phrase = entry.phrase()
+        defer { phrase.wipe() }
+        message = await choose.onChosen(phrase)
     }
 
     private func importWallet() async {
@@ -772,6 +893,100 @@ private struct PhraseSlot: View {
         .accessibilityLabel(display == nil ? "Palavra \(index + 1), vazia" : "Palavra \(index + 1), preenchida")
         .accessibilityValue(isActive ? String(localized: "editando") : "")
         .accessibilityIdentifier("palavra-\(index + 1)")
+    }
+}
+
+/// A ultima palavra quando o dono escolhe as outras: aparece na grade, com o numero, mas e
+/// do app, sem campo para digitar (pedido do dono, 17/10/2026).
+private struct DrawnSlot: View {
+    let number: Int
+
+    var body: some View {
+        HStack(spacing: Space.xs) {
+            Text(String(format: "%02d", number))
+                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                .foregroundStyle(Palette.inkMuted)
+            Image(systemName: "dice").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.inkMuted)
+            Text("o app sorteia").font(.system(size: 15, weight: .medium)).foregroundStyle(Palette.inkDead).lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Space.sm)
+        .frame(height: 44)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                .stroke(Palette.edge, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(String(localized: "Palavra \(number), sorteada pelo app"))
+        .accessibilityIdentifier("palavra-sorteada")
+    }
+}
+
+/// As 2048 palavras em ingles para escolher tocando (pedido do dono, 17/10/2026), por letra,
+/// sem teclado nenhum. Cada toque preenche a proxima posicao vazia; a lista e publica, mas a
+/// sequencia tocada nao, e a folha fica atras da guarda de captura.
+private struct WordListPicker: View {
+    let entry: PhraseEntry
+    let onPick: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    static let words: [String] = (try? WordlistStore.shared.wordlist(for: .english).words) ?? []
+    static let letters: [String] = Array(Set(words.compactMap { $0.first.map(String.init) })).sorted()
+    static let byLetter: [String: [String]] = Dictionary(grouping: words) { $0.first.map(String.init) ?? "" }
+
+    var body: some View {
+        let filled = entry.filledCount
+        VStack(alignment: .leading, spacing: 0) {
+            SheetHeader(title: String(localized: "Lista de palavras")) { dismiss() }
+            Text(filled < entry.count
+                 ? String(localized: "Toque numa palavra para preencher a \(filled + 1)ª de \(entry.count).")
+                 : String(localized: "As \(entry.count) estão preenchidas."))
+                .typeStyle(.note).foregroundStyle(Palette.inkSoft)
+                .padding(.horizontal, Space.gutter).padding(.top, Space.xs)
+                .accessibilityIdentifier("lista-progresso")
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: Space.xs) {
+                        ForEach(Self.letters, id: \.self) { letter in
+                            // A secao tem id proprio: com o mesmo da letra, o toque rolava a fileira de letras.
+                            Chip(title: letter.uppercased()) { withAnimation(Motion.fade) { proxy.scrollTo("secao-" + letter, anchor: .top) } }
+                                .accessibilityIdentifier("letra-\(letter)")
+                        }
+                    }
+                    .padding(.horizontal, Space.gutter)
+                }
+                .padding(.vertical, Space.sm)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: Space.md) {
+                        ForEach(Self.letters, id: \.self) { letter in
+                            VStack(alignment: .leading, spacing: Space.xs) {
+                                Text(letter.uppercased()).typeStyle(.heading).foregroundStyle(Palette.inkMuted)
+                                LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: Space.xs)], spacing: Space.xs) {
+                                    ForEach(Self.byLetter[letter] ?? [], id: \.self) { word in
+                                        Button { onPick(word) } label: {
+                                            Text(verbatim: word)
+                                                .font(.system(size: 15, weight: .medium))
+                                                .foregroundStyle(Palette.ink)
+                                                .frame(maxWidth: .infinity, minHeight: 40)
+                                                .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.body))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .sensoryFeedback(.selection, trigger: filled)
+                                    }
+                                }
+                            }
+                            .id("secao-" + letter)
+                        }
+                    }
+                    .padding(.horizontal, Space.gutter)
+                    .padding(.bottom, Space.xl)
+                }
+            }
+        }
+        .background(Palette.void.ignoresSafeArea())
+        .presentationDetents([.large])
+        .presentationBackground(Palette.void)
+        .guardedAgainstCapture()
     }
 }
 
