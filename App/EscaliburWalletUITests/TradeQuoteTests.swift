@@ -83,3 +83,34 @@ final class TradeQuoteTests: XCTestCase {
         XCTAssertTrue(title.exists || hijacked.exists, "nem a revisao nem a recusa da conta tomada")
     }
 }
+
+/// O seletor de moedas da troca: "Voce vende" so com o que tem saldo, do maior para o menor.
+final class TradePickerTests: XCTestCase {
+    func testSellPickerShowsOnlyHeld() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-reset", "-demo", "-tela", "trocar"]
+        app.launch()
+        let menu = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Rede:'")).firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 30))
+        menu.tap()
+        let solana = app.buttons["Solana"].firstMatch
+        XCTAssertTrue(solana.waitForExistence(timeout: 5))
+        solana.tap()
+        // A carteira de teste precisa do saldo da Solana carregado.
+        sleep(6)
+        let sell = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'escolher-token-'")).firstMatch
+        XCTAssertTrue(sell.waitForExistence(timeout: 10))
+        sell.tap()
+        XCTAssertTrue(app.staticTexts["Escolher token"].waitForExistence(timeout: 5))
+        let sellRows = app.buttons.matching(NSPredicate(format: "label CONTAINS 'SOL'")).count
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "s1-vende"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        XCTAssertGreaterThan(sellRows, 0, "o SOL, com saldo, nao aparece para vender")
+        // Sem saldo, o USDC da Solana nao aparece para vender.
+        // A linha da lista tem o nome junto; o "USDC" do Voce recebe, atras da folha, nao.
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "label CONTAINS 'USD Coin'")).firstMatch.exists, "token sem saldo na lista de vender")
+    }
+}
+

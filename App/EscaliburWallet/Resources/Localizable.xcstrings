@@ -187281,6 +187281,26 @@
         }
       }
     },
+    "Nada para vender na %@ ainda. Receba ou troque em outra rede primeiro." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to sell on %@ yet. Receive, or swap on another network first."
+          }
+        }
+      }
+    },
+    "Nada com este nome entre o que você tem na %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing with this name among what you hold on %@."
+          }
+        }
+      }
+    },
     "Contrato do token copiado." : {
       "localizations" : {
         "en" : {

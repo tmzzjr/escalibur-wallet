@@ -220,7 +220,7 @@ struct TradeView: View {
         // Outro modo: o recebido digitado era do anterior (o valor a pagar fica).
         .onChange(of: router.tradeMode) { _, _ in model.clearExactOut() }
         .sheet(item: $picking) { side in
-            TokenPickerSheet(chain: model.chain, exclude: side == .sell ? model.buy : model.sell) { asset in
+            TokenPickerSheet(chain: model.chain, exclude: side == .sell ? model.buy : model.sell, selling: side == .sell) { asset in
                 if side == .sell { model.sell = asset } else { model.buy = asset }
                 model.quote = nil
                 // Outra moeda a receber: o recebido digitado era em outra unidade.
@@ -1077,6 +1077,7 @@ struct AmountBox: View {
                     .background(RoundedRectangle(cornerRadius: Radius.card, style: .continuous).fill(Palette.rail))
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("escolher-token-" + title)
             }
             HStack {
                 Text(fiat ?? " ").typeStyle(.note).foregroundStyle(amount.isEmpty ? Palette.inkMuted : Palette.inkSoft)
@@ -1135,6 +1136,8 @@ struct TokenPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     let chain: Chain
     let exclude: Asset?
+    /// "Voce vende": so o que a carteira tem nesta rede (pedido do dono, 17/10/2026).
+    var selling = false
     let onPick: (Asset) -> Void
     @State private var query = ""
     @State private var adding = false
@@ -1157,9 +1160,27 @@ struct TokenPickerSheet: View {
         query.isEmpty || asset.symbol.localizedCaseInsensitiveContains(query) || asset.name.localizedCaseInsensitiveContains(query)
     }
 
+    /// Do maior saldo para o menor, nas duas secoes (pedido do dono, 17/10/2026): pelo valor
+    /// na moeda local quando ha preco, senao pela quantidade; sem saldo, depois, na ordem da
+    /// lista. Vendendo, so o que tem saldo.
+    private func ordered(_ assets: [Asset]) -> [Asset] {
+        let keyed = assets.enumerated().map { index, asset -> (asset: Asset, index: Int, value: Double, amount: Double) in
+            let held = amount(asset).map { Fmt.double($0, decimals: asset.decimals) } ?? 0
+            let price = asset.origin == nil ? (portfolio.price(of: asset) ?? 0) : 0
+            return (asset, index, held * price, held)
+        }
+        let shown = selling ? keyed.filter { $0.amount > 0 } : keyed
+        return shown.sorted { a, b in
+            if (a.amount > 0) != (b.amount > 0) { return a.amount > 0 }
+            if a.value != b.value { return a.value > b.value }
+            if a.amount > 0, a.amount != b.amount { return a.amount > b.amount }
+            return a.index < b.index
+        }.map(\.asset)
+    }
+
     var body: some View {
-        let verified = TokenRegistry.assets(on: chain).filter { $0.id != exclude?.id && matches($0) }
-        let others = unlisted.filter { $0.id != exclude?.id && matches($0) }
+        let verified = ordered(TokenRegistry.assets(on: chain).filter { $0.id != exclude?.id && matches($0) })
+        let others = ordered(unlisted.filter { $0.id != exclude?.id && matches($0) })
         VStack(alignment: .leading, spacing: 0) {
             SheetHeader(title: String(localized: "Escolher token")) { dismiss() }
             TextField("", text: $query, prompt: Text("Buscar por nome").foregroundColor(Palette.inkDead))
@@ -1172,9 +1193,15 @@ struct TokenPickerSheet: View {
                     if !others.isEmpty {
                         section(String(localized: "Fora da lista verificada"))
                         ForEach(others) { row($0) }
-                        section(String(localized: "Verificadas"))
+                        if !verified.isEmpty { section(String(localized: "Verificadas")) }
                     }
                     ForEach(verified) { row($0) }
+                    if selling, verified.isEmpty, others.isEmpty {
+                        Text(query.isEmpty ? String(localized: "Nada para vender na \(chain.name) ainda. Receba ou troque em outra rede primeiro.")
+                                           : String(localized: "Nada com este nome entre o que você tem na \(chain.name)."))
+                            .typeStyle(.note).foregroundStyle(Palette.inkSoft).fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, Space.gutter).padding(.top, Space.md)
+                    }
                     if TradeAccess.supportsUnlisted(chain) {
                         Button { adding = true } label: {
                             HStack(spacing: Space.sm) {
